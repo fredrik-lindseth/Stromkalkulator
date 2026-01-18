@@ -17,7 +17,18 @@ Home Assistant integrasjon for beregning av nettleie for norske nettselskaper.
 
 ## Merk
 
-Norgespris er ikke støttet.
+**Norgespris er forenklet.** Norgespris-sensorene bruker ditt lokale prisområde som "norgespris", ikke det faktiske gjennomsnittet for hele Norge.
+
+### Hva mangler for korrekt norgespris?
+For å vise ekte norgespris trengs:
+- **Systempris-data**: Hente systempris fra Nord Pool API (gjennomsnitt for hele Norge)
+- **API-integrasjon**: Direkte kall til Nord Pool sitt dataportal
+- **Valuta-konvertering**: Systempris er i EUR, må konverteres til NOK
+
+### Nåværende begrensning
+- Viser samme pris som ditt prisområde
+- Gir ikke reell sammenligning med landsgjennomsnittet
+- Kan være misvisende i prisområder med avvikende priser
 
 ## Krav
 
@@ -72,6 +83,8 @@ Norgespris er ikke støttet.
 | `sensor.stromstotte`               | Strømstøtte per kWh (90% over 70 øre)             |
 | `sensor.spotpris_etter_stotte`     | Spotpris minus strømstøtte (NOK/kWh)              |
 | `sensor.total_pris_etter_stotte`   | Total strømpris etter strømstøtte (NOK/kWh)       |
+| `sensor.min_pris_norgespris`       | Din pris med norgespris (NOK/kWh)                 |
+| `sensor.kroner_spart_norgespris`    | Kroner spart/tapt med norgespris (NOK/kWh)        |
 
 ## Konfigurasjonsfelt
 

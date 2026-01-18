@@ -116,6 +116,22 @@ class NettleieCoordinator(DataUpdateCoordinator):
         
         # Spotpris etter strømstøtte
         spotpris_etter_stotte = spot_price - stromstotte
+        
+        # Norgespris (forenklet - bruker eget prisområde)
+        # TODO: Hent ekte systempris fra Nord Pool API senere
+        norgespris = spot_price
+        
+        # Strømstøtte basert på norgespris
+        if norgespris > STROMSTOTTE_LEVEL:
+            norgespris_stromstotte = (norgespris - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE
+        else:
+            norgespris_stromstotte = 0
+        
+        # Min pris med norgespris
+        min_pris_norgespris = norgespris - norgespris_stromstotte + energiledd + fastledd_per_kwh
+        
+        # Kroner spart per kWh
+        kroner_spart_per_kwh = spotpris_etter_stotte - (norgespris - norgespris_stromstotte)
 
         # Calculate fastledd per kWh
         days_in_month = self._days_in_month(now)
@@ -145,6 +161,10 @@ class NettleieCoordinator(DataUpdateCoordinator):
             "spot_price": round(spot_price, 4),
             "stromstotte": round(stromstotte, 4),
             "spotpris_etter_stotte": round(spotpris_etter_stotte, 4),
+            "norgespris": round(norgespris, 4),
+            "norgespris_stromstotte": round(norgespris_stromstotte, 4),
+            "min_pris_norgespris": round(min_pris_norgespris, 4),
+            "kroner_spart_per_kwh": round(kroner_spart_per_kwh, 4),
             "total_price": round(total_price, 2),
             "tibber_price": round(tibber_price, 4) if tibber_price is not None else None,
             "tibber_total": round(tibber_total, 4) if tibber_total is not None else None,

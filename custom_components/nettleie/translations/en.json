@@ -13,7 +13,10 @@
         "description": "Select sensors for power consumption and spot price",
         "data": {
           "power_sensor": "Power consumption sensor (W)",
-          "spot_price_sensor": "Nordpool spot price sensor for your meter (NOK/kWh)"
+          "spot_price_sensor": {
+            "name": "Nord Pool Current price sensor",
+            "description": "Select the Nord Pool 'Current price' sensor (NOK/kWh). Example: sensor.nord_pool_no5_current_price"
+          }
         }
       },
       "pricing": {
@@ -38,7 +41,7 @@
         "title": "Nettleie settings",
         "data": {
           "power_sensor": "Power consumption sensor (W)",
-          "spot_price_sensor": "Nordpool spot price sensor for your meter (NOK/kWh)",
+          "spot_price_sensor": "Nord Pool 'Current price' sensor (NOK/kWh)",
           "energiledd_dag": "Energy tariff day (NOK/kWh)",
           "energiledd_natt": "Energy tariff night/weekend (NOK/kWh)"
         }

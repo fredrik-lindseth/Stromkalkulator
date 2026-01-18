@@ -31,6 +31,8 @@ async def async_setup_entry(
         MaksForbrukSensor(coordinator, entry, 2),
         MaksForbrukSensor(coordinator, entry, 3),
         GjsForbrukSensor(coordinator, entry),
+        TrinnNummerSensor(coordinator, entry),
+        TrinnIntervallSensor(coordinator, entry),
     ]
 
     async_add_entities(entities)
@@ -231,4 +233,36 @@ class GjsForbrukSensor(NettleieBaseSensor):
                 "kapasitetstrinn": self.coordinator.data.get("kapasitetsledd"),
                 "tso": self.coordinator.data.get("tso"),
             }
+        return None
+
+
+class TrinnNummerSensor(NettleieBaseSensor):
+    """Sensor for capacity tier number."""
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "trinn_nummer", "Kapasitetstrinn nummer")
+        self._attr_icon = "mdi:numeric"
+
+    @property
+    def native_value(self):
+        """Return the state."""
+        if self.coordinator.data:
+            return self.coordinator.data.get("kapasitetstrinn_nummer")
+        return None
+
+
+class TrinnIntervallSensor(NettleieBaseSensor):
+    """Sensor for capacity tier interval."""
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "trinn_intervall", "Kapasitetstrinn intervall")
+        self._attr_icon = "mdi:arrow-expand-horizontal"
+
+    @property
+    def native_value(self):
+        """Return the state."""
+        if self.coordinator.data:
+            return self.coordinator.data.get("kapasitetstrinn_intervall")
         return None

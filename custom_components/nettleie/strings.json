@@ -13,7 +13,7 @@
         "description": "Velg sensorer for strømforbruk og spotpris",
         "data": {
           "power_sensor": "Strømforbruk-sensor (W)",
-          "spot_price_sensor": "Nordpool spotpris-sensor for strømsonen din (NOK/kWh)"
+          "spot_price_sensor": "Nord Pool 'Current price' sensor (NOK/kWh)"
         }
       },
       "pricing": {
@@ -38,7 +38,7 @@
         "title": "Nettleie innstillinger",
         "data": {
           "power_sensor": "Strømforbruk-sensor (W)",
-          "spot_price_sensor": "Nordpool spotpris-sensor for strømsonen din (NOK/kWh)",
+          "spot_price_sensor": "Nord Pool 'Current price' sensor (NOK/kWh)",
           "energiledd_dag": "Energiledd dag (NOK/kWh)",
           "energiledd_natt": "Energiledd natt/helg (NOK/kWh)"
         }

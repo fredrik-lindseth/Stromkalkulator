@@ -1,0 +1,103 @@
+name: HACS Validation
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  hacs-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: HACS Validation
+        uses: hacs/action@main
+        with:
+          category: integration
+          ignore: tests
+
+      - name: Check HACS requirements
+        run: |
+          echo "🔍 Checking HACS requirements..."
+          
+          # Check manifest
+          if [ ! -f "custom_components/nettleie/manifest.json" ]; then
+            echo "❌ Missing manifest.json"
+            exit 1
+          fi
+          
+          # Check required fields in manifest
+          REQUIRED_FIELDS=("domain" "name" "version" "documentation")
+          for field in "${REQUIRED_FIELDS[@]}"; do
+            if ! jq -e ".$field" custom_components/nettleie/manifest.json > /dev/null; then
+              echo "❌ Missing required field in manifest: $field"
+              exit 1
+            fi
+          done
+          
+          # Check config flow
+          if [ "$(jq -r '.config_flow' custom_components/nettleie/manifest.json)" != "true" ]; then
+            echo "❌ config_flow must be true for HACS"
+            exit 1
+          fi
+          
+          echo "✅ Manifest validation passed"
+          
+          # Check __init__.py
+          if [ ! -f "custom_components/nettleie/__init__.py" ]; then
+            echo "❌ Missing __init__.py"
+            exit 1
+          fi
+          
+          # Check for setup function
+          if ! grep -q "async_setup_entry" custom_components/nettleie/__init__.py; then
+            echo "❌ Missing async_setup_entry in __init__.py"
+            exit 1
+          fi
+          
+          echo "✅ __init__.py validation passed"
+          
+          # Check translations
+          if [ ! -d "custom_components/nettleie/translations" ]; then
+            echo "⚠️ No translations directory found (recommended)"
+          else
+            if [ ! -f "custom_components/nettleie/translations/en.json" ]; then
+              echo "⚠️ No English translation found (recommended)"
+            else
+              echo "✅ English translation found"
+            fi
+          fi
+          
+          # Check README
+          if [ ! -f "README.md" ]; then
+            echo "❌ Missing README.md"
+            exit 1
+          fi
+          
+          # Check for HACS badge
+          if ! grep -q "hacs_badge" README.md; then
+            echo "⚠️ No HACS badge in README (recommended)"
+          fi
+          
+          echo "✅ All HACS requirements checked!"
+
+  screenshot-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check for screenshots
+        run: |
+          echo "📸 Checking for screenshots..."
+          
+          if ls *.png *.jpg *.jpeg *.svg 2> /dev/null; then
+            echo "✅ Found screenshots:"
+            ls *.png *.jpg *.jpeg *.svg 2> /dev/null
+          else
+            echo "⚠️ No screenshots found (recommended for HACS)"
+            echo "   Add screenshots to show the integration in action"
+          fi

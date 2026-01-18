@@ -4,9 +4,47 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'v*'
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate manifest
+        run: |
+          jq empty custom_components/nettleie/manifest.json || exit 1
+          echo "✅ Manifest JSON is valid"
+
+      - name: Check required files
+        run: |
+          REQUIRED_FILES=(
+            "custom_components/nettleie/__init__.py"
+            "custom_components/nettleie/manifest.json"
+            "custom_components/nettleie/config_flow.py"
+            "custom_components/nettleie/sensor.py"
+            "custom_components/nettleie/coordinator.py"
+            "custom_components/nettleie/const.py"
+            "README.md"
+          )
+          for file in "${REQUIRED_FILES[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "❌ Missing required file: $file"
+              exit 1
+            fi
+          done
+          echo "✅ All required files present"
+
+      - name: Check Python syntax
+        run: |
+          python -m py_compile custom_components/nettleie/*.py
+          echo "✅ Python syntax is valid"
+
   release:
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -53,8 +91,39 @@ jobs:
           tag_name: v${{ steps.version.outputs.version }}
           name: v${{ steps.version.outputs.version }}
           body: |
-            ## Endringer
+            ## 🚀 Nettleie v${{ steps.version.outputs.version }}
+            
+            ### 🆕 Nyheter
+            - Strømstøtte-sensorer (90% over 70 øre)
+            - Norgespris-sensorer (forenklet)
+            - Komplett options flow med alle konfigurasjonsfelt
+            - Persistens for maksforbruk-data
+            
+            ### 📋 Installasjon
+            1. Last ned ny versjon via HACS eller manuell installasjon
+            2. Restart Home Assistant
+            3. Konfigurer på nytt hvis nødvendig
+            
+            ### 📚 Dokumentasjon
+            Se [README.md](https://github.com/fredrik-lindseth/nettleie/blob/main/README.md) for detaljer
+            
+            ---
+            
+            ## 📝 Endringer
             
             ${{ steps.changelog.outputs.commits }}
           draft: false
           prerelease: false
+
+      - name: Create ZIP for HACS
+        if: steps.check_tag.outputs.exists == 'false'
+        run: |
+          mkdir -p dist
+          zip -r dist/nettleie.zip custom_components/nettleie
+          echo "✅ Created ZIP for HACS"
+
+      - name: Upload ZIP to release
+        if: steps.check_tag.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/nettleie.zip

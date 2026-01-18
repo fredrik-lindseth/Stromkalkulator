@@ -315,7 +315,7 @@ class StromstotteSensor(NettleieBaseSensor):
         self._attr_native_unit_of_measurement = "NOK/kWh"
         self._attr_state_class = SensorStateClass.MEASUREMENT
         self._attr_icon = "mdi:cash-refund"
-        self._attr_suggested_display_precision = 4
+        self._attr_suggested_display_precision = 2
 
     @property
     def native_value(self):
@@ -345,7 +345,7 @@ class SpotprisEtterStotteSensor(NettleieBaseSensor):
         self._attr_native_unit_of_measurement = "NOK/kWh"
         self._attr_state_class = SensorStateClass.MEASUREMENT
         self._attr_icon = "mdi:currency-usd-off"
-        self._attr_suggested_display_precision = 4
+        self._attr_suggested_display_precision = 2
 
     @property
     def native_value(self):
@@ -438,7 +438,7 @@ class KronerSpartNorgesprisSensor(NettleieBaseSensor):
         self._attr_native_unit_of_measurement = "NOK/kWh"
         self._attr_state_class = SensorStateClass.MEASUREMENT
         self._attr_icon = "mdi:cash-minus"
-        self._attr_suggested_display_precision = 4
+        self._attr_suggested_display_precision = 2
 
     @property
     def native_value(self):

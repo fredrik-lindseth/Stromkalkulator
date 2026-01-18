@@ -62,8 +62,8 @@ class NettleieBaseSensor(CoordinatorEntity, SensorEntity):
         return {
             "identifiers": {(DOMAIN, self._entry.entry_id)},
             "name": f"Nettleie ({self._tso['name']})",
-            "manufacturer": self._tso["name"],
-            "model": "Nettleie Kalkulator",
+            "manufacturer": "Fredrik Lindseth",
+            "model": "Nettleiekalkulator",
         }
 
 
@@ -76,6 +76,7 @@ class EnergileggSensor(NettleieBaseSensor):
         self._attr_native_unit_of_measurement = "NOK/kWh"
         self._attr_state_class = SensorStateClass.MEASUREMENT
         self._attr_icon = "mdi:currency-usd"
+        self._attr_suggested_display_precision = 2
 
     @property
     def native_value(self):

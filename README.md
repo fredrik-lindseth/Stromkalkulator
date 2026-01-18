@@ -44,9 +44,10 @@ Home Assistant integrasjon for beregning av nettleie for norske nettselskaper.
 1. Gå til Settings → Devices & Services
 2. Klikk "Add Integration"
 3. Søk etter "Nettleie"
-4. Velg nettselskap (BKK eller Egendefinert)
+4. Velg nettselskap (BKK, Elvia, Glitre Nett, Tensio eller Egendefinert)
 5. Velg din strømforbruk-sensor (f.eks. Tibber Pulse)
-6. Velg din spotpris-sensor fra Nordpool-integrasjonen (Prisen i strømsonen din, eks NO5)
+6. Velg Nord Pool **"Current price"** sensor (f.eks. `sensor.nord_pool_no5_current_price`)
+   - ⚠️ **Viktig:** Bruk "Current price", ikke "Highest/Lowest/Next price"
 7. (Valgfritt) Angi egne energiledd-priser
 
 ## Sensorer

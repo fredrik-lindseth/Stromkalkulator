@@ -7,6 +7,7 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import (
@@ -60,15 +61,25 @@ class NettleieCoordinator(DataUpdateCoordinator):
         # Format: {date_str: max_power_kw}
         self._daily_max_power: dict[str, float] = {}
         self._current_month: int = datetime.now().month
+        
+        # Persistent storage
+        self._store = Store(hass, 1, f"{DOMAIN}_{entry.entry_id}")
+        self._store_loaded = False
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from sensors and calculate values."""
         now = datetime.now()
         
+        # Load stored data on first run
+        if not self._store_loaded:
+            await self._load_stored_data()
+            self._store_loaded = True
+        
         # Reset at new month
         if now.month != self._current_month:
             self._daily_max_power = {}
             self._current_month = now.month
+            await self._save_stored_data()
 
         # Get current power consumption
         power_state = self.hass.states.get(self.power_sensor)
@@ -77,10 +88,11 @@ class NettleieCoordinator(DataUpdateCoordinator):
 
         # Update daily max
         today_str = now.strftime("%Y-%m-%d")
-        if today_str not in self._daily_max_power:
-            self._daily_max_power[today_str] = current_power_kw
-        else:
-            self._daily_max_power[today_str] = max(self._daily_max_power[today_str], current_power_kw)
+        old_max = self._daily_max_power.get(today_str, 0)
+        new_max = max(old_max, current_power_kw)
+        if new_max > old_max:
+            self._daily_max_power[today_str] = new_max
+            await self._save_stored_data()
 
         # Get top 3 days
         top_3 = self._get_top_3_days()
@@ -183,3 +195,23 @@ class NettleieCoordinator(DataUpdateCoordinator):
         """Get number of days in current month."""
         next_month = (now.replace(day=1) + timedelta(days=32)).replace(day=1)
         return (next_month - now.replace(day=1)).days
+
+    async def _load_stored_data(self) -> None:
+        """Load stored data from disk."""
+        data = await self._store.async_load()
+        if data:
+            self._daily_max_power = data.get("daily_max_power", {})
+            stored_month = data.get("current_month")
+            # If stored month is different, clear data
+            if stored_month and stored_month != self._current_month:
+                self._daily_max_power = {}
+            _LOGGER.debug("Loaded stored data: %s", self._daily_max_power)
+
+    async def _save_stored_data(self) -> None:
+        """Save data to disk."""
+        data = {
+            "daily_max_power": self._daily_max_power,
+            "current_month": self._current_month,
+        }
+        await self._store.async_save(data)
+        _LOGGER.debug("Saved data: %s", data)

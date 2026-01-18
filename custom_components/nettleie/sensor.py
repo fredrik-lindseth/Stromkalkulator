@@ -299,7 +299,7 @@ class ElectricityCompanyTotalSensor(NettleieBaseSensor):
         """Return extra attributes."""
         if self.coordinator.data:
             return {
-                "electricity_company_pris": self.coordinator.data.get("tibber_price"),
+                "electricity_company_pris": self.coordinator.data.get("electricity_company_price"),
                 "energiledd": self.coordinator.data.get("energiledd"),
                 "kapasitetsledd_per_kwh": self.coordinator.data.get("kapasitetsledd_per_kwh"),
             }

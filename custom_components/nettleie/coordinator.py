@@ -44,7 +44,7 @@ class NettleieCoordinator(DataUpdateCoordinator):
         self.entry = entry
         self.power_sensor = entry.data.get(CONF_POWER_SENSOR)
         self.spot_price_sensor = entry.data.get(CONF_SPOT_PRICE_SENSOR)
-        self.tibber_price_sensor = entry.data.get(CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR)
+        self.electricity_company_price_sensor = entry.data.get(CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR)
         
         # Get TSO config
         tso_id = entry.data.get(CONF_TSO, "bkk")
@@ -140,15 +140,15 @@ class NettleieCoordinator(DataUpdateCoordinator):
         # Total price (Nord Pool + nettleie)
         total_price = spot_price - stromstotte + energiledd + fastledd_per_kwh
 
-        # Get Tibber price if configured
-        tibber_price = None
-        tibber_total = None
-        if self.tibber_price_sensor:
-            tibber_state = self.hass.states.get(self.tibber_price_sensor)
-            if tibber_state and tibber_state.state not in ("unknown", "unavailable"):
-                tibber_price = float(tibber_state.state)
-                # Tibber total = Tibber strømpris + nettleie (energiledd + kapasitetsledd per kWh)
-                electricity_company_total = tibber_price + energiledd + fastledd_per_kwh
+        # Get electricity company price if configured
+        electricity_company_price = None
+        electricity_company_total = None
+        if self.electricity_company_price_sensor:
+            electricity_company_state = self.hass.states.get(self.electricity_company_price_sensor)
+            if electricity_company_state and electricity_company_state.state not in ("unknown", "unavailable"):
+                electricity_company_price = float(electricity_company_state.state)
+                # Electricity company total = strømpris + nettleie (energiledd + kapasitetsledd per kWh)
+                electricity_company_total = electricity_company_price + energiledd + fastledd_per_kwh
 
         return {
             "energiledd": round(energiledd, 4),
@@ -166,7 +166,7 @@ class NettleieCoordinator(DataUpdateCoordinator):
             "min_pris_norgespris": round(min_pris_norgespris, 4),
             "kroner_spart_per_kwh": round(kroner_spart_per_kwh, 4),
             "total_price": round(total_price, 2),
-            "tibber_price": round(tibber_price, 4) if tibber_price is not None else None,
+            "electricity_company_price": round(electricity_company_price, 4) if electricity_company_price is not None else None,
             "electricity_company_total": round(electricity_company_total, 4) if electricity_company_total is not None else None,
             "current_power_kw": round(current_power_kw, 2),
             "avg_top_3_kw": round(avg_power, 2),

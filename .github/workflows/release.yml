@@ -24,18 +24,8 @@ jobs:
           VERSION=$(jq -r '.version' custom_components/nettleie/manifest.json)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Check if tag exists
-        id: check_tag
-        run: |
-          if git rev-parse "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
-
       - name: Get commit messages since last tag
         id: changelog
-        if: steps.check_tag.outputs.exists == 'false'
         run: |
           LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
           if [ -z "$LAST_TAG" ]; then
@@ -48,45 +38,29 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Create Release
-        if: steps.check_tag.outputs.exists == 'false'
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ steps.version.outputs.version }}
           name: v${{ steps.version.outputs.version }}
           body: |
-            ## 🚀 Nettleie v${{ steps.version.outputs.version }}
+            ## Nettleie v${{ steps.version.outputs.version }}
             
-            ### 🆕 Nyheter
-            - Strømstøtte-sensorer (90% over 70 øre)
-            - Norgespris-sensorer (forenklet)
-            - Komplett options flow med alle konfigurasjonsfelt
-            - Persistens for maksforbruk-data
-            
-            ### 📋 Installasjon
-            1. Last ned ny versjon via HACS eller manuell installasjon
-            2. Restart Home Assistant
-            3. Konfigurer på nytt hvis nødvendig
-            
-            ### 📚 Dokumentasjon
             Se [README.md](https://github.com/fredrik-lindseth/nettleie/blob/main/README.md) for detaljer
             
             ---
             
-            ## 📝 Endringer
+            ##  Endringer
             
             ${{ steps.changelog.outputs.commits }}
           draft: false
           prerelease: false
 
       - name: Create ZIP for HACS
-        if: steps.check_tag.outputs.exists == 'false'
         run: |
           mkdir -p dist
           zip -r dist/nettleie.zip custom_components/nettleie
           echo "✅ Created ZIP for HACS"
 
       - name: Upload ZIP to release
-        if: steps.check_tag.outputs.exists == 'false'
         uses: softprops/action-gh-release@v1
         with:
           files: dist/nettleie.zip

@@ -206,11 +206,24 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):
             return self.async_create_entry(title="", data={})
 
         current_data = self.config_entry.data
+        tso_options = [
+            selector.SelectOptionDict(value=key, label=value["name"])
+            for key, value in TSO_LIST.items()
+        ]
 
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
                 {
+                    vol.Required(
+                        CONF_TSO,
+                        default=current_data.get(CONF_TSO, DEFAULT_TSO),
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=tso_options,
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                        ),
+                    ),
                     vol.Required(
                         CONF_POWER_SENSOR,
                         default=current_data.get(CONF_POWER_SENSOR),

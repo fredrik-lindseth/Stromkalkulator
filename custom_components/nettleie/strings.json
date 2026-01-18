@@ -37,6 +37,7 @@
       "init": {
         "title": "Nettleie innstillinger",
         "data": {
+          "tso": "Nettselskap (TSO)",
           "power_sensor": "Strømforbruk-sensor (W)",
           "spot_price_sensor": "Nord Pool 'Current price' sensor (NOK/kWh)",
           "energiledd_dag": "Energiledd dag (NOK/kWh)",

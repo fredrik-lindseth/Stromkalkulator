@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="32" viewBox="0 0 160 32" role="img" aria-label="AI SLOP">
+  <title>AI SLOP</title>
+  <defs>
+    <!-- Rainbow gradient background -->
+    <linearGradient id="rainbow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff0080;stop-opacity:1" />
+      <stop offset="25%" style="stop-color:#ff00ff;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#8000ff;stop-opacity:1" />
+      <stop offset="75%" style="stop-color:#0080ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00ffff;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Glossy shine overlay -->
+    <linearGradient id="shine" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.4" />
+      <stop offset="50%" style="stop-color:#ffffff;stop-opacity:0.1" />
+      <stop offset="100%" style="stop-color:#000000;stop-opacity:0.1" />
+    </linearGradient>
+
+    <!-- Sparkle animation would go here in animated version -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Drop shadow -->
+  <ellipse cx="80" cy="17" rx="78" ry="14" fill="#000" opacity="0.15"/>
+
+  <!-- Main pill background with rainbow gradient -->
+  <rect x="2" y="2" width="156" height="28" rx="14" ry="14" fill="url(#rainbow)"/>
+
+  <!-- Glossy shine overlay -->
+  <rect x="2" y="2" width="156" height="28" rx="14" ry="14" fill="url(#shine)"/>
+
+  <!-- Border for definition -->
+  <rect x="2" y="2" width="156" height="28" rx="14" ry="14" fill="none" stroke="#fff" stroke-width="1" opacity="0.3"/>
+
+  <!-- Sparkle stars -->
+  <text x="15" y="20" font-size="12" fill="#fff" filter="url(#glow)">✨</text>
+  <text x="145" y="20" font-size="12" fill="#fff" filter="url(#glow)">✨</text>
+
+  <!-- Main text with shadow -->
+  <text x="80" y="22" font-family="Arial, sans-serif" font-size="13" font-weight="bold" text-anchor="middle" fill="#000" opacity="0.3">🤖 AI SLOP 🤖</text>
+  <text x="80" y="21" font-family="Arial, sans-serif" font-size="13" font-weight="bold" text-anchor="middle" fill="#fff" filter="url(#glow)">🤖 AI SLOP 🤖</text>
+</svg>

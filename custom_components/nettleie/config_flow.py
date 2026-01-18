@@ -227,6 +227,15 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional(CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="sensor"),
                 ),
+                vol.Required(CONF_ENERGILEDD_DAG): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=0,
+                        max=2,
+                        step=0.0001,
+                        unit_of_measurement="NOK/kWh",
+                        mode=selector.NumberSelectorMode.BOX,
+                    ),
+                ),
             }
         )
 

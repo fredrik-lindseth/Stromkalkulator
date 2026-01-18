@@ -116,6 +116,10 @@ class NettleieCoordinator(DataUpdateCoordinator):
         
         # Spotpris etter strømstøtte
         spotpris_etter_stotte = spot_price - stromstotte
+
+        # Calculate fastledd per kWh
+        days_in_month = self._days_in_month(now)
+        fastledd_per_kwh = (kapasitetsledd / days_in_month) / 24
         
         # Norgespris (forenklet - bruker eget prisområde)
         # TODO: Hent ekte systempris fra Nord Pool API senere
@@ -132,10 +136,6 @@ class NettleieCoordinator(DataUpdateCoordinator):
         
         # Kroner spart per kWh
         kroner_spart_per_kwh = spotpris_etter_stotte - (norgespris - norgespris_stromstotte)
-
-        # Calculate fastledd per kWh
-        days_in_month = self._days_in_month(now)
-        fastledd_per_kwh = (kapasitetsledd / days_in_month) / 24
 
         # Total price (Nord Pool + nettleie)
         total_price = spot_price - stromstotte + energiledd + fastledd_per_kwh

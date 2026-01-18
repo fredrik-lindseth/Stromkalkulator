@@ -243,8 +243,17 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):
                     selector.EntitySelectorConfig(domain="sensor"),
                 ),
                 vol.Required(
-                    "test_number",
-                    default=0.5,
+                    CONF_ENERGILEDD_DAG,
+                    default=current.get(CONF_ENERGILEDD_DAG, DEFAULT_ENERGILEDD_DAG),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=0,
+                        max=2,
+                    ),
+                ),
+                vol.Required(
+                    CONF_ENERGILEDD_NATT,
+                    default=current.get(CONF_ENERGILEDD_NATT, DEFAULT_ENERGILEDD_NATT),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         min=0,

@@ -200,11 +200,21 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
+        tso_options = [
+            selector.SelectOptionDict(value=key, label=value["name"])
+            for key, value in TSO_LIST.items()
+        ]
+
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
                 {
-                    vol.Optional("test"): str,
+                    vol.Required(CONF_TSO, default="bkk"): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=tso_options,
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                        ),
+                    ),
                 }
             ),
         )

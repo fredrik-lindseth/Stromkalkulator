@@ -1,6 +1,6 @@
 # Nettleie
 
-![AI SLOP](./ai-slop-05-chaos.svg)
+![AI SLOP](https://raw.githubusercontent.com/kluzzebass/ai-slop/refs/heads/main/ai-slop-05-chaos.svg)
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
 

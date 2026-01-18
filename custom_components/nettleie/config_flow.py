@@ -242,7 +242,7 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):
                     ),
                     vol.Optional(
                         CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
-                        default=current_data.get(CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR, ""),
+                        description={"suggested_value": current_data.get(CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR)},
                     ): selector.EntitySelector(
                         selector.EntitySelectorConfig(domain="sensor"),
                     ),

@@ -129,9 +129,43 @@ total_pris_etter_stotte = (spotpris - strømstøtte) + energiledd + fastledd_per
 - Data nulles automatisk ved ny måned
 - Lagret format: `{dag: maks_forbruk_kw}`
 
+## Norgespris (Forenklet)
+
+**Viktig:** Norgespris-beregningene er forenklede og bruker ditt lokale prisområde som "norgespris". Dette er ikke det faktiske gjennomsnittet for hele Norge.
+
+### Formler
+```
+norgespris = spotpris  # Forenklet - bruker eget prisområde
+
+norgespris_stromstotte = max(0, (norgespris - 0.70) * 0.90)
+
+min_pris_norgespris = norgespris - norgespris_stromstotte + energiledd + fastledd_per_kwh
+
+kroner_spart_per_kwh = (din_pris_etter_stotte) - (norgespris - norgespris_stromstotte)
+```
+
+### Eksempel
+**Forutsetninger:**
+- Din spotpris: 1.20 NOK/kWh
+- Energiledd: 0.4613 NOK/kWh
+- Fastledd: 0.56 NOK/kWh
+
+**Beregninger:**
+1. **Norgespris**: 1.20 NOK/kWh (samme som din spotpris)
+2. **Norgespris strømstøtte**: (1.20 - 0.70) * 0.90 = 0.45 NOK/kWh
+3. **Min pris med norgespris**: (1.20 - 0.45) + 0.4613 + 0.56 = 1.77 NOK/kWh
+4. **Din pris etter støtte**: (1.20 - 0.45) + 0.4613 + 0.56 = 1.77 NOK/kWh
+5. **Kroner spart**: 1.77 - 1.77 = 0.00 NOK/kWh
+
+### Begrensninger
+- Viser samme pris som ditt prisområde
+- Gir ikke reell sammenligning med landsgjennomsnittet
+- For korrekt norgespris trengs systempris fra Nord Pool API
+
 ## Noter
 
 - Alle priser er i NOK/kWh
 - Strømforbruk konverteres fra W til kW (1000)
 - Beregningene følger norske regler for strømstøtte
 - Kapasitetstrinn varierer mellom nettselskaper
+- Norgespris er forenklet - bruker eget prisområde som referanse

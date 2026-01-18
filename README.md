@@ -120,10 +120,11 @@ Vil du legge til støtte for ditt nettselskap? Følg guiden under og opprett en 
 
 ### Sjekkliste for PR
 
-- [ ] Nettselskap lagt til i `TSO_LIST`
-- [ ] `url` peker til nettselskapets prisside (for verifisering)
-- [ ] `energiledd_dag` og `energiledd_natt` er i NOK/kWh (f.eks. 0.45, ikke 45 øre)
-- [ ] Prisene inkluderer alle avgifter (Enova, elavgift, mva)
-- [ ] Alle kapasitetstrinn er med (fra 0 kW til høyeste, typisk 8-10 trinn)
-- [ ] Siste trinn bruker `float("inf")` som grense
-- [ ] README oppdatert med nettselskap-info under "Støttede nettselskaper"
+Før du sender inn en PR, sjekk at:
+
+1. Nettselskapet er lagt til i `TSO_LIST` i `const.py`
+2. `url` peker til nettselskapets offisielle prisside
+3. Prisene er i **NOK/kWh** (f.eks. `0.45`, ikke 45 øre)
+4. Prisene **inkluderer avgifter** (Enova, elavgift, mva)
+5. Alle kapasitetstrinn er med (typisk 8-10 trinn)
+6. Siste trinn bruker `float("inf")` som øvre grense

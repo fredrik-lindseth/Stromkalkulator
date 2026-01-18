@@ -51,11 +51,15 @@ Home Assistant integrasjon for beregning av nettleie for norske nettselskaper.
 
 ## Sensorer
 
-| Sensor                          | Beskrivelse               |
-|---------------------------------|---------------------------|
-| `sensor.energiledd`             | Energiledd i NOK/kWh      |
-| `sensor.kapasitetstrinn`        | Kapasitetsledd i kr/mnd   |
-| `sensor.strompris_ink_avgifter` | Total strømpris i NOK/kWh |
+| Sensor                             | Beskrivelse                              |
+|------------------------------------|------------------------------------------|
+| `sensor.energiledd`                | Energiledd i NOK/kWh                     |
+| `sensor.kapasitetstrinn`           | Kapasitetsledd i kr/mnd                  |
+| `sensor.strompris_ink_avgifter`    | Total strømpris i NOK/kWh                |
+| `sensor.maks_forbruk_1`            | Høyeste forbruk denne måneden (kW)       |
+| `sensor.maks_forbruk_2`            | Nest høyeste forbruk denne måneden (kW)  |
+| `sensor.maks_forbruk_3`            | Tredje høyeste forbruk denne måneden (kW)|
+| `sensor.gjennomsnitt_maks_forbruk` | Gjennomsnitt av topp 3 (kW)              |
 
 ## Støttede nettselskaper
 

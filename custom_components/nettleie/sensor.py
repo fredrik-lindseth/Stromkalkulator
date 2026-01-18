@@ -27,6 +27,10 @@ async def async_setup_entry(
         EnergileggSensor(coordinator, entry),
         KapasitetstrinnSensor(coordinator, entry),
         TotalPriceSensor(coordinator, entry),
+        MaksForbrukSensor(coordinator, entry, 1),
+        MaksForbrukSensor(coordinator, entry, 2),
+        MaksForbrukSensor(coordinator, entry, 3),
+        GjsForbrukSensor(coordinator, entry),
     ]
 
     async_add_entities(entities)
@@ -154,6 +158,74 @@ class TotalPriceSensor(NettleieBaseSensor):
                 "energiledd": self.coordinator.data.get("energiledd"),
                 "kapasitetsledd_per_kwh": self.coordinator.data.get("kapasitetsledd_per_kwh"),
                 "stromstotte": self.coordinator.data.get("stromstotte"),
+                "tso": self.coordinator.data.get("tso"),
+            }
+        return None
+
+
+class MaksForbrukSensor(NettleieBaseSensor):
+    """Sensor for max power consumption on a specific day."""
+
+    def __init__(
+        self, coordinator: NettleieCoordinator, entry: ConfigEntry, rank: int
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(
+            coordinator, entry, f"maks_forbruk_{rank}", f"Maks forbruk #{rank}"
+        )
+        self._rank = rank
+        self._attr_native_unit_of_measurement = "kW"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_icon = "mdi:lightning-bolt"
+
+    @property
+    def native_value(self):
+        """Return the state."""
+        if self.coordinator.data:
+            top_3 = self.coordinator.data.get("top_3_days", {})
+            if len(top_3) >= self._rank:
+                values = list(top_3.values())
+                return round(values[self._rank - 1], 2)
+        return None
+
+    @property
+    def extra_state_attributes(self):
+        """Return extra attributes."""
+        if self.coordinator.data:
+            top_3 = self.coordinator.data.get("top_3_days", {})
+            if len(top_3) >= self._rank:
+                dates = list(top_3.keys())
+                return {"dato": dates[self._rank - 1]}
+        return None
+
+
+class GjsForbrukSensor(NettleieBaseSensor):
+    """Sensor for average of top 3 power consumption days."""
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(
+            coordinator, entry, "gjennomsnitt_forbruk", "Gjennomsnitt maks forbruk"
+        )
+        self._attr_native_unit_of_measurement = "kW"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_icon = "mdi:chart-line"
+
+    @property
+    def native_value(self):
+        """Return the state."""
+        if self.coordinator.data:
+            avg = self.coordinator.data.get("avg_top_3_kw")
+            if avg is not None:
+                return round(avg, 2)
+        return None
+
+    @property
+    def extra_state_attributes(self):
+        """Return extra attributes."""
+        if self.coordinator.data:
+            return {
+                "kapasitetstrinn": self.coordinator.data.get("kapasitetsledd"),
                 "tso": self.coordinator.data.get("tso"),
             }
         return None

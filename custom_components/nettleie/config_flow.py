@@ -205,35 +205,50 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):
             )
             return self.async_create_entry(title="", data={})
 
+        # Get current values from config entry
+        current = self.config_entry.data
         tso_options = [
             selector.SelectOptionDict(value=key, label=value["name"])
             for key, value in TSO_LIST.items()
         ]
 
+        # Build schema with defaults from current config
         options_schema = vol.Schema(
             {
-                vol.Required(CONF_TSO): selector.SelectSelector(
+                vol.Required(
+                    CONF_TSO,
+                    default=current.get(CONF_TSO, DEFAULT_TSO),
+                ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=tso_options,
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     ),
                 ),
-                vol.Required(CONF_POWER_SENSOR): selector.EntitySelector(
+                vol.Required(
+                    CONF_POWER_SENSOR,
+                    default=current.get(CONF_POWER_SENSOR),
+                ): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="sensor"),
                 ),
-                vol.Required(CONF_SPOT_PRICE_SENSOR): selector.EntitySelector(
+                vol.Required(
+                    CONF_SPOT_PRICE_SENSOR,
+                    default=current.get(CONF_SPOT_PRICE_SENSOR),
+                ): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="sensor"),
                 ),
-                vol.Optional(CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR): selector.EntitySelector(
+                vol.Optional(
+                    CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
+                    description={"suggested_value": current.get(CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR)},
+                ): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="sensor"),
                 ),
-                vol.Required(CONF_ENERGILEDD_DAG): selector.NumberSelector(
+                vol.Required(
+                    "test_number",
+                    default=0.5,
+                ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         min=0,
                         max=2,
-                        step=0.0001,
-                        unit_of_measurement="NOK/kWh",
-                        mode=selector.NumberSelectorMode.BOX,
                     ),
                 ),
             }
@@ -241,8 +256,6 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):
 
         return self.async_show_form(
             step_id="init",
-            data_schema=self.add_suggested_values_to_schema(
-                options_schema, self.config_entry.data
-            ),
+            data_schema=options_schema,
         )
 

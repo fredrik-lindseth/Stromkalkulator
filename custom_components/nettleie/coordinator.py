@@ -148,7 +148,7 @@ class NettleieCoordinator(DataUpdateCoordinator):
             if tibber_state and tibber_state.state not in ("unknown", "unavailable"):
                 tibber_price = float(tibber_state.state)
                 # Tibber total = Tibber strømpris + nettleie (energiledd + kapasitetsledd per kWh)
-                tibber_total = tibber_price + energiledd + fastledd_per_kwh
+                electricity_company_total = tibber_price + energiledd + fastledd_per_kwh
 
         return {
             "energiledd": round(energiledd, 4),
@@ -167,7 +167,7 @@ class NettleieCoordinator(DataUpdateCoordinator):
             "kroner_spart_per_kwh": round(kroner_spart_per_kwh, 4),
             "total_price": round(total_price, 2),
             "tibber_price": round(tibber_price, 4) if tibber_price is not None else None,
-            "tibber_total": round(tibber_total, 4) if tibber_total is not None else None,
+            "electricity_company_total": round(electricity_company_total, 4) if electricity_company_total is not None else None,
             "current_power_kw": round(current_power_kw, 2),
             "avg_top_3_kw": round(avg_power, 2),
             "top_3_days": top_3,

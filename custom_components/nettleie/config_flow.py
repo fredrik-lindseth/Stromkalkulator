@@ -181,17 +181,27 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data=self._data,
         )
 
-    @staticmethod
+    @classmethod
     @callback
     def async_get_options_flow(
+        cls,
         config_entry: config_entries.ConfigEntry,
     ) -> config_entries.OptionsFlow:
         """Create the options flow."""
-        return NettleieOptionsFlow()
+        return NettleieOptionsFlow(config_entry)
 
 
 class NettleieOptionsFlow(config_entries.OptionsFlow):
     """Handle options flow for Nettleie."""
+
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        """Initialize options flow."""
+        self._config_entry = config_entry
+
+    @property
+    def config_entry(self) -> config_entries.ConfigEntry:
+        """Return config entry."""
+        return self._config_entry
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None

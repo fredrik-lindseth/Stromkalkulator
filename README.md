@@ -3,6 +3,8 @@
 ![AI SLOP](https://raw.githubusercontent.com/kluzzebass/ai-slop/refs/heads/main/ai-slop-05-chaos.svg)
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
+[![GitHub release](https://img.shields.io/github/release/fredrik-lindseth/nettleie.svg)](https://github.com/fredrik-lindseth/nettleie/releases)
+[![GitHub stars](https://img.shields.io/github/stars/fredrik-lindseth/nettleie.svg?style=social)](https://github.com/fredrik-lindseth/nettleie/stargazers)
 
 Home Assistant integrasjon for beregning av nettleie for norske nettselskaper.
 
@@ -15,20 +17,6 @@ Home Assistant integrasjon for beregning av nettleie for norske nettselskaper.
 - **Strømstøtte-sensorer**: Beregner strømstøtte (90% over 70 øre) og viser priser etter støtte
 - **Strømselskap + nettleie**: Valgfri sensor for total pris fra strømselskap (f.eks. Tibber) + nettleie
 
-## Merk
-
-**Norgespris er forenklet.** Norgespris-sensorene bruker ditt lokale prisområde som "norgespris", ikke det faktiske gjennomsnittet for hele Norge.
-
-### Hva mangler for korrekt norgespris?
-For å vise ekte norgespris trengs:
-- **Systempris-data**: Hente systempris fra Nord Pool API (gjennomsnitt for hele Norge)
-- **API-integrasjon**: Direkte kall til Nord Pool sitt dataportal
-- **Valuta-konvertering**: Systempris er i EUR, må konverteres til NOK
-
-### Nåværende begrensning
-- Viser samme pris som ditt prisområde
-- Gir ikke reell sammenligning med landsgjennomsnittet
-- Kan være misvisende i prisområder med avvikende priser
 
 ## Krav
 
@@ -41,7 +29,7 @@ For å vise ekte norgespris trengs:
 
 ## Installasjon
 
-### HACS (anbefalt)
+### Installasjon via HACS 
 
 1. Åpne HACS i Home Assistant
 2. Klikk på "Integrations"
@@ -64,38 +52,65 @@ For å vise ekte norgespris trengs:
 5. Velg din strømforbruk-sensor (f.eks. Tibber Pulse)
 6. Velg Nord Pool **"Current price"** sensor (f.eks. `sensor.nord_pool_no5_current_price`)
 
-![setup](./setup.png)
+**Viktig:** Velg "Current price" - IKKE "Today lowest" eller "Today average". "Current price" gir deg spotprisen for nåværende time, som er korrekt for strømstøtte-beregninger.
+
+![integration](./integration.png)
+
+### Sensors Dashboard
+![sensors](./sensors.png)
 
 ## Sensorer
 
-| Sensor                             | Beskrivelse                                       |
-|------------------------------------|---------------------------------------------------|
-| `sensor.energiledd`                | Energiledd i NOK/kWh                              |
-| `sensor.kapasitetstrinn`           | Kapasitetsledd i kr/mnd                           |
-| `sensor.strompris_ink_avgifter`    | Total strømpris i NOK/kWh                         |
-| `sensor.maks_forbruk_1`            | Høyeste forbruk denne måneden (kW)                |
-| `sensor.maks_forbruk_2`            | Nest høyeste forbruk denne måneden (kW)           |
-| `sensor.maks_forbruk_3`            | Tredje høyeste forbruk denne måneden (kW)         |
-| `sensor.gjennomsnitt_maks_forbruk` | Gjennomsnitt av topp 3 (kW)                       |
-| `sensor.kapasitetstrinn_nummer`    | Kapasitetstrinn nummer (1-10)                     |
-| `sensor.kapasitetstrinn_intervall` | Kapasitetstrinn intervall (f.eks. "5-10 kW")      |
-| `sensor.strompris_tibber_nettleie` | Strømpris fra strømselskap + nettleie (NOK/kWh)   |
-| `sensor.stromstotte`               | Strømstøtte per kWh (90% over 70 øre)             |
-| `sensor.spotpris_etter_stotte`     | Spotpris minus strømstøtte (NOK/kWh)              |
-| `sensor.total_pris_etter_stotte`   | Total strømpris etter strømstøtte (NOK/kWh)       |
-| `sensor.min_pris_norgespris`       | Din pris med norgespris (NOK/kWh)                 |
-| `sensor.kroner_spart_norgespris`    | Kroner spart/tapt med norgespris (NOK/kWh)        |
+| Sensor                             | Beskrivelse                                     |
+|------------------------------------|-------------------------------------------------|
+| `sensor.energiledd`                | Energiledd i NOK/kWh                            |
+| `sensor.kapasitetstrinn`           | Kapasitetsledd i kr/mnd                         |
+| `sensor.strompris_ink_avgifter`    | Total strømpris i NOK/kWh                       |
+| `sensor.maks_forbruk_1`            | Høyeste forbruk denne måneden (kW)              |
+| `sensor.maks_forbruk_2`            | Nest høyeste forbruk denne måneden (kW)         |
+| `sensor.maks_forbruk_3`            | Tredje høyeste forbruk denne måneden (kW)       |
+| `sensor.gjennomsnitt_maks_forbruk` | Gjennomsnitt av topp 3 (kW)                     |
+| `sensor.kapasitetstrinn_nummer`    | Kapasitetstrinn nummer (1-10)                   |
+| `sensor.kapasitetstrinn_intervall` | Kapasitetstrinn intervall (f.eks. "5-10 kW")    |
+| `sensor.tibber_total`              | Strømpris fra strømselskap + nettleie (NOK/kWh) |
+| `sensor.stromstotte`               | Strømstøtte per kWh (90% over 70 øre)           |
+| `sensor.spotpris_etter_stotte`     | Spotpris minus strømstøtte (NOK/kWh)            |
+| `sensor.total_pris_etter_stotte`   | Total strømpris etter strømstøtte (NOK/kWh)     |
+| `sensor.min_pris_norgespris`       | Din pris med norgespris (NOK/kWh)               |
+| `sensor.kroner_spart_norgespris`   | Kroner spart/tapt med norgespris (NOK/kWh)      |
+
+## Hvilken strømpris-sensor bør du bruke?
+
+### Anbefalte sensorer for vanlig bruk:
+
+| Bruksområde                | Anbefalt sensor                  | Hvorfor?                                                           |
+|----------------------------|----------------------------------|--------------------------------------------------------------------|
+| **Din faktiske strømpris** | `sensor.total_pris_etter_stotte` | Viser hva du faktisk betaler per kWh inkl. nettleie og strømstøtte |
+| **Strømstøtte**            | `sensor.stromstotte`             | Viser hvor mye du får tilbake per kWh                              |
+| **Spotpris**               | `sensor.spotpris_etter_stotte`   | Spotpris etter strømstøtte, uten nettleie                          |
+
+### For spesielle behov:
+
+| Situasjon                          | Sensor                           | Forklaring                                |
+|------------------------------------|----------------------------------|-------------------------------------------|
+| **Har Tibber**                     | `sensor.tibber_total`            | Totalpris fra Tibber + nettleie           |
+| **Vil sammenligne med norgespris** | `sensor.min_pris_norgespris`     | Din pris vs landsgjennomsnitt (forenklet) |
+| **Vil se om du sparer/taper**      | `sensor.kroner_spart_norgespris` | Forskjell per kWh                         |
+
+### Viktig om norgespris-sensorer
+`sensor.min_pris_norgespris` og `sensor.kroner_spart_norgespris` er **forenklede** og bruker ditt lokale prisområde som referanse. De gir ikke ekte sammenligning med landsgjennomsnittet.
+
 
 ## Konfigurasjonsfelt
 
-| Felt                         | Beskrivelse                                                                                           | Påkrevd |
-|------------------------------|-------------------------------------------------------------------------------------------------------|:-------:|
-| **Nettselskap**              | Velg ditt nettselskap fra listen, eller "Egendefinert" for manuelle priser                            |   Ja    |
-| **Strømforbruk-sensor**      | Sensor som viser nåværende strømforbruk i W (f.eks. Tibber Pulse)                                     |   Ja    |
-| **Spotpris-sensor**          | Nord Pool "Current price" sensor (f.eks. `sensor.nord_pool_no5_current_price`)                        |   Ja    |
-| **Strømselskap-pris-sensor** | Sensor fra strømselskap med total pris (f.eks. Tibber). Brukes for `sensor.strompris_tibber_nettleie` |   Nei   |
-| **Energiledd dag**           | Manuell energiledd-pris for dag (kun ved "Egendefinert")                                              |   Nei   |
-| **Energiledd natt**          | Manuell energiledd-pris for natt/helg (kun ved "Egendefinert")                                        |   Nei   |
+| Felt                         | Beskrivelse                                                                              | Påkrevd |
+|------------------------------|------------------------------------------------------------------------------------------|:-------:|
+| **Nettselskap**              | Velg ditt nettselskap fra listen, eller "Egendefinert" for manuelle priser               |   Ja    |
+| **Strømforbruk-sensor**      | Sensor som viser nåværende strømforbruk i W (f.eks. Tibber Pulse)                        |   Ja    |
+| **Spotpris-sensor**          | Nord Pool "Current price" sensor (f.eks. `sensor.nord_pool_no5_current_price`)           |   Ja    |
+| **Strømselskap-pris-sensor** | Sensor fra strømselskap med total pris (f.eks. Tibber). Brukes for `sensor.tibber_total` |   Nei   |
+| **Energiledd dag**           | Manuell energiledd-pris for dag (kun ved "Egendefinert")                                 |   Nei   |
+| **Energiledd natt**          | Manuell energiledd-pris for natt/helg (kun ved "Egendefinert")                           |   Nei   |
 
 ## Bidra
 
@@ -133,6 +148,22 @@ Vil du legge til støtte for ditt nettselskap? Følg guiden under og opprett en 
 - Prisene skal være **inkludert avgifter** (Enova, elavgift, mva)
 - `kapasitetstrinn` er en liste med tupler: `(kW-grense, kr/mnd)`
 - Dag = hverdager 06:00-22:00, Natt = 22:00-06:00 + helg + helligdager
+
+## Merk 
+
+**Norgespris er forenklet.** Norgespris-sensorene bruker ditt lokale prisområde som "norgespris", ikke det faktiske gjennomsnittet for hele Norge.
+
+### Hva mangler for korrekt norgespris?
+For å vise ekte norgespris trengs:
+- **Systempris-data**: Hente systempris fra Nord Pool API (gjennomsnitt for hele Norge)
+- **API-integrasjon**: Direkte kall til Nord Pool sitt dataportal
+- **Valuta-konvertering**: Systempris er i EUR, må konverteres til NOK
+
+### Nåværende begrensning
+- Viser samme pris som ditt prisområde
+- Gir ikke reell sammenligning med landsgjennomsnittet
+- Kan være misvisende i prisområder med avvikende priser
+
 
 ### Sjekkliste for PR
 

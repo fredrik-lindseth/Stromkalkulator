@@ -7,7 +7,6 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant import config_entries
-from homeassistant.config_entries import OptionsFlowWithConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
@@ -188,10 +187,10 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         config_entry: config_entries.ConfigEntry,
     ) -> config_entries.OptionsFlow:
         """Create the options flow."""
-        return NettleieOptionsFlow(config_entry)
+        return NettleieOptionsFlow()
 
 
-class NettleieOptionsFlow(OptionsFlowWithConfigEntry):
+class NettleieOptionsFlow(config_entries.OptionsFlow):
     """Handle options flow for Nettleie."""
 
     async def async_step_init(

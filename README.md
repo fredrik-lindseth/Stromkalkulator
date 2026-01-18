@@ -1,6 +1,6 @@
 # Nettleie
 
-![AI SLOP](ai-slop-badge.svg)
+![AI SLOP](./ai-slop-05-chaos.svg)
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
 
@@ -52,6 +52,8 @@ Norgespris og strømstøtte er ikke støttet.
 4. Velg nettselskap (f.eks BKK)
 5. Velg din strømforbruk-sensor (f.eks. Tibber Pulse)
 6. Velg Nord Pool **"Current price"** sensor (f.eks. `sensor.nord_pool_no5_current_price`)
+
+![setup](./setup.png)
 
 ## Sensorer
 

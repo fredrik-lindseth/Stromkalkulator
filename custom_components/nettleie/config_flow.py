@@ -198,9 +198,14 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):
     ) -> FlowResult:
         """Manage the options."""
         if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
+            # Update the config entry data directly
+            new_data = {**self.config_entry.data, **user_input}
+            self.hass.config_entries.async_update_entry(
+                self.config_entry, data=new_data
+            )
+            return self.async_create_entry(title="", data={})
 
-        current_data = {**self.config_entry.data, **self.config_entry.options}
+        current_data = self.config_entry.data
 
         return self.async_show_form(
             step_id="init",

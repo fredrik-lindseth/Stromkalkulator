@@ -17,7 +17,11 @@ Home Assistant integrasjon for beregning av nettleie for norske nettselskaper.
 ## Krav
 
 - Nordpool-integrasjon installert
-- Strømmåler-sensor (f.eks. Tibber Pulse, AMS-måler)
+- Strømforbruk-sensor i sanntid, f.eks:
+  - [Tibber Pulse](https://tibber.com/no/pulse)
+  - [AMS-leser.no](https://ams-leser.no/)
+  - HAN-bussleser (tredjepart)
+  - Sensor fra nettselskapet
 
 ## Installasjon
 
@@ -26,9 +30,9 @@ Home Assistant integrasjon for beregning av nettleie for norske nettselskaper.
 1. Åpne HACS i Home Assistant
 2. Klikk på "Integrations"
 3. Klikk på de tre prikkene øverst til høyre og velg "Custom repositories"
-4. Legg til repository URL og velg "Integration" som kategori
-5. Klikk "Install"
-6. Start Home Assistant på nytt
+4. Legg til `https://github.com/fredrik-lindseth/strompris` og velg "Integration" som kategori
+5. Finn "Nettleie" i listen og klikk "Download"
+6. Start Home Assistant på nytt (eller bruk Quick Reload under Developer Tools)
 
 ### Manuell installasjon
 
@@ -42,7 +46,7 @@ Home Assistant integrasjon for beregning av nettleie for norske nettselskaper.
 3. Søk etter "Nettleie"
 4. Velg nettselskap (BKK eller Egendefinert)
 5. Velg din strømforbruk-sensor (f.eks. Tibber Pulse)
-6. Velg din spotpris-sensor (f.eks. Nordpool)
+6. Velg din spotpris-sensor fra Nordpool-integrasjonen (Prisen i strømsonen din, eks NO5)
 7. (Valgfritt) Angi egne energiledd-priser
 
 ## Sensorer
@@ -55,7 +59,7 @@ Home Assistant integrasjon for beregning av nettleie for norske nettselskaper.
 
 ## Støttede nettselskaper
 
-### BKK (Bergen)
+### BKK
 Priser fra [BKK](https://www.bkk.no/nettleiepriser/priser-privatkunder)
 
 #### Energiledd (2026)

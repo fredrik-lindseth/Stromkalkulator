@@ -17,6 +17,7 @@ from .const import (
     CONF_TSO,
     CONF_POWER_SENSOR,
     CONF_SPOT_PRICE_SENSOR,
+    CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
     DEFAULT_ENERGILEDD_DAG,
     DEFAULT_ENERGILEDD_NATT,
     DEFAULT_TSO,
@@ -116,6 +117,9 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         ),
                     ),
                     vol.Required(CONF_SPOT_PRICE_SENSOR): selector.EntitySelector(
+                        selector.EntitySelectorConfig(domain="sensor"),
+                    ),
+                    vol.Optional(CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR): selector.EntitySelector(
                         selector.EntitySelectorConfig(domain="sensor"),
                     ),
                 }
@@ -233,6 +237,12 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):
                     vol.Required(
                         CONF_SPOT_PRICE_SENSOR,
                         default=current_data.get(CONF_SPOT_PRICE_SENSOR),
+                    ): selector.EntitySelector(
+                        selector.EntitySelectorConfig(domain="sensor"),
+                    ),
+                    vol.Optional(
+                        CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
+                        default=current_data.get(CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR, ""),
                     ): selector.EntitySelector(
                         selector.EntitySelectorConfig(domain="sensor"),
                     ),

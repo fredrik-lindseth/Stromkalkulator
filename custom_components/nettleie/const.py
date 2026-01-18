@@ -6,6 +6,7 @@ DOMAIN: Final = "nettleie"
 # Config keys
 CONF_POWER_SENSOR: Final = "power_sensor"
 CONF_SPOT_PRICE_SENSOR: Final = "spot_price_sensor"
+CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR: Final = "electricity_provider_price_sensor"
 CONF_TSO: Final = "tso"
 CONF_ENERGILEDD_DAG: Final = "energiledd_dag"
 CONF_ENERGILEDD_NATT: Final = "energiledd_natt"

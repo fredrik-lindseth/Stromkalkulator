@@ -15,6 +15,7 @@ from .const import (
     CONF_TSO,
     CONF_POWER_SENSOR,
     CONF_SPOT_PRICE_SENSOR,
+    CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
     DEFAULT_ENERGILEDD_DAG,
     DEFAULT_ENERGILEDD_NATT,
     DOMAIN,
@@ -42,6 +43,7 @@ class NettleieCoordinator(DataUpdateCoordinator):
         self.entry = entry
         self.power_sensor = entry.data.get(CONF_POWER_SENSOR)
         self.spot_price_sensor = entry.data.get(CONF_SPOT_PRICE_SENSOR)
+        self.tibber_price_sensor = entry.data.get(CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR)
         
         # Get TSO config
         tso_id = entry.data.get(CONF_TSO, "bkk")
@@ -104,8 +106,18 @@ class NettleieCoordinator(DataUpdateCoordinator):
         days_in_month = self._days_in_month(now)
         fastledd_per_kwh = (kapasitetsledd / days_in_month) / 24
 
-        # Total price
+        # Total price (Nord Pool + nettleie)
         total_price = spot_price - stromstotte + energiledd + fastledd_per_kwh
+
+        # Get Tibber price if configured
+        tibber_price = None
+        tibber_total = None
+        if self.tibber_price_sensor:
+            tibber_state = self.hass.states.get(self.tibber_price_sensor)
+            if tibber_state and tibber_state.state not in ("unknown", "unavailable"):
+                tibber_price = float(tibber_state.state)
+                # Tibber total = Tibber strømpris + nettleie (energiledd + kapasitetsledd per kWh)
+                tibber_total = tibber_price + energiledd + fastledd_per_kwh
 
         return {
             "energiledd": round(energiledd, 4),
@@ -118,6 +130,8 @@ class NettleieCoordinator(DataUpdateCoordinator):
             "spot_price": round(spot_price, 4),
             "stromstotte": round(stromstotte, 4),
             "total_price": round(total_price, 2),
+            "tibber_price": round(tibber_price, 4) if tibber_price is not None else None,
+            "tibber_total": round(tibber_total, 4) if tibber_total is not None else None,
             "current_power_kw": round(current_power_kw, 2),
             "avg_top_3_kw": round(avg_power, 2),
             "top_3_days": top_3,

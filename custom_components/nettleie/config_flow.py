@@ -215,6 +215,9 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):
                             mode=selector.SelectSelectorMode.DROPDOWN,
                         ),
                     ),
+                    vol.Required(CONF_POWER_SENSOR): selector.EntitySelector(
+                        selector.EntitySelectorConfig(domain="sensor"),
+                    ),
                 }
             ),
         )

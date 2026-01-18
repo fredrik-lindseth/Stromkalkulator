@@ -13,7 +13,7 @@ CONF_ENERGILEDD_NATT: Final = "energiledd_natt"
 # Format: {tso_id: {name, energiledd_dag, energiledd_natt, kapasitetstrinn}}
 TSO_LIST: Final = {
     "bkk": {
-        "name": "BKK (Bergen)",
+        "name": "BKK",
         "energiledd_dag": 0.4613,
         "energiledd_natt": 0.2329,
         "url": "https://www.bkk.no/nettleiepriser/priser-privatkunder",

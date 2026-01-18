@@ -122,6 +122,8 @@ class KapasitetstrinnSensor(NettleieBaseSensor):
         if self.coordinator.data:
             top_3 = self.coordinator.data.get("top_3_days", {})
             attrs = {
+                "trinn": self.coordinator.data.get("kapasitetstrinn_nummer"),
+                "intervall": self.coordinator.data.get("kapasitetstrinn_intervall"),
                 "gjennomsnitt_kw": self.coordinator.data.get("avg_top_3_kw"),
                 "current_power_kw": self.coordinator.data.get("current_power_kw"),
                 "tso": self.coordinator.data.get("tso"),

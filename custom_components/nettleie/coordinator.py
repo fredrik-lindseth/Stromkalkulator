@@ -85,7 +85,7 @@ class NettleieCoordinator(DataUpdateCoordinator):
         avg_power = sum(top_3.values()) / 3 if len(top_3) >= 3 else sum(top_3.values()) / max(len(top_3), 1)
 
         # Calculate capacity tier
-        kapasitetsledd = self._get_kapasitetsledd(avg_power)
+        kapasitetsledd, trinn_nummer, trinn_intervall = self._get_kapasitetsledd(avg_power)
 
         # Calculate energiledd
         energiledd = self._get_energiledd(now)
@@ -112,6 +112,8 @@ class NettleieCoordinator(DataUpdateCoordinator):
             "energiledd_dag": self.energiledd_dag,
             "energiledd_natt": self.energiledd_natt,
             "kapasitetsledd": kapasitetsledd,
+            "kapasitetstrinn_nummer": trinn_nummer,
+            "kapasitetstrinn_intervall": trinn_intervall,
             "kapasitetsledd_per_kwh": round(fastledd_per_kwh, 4),
             "spot_price": round(spot_price, 4),
             "stromstotte": round(stromstotte, 4),
@@ -128,12 +130,22 @@ class NettleieCoordinator(DataUpdateCoordinator):
         sorted_days = sorted(self._daily_max_power.items(), key=lambda x: x[1], reverse=True)
         return dict(sorted_days[:3])
 
-    def _get_kapasitetsledd(self, avg_power: float) -> int:
-        """Get kapasitetsledd based on average power."""
-        for threshold, price in self.kapasitetstrinn:
+    def _get_kapasitetsledd(self, avg_power: float) -> tuple[int, int, str]:
+        """Get kapasitetsledd based on average power.
+        
+        Returns: (price, tier_number, tier_range)
+        """
+        for i, (threshold, price) in enumerate(self.kapasitetstrinn, 1):
             if avg_power <= threshold:
-                return price
-        return self.kapasitetstrinn[-1][1]
+                prev_threshold = self.kapasitetstrinn[i-2][0] if i > 1 else 0
+                if threshold == float("inf"):
+                    tier_range = f">{prev_threshold} kW"
+                else:
+                    tier_range = f"{prev_threshold}-{threshold} kW"
+                return price, i, tier_range
+        last_idx = len(self.kapasitetstrinn)
+        prev = self.kapasitetstrinn[-2][0] if last_idx > 1 else 0
+        return self.kapasitetstrinn[-1][1], last_idx, f">{prev} kW"
 
     def _get_energiledd(self, now: datetime) -> float:
         """Get energiledd based on time of day."""

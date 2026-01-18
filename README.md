@@ -65,24 +65,23 @@ Home Assistant integrasjon for beregning av nettleie for norske nettselskaper.
 
 ### BKK
 Priser fra [BKK](https://www.bkk.no/nettleiepriser/priser-privatkunder)
+- Dag: 46,13 øre/kWh | Natt: 23,29 øre/kWh
+- Kapasitet: 155-6900 kr/mnd
 
-#### Energiledd (2026)
-- Dag (06-22, hverdager): 46,13 øre/kWh
-- Natt/helg/helligdager: 23,29 øre/kWh
+### Elvia
+Priser fra [Elvia](https://www.elvia.no/nettleie/alt-om-nettleiepriser/nettleie-pris/)
+- Dag: 39,79 øre/kWh | Natt: 24,79 øre/kWh
+- Kapasitet: 176-6836 kr/mnd
 
-#### Kapasitetstrinn (2026)
-| Trinn | kW     | kr/mnd |
-|-------|--------|--------|
-| 1     | 0-2    | 155    |
-| 2     | 2-5    | 250    |
-| 3     | 5-10   | 415    |
-| 4     | 10-15  | 600    |
-| 5     | 15-20  | 770    |
-| 6     | 20-25  | 940    |
-| 7     | 25-50  | 1800   |
-| 8     | 50-75  | 2650   |
-| 9     | 75-100 | 3500   |
-| 10    | >100   | 6900   |
+### Glitre Nett
+Priser fra [Glitre Nett](https://www.glitrenett.no/kunde/nettleie-og-priser/nettleiepriser-privatkunde)
+- Dag: 40,91 øre/kWh | Natt: 25,91 øre/kWh
+- Kapasitet: 160-6250 kr/mnd
+
+### Tensio
+Priser fra [Tensio](https://www.tensio.no/no/kunde/nettleie/nettleiepriser-for-privat)
+- Dag: 38,50 øre/kWh | Natt: 23,50 øre/kWh
+- Kapasitet: 175-6125 kr/mnd
 
 ### Egendefinert
 Velg "Egendefinert" for å angi dine egne energiledd-priser.
@@ -99,7 +98,7 @@ Vil du legge til støtte for ditt nettselskap? Følg guiden under og opprett en 
 
 ```python
 "ditt_nettselskap": {
-    "name": "Ditt Nettselskap (By)",
+    "name": "Ditt Nettselskap",
     "energiledd_dag": 0.45,      # NOK/kWh inkl. avgifter
     "energiledd_natt": 0.22,     # NOK/kWh inkl. avgifter
     "url": "https://ditt-nettselskap.no/priser",

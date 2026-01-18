@@ -30,6 +30,60 @@ TSO_LIST: Final = {
             (float("inf"), 6900),
         ],
     },
+    "elvia": {
+        "name": "Elvia",
+        "energiledd_dag": 0.3979,  # 31,83 øre/kWh inkl. avgifter
+        "energiledd_natt": 0.2479,  # 19,83 øre/kWh inkl. avgifter
+        "url": "https://www.elvia.no/nettleie/alt-om-nettleiepriser/nettleie-pris/",
+        "kapasitetstrinn": [
+            (2, 176),
+            (5, 276),
+            (10, 436),
+            (15, 636),
+            (20, 836),
+            (25, 1061),
+            (50, 1836),
+            (75, 2836),
+            (100, 3836),
+            (float("inf"), 6836),
+        ],
+    },
+    "glitre": {
+        "name": "Glitre Nett",
+        "energiledd_dag": 0.4091,  # 40,91 øre/kWh inkl. avgifter (fra 1. jan 2026)
+        "energiledd_natt": 0.2591,  # 25,91 øre/kWh inkl. avgifter (fra 1. jan 2026)
+        "url": "https://www.glitrenett.no/kunde/nettleie-og-priser/nettleiepriser-privatkunde",
+        "kapasitetstrinn": [
+            (2, 160),
+            (5, 205),
+            (10, 350),
+            (15, 725),
+            (20, 940),
+            (25, 1180),
+            (50, 1825),
+            (75, 2890),
+            (100, 3850),
+            (float("inf"), 6250),
+        ],
+    },
+    "tensio": {
+        "name": "Tensio",
+        "energiledd_dag": 0.3850,  # Ca. 38,50 øre/kWh inkl. avgifter
+        "energiledd_natt": 0.2350,  # Ca. 23,50 øre/kWh inkl. avgifter
+        "url": "https://www.tensio.no/no/kunde/nettleie/nettleiepriser-for-privat",
+        "kapasitetstrinn": [
+            (2, 175),
+            (5, 262),
+            (10, 437),
+            (15, 625),
+            (20, 812),
+            (25, 1000),
+            (50, 1750),
+            (75, 2625),
+            (100, 3500),
+            (float("inf"), 6125),
+        ],
+    },
     "custom": {
         "name": "Egendefinert",
         "energiledd_dag": 0.40,

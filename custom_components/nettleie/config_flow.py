@@ -198,27 +198,36 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):
     ) -> FlowResult:
         """Manage the options."""
         if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
+            # Update config entry data
+            new_data = {**self.config_entry.data, **user_input}
+            self.hass.config_entries.async_update_entry(
+                self.config_entry, data=new_data
+            )
+            return self.async_create_entry(title="", data={})
 
         tso_options = [
             selector.SelectOptionDict(value=key, label=value["name"])
             for key, value in TSO_LIST.items()
         ]
 
+        options_schema = vol.Schema(
+            {
+                vol.Required(CONF_TSO): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=tso_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    ),
+                ),
+                vol.Required(CONF_POWER_SENSOR): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="sensor"),
+                ),
+            }
+        )
+
         return self.async_show_form(
             step_id="init",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_TSO, default="bkk"): selector.SelectSelector(
-                        selector.SelectSelectorConfig(
-                            options=tso_options,
-                            mode=selector.SelectSelectorMode.DROPDOWN,
-                        ),
-                    ),
-                    vol.Required(CONF_POWER_SENSOR): selector.EntitySelector(
-                        selector.EntitySelectorConfig(domain="sensor"),
-                    ),
-                }
+            data_schema=self.add_suggested_values_to_schema(
+                options_schema, self.config_entry.data
             ),
         )
 

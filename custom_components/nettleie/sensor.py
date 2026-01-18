@@ -34,6 +34,9 @@ async def async_setup_entry(
         TrinnNummerSensor(coordinator, entry),
         TrinnIntervallSensor(coordinator, entry),
         TibberTotalSensor(coordinator, entry),
+        StromstotteSensor(coordinator, entry),
+        SpotprisEtterStotteSensor(coordinator, entry),
+        TotalPrisEtterStotteSensor(coordinator, entry),
     ]
 
     async_add_entities(entities)
@@ -295,6 +298,97 @@ class TibberTotalSensor(NettleieBaseSensor):
         if self.coordinator.data:
             return {
                 "tibber_pris": self.coordinator.data.get("tibber_price"),
+                "energiledd": self.coordinator.data.get("energiledd"),
+                "kapasitetsledd_per_kwh": self.coordinator.data.get("kapasitetsledd_per_kwh"),
+            }
+        return None
+
+
+class StromstotteSensor(NettleieBaseSensor):
+    """Sensor for strømstøtte per kWh."""
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "stromstotte", "Strømstøtte")
+        self._attr_native_unit_of_measurement = "NOK/kWh"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_icon = "mdi:cash-refund"
+        self._attr_suggested_display_precision = 4
+
+    @property
+    def native_value(self):
+        """Return the state."""
+        if self.coordinator.data:
+            return self.coordinator.data.get("stromstotte")
+        return None
+
+    @property
+    def extra_state_attributes(self):
+        """Return extra attributes."""
+        if self.coordinator.data:
+            return {
+                "spotpris": self.coordinator.data.get("spot_price"),
+                "terskel": 0.70,
+                "dekningsgrad": "90%",
+            }
+        return None
+
+
+class SpotprisEtterStotteSensor(NettleieBaseSensor):
+    """Sensor for spot price after strømstøtte."""
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "spotpris_etter_stotte", "Spotpris etter støtte")
+        self._attr_native_unit_of_measurement = "NOK/kWh"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_icon = "mdi:currency-usd-off"
+        self._attr_suggested_display_precision = 4
+
+    @property
+    def native_value(self):
+        """Return the state."""
+        if self.coordinator.data:
+            return self.coordinator.data.get("spotpris_etter_stotte")
+        return None
+
+    @property
+    def extra_state_attributes(self):
+        """Return extra attributes."""
+        if self.coordinator.data:
+            return {
+                "spotpris": self.coordinator.data.get("spot_price"),
+                "stromstotte": self.coordinator.data.get("stromstotte"),
+            }
+        return None
+
+
+class TotalPrisEtterStotteSensor(NettleieBaseSensor):
+    """Sensor for total price after strømstøtte (spot + nettleie - støtte)."""
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "total_pris_etter_stotte", "Total strømpris etter støtte")
+        self._attr_native_unit_of_measurement = "NOK/kWh"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_icon = "mdi:cash-check"
+        self._attr_suggested_display_precision = 2
+
+    @property
+    def native_value(self):
+        """Return the state."""
+        if self.coordinator.data:
+            return self.coordinator.data.get("total_price")
+        return None
+
+    @property
+    def extra_state_attributes(self):
+        """Return extra attributes."""
+        if self.coordinator.data:
+            return {
+                "spotpris": self.coordinator.data.get("spot_price"),
+                "stromstotte": self.coordinator.data.get("stromstotte"),
+                "spotpris_etter_stotte": self.coordinator.data.get("spotpris_etter_stotte"),
                 "energiledd": self.coordinator.data.get("energiledd"),
                 "kapasitetsledd_per_kwh": self.coordinator.data.get("kapasitetsledd_per_kwh"),
             }

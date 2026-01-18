@@ -12,12 +12,12 @@ Home Assistant integrasjon for beregning av nettleie for norske nettselskaper.
 - **Energiledd-sensor**: Viser gjeldende energiledd basert på tid (dag/natt/helg/helligdager)
 - **Kapasitetstrinn-sensor**: Beregner kapasitetstrinn basert på de 3 høyeste timene på 3 ulike dager
 - **Total strømpris-sensor**: Viser total strømpris inkludert spotpris og nettleie
+- **Strømstøtte-sensorer**: Beregner strømstøtte (90% over 70 øre) og viser priser etter støtte
 - **Strømselskap + nettleie**: Valgfri sensor for total pris fra strømselskap (f.eks. Tibber) + nettleie
-
 
 ## Merk
 
-Norgespris og strømstøtte er ikke støttet.
+Norgespris er ikke støttet.
 
 ## Krav
 
@@ -57,18 +57,21 @@ Norgespris og strømstøtte er ikke støttet.
 
 ## Sensorer
 
-| Sensor                             | Beskrivelse                                     |
-|------------------------------------|-------------------------------------------------|
-| `sensor.energiledd`                | Energiledd i NOK/kWh                            |
-| `sensor.kapasitetstrinn`           | Kapasitetsledd i kr/mnd                         |
-| `sensor.strompris_ink_avgifter`    | Total strømpris i NOK/kWh                       |
-| `sensor.maks_forbruk_1`            | Høyeste forbruk denne måneden (kW)              |
-| `sensor.maks_forbruk_2`            | Nest høyeste forbruk denne måneden (kW)         |
-| `sensor.maks_forbruk_3`            | Tredje høyeste forbruk denne måneden (kW)       |
-| `sensor.gjennomsnitt_maks_forbruk` | Gjennomsnitt av topp 3 (kW)                     |
-| `sensor.kapasitetstrinn_nummer`    | Kapasitetstrinn nummer (1-10)                   |
-| `sensor.kapasitetstrinn_intervall` | Kapasitetstrinn intervall (f.eks. "5-10 kW")    |
-| `sensor.strompris_tibber_nettleie` | Strømpris fra strømselskap + nettleie (NOK/kWh) |
+| Sensor                             | Beskrivelse                                       |
+|------------------------------------|---------------------------------------------------|
+| `sensor.energiledd`                | Energiledd i NOK/kWh                              |
+| `sensor.kapasitetstrinn`           | Kapasitetsledd i kr/mnd                           |
+| `sensor.strompris_ink_avgifter`    | Total strømpris i NOK/kWh                         |
+| `sensor.maks_forbruk_1`            | Høyeste forbruk denne måneden (kW)                |
+| `sensor.maks_forbruk_2`            | Nest høyeste forbruk denne måneden (kW)           |
+| `sensor.maks_forbruk_3`            | Tredje høyeste forbruk denne måneden (kW)         |
+| `sensor.gjennomsnitt_maks_forbruk` | Gjennomsnitt av topp 3 (kW)                       |
+| `sensor.kapasitetstrinn_nummer`    | Kapasitetstrinn nummer (1-10)                     |
+| `sensor.kapasitetstrinn_intervall` | Kapasitetstrinn intervall (f.eks. "5-10 kW")      |
+| `sensor.strompris_tibber_nettleie` | Strømpris fra strømselskap + nettleie (NOK/kWh)   |
+| `sensor.stromstotte`               | Strømstøtte per kWh (90% over 70 øre)             |
+| `sensor.spotpris_etter_stotte`     | Spotpris minus strømstøtte (NOK/kWh)              |
+| `sensor.total_pris_etter_stotte`   | Total strømpris etter strømstøtte (NOK/kWh)       |
 
 ## Konfigurasjonsfelt
 

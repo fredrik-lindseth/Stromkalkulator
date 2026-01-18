@@ -108,11 +108,14 @@ class NettleieCoordinator(DataUpdateCoordinator):
         spot_state = self.hass.states.get(self.spot_price_sensor)
         spot_price = float(spot_state.state) if spot_state and spot_state.state not in ("unknown", "unavailable") else 0
 
-        # Calculate strømstøtte
+        # Calculate strømstøtte (90% av spotpris over 70 øre/kWh)
         if spot_price > STROMSTOTTE_LEVEL:
             stromstotte = (spot_price - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE
         else:
             stromstotte = 0
+        
+        # Spotpris etter strømstøtte
+        spotpris_etter_stotte = spot_price - stromstotte
 
         # Calculate fastledd per kWh
         days_in_month = self._days_in_month(now)
@@ -141,6 +144,7 @@ class NettleieCoordinator(DataUpdateCoordinator):
             "kapasitetsledd_per_kwh": round(fastledd_per_kwh, 4),
             "spot_price": round(spot_price, 4),
             "stromstotte": round(stromstotte, 4),
+            "spotpris_etter_stotte": round(spotpris_etter_stotte, 4),
             "total_price": round(total_price, 2),
             "tibber_price": round(tibber_price, 4) if tibber_price is not None else None,
             "tibber_total": round(tibber_total, 4) if tibber_total is not None else None,

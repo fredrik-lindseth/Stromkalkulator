@@ -33,7 +33,7 @@ async def async_setup_entry(
         GjsForbrukSensor(coordinator, entry),
         TrinnNummerSensor(coordinator, entry),
         TrinnIntervallSensor(coordinator, entry),
-        TibberTotalSensor(coordinator, entry),
+        ElectricityCompanyTotalSensor(coordinator, entry),
         StromstotteSensor(coordinator, entry),
         SpotprisEtterStotteSensor(coordinator, entry),
         TotalPrisEtterStotteSensor(coordinator, entry),
@@ -274,12 +274,12 @@ class TrinnIntervallSensor(NettleieBaseSensor):
         return None
 
 
-class TibberTotalSensor(NettleieBaseSensor):
-    """Sensor for total price with Tibber + nettleie."""
+class ElectricityCompanyTotalSensor(NettleieBaseSensor):
+    """Sensor for total price with electricity company + nettleie."""
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
-        super().__init__(coordinator, entry, "tibber_total", "Strømpris Tibber + nettleie")
+        super().__init__(coordinator, entry, "electricity_company_total", "Strømpris strømselskap + nettleie")
         self._attr_native_unit_of_measurement = "NOK/kWh"
         self._attr_state_class = SensorStateClass.MEASUREMENT
         self._attr_icon = "mdi:cash-plus"
@@ -289,9 +289,9 @@ class TibberTotalSensor(NettleieBaseSensor):
     def native_value(self):
         """Return the state."""
         if self.coordinator.data:
-            tibber_total = self.coordinator.data.get("tibber_total")
-            if tibber_total is not None:
-                return round(tibber_total, 4)
+            electricity_company_total = self.coordinator.data.get("electricity_company_total")
+            if electricity_company_total is not None:
+                return round(electricity_company_total, 4)
         return None
 
     @property
@@ -299,7 +299,7 @@ class TibberTotalSensor(NettleieBaseSensor):
         """Return extra attributes."""
         if self.coordinator.data:
             return {
-                "tibber_pris": self.coordinator.data.get("tibber_price"),
+                "electricity_company_pris": self.coordinator.data.get("tibber_price"),
                 "energiledd": self.coordinator.data.get("energiledd"),
                 "kapasitetsledd_per_kwh": self.coordinator.data.get("kapasitetsledd_per_kwh"),
             }

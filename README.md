@@ -72,7 +72,7 @@ Home Assistant integrasjon for beregning av nettleie for norske nettselskaper.
 | `sensor.gjennomsnitt_maks_forbruk` | Gjennomsnitt av topp 3 (kW)                     |
 | `sensor.kapasitetstrinn_nummer`    | Kapasitetstrinn nummer (1-10)                   |
 | `sensor.kapasitetstrinn_intervall` | Kapasitetstrinn intervall (f.eks. "5-10 kW")    |
-| `sensor.tibber_total`              | Strømpris fra strømselskap + nettleie (NOK/kWh) |
+| `sensor.electricity_company_total` | Strømpris fra strømselskap + nettleie (NOK/kWh) |
 | `sensor.stromstotte`               | Strømstøtte per kWh (90% over 70 øre)           |
 | `sensor.spotpris_etter_stotte`     | Spotpris minus strømstøtte (NOK/kWh)            |
 | `sensor.total_pris_etter_stotte`   | Total strømpris etter strømstøtte (NOK/kWh)     |
@@ -93,7 +93,7 @@ Home Assistant integrasjon for beregning av nettleie for norske nettselskaper.
 
 | Situasjon                          | Sensor                           | Forklaring                                |
 |------------------------------------|----------------------------------|-------------------------------------------|
-| **Har Tibber**                     | `sensor.tibber_total`            | Totalpris fra Tibber + nettleie           |
+| **Har strømselskap**              | `sensor.electricity_company_total` | Totalpris fra strømselskap + nettleie     |
 | **Vil sammenligne med norgespris** | `sensor.min_pris_norgespris`     | Din pris vs landsgjennomsnitt (forenklet) |
 | **Vil se om du sparer/taper**      | `sensor.kroner_spart_norgespris` | Forskjell per kWh                         |
 
@@ -108,7 +108,7 @@ Home Assistant integrasjon for beregning av nettleie for norske nettselskaper.
 | **Nettselskap**              | Velg ditt nettselskap fra listen, eller "Egendefinert" for manuelle priser               |   Ja    |
 | **Strømforbruk-sensor**      | Sensor som viser nåværende strømforbruk i W (f.eks. Tibber Pulse)                        |   Ja    |
 | **Spotpris-sensor**          | Nord Pool "Current price" sensor (f.eks. `sensor.nord_pool_no5_current_price`)           |   Ja    |
-| **Strømselskap-pris-sensor** | Sensor fra strømselskap med total pris (f.eks. Tibber). Brukes for `sensor.tibber_total` |   Nei   |
+| **Strømselskap-pris-sensor** | Sensor fra strømselskap med total pris (f.eks. Tibber). Brukes for `sensor.electricity_company_total` |   Nei   |
 | **Energiledd dag**           | Manuell energiledd-pris for dag (kun ved "Egendefinert")                                 |   Nei   |
 | **Energiledd natt**          | Manuell energiledd-pris for natt/helg (kun ved "Egendefinert")                           |   Nei   |
 

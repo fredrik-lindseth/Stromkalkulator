@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate manifest
+        run: |
+          jq empty custom_components/nettleie/manifest.json || exit 1
+          echo "✅ Manifest JSON is valid"
+
+      - name: Check required files
+        run: |
+          REQUIRED_FILES=(
+            "custom_components/nettleie/__init__.py"
+            "custom_components/nettleie/manifest.json"
+            "custom_components/nettleie/config_flow.py"
+            "custom_components/nettleie/sensor.py"
+            "custom_components/nettleie/coordinator.py"
+            "custom_components/nettleie/const.py"
+            "README.md"
+          )
+          for file in "${REQUIRED_FILES[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "❌ Missing required file: $file"
+              exit 1
+            fi
+          done
+          echo "✅ All required files present"
+
+      - name: Check Python syntax
+        run: |
+          python -m py_compile custom_components/nettleie/*.py
+          echo "✅ Python syntax is valid"
+
+      - name: Check version consistency
+        run: |
+          VERSION=$(jq -r '.version' custom_components/nettleie/manifest.json)
+          echo "📦 Version: $VERSION"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "❌ Invalid version format: $VERSION"
+            exit 1
+          fi
+          echo "✅ Version format is valid"

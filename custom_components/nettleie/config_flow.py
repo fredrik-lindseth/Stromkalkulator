@@ -211,61 +211,47 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):
             for key, value in TSO_LIST.items()
         ]
 
+        options_schema = vol.Schema(
+            {
+                vol.Required(CONF_TSO): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=tso_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    ),
+                ),
+                vol.Required(CONF_POWER_SENSOR): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="sensor"),
+                ),
+                vol.Required(CONF_SPOT_PRICE_SENSOR): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="sensor"),
+                ),
+                vol.Optional(CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="sensor"),
+                ),
+                vol.Required(CONF_ENERGILEDD_DAG): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=0,
+                        max=2,
+                        step=0.0001,
+                        unit_of_measurement="NOK/kWh",
+                        mode=selector.NumberSelectorMode.BOX,
+                    ),
+                ),
+                vol.Required(CONF_ENERGILEDD_NATT): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=0,
+                        max=2,
+                        step=0.0001,
+                        unit_of_measurement="NOK/kWh",
+                        mode=selector.NumberSelectorMode.BOX,
+                    ),
+                ),
+            }
+        )
+
         return self.async_show_form(
             step_id="init",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(
-                        CONF_TSO,
-                        default=current_data.get(CONF_TSO, DEFAULT_TSO),
-                    ): selector.SelectSelector(
-                        selector.SelectSelectorConfig(
-                            options=tso_options,
-                            mode=selector.SelectSelectorMode.DROPDOWN,
-                        ),
-                    ),
-                    vol.Required(
-                        CONF_POWER_SENSOR,
-                        default=current_data.get(CONF_POWER_SENSOR),
-                    ): selector.EntitySelector(
-                        selector.EntitySelectorConfig(domain="sensor"),
-                    ),
-                    vol.Required(
-                        CONF_SPOT_PRICE_SENSOR,
-                        default=current_data.get(CONF_SPOT_PRICE_SENSOR),
-                    ): selector.EntitySelector(
-                        selector.EntitySelectorConfig(domain="sensor"),
-                    ),
-                    vol.Optional(
-                        CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
-                        description={"suggested_value": current_data.get(CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR)},
-                    ): selector.EntitySelector(
-                        selector.EntitySelectorConfig(domain="sensor"),
-                    ),
-                    vol.Required(
-                        CONF_ENERGILEDD_DAG,
-                        default=current_data.get(CONF_ENERGILEDD_DAG, DEFAULT_ENERGILEDD_DAG),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0,
-                            max=2,
-                            step=0.0001,
-                            unit_of_measurement="NOK/kWh",
-                            mode=selector.NumberSelectorMode.BOX,
-                        ),
-                    ),
-                    vol.Required(
-                        CONF_ENERGILEDD_NATT,
-                        default=current_data.get(CONF_ENERGILEDD_NATT, DEFAULT_ENERGILEDD_NATT),
-                    ): selector.NumberSelector(
-                        selector.NumberSelectorConfig(
-                            min=0,
-                            max=2,
-                            step=0.0001,
-                            unit_of_measurement="NOK/kWh",
-                            mode=selector.NumberSelectorMode.BOX,
-                        ),
-                    ),
-                }
+            data_schema=self.add_suggested_values_to_schema(
+                options_schema, current_data
             ),
         )

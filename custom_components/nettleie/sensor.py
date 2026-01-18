@@ -33,6 +33,7 @@ async def async_setup_entry(
         GjsForbrukSensor(coordinator, entry),
         TrinnNummerSensor(coordinator, entry),
         TrinnIntervallSensor(coordinator, entry),
+        TibberTotalSensor(coordinator, entry),
     ]
 
     async_add_entities(entities)
@@ -265,4 +266,36 @@ class TrinnIntervallSensor(NettleieBaseSensor):
         """Return the state."""
         if self.coordinator.data:
             return self.coordinator.data.get("kapasitetstrinn_intervall")
+        return None
+
+
+class TibberTotalSensor(NettleieBaseSensor):
+    """Sensor for total price with Tibber + nettleie."""
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "tibber_total", "Strømpris Tibber + nettleie")
+        self._attr_native_unit_of_measurement = "NOK/kWh"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_icon = "mdi:cash-plus"
+        self._attr_suggested_display_precision = 2
+
+    @property
+    def native_value(self):
+        """Return the state."""
+        if self.coordinator.data:
+            tibber_total = self.coordinator.data.get("tibber_total")
+            if tibber_total is not None:
+                return round(tibber_total, 4)
+        return None
+
+    @property
+    def extra_state_attributes(self):
+        """Return extra attributes."""
+        if self.coordinator.data:
+            return {
+                "tibber_pris": self.coordinator.data.get("tibber_price"),
+                "energiledd": self.coordinator.data.get("energiledd"),
+                "kapasitetsledd_per_kwh": self.coordinator.data.get("kapasitetsledd_per_kwh"),
+            }
         return None

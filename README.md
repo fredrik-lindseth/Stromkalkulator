@@ -16,7 +16,7 @@ Home Assistant integrasjon for beregning av nettleie for norske nettselskaper.
 
 ## Krav
 
-- Nordpool-integrasjon installert
+- Nordpool-integrasjon installert (⚠️ Norgespris er ikke støttet)
 - Strømforbruk-sensor i sanntid, f.eks:
   - [Tibber Pulse](https://tibber.com/no/pulse)
   - [AMS-leser.no](https://ams-leser.no/)
@@ -30,7 +30,7 @@ Home Assistant integrasjon for beregning av nettleie for norske nettselskaper.
 1. Åpne HACS i Home Assistant
 2. Klikk på "Integrations"
 3. Klikk på de tre prikkene øverst til høyre og velg "Custom repositories"
-4. Legg til `https://github.com/fredrik-lindseth/strompris` og velg "Integration" som kategori
+4. Legg til `https://github.com/fredrik-lindseth/nettleie` og velg "Integration" som kategori
 5. Finn "Nettleie" i listen og klikk "Download"
 6. Start Home Assistant på nytt (eller bruk Quick Reload under Developer Tools)
 

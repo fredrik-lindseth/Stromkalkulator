@@ -1,12 +1,12 @@
 {
   "domain": "nettleie",
   "name": "Nettleie",
-  "codeowners": ["@fredrik"],
+  "codeowners": ["@fredrik-lindseth"],
   "config_flow": true,
   "dependencies": [],
-  "documentation": "https://github.com/fredrik/nettleie",
+  "documentation": "https://github.com/fredrik-lindseth/strompris",
   "iot_class": "local_polling",
-  "issue_tracker": "https://github.com/fredrik/nettleie/issues",
+  "issue_tracker": "https://github.com/fredrik-lindseth/strompris/issues",
   "requirements": [],
-  "version": "1.0.0"
+  "version": "0.1.0"
 }

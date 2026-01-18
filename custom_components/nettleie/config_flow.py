@@ -249,6 +249,9 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):
                     selector.NumberSelectorConfig(
                         min=0,
                         max=2,
+                        step=0.0001,
+                        unit_of_measurement="NOK/kWh",
+                        mode=selector.NumberSelectorMode.BOX,
                     ),
                 ),
                 vol.Required(
@@ -258,6 +261,9 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):
                     selector.NumberSelectorConfig(
                         min=0,
                         max=2,
+                        step=0.0001,
+                        unit_of_measurement="NOK/kWh",
+                        mode=selector.NumberSelectorMode.BOX,
                     ),
                 ),
             }

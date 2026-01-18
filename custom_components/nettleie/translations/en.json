@@ -1,0 +1,48 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Nettleie",
+        "description": "Select your grid company",
+        "data": {
+          "tso": "Transmission System Operator (TSO)"
+        }
+      },
+      "sensors": {
+        "title": "Select sensors",
+        "description": "Select sensors for power consumption and spot price",
+        "data": {
+          "power_sensor": "Power consumption sensor (W)",
+          "spot_price_sensor": "Spot price sensor (NOK/kWh)"
+        }
+      },
+      "pricing": {
+        "title": "Custom pricing",
+        "description": "Enter energy tariff prices in NOK/kWh",
+        "data": {
+          "energiledd_dag": "Energy tariff day (NOK/kWh)",
+          "energiledd_natt": "Energy tariff night/weekend (NOK/kWh)"
+        }
+      }
+    },
+    "error": {
+      "sensor_not_found": "Sensor not found"
+    },
+    "abort": {
+      "already_configured": "Already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Nettleie settings",
+        "data": {
+          "power_sensor": "Power consumption sensor (W)",
+          "spot_price_sensor": "Spot price sensor (NOK/kWh)",
+          "energiledd_dag": "Energy tariff day (NOK/kWh)",
+          "energiledd_natt": "Energy tariff night/weekend (NOK/kWh)"
+        }
+      }
+    }
+  }
+}

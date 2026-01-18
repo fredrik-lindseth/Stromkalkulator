@@ -1,0 +1,159 @@
+"""Sensor platform for Nettleie."""
+from __future__ import annotations
+
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorStateClass,
+)
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
+
+from .const import CONF_TSO, DOMAIN, TSO_LIST
+from .coordinator import NettleieCoordinator
+
+
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    """Set up Nettleie sensors."""
+    coordinator: NettleieCoordinator = hass.data[DOMAIN][entry.entry_id]
+
+    entities = [
+        EnergileggSensor(coordinator, entry),
+        KapasitetstrinnSensor(coordinator, entry),
+        TotalPriceSensor(coordinator, entry),
+    ]
+
+    async_add_entities(entities)
+
+
+class NettleieBaseSensor(CoordinatorEntity, SensorEntity):
+    """Base class for Nettleie sensors."""
+
+    def __init__(
+        self,
+        coordinator: NettleieCoordinator,
+        entry: ConfigEntry,
+        sensor_type: str,
+        name: str,
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{entry.entry_id}_{sensor_type}"
+        self._attr_name = name
+        self._entry = entry
+        
+        # Get TSO name for device info
+        tso_id = entry.data.get(CONF_TSO, "bkk")
+        self._tso = TSO_LIST.get(tso_id, TSO_LIST["bkk"])
+
+    @property
+    def device_info(self):
+        """Return device info."""
+        return {
+            "identifiers": {(DOMAIN, self._entry.entry_id)},
+            "name": f"Nettleie ({self._tso['name']})",
+            "manufacturer": self._tso["name"],
+            "model": "Nettleie Kalkulator",
+        }
+
+
+class EnergileggSensor(NettleieBaseSensor):
+    """Sensor for energiledd."""
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "energiledd", "Energiledd")
+        self._attr_native_unit_of_measurement = "NOK/kWh"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_icon = "mdi:currency-usd"
+
+    @property
+    def native_value(self):
+        """Return the state."""
+        if self.coordinator.data:
+            return self.coordinator.data.get("energiledd")
+        return None
+
+    @property
+    def extra_state_attributes(self):
+        """Return extra attributes."""
+        if self.coordinator.data:
+            return {
+                "is_day_rate": self.coordinator.data.get("is_day_rate"),
+                "rate_type": "dag" if self.coordinator.data.get("is_day_rate") else "natt/helg",
+                "energiledd_dag": self.coordinator.data.get("energiledd_dag"),
+                "energiledd_natt": self.coordinator.data.get("energiledd_natt"),
+                "tso": self.coordinator.data.get("tso"),
+            }
+        return None
+
+
+class KapasitetstrinnSensor(NettleieBaseSensor):
+    """Sensor for kapasitetstrinn."""
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "kapasitetstrinn", "Kapasitetstrinn")
+        self._attr_native_unit_of_measurement = "kr/mnd"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_icon = "mdi:transmission-tower"
+
+    @property
+    def native_value(self):
+        """Return the state."""
+        if self.coordinator.data:
+            return self.coordinator.data.get("kapasitetsledd")
+        return None
+
+    @property
+    def extra_state_attributes(self):
+        """Return extra attributes."""
+        if self.coordinator.data:
+            top_3 = self.coordinator.data.get("top_3_days", {})
+            attrs = {
+                "gjennomsnitt_kw": self.coordinator.data.get("avg_top_3_kw"),
+                "current_power_kw": self.coordinator.data.get("current_power_kw"),
+                "tso": self.coordinator.data.get("tso"),
+            }
+            for i, (date, power) in enumerate(top_3.items(), 1):
+                attrs[f"maks_{i}_dato"] = date
+                attrs[f"maks_{i}_kw"] = round(power, 2)
+            return attrs
+        return None
+
+
+class TotalPriceSensor(NettleieBaseSensor):
+    """Sensor for total electricity price."""
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "total_price", "Strømpris ink. avgifter")
+        self._attr_native_unit_of_measurement = "NOK/kWh"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_icon = "mdi:cash"
+
+    @property
+    def native_value(self):
+        """Return the state."""
+        if self.coordinator.data:
+            return self.coordinator.data.get("total_price")
+        return None
+
+    @property
+    def extra_state_attributes(self):
+        """Return extra attributes."""
+        if self.coordinator.data:
+            return {
+                "spot_price": self.coordinator.data.get("spot_price"),
+                "energiledd": self.coordinator.data.get("energiledd"),
+                "kapasitetsledd_per_kwh": self.coordinator.data.get("kapasitetsledd_per_kwh"),
+                "stromstotte": self.coordinator.data.get("stromstotte"),
+                "tso": self.coordinator.data.get("tso"),
+            }
+        return None

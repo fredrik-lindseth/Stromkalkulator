@@ -1,0 +1,48 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Nettleie",
+        "description": "Velg ditt nettselskap",
+        "data": {
+          "tso": "Nettselskap (TSO)"
+        }
+      },
+      "sensors": {
+        "title": "Velg sensorer",
+        "description": "Velg sensorer for strømforbruk og spotpris",
+        "data": {
+          "power_sensor": "Strømforbruk-sensor (W)",
+          "spot_price_sensor": "Spotpris-sensor (NOK/kWh)"
+        }
+      },
+      "pricing": {
+        "title": "Egendefinerte priser",
+        "description": "Angi energiledd-priser i NOK/kWh",
+        "data": {
+          "energiledd_dag": "Energiledd dag (NOK/kWh)",
+          "energiledd_natt": "Energiledd natt/helg (NOK/kWh)"
+        }
+      }
+    },
+    "error": {
+      "sensor_not_found": "Sensor ikke funnet"
+    },
+    "abort": {
+      "already_configured": "Allerede konfigurert"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Nettleie innstillinger",
+        "data": {
+          "power_sensor": "Strømforbruk-sensor (W)",
+          "spot_price_sensor": "Spotpris-sensor (NOK/kWh)",
+          "energiledd_dag": "Energiledd dag (NOK/kWh)",
+          "energiledd_natt": "Energiledd natt/helg (NOK/kWh)"
+        }
+      }
+    }
+  }
+}

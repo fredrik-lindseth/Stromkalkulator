@@ -13,6 +13,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install linters
+        run: |
+          pip install vulture ruff
+
       - name: Validate manifest
         run: |
           jq empty custom_components/nettleie/manifest.json || exit 1
@@ -41,6 +50,16 @@ jobs:
         run: |
           python -m py_compile custom_components/nettleie/*.py
           echo "✅ Python syntax is valid"
+
+      - name: Lint with Ruff
+        run: |
+          ruff check custom_components/nettleie/ --ignore E501,F401
+          echo "✅ Ruff linting passed"
+
+      - name: Check for dead code with Vulture
+        run: |
+          vulture custom_components/nettleie/ --min-confidence 80 || true
+          echo "ℹ️ Vulture check complete (warnings only)"
 
       - name: Check version consistency
         run: |

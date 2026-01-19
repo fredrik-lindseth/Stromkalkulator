@@ -15,7 +15,7 @@ Home Assistant integrasjon for beregning av nettleie for norske nettselskaper.
 - **Kapasitetstrinn-sensor**: Beregner kapasitetstrinn basert på de 3 høyeste timene på 3 ulike dager
 - **Total strømpris-sensor**: Viser total strømpris inkludert spotpris og nettleie
 - **Strømstøtte-sensorer**: Beregner strømstøtte (90% over 70 øre) og viser priser etter støtte
-- **Strømselskap + nettleie**: Valgfri sensor for total pris fra strømselskap (f.eks. Tibber) + nettleie
+- **Strømselskap + nettleie**: Valgfri sensor for total strømpris (strømavtale)
 - **Norgespris-sammenligning**: Sammenlign din pris med Norgespris (50 øre/kWh fast)
 
 Se [beregninger.md](beregninger.md) for detaljert dokumentasjon av alle formler og beregninger.
@@ -70,12 +70,12 @@ Testet på Home Assistant 2026.1.2
 
 | Sensor                               | Beskrivelse                                     |
 |--------------------------------------|-------------------------------------------------|
-| `sensor.maks_forbruk_1`              | Maks forbruk #1 denne måneden (kW)              |
-| `sensor.maks_forbruk_2`              | Maks forbruk #2 denne måneden (kW)              |
-| `sensor.maks_forbruk_3`              | Maks forbruk #3 denne måneden (kW)              |
-| `sensor.gjennomsnitt_forbruk`        | Gjennomsnitt maks forbruk (kW)                  |
-| `sensor.trinn_nummer`                | Kapasitetstrinn nummer (1-10)                   |
-| `sensor.trinn_intervall`             | Kapasitetstrinn intervall (f.eks. "5-10 kW")    |
+| `sensor.maks_forbruk_1`              | Toppforbruk #1 denne måneden (kW)               |
+| `sensor.maks_forbruk_2`              | Toppforbruk #2 denne måneden (kW)               |
+| `sensor.maks_forbruk_3`              | Toppforbruk #3 denne måneden (kW)               |
+| `sensor.gjennomsnitt_forbruk`        | Snitt toppforbruk (kW)                          |
+| `sensor.trinn_nummer`                | Kapasitetstrinn (nummer) (1-10)                 |
+| `sensor.trinn_intervall`             | Kapasitetstrinn (intervall) (f.eks. "5-10 kW")  |
 | `sensor.kapasitetstrinn`             | Kapasitetsledd i kr/mnd                         |
 
 ### Nettleie - Energiledd
@@ -88,8 +88,8 @@ Testet på Home Assistant 2026.1.2
 
 | Sensor                               | Beskrivelse                                     |
 |--------------------------------------|-------------------------------------------------|
-| `sensor.strompris_ink_avgifter`      | Strømpris ink. avgifter (NOK/kWh)               |
-| `sensor.electricity_company_total`   | Strømpris strømselskap + nettleie (NOK/kWh)     |
+| `sensor.total_price`                 | Total strømpris (NOK/kWh)                       |
+| `sensor.electricity_company_total`   | Total strømpris (strømavtale) (NOK/kWh)         |
 
 ### Strømstøtte
 
@@ -103,8 +103,8 @@ Testet på Home Assistant 2026.1.2
 
 | Sensor                               | Beskrivelse                                     |
 |--------------------------------------|-------------------------------------------------|
-| `sensor.total_pris_norgespris`       | Totalpris med norgespris (NOK/kWh)              |
-| `sensor.prisforskjell_norgespris`    | Prisforskjell norgespris vs vanlig (NOK/kWh)    |
+| `sensor.total_pris_norgespris`       | Total strømpris (norgespris) (NOK/kWh)          |
+| `sensor.prisforskjell_norgespris`    | Prisforskjell (norgespris) (NOK/kWh)            |
 
 ## Hvilken strømpris-sensor bør du bruke?
 
@@ -120,9 +120,9 @@ Testet på Home Assistant 2026.1.2
 
 | Situasjon                          | Sensor                             | Forklaring                                |
 |------------------------------------|------------------------------------|-------------------------------------------|
-| **Har strømselskap**               | `sensor.electricity_company_total` | Totalpris fra strømselskap + nettleie     |
-| **Vil sammenligne med norgespris** | `sensor.total_pris_norgespris`     | Totalpris med norgespris (50 øre/kWh)     |
-| **Vil se prisforskjell**           | `sensor.prisforskjell_norgespris`  | Forskjell per kWh                         |
+| **Har strømselskap**               | `sensor.electricity_company_total` | Total strømpris (strømavtale)             |
+| **Vil sammenligne med norgespris** | `sensor.total_pris_norgespris`     | Total strømpris (norgespris)              |
+| **Vil se prisforskjell**           | `sensor.prisforskjell_norgespris`  | Prisforskjell (norgespris)                |
 
 ### Om Norgespris-sensorer
 `sensor.total_pris_norgespris` 

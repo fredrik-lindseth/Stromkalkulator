@@ -23,12 +23,22 @@ Se [beregninger.md](beregninger.md) for detaljert dokumentasjon av alle formler 
 
 ## Krav
 
+- Home Assistant 2024.1 eller nyere
 - Nordpool-integrasjon eller en annen integrasjon som gir spotpris i strømsonen din.
 - Strømforbruk-sensor i sanntid, f.eks:
   - [Tibber Pulse](https://tibber.com/no/pulse)
   - [AMS-leser.no](https://ams-leser.no/)
   - HAN-bussleser (tredjepart)
   - Sensor fra nettselskapet
+
+### Testet på
+
+| Komponent        | Versjon      |
+|------------------|--------------|
+| Core             | 2026.1.2     |
+| Supervisor       | 2026.01.1    |
+| Operating System | 16.3         |
+| Frontend         | 20260107.2   |
 
 ## Installasjon
 

@@ -64,21 +64,43 @@ Se [beregninger.md](beregninger.md) for detaljert dokumentasjon av alle formler 
 
 ## Sensorer
 
+### Nettleie - Kapasitet
+
 | Sensor                               | Beskrivelse                                     |
 |--------------------------------------|-------------------------------------------------|
-| `sensor.energiledd`                  | Energiledd i NOK/kWh                            |
-| `sensor.kapasitetstrinn`             | Kapasitetsledd i kr/mnd                         |
-| `sensor.strompris_ink_avgifter`      | Strømpris ink. avgifter (NOK/kWh)               |
 | `sensor.maks_forbruk_1`              | Maks forbruk #1 denne måneden (kW)              |
 | `sensor.maks_forbruk_2`              | Maks forbruk #2 denne måneden (kW)              |
 | `sensor.maks_forbruk_3`              | Maks forbruk #3 denne måneden (kW)              |
 | `sensor.gjennomsnitt_forbruk`        | Gjennomsnitt maks forbruk (kW)                  |
 | `sensor.trinn_nummer`                | Kapasitetstrinn nummer (1-10)                   |
 | `sensor.trinn_intervall`             | Kapasitetstrinn intervall (f.eks. "5-10 kW")    |
+| `sensor.kapasitetstrinn`             | Kapasitetsledd i kr/mnd                         |
+
+### Nettleie - Energiledd
+
+| Sensor                               | Beskrivelse                                     |
+|--------------------------------------|-------------------------------------------------|
+| `sensor.energiledd`                  | Energiledd i NOK/kWh                            |
+
+### Strømpriser
+
+| Sensor                               | Beskrivelse                                     |
+|--------------------------------------|-------------------------------------------------|
+| `sensor.strompris_ink_avgifter`      | Strømpris ink. avgifter (NOK/kWh)               |
 | `sensor.electricity_company_total`   | Strømpris strømselskap + nettleie (NOK/kWh)     |
+
+### Strømstøtte
+
+| Sensor                               | Beskrivelse                                     |
+|--------------------------------------|-------------------------------------------------|
 | `sensor.stromstotte`                 | Strømstøtte per kWh (90% over 70 øre)           |
 | `sensor.spotpris_etter_stotte`       | Spotpris etter støtte (NOK/kWh)                 |
 | `sensor.total_pris_etter_stotte`     | Total strømpris etter støtte (NOK/kWh)          |
+
+### Norgespris
+
+| Sensor                               | Beskrivelse                                     |
+|--------------------------------------|-------------------------------------------------|
 | `sensor.total_pris_norgespris`       | Totalpris med norgespris (NOK/kWh)              |
 | `sensor.prisforskjell_norgespris`    | Prisforskjell norgespris vs vanlig (NOK/kWh)    |
 

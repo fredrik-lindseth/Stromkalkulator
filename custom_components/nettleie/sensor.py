@@ -37,8 +37,8 @@ async def async_setup_entry(
         StromstotteSensor(coordinator, entry),
         SpotprisEtterStotteSensor(coordinator, entry),
         TotalPrisEtterStotteSensor(coordinator, entry),
-        MinPrisNorgesprisSensor(coordinator, entry),
-        KronerSpartNorgesprisSensor(coordinator, entry),
+        TotalPrisNorgesprisSensor(coordinator, entry),
+        PrisforskjellNorgesprisSensor(coordinator, entry),
     ]
 
     async_add_entities(entities)
@@ -397,12 +397,12 @@ class TotalPrisEtterStotteSensor(NettleieBaseSensor):
         return None
 
 
-class MinPrisNorgesprisSensor(NettleieBaseSensor):
-    """Sensor for min pris med norgespris."""
+class TotalPrisNorgesprisSensor(NettleieBaseSensor):
+    """Sensor for totalpris med norgespris."""
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
-        super().__init__(coordinator, entry, "min_pris_norgespris", "Min pris med norgespris")
+        super().__init__(coordinator, entry, "total_pris_norgespris", "Totalpris med norgespris")
         self._attr_native_unit_of_measurement = "NOK/kWh"
         self._attr_state_class = SensorStateClass.MEASUREMENT
         self._attr_icon = "mdi:map-marker"
@@ -412,7 +412,7 @@ class MinPrisNorgesprisSensor(NettleieBaseSensor):
     def native_value(self):
         """Return the state."""
         if self.coordinator.data:
-            return self.coordinator.data.get("min_pris_norgespris")
+            return self.coordinator.data.get("total_pris_norgespris")
         return None
 
     @property
@@ -424,17 +424,17 @@ class MinPrisNorgesprisSensor(NettleieBaseSensor):
                 "norgespris_stromstotte": self.coordinator.data.get("norgespris_stromstotte"),
                 "energiledd": self.coordinator.data.get("energiledd"),
                 "kapasitetsledd_per_kwh": self.coordinator.data.get("kapasitetsledd_per_kwh"),
-                "note": "Forenklet - bruker eget prisområde som norgespris",
+                "note": "Norgespris er fast 50 øre/kWh fra Elhub",
             }
         return None
 
 
-class KronerSpartNorgesprisSensor(NettleieBaseSensor):
-    """Sensor for kroner spart med norgespris."""
+class PrisforskjellNorgesprisSensor(NettleieBaseSensor):
+    """Sensor for prisforskjell mellom norgespris og vanlig pris."""
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
-        super().__init__(coordinator, entry, "kroner_spart_norgespris", "Kroner spart med norgespris")
+        super().__init__(coordinator, entry, "prisforskjell_norgespris", "Prisforskjell norgespris vs vanlig")
         self._attr_native_unit_of_measurement = "NOK/kWh"
         self._attr_state_class = SensorStateClass.MEASUREMENT
         self._attr_icon = "mdi:cash-minus"
@@ -455,6 +455,6 @@ class KronerSpartNorgesprisSensor(NettleieBaseSensor):
                 "din_pris_etter_stotte": self.coordinator.data.get("spotpris_etter_stotte"),
                 "norgespris_etter_stotte": self.coordinator.data.get("norgespris") - self.coordinator.data.get("norgespris_stromstotte"),
                 "differens_per_kwh": self.coordinator.data.get("kroner_spart_per_kwh"),
-                "note": "Forenklet - bruker eget prisområde som norgespris",
+                "note": "Norgespris er fast 50 øre/kWh fra Elhub",
             }
         return None

@@ -121,21 +121,19 @@ class NettleieCoordinator(DataUpdateCoordinator):
         days_in_month = self._days_in_month(now)
         fastledd_per_kwh = (kapasitetsledd / days_in_month) / 24
         
-        # Norgespris (forenklet - bruker eget prisområde)
-        # TODO: Hent ekte systempris fra Nord Pool API senere
-        norgespris = spot_price
+        # Norgespris (korrekt - fast pris fra Elhub)
+        # Fast pris: 50 øre/kWh inkl. mva = 0.50 NOK/kWh
+        # Kan ikke kombineres med strømstøtte
+        NORGESPRIS_FAST = 0.50  # 50 øre/kWh inkl. mva
         
-        # Strømstøtte basert på norgespris
-        if norgespris > STROMSTOTTE_LEVEL:
-            norgespris_stromstotte = (norgespris - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE
-        else:
-            norgespris_stromstotte = 0
+        # Norgespris er fast pris, ingen strømstøtte
+        norgespris_stromstotte = 0  # Ingen strømstøtte med norgespris
         
-        # Min pris med norgespris
-        min_pris_norgespris = norgespris - norgespris_stromstotte + energiledd + fastledd_per_kwh
+        # Total pris med norgespris
+        total_pris_norgespris = NORGESPRIS_FAST + energiledd + fastledd_per_kwh
         
-        # Kroner spart per kWh
-        kroner_spart_per_kwh = spotpris_etter_stotte - (norgespris - norgespris_stromstotte)
+        # Kroner spart/tapt per kWh (sammenligning)
+        kroner_spart_per_kwh = total_price - total_pris_norgespris
 
         # Total price (Nord Pool + nettleie)
         total_price = spot_price - stromstotte + energiledd + fastledd_per_kwh
@@ -161,9 +159,9 @@ class NettleieCoordinator(DataUpdateCoordinator):
             "spot_price": round(spot_price, 4),
             "stromstotte": round(stromstotte, 4),
             "spotpris_etter_stotte": round(spotpris_etter_stotte, 4),
-            "norgespris": round(norgespris, 4),
+            "norgespris": round(NORGESPRIS_FAST, 4),
             "norgespris_stromstotte": round(norgespris_stromstotte, 4),
-            "min_pris_norgespris": round(min_pris_norgespris, 4),
+            "total_pris_norgespris": round(total_pris_norgespris, 4),
             "kroner_spart_per_kwh": round(kroner_spart_per_kwh, 4),
             "total_price": round(total_price, 2),
             "electricity_company_price": round(electricity_company_price, 4) if electricity_company_price is not None else None,

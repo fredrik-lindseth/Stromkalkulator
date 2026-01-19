@@ -132,6 +132,9 @@ class NettleieCoordinator(DataUpdateCoordinator):
         # Total price (Nord Pool + nettleie)
         total_price = spot_price - stromstotte + energiledd + fastledd_per_kwh
         
+        # Total price UTEN strømstøtte (for de som vil se bruttopris)
+        total_price_uten_stotte = spot_price + energiledd + fastledd_per_kwh
+        
         # Total pris med norgespris
         total_pris_norgespris = NORGESPRIS_FAST + energiledd + fastledd_per_kwh
         
@@ -163,7 +166,8 @@ class NettleieCoordinator(DataUpdateCoordinator):
             "norgespris_stromstotte": round(norgespris_stromstotte, 4),
             "total_pris_norgespris": round(total_pris_norgespris, 4),
             "kroner_spart_per_kwh": round(kroner_spart_per_kwh, 4),
-            "total_price": round(total_price, 2),
+            "total_price": round(total_price, 4),
+            "total_price_uten_stotte": round(total_price_uten_stotte, 4),
             "electricity_company_price": round(electricity_company_price, 4) if electricity_company_price is not None else None,
             "electricity_company_total": round(electricity_company_total, 4) if electricity_company_total is not None else None,
             "current_power_kw": round(current_power_kw, 2),

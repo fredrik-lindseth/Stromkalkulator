@@ -61,6 +61,22 @@ Energileddet varierer basert på tidspunkt:
 - **Dag**: Mandag-fredag 06:00-22:00 (ikke helligdager)
 - **Natt/Helg**: 22:00-06:00, helger og helligdager
 
+#### Helligdager
+
+Følgende dager regnes som natt/helg-rate (lavere pris):
+
+**Faste helligdager:**
+- 1. januar (Nyttårsdag)
+- 1. mai (Arbeidernes dag)
+- 17. mai (Grunnlovsdag)
+- 25. desember (1. juledag)
+- 26. desember (2. juledag)
+
+**Bevegelige helligdager (oppdateres årlig):**
+- Skjærtorsdag, Langfredag, 1. og 2. påskedag
+- Kristi himmelfartsdag
+- 1. og 2. pinsedag
+
 ## Total strømpris
 
 ### Uten strømstøtte
@@ -72,6 +88,16 @@ total_pris = spotpris + energiledd + fastledd_per_kwh
 ```
 total_pris_etter_stotte = (spotpris - strømstøtte) + energiledd + fastledd_per_kwh
 ```
+
+## Strømselskap-pris
+
+Hvis du har konfigurert en pris-sensor fra strømselskapet (f.eks. Tibber), beregnes totalpris slik:
+
+```
+electricity_company_total = strømselskap_pris + energiledd + fastledd_per_kwh
+```
+
+**Merk:** Strømselskap-prisen inkluderer ofte spotpris + påslag + evt. mva. Denne sensoren legger til nettleie (energiledd + kapasitetsledd) på toppen.
 
 ## Strømstøtte
 

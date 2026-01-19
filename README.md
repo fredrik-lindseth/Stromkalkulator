@@ -88,7 +88,7 @@ Testet på Home Assistant 2026.1.2
 
 | Sensor                               | Beskrivelse                                     |
 |--------------------------------------|-------------------------------------------------|
-| `sensor.total_price`                 | Total strømpris (NOK/kWh)                       |
+| `sensor.total_price`                 | Total strømpris før støtte (NOK/kWh)            |
 | `sensor.electricity_company_total`   | Total strømpris (strømavtale) (NOK/kWh)         |
 
 ### Strømstøtte
@@ -105,6 +105,65 @@ Testet på Home Assistant 2026.1.2
 |--------------------------------------|-------------------------------------------------|
 | `sensor.total_pris_norgespris`       | Total strømpris (norgespris) (NOK/kWh)          |
 | `sensor.prisforskjell_norgespris`    | Prisforskjell (norgespris) (NOK/kWh)            |
+
+### Sensor-attributter
+
+Hver sensor har ekstra attributter som gir mer detaljer. Disse kan brukes i templates og automatiseringer.
+
+<details>
+<summary>Klikk for å se alle attributter</summary>
+
+#### Kapasitetstrinn (`sensor.kapasitetstrinn`)
+| Attributt | Beskrivelse |
+|-----------|-------------|
+| `trinn` | Kapasitetstrinn-nummer (1-10) |
+| `intervall` | Intervall (f.eks. "5-10 kW") |
+| `gjennomsnitt_kw` | Snitt av topp 3 dager |
+| `current_power_kw` | Nåværende forbruk |
+| `maks_1_dato`, `maks_1_kw` | Dato og verdi for toppdag #1 |
+| `maks_2_dato`, `maks_2_kw` | Dato og verdi for toppdag #2 |
+| `maks_3_dato`, `maks_3_kw` | Dato og verdi for toppdag #3 |
+| `tso` | Nettselskap |
+
+#### Energiledd (`sensor.energiledd`)
+| Attributt | Beskrivelse |
+|-----------|-------------|
+| `is_day_rate` | `true` hvis dagpris |
+| `rate_type` | "dag" eller "natt/helg" |
+| `energiledd_dag` | Dagpris (NOK/kWh) |
+| `energiledd_natt` | Nattpris (NOK/kWh) |
+| `tso` | Nettselskap |
+
+#### Total strømpris (`sensor.total_price`)
+| Attributt | Beskrivelse |
+|-----------|-------------|
+| `spot_price` | Spotpris fra Nord Pool |
+| `energiledd` | Energiledd (NOK/kWh) |
+| `kapasitetsledd_per_kwh` | Kapasitetsledd per kWh |
+| `tso` | Nettselskap |
+
+#### Strømstøtte (`sensor.stromstotte`)
+| Attributt | Beskrivelse |
+|-----------|-------------|
+| `spotpris` | Nåværende spotpris |
+| `terskel` | 0.70 (70 øre/kWh) |
+| `dekningsgrad` | "90%" |
+
+#### Total strømpris etter støtte (`sensor.total_pris_etter_stotte`)
+| Attributt | Beskrivelse |
+|-----------|-------------|
+| `spotpris` | Spotpris |
+| `stromstotte` | Strømstøtte beløp |
+| `spotpris_etter_stotte` | Spotpris minus støtte |
+| `energiledd` | Energiledd |
+| `kapasitetsledd_per_kwh` | Kapasitetsledd per kWh |
+
+#### Toppforbruk (`sensor.maks_forbruk_1/2/3`)
+| Attributt | Beskrivelse |
+|-----------|-------------|
+| `dato` | Datoen for toppforbruket |
+
+</details>
 
 ## Hvilken strømpris-sensor bør du bruke?
 

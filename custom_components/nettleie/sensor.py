@@ -39,7 +39,7 @@ async def async_setup_entry(
         TrinnIntervallSensor(coordinator, entry),
         KapasitetstrinnSensor(coordinator, entry),
         # Nettleie - Energiledd
-        EnergileggSensor(coordinator, entry),
+        EnergileddSensor(coordinator, entry),
         # Strømpriser
         TotalPriceSensor(coordinator, entry),
         ElectricityCompanyTotalSensor(coordinator, entry),
@@ -93,7 +93,7 @@ class NettleieBaseSensor(CoordinatorEntity, SensorEntity):
         }
 
 
-class EnergileggSensor(NettleieBaseSensor):
+class EnergileddSensor(NettleieBaseSensor):
     """Sensor for energiledd."""
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -162,20 +162,21 @@ class KapasitetstrinnSensor(NettleieBaseSensor):
 
 
 class TotalPriceSensor(NettleieBaseSensor):
-    """Sensor for total electricity price."""
+    """Sensor for total electricity price (without strømstøtte)."""
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
-        super().__init__(coordinator, entry, "total_price", "Total strømpris")
+        super().__init__(coordinator, entry, "total_price", "Total strømpris (før støtte)")
         self._attr_native_unit_of_measurement = "NOK/kWh"
         self._attr_state_class = SensorStateClass.MEASUREMENT
         self._attr_icon = "mdi:cash"
+        self._attr_suggested_display_precision = 2
 
     @property
     def native_value(self):
         """Return the state."""
         if self.coordinator.data:
-            return self.coordinator.data.get("total_price")
+            return self.coordinator.data.get("total_price_uten_stotte")
         return None
 
     @property
@@ -186,7 +187,6 @@ class TotalPriceSensor(NettleieBaseSensor):
                 "spot_price": self.coordinator.data.get("spot_price"),
                 "energiledd": self.coordinator.data.get("energiledd"),
                 "kapasitetsledd_per_kwh": self.coordinator.data.get("kapasitetsledd_per_kwh"),
-                "stromstotte": self.coordinator.data.get("stromstotte"),
                 "tso": self.coordinator.data.get("tso"),
             }
         return None
@@ -487,9 +487,14 @@ class PrisforskjellNorgesprisSensor(NettleieBaseSensor):
     def extra_state_attributes(self):
         """Return extra attributes."""
         if self.coordinator.data:
+            norgespris = self.coordinator.data.get("norgespris")
+            norgespris_stromstotte = self.coordinator.data.get("norgespris_stromstotte")
+            norgespris_etter_stotte = None
+            if norgespris is not None and norgespris_stromstotte is not None:
+                norgespris_etter_stotte = norgespris - norgespris_stromstotte
             return {
                 "din_pris_etter_stotte": self.coordinator.data.get("spotpris_etter_stotte"),
-                "norgespris_etter_stotte": self.coordinator.data.get("norgespris") - self.coordinator.data.get("norgespris_stromstotte"),
+                "norgespris_etter_stotte": norgespris_etter_stotte,
                 "differens_per_kwh": self.coordinator.data.get("kroner_spart_per_kwh"),
                 "note": "Norgespris er fast 50 øre/kWh fra Elhub",
             }

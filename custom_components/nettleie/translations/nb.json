@@ -5,7 +5,7 @@
         "title": "Nettleie",
         "description": "Velg ditt nettselskap",
         "data": {
-          "tso": "Nettselskap (TSO)"
+          "tso": "Nettselskap"
         }
       },
       "sensors": {
@@ -19,7 +19,7 @@
       },
       "pricing": {
         "title": "Egendefinerte priser",
-        "description": "Angi energiledd-priser i NOK/kWh",
+        "description": "Energiledd er en kWh-avgift fra nettselskapet som varierer etter tid på døgnet.\n\nFinn prisene på nettselskapets nettside. La stå på 0 for å bruke standardpriser.",
         "data": {
           "energiledd_dag": "Energiledd dag (NOK/kWh)",
           "energiledd_natt": "Energiledd natt/helg (NOK/kWh)"
@@ -37,8 +37,9 @@
     "step": {
       "init": {
         "title": "Nettleie innstillinger",
+        "description": "Konfigurer sensorer og nettleiepriser.\n\n**Energiledd:** kWh-avgift fra nettselskapet. La stå på 0 for standardpriser.",
         "data": {
-          "tso": "Nettselskap (TSO)",
+          "tso": "Nettselskap",
           "power_sensor": "Strømforbruk-sensor (W)",
           "spot_price_sensor": "Spotprissensor (NOK/kWh)",
           "electricity_provider_price_sensor": "Strømselskap-sensor (valgfri, NOK/kWh)",

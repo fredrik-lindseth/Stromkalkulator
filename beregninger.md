@@ -129,19 +129,22 @@ total_pris_etter_stotte = (spotpris - strømstøtte) + energiledd + fastledd_per
 - Data nulles automatisk ved ny måned
 - Lagret format: `{dag: maks_forbruk_kw}`
 
-## Norgespris (Forenklet)
+## Norgespris
 
-**Viktig:** Norgespris-beregningene er forenklede og bruker ditt lokale prisområde som "norgespris". Dette er ikke det faktiske gjennomsnittet for hele Norge.
+Norgespris er et strømprodukt fra Elhub med fast pris på 50 øre/kWh inkl. mva.
+
+### Egenskaper
+- **Fast pris**: 50 øre/kWh (0.50 NOK/kWh) inkl. mva
+- **Ingen strømstøtte**: Kan ikke kombineres med strømstøtte
+- **Gjelder**: Strømforbruk hjemme og på hytte
 
 ### Formler
 ```
-norgespris = spotpris  # Forenklet - bruker eget prisområde
+NORGESPRIS_FAST = 0.50  # 50 øre/kWh inkl. mva
 
-norgespris_stromstotte = max(0, (norgespris - 0.70) * 0.90)
+total_pris_norgespris = NORGESPRIS_FAST + energiledd + fastledd_per_kwh
 
-min_pris_norgespris = norgespris - norgespris_stromstotte + energiledd + fastledd_per_kwh
-
-kroner_spart_per_kwh = (din_pris_etter_stotte) - (norgespris - norgespris_stromstotte)
+kroner_spart_per_kwh = total_pris_etter_stotte - total_pris_norgespris
 ```
 
 ### Eksempel
@@ -151,21 +154,19 @@ kroner_spart_per_kwh = (din_pris_etter_stotte) - (norgespris - norgespris_stroms
 - Fastledd: 0.56 NOK/kWh
 
 **Beregninger:**
-1. **Norgespris**: 1.20 NOK/kWh (samme som din spotpris)
-2. **Norgespris strømstøtte**: (1.20 - 0.70) * 0.90 = 0.45 NOK/kWh
-3. **Min pris med norgespris**: (1.20 - 0.45) + 0.4613 + 0.56 = 1.77 NOK/kWh
-4. **Din pris etter støtte**: (1.20 - 0.45) + 0.4613 + 0.56 = 1.77 NOK/kWh
-5. **Kroner spart**: 1.77 - 1.77 = 0.00 NOK/kWh
+1. **Din strømstøtte**: (1.20 - 0.70) * 0.90 = 0.45 NOK/kWh
+2. **Din totalpris etter støtte**: (1.20 - 0.45) + 0.4613 + 0.56 = 1.77 NOK/kWh
+3. **Totalpris med norgespris**: 0.50 + 0.4613 + 0.56 = 1.52 NOK/kWh
+4. **Prisforskjell**: 1.77 - 1.52 = 0.25 NOK/kWh (du betaler mer)
 
-### Begrensninger
-- Viser samme pris som ditt prisområde
-- Gir ikke reell sammenligning med landsgjennomsnittet
-- For korrekt norgespris trengs systempris fra Nord Pool API
+### Tolkning av prisforskjell
+- **Positiv verdi**: Du betaler mer enn norgespris (norgespris er billigere)
+- **Negativ verdi**: Du betaler mindre enn norgespris (din avtale er billigere)
 
 ## Noter
 
 - Alle priser er i NOK/kWh
-- Strømforbruk konverteres fra W til kW (1000)
+- Strømforbruk konverteres fra W til kW (/1000)
 - Beregningene følger norske regler for strømstøtte
 - Kapasitetstrinn varierer mellom nettselskaper
-- Norgespris er forenklet - bruker eget prisområde som referanse
+- Norgespris er fast 50 øre/kWh fra Elhub (ingen strømstøtte)

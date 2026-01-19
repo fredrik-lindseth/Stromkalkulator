@@ -16,6 +16,9 @@ Home Assistant integrasjon for beregning av nettleie for norske nettselskaper.
 - **Total strømpris-sensor**: Viser total strømpris inkludert spotpris og nettleie
 - **Strømstøtte-sensorer**: Beregner strømstøtte (90% over 70 øre) og viser priser etter støtte
 - **Strømselskap + nettleie**: Valgfri sensor for total pris fra strømselskap (f.eks. Tibber) + nettleie
+- **Norgespris-sammenligning**: Sammenlign din pris med Norgespris (50 øre/kWh fast)
+
+Se [beregninger.md](beregninger.md) for detaljert dokumentasjon av alle formler og beregninger.
 
 
 ## Krav

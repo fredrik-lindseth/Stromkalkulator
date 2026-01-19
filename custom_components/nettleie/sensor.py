@@ -7,12 +7,18 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import CONF_TSO, DOMAIN, TSO_LIST
 from .coordinator import NettleieCoordinator
+
+# Device group constants
+DEVICE_NETTLEIE = "nettleie"
+DEVICE_STROMSTOTTE = "stromstotte"
+DEVICE_NORGESPRIS = "norgespris"
 
 
 async def async_setup_entry(
@@ -52,6 +58,8 @@ async def async_setup_entry(
 class NettleieBaseSensor(CoordinatorEntity, SensorEntity):
     """Base class for Nettleie sensors."""
 
+    _device_group: str = DEVICE_NETTLEIE
+
     def __init__(
         self,
         coordinator: NettleieCoordinator,
@@ -72,9 +80,14 @@ class NettleieBaseSensor(CoordinatorEntity, SensorEntity):
     @property
     def device_info(self):
         """Return device info."""
+        device_names = {
+            DEVICE_NETTLEIE: f"Nettleie ({self._tso['name']})",
+            DEVICE_STROMSTOTTE: "Strømstøtte",
+            DEVICE_NORGESPRIS: "Norgespris",
+        }
         return {
-            "identifiers": {(DOMAIN, self._entry.entry_id)},
-            "name": f"Nettleie ({self._tso['name']})",
+            "identifiers": {(DOMAIN, f"{self._entry.entry_id}_{self._device_group}")},
+            "name": device_names.get(self._device_group, f"Nettleie ({self._tso['name']})"),
             "manufacturer": "Fredrik Lindseth",
             "model": "Nettleiekalkulator",
         }
@@ -182,6 +195,8 @@ class TotalPriceSensor(NettleieBaseSensor):
 class MaksForbrukSensor(NettleieBaseSensor):
     """Sensor for max power consumption on a specific day."""
 
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
     def __init__(
         self, coordinator: NettleieCoordinator, entry: ConfigEntry, rank: int
     ) -> None:
@@ -218,6 +233,8 @@ class MaksForbrukSensor(NettleieBaseSensor):
 class GjsForbrukSensor(NettleieBaseSensor):
     """Sensor for average of top 3 power consumption days."""
 
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(
@@ -250,6 +267,8 @@ class GjsForbrukSensor(NettleieBaseSensor):
 class TrinnNummerSensor(NettleieBaseSensor):
     """Sensor for capacity tier number."""
 
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "trinn_nummer", "Kapasitetstrinn nummer")
@@ -265,6 +284,8 @@ class TrinnNummerSensor(NettleieBaseSensor):
 
 class TrinnIntervallSensor(NettleieBaseSensor):
     """Sensor for capacity tier interval."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
@@ -314,6 +335,8 @@ class ElectricityCompanyTotalSensor(NettleieBaseSensor):
 class StromstotteSensor(NettleieBaseSensor):
     """Sensor for strømstøtte per kWh."""
 
+    _device_group = DEVICE_STROMSTOTTE
+
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "stromstotte", "Strømstøtte")
@@ -344,6 +367,8 @@ class StromstotteSensor(NettleieBaseSensor):
 class SpotprisEtterStotteSensor(NettleieBaseSensor):
     """Sensor for spot price after strømstøtte."""
 
+    _device_group = DEVICE_STROMSTOTTE
+
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "spotpris_etter_stotte", "Spotpris etter støtte")
@@ -372,6 +397,8 @@ class SpotprisEtterStotteSensor(NettleieBaseSensor):
 
 class TotalPrisEtterStotteSensor(NettleieBaseSensor):
     """Sensor for total price after strømstøtte (spot + nettleie - støtte)."""
+
+    _device_group = DEVICE_STROMSTOTTE
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
@@ -405,6 +432,8 @@ class TotalPrisEtterStotteSensor(NettleieBaseSensor):
 class TotalPrisNorgesprisSensor(NettleieBaseSensor):
     """Sensor for totalpris med norgespris."""
 
+    _device_group = DEVICE_NORGESPRIS
+
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "total_pris_norgespris", "Totalpris med norgespris")
@@ -436,6 +465,8 @@ class TotalPrisNorgesprisSensor(NettleieBaseSensor):
 
 class PrisforskjellNorgesprisSensor(NettleieBaseSensor):
     """Sensor for prisforskjell mellom norgespris og vanlig pris."""
+
+    _device_group = DEVICE_NORGESPRIS
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""

@@ -49,6 +49,7 @@ class NettleieCoordinator(DataUpdateCoordinator):
         # Get TSO config
         tso_id = entry.data.get(CONF_TSO, "bkk")
         self.tso = TSO_LIST.get(tso_id, TSO_LIST["bkk"])
+        self._tso_id = tso_id
         
         # Get energiledd from config (allows override)
         self.energiledd_dag = entry.data.get(CONF_ENERGILEDD_DAG, self.tso["energiledd_dag"])
@@ -62,8 +63,8 @@ class NettleieCoordinator(DataUpdateCoordinator):
         self._daily_max_power: dict[str, float] = {}
         self._current_month: int = datetime.now().month
         
-        # Persistent storage
-        self._store = Store(hass, 1, f"{DOMAIN}_{entry.entry_id}")
+        # Persistent storage - use TSO id for stable storage across reinstalls
+        self._store = Store(hass, 1, f"{DOMAIN}_{tso_id}")
         self._store_loaded = False
 
     async def _async_update_data(self) -> dict[str, Any]:
@@ -225,6 +226,16 @@ class NettleieCoordinator(DataUpdateCoordinator):
     async def _load_stored_data(self) -> None:
         """Load stored data from disk."""
         data = await self._store.async_load()
+        
+        # Migration: try to load from old entry_id based storage if new storage is empty
+        if not data:
+            old_store = Store(self.hass, 1, f"{DOMAIN}_{self.entry.entry_id}")
+            data = await old_store.async_load()
+            if data:
+                _LOGGER.info("Migrated data from old storage format")
+                # Save to new location immediately
+                await self._store.async_save(data)
+        
         if data:
             self._daily_max_power = data.get("daily_max_power", {})
             stored_month = data.get("current_month")

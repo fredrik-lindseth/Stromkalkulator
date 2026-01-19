@@ -66,11 +66,6 @@ jobs:
           tag_name: v${{ steps.version.outputs.version }}
           name: v${{ steps.version.outputs.version }}
           body: |
-            
-            Se [README.md](https://github.com/fredrik-lindseth/nettleie/releases/latest) for detaljer
-            
-            ---
-            
             ## Endringer
             
             ${{ steps.changelog.outputs.commits }}

@@ -131,6 +131,11 @@ Testet på Home Assistant 2026.1.2
 - Kan **IKKE** kombineres med strømstøtte
 - Gjelder for strømforbruk hjemme og på hytte
 
+`sensor.prisforskjell_norgespris`
+
+- **Positiv verdi**: Du betaler mer enn norgespris (norgespris er billigere)
+- **Negativ verdi**: Du betaler mindre enn norgespris (din avtale er billigere)
+
 
 ## Konfigurasjonsfelt
 

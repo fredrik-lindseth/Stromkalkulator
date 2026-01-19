@@ -129,14 +129,14 @@ class NettleieCoordinator(DataUpdateCoordinator):
         # Norgespris er fast pris, ingen strømstøtte
         norgespris_stromstotte = 0  # Ingen strømstøtte med norgespris
         
+        # Total price (Nord Pool + nettleie)
+        total_price = spot_price - stromstotte + energiledd + fastledd_per_kwh
+        
         # Total pris med norgespris
         total_pris_norgespris = NORGESPRIS_FAST + energiledd + fastledd_per_kwh
         
         # Kroner spart/tapt per kWh (sammenligning)
         kroner_spart_per_kwh = total_price - total_pris_norgespris
-
-        # Total price (Nord Pool + nettleie)
-        total_price = spot_price - stromstotte + energiledd + fastledd_per_kwh
 
         # Get electricity company price if configured
         electricity_company_price = None

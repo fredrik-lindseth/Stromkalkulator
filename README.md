@@ -76,8 +76,8 @@ Home Assistant integrasjon for beregning av nettleie for norske nettselskaper.
 | `sensor.stromstotte`               | Strømstøtte per kWh (90% over 70 øre)           |
 | `sensor.spotpris_etter_stotte`     | Spotpris minus strømstøtte (NOK/kWh)            |
 | `sensor.total_pris_etter_stotte`   | Total strømpris etter strømstøtte (NOK/kWh)     |
-| `sensor.min_pris_norgespris`       | Din pris med norgespris (NOK/kWh)               |
-| `sensor.kroner_spart_norgespris`   | Kroner spart/tapt med norgespris (NOK/kWh)      |
+| `sensor.total_pris_norgespris`    | Totalpris med norgespris (NOK/kWh)              |
+| `sensor.prisforskjell_norgespris`   | Prisforskjell norgespris vs vanlig (NOK/kWh)     |
 
 ## Hvilken strømpris-sensor bør du bruke?
 
@@ -94,11 +94,15 @@ Home Assistant integrasjon for beregning av nettleie for norske nettselskaper.
 | Situasjon                          | Sensor                           | Forklaring                                |
 |------------------------------------|----------------------------------|-------------------------------------------|
 | **Har strømselskap**              | `sensor.electricity_company_total` | Totalpris fra strømselskap + nettleie     |
-| **Vil sammenligne med norgespris** | `sensor.min_pris_norgespris`     | Din pris vs landsgjennomsnitt (forenklet) |
-| **Vil se om du sparer/taper**      | `sensor.kroner_spart_norgespris` | Forskjell per kWh                         |
+| **Vil sammenligne med norgespris** | `sensor.total_pris_norgespris`  | Totalpris med norgespris (50 øre/kWh)     |
+| **Vil se prisforskjell**           | `sensor.prisforskjell_norgespris` | Forskjell per kWh                        |
 
-### Viktig om norgespris-sensorer
-`sensor.min_pris_norgespris` og `sensor.kroner_spart_norgespris` er **forenklede** og bruker ditt lokale prisområde som referanse. De gir ikke ekte sammenligning med landsgjennomsnittet.
+### Om Norgespris-sensorer
+`sensor.total_pris_norgespris` 
+
+- Fast pris: 50 øre/kWh (inkl. mva)
+- Kan **IKKE** kombineres med strømstøtte
+- Gjelder for strømforbruk hjemme og på hytte
 
 
 ## Konfigurasjonsfelt
@@ -149,20 +153,6 @@ Vil du legge til støtte for ditt nettselskap? Følg guiden under og opprett en 
 - `kapasitetstrinn` er en liste med tupler: `(kW-grense, kr/mnd)`
 - Dag = hverdager 06:00-22:00, Natt = 22:00-06:00 + helg + helligdager
 
-## Merk 
-
-**Norgespris er forenklet.** Norgespris-sensorene bruker ditt lokale prisområde som "norgespris", ikke det faktiske gjennomsnittet for hele Norge.
-
-### Hva mangler for korrekt norgespris?
-For å vise ekte norgespris trengs:
-- **Systempris-data**: Hente systempris fra Nord Pool API (gjennomsnitt for hele Norge)
-- **API-integrasjon**: Direkte kall til Nord Pool sitt dataportal
-- **Valuta-konvertering**: Systempris er i EUR, må konverteres til NOK
-
-### Nåværende begrensning
-- Viser samme pris som ditt prisområde
-- Gir ikke reell sammenligning med landsgjennomsnittet
-- Kan være misvisende i prisområder med avvikende priser
 
 
 ### Sjekkliste for PR

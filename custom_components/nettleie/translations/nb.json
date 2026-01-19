@@ -10,10 +10,10 @@
       },
       "sensors": {
         "title": "Velg sensorer",
-        "description": "Velg sensorer for strømforbruk og spotpris",
+        "description": "Velg sensorer for strømforbruk og spotpris.\n\n**Spotprissensor:** Bruk Nord Pool 'Current price' sensor, f.eks. `sensor.nord_pool_no5_current_price`",
         "data": {
           "power_sensor": "Strømforbruk-sensor (W)",
-          "spot_price_sensor": "Nord Pool 'Current price' sensor (NOK/kWh)",
+          "spot_price_sensor": "Spotprissensor (NOK/kWh)",
           "electricity_provider_price_sensor": "Strømselskap-sensor (valgfri, NOK/kWh)"
         }
       },
@@ -40,7 +40,7 @@
         "data": {
           "tso": "Nettselskap (TSO)",
           "power_sensor": "Strømforbruk-sensor (W)",
-          "spot_price_sensor": "Nord Pool 'Current price' sensor (NOK/kWh)",
+          "spot_price_sensor": "Spotprissensor (NOK/kWh)",
           "electricity_provider_price_sensor": "Strømselskap-sensor (valgfri, NOK/kWh)",
           "energiledd_dag": "Energiledd dag (NOK/kWh)",
           "energiledd_natt": "Energiledd natt/helg (NOK/kWh)"

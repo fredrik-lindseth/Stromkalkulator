@@ -10,13 +10,10 @@
       },
       "sensors": {
         "title": "Select sensors",
-        "description": "Select sensors for power consumption and spot price",
+        "description": "Select sensors for power consumption and spot price.\n\n**Spot price sensor:** Use Nord Pool 'Current price' sensor, e.g. `sensor.nord_pool_no5_current_price`",
         "data": {
           "power_sensor": "Power consumption sensor (W)",
-          "spot_price_sensor": {
-            "name": "Nord Pool Current price sensor",
-            "description": "Select the Nord Pool 'Current price' sensor (NOK/kWh). Example: sensor.nord_pool_no5_current_price"
-          },
+          "spot_price_sensor": "Spot price sensor (NOK/kWh)",
           "electricity_provider_price_sensor": "Electricity provider price sensor (optional, NOK/kWh)"
         }
       },
@@ -43,7 +40,7 @@
         "data": {
           "tso": "Grid company (TSO)",
           "power_sensor": "Power consumption sensor (W)",
-          "spot_price_sensor": "Nord Pool 'Current price' sensor (NOK/kWh)",
+          "spot_price_sensor": "Spot price sensor (NOK/kWh)",
           "electricity_provider_price_sensor": "Electricity provider price sensor (optional, NOK/kWh)",
           "energiledd_dag": "Energy tariff day (NOK/kWh)",
           "energiledd_natt": "Energy tariff night/weekend (NOK/kWh)"

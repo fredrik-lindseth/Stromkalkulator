@@ -149,7 +149,7 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             max=2,
                             step=0.0001,
                             unit_of_measurement="NOK/kWh",
-                            mode=selector.NumberSelectorMode.BOX,
+                            mode="box",
                         ),
                     ),
                     vol.Required(
@@ -160,7 +160,7 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             max=2,
                             step=0.0001,
                             unit_of_measurement="NOK/kWh",
-                            mode=selector.NumberSelectorMode.BOX,
+                            mode="box",
                         ),
                     ),
                 }
@@ -251,7 +251,7 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):
                         max=2,
                         step=0.0001,
                         unit_of_measurement="NOK/kWh",
-                        mode=selector.NumberSelectorMode.BOX,
+                        mode="box",
                     ),
                 ),
                 vol.Required(
@@ -263,7 +263,7 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):
                         max=2,
                         step=0.0001,
                         unit_of_measurement="NOK/kWh",
-                        mode=selector.NumberSelectorMode.BOX,
+                        mode="box",
                     ),
                 ),
             }

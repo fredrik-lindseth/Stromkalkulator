@@ -24,19 +24,24 @@ async def async_setup_entry(
     coordinator: NettleieCoordinator = hass.data[DOMAIN][entry.entry_id]
 
     entities = [
-        EnergileggSensor(coordinator, entry),
-        KapasitetstrinnSensor(coordinator, entry),
-        TotalPriceSensor(coordinator, entry),
+        # Nettleie - Kapasitet
         MaksForbrukSensor(coordinator, entry, 1),
         MaksForbrukSensor(coordinator, entry, 2),
         MaksForbrukSensor(coordinator, entry, 3),
         GjsForbrukSensor(coordinator, entry),
         TrinnNummerSensor(coordinator, entry),
         TrinnIntervallSensor(coordinator, entry),
+        KapasitetstrinnSensor(coordinator, entry),
+        # Nettleie - Energiledd
+        EnergileggSensor(coordinator, entry),
+        # Strømpriser
+        TotalPriceSensor(coordinator, entry),
         ElectricityCompanyTotalSensor(coordinator, entry),
+        # Strømstøtte
         StromstotteSensor(coordinator, entry),
         SpotprisEtterStotteSensor(coordinator, entry),
         TotalPrisEtterStotteSensor(coordinator, entry),
+        # Norgespris
         TotalPrisNorgesprisSensor(coordinator, entry),
         PrisforskjellNorgesprisSensor(coordinator, entry),
     ]

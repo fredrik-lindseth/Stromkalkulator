@@ -2,7 +2,7 @@
   "config": {
     "step": {
       "user": {
-        "title": "Nettleie",
+        "title": "Strømkalkulator",
         "description": "Velg ditt nettselskap",
         "data": {
           "tso": "Nettselskap"
@@ -36,7 +36,7 @@
   "options": {
     "step": {
       "init": {
-        "title": "Nettleie innstillinger",
+        "title": "Strømkalkulator innstillinger",
         "description": "Konfigurer sensorer og nettleiepriser.\n\n**Energiledd:** kWh-avgift fra nettselskapet. La stå på 0 for standardpriser.",
         "data": {
           "tso": "Nettselskap",

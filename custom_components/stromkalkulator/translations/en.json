@@ -2,7 +2,7 @@
   "config": {
     "step": {
       "user": {
-        "title": "Nettleie",
+        "title": "Strømkalkulator",
         "description": "Select your grid company",
         "data": {
           "tso": "Grid company"
@@ -36,7 +36,7 @@
   "options": {
     "step": {
       "init": {
-        "title": "Nettleie settings",
+        "title": "Strømkalkulator settings",
         "description": "Configure sensors and grid pricing.\n\n**Energy tariff:** Per-kWh fee from grid company. Leave at 0 for defaults.",
         "data": {
           "tso": "Grid company",

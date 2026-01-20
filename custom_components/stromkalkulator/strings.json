@@ -2,7 +2,7 @@
   "config": {
     "step": {
       "user": {
-        "title": "Nettleie",
+        "title": "Strømkalkulator",
         "description": "Komplett oversikt over strømkostnader: nettleie, strømstøtte og Norgespris-sammenligning.\n\nVelg ditt nettselskap for å komme i gang.",
         "data": {
           "tso": "Nettselskap"
@@ -36,7 +36,7 @@
   "options": {
     "step": {
       "init": {
-        "title": "Nettleie innstillinger",
+        "title": "Strømkalkulator innstillinger",
         "description": "Endre nettselskap eller sensorer.",
         "data": {
           "tso": "Nettselskap",

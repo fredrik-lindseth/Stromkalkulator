@@ -1,4 +1,4 @@
-# Agent-instruksjoner for Nettleie
+# Agent-instruksjoner for Strømkalkulator
 
 ## Prosjektbeskrivelse
 Home Assistant-integrasjon for komplett oversikt over strømkostnader i Norge:
@@ -15,25 +15,24 @@ Home Assistant-integrasjon for komplett oversikt over strømkostnader i Norge:
 
 ## Git-preferanser
 - Skriv commit-meldinger på norsk med beskrivende body
-- Spør alltid før push til remote
+- Spør alltid før push til remote (push betyr ny release)
 - Bump versjon i `manifest.json` ved nye releases
 - Følg semantic versioning (MAJOR.MINOR.PATCH)
 
 ## Viktige filer
 | Fil | Beskrivelse |
 |-----|-------------|
-| `custom_components/nettleie/const.py` | TSO-priser, helligdager, strømstøtte-terskel |
-| `custom_components/nettleie/coordinator.py` | Beregningslogikk |
-| `custom_components/nettleie/sensor.py` | Sensor-definisjoner |
-| `custom_components/nettleie/manifest.json` | Versjon og avhengigheter |
+| `custom_components/stromkalkulator/const.py` | TSO-priser, helligdager, strømstøtte-terskel |
+| `custom_components/stromkalkulator/coordinator.py` | Beregningslogikk |
+| `custom_components/stromkalkulator/sensor.py` | Sensor-definisjoner |
+| `custom_components/stromkalkulator/manifest.json` | Versjon og avhengigheter |
 | `beregninger.md` | Formler og beregningslogikk |
 
-## TSO-priser
-Prisene for nettselskaper (TSO) oppdateres årlig (vanligvis 1. januar). Ved oppdatering:
+## Nettleie-priser
+Prisene for nettleien oppdateres årlig (vanligvis 1. januar). Ved oppdatering:
 1. Verifiser priser mot offisielle nettsider
 2. Oppdater både energiledd (dag/natt) og kapasitetstrinn
 3. Legg til kommentar med årstall og kilde
 
 ## Testing
-- Kjør `pytest` før commit hvis det finnes tester
 - Verifiser at Home Assistant-integrasjonen laster uten feil

@@ -12,7 +12,7 @@ assignees: []
 ## Integration Information
 
 **Integration Name:** Nettleie  
-**Repository:** https://github.com/fredrik-lindseth/nettleie  
+**Repository:** https://github.com/fredrik-lindseth/Stromkalkulator  
 **Category:** Integration  
 
 ## Description

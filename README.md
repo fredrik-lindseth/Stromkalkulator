@@ -3,8 +3,8 @@
 ![AI SLOP](https://raw.githubusercontent.com/kluzzebass/ai-slop/refs/heads/main/ai-slop-05-chaos.svg)
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
-[![GitHub release](https://img.shields.io/github/release/fredrik-lindseth/nettleie.svg)](https://github.com/fredrik-lindseth/nettleie/releases)
-[![GitHub stars](https://img.shields.io/github/stars/fredrik-lindseth/nettleie.svg?style=social)](https://github.com/fredrik-lindseth/nettleie/stargazers)
+[![GitHub release](https://img.shields.io/github/release/fredrik-lindseth/Stromkalkulator.svg)](https://github.com/fredrik-lindseth/Stromkalkulator/releases)
+[![GitHub stars](https://img.shields.io/github/stars/fredrik-lindseth/Stromkalkulator.svg?style=social)](https://github.com/fredrik-lindseth/Stromkalkulator/stargazers)
 
 Home Assistant-integrasjon for komplett oversikt over strømkostnader i Norge. Beregner nettleie, strømstøtte og sammenligner med Norgespris - alt i én integrasjon.
 
@@ -61,7 +61,7 @@ Testet på Home Assistant 2026.1.2
 1. Åpne HACS i Home Assistant
 2. Klikk på "Integrations"
 3. Klikk på de tre prikkene øverst til høyre og velg "Custom repositories"
-4. Legg til `https://github.com/fredrik-lindseth/nettleie` og velg "Integration" som kategori
+4. Legg til `https://github.com/fredrik-lindseth/Stromkalkulator` og velg "Integration" som kategori
 5. Finn "Nettleie" i listen og klikk "Download"
 6. Start Home Assistant på nytt (eller bruk Quick Reload under Developer Tools)
 

@@ -2,6 +2,12 @@
 
 Dokumentasjon av hvordan alle beregninger utføres i Nettleie-integrasjonen.
 
+Integrasjonen beregner:
+- **Nettleie** - Kapasitetsledd og energiledd fra ditt nettselskap
+- **Strømstøtte** - Automatisk beregning av statlig strømstøtte
+- **Norgespris** - Sammenligning med Elhubs fastprisprodukt
+- **Offentlige avgifter** - Forbruksavgift, Enova-avgift og mva
+
 ## Nettleie
 
 Nettleien består av to deler: kapasitetsledd og energiledd.
@@ -60,6 +66,32 @@ Energileddet varierer basert på tidspunkt:
 
 - **Dag**: Mandag-fredag 06:00-22:00 (ikke helligdager)
 - **Natt/Helg**: 22:00-06:00, helger og helligdager
+
+## Offentlige avgifter
+
+Energileddet fra nettselskapet inkluderer følgende offentlige avgifter:
+
+### Forbruksavgift (elavgift)
+- **Sats**: 16,69 øre/kWh eks. mva (2025)
+- Fastsettes årlig av Stortinget
+- Kilde: [Skatteetaten](https://www.skatteetaten.no/satser/elektrisk-kraft/)
+
+### Enova-avgift
+- **Sats**: 1,25 øre/kWh eks. mva (fast)
+- Går til Enova SF for energieffektivisering
+
+### Merverdiavgift (mva)
+- **Sats**: 25%
+- Beregnes på alle komponenter (nettleie + avgifter)
+
+### Totale avgifter inkl. mva
+```
+forbruksavgift_inkl_mva = 0.1669 * 1.25 = 0.2086 NOK/kWh
+enova_inkl_mva = 0.0125 * 1.25 = 0.0156 NOK/kWh
+totale_avgifter = 0.2086 + 0.0156 = 0.2242 NOK/kWh
+```
+
+**Merk:** Disse avgiftene er allerede inkludert i energiledd-prisene fra nettselskapene. Sensoren "Offentlige avgifter" viser dem separat for informasjonsformål.
 
 #### Helligdager
 

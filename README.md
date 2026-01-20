@@ -6,17 +6,39 @@
 [![GitHub release](https://img.shields.io/github/release/fredrik-lindseth/nettleie.svg)](https://github.com/fredrik-lindseth/nettleie/releases)
 [![GitHub stars](https://img.shields.io/github/stars/fredrik-lindseth/nettleie.svg?style=social)](https://github.com/fredrik-lindseth/nettleie/stargazers)
 
-Home Assistant integrasjon for beregning av nettleie for norske nettselskaper.
+Home Assistant-integrasjon for komplett oversikt over strømkostnader i Norge. Beregner nettleie, strømstøtte og sammenligner med Norgespris - alt i én integrasjon.
 
-## Funksjoner
+## Hva gir denne integrasjonen deg?
 
-- **Støtte for flere nettselskaper** 
-- **Energiledd-sensor**: Viser gjeldende energiledd basert på tid (dag/natt/helg/helligdager)
-- **Kapasitetstrinn-sensor**: Beregner kapasitetstrinn basert på de 3 høyeste timene på 3 ulike dager
-- **Total strømpris-sensor**: Viser total strømpris inkludert spotpris og nettleie
-- **Strømstøtte-sensorer**: Beregner strømstøtte (90% over 70 øre) og viser priser etter støtte
-- **Strømselskap + nettleie**: Valgfri sensor for total strømpris (strømavtale)
-- **Norgespris-sammenligning**: Sammenlign din pris med Norgespris (50 øre/kWh fast)
+### Nettleie
+- **Energiledd** - Variabel pris per kWh basert på tid (dag/natt/helg/helligdager)
+- **Kapasitetsledd** - Månedlig fastbeløp basert på dine 3 høyeste forbrukstopper
+- **Offentlige avgifter** - Forbruksavgift, Enova-avgift og mva (inkludert i energileddet)
+
+### Strømstøtte
+- **Automatisk beregning** - 90% av spotpris over terskel (91,25 øre/kWh)
+- **Spotpris etter støtte** - Se hva du faktisk betaler for strømmen
+- **Total pris etter støtte** - Komplett pris inkludert nettleie
+
+### Norgespris-sammenligning
+- **Norgespris totalpris** - Hva du ville betalt med Norgespris (50 øre/kWh fast)
+- **Prisforskjell** - Se om din avtale eller Norgespris er billigst akkurat nå
+
+### Strømselskap-integrasjon
+- **Valgfri kobling** - Koble til prissensor fra Tibber, Fjordkraft, etc.
+- **Total pris med påslag** - Se reell totalpris inkludert strømselskapets påslag og nettleie
+
+## Støttede nettselskaper
+
+| Nettselskap | Region |
+|-------------|--------|
+| BKK | Vestland |
+| Elvia | Oslo, Viken, Innlandet |
+| Glitre Nett | Drammen, Buskerud |
+| Tensio | Trøndelag |
+| Egendefinert | Sett inn egne priser |
+
+> **Mangler ditt nettselskap?** Se [Bidra](#bidra) for hvordan du legger til det!
 
 Se [beregninger.md](beregninger.md) for detaljert dokumentasjon av alle formler og beregninger.
 
@@ -68,43 +90,44 @@ Testet på Home Assistant 2026.1.2
 
 ### Nettleie - Kapasitet
 
-| Sensor                               | Beskrivelse                                     |
-|--------------------------------------|-------------------------------------------------|
-| `sensor.maks_forbruk_1`              | Toppforbruk #1 denne måneden (kW)               |
-| `sensor.maks_forbruk_2`              | Toppforbruk #2 denne måneden (kW)               |
-| `sensor.maks_forbruk_3`              | Toppforbruk #3 denne måneden (kW)               |
-| `sensor.gjennomsnitt_forbruk`        | Snitt toppforbruk (kW)                          |
-| `sensor.trinn_nummer`                | Kapasitetstrinn (nummer) (1-10)                 |
-| `sensor.trinn_intervall`             | Kapasitetstrinn (intervall) (f.eks. "5-10 kW")  |
-| `sensor.kapasitetstrinn`             | Kapasitetsledd i kr/mnd                         |
+| Sensor | Beskrivelse |
+|--------|-------------|
+| `sensor.kapasitetstrinn` | Kapasitetsledd i kr/mnd |
+| `sensor.trinn_nummer` | Kapasitetstrinn-nummer (1-10) |
+| `sensor.trinn_intervall` | Kapasitetstrinn-intervall (f.eks. "5-10 kW") |
+| `sensor.gjennomsnitt_forbruk` | Snitt av topp 3 forbruksdager (kW) |
+| `sensor.maks_forbruk_1` | Toppforbruk #1 denne måneden (kW) |
+| `sensor.maks_forbruk_2` | Toppforbruk #2 denne måneden (kW) |
+| `sensor.maks_forbruk_3` | Toppforbruk #3 denne måneden (kW) |
 
 ### Nettleie - Energiledd
 
-| Sensor                               | Beskrivelse                                     |
-|--------------------------------------|-------------------------------------------------|
-| `sensor.energiledd`                  | Energiledd i NOK/kWh                            |
+| Sensor | Beskrivelse |
+|--------|-------------|
+| `sensor.energiledd` | Energiledd i NOK/kWh (varierer dag/natt) |
+| `sensor.offentlige_avgifter` | Forbruksavgift + Enova-avgift inkl. mva |
 
 ### Strømpriser
 
-| Sensor                               | Beskrivelse                                     |
-|--------------------------------------|-------------------------------------------------|
-| `sensor.total_price`                 | Total strømpris før støtte (NOK/kWh)            |
-| `sensor.electricity_company_total`   | Total strømpris (strømavtale) (NOK/kWh)         |
+| Sensor | Beskrivelse |
+|--------|-------------|
+| `sensor.total_price` | Total strømpris FØR støtte (spotpris + nettleie) |
+| `sensor.electricity_company_total` | Total strømpris fra strømavtale + nettleie |
 
 ### Strømstøtte
 
-| Sensor                               | Beskrivelse                                     |
-|--------------------------------------|-------------------------------------------------|
-| `sensor.stromstotte`                 | Strømstøtte per kWh (90% over 70 øre)           |
-| `sensor.spotpris_etter_stotte`       | Spotpris etter støtte (NOK/kWh)                 |
-| `sensor.total_pris_etter_stotte`     | Total strømpris etter støtte (NOK/kWh)          |
+| Sensor | Beskrivelse |
+|--------|-------------|
+| `sensor.stromstotte` | Strømstøtte per kWh (90% over terskel) |
+| `sensor.spotpris_etter_stotte` | Spotpris etter strømstøtte |
+| `sensor.total_pris_etter_stotte` | Total strømpris ETTER støtte (dette betaler du) |
 
 ### Norgespris
 
-| Sensor                               | Beskrivelse                                     |
-|--------------------------------------|-------------------------------------------------|
-| `sensor.total_pris_norgespris`       | Total strømpris (norgespris) (NOK/kWh)          |
-| `sensor.prisforskjell_norgespris`    | Prisforskjell (norgespris) (NOK/kWh)            |
+| Sensor | Beskrivelse |
+|--------|-------------|
+| `sensor.total_pris_norgespris` | Total pris med Norgespris (50 øre/kWh + nettleie) |
+| `sensor.prisforskjell_norgespris` | Forskjell mellom din pris og Norgespris |
 
 ### Sensor-attributter
 
@@ -162,6 +185,16 @@ Hver sensor har ekstra attributter som gir mer detaljer. Disse kan brukes i temp
 | Attributt | Beskrivelse |
 |-----------|-------------|
 | `dato` | Datoen for toppforbruket |
+
+#### Offentlige avgifter (`sensor.offentlige_avgifter`)
+| Attributt | Beskrivelse |
+|-----------|-------------|
+| `forbruksavgift_eks_mva` | Forbruksavgift uten mva |
+| `forbruksavgift_inkl_mva` | Forbruksavgift med mva |
+| `enova_avgift_eks_mva` | Enova-avgift uten mva |
+| `enova_avgift_inkl_mva` | Enova-avgift med mva |
+| `mva_sats` | MVA-sats (25%) |
+| `note` | Forklaring |
 
 </details>
 

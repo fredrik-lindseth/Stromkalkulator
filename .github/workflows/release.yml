@@ -19,7 +19,7 @@ jobs:
       - name: Get version from manifest
         id: version
         run: |
-          VERSION=$(jq -r '.version' custom_components/nettleie/manifest.json)
+          VERSION=$(jq -r '.version' custom_components/stromkalkulator/manifest.json)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Check if release exists
@@ -76,11 +76,11 @@ jobs:
         if: steps.check_release.outputs.exists == 'false'
         run: |
           mkdir -p dist
-          zip -r dist/nettleie.zip custom_components/nettleie
+          zip -r dist/stromkalkulator.zip custom_components/stromkalkulator
           echo "✅ Created ZIP for HACS"
 
       - name: Upload ZIP to release
         if: steps.check_release.outputs.exists == 'false'
         uses: softprops/action-gh-release@v1
         with:
-          files: dist/nettleie.zip
+          files: dist/stromkalkulator.zip

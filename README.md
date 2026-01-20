@@ -276,16 +276,5 @@ Vil du legge til støtte for ditt nettselskap? Følg guiden under og opprett en 
 - Prisene skal være **inkludert avgifter** (Enova, elavgift, mva)
 - `kapasitetstrinn` er en liste med tupler: `(kW-grense, kr/mnd)`
 - Dag = hverdager 06:00-22:00, Natt = 22:00-06:00 + helg + helligdager
-
-
-
-### Sjekkliste for PR
-
-Før du sender inn en PR, sjekk at:
-
-1. Nettselskapet er lagt til i `TSO_LIST` i `const.py`
-2. `url` peker til nettselskapets offisielle prisside
-3. Prisene er i **NOK/kWh** (f.eks. `0.45`, ikke 45 øre)
-4. Prisene **inkluderer avgifter** (Enova, elavgift, mva)
-5. Alle kapasitetstrinn er med (typisk 8-10 trinn)
-6. Siste trinn bruker `float("inf")` som øvre grense
+- `url` skal peke til nettselskapets offisielle prisside
+- Siste trinn bruker `float("inf")` som øvre grense

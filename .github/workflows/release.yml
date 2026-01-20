@@ -83,4 +83,5 @@ jobs:
         if: steps.check_release.outputs.exists == 'false'
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: v${{ steps.version.outputs.version }}
           files: dist/stromkalkulator.zip

@@ -84,7 +84,10 @@ Testet på Home Assistant 2026.1.2
 ![integration](./integration.png)
 
 ### Sensors Dashboard
-![sensors](./sensors.png)
+
+![Nettleie](./sensor_nettleie.png)
+![Strømstøtte](./sensor_strømstøtte.png)
+![Norgespris](./sensor_norgespris.png)
 
 ## Sensorer
 

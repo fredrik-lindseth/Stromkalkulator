@@ -91,6 +91,70 @@ TSO_LIST: Final = {
             (float("inf"), 20068),
         ],
     },
+    "lede": {
+        "name": "Lede",
+        "energiledd_dag": 0.3048,  # 30,48 øre/kWh inkl. avgifter (2026)
+        "energiledd_natt": 0.3048,  # Ingen dag/natt-forskjell
+        "url": "https://www.lede.no/nettleie/nettleiepriser",
+        "kapasitetstrinn": [
+            (5, 294),    # 0-5 kW: 293,75 kr/mnd
+            (10, 503),   # 5-10 kW: 502,50 kr/mnd
+            (15, 708),   # 10-15 kW: 707,50 kr/mnd
+            (20, 916),   # 15-20 kW: 916,25 kr/mnd
+            (25, 1124),  # 20-25 kW: 1123,75 kr/mnd
+            (float("inf"), 1746),  # 25-50 kW: 1746,25 kr/mnd
+        ],
+    },
+    "lnett": {
+        "name": "Lnett",
+        "energiledd_dag": 0.32,  # 32 øre/kWh inkl. mva (2026)
+        "energiledd_natt": 0.17,  # 17 øre/kWh inkl. mva (2026)
+        "url": "https://www.l-nett.no/nettleie/nettleiepriser-privat",
+        "kapasitetstrinn": [
+            (2, 150),    # 0-2 kW: 150 kr/mnd
+            (5, 250),    # 2-5 kW: 250 kr/mnd
+            (10, 400),   # 5-10 kW: 400 kr/mnd
+            (15, 650),   # 10-15 kW: 650 kr/mnd
+            (20, 900),   # 15-20 kW: 900 kr/mnd
+            (float("inf"), 1150),  # 20-25 kW: 1150 kr/mnd
+        ],
+    },
+    "norgesnett": {
+        "name": "Norgesnett",
+        "energiledd_dag": 0.3549,  # 35,49 øre/kWh inkl. mva (2026, dag 06-22)
+        "energiledd_natt": 0.2677,  # 26,77 øre/kWh inkl. mva (2026, natt 22-06)
+        "url": "https://norgesnett.no/kunde/nettleie/nettleiepriser/",
+        "kapasitetstrinn": [
+            (2, 118),    # 0-2 kW: 117,89 kr/mnd
+            (5, 196),    # 2-5 kW: 196,49 kr/mnd
+            (10, 323),   # 5-10 kW: 323,12 kr/mnd
+            (15, 575),   # 10-15 kW: 574,63 kr/mnd
+            (20, 763),   # 15-20 kW: 763,25 kr/mnd
+            (25, 947),   # 20-25 kW: 946,65 kr/mnd
+            (50, 1467),  # 25-50 kW: 1467,13 kr/mnd
+            (75, 2297),  # 50-75 kW: 2296,76 kr/mnd
+            (100, 3126), # 75-100 kW: 3126,38 kr/mnd
+            (float("inf"), 5067),  # >100 kW: 5066,84 kr/mnd
+        ],
+    },
+    "arva": {
+        "name": "Arva",
+        "energiledd_dag": 0.231,  # 23,1 øre/kWh inkl. mva (2026, dag 06-22)
+        "energiledd_natt": 0.116,  # 11,6 øre/kWh inkl. mva (2026, natt 22-06)
+        "url": "https://www.arva.no/kunde/nettleie/nettleiepriser",
+        "kapasitetstrinn": [
+            (2, 85),     # 0-2 kW: 85 kr/mnd
+            (5, 201),    # 2-5 kW: 201 kr/mnd
+            (10, 398),   # 5-10 kW: 398 kr/mnd
+            (15, 595),   # 10-15 kW: 595 kr/mnd
+            (20, 792),   # 15-20 kW: 792 kr/mnd
+            (25, 989),   # 20-25 kW: 989 kr/mnd
+            (50, 1972),  # 25-50 kW: 1972 kr/mnd
+            (75, 2955),  # 50-75 kW: 2955 kr/mnd
+            (100, 3938), # 75-100 kW: 3938 kr/mnd
+            (float("inf"), 5945),  # >100 kW: 5945 kr/mnd
+        ],
+    },
     "custom": {
         "name": "Egendefinert",
         "energiledd_dag": 0.40,

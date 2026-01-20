@@ -4,9 +4,9 @@
   "codeowners": ["@fredrik-lindseth"],
   "config_flow": true,
   "dependencies": [],
-  "documentation": "https://github.com/fredrik-lindseth/nettleie",
+  "documentation": "https://github.com/fredrik-lindseth/Stromkalkulator",
   "iot_class": "local_polling",
-  "issue_tracker": "https://github.com/fredrik-lindseth/nettleie/issues",
+  "issue_tracker": "https://github.com/fredrik-lindseth/Stromkalkulator/issues",
   "requirements": [],
   "version": "0.11.2"
 }

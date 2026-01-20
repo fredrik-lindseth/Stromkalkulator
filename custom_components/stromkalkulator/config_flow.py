@@ -18,20 +18,24 @@ from .const import (
     CONF_POWER_SENSOR,
     CONF_SPOT_PRICE_SENSOR,
     CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
+    CONF_AVGIFTSSONE,
+    AVGIFTSSONE_OPTIONS,
+    AVGIFTSSONE_STANDARD,
     DEFAULT_ENERGILEDD_DAG,
     DEFAULT_ENERGILEDD_NATT,
     DEFAULT_TSO,
     DEFAULT_NAME,
     DOMAIN,
     TSO_LIST,
+    get_default_avgiftssone,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
 
 def _get_tso_options() -> dict[str, str]:
-    """Get TSO options for selector."""
-    return {key: value["name"] for key, value in TSO_LIST.items()}
+    """Get TSO options for selector (only supported ones)."""
+    return {key: value["name"] for key, value in TSO_LIST.items() if value.get("supported", False)}
 
 
 class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -46,7 +50,7 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Handle the initial step - select TSO."""
+        """Handle the initial step - select TSO and avgiftssone."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
@@ -64,6 +68,18 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             options=[
                                 selector.SelectOptionDict(value=key, label=value["name"])
                                 for key, value in TSO_LIST.items()
+                                if value.get("supported", False)
+                            ],
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                        ),
+                    ),
+                    vol.Required(
+                        CONF_AVGIFTSSONE, default=AVGIFTSSONE_STANDARD
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=[
+                                selector.SelectOptionDict(value=key, label=label)
+                                for key, label in AVGIFTSSONE_OPTIONS.items()
                             ],
                             mode=selector.SelectSelectorMode.DROPDOWN,
                         ),
@@ -210,6 +226,11 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):
         tso_options = [
             selector.SelectOptionDict(value=key, label=value["name"])
             for key, value in TSO_LIST.items()
+            if value.get("supported", False)
+        ]
+        avgiftssone_options = [
+            selector.SelectOptionDict(value=key, label=label)
+            for key, label in AVGIFTSSONE_OPTIONS.items()
         ]
 
         # Build schema with defaults from current config
@@ -221,6 +242,15 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=tso_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    ),
+                ),
+                vol.Required(
+                    CONF_AVGIFTSSONE,
+                    default=current.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD),
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=avgiftssone_options,
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     ),
                 ),

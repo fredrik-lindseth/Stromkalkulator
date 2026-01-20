@@ -23,7 +23,7 @@ jobs:
           echo "🔍 Checking HACS requirements..."
           
           # Check manifest
-          if [ ! -f "custom_components/nettleie/manifest.json" ]; then
+          if [ ! -f "custom_components/stromkalkulator/manifest.json" ]; then
             echo "❌ Missing manifest.json"
             exit 1
           fi
@@ -31,14 +31,14 @@ jobs:
           # Check required fields in manifest
           REQUIRED_FIELDS=("domain" "name" "version" "documentation")
           for field in "${REQUIRED_FIELDS[@]}"; do
-            if ! jq -e ".$field" custom_components/nettleie/manifest.json > /dev/null; then
+            if ! jq -e ".$field" custom_components/stromkalkulator/manifest.json > /dev/null; then
               echo "❌ Missing required field in manifest: $field"
               exit 1
             fi
           done
           
           # Check config flow
-          if [ "$(jq -r '.config_flow' custom_components/nettleie/manifest.json)" != "true" ]; then
+          if [ "$(jq -r '.config_flow' custom_components/stromkalkulator/manifest.json)" != "true" ]; then
             echo "❌ config_flow must be true for HACS"
             exit 1
           fi
@@ -46,13 +46,13 @@ jobs:
           echo "✅ Manifest validation passed"
           
           # Check __init__.py
-          if [ ! -f "custom_components/nettleie/__init__.py" ]; then
+          if [ ! -f "custom_components/stromkalkulator/__init__.py" ]; then
             echo "❌ Missing __init__.py"
             exit 1
           fi
           
           # Check for setup function
-          if ! grep -q "async_setup_entry" custom_components/nettleie/__init__.py; then
+          if ! grep -q "async_setup_entry" custom_components/stromkalkulator/__init__.py; then
             echo "❌ Missing async_setup_entry in __init__.py"
             exit 1
           fi
@@ -60,10 +60,10 @@ jobs:
           echo "✅ __init__.py validation passed"
           
           # Check translations
-          if [ ! -d "custom_components/nettleie/translations" ]; then
+          if [ ! -d "custom_components/stromkalkulator/translations" ]; then
             echo "⚠️ No translations directory found (recommended)"
           else
-            if [ ! -f "custom_components/nettleie/translations/en.json" ]; then
+            if [ ! -f "custom_components/stromkalkulator/translations/en.json" ]; then
               echo "⚠️ No English translation found (recommended)"
             else
               echo "✅ English translation found"

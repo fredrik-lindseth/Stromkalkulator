@@ -313,14 +313,14 @@ class OffentligeAvgifterSensor(NettleieBaseSensor):
         self._attr_native_unit_of_measurement = "NOK/kWh"
         self._attr_state_class = SensorStateClass.MEASUREMENT
         self._attr_icon = "mdi:bank"
-        self._attr_suggested_display_precision = 4
+        self._attr_suggested_display_precision = 2
 
     @property
     def native_value(self):
         """Return total avgifter inkl. mva."""
         # Forbruksavgift + Enova, inkl. mva
         total_eks_mva = FORBRUKSAVGIFT + ENOVA_AVGIFT
-        return round(total_eks_mva * (1 + MVA_SATS), 4)
+        return round(total_eks_mva * (1 + MVA_SATS), 2)
 
     @property
     def extra_state_attributes(self):

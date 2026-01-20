@@ -1,6 +1,8 @@
 """Sensor platform for Strømkalkulator."""
 from __future__ import annotations
 
+from datetime import datetime
+
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -12,7 +14,16 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import CONF_TSO, DOMAIN, TSO_LIST, FORBRUKSAVGIFT, ENOVA_AVGIFT, MVA_SATS
+from .const import (
+    CONF_AVGIFTSSONE,
+    CONF_TSO,
+    DOMAIN,
+    TSO_LIST,
+    ENOVA_AVGIFT,
+    AVGIFTSSONE_STANDARD,
+    get_forbruksavgift,
+    get_mva_sats,
+)
 from .coordinator import NettleieCoordinator
 
 # Device group constants
@@ -315,24 +326,44 @@ class OffentligeAvgifterSensor(NettleieBaseSensor):
         self._attr_icon = "mdi:bank"
         self._attr_suggested_display_precision = 2
 
+    def _get_forbruksavgift(self) -> float:
+        """Get forbruksavgift based on avgiftssone and current month."""
+        avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
+        month = datetime.now().month
+        return get_forbruksavgift(avgiftssone, month)
+
+    def _get_mva_sats(self) -> float:
+        """Get MVA rate based on avgiftssone."""
+        avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
+        return get_mva_sats(avgiftssone)
+
     @property
     def native_value(self):
         """Return total avgifter inkl. mva."""
-        # Forbruksavgift + Enova, inkl. mva
-        total_eks_mva = FORBRUKSAVGIFT + ENOVA_AVGIFT
-        return round(total_eks_mva * (1 + MVA_SATS), 2)
+        forbruksavgift = self._get_forbruksavgift()
+        mva_sats = self._get_mva_sats()
+        total_eks_mva = forbruksavgift + ENOVA_AVGIFT
+        return round(total_eks_mva * (1 + mva_sats), 2)
 
     @property
     def extra_state_attributes(self):
         """Return breakdown of fees."""
-        forbruksavgift_inkl_mva = round(FORBRUKSAVGIFT * (1 + MVA_SATS), 4)
-        enova_inkl_mva = round(ENOVA_AVGIFT * (1 + MVA_SATS), 4)
+        forbruksavgift = self._get_forbruksavgift()
+        mva_sats = self._get_mva_sats()
+        avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
+        month = datetime.now().month
+        sesong = "vinter" if month <= 3 else "sommer"
+
+        forbruksavgift_inkl_mva = round(forbruksavgift * (1 + mva_sats), 4)
+        enova_inkl_mva = round(ENOVA_AVGIFT * (1 + mva_sats), 4)
         return {
-            "forbruksavgift_eks_mva": FORBRUKSAVGIFT,
+            "avgiftssone": avgiftssone,
+            "sesong": sesong,
+            "forbruksavgift_eks_mva": forbruksavgift,
             "forbruksavgift_inkl_mva": forbruksavgift_inkl_mva,
             "enova_avgift_eks_mva": ENOVA_AVGIFT,
             "enova_avgift_inkl_mva": enova_inkl_mva,
-            "mva_sats": f"{int(MVA_SATS * 100)}%",
+            "mva_sats": f"{int(mva_sats * 100)}%",
             "note": "Disse avgiftene er inkludert i energileddet fra nettselskapet",
         }
 

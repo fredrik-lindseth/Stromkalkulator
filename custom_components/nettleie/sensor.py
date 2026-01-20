@@ -12,7 +12,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import CONF_TSO, DOMAIN, TSO_LIST
+from .const import CONF_TSO, DOMAIN, TSO_LIST, FORBRUKSAVGIFT, ENOVA_AVGIFT, MVA_SATS
 from .coordinator import NettleieCoordinator
 
 # Device group constants
@@ -40,6 +40,8 @@ async def async_setup_entry(
         KapasitetstrinnSensor(coordinator, entry),
         # Nettleie - Energiledd
         EnergileddSensor(coordinator, entry),
+        # Nettleie - Avgifter
+        OffentligeAvgifterSensor(coordinator, entry),
         # Strømpriser
         TotalPriceSensor(coordinator, entry),
         ElectricityCompanyTotalSensor(coordinator, entry),
@@ -89,7 +91,7 @@ class NettleieBaseSensor(CoordinatorEntity, SensorEntity):
             "identifiers": {(DOMAIN, f"{self._entry.entry_id}_{self._device_group}")},
             "name": device_names.get(self._device_group, f"Nettleie ({self._tso['name']})"),
             "manufacturer": "Fredrik Lindseth",
-            "model": "Nettleiekalkulator",
+            "model": "Strømkalkulator",
         }
 
 
@@ -298,6 +300,41 @@ class TrinnIntervallSensor(NettleieBaseSensor):
         if self.coordinator.data:
             return self.coordinator.data.get("kapasitetstrinn_intervall")
         return None
+
+
+class OffentligeAvgifterSensor(NettleieBaseSensor):
+    """Sensor for offentlige avgifter (forbruksavgift, Enova, mva)."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "offentlige_avgifter", "Offentlige avgifter")
+        self._attr_native_unit_of_measurement = "NOK/kWh"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_icon = "mdi:bank"
+        self._attr_suggested_display_precision = 4
+
+    @property
+    def native_value(self):
+        """Return total avgifter inkl. mva."""
+        # Forbruksavgift + Enova, inkl. mva
+        total_eks_mva = FORBRUKSAVGIFT + ENOVA_AVGIFT
+        return round(total_eks_mva * (1 + MVA_SATS), 4)
+
+    @property
+    def extra_state_attributes(self):
+        """Return breakdown of fees."""
+        forbruksavgift_inkl_mva = round(FORBRUKSAVGIFT * (1 + MVA_SATS), 4)
+        enova_inkl_mva = round(ENOVA_AVGIFT * (1 + MVA_SATS), 4)
+        return {
+            "forbruksavgift_eks_mva": FORBRUKSAVGIFT,
+            "forbruksavgift_inkl_mva": forbruksavgift_inkl_mva,
+            "enova_avgift_eks_mva": ENOVA_AVGIFT,
+            "enova_avgift_inkl_mva": enova_inkl_mva,
+            "mva_sats": f"{int(MVA_SATS * 100)}%",
+            "note": "Disse avgiftene er inkludert i energileddet fra nettselskapet",
+        }
 
 
 class ElectricityCompanyTotalSensor(NettleieBaseSensor):

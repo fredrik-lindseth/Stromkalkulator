@@ -3,23 +3,23 @@
     "step": {
       "user": {
         "title": "Nettleie",
-        "description": "Velg ditt nettselskap",
+        "description": "Komplett oversikt over strømkostnader: nettleie, strømstøtte og Norgespris-sammenligning.\n\nVelg ditt nettselskap for å komme i gang.",
         "data": {
-          "tso": "Nettselskap (TSO)"
+          "tso": "Nettselskap"
         }
       },
       "sensors": {
         "title": "Velg sensorer",
-        "description": "Velg sensorer for strømforbruk og spotpris",
+        "description": "Koble til dine strømsensorer for automatisk beregning.",
         "data": {
           "power_sensor": "Strømforbruk-sensor (W)",
           "spot_price_sensor": "Nord Pool 'Current price' sensor (NOK/kWh)",
-          "electricity_provider_price_sensor": "Strømselskap-sensor (valgfri, NOK/kWh)"
+          "electricity_provider_price_sensor": "Strømselskap-sensor (valgfri, f.eks. Tibber)"
         }
       },
       "pricing": {
         "title": "Egendefinerte priser",
-        "description": "Angi energiledd-priser i NOK/kWh",
+        "description": "Angi energiledd-priser fra ditt nettselskap i NOK/kWh (inkl. avgifter).",
         "data": {
           "energiledd_dag": "Energiledd dag (NOK/kWh)",
           "energiledd_natt": "Energiledd natt/helg (NOK/kWh)"
@@ -37,11 +37,12 @@
     "step": {
       "init": {
         "title": "Nettleie innstillinger",
+        "description": "Endre nettselskap eller sensorer.",
         "data": {
-          "tso": "Nettselskap (TSO)",
+          "tso": "Nettselskap",
           "power_sensor": "Strømforbruk-sensor (W)",
           "spot_price_sensor": "Nord Pool 'Current price' sensor (NOK/kWh)",
-          "electricity_provider_price_sensor": "Strømselskap-sensor (valgfri, NOK/kWh)",
+          "electricity_provider_price_sensor": "Strømselskap-sensor (valgfri)",
           "energiledd_dag": "Energiledd dag (NOK/kWh)",
           "energiledd_natt": "Energiledd natt/helg (NOK/kWh)"
         }

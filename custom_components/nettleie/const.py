@@ -33,20 +33,21 @@ TSO_LIST: Final = {
     },
     "elvia": {
         "name": "Elvia",
-        "energiledd_dag": 0.3979,  # 31,83 øre/kWh inkl. avgifter
-        "energiledd_natt": 0.2479,  # 19,83 øre/kWh inkl. avgifter
+        "energiledd_dag": 0.3640,  # 36,40 øre/kWh inkl. avgifter (2026)
+        "energiledd_natt": 0.2640,  # 26,40 øre/kWh inkl. avgifter (2026)
         "url": "https://www.elvia.no/nettleie/alt-om-nettleiepriser/nettleie-pris/",
+        # Trinn 1-5 fra nettside, trinn 6-10 fra PDF tariffblad_1_0_standard-tariff_privat_20260101.pdf
         "kapasitetstrinn": [
-            (2, 176),
-            (5, 276),
-            (10, 436),
-            (15, 636),
-            (20, 836),
-            (25, 1061),
-            (50, 1836),
-            (75, 2836),
-            (100, 3836),
-            (float("inf"), 6836),
+            (2, 125),
+            (5, 190),
+            (10, 300),
+            (15, 410),
+            (20, 520),
+            (25, 655),   # Fra PDF
+            (50, 1135),  # Fra PDF
+            (75, 1750),  # Fra PDF
+            (100, 2370), # Fra PDF
+            (float("inf"), 4225),  # Fra PDF
         ],
     },
     "glitre": {
@@ -69,20 +70,25 @@ TSO_LIST: Final = {
     },
     "tensio": {
         "name": "Tensio",
-        "energiledd_dag": 0.3850,  # Ca. 38,50 øre/kWh inkl. avgifter
-        "energiledd_natt": 0.2350,  # Ca. 23,50 øre/kWh inkl. avgifter
+        "energiledd_dag": 0.3604,  # 36,04 øre/kWh (2026, Trondheim)
+        "energiledd_natt": 0.2292,  # 22,92 øre/kWh (2026, Trondheim)
         "url": "https://www.tensio.no/no/kunde/nettleie/nettleiepriser-for-privat",
         "kapasitetstrinn": [
-            (2, 175),
-            (5, 262),
-            (10, 437),
-            (15, 625),
-            (20, 812),
-            (25, 1000),
-            (50, 1750),
-            (75, 2625),
-            (100, 3500),
-            (float("inf"), 6125),
+            (2, 122),
+            (5, 218),
+            (10, 371),
+            (15, 547),
+            (20, 724),
+            (25, 901),
+            (50, 1547),
+            (75, 2429),
+            (100, 3312),
+            (150, 4782),
+            (200, 6545),
+            (300, 9483),
+            (400, 13014),
+            (500, 16539),
+            (float("inf"), 20068),
         ],
     },
     "custom": {
@@ -113,6 +119,12 @@ DEFAULT_TSO: Final = "bkk"
 # Strømstøtte
 STROMSTOTTE_LEVEL: Final = 0.9125
 STROMSTOTTE_RATE: Final = 0.9
+
+# Offentlige avgifter (øre/kWh eks. mva, oppdateres årlig)
+# Kilde: https://www.skatteetaten.no/satser/elektrisk-kraft/
+FORBRUKSAVGIFT: Final = 0.1669  # 16,69 øre/kWh (2025)
+ENOVA_AVGIFT: Final = 0.0125  # 1,25 øre/kWh (fast)
+MVA_SATS: Final = 0.25  # 25% mva
 
 # Helligdager (YYYY-MM-DD for bevegelige, MM-DD for faste)
 # Faste helligdager

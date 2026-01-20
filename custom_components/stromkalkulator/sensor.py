@@ -1,4 +1,4 @@
-"""Sensor platform for Nettleie."""
+"""Sensor platform for Strømkalkulator."""
 from __future__ import annotations
 
 from homeassistant.components.sensor import (
@@ -16,7 +16,7 @@ from .const import CONF_TSO, DOMAIN, TSO_LIST, FORBRUKSAVGIFT, ENOVA_AVGIFT, MVA
 from .coordinator import NettleieCoordinator
 
 # Device group constants
-DEVICE_NETTLEIE = "nettleie"
+DEVICE_NETTLEIE = "stromkalkulator"
 DEVICE_STROMSTOTTE = "stromstotte"
 DEVICE_NORGESPRIS = "norgespris"
 
@@ -26,7 +26,7 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Nettleie sensors."""
+    """Set up Strømkalkulator sensors."""
     coordinator: NettleieCoordinator = hass.data[DOMAIN][entry.entry_id]
 
     entities = [
@@ -58,7 +58,7 @@ async def async_setup_entry(
 
 
 class NettleieBaseSensor(CoordinatorEntity, SensorEntity):
-    """Base class for Nettleie sensors."""
+    """Base class for Strømkalkulator sensors."""
 
     _device_group: str = DEVICE_NETTLEIE
 

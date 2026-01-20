@@ -1,4 +1,4 @@
-# Nettleie
+# Strømkalkulator
 
 ![AI SLOP](https://raw.githubusercontent.com/kluzzebass/ai-slop/refs/heads/main/ai-slop-05-chaos.svg)
 
@@ -62,19 +62,19 @@ Testet på Home Assistant 2026.1.2
 2. Klikk på "Integrations"
 3. Klikk på de tre prikkene øverst til høyre og velg "Custom repositories"
 4. Legg til `https://github.com/fredrik-lindseth/Stromkalkulator` og velg "Integration" som kategori
-5. Finn "Nettleie" i listen og klikk "Download"
+5. Finn "Strømkalkulator" i listen og klikk "Download"
 6. Start Home Assistant på nytt (eller bruk Quick Reload under Developer Tools)
 
 ### Manuell installasjon
 
-1. Kopier `custom_components/nettleie` mappen til din `config/custom_components/` mappe
+1. Kopier `custom_components/stromkalkulator` mappen til din `config/custom_components/` mappe
 2. Start Home Assistant på nytt
 
 ## Konfigurasjon
 
 1. Gå til Settings → Devices & Services
 2. Klikk "Add Integration"
-3. Søk etter "Nettleie"
+3. Søk etter "Strømkalkulator"
 4. Velg nettselskap (f.eks BKK)
 5. Velg din strømforbruk-sensor (f.eks. Tibber Pulse)
 6. Velg Nord Pool **"Current price"** sensor (f.eks. `sensor.nord_pool_no5_current_price`)
@@ -246,7 +246,7 @@ Vil du legge til støtte for ditt nettselskap? Følg guiden under og opprett en 
 
 ### Legge til nytt nettselskap (TSO)
 
-1. Åpne `custom_components/nettleie/const.py`
+1. Åpne `custom_components/stromkalkulator/const.py`
 2. Finn `TSO_LIST` dictionary
 3. Legg til ditt nettselskap med følgende format:
 

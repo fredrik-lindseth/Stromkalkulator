@@ -7,7 +7,7 @@ For å teste kapasitetstrinn-beregninger kan du opprette en lagringsfil manuelt 
 ### Opprett testdata via SSH
 
 ```bash
-cat > /config/.storage/nettleie_bkk << 'EOF'
+cat > /config/.storage/stromkalkulator_bkk << 'EOF'
 {
   "version": 1,
   "data": {
@@ -22,7 +22,7 @@ cat > /config/.storage/nettleie_bkk << 'EOF'
 EOF
 ```
 
-**Merk:** Endre `nettleie_bkk` til din TSO-id (f.eks. `nettleie_tensio`, `nettleie_elvia`).
+**Merk:** Endre `stromkalkulator_bkk` til din TSO-id (f.eks. `stromkalkulator_tensio`, `stromkalkulator_elvia`).
 
 ### Felter
 

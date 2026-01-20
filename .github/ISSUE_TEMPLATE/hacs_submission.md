@@ -1,7 +1,7 @@
 ---
 name: HACS Submission
 about: Submit this integration to HACS
-title: "[HACS] Add Nettleie integration"
+title: "[HACS] Add Strømkalkulator integration"
 labels: ["hacs", "integration"]
 assignees: []
 
@@ -11,7 +11,7 @@ assignees: []
 
 ## Integration Information
 
-**Integration Name:** Nettleie  
+**Integration Name:** Strømkalkulator  
 **Repository:** https://github.com/fredrik-lindseth/Stromkalkulator  
 **Category:** Integration  
 
@@ -38,7 +38,7 @@ Home Assistant integrasjon for beregning av nettleie fra norske nettselskaper, r
 - [x] **Config Flow** - Full setup flow implemented
 - [x] **Translations** - English translations included
 - [x] **Documentation** - Comprehensive README with installation guide
-- [x] **Unique Domain** - `nettleie`
+- [x] **Unique Domain** - `stromkalkulator`
 - [x] **Code Quality** - Clean, well-structured Python code
 - [x] **Dependencies** - Only uses Home Assistant core dependencies
 

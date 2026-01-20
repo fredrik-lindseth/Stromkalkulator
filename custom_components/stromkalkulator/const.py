@@ -1,7 +1,7 @@
-"""Constants for Nettleie integration."""
+"""Constants for Strømkalkulator integration."""
 from typing import Final
 
-DOMAIN: Final = "nettleie"
+DOMAIN: Final = "stromkalkulator"
 
 # Config keys
 CONF_POWER_SENSOR: Final = "power_sensor"
@@ -162,4 +162,4 @@ SENSOR_KAPASITETSTRINN: Final = "kapasitetstrinn"
 SENSOR_TOTAL_PRICE: Final = "total_price"
 
 # Defaults
-DEFAULT_NAME: Final = "Nettleie"
+DEFAULT_NAME: Final = "Strømkalkulator"

@@ -425,11 +425,19 @@ TSO_LIST: Final = {
     "barents_nett": {
         "name": "Barents Nett",
         "prisomrade": "NO4",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "tiltakssone": True,  # Finnmark - fritatt for mva og forbruksavgift
+        "supported": True,
+        "energiledd_dag": 0.1132,  # Flat sats hele døgnet (2026)
+        "energiledd_natt": 0.1132,  # Flat sats hele døgnet (2026)
+        "url": "https://www.barents-nett.no/kundeservice/nett-og-nettleie/",
+        "kapasitetstrinn": [  # 2026-priser
+            {"min": 0, "max": 2, "pris": 517},
+            {"min": 2, "max": 5, "pris": 569},
+            {"min": 5, "max": 10, "pris": 620},
+            {"min": 10, "max": 15, "pris": 673},
+            {"min": 15, "max": 20, "pris": 776},
+            {"min": 20, "max": 999, "pris": 931},
+        ],
     },
     "bindal_kraftnett": {
         "name": "Bindal Kraftnett",
@@ -470,11 +478,24 @@ TSO_LIST: Final = {
     "elmea": {
         "name": "Elmea",
         "prisomrade": "NO4",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # Priser eks mva (Nord-Norge mva-fritak): energiledd + forbruksavgift + Enova
+        "energiledd_dag": 0.4781,  # 37,9 + 8,91 + 1 = 47,81 øre/kWh (2026)
+        "energiledd_natt": 0.3551,  # 25,6 + 8,91 + 1 = 35,51 øre/kWh (2026)
+        "url": "https://www.elmea.no/nettleiepriser/",
+        "kapasitetstrinn": [
+            (2, 327),
+            (5, 489),
+            (10, 747),
+            (15, 1070),
+            (20, 1392),
+            (25, 1715),
+            (50, 2683),
+            (75, 4297),
+            (100, 5911),
+            (200, 11558),
+            (float("inf"), 24468),
+        ],
     },
     "enida": {
         "name": "Enida",
@@ -515,11 +536,23 @@ TSO_LIST: Final = {
     "griug": {
         "name": "Griug",
         "prisomrade": "NO1",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # Griug har ikke dag/natt-differensiering, bruker samme sats for begge
+        "energiledd_dag": 0.2556,  # 25,56 øre/kWh inkl. avgifter og mva (2026)
+        "energiledd_natt": 0.2556,  # Flat sats - ingen dag/natt-differensiering
+        "url": "https://www.griug.no/om-nettleie-og-priser/priser/nettleiepriser-2026/",
+        "kapasitetstrinn": [
+            (2, 250),
+            (5, 380),
+            (10, 570),
+            (15, 730),
+            (20, 920),
+            (25, 1115),
+            (50, 2085),
+            (75, 3060),
+            (100, 4110),
+            (float("inf"), 8150),
+        ],
     },
     "haringnett": {
         "name": "Haringnett",
@@ -623,11 +656,21 @@ TSO_LIST: Final = {
     "midtnett": {
         "name": "Midtnett",
         "prisomrade": "NO1",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        "energiledd_dag": 0.4674,  # 46,74 øre/kWh inkl. avgifter (fra 1. okt 2025)
+        "energiledd_natt": 0.4049,  # 40,49 øre/kWh inkl. avgifter (fra 1. okt 2025)
+        "url": "https://midtnett.no/nettleie-informasjon-og-priser/",
+        "kapasitetstrinn": [
+            (5, 275),
+            (10, 413),
+            (15, 625),
+            (20, 938),
+            (25, 1250),
+            (50, 1746),
+            (75, 2620),
+            (100, 3250),
+            (float("inf"), 3750),
+        ],
     },
     "modalen_kraftlag": {
         "name": "Modalen Kraftlag",
@@ -668,11 +711,22 @@ TSO_LIST: Final = {
     "nordvest_nett": {
         "name": "Nordvest Nett",
         "prisomrade": "NO3",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        "energiledd_dag": 0.4270,  # 42,70 øre/kWh inkl. avgifter (2026)
+        "energiledd_natt": 0.3520,  # 35,20 øre/kWh inkl. avgifter (2026)
+        "url": "https://www.nvn.no/nettleige/nettleie-privatkunder",
+        "kapasitetstrinn": [
+            (2, 158),
+            (5, 388),
+            (10, 478),
+            (15, 726),
+            (20, 861),
+            (25, 1004),
+            (50, 1926),
+            (75, 2850),
+            (100, 3773),
+            (float("inf"), 7420),
+        ],
     },
     "norefjell_nett": {
         "name": "Norefjell Nett",
@@ -857,11 +911,20 @@ TSO_LIST: Final = {
     "vevig": {
         "name": "Vevig",
         "prisomrade": "NO3",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        "energiledd_dag": 0.4166,  # 41,66 øre/kWh inkl. avgifter (2026)
+        "energiledd_natt": 0.2991,  # 29,91 øre/kWh inkl. avgifter (2026)
+        "url": "https://www.vevig.no/nettleie-og-vilkar/nettleie-privat",
+        "kapasitetstrinn": [
+            (2, 251),
+            (5, 326),
+            (10, 454),
+            (15, 581),
+            (20, 710),
+            (25, 835),
+            (30, 963),
+            (float("inf"), 963),  # Næring over 30 kW
+        ],
     },
     "viermie": {
         "name": "Viermie",

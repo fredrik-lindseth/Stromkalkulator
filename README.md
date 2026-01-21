@@ -33,27 +33,33 @@ Home Assistant-integrasjon for komplett oversikt over strømkostnader i Norge. B
 | Nettselskap                                                                                  |
 |----------------------------------------------------------------------------------------------|
 | [Arva](https://www.arva.no/kunde/nettleie/nettleiepriser)                                    |
+| [Barents Nett](https://www.barents-nett.no/kundeservice/nett-og-nettleie/)                   |
 | [BKK](https://www.bkk.no/nettleiepriser/priser-privatkunder)                                 |
 | [Elinett](https://www.elinett.no/kunde/nettleie-2/nettleie)                                  |
+| [Elmea](https://www.elmea.no/nettleiepriser/)                                                |
 | [Elvia](https://www.elvia.no/nettleie/alt-om-nettleiepriser/nettleie-pris/)                  |
 | [Fagne](https://fagne.no/kunde-og-nettleie/nettleie-priser-og-vilkar/priser-privatkunder/)   |
 | [Føie](https://www.foie.no/nettleie/priser)                                                  |
 | [Glitre Nett](https://www.glitrenett.no/kunde/nettleie-og-priser/nettleiepriser-privatkunde) |
+| [Griug](https://www.griug.no/om-nettleie-og-priser/priser/nettleiepriser-2026/)              |
 | [Lede](https://www.lede.no/nettleie/nettleiepriser)                                          |
 | [Linea](https://www.linea.no/no/kunde/nettleie/nettleiepriser)                               |
 | [Linja](https://www.linja.no/nettleige)                                                      |
 | [Lnett](https://www.l-nett.no/nettleie/nettleiepriser-privat)                                |
 | [Mellom](https://mellom.no/nettleiepriser/)                                                  |
+| [Midtnett](https://midtnett.no/nettleie-informasjon-og-priser/)                              |
 | [Nettselskapet](https://nettselskapet.as/strompris)                                          |
 | [Noranett](https://www.noranett.no/nettleiepriser/category2415.html)                         |
 | [Norgesnett](https://norgesnett.no/kunde/nettleie/nettleiepriser/)                           |
+| [Nordvest Nett](https://www.nordvestnett.no/kunde/nettleige/)                                |
 | [Tensio](https://www.tensio.no/no/kunde/nettleie/nettleiepriser-for-privat)                  |
+| [Vevig](https://www.vevig.no/nettleie-og-vilkar/nettleie-privat)                             |
 | Egendefinert                                                                                 |
 
 > **Mangler ditt nettselskap?** Se [Bidra](#bidra) for hvordan du legger til det!
 
 <details>
-<summary><b>Nettselskaper som trenger bidrag (55 stk)</b></summary>
+<summary><b>Nettselskaper som trenger bidrag (49 stk)</b></summary>
 
 Disse nettselskapene er registrert med prisområde, men mangler priser. Bidra gjerne!
 
@@ -62,17 +68,14 @@ Disse nettselskapene er registrert med prisområde, men mangler priser. Bidra gj
 | Alut                      | NO4        |
 | Area Nett                 | NO4        |
 | Asker Nett                | NO1        |
-| Barents Nett              | NO4        |
 | Bindal Kraftnett          | NO3        |
 | Breheim Nett              | NO5        |
 | Bømlo Kraftnett           | NO5        |
 | De Nett                   | NO2        |
-| Elmea                     | NO4        |
 | Enida                     | NO2        |
 | Everket                   | NO2        |
 | Fjellnett                 | NO3        |
 | Føre                      | NO2        |
-| Griug                     | NO1        |
 | Haringnett                | NO5        |
 | Havnett                   | NO5        |
 | Høland og Setskog Elverk  | NO1        |
@@ -84,12 +87,10 @@ Disse nettselskapene er registrert med prisområde, men mangler priser. Bidra gj
 | Lucerna                   | NO4        |
 | Lysna                     | NO5        |
 | Meløy Energi              | NO4        |
-| Midtnett                  | NO1        |
 | Modalen Kraftlag          | NO5        |
 | Netera                    | NO3        |
 | Noranett Andøy            | NO4        |
 | Noranett Hadsel           | NO4        |
-| Nordvest Nett             | NO3        |
 | Norefjell Nett            | NO1        |
 | R-Nett                    | NO1        |
 | Rakkestad Energi          | NO1        |
@@ -110,7 +111,6 @@ Disse nettselskapene er registrert med prisområde, men mangler priser. Bidra gj
 | Vang Energiverk           | NO1        |
 | Vestall                   | NO4        |
 | Vestmar Nett              | NO2        |
-| Vevig                     | NO3        |
 | Viermie                   | NO3        |
 | Vissi                     | NO4        |
 
@@ -343,39 +343,4 @@ Se [beregninger.md](beregninger.md) for detaljert informasjon om avgiftssoner og
 
 ## Bidra
 
-Vil du legge til støtte for ditt nettselskap? Følg guiden under og opprett en PR!
-
-### Legge til nytt nettselskap (TSO)
-
-1. Åpne `custom_components/stromkalkulator/const.py`
-2. Finn `TSO_LIST` dictionary
-3. Legg til ditt nettselskap med følgende format:
-
-```python
-"ditt_nettselskap": {
-    "name": "BKK",
-    "energiledd_dag": 0.4613,      # NOK/kWh inkl. avgifter
-    "energiledd_natt": 0.2329,     # NOK/kWh inkl. avgifter
-    "url": "https://www.bkk.no/nettleiepriser/priser-privatkunder",
-    "kapasitetstrinn": [
-        (2, 150),      # 0-2 kW: 150 kr/mnd
-        (5, 250),      # 2-5 kW: 250 kr/mnd
-        (10, 400),     # 5-10 kW: 400 kr/mnd
-        (15, 600),     # 10-15 kW: 600 kr/mnd
-        (20, 800),     # 15-20 kW: 800 kr/mnd
-        (25, 1000),    # 20-25 kW: 1000 kr/mnd
-        (50, 1800),    # 25-50 kW: 1800 kr/mnd
-        (75, 2600),    # 50-75 kW: 2600 kr/mnd
-        (100, 3500),   # 75-100 kW: 3500 kr/mnd
-        (float("inf"), 7000),  # >100 kW: 7000 kr/mnd
-    ],
-},
-```
-
-**Viktig:**
-- `energiledd_dag` og `energiledd_natt` skal være i **NOK/kWh** (ikke øre)
-- Prisene skal være **inkludert avgifter** (Enova, elavgift, mva)
-- `kapasitetstrinn` er en liste med tupler: `(kW-grense, kr/mnd)`
-- Dag = hverdager 06:00-22:00, Natt = 22:00-06:00 + helg + helligdager
-- `url` skal peke til nettselskapets offisielle prisside
-- Siste trinn bruker `float("inf")` som øvre grense
+Vil du legge til støtte for ditt nettselskap? Se [CONTRIBUTING.md](CONTRIBUTING.md) for detaljert veiledning!

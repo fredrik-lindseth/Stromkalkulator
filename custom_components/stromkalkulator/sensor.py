@@ -1,30 +1,34 @@
 """Sensor platform for Strømkalkulator."""
+
 from __future__ import annotations
 
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from homeassistant.components.sensor import (
-    SensorDeviceClass,
     SensorEntity,
     SensorStateClass,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
+    AVGIFTSSONE_STANDARD,
     CONF_AVGIFTSSONE,
     CONF_TSO,
     DOMAIN,
-    TSO_LIST,
     ENOVA_AVGIFT,
-    AVGIFTSSONE_STANDARD,
+    TSO_LIST,
     get_forbruksavgift,
     get_mva_sats,
 )
-from .coordinator import NettleieCoordinator
+
+if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
+    from .coordinator import NettleieCoordinator
 
 # Device group constants
 DEVICE_NETTLEIE = "stromkalkulator"
@@ -85,7 +89,7 @@ class NettleieBaseSensor(CoordinatorEntity, SensorEntity):
         self._attr_unique_id = f"{entry.entry_id}_{sensor_type}"
         self._attr_name = name
         self._entry = entry
-        
+
         # Get TSO name for device info
         tso_id = entry.data.get(CONF_TSO, "bkk")
         self._tso = TSO_LIST.get(tso_id, TSO_LIST["bkk"])

@@ -1,34 +1,35 @@
 """Config flow for Nettleie integration."""
+
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
-
 from homeassistant import config_entries
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.data_entry_flow import FlowResult
+from homeassistant.core import callback
 from homeassistant.helpers import selector
 
 from .const import (
-    CONF_ENERGILEDD_DAG,
-    CONF_ENERGILEDD_NATT,
-    CONF_TSO,
-    CONF_POWER_SENSOR,
-    CONF_SPOT_PRICE_SENSOR,
-    CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
-    CONF_AVGIFTSSONE,
     AVGIFTSSONE_OPTIONS,
     AVGIFTSSONE_STANDARD,
+    CONF_AVGIFTSSONE,
+    CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
+    CONF_ENERGILEDD_DAG,
+    CONF_ENERGILEDD_NATT,
+    CONF_POWER_SENSOR,
+    CONF_SPOT_PRICE_SENSOR,
+    CONF_TSO,
     DEFAULT_ENERGILEDD_DAG,
     DEFAULT_ENERGILEDD_NATT,
-    DEFAULT_TSO,
     DEFAULT_NAME,
+    DEFAULT_TSO,
     DOMAIN,
     TSO_LIST,
-    get_default_avgiftssone,
 )
+
+if TYPE_CHECKING:
+    from homeassistant.data_entry_flow import FlowResult
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -110,16 +111,16 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             if not errors:
                 self._data.update(user_input)
-                
+
                 # If custom TSO, go to pricing step
                 if self._data.get(CONF_TSO) == "custom":
                     return await self.async_step_pricing()
-                
+
                 # Otherwise, use defaults from TSO
                 tso = TSO_LIST[self._data[CONF_TSO]]
                 self._data[CONF_ENERGILEDD_DAG] = tso["energiledd_dag"]
                 self._data[CONF_ENERGILEDD_NATT] = tso["energiledd_natt"]
-                
+
                 return await self._create_entry()
 
         return self.async_show_form(
@@ -297,4 +298,3 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):
             step_id="init",
             data_schema=options_schema,
         )
-

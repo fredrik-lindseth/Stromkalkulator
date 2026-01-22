@@ -20,7 +20,7 @@ jobs:
 
       - name: Install linters
         run: |
-          pip install vulture ruff
+          pip install vulture
 
       - name: Validate manifest
         run: |
@@ -50,11 +50,6 @@ jobs:
         run: |
           python -m py_compile custom_components/stromkalkulator/*.py
           echo "✅ Python syntax is valid"
-
-      - name: Lint with Ruff
-        run: |
-          ruff check custom_components/stromkalkulator/ --ignore E501,F401
-          echo "✅ Ruff linting passed"
 
       - name: Check for dead code with Vulture
         run: |

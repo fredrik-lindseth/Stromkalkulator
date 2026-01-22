@@ -1,31 +1,32 @@
 """Data coordinator for Nettleie."""
+
 from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import (
+    CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
     CONF_ENERGILEDD_DAG,
     CONF_ENERGILEDD_NATT,
-    CONF_TSO,
     CONF_POWER_SENSOR,
     CONF_SPOT_PRICE_SENSOR,
-    CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
-    DEFAULT_ENERGILEDD_DAG,
-    DEFAULT_ENERGILEDD_NATT,
+    CONF_TSO,
     DOMAIN,
-    TSO_LIST,
-    HELLIGDAGER_FASTE,
     HELLIGDAGER_BEVEGELIGE,
+    HELLIGDAGER_FASTE,
     STROMSTOTTE_LEVEL,
     STROMSTOTTE_RATE,
+    TSO_LIST,
 )
+
+if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.core import HomeAssistant
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -45,24 +46,24 @@ class NettleieCoordinator(DataUpdateCoordinator):
         self.power_sensor = entry.data.get(CONF_POWER_SENSOR)
         self.spot_price_sensor = entry.data.get(CONF_SPOT_PRICE_SENSOR)
         self.electricity_company_price_sensor = entry.data.get(CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR)
-        
+
         # Get TSO config
         tso_id = entry.data.get(CONF_TSO, "bkk")
         self.tso = TSO_LIST.get(tso_id, TSO_LIST["bkk"])
         self._tso_id = tso_id
-        
+
         # Get energiledd from config (allows override)
         self.energiledd_dag = entry.data.get(CONF_ENERGILEDD_DAG, self.tso["energiledd_dag"])
         self.energiledd_natt = entry.data.get(CONF_ENERGILEDD_NATT, self.tso["energiledd_natt"])
-        
+
         # Get kapasitetstrinn from TSO
         self.kapasitetstrinn = self.tso["kapasitetstrinn"]
-        
+
         # Track max power for capacity calculation
         # Format: {date_str: max_power_kw}
         self._daily_max_power: dict[str, float] = {}
         self._current_month: int = datetime.now().month
-        
+
         # Persistent storage - use TSO id for stable storage across reinstalls
         self._store = Store(hass, 1, f"{DOMAIN}_{tso_id}")
         self._store_loaded = False
@@ -70,12 +71,12 @@ class NettleieCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from sensors and calculate values."""
         now = datetime.now()
-        
+
         # Load stored data on first run
         if not self._store_loaded:
             await self._load_stored_data()
             self._store_loaded = True
-        
+
         # Reset at new month
         if now.month != self._current_month:
             self._daily_max_power = {}
@@ -114,31 +115,31 @@ class NettleieCoordinator(DataUpdateCoordinator):
             stromstotte = (spot_price - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE
         else:
             stromstotte = 0
-        
+
         # Spotpris etter strømstøtte
         spotpris_etter_stotte = spot_price - stromstotte
 
         # Calculate fastledd per kWh
         days_in_month = self._days_in_month(now)
         fastledd_per_kwh = (kapasitetsledd / days_in_month) / 24
-        
+
         # Norgespris (korrekt - fast pris fra Elhub)
         # Fast pris: 50 øre/kWh inkl. mva = 0.50 NOK/kWh
         # Kan ikke kombineres med strømstøtte
         NORGESPRIS_FAST = 0.50  # 50 øre/kWh inkl. mva
-        
+
         # Norgespris er fast pris, ingen strømstøtte
         norgespris_stromstotte = 0  # Ingen strømstøtte med norgespris
-        
+
         # Total price (Nord Pool + nettleie)
         total_price = spot_price - stromstotte + energiledd + fastledd_per_kwh
-        
+
         # Total price UTEN strømstøtte (for de som vil se bruttopris)
         total_price_uten_stotte = spot_price + energiledd + fastledd_per_kwh
-        
+
         # Total pris med norgespris
         total_pris_norgespris = NORGESPRIS_FAST + energiledd + fastledd_per_kwh
-        
+
         # Kroner spart/tapt per kWh (sammenligning)
         kroner_spart_per_kwh = total_price - total_pris_norgespris
 
@@ -164,7 +165,7 @@ class NettleieCoordinator(DataUpdateCoordinator):
             "stromstotte": round(stromstotte, 4),
             "spotpris_etter_stotte": round(spotpris_etter_stotte, 4),
             "norgespris": round(NORGESPRIS_FAST, 4),
-            "norgespris_stromstotte": round(norgespris_stromstotte, 4),
+            "norgespris_stromstotte": norgespris_stromstotte,
             "total_pris_norgespris": round(total_pris_norgespris, 4),
             "kroner_spart_per_kwh": round(kroner_spart_per_kwh, 4),
             "total_price": round(total_price, 4),
@@ -185,7 +186,7 @@ class NettleieCoordinator(DataUpdateCoordinator):
 
     def _get_kapasitetsledd(self, avg_power: float) -> tuple[int, int, str]:
         """Get kapasitetsledd based on average power.
-        
+
         Returns: (price, tier_number, tier_range)
         """
         for i, (threshold, price) in enumerate(self.kapasitetstrinn, 1):
@@ -210,7 +211,7 @@ class NettleieCoordinator(DataUpdateCoordinator):
         """Check if current time is day rate."""
         date_mm_dd = now.strftime("%m-%d")
         date_yyyy_mm_dd = now.strftime("%Y-%m-%d")
-        
+
         is_fixed_holiday = date_mm_dd in HELLIGDAGER_FASTE
         is_moving_holiday = date_yyyy_mm_dd in HELLIGDAGER_BEVEGELIGE
         is_weekend = now.weekday() >= 5
@@ -226,7 +227,7 @@ class NettleieCoordinator(DataUpdateCoordinator):
     async def _load_stored_data(self) -> None:
         """Load stored data from disk."""
         data = await self._store.async_load()
-        
+
         # Migration: try to load from old entry_id based storage if new storage is empty
         if not data:
             old_store = Store(self.hass, 1, f"{DOMAIN}_{self.entry.entry_id}")
@@ -235,7 +236,7 @@ class NettleieCoordinator(DataUpdateCoordinator):
                 _LOGGER.info("Migrated data from old storage format")
                 # Save to new location immediately
                 await self._store.async_save(data)
-        
+
         if data:
             self._daily_max_power = data.get("daily_max_power", {})
             stored_month = data.get("current_month")

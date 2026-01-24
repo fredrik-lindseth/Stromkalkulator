@@ -1,0 +1,19 @@
+{
+  "replacements": {
+    "Your Name": "Nordmann Ola",
+    "Name Reversed": "Ola Nordmann",
+    "Your Street 123": "Eksempelveien 123",
+    "1234 CITY": "5000 BERGEN",
+    "1234 City": "5000 Bergen",
+    "your_customer_id": "1234567",
+    "your_invoice_number": "012345678",
+    "your_meter_id": "12345678",
+    "your_meter_number": "1234567890123456",
+    "your_kid": "0123456789012",
+    "your_bank_account": "1234 56 78901"
+  },
+  "filename_mappings": {
+    "old_invoice_id_1": "januar_2025",
+    "old_invoice_id_2": "februar_2025"
+  }
+}

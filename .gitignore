@@ -13,7 +13,11 @@ venv/
 *.log
 .DS_Store
 
-# Lokale filer
+# Lokale filer (personlig data)
 Fakturaer/
 .beads/
 beads-prompt.md
+.anonymize_config.json
+
+# Anonymiserte fakturaer er OK
+!docs/fakturaer/

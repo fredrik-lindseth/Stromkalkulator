@@ -12,3 +12,8 @@ venv/
 .env
 *.log
 .DS_Store
+
+# Lokale filer
+Fakturaer/
+.beads/
+beads-prompt.md

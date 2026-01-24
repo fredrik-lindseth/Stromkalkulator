@@ -55,8 +55,13 @@ async def async_setup_entry(
         KapasitetstrinnSensor(coordinator, entry),
         # Nettleie - Energiledd
         EnergileddSensor(coordinator, entry),
+        EnergileddDagSensor(coordinator, entry),
+        EnergileddNattSensor(coordinator, entry),
+        TariffSensor(coordinator, entry),
         # Nettleie - Avgifter
         OffentligeAvgifterSensor(coordinator, entry),
+        ForbruksavgiftSensor(coordinator, entry),
+        EnovaavgiftSensor(coordinator, entry),
         # Strømpriser
         TotalPriceSensor(coordinator, entry),
         ElectricityCompanyTotalSensor(coordinator, entry),
@@ -64,6 +69,7 @@ async def async_setup_entry(
         StromstotteSensor(coordinator, entry),
         SpotprisEtterStotteSensor(coordinator, entry),
         TotalPrisEtterStotteSensor(coordinator, entry),
+        StromstotteKwhSensor(coordinator, entry),
         # Norgespris
         TotalPrisNorgesprisSensor(coordinator, entry),
         PrisforskjellNorgesprisSensor(coordinator, entry),
@@ -569,5 +575,240 @@ class PrisforskjellNorgesprisSensor(NettleieBaseSensor):
                 "norgespris_etter_stotte": norgespris_etter_stotte,
                 "differens_per_kwh": self.coordinator.data.get("kroner_spart_per_kwh"),
                 "note": "Norgespris er fast 50 øre/kWh fra Elhub",
+            }
+        return None
+
+
+# =============================================================================
+# Fakturasammenligning - Separate sensorer for hver fakturalinje
+# =============================================================================
+
+
+class EnergileddDagSensor(NettleieBaseSensor):
+    """Sensor for energiledd dag-sats (eks. avgifter, for fakturasammenligning)."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "energiledd_dag", "Energiledd dag")
+        self._attr_native_unit_of_measurement = "NOK/kWh"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_icon = "mdi:weather-sunny"
+        self._attr_suggested_display_precision = 2
+
+    @property
+    def native_value(self):
+        """Return the state."""
+        if self.coordinator.data:
+            return self.coordinator.data.get("energiledd_dag")
+        return None
+
+    @property
+    def extra_state_attributes(self):
+        """Return extra attributes."""
+        if self.coordinator.data:
+            avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
+            mva_sats = get_mva_sats(avgiftssone)
+            energiledd_dag = self.coordinator.data.get("energiledd_dag", 0)
+            # Beregn pris eks. avgifter for fakturasammenligning
+            forbruksavgift = get_forbruksavgift(avgiftssone, datetime.now().month)
+            energiledd_eks_avgifter = energiledd_dag - forbruksavgift - ENOVA_AVGIFT
+            if mva_sats > 0:
+                energiledd_eks_avgifter = energiledd_eks_avgifter / (1 + mva_sats)
+            return {
+                "inkl_avgifter_mva": energiledd_dag,
+                "eks_avgifter_mva": round(energiledd_eks_avgifter, 4),
+                "note": "Fakturaen viser pris eks. avgifter. Sammenlign med eks_avgifter_mva.",
+            }
+        return None
+
+
+class EnergileddNattSensor(NettleieBaseSensor):
+    """Sensor for energiledd natt/helg-sats (eks. avgifter, for fakturasammenligning)."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "energiledd_natt", "Energiledd natt/helg")
+        self._attr_native_unit_of_measurement = "NOK/kWh"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_icon = "mdi:weather-night"
+        self._attr_suggested_display_precision = 2
+
+    @property
+    def native_value(self):
+        """Return the state."""
+        if self.coordinator.data:
+            return self.coordinator.data.get("energiledd_natt")
+        return None
+
+    @property
+    def extra_state_attributes(self):
+        """Return extra attributes."""
+        if self.coordinator.data:
+            avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
+            mva_sats = get_mva_sats(avgiftssone)
+            energiledd_natt = self.coordinator.data.get("energiledd_natt", 0)
+            # Beregn pris eks. avgifter for fakturasammenligning
+            forbruksavgift = get_forbruksavgift(avgiftssone, datetime.now().month)
+            energiledd_eks_avgifter = energiledd_natt - forbruksavgift - ENOVA_AVGIFT
+            if mva_sats > 0:
+                energiledd_eks_avgifter = energiledd_eks_avgifter / (1 + mva_sats)
+            return {
+                "inkl_avgifter_mva": energiledd_natt,
+                "eks_avgifter_mva": round(energiledd_eks_avgifter, 4),
+                "note": "Fakturaen viser pris eks. avgifter. Sammenlign med eks_avgifter_mva.",
+            }
+        return None
+
+
+class ForbruksavgiftSensor(NettleieBaseSensor):
+    """Sensor for forbruksavgift (elavgift) per kWh."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "forbruksavgift", "Forbruksavgift")
+        self._attr_native_unit_of_measurement = "NOK/kWh"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_icon = "mdi:lightning-bolt"
+        self._attr_suggested_display_precision = 2
+
+    def _get_forbruksavgift(self) -> float:
+        """Get forbruksavgift based on avgiftssone."""
+        avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
+        month = datetime.now().month
+        return get_forbruksavgift(avgiftssone, month)
+
+    def _get_mva_sats(self) -> float:
+        """Get MVA rate based on avgiftssone."""
+        avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
+        return get_mva_sats(avgiftssone)
+
+    @property
+    def native_value(self):
+        """Return forbruksavgift inkl. mva."""
+        forbruksavgift = self._get_forbruksavgift()
+        mva_sats = self._get_mva_sats()
+        return round(forbruksavgift * (1 + mva_sats), 4)
+
+    @property
+    def extra_state_attributes(self):
+        """Return breakdown."""
+        forbruksavgift = self._get_forbruksavgift()
+        mva_sats = self._get_mva_sats()
+        avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
+        return {
+            "eks_mva": forbruksavgift,
+            "inkl_mva": round(forbruksavgift * (1 + mva_sats), 4),
+            "mva_sats": f"{int(mva_sats * 100)}%",
+            "avgiftssone": avgiftssone,
+            "ore_per_kwh_eks_mva": round(forbruksavgift * 100, 2),
+            "note": "Fakturaen viser forbruksavgift eks. mva",
+        }
+
+
+class EnovaavgiftSensor(NettleieBaseSensor):
+    """Sensor for Enova-avgift per kWh."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "enovaavgift", "Enovaavgift")
+        self._attr_native_unit_of_measurement = "NOK/kWh"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_icon = "mdi:leaf"
+        self._attr_suggested_display_precision = 2
+
+    def _get_mva_sats(self) -> float:
+        """Get MVA rate based on avgiftssone."""
+        avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
+        return get_mva_sats(avgiftssone)
+
+    @property
+    def native_value(self):
+        """Return Enova-avgift inkl. mva."""
+        mva_sats = self._get_mva_sats()
+        return round(ENOVA_AVGIFT * (1 + mva_sats), 4)
+
+    @property
+    def extra_state_attributes(self):
+        """Return breakdown."""
+        mva_sats = self._get_mva_sats()
+        avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
+        return {
+            "eks_mva": ENOVA_AVGIFT,
+            "inkl_mva": round(ENOVA_AVGIFT * (1 + mva_sats), 4),
+            "mva_sats": f"{int(mva_sats * 100)}%",
+            "avgiftssone": avgiftssone,
+            "ore_per_kwh_eks_mva": round(ENOVA_AVGIFT * 100, 2),
+            "note": "Fakturaen viser Enova-avgift eks. mva (1,25 øre/kWh i 2025)",
+        }
+
+
+class StromstotteKwhSensor(NettleieBaseSensor):
+    """Sensor for strømstøtte-berettiget forbruk (kWh over terskel)."""
+
+    _device_group = DEVICE_STROMSTOTTE
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "stromstotte_aktiv", "Strømstøtte aktiv")
+        self._attr_icon = "mdi:cash-check"
+
+    @property
+    def native_value(self):
+        """Return 'Ja' if strømstøtte is active, 'Nei' otherwise."""
+        if self.coordinator.data:
+            stromstotte = self.coordinator.data.get("stromstotte", 0)
+            return "Ja" if stromstotte > 0 else "Nei"
+        return None
+
+    @property
+    def extra_state_attributes(self):
+        """Return attributes."""
+        if self.coordinator.data:
+            spot_price = self.coordinator.data.get("spot_price", 0)
+            stromstotte = self.coordinator.data.get("stromstotte", 0)
+            return {
+                "spotpris": spot_price,
+                "terskel": 0.9125,
+                "over_terskel": spot_price > 0.9125,
+                "stromstotte_per_kwh": stromstotte,
+                "note": "Timer hvor spotpris > 91,25 øre/kWh gir strømstøtte på fakturaen",
+            }
+        return None
+
+
+class TariffSensor(NettleieBaseSensor):
+    """Sensor for current tariff period (dag/natt) - for use with utility_meter."""
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "tariff", "Tariff")
+        self._attr_icon = "mdi:clock-outline"
+
+    @property
+    def native_value(self):
+        """Return current tariff: 'dag' or 'natt'."""
+        if self.coordinator.data:
+            is_day = self.coordinator.data.get("is_day_rate")
+            return "dag" if is_day else "natt"
+        return None
+
+    @property
+    def extra_state_attributes(self):
+        """Return attributes with schedule info."""
+        if self.coordinator.data:
+            return {
+                "is_day_rate": self.coordinator.data.get("is_day_rate"),
+                "dag_periode": "Hverdager 06:00-22:00 (ikke helligdager)",
+                "natt_periode": "22:00-06:00, helger og helligdager",
+                "bruk": "Bruk denne sensoren til å styre utility_meter tariff-bytte",
             }
         return None

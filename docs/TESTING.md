@@ -79,15 +79,15 @@ Ved FEIL, sjekk attributtene på sensoren:
 
 ### 1. Strømstøtte
 
-**Formel:** `max(0, (spotpris - 0.9125) × 0.90)`
+**Formel (2025):** `max(0, (spotpris - 0.9375) × 0.90)`
 
 | Spotpris | Strømstøtte | Sjekk                      |
 |----------|-------------|----------------------------|
 | 0.50 kr  | 0.00 kr     | Under terskel              |
-| 0.91 kr  | 0.00 kr     | Under terskel              |
-| 1.00 kr  | 0.08 kr     | (1.00-0.9125)×0.9 = 0.0788 |
-| 1.50 kr  | 0.53 kr     | (1.50-0.9125)×0.9 = 0.5288 |
-| 2.00 kr  | 0.98 kr     | (2.00-0.9125)×0.9 = 0.9788 |
+| 0.93 kr  | 0.00 kr     | Under terskel              |
+| 1.00 kr  | 0.06 kr     | (1.00-0.9375)×0.9 = 0.0563 |
+| 1.50 kr  | 0.51 kr     | (1.50-0.9375)×0.9 = 0.5063 |
+| 2.00 kr  | 0.96 kr     | (2.00-0.9375)×0.9 = 0.9563 |
 
 ### 2. Tariff (dag/natt)
 

@@ -35,8 +35,38 @@ DEFAULT_ENERGILEDD_NATT: Final = 0.2329
 DEFAULT_TSO: Final = "bkk"
 
 # Strømstøtte
-STROMSTOTTE_LEVEL: Final = 0.9125
-STROMSTOTTE_RATE: Final = 0.9
+# Kilde: https://www.regjeringen.no/no/tema/energi/strom/regjeringens-stromtiltak/id2900232/
+#
+# Historikk (terskelverdi eks. mva → inkl. 25% mva):
+# - 2021 (des): 70 øre eks. mva → 87,50 øre inkl. mva, 55% kompensasjon
+# - 2022 (jan-aug): 70 øre → 87,50 øre, 80% kompensasjon
+# - 2022 (sep) - 2023 (aug): 70 øre → 87,50 øre, 90% kompensasjon (med unntak apr-mai 2023: 80%)
+# - 2023 (sep-des): 70 øre → 87,50 øre, 90% kompensasjon, time-for-time
+# - 2024: 73 øre eks. mva → 91,25 øre inkl. mva, 90% kompensasjon
+# - 2025: 75 øre eks. mva → 93,75 øre inkl. mva, 90% kompensasjon
+# - 2026+: Ikke fastsatt ennå, antar samme som 2025
+#
+# Merk: Fra 1. oktober 2025 kan husholdninger velge Norgespris (40 øre/kWh eks. mva)
+# som alternativ til strømstøtte. Se NORGESPRIS_* konstantene.
+#
+# Verdiene under er inkl. mva (spotpris fra Nord Pool er inkl. mva)
+STROMSTOTTE_LEVEL: Final = 0.9375  # 75 øre eks. mva × 1,25 = 93,75 øre inkl. mva (2025)
+STROMSTOTTE_RATE: Final = 0.9  # 90% kompensasjon over terskel
+
+# Norgespris (fra 1. oktober 2025)
+# Kilde: https://www.regjeringen.no/no/tema/energi/strom/regjeringens-stromtiltak/id2900232/
+#
+# Norgespris er en valgfri ordning der husholdninger får strøm til fast pris.
+# Pris: 40 øre/kWh eks. mva (50 øre/kWh inkl. mva i Sør-Norge, 40 øre i Nord-Norge pga mva-fritak)
+# Grenser: 5000 kWh/mnd for bolig, 1000 kWh/mnd for fritidsbolig
+# Bindingstid: Ut kalenderåret, må velges på nytt hvert år
+#
+# NB: Strømkalkulator beregner strømstøtte automatisk. Hvis bruker har Norgespris,
+# bør de bruke sensor uten strømstøtte eller sette opp manuell pris.
+NORGESPRIS_EKS_MVA: Final = 0.40  # 40 øre/kWh eks. mva (2025-2026)
+NORGESPRIS_INKL_MVA: Final = 0.50  # 50 øre/kWh inkl. mva (Sør-Norge)
+NORGESPRIS_MAX_KWH_BOLIG: Final = 5000  # Max 5000 kWh/mnd for bolig
+NORGESPRIS_MAX_KWH_FRITID: Final = 1000  # Max 1000 kWh/mnd for fritidsbolig
 
 # Offentlige avgifter (NOK/kWh eks. mva, oppdateres årlig)
 # Kilde: https://www.skatteetaten.no/bedrift-og-organisasjon/avgifter/saravgifter/om/elektrisk-kraft/

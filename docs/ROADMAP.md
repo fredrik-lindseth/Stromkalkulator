@@ -4,9 +4,9 @@ Dette dokumentet holder oversikt over features, hva som er implementert, og hva 
 
 ## Versjonsoversikt
 
-| Versjon | Status | Hovedfunksjoner |
-|---------|--------|-----------------|
-| v0.20.0 | Ferdig | Dokumentasjonsoppdatering, ÆØÅ-fiks |
+| Versjon | Status   | Hovedfunksjoner                          |
+|---------|----------|------------------------------------------|
+| v0.20.0 | Ferdig   | Dokumentasjonsoppdatering, ÆØÅ-fiks      |
 | v0.21.0 | Planlagt | Automatisk utility meter via config flow |
 
 ---
@@ -61,17 +61,17 @@ bruker Home Assistants innebygde `utility_meter` og `integration`-sensorer.
 
 #### Sensorer i packages/stromkalkulator_utility.yaml
 
-| Sensor | Beskrivelse | Matcher faktura-post |
-|--------|-------------|---------------------|
-| `strom_maanedlig_dag` | kWh på dag-tariff | Energiledd dag (forbruk) |
-| `strom_maanedlig_natt` | kWh på natt-tariff | Energiledd natt (forbruk) |
-| `maanedlig_energiledd_dag` | Sum energiledd dag (kr) | Energiledd dag |
-| `maanedlig_energiledd_natt` | Sum energiledd natt (kr) | Energiledd natt/helg |
-| `maanedlig_forbruksavgift` | Sum forbruksavgift (kr) | Forbruksavgift |
-| `maanedlig_enovaavgift` | Sum Enova-avgift (kr) | Enovaavgift |
-| `maanedlig_stromstotte` | Sum strømstøtte (kr) | Midlert. strømstønad |
-| `maanedlig_nettleie_etter_stotte` | Totalt å betale (kr) | Å betale |
-| `kapasitetstrinn` | Kapasitetsledd (kr) | Kapasitetsledd |
+| Sensor                            | Beskrivelse              | Matcher faktura-post      |
+|-----------------------------------|--------------------------|---------------------------|
+| `strom_maanedlig_dag`             | kWh på dag-tariff        | Energiledd dag (forbruk)  |
+| `strom_maanedlig_natt`            | kWh på natt-tariff       | Energiledd natt (forbruk) |
+| `maanedlig_energiledd_dag`        | Sum energiledd dag (kr)  | Energiledd dag            |
+| `maanedlig_energiledd_natt`       | Sum energiledd natt (kr) | Energiledd natt/helg      |
+| `maanedlig_forbruksavgift`        | Sum forbruksavgift (kr)  | Forbruksavgift            |
+| `maanedlig_enovaavgift`           | Sum Enova-avgift (kr)    | Enovaavgift               |
+| `maanedlig_stromstotte`           | Sum strømstøtte (kr)     | Midlert. strømstønad      |
+| `maanedlig_nettleie_etter_stotte` | Totalt å betale (kr)     | Å betale                  |
+| `kapasitetstrinn`                 | Kapasitetsledd (kr)      | Kapasitetsledd            |
 
 #### Oppsett
 
@@ -85,16 +85,26 @@ Se README.md > "Verifisere mot faktura" for komplett guide.
 - [ ] Fjerne behovet for packages/stromkalkulator_utility.yaml
 - [ ] Automatisk kobling til tariff-sensor
 
+### HACS-publisering
+
+**Status:** Pågår - se [HACS_PUBLISERING.md](HACS_PUBLISERING.md) for detaljer
+
+- [x] Brand-bilder (icon/logo) med riktige størrelser
+- [x] PR til home-assistant/brands: https://github.com/home-assistant/brands/pull/9262
+- [ ] Vente på merge av brands PR
+- [ ] PR til hacs/default
+- [ ] Vente på merge av HACS PR
+
 ### Fremtidige ideer
 
-| Feature | Kompleksitet |
-|---------|--------------|
-| Custom dashboard-kort | Høy |
-| Varsel når kapasitetstrinn øker | Lav |
-| Historikk-graf for strømstøtte | Medium |
-| Faktura-import (PDF/CSV) | Høy |
-| Støtte for fritidsbolig (1000 kWh grense) | Medium |
-| Støtte for næring | Medium |
+| Feature                                   | Kompleksitet |
+|-------------------------------------------|--------------|
+| Custom dashboard-kort                     | Høy          |
+| Varsel når kapasitetstrinn øker           | Lav          |
+| Historikk-graf for strømstøtte            | Medium       |
+| Faktura-import (PDF/CSV)                  | Høy          |
+| Støtte for fritidsbolig (1000 kWh grense) | Medium       |
+| Støtte for næring                         | Medium       |
 
 ---
 

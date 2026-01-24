@@ -18,14 +18,33 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install linters
+      - name: Install dependencies
         run: |
-          pip install vulture pytest
+          pip install pytest pytest-cov vulture ruff mypy
 
-      - name: Run unit tests
+      - name: Run linter (ruff)
         run: |
-          pytest tests/ -v
+          ruff check custom_components/stromkalkulator/
+          echo "✅ Linting passed"
+
+      - name: Run type checker (mypy)
+        run: |
+          mypy custom_components/stromkalkulator/ --ignore-missing-imports || true
+          echo "ℹ️ Type checking complete (warnings only)"
+
+      - name: Run unit tests with coverage
+        run: |
+          pytest tests/ -v --cov=custom_components/stromkalkulator --cov-report=xml --cov-report=term-missing
           echo "✅ All unit tests passed"
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage.xml
+          fail_ci_if_error: false
+          verbose: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Validate manifest
         run: |
@@ -41,6 +60,7 @@ jobs:
             "custom_components/stromkalkulator/sensor.py"
             "custom_components/stromkalkulator/coordinator.py"
             "custom_components/stromkalkulator/const.py"
+            "custom_components/stromkalkulator/tso.py"
             "README.md"
           )
           for file in "${REQUIRED_FILES[@]}"; do

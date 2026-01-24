@@ -8,7 +8,11 @@ Kilde for kapasitetstrinn-struktur: NVE (https://www.nve.no/reguleringsmyndighet
 
 Sist oppdatert: Januar 2026 (2026-priser)
 """
+
 from typing import Final
+
+# Type for kapasitetstrinn: tuple of (kW-grense, kr/mnd)
+type KapasitetstrinnTuple = tuple[float, int]
 
 # Transmission System Operators (TSO) with default values
 # Format: {tso_id: {name, prisomrade, supported, energiledd_dag, energiledd_natt, url, kapasitetstrinn}}
@@ -54,10 +58,10 @@ TSO_LIST: Final = {
             (10, 300),
             (15, 410),
             (20, 520),
-            (25, 655),   # Fra PDF
+            (25, 655),  # Fra PDF
             (50, 1135),  # Fra PDF
             (75, 1750),  # Fra PDF
-            (100, 2370), # Fra PDF
+            (100, 2370),  # Fra PDF
             (float("inf"), 4225),  # Fra PDF
         ],
     },
@@ -114,10 +118,10 @@ TSO_LIST: Final = {
         "energiledd_natt": 0.3048,  # Ingen dag/natt-forskjell
         "url": "https://www.lede.no/nettleie/nettleiepriser",
         "kapasitetstrinn": [
-            (5, 294),    # 0-5 kW: 293,75 kr/mnd
-            (10, 503),   # 5-10 kW: 502,50 kr/mnd
-            (15, 708),   # 10-15 kW: 707,50 kr/mnd
-            (20, 916),   # 15-20 kW: 916,25 kr/mnd
+            (5, 294),  # 0-5 kW: 293,75 kr/mnd
+            (10, 503),  # 5-10 kW: 502,50 kr/mnd
+            (15, 708),  # 10-15 kW: 707,50 kr/mnd
+            (20, 916),  # 15-20 kW: 916,25 kr/mnd
             (25, 1124),  # 20-25 kW: 1123,75 kr/mnd
             (float("inf"), 1746),  # 25-50 kW: 1746,25 kr/mnd
         ],
@@ -130,11 +134,11 @@ TSO_LIST: Final = {
         "energiledd_natt": 0.17,  # 17 øre/kWh inkl. mva (2026)
         "url": "https://www.l-nett.no/nettleie/nettleiepriser-privat",
         "kapasitetstrinn": [
-            (2, 150),    # 0-2 kW: 150 kr/mnd
-            (5, 250),    # 2-5 kW: 250 kr/mnd
-            (10, 400),   # 5-10 kW: 400 kr/mnd
-            (15, 650),   # 10-15 kW: 650 kr/mnd
-            (20, 900),   # 15-20 kW: 900 kr/mnd
+            (2, 150),  # 0-2 kW: 150 kr/mnd
+            (5, 250),  # 2-5 kW: 250 kr/mnd
+            (10, 400),  # 5-10 kW: 400 kr/mnd
+            (15, 650),  # 10-15 kW: 650 kr/mnd
+            (20, 900),  # 15-20 kW: 900 kr/mnd
             (float("inf"), 1150),  # 20-25 kW: 1150 kr/mnd
         ],
     },
@@ -146,15 +150,15 @@ TSO_LIST: Final = {
         "energiledd_natt": 0.2677,  # 26,77 øre/kWh inkl. mva (2026, natt 22-06)
         "url": "https://norgesnett.no/kunde/nettleie/nettleiepriser/",
         "kapasitetstrinn": [
-            (2, 118),    # 0-2 kW: 117,89 kr/mnd
-            (5, 196),    # 2-5 kW: 196,49 kr/mnd
-            (10, 323),   # 5-10 kW: 323,12 kr/mnd
-            (15, 575),   # 10-15 kW: 574,63 kr/mnd
-            (20, 763),   # 15-20 kW: 763,25 kr/mnd
-            (25, 947),   # 20-25 kW: 946,65 kr/mnd
+            (2, 118),  # 0-2 kW: 117,89 kr/mnd
+            (5, 196),  # 2-5 kW: 196,49 kr/mnd
+            (10, 323),  # 5-10 kW: 323,12 kr/mnd
+            (15, 575),  # 10-15 kW: 574,63 kr/mnd
+            (20, 763),  # 15-20 kW: 763,25 kr/mnd
+            (25, 947),  # 20-25 kW: 946,65 kr/mnd
             (50, 1467),  # 25-50 kW: 1467,13 kr/mnd
             (75, 2297),  # 50-75 kW: 2296,76 kr/mnd
-            (100, 3126), # 75-100 kW: 3126,38 kr/mnd
+            (100, 3126),  # 75-100 kW: 3126,38 kr/mnd
             (float("inf"), 5067),  # >100 kW: 5066,84 kr/mnd
         ],
     },
@@ -166,15 +170,15 @@ TSO_LIST: Final = {
         "energiledd_natt": 0.116,  # 11,6 øre/kWh inkl. mva (2026, natt 22-06)
         "url": "https://www.arva.no/kunde/nettleie/nettleiepriser",
         "kapasitetstrinn": [
-            (2, 85),     # 0-2 kW: 85 kr/mnd
-            (5, 201),    # 2-5 kW: 201 kr/mnd
-            (10, 398),   # 5-10 kW: 398 kr/mnd
-            (15, 595),   # 10-15 kW: 595 kr/mnd
-            (20, 792),   # 15-20 kW: 792 kr/mnd
-            (25, 989),   # 20-25 kW: 989 kr/mnd
+            (2, 85),  # 0-2 kW: 85 kr/mnd
+            (5, 201),  # 2-5 kW: 201 kr/mnd
+            (10, 398),  # 5-10 kW: 398 kr/mnd
+            (15, 595),  # 10-15 kW: 595 kr/mnd
+            (20, 792),  # 15-20 kW: 792 kr/mnd
+            (25, 989),  # 20-25 kW: 989 kr/mnd
             (50, 1972),  # 25-50 kW: 1972 kr/mnd
             (75, 2955),  # 50-75 kW: 2955 kr/mnd
-            (100, 3938), # 75-100 kW: 3938 kr/mnd
+            (100, 3938),  # 75-100 kW: 3938 kr/mnd
             (float("inf"), 5945),  # >100 kW: 5945 kr/mnd
         ],
     },
@@ -186,14 +190,14 @@ TSO_LIST: Final = {
         "energiledd_natt": 0.3516,  # 35,16 øre/kWh inkl. mva (2026, natt 22-06)
         "url": "https://fagne.no/kunde-og-nettleie/nettleie-priser-og-vilkar/priser-privatkunder/",
         "kapasitetstrinn": [
-            (5, 360),    # 0-5 kW: 360 kr/mnd
-            (10, 460),   # 5-10 kW: 460 kr/mnd
-            (15, 560),   # 10-15 kW: 560 kr/mnd
-            (20, 660),   # 15-20 kW: 660 kr/mnd
-            (25, 760),   # 20-25 kW: 760 kr/mnd
+            (5, 360),  # 0-5 kW: 360 kr/mnd
+            (10, 460),  # 5-10 kW: 460 kr/mnd
+            (15, 560),  # 10-15 kW: 560 kr/mnd
+            (20, 660),  # 15-20 kW: 660 kr/mnd
+            (25, 760),  # 20-25 kW: 760 kr/mnd
             (50, 2200),  # 25-50 kW: 2200 kr/mnd
             (75, 3200),  # 50-75 kW: 3200 kr/mnd
-            (100, 4200), # 75-100 kW: 4200 kr/mnd
+            (100, 4200),  # 75-100 kW: 4200 kr/mnd
             (float("inf"), 5200),  # >100 kW: 5200 kr/mnd
         ],
     },
@@ -205,11 +209,11 @@ TSO_LIST: Final = {
         "energiledd_natt": 0.2266,  # 22,66 øre/kWh inkl. mva (2026, natt 22-06)
         "url": "https://www.foie.no/nettleie/priser",
         "kapasitetstrinn": [
-            (2, 238),    # 0-2 kW: 237,5 kr/mnd
-            (5, 294),    # 2-5 kW: 293,8 kr/mnd
-            (10, 419),   # 5-10 kW: 418,8 kr/mnd
-            (15, 663),   # 10-15 kW: 662,5 kr/mnd
-            (20, 838),   # 15-20 kW: 837,5 kr/mnd
+            (2, 238),  # 0-2 kW: 237,5 kr/mnd
+            (5, 294),  # 2-5 kW: 293,8 kr/mnd
+            (10, 419),  # 5-10 kW: 418,8 kr/mnd
+            (15, 663),  # 10-15 kW: 662,5 kr/mnd
+            (20, 838),  # 15-20 kW: 837,5 kr/mnd
             (25, 1075),  # 20-25 kW: 1075 kr/mnd
             (50, 1438),  # 25-50 kW: 1437,5 kr/mnd
             (75, 2375),  # 50-75 kW: 2375 kr/mnd
@@ -227,20 +231,20 @@ TSO_LIST: Final = {
         "energiledd_natt": 0.2366,  # 23,66 øre/kWh inkl. avgifter (2026, natt 22-06)
         "url": "https://www.linea.no/no/kunde/nettleie/nettleiepriser",
         "kapasitetstrinn": [
-            (2, 225),    # 0-2 kW: 225 kr/mnd
-            (5, 225),    # 2-5 kW: 225 kr/mnd
-            (10, 349),   # 5-10 kW: 349 kr/mnd
-            (15, 491),   # 10-15 kW: 491 kr/mnd
-            (20, 633),   # 15-20 kW: 633 kr/mnd
-            (25, 776),   # 20-25 kW: 776 kr/mnd
+            (2, 225),  # 0-2 kW: 225 kr/mnd
+            (5, 225),  # 2-5 kW: 225 kr/mnd
+            (10, 349),  # 5-10 kW: 349 kr/mnd
+            (15, 491),  # 10-15 kW: 491 kr/mnd
+            (20, 633),  # 15-20 kW: 633 kr/mnd
+            (25, 776),  # 20-25 kW: 776 kr/mnd
             (50, 1297),  # 25-50 kW: 1297 kr/mnd
             (75, 2008),  # 50-75 kW: 2008 kr/mnd
-            (100, 2719), # 75-100 kW: 2719 kr/mnd
-            (150, 3905), # 100-150 kW: 3905 kr/mnd
-            (200, 5326), # 150-200 kW: 5326 kr/mnd
-            (300, 7693), # 200-300 kW: 7693 kr/mnd
-            (400, 10541), # 300-400 kW: 10541 kr/mnd
-            (500, 13383), # 400-500 kW: 13383 kr/mnd
+            (100, 2719),  # 75-100 kW: 2719 kr/mnd
+            (150, 3905),  # 100-150 kW: 3905 kr/mnd
+            (200, 5326),  # 150-200 kW: 5326 kr/mnd
+            (300, 7693),  # 200-300 kW: 7693 kr/mnd
+            (400, 10541),  # 300-400 kW: 10541 kr/mnd
+            (500, 13383),  # 400-500 kW: 13383 kr/mnd
             (float("inf"), 16228),  # 500+ kW: 16228 kr/mnd
         ],
     },
@@ -255,13 +259,13 @@ TSO_LIST: Final = {
         "energiledd_natt": 0.1096,  # 10,96 øre/kWh inkl. avgifter (2026)
         "url": "https://www.noranett.no/nettleiepriser/category2415.html",
         "kapasitetstrinn": [
-            (2, 310),    # 0-2 kW: 310 kr/mnd
-            (4, 440),    # 2-4 kW: 440 kr/mnd
-            (6, 530),    # 4-6 kW: 530 kr/mnd
-            (8, 610),    # 6-8 kW: 610 kr/mnd
-            (10, 680),   # 8-10 kW: 680 kr/mnd
-            (15, 750),   # 10-15 kW: 750 kr/mnd
-            (20, 890),   # 15-20 kW: 890 kr/mnd
+            (2, 310),  # 0-2 kW: 310 kr/mnd
+            (4, 440),  # 2-4 kW: 440 kr/mnd
+            (6, 530),  # 4-6 kW: 530 kr/mnd
+            (8, 610),  # 6-8 kW: 610 kr/mnd
+            (10, 680),  # 8-10 kW: 680 kr/mnd
+            (15, 750),  # 10-15 kW: 750 kr/mnd
+            (20, 890),  # 15-20 kW: 890 kr/mnd
             (25, 1200),  # 20-25 kW: 1200 kr/mnd
             (30, 1400),  # 25-30 kW: 1400 kr/mnd
             (35, 1700),  # 30-35 kW: 1700 kr/mnd
@@ -269,11 +273,11 @@ TSO_LIST: Final = {
             (45, 2100),  # 40-45 kW: 2100 kr/mnd
             (50, 2400),  # 45-50 kW: 2400 kr/mnd
             (75, 3600),  # 50-75 kW: 3600 kr/mnd
-            (100, 5300), # 75-100 kW: 5300 kr/mnd
-            (125, 7100), # 100-125 kW: 7100 kr/mnd
-            (150, 8900), # 125-150 kW: 8900 kr/mnd
-            (175, 10700), # 150-175 kW: 10700 kr/mnd
-            (200, 12500), # 175-200 kW: 12500 kr/mnd
+            (100, 5300),  # 75-100 kW: 5300 kr/mnd
+            (125, 7100),  # 100-125 kW: 7100 kr/mnd
+            (150, 8900),  # 125-150 kW: 8900 kr/mnd
+            (175, 10700),  # 150-175 kW: 10700 kr/mnd
+            (200, 12500),  # 175-200 kW: 12500 kr/mnd
             (float("inf"), 17800),  # 200+ kW: 17800 kr/mnd
         ],
     },
@@ -285,15 +289,15 @@ TSO_LIST: Final = {
         "energiledd_natt": 0.2846,  # 28,46 øre/kWh inkl. avgifter (2026, natt 22-06)
         "url": "https://www.elinett.no/kunde/nettleie-2/nettleie",
         "kapasitetstrinn": [
-            (2, 251),    # 0-2 kW: 251 kr/mnd
-            (5, 314),    # 2-5 kW: 314 kr/mnd
-            (10, 376),   # 5-10 kW: 376 kr/mnd
-            (15, 627),   # 10-15 kW: 627 kr/mnd
-            (20, 753),   # 15-20 kW: 753 kr/mnd
-            (25, 878),   # 20-25 kW: 878 kr/mnd
+            (2, 251),  # 0-2 kW: 251 kr/mnd
+            (5, 314),  # 2-5 kW: 314 kr/mnd
+            (10, 376),  # 5-10 kW: 376 kr/mnd
+            (15, 627),  # 10-15 kW: 627 kr/mnd
+            (20, 753),  # 15-20 kW: 753 kr/mnd
+            (25, 878),  # 20-25 kW: 878 kr/mnd
             (50, 1254),  # 25-50 kW: 1254 kr/mnd
             (75, 1379),  # 50-75 kW: 1379 kr/mnd
-            (100, 1505), # 75-100 kW: 1505 kr/mnd
+            (100, 1505),  # 75-100 kW: 1505 kr/mnd
             (float("inf"), 1881),  # >100 kW: 1881 kr/mnd
         ],
     },
@@ -305,10 +309,10 @@ TSO_LIST: Final = {
         "energiledd_natt": 0.2934,  # 29,34 øre/kWh inkl. avgifter (2026, natt 22-06)
         "url": "https://mellom.no/nettleiepriser/",
         "kapasitetstrinn": [
-            (2, 254),    # 0-2 kW: 254 kr/mnd
-            (5, 380),    # 2-5 kW: 380 kr/mnd
-            (10, 631),   # 5-10 kW: 631 kr/mnd
-            (15, 834),   # 10-15 kW: 834 kr/mnd
+            (2, 254),  # 0-2 kW: 254 kr/mnd
+            (5, 380),  # 2-5 kW: 380 kr/mnd
+            (10, 631),  # 5-10 kW: 631 kr/mnd
+            (15, 834),  # 10-15 kW: 834 kr/mnd
             (20, 1056),  # 15-20 kW: 1056 kr/mnd
             (25, 1323),  # 20-25 kW: 1323 kr/mnd
             (50, 1666),  # 25-50 kW: 1666 kr/mnd
@@ -323,15 +327,15 @@ TSO_LIST: Final = {
         "energiledd_natt": 0.2939,  # 29,39 øre/kWh inkl. avgifter (2026, natt 22-06)
         "url": "https://www.linja.no/nettleige",
         "kapasitetstrinn": [
-            (2, 275),    # 0-2 kW: 275 kr/mnd
-            (5, 343),    # 2-5 kW: 343 kr/mnd
-            (10, 411),   # 5-10 kW: 411 kr/mnd
-            (15, 686),   # 10-15 kW: 686 kr/mnd
-            (20, 824),   # 15-20 kW: 824 kr/mnd
-            (25, 960),   # 20-25 kW: 960 kr/mnd
+            (2, 275),  # 0-2 kW: 275 kr/mnd
+            (5, 343),  # 2-5 kW: 343 kr/mnd
+            (10, 411),  # 5-10 kW: 411 kr/mnd
+            (15, 686),  # 10-15 kW: 686 kr/mnd
+            (20, 824),  # 15-20 kW: 824 kr/mnd
+            (25, 960),  # 20-25 kW: 960 kr/mnd
             (50, 1373),  # 25-50 kW: 1373 kr/mnd
             (75, 1510),  # 50-75 kW: 1510 kr/mnd
-            (100, 1646), # 75-100 kW: 1646 kr/mnd
+            (100, 1646),  # 75-100 kW: 1646 kr/mnd
             (float("inf"), 2059),  # >100 kW: 2059 kr/mnd
         ],
     },
@@ -346,11 +350,11 @@ TSO_LIST: Final = {
         "energiledd_natt": 0.1354,  # 13,54 øre/kWh inkl. avgifter (2026, vinter natt)
         "url": "https://nettselskapet.as/strompris",
         "kapasitetstrinn": [
-            (2, 138),    # 0-2 kW: 137,50 kr/mnd
-            (5, 250),    # 2-5 kW: 250 kr/mnd
-            (10, 425),   # 5-10 kW: 425 kr/mnd
-            (15, 625),   # 10-15 kW: 625 kr/mnd
-            (20, 813),   # 15-20 kW: 812,50 kr/mnd
+            (2, 138),  # 0-2 kW: 137,50 kr/mnd
+            (5, 250),  # 2-5 kW: 250 kr/mnd
+            (10, 425),  # 5-10 kW: 425 kr/mnd
+            (15, 625),  # 10-15 kW: 625 kr/mnd
+            (20, 813),  # 15-20 kW: 812,50 kr/mnd
             (25, 1025),  # 20-25 kW: 1025 kr/mnd
             (50, 1750),  # 25-50 kW: 1750 kr/mnd
             (float("inf"), 2750),  # 50-75 kW: 2750 kr/mnd

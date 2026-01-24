@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
@@ -63,11 +63,12 @@ class NettleieCoordinator(DataUpdateCoordinator):
         self.har_norgespris = entry.data.get(CONF_HAR_NORGESPRIS, False)
 
         # Get energiledd from config (allows override)
-        self.energiledd_dag = entry.data.get(CONF_ENERGILEDD_DAG, self.tso["energiledd_dag"])
-        self.energiledd_natt = entry.data.get(CONF_ENERGILEDD_NATT, self.tso["energiledd_natt"])
+        self.energiledd_dag: float = float(entry.data.get(CONF_ENERGILEDD_DAG, self.tso["energiledd_dag"]))
+        self.energiledd_natt: float = float(entry.data.get(CONF_ENERGILEDD_NATT, self.tso["energiledd_natt"]))
 
         # Get kapasitetstrinn from TSO
-        self.kapasitetstrinn = self.tso["kapasitetstrinn"]
+        # Type: list of tuples (kW_threshold, NOK_per_month)
+        self.kapasitetstrinn: list[tuple[float, int]] = cast("list[tuple[float, int]]", self.tso["kapasitetstrinn"])
 
         # Track max power for capacity calculation
         # Format: {date_str: max_power_kw}
@@ -95,7 +96,9 @@ class NettleieCoordinator(DataUpdateCoordinator):
 
         # Get current power consumption
         power_state = self.hass.states.get(self.power_sensor)
-        current_power_w = float(power_state.state) if power_state and power_state.state not in ("unknown", "unavailable") else 0
+        current_power_w = (
+            float(power_state.state) if power_state and power_state.state not in ("unknown", "unavailable") else 0
+        )
         current_power_kw = current_power_w / 1000
 
         # Update daily max
@@ -123,13 +126,14 @@ class NettleieCoordinator(DataUpdateCoordinator):
         # Calculate strømstøtte
         # Forskrift § 5: 90% av spotpris over 77 øre/kWh eks. mva (96,25 øre inkl. mva) i 2026
         # Kilde: https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791
+        stromstotte: float
         if self.har_norgespris:
             # Norgespris: Ingen strømstøtte (kan ikke kombineres)
-            stromstotte = 0
+            stromstotte = 0.0
         elif spot_price > STROMSTOTTE_LEVEL:
             stromstotte = (spot_price - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE
         else:
-            stromstotte = 0
+            stromstotte = 0.0
 
         # Spotpris etter strømstøtte
         spotpris_etter_stotte = spot_price - stromstotte
@@ -163,8 +167,9 @@ class NettleieCoordinator(DataUpdateCoordinator):
         # Kroner spart/tapt per kWh (sammenligning)
         # Positiv = du betaler mer enn Norgespris
         # Negativ = du betaler mindre enn Norgespris
+        kroner_spart_per_kwh: float
         if self.har_norgespris:
-            kroner_spart_per_kwh = 0  # Ingen forskjell når du HAR Norgespris
+            kroner_spart_per_kwh = 0.0  # Ingen forskjell når du HAR Norgespris
         else:
             kroner_spart_per_kwh = total_price - total_pris_norgespris
 
@@ -195,8 +200,12 @@ class NettleieCoordinator(DataUpdateCoordinator):
             "kroner_spart_per_kwh": round(kroner_spart_per_kwh, 4),
             "total_price": round(total_price, 4),
             "total_price_uten_stotte": round(total_price_uten_stotte, 4),
-            "electricity_company_price": round(electricity_company_price, 4) if electricity_company_price is not None else None,
-            "electricity_company_total": round(electricity_company_total, 4) if electricity_company_total is not None else None,
+            "electricity_company_price": round(electricity_company_price, 4)
+            if electricity_company_price is not None
+            else None,
+            "electricity_company_total": round(electricity_company_total, 4)
+            if electricity_company_total is not None
+            else None,
             "current_power_kw": round(current_power_kw, 2),
             "avg_top_3_kw": round(avg_power, 2),
             "top_3_days": top_3,
@@ -218,15 +227,16 @@ class NettleieCoordinator(DataUpdateCoordinator):
         """
         for i, (threshold, price) in enumerate(self.kapasitetstrinn, 1):
             if avg_power <= threshold:
-                prev_threshold = self.kapasitetstrinn[i-2][0] if i > 1 else 0
+                prev_threshold = self.kapasitetstrinn[i - 2][0] if i > 1 else 0.0
                 if threshold == float("inf"):
-                    tier_range = f">{prev_threshold} kW"
+                    tier_range = f">{prev_threshold:.0f} kW"
                 else:
-                    tier_range = f"{prev_threshold}-{threshold} kW"
+                    tier_range = f"{prev_threshold:.0f}-{threshold:.0f} kW"
                 return price, i, tier_range
         last_idx = len(self.kapasitetstrinn)
-        prev = self.kapasitetstrinn[-2][0] if last_idx > 1 else 0
-        return self.kapasitetstrinn[-1][1], last_idx, f">{prev} kW"
+        prev = self.kapasitetstrinn[-2][0] if last_idx > 1 else 0.0
+        last_price = self.kapasitetstrinn[-1][1]
+        return last_price, last_idx, f">{prev:.0f} kW"
 
     def _get_energiledd(self, now: datetime) -> float:
         """Get energiledd based on time of day."""

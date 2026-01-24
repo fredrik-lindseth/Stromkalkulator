@@ -19,7 +19,7 @@
 # 4. Start Home Assistant på nytt
 #
 # TILPASS DISSE VERDIENE (søk og erstatt):
-#   sensor.BYTT_EFFEKT_SENSOR  → Din effekt-sensor (W), f.eks. sensor.tibber_pulse_power
+#   Allerede satt til sensor.tibber_pulse_power
 #
 # =============================================================================
 
@@ -31,7 +31,7 @@
 
 sensor:
   - platform: integration
-    source: sensor.BYTT_EFFEKT_SENSOR    # <-- BYTT UT med din effekt-sensor (W)
+    source: sensor.tibber_pulse_power    # Tibber Pulse effekt-sensor (W)
     name: "Strøm energiforbruk"
     unique_id: stromkalkulator_energiforbruk
     unit_prefix: k

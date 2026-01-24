@@ -35,6 +35,7 @@ if TYPE_CHECKING:
 DEVICE_NETTLEIE = "stromkalkulator"
 DEVICE_STROMSTOTTE = "stromstotte"
 DEVICE_NORGESPRIS = "norgespris"
+DEVICE_MAANEDLIG = "maanedlig"
 
 
 async def async_setup_entry(
@@ -70,10 +71,19 @@ async def async_setup_entry(
         StromstotteSensor(coordinator, entry),
         SpotprisEtterStotteSensor(coordinator, entry),
         TotalPrisEtterStotteSensor(coordinator, entry),
+        TotalPrisInklAvgifterSensor(coordinator, entry),
         StromstotteKwhSensor(coordinator, entry),
         # Norgespris
         TotalPrisNorgesprisSensor(coordinator, entry),
         PrisforskjellNorgesprisSensor(coordinator, entry),
+        # Månedlig forbruk og kostnad
+        MaanedligForbrukDagSensor(coordinator, entry),
+        MaanedligForbrukNattSensor(coordinator, entry),
+        MaanedligForbrukTotalSensor(coordinator, entry),
+        MaanedligNettleieSensor(coordinator, entry),
+        MaanedligAvgifterSensor(coordinator, entry),
+        MaanedligStromstotteSensor(coordinator, entry),
+        MaanedligTotalSensor(coordinator, entry),
     ]
 
     async_add_entities(entities)
@@ -221,13 +231,9 @@ class MaksForbrukSensor(NettleieBaseSensor):
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
-    def __init__(
-        self, coordinator: NettleieCoordinator, entry: ConfigEntry, rank: int
-    ) -> None:
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry, rank: int) -> None:
         """Initialize the sensor."""
-        super().__init__(
-            coordinator, entry, f"maks_forbruk_{rank}", f"Toppforbruk #{rank}"
-        )
+        super().__init__(coordinator, entry, f"maks_forbruk_{rank}", f"Toppforbruk #{rank}")
         self._rank = rank
         self._attr_native_unit_of_measurement = "kW"
         self._attr_state_class = SensorStateClass.MEASUREMENT
@@ -261,9 +267,7 @@ class GjsForbrukSensor(NettleieBaseSensor):
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
-        super().__init__(
-            coordinator, entry, "gjennomsnitt_forbruk", "Snitt toppforbruk"
-        )
+        super().__init__(coordinator, entry, "gjennomsnitt_forbruk", "Snitt toppforbruk")
         self._attr_native_unit_of_measurement = "kW"
         self._attr_state_class = SensorStateClass.MEASUREMENT
         self._attr_icon = "mdi:chart-line"
@@ -504,6 +508,44 @@ class TotalPrisEtterStotteSensor(NettleieBaseSensor):
                 "spotpris_etter_stotte": self.coordinator.data.get("spotpris_etter_stotte"),
                 "energiledd": self.coordinator.data.get("energiledd"),
                 "kapasitetsledd_per_kwh": self.coordinator.data.get("kapasitetsledd_per_kwh"),
+            }
+        return None
+
+
+class TotalPrisInklAvgifterSensor(NettleieBaseSensor):
+    """Sensor for total price including all taxes (for Energy Dashboard)."""
+
+    _device_group = DEVICE_STROMSTOTTE
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "total_pris_inkl_avgifter", "Totalpris inkl. avgifter")
+        self._attr_native_unit_of_measurement = "NOK/kWh"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_icon = "mdi:receipt-text-check"
+        self._attr_suggested_display_precision = 2
+
+    @property
+    def native_value(self):
+        """Return the state."""
+        if self.coordinator.data:
+            return self.coordinator.data.get("total_price_inkl_avgifter")
+        return None
+
+    @property
+    def extra_state_attributes(self):
+        """Return extra attributes with breakdown."""
+        if self.coordinator.data:
+            return {
+                "spotpris": self.coordinator.data.get("spot_price"),
+                "stromstotte": self.coordinator.data.get("stromstotte"),
+                "spotpris_etter_stotte": self.coordinator.data.get("spotpris_etter_stotte"),
+                "energiledd": self.coordinator.data.get("energiledd"),
+                "kapasitetsledd_per_kwh": self.coordinator.data.get("kapasitetsledd_per_kwh"),
+                "forbruksavgift_inkl_mva": self.coordinator.data.get("forbruksavgift_inkl_mva"),
+                "enova_inkl_mva": self.coordinator.data.get("enova_inkl_mva"),
+                "offentlige_avgifter": self.coordinator.data.get("offentlige_avgifter"),
+                "bruk": "Bruk denne sensoren i Energy Dashboard for korrekt totalpris",
             }
         return None
 
@@ -811,5 +853,288 @@ class TariffSensor(NettleieBaseSensor):
                 "dag_periode": "Hverdager 06:00-22:00 (ikke helligdager)",
                 "natt_periode": "22:00-06:00, helger og helligdager",
                 "bruk": "Bruk denne sensoren til å styre utility_meter tariff-bytte",
+            }
+        return None
+
+
+# =============================================================================
+# MÅNEDLIG FORBRUK OG KOSTNAD - Device: "Månedlig"
+# =============================================================================
+
+
+class MaanedligBaseSensor(NettleieBaseSensor):
+    """Base class for monthly consumption/cost sensors."""
+
+    _device_group: str = DEVICE_MAANEDLIG
+
+    @property
+    def device_info(self):
+        """Return device info for Månedlig device."""
+        return {
+            "identifiers": {(DOMAIN, f"{self._entry.entry_id}_{self._device_group}")},
+            "name": "Månedlig forbruk",
+            "manufacturer": "Fredrik Lindseth",
+            "model": "Strømkalkulator",
+        }
+
+
+class MaanedligForbrukDagSensor(MaanedligBaseSensor):
+    """Sensor for monthly day tariff consumption."""
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "maanedlig_forbruk_dag", "Månedlig forbruk dag")
+        self._attr_native_unit_of_measurement = "kWh"
+        self._attr_state_class = SensorStateClass.TOTAL_INCREASING
+        self._attr_icon = "mdi:weather-sunny"
+        self._attr_suggested_display_precision = 1
+
+    @property
+    def native_value(self):
+        """Return monthly day consumption."""
+        if self.coordinator.data:
+            return self.coordinator.data.get("monthly_consumption_dag_kwh")
+        return None
+
+
+class MaanedligForbrukNattSensor(MaanedligBaseSensor):
+    """Sensor for monthly night tariff consumption."""
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "maanedlig_forbruk_natt", "Månedlig forbruk natt")
+        self._attr_native_unit_of_measurement = "kWh"
+        self._attr_state_class = SensorStateClass.TOTAL_INCREASING
+        self._attr_icon = "mdi:weather-night"
+        self._attr_suggested_display_precision = 1
+
+    @property
+    def native_value(self):
+        """Return monthly night consumption."""
+        if self.coordinator.data:
+            return self.coordinator.data.get("monthly_consumption_natt_kwh")
+        return None
+
+
+class MaanedligForbrukTotalSensor(MaanedligBaseSensor):
+    """Sensor for total monthly consumption."""
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "maanedlig_forbruk_total", "Månedlig forbruk totalt")
+        self._attr_native_unit_of_measurement = "kWh"
+        self._attr_state_class = SensorStateClass.TOTAL_INCREASING
+        self._attr_icon = "mdi:lightning-bolt"
+        self._attr_suggested_display_precision = 1
+
+    @property
+    def native_value(self):
+        """Return total monthly consumption."""
+        if self.coordinator.data:
+            return self.coordinator.data.get("monthly_consumption_total_kwh")
+        return None
+
+    @property
+    def extra_state_attributes(self):
+        """Return consumption breakdown."""
+        if self.coordinator.data:
+            return {
+                "dag_kwh": self.coordinator.data.get("monthly_consumption_dag_kwh"),
+                "natt_kwh": self.coordinator.data.get("monthly_consumption_natt_kwh"),
+            }
+        return None
+
+
+class MaanedligNettleieSensor(MaanedligBaseSensor):
+    """Sensor for monthly grid rent cost (energiledd + kapasitetsledd)."""
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "maanedlig_nettleie", "Månedlig nettleie")
+        self._attr_native_unit_of_measurement = "kr"
+        self._attr_state_class = SensorStateClass.TOTAL
+        self._attr_icon = "mdi:transmission-tower"
+        self._attr_suggested_display_precision = 0
+
+    @property
+    def native_value(self):
+        """Calculate monthly grid rent cost."""
+        if self.coordinator.data:
+            dag_kwh = self.coordinator.data.get("monthly_consumption_dag_kwh", 0)
+            natt_kwh = self.coordinator.data.get("monthly_consumption_natt_kwh", 0)
+            dag_pris = self.coordinator.data.get("energiledd_dag", 0)
+            natt_pris = self.coordinator.data.get("energiledd_natt", 0)
+            kapasitet = self.coordinator.data.get("kapasitetsledd", 0)
+            return round((dag_kwh * dag_pris) + (natt_kwh * natt_pris) + kapasitet, 2)
+        return None
+
+    @property
+    def extra_state_attributes(self):
+        """Return cost breakdown."""
+        if self.coordinator.data:
+            dag_kwh = self.coordinator.data.get("monthly_consumption_dag_kwh", 0)
+            natt_kwh = self.coordinator.data.get("monthly_consumption_natt_kwh", 0)
+            dag_pris = self.coordinator.data.get("energiledd_dag", 0)
+            natt_pris = self.coordinator.data.get("energiledd_natt", 0)
+            kapasitet = self.coordinator.data.get("kapasitetsledd", 0)
+            return {
+                "energiledd_dag_kr": round(dag_kwh * dag_pris, 2),
+                "energiledd_natt_kr": round(natt_kwh * natt_pris, 2),
+                "kapasitetsledd_kr": kapasitet,
+            }
+        return None
+
+
+class MaanedligAvgifterSensor(MaanedligBaseSensor):
+    """Sensor for monthly public fees (forbruksavgift + Enova)."""
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "maanedlig_avgifter", "Månedlig avgifter")
+        self._attr_native_unit_of_measurement = "kr"
+        self._attr_state_class = SensorStateClass.TOTAL
+        self._attr_icon = "mdi:bank"
+        self._attr_suggested_display_precision = 0
+        self._avgiftssone = entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
+
+    @property
+    def native_value(self):
+        """Calculate monthly public fees."""
+        if self.coordinator.data:
+            total_kwh = self.coordinator.data.get("monthly_consumption_total_kwh", 0)
+            month = datetime.now().month
+            forbruksavgift = get_forbruksavgift(self._avgiftssone, month)
+            mva_sats = get_mva_sats(self._avgiftssone)
+
+            # Avgifter inkl. mva
+            forbruksavgift_inkl = forbruksavgift * (1 + mva_sats)
+            enova_inkl = ENOVA_AVGIFT * (1 + mva_sats)
+
+            return round(total_kwh * (forbruksavgift_inkl + enova_inkl), 2)
+        return None
+
+    @property
+    def extra_state_attributes(self):
+        """Return fee breakdown."""
+        if self.coordinator.data:
+            total_kwh = self.coordinator.data.get("monthly_consumption_total_kwh", 0)
+            month = datetime.now().month
+            forbruksavgift = get_forbruksavgift(self._avgiftssone, month)
+            mva_sats = get_mva_sats(self._avgiftssone)
+
+            forbruksavgift_inkl = forbruksavgift * (1 + mva_sats)
+            enova_inkl = ENOVA_AVGIFT * (1 + mva_sats)
+
+            return {
+                "forbruksavgift_kr": round(total_kwh * forbruksavgift_inkl, 2),
+                "enovaavgift_kr": round(total_kwh * enova_inkl, 2),
+                "avgiftssone": self._avgiftssone,
+            }
+        return None
+
+
+class MaanedligStromstotteSensor(MaanedligBaseSensor):
+    """Sensor for estimated monthly electricity subsidy.
+
+    Note: This is an estimate based on current subsidy rate.
+    Actual subsidy is calculated hourly by grid company.
+    """
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "maanedlig_stromstotte", "Månedlig strømstøtte")
+        self._attr_native_unit_of_measurement = "kr"
+        self._attr_state_class = SensorStateClass.TOTAL
+        self._attr_icon = "mdi:cash-plus"
+        self._attr_suggested_display_precision = 0
+
+    @property
+    def native_value(self):
+        """Estimate monthly subsidy (rough calculation)."""
+        if self.coordinator.data:
+            total_kwh = self.coordinator.data.get("monthly_consumption_total_kwh", 0)
+            stromstotte_per_kwh = self.coordinator.data.get("stromstotte", 0)
+            return round(total_kwh * stromstotte_per_kwh, 2)
+        return None
+
+    @property
+    def extra_state_attributes(self):
+        """Return subsidy info."""
+        if self.coordinator.data:
+            return {
+                "merknad": "Estimat basert på gjeldende strømstøtte-sats. Faktisk støtte beregnes time-for-time.",
+                "stromstotte_per_kwh": self.coordinator.data.get("stromstotte"),
+                "har_norgespris": self.coordinator.data.get("har_norgespris"),
+            }
+        return None
+
+
+class MaanedligTotalSensor(MaanedligBaseSensor):
+    """Sensor for total monthly cost (nettleie + avgifter - strømstøtte)."""
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "maanedlig_total", "Månedlig nettleie total")
+        self._attr_native_unit_of_measurement = "kr"
+        self._attr_state_class = SensorStateClass.TOTAL
+        self._attr_icon = "mdi:receipt-text"
+        self._attr_suggested_display_precision = 0
+        self._avgiftssone = entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
+
+    @property
+    def native_value(self):
+        """Calculate total monthly cost."""
+        if self.coordinator.data:
+            dag_kwh = self.coordinator.data.get("monthly_consumption_dag_kwh", 0)
+            natt_kwh = self.coordinator.data.get("monthly_consumption_natt_kwh", 0)
+            total_kwh = dag_kwh + natt_kwh
+            dag_pris = self.coordinator.data.get("energiledd_dag", 0)
+            natt_pris = self.coordinator.data.get("energiledd_natt", 0)
+            kapasitet = self.coordinator.data.get("kapasitetsledd", 0)
+            stromstotte = self.coordinator.data.get("stromstotte", 0)
+
+            month = datetime.now().month
+            forbruksavgift = get_forbruksavgift(self._avgiftssone, month)
+            mva_sats = get_mva_sats(self._avgiftssone)
+
+            # Nettleie
+            nettleie = (dag_kwh * dag_pris) + (natt_kwh * natt_pris) + kapasitet
+
+            # Avgifter inkl. mva
+            avgifter = total_kwh * ((forbruksavgift + ENOVA_AVGIFT) * (1 + mva_sats))
+
+            # Strømstøtte (fratrekk)
+            stotte = total_kwh * stromstotte
+
+            return round(nettleie + avgifter - stotte, 2)
+        return None
+
+    @property
+    def extra_state_attributes(self):
+        """Return cost breakdown."""
+        if self.coordinator.data:
+            dag_kwh = self.coordinator.data.get("monthly_consumption_dag_kwh", 0)
+            natt_kwh = self.coordinator.data.get("monthly_consumption_natt_kwh", 0)
+            total_kwh = dag_kwh + natt_kwh
+            dag_pris = self.coordinator.data.get("energiledd_dag", 0)
+            natt_pris = self.coordinator.data.get("energiledd_natt", 0)
+            kapasitet = self.coordinator.data.get("kapasitetsledd", 0)
+            stromstotte = self.coordinator.data.get("stromstotte", 0)
+
+            month = datetime.now().month
+            forbruksavgift = get_forbruksavgift(self._avgiftssone, month)
+            mva_sats = get_mva_sats(self._avgiftssone)
+
+            nettleie = (dag_kwh * dag_pris) + (natt_kwh * natt_pris) + kapasitet
+            avgifter = total_kwh * ((forbruksavgift + ENOVA_AVGIFT) * (1 + mva_sats))
+            stotte = total_kwh * stromstotte
+
+            return {
+                "nettleie_kr": round(nettleie, 2),
+                "avgifter_kr": round(avgifter, 2),
+                "stromstotte_kr": round(stotte, 2),
+                "forbruk_dag_kwh": round(dag_kwh, 1),
+                "forbruk_natt_kwh": round(natt_kwh, 1),
+                "forbruk_total_kwh": round(total_kwh, 1),
             }
         return None

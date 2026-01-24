@@ -2,6 +2,9 @@
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
 [![GitHub release](https://img.shields.io/github/release/fredrik-lindseth/Stromkalkulator.svg)](https://github.com/fredrik-lindseth/Stromkalkulator/releases)
+[![CI](https://github.com/fredrik-lindseth/Stromkalkulator/actions/workflows/ci.yml/badge.svg)](https://github.com/fredrik-lindseth/Stromkalkulator/actions/workflows/ci.yml)
+[![HACS Validation](https://github.com/fredrik-lindseth/Stromkalkulator/actions/workflows/validate.yml/badge.svg)](https://github.com/fredrik-lindseth/Stromkalkulator/actions/workflows/validate.yml)
+[![codecov](https://codecov.io/gh/fredrik-lindseth/Stromkalkulator/graph/badge.svg)](https://codecov.io/gh/fredrik-lindseth/Stromkalkulator)
 
 Home Assistant-integrasjon som beregner **faktisk strømpris** i Norge - inkludert nettleie, avgifter og strømstøtte.
 

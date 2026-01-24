@@ -32,12 +32,18 @@ stromkalkulator/
 │   ├── test_avgifter.py
 │   ├── test_energiledd.py
 │   └── test_kapasitetstrinn.py
+├── Fakturaer/                           # Eksempel-fakturaer for validering
+│   └── BKK_Faktura_*.txt                # Tekstversjon av PDF-fakturaer
+├── AGENTS.md                            # Arbeidsflyt for AI-assistenter
+├── .beads/                              # Beads issue tracker database
 └── docs/                                # Dokumentasjon
     ├── beregninger.md                   # Formler og eksempler
     ├── CONTRIBUTING.md                  # Legge til nettselskap
     ├── DEVELOPMENT.md                   # Utviklerinfo
     ├── TESTING.md                       # Testguide
-    └── ARCHITECTURE.md                  # Dette dokumentet
+    ├── ARCHITECTURE.md                  # Dette dokumentet
+    ├── ROADMAP.md                       # Feature-oversikt og progress
+    └── fakta/                           # Offisielle kilder (lovdata, etc.)
 ```
 
 ## Kjernekomponenter
@@ -238,15 +244,9 @@ Kopier `packages/stromkalkulator_test.yaml` og sjekk `sensor.test_alle_tester_ok
 
 ## Fremtidige forbedringer
 
-### Planlagt
-- [ ] Akkumulert kostnad med Riemann sum
-- [ ] Custom dashboard-kort
-- [ ] Automatisk utility_meter-oppsett via config_flow
+Se [ROADMAP.md](ROADMAP.md) for komplett feature-oversikt og progress.
 
-### Vurdert
-- [ ] Historikk-graf for stromstotte
-- [ ] Varsel nar kapasitetstrinn oker
-- [ ] Faktura-import for validering
+For arbeidsflyt ved utvikling, se [AGENTS.md](../AGENTS.md).
 
 ## Kilder
 

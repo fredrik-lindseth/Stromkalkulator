@@ -115,55 +115,61 @@ Se [docs/beregninger.md](docs/beregninger.md) for alle sensorer og formler.
 
 ## Verifisere mot faktura
 
-For a sjekke at integrasjonen beregner riktig, kan du sammenligne med fakturaen fra nettselskapet:
+For a sjekke at integrasjonen beregner riktig, sammenlign med fakturaen fra nettselskapet.
 
-### Hva du trenger
+### Komplett oppsett for faktura-verifisering
 
-1. **Faktura fra nettselskapet** - Viser energiledd, kapasitetsledd og forbruk
-2. **Utility meter-sensorer** - For a splitte forbruk pa dag/natt (se nedenfor)
-3. **Tilgang til HA-historikk** - For a finne manedens verdier
+1. **Kopier utility-pakken:**
+   ```bash
+   cp packages/stromkalkulator_utility.yaml /config/packages/
+   ```
 
-### Slik sammenligner du
+2. **Rediger filen** - bytt ut `sensor.BYTT_EFFEKT_SENSOR` med din effekt-sensor (W)
 
-1. **Energiledd (variabel del)**
-   - Finn dag-forbruk og natt-forbruk fra utility meter-sensorer
-   - Gang med energiledd-sats fra nettselskapets prisliste
-   - Sammenlign med "Energiledd" pa fakturaen
-
-2. **Kapasitetsledd (fast del)**
-   - Sjekk `sensor.kapasitetstrinn` ved manedens slutt
-   - Denne skal matche "Kapasitetsledd" pa fakturaen
-   - Merk: Trinn bestemmes av snitt av 3 hoyeste effekttopper
-
-3. **Avvik a forvente**
-   - 1-5% avvik er normalt (avrunding, maleravvik)
-   - Storre avvik kan skyldes feil priser i integrasjonen
-
-### Eksempel
-
-```
-Faktura januar 2026:
-- Energiledd dag: 450 kWh x 0,3640 kr = 163,80 kr
-- Energiledd natt: 320 kWh x 0,2640 kr = 84,48 kr
-- Kapasitetsledd (5-10 kW): 300 kr
-
-Stromkalkulator:
-- sensor.forbruk_dag: 452 kWh (OK, 0,4% avvik)
-- sensor.forbruk_natt: 318 kWh (OK, 0,6% avvik)
-- sensor.kapasitetstrinn: 300 kr (eksakt match)
-```
-
-## Utility Meter (valgfritt)
-
-For a splitte forbruk pa dag/natt-tariff:
-
-1. Kopier `packages/stromkalkulator_utility.yaml` til `/config/packages/`
-2. Erstatt `sensor.BYTT_EFFEKT_SENSOR` med din sensor
-3. Aktiver packages i `configuration.yaml`:
+3. **Aktiver packages** i `configuration.yaml`:
    ```yaml
    homeassistant:
      packages: !include_dir_named packages
    ```
+
+4. **Start Home Assistant pa nytt**
+
+### Sensorer du far
+
+Etter oppsett far du disse sensorene for faktura-sammenligning:
+
+| Sensor                              | Beskrivelse                    | Matcher faktura-post      |
+|-------------------------------------|--------------------------------|---------------------------|
+| `sensor.strom_maanedlig_dag`        | kWh pa dag-tariff              | Energiledd dag (forbruk)  |
+| `sensor.strom_maanedlig_natt`       | kWh pa natt-tariff             | Energiledd natt (forbruk) |
+| `sensor.maanedlig_energiledd_dag`   | Energiledd dag i kr            | Energiledd dag (sum)      |
+| `sensor.maanedlig_energiledd_natt`  | Energiledd natt i kr           | Energiledd natt (sum)     |
+| `sensor.kapasitetstrinn`            | Kapasitetsledd i kr            | Kapasitetsledd            |
+| `sensor.maanedlig_forbruksavgift`   | Forbruksavgift i kr            | Forbruksavgift            |
+| `sensor.maanedlig_enovaavgift`      | Enova-avgift i kr              | Enovaavgift               |
+| `sensor.maanedlig_stromstotte`      | Stromstotte i kr               | Midlert. stromstønad      |
+| `sensor.maanedlig_nettleie_etter_stotte` | Totalt a betale           | A betale                  |
+
+### Eksempel: BKK-faktura desember 2025
+
+```
+Faktura fra BKK:                      Stromkalkulator:
+─────────────────────────────────────────────────────────────────
+Energiledd dag:    667 kWh = 240 kr   sensor.maanedlig_energiledd_dag: ~240 kr
+Energiledd natt:   887 kWh = 211 kr   sensor.maanedlig_energiledd_natt: ~211 kr
+Kapasitetsledd:    5-10 kW = 415 kr   sensor.kapasitetstrinn: 415 kr
+Forbruksavgift:   1555 kWh = 244 kr   sensor.maanedlig_forbruksavgift: ~244 kr
+Enovaavgift:      1555 kWh =  19 kr   sensor.maanedlig_enovaavgift: ~19 kr
+Stromstotte:      1107 kWh = -122 kr  sensor.maanedlig_stromstotte: ~122 kr
+─────────────────────────────────────────────────────────────────
+A betale:                  1006 kr    sensor.maanedlig_nettleie_etter_stotte: ~1006 kr
+```
+
+### Forventet avvik
+
+- **1-5% avvik er normalt** - skyldes avrunding og maleravvik
+- **Stromstotte kan avvike mer** - fakturaen bruker time-for-time priser, vi bruker gjennomsnitt
+- **Storre avvik?** Sjekk at energiledd-satsene i integrasjonen matcher nettselskapets prisliste
 
 ## Stottede nettselskaper
 

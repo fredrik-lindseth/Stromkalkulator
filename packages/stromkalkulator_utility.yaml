@@ -121,6 +121,41 @@ template:
           {% set avgift = states('sensor.enovaavgift') | float(0) %}
           {{ (total_kwh * avgift) | round(2) }}
 
+      # Månedlig strømstøtte (mottatt)
+      - name: "Månedlig strømstøtte"
+        unique_id: stromkalkulator_maanedlig_stromstotte
+        unit_of_measurement: "kr"
+        device_class: monetary
+        icon: mdi:cash-plus
+        state: >
+          {% set total_kwh = states('sensor.strom_maanedlig_dag') | float(0) + states('sensor.strom_maanedlig_natt') | float(0) %}
+          {% set stotte = states('sensor.stromstotte') | float(0) %}
+          {{ (total_kwh * stotte) | round(2) }}
+        attributes:
+          forklaring: "Estimert strømstøtte basert på gjennomsnittlig støtte-sats"
+
+      # Månedlig energiledd dag (kr)
+      - name: "Månedlig energiledd dag"
+        unique_id: stromkalkulator_maanedlig_energiledd_dag
+        unit_of_measurement: "kr"
+        device_class: monetary
+        icon: mdi:weather-sunny
+        state: >
+          {% set kwh = states('sensor.strom_maanedlig_dag') | float(0) %}
+          {% set pris = states('sensor.energiledd_dag') | float(0) %}
+          {{ (kwh * pris) | round(2) }}
+
+      # Månedlig energiledd natt (kr)
+      - name: "Månedlig energiledd natt"
+        unique_id: stromkalkulator_maanedlig_energiledd_natt
+        unit_of_measurement: "kr"
+        device_class: monetary
+        icon: mdi:weather-night
+        state: >
+          {% set kwh = states('sensor.strom_maanedlig_natt') | float(0) %}
+          {% set pris = states('sensor.energiledd_natt_helg') | float(0) %}
+          {{ (kwh * pris) | round(2) }}
+
       # Besparelse vs Norgespris denne måneden
       - name: "Besparelse vs Norgespris"
         unique_id: stromkalkulator_besparelse_norgespris
@@ -133,6 +168,23 @@ template:
           {{ (total_kwh * diff_per_kwh * -1) | round(2) }}
         attributes:
           forklaring: "Positiv = du sparer, Negativ = du taper vs Norgespris (50 øre/kWh)"
+
+      # Total nettleie å betale (etter strømstøtte)
+      - name: "Månedlig nettleie etter støtte"
+        unique_id: stromkalkulator_maanedlig_nettleie_etter_stotte
+        unit_of_measurement: "kr"
+        device_class: monetary
+        icon: mdi:receipt-text
+        state: >
+          {% set nettleie = states('sensor.maanedlig_nettleie_kostnad') | float(0) %}
+          {% set avgifter = states('sensor.maanedlig_forbruksavgift') | float(0) + states('sensor.maanedlig_enovaavgift') | float(0) %}
+          {% set stotte = states('sensor.maanedlig_stromstotte') | float(0) %}
+          {{ (nettleie + avgifter - stotte) | round(2) }}
+        attributes:
+          nettleie_kr: "{{ states('sensor.maanedlig_nettleie_kostnad') | float(0) | round(2) }}"
+          forbruksavgift_kr: "{{ states('sensor.maanedlig_forbruksavgift') | float(0) | round(2) }}"
+          enovaavgift_kr: "{{ states('sensor.maanedlig_enovaavgift') | float(0) | round(2) }}"
+          stromstotte_kr: "{{ states('sensor.maanedlig_stromstotte') | float(0) | round(2) }}"
 
 # -----------------------------------------------------------------------------
 # AUTOMATISERING - Tariff-bytte

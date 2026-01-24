@@ -5,6 +5,8 @@
 
 Home Assistant-integrasjon som beregner **faktisk strompris** i Norge - inkludert nettleie, avgifter og stromstotte.
 
+![Integrasjon](images/integration.png)
+
 ## Hva dette gir deg
 
 En sensor (`sensor.total_strompris_etter_stotte`) som viser din **faktiske strompris per kWh**, inkludert:
@@ -35,6 +37,33 @@ Du trenger:
 - **Effektsensor** - Stromforbruk i Watt (f.eks. Tibber Pulse)
 - **Spotpris-sensor** - Nord Pool "Current price" (f.eks. `sensor.nord_pool_no5_current_price`)
 
+### Oppsett basert pa din stromleverandor
+
+#### Med Norgespris (anbefalt for de fleste)
+
+Hvis du har Norgespris eller tilsvarende spotprisavtale:
+
+1. Bruk `sensor.total_strompris_etter_stotte` i Energy Dashboard
+2. Denne inkluderer spotpris + nettleie + avgifter - stromstotte
+3. Sammenlign med `sensor.prisforskjell_norgespris` for a se om du sparer
+
+#### Med stromstotte (standard)
+
+Hvis du har stromstotte og vil se faktisk pris etter stotte:
+
+1. Bruk `sensor.total_strompris_etter_stotte` i Energy Dashboard
+2. Sensor `sensor.stromstotte` viser stottebelop per kWh
+3. Stotten trekkes automatisk fra i totalprisen
+
+![Stromstotte](images/sensor_strømstøtte.png)
+
+#### Uten stromstotte og uten Norgespris
+
+Hvis du ikke har stromstotte (f.eks. naring, hytte, eller Nord-Norge med lave priser):
+
+1. Bruk `sensor.total_strompris_for_stotte` for totalpris uten stotte
+2. Eller bruk `sensor.nettleie_total` hvis du kun vil se nettleie
+
 ## Energy Dashboard
 
 For a vise faktisk strompris i Energy Dashboard:
@@ -46,15 +75,58 @@ For a vise faktisk strompris i Energy Dashboard:
 
 ## Sensorer
 
-| Sensor | Beskrivelse |
-|--------|-------------|
-| `sensor.total_strompris_etter_stotte` | Din faktiske totalpris (for Energy Dashboard) |
-| `sensor.stromstotte` | Stotte per kWh |
-| `sensor.kapasitetstrinn` | Manedlig kapasitetskostnad |
-| `sensor.tariff` | "dag" eller "natt" |
-| `sensor.prisforskjell_norgespris` | Sammenligning med Norgespris |
+| Sensor                                | Beskrivelse                                           |
+|---------------------------------------|-------------------------------------------------------|
+| `sensor.total_strompris_etter_stotte` | Din faktiske totalpris (for Energy Dashboard)         |
+| `sensor.stromstotte`                  | Stotte per kWh                                        |
+| `sensor.kapasitetstrinn`              | Manedlig kapasitetskostnad                            |
+| `sensor.tariff`                       | "dag" eller "natt" (natt er ogsa helg og helligdager) |
+| `sensor.prisforskjell_norgespris`     | Sammenligning med Norgespris                          |
+
+![Nettleie](images/sensor_nettleie.png)
+![Norgespris](images/sensor_norgespris.png)
 
 Se [docs/beregninger.md](docs/beregninger.md) for alle sensorer og formler.
+
+## Verifisere mot faktura
+
+For a sjekke at integrasjonen beregner riktig, kan du sammenligne med fakturaen fra nettselskapet:
+
+### Hva du trenger
+
+1. **Faktura fra nettselskapet** - Viser energiledd, kapasitetsledd og forbruk
+2. **Utility meter-sensorer** - For a splitte forbruk pa dag/natt (se nedenfor)
+3. **Tilgang til HA-historikk** - For a finne manedens verdier
+
+### Slik sammenligner du
+
+1. **Energiledd (variabel del)**
+   - Finn dag-forbruk og natt-forbruk fra utility meter-sensorer
+   - Gang med energiledd-sats fra nettselskapets prisliste
+   - Sammenlign med "Energiledd" pa fakturaen
+
+2. **Kapasitetsledd (fast del)**
+   - Sjekk `sensor.kapasitetstrinn` ved manedens slutt
+   - Denne skal matche "Kapasitetsledd" pa fakturaen
+   - Merk: Trinn bestemmes av snitt av 3 hoyeste effekttopper
+
+3. **Avvik a forvente**
+   - 1-5% avvik er normalt (avrunding, maleravvik)
+   - Storre avvik kan skyldes feil priser i integrasjonen
+
+### Eksempel
+
+```
+Faktura januar 2026:
+- Energiledd dag: 450 kWh x 0,3640 kr = 163,80 kr
+- Energiledd natt: 320 kWh x 0,2640 kr = 84,48 kr
+- Kapasitetsledd (5-10 kW): 300 kr
+
+Stromkalkulator:
+- sensor.forbruk_dag: 452 kWh (OK, 0,4% avvik)
+- sensor.forbruk_natt: 318 kWh (OK, 0,6% avvik)
+- sensor.kapasitetstrinn: 300 kr (eksakt match)
+```
 
 ## Utility Meter (valgfritt)
 
@@ -76,13 +148,13 @@ Mangler ditt? Se [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)
 
 ## Dokumentasjon
 
-| Dokument | Innhold |
-|----------|---------|
-| [beregninger.md](docs/beregninger.md) | Formler, avgiftssoner, eksempler |
-| [CONTRIBUTING.md](docs/CONTRIBUTING.md) | Legge til nettselskap |
-| [TESTING.md](docs/TESTING.md) | Validere beregninger |
-| [DEVELOPMENT.md](docs/DEVELOPMENT.md) | Utviklerinfo |
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Arkitektur og design |
+| Dokument                                | Innhold                          |
+|-----------------------------------------|----------------------------------|
+| [beregninger.md](docs/beregninger.md)   | Formler, avgiftssoner, eksempler |
+| [CONTRIBUTING.md](docs/CONTRIBUTING.md) | Legge til nettselskap            |
+| [TESTING.md](docs/TESTING.md)           | Validere beregninger             |
+| [DEVELOPMENT.md](docs/DEVELOPMENT.md)   | Utviklerinfo                     |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Arkitektur og design             |
 
 ## Lisens
 

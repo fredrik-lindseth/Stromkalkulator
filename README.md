@@ -1,10 +1,14 @@
-# Strømkalkulator
+<p align="center">
+  <img src="images/logo.png" alt="Strømkalkulator" width="400">
+</p>
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
-[![GitHub release](https://img.shields.io/github/release/fredrik-lindseth/Stromkalkulator.svg)](https://github.com/fredrik-lindseth/Stromkalkulator/releases)
-[![CI](https://github.com/fredrik-lindseth/Stromkalkulator/actions/workflows/ci.yml/badge.svg)](https://github.com/fredrik-lindseth/Stromkalkulator/actions/workflows/ci.yml)
-[![HACS Validation](https://github.com/fredrik-lindseth/Stromkalkulator/actions/workflows/validate.yml/badge.svg)](https://github.com/fredrik-lindseth/Stromkalkulator/actions/workflows/validate.yml)
-[![codecov](https://codecov.io/gh/fredrik-lindseth/Stromkalkulator/graph/badge.svg)](https://codecov.io/gh/fredrik-lindseth/Stromkalkulator)
+<p align="center">
+  <a href="https://github.com/hacs/integration"><img src="https://img.shields.io/badge/HACS-Custom-41BDF5.svg" alt="HACS"></a>
+  <a href="https://github.com/fredrik-lindseth/Stromkalkulator/releases"><img src="https://img.shields.io/github/release/fredrik-lindseth/Stromkalkulator.svg" alt="GitHub release"></a>
+  <a href="https://github.com/fredrik-lindseth/Stromkalkulator/actions/workflows/ci.yml"><img src="https://github.com/fredrik-lindseth/Stromkalkulator/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/fredrik-lindseth/Stromkalkulator/actions/workflows/validate.yml"><img src="https://github.com/fredrik-lindseth/Stromkalkulator/actions/workflows/validate.yml/badge.svg" alt="HACS Validation"></a>
+  <a href="https://codecov.io/gh/fredrik-lindseth/Stromkalkulator"><img src="https://codecov.io/gh/fredrik-lindseth/Stromkalkulator/graph/badge.svg" alt="codecov"></a>
+</p>
 
 Home Assistant-integrasjon som beregner **faktisk strømpris** i Norge - inkludert nettleie, avgifter og strømstøtte.
 
@@ -146,10 +150,10 @@ For å sjekke at integrasjonen beregner riktig, sammenlign med fakturaen fra net
 
 Pakken inkluderer to automasjoner som kjører automatisk:
 
-| Automasjon | Trigger | Funksjon |
-|------------|---------|----------|
-| `stromkalkulator_tariff_bytte` | `sensor.tariff` endres | Oppdaterer utility_meter til dag/natt |
-| `stromkalkulator_tariff_oppstart` | HA starter | Setter riktig tariff ved oppstart |
+| Automasjon                        | Trigger                | Funksjon                              |
+|-----------------------------------|------------------------|---------------------------------------|
+| `stromkalkulator_tariff_bytte`    | `sensor.tariff` endres | Oppdaterer utility_meter til dag/natt |
+| `stromkalkulator_tariff_oppstart` | HA starter             | Setter riktig tariff ved oppstart     |
 
 > Du trenger ikke gjøre noe manuelt - tariff-byttet skjer automatisk.
 
@@ -157,17 +161,17 @@ Pakken inkluderer to automasjoner som kjører automatisk:
 
 Etter oppsett får du disse sensorene for faktura-sammenligning:
 
-| Sensor                              | Beskrivelse                    | Matcher faktura-post      |
-|-------------------------------------|--------------------------------|---------------------------|
-| `sensor.strom_maanedlig_dag`        | kWh på dag-tariff              | Energiledd dag (forbruk)  |
-| `sensor.strom_maanedlig_natt`       | kWh på natt-tariff             | Energiledd natt (forbruk) |
-| `sensor.maanedlig_energiledd_dag`   | Energiledd dag i kr            | Energiledd dag (sum)      |
-| `sensor.maanedlig_energiledd_natt`  | Energiledd natt i kr           | Energiledd natt (sum)     |
-| `sensor.kapasitetstrinn`            | Kapasitetsledd i kr            | Kapasitetsledd            |
-| `sensor.maanedlig_forbruksavgift`   | Forbruksavgift i kr            | Forbruksavgift            |
-| `sensor.maanedlig_enovaavgift`      | Enova-avgift i kr              | Enovaavgift               |
-| `sensor.maanedlig_stromstotte`      | Strømstøtte i kr               | Midlert. strømstønad      |
-| `sensor.maanedlig_nettleie_etter_stotte` | Totalt å betale           | Å betale                  |
+| Sensor                                   | Beskrivelse          | Matcher faktura-post      |
+|------------------------------------------|----------------------|---------------------------|
+| `sensor.strom_maanedlig_dag`             | kWh på dag-tariff    | Energiledd dag (forbruk)  |
+| `sensor.strom_maanedlig_natt`            | kWh på natt-tariff   | Energiledd natt (forbruk) |
+| `sensor.maanedlig_energiledd_dag`        | Energiledd dag i kr  | Energiledd dag (sum)      |
+| `sensor.maanedlig_energiledd_natt`       | Energiledd natt i kr | Energiledd natt (sum)     |
+| `sensor.kapasitetstrinn`                 | Kapasitetsledd i kr  | Kapasitetsledd            |
+| `sensor.maanedlig_forbruksavgift`        | Forbruksavgift i kr  | Forbruksavgift            |
+| `sensor.maanedlig_enovaavgift`           | Enova-avgift i kr    | Enovaavgift               |
+| `sensor.maanedlig_stromstotte`           | Strømstøtte i kr     | Midlert. strømstønad      |
+| `sensor.maanedlig_nettleie_etter_stotte` | Totalt å betale      | Å betale                  |
 
 ### Eksempel: BKK-faktura desember 2025
 

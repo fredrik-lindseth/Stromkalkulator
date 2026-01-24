@@ -35,3 +35,24 @@ repos:
       - id: check-json
       - id: check-added-large-files
         args: ['--maxkb=500']
+
+  # Mypy - Type checking (warnings only, non-blocking)
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.14.1
+    hooks:
+      - id: mypy
+        args: [--ignore-missing-imports, --no-error-summary]
+        files: ^custom_components/stromkalkulator/
+        pass_filenames: false
+        additional_dependencies: []
+
+  # Run tests
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: python -m pytest tests/ -v --tb=short
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]

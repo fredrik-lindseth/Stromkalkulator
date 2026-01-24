@@ -1,6 +1,6 @@
 [project]
 name = "stromkalkulator"
-version = "0.12.0"
+version = "0.21.0"
 description = "Home Assistant integration for Norwegian electricity cost calculation"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -13,6 +13,7 @@ dev = [
     "vulture>=2.13",
     "pytest>=8.0.0",
     "pytest-cov>=4.1.0",
+    "mypy>=1.8.0",
 ]
 
 [tool.pytest.ini_options]
@@ -51,3 +52,13 @@ known-first-party = ["custom_components.stromkalkulator"]
 min_confidence = 80
 paths = ["custom_components/stromkalkulator"]
 exclude = ["*test*"]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_ignores = true
+disallow_untyped_defs = false  # Start med false, øk gradvis
+check_untyped_defs = true
+ignore_missing_imports = true  # Ignorer Home Assistant imports som ikke er installert lokalt
+files = ["custom_components/stromkalkulator"]
+exclude = ["tests"]

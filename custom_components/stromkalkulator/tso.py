@@ -1,4 +1,13 @@
-"""Transmission System Operators (nettselskap) data for Strømkalkulator."""
+"""Transmission System Operators (nettselskap) data for Strømkalkulator.
+
+Alle priser er hentet fra nettselskapenes offisielle nettsider (se url-felt).
+Prisene er oppgitt i NOK/kWh inkl. mva (Sør-Norge) eller eks. mva (Nord-Norge).
+
+Kilde for nettselskap-liste: Elhub (https://elhub.no/nettselskaper/)
+Kilde for kapasitetstrinn-struktur: NVE (https://www.nve.no/reguleringsmyndigheten/)
+
+Sist oppdatert: Januar 2026 (2026-priser)
+"""
 from typing import Final
 
 # Transmission System Operators (TSO) with default values

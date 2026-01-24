@@ -3,23 +3,28 @@
     "step": {
       "user": {
         "title": "Strømkalkulator",
-        "description": "Select your grid company",
+        "description": "Complete overview of electricity costs: grid tariffs, government subsidies, and Norgespris comparison.\n\nSelect your grid company to get started.",
         "data": {
-          "tso": "Grid company"
+          "tso": "Grid company",
+          "avgiftssone": "Tax zone",
+          "har_norgespris": "I have Norgespris"
+        },
+        "data_description": {
+          "har_norgespris": "Enable if you have opted for Norgespris from your grid company. Uses fixed price (40-50 øre/kWh) instead of spot price."
         }
       },
       "sensors": {
         "title": "Select sensors",
-        "description": "Select sensors for power consumption and spot price.\n\n**Spot price sensor:** Use Nord Pool 'Current price' sensor, e.g. `sensor.nord_pool_no5_current_price`",
+        "description": "Connect your power sensors for automatic calculation.",
         "data": {
           "power_sensor": "Power consumption sensor (W)",
-          "spot_price_sensor": "Spot price sensor (NOK/kWh)",
-          "electricity_provider_price_sensor": "Electricity provider price sensor (optional, NOK/kWh)"
+          "spot_price_sensor": "Nord Pool 'Current price' sensor (NOK/kWh)",
+          "electricity_provider_price_sensor": "Electricity provider sensor (optional, e.g. Tibber)"
         }
       },
       "pricing": {
         "title": "Custom pricing",
-        "description": "Energy tariff (energiledd) is a per-kWh fee from your grid company, varying by time of day.\n\nFind prices at your grid company's website. Leave at 0 to use default rates.",
+        "description": "Enter energy tariff prices from your grid company in NOK/kWh (incl. taxes).",
         "data": {
           "energiledd_dag": "Energy tariff day (NOK/kWh)",
           "energiledd_natt": "Energy tariff night/weekend (NOK/kWh)"
@@ -37,14 +42,19 @@
     "step": {
       "init": {
         "title": "Strømkalkulator settings",
-        "description": "Configure sensors and grid pricing.\n\n**Energy tariff:** Per-kWh fee from grid company. Leave at 0 for defaults.",
+        "description": "Change grid company, sensors, or Norgespris settings.",
         "data": {
           "tso": "Grid company",
+          "avgiftssone": "Tax zone",
+          "har_norgespris": "I have Norgespris",
           "power_sensor": "Power consumption sensor (W)",
-          "spot_price_sensor": "Spot price sensor (NOK/kWh)",
-          "electricity_provider_price_sensor": "Electricity provider price sensor (optional, NOK/kWh)",
+          "spot_price_sensor": "Nord Pool 'Current price' sensor (NOK/kWh)",
+          "electricity_provider_price_sensor": "Electricity provider sensor (optional)",
           "energiledd_dag": "Energy tariff day (NOK/kWh)",
           "energiledd_natt": "Energy tariff night/weekend (NOK/kWh)"
+        },
+        "data_description": {
+          "har_norgespris": "Enable if you have opted for Norgespris from your grid company. Uses fixed price (40-50 øre/kWh) instead of spot price."
         }
       }
     }

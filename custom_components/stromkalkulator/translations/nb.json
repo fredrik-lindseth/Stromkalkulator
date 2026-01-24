@@ -3,23 +3,28 @@
     "step": {
       "user": {
         "title": "Strømkalkulator",
-        "description": "Velg ditt nettselskap",
+        "description": "Komplett oversikt over strømkostnader: nettleie, strømstøtte og Norgespris-sammenligning.\n\nVelg ditt nettselskap for å komme i gang.",
         "data": {
-          "tso": "Nettselskap"
+          "tso": "Nettselskap",
+          "avgiftssone": "Avgiftssone",
+          "har_norgespris": "Jeg har Norgespris"
+        },
+        "data_description": {
+          "har_norgespris": "Aktiver hvis du har valgt Norgespris hos nettselskapet. Bruker fast pris (40-50 øre/kWh) i stedet for spotpris."
         }
       },
       "sensors": {
         "title": "Velg sensorer",
-        "description": "Velg sensorer for strømforbruk og spotpris.\n\n**Spotprissensor:** Bruk Nord Pool 'Current price' sensor, f.eks. `sensor.nord_pool_no5_current_price`",
+        "description": "Koble til dine strømsensorer for automatisk beregning.",
         "data": {
           "power_sensor": "Strømforbruk-sensor (W)",
-          "spot_price_sensor": "Spotprissensor (NOK/kWh)",
-          "electricity_provider_price_sensor": "Strømselskap-sensor (valgfri, NOK/kWh)"
+          "spot_price_sensor": "Nord Pool 'Current price' sensor (NOK/kWh)",
+          "electricity_provider_price_sensor": "Strømselskap-sensor (valgfri, f.eks. Tibber)"
         }
       },
       "pricing": {
         "title": "Egendefinerte priser",
-        "description": "Energiledd er en kWh-avgift fra nettselskapet som varierer etter tid på døgnet.\n\nFinn prisene på nettselskapets nettside. La stå på 0 for å bruke standardpriser.",
+        "description": "Angi energiledd-priser fra ditt nettselskap i NOK/kWh (inkl. avgifter).",
         "data": {
           "energiledd_dag": "Energiledd dag (NOK/kWh)",
           "energiledd_natt": "Energiledd natt/helg (NOK/kWh)"
@@ -37,14 +42,19 @@
     "step": {
       "init": {
         "title": "Strømkalkulator innstillinger",
-        "description": "Konfigurer sensorer og nettleiepriser.\n\n**Energiledd:** kWh-avgift fra nettselskapet. La stå på 0 for standardpriser.",
+        "description": "Endre nettselskap, sensorer eller Norgespris-innstillinger.",
         "data": {
           "tso": "Nettselskap",
+          "avgiftssone": "Avgiftssone",
+          "har_norgespris": "Jeg har Norgespris",
           "power_sensor": "Strømforbruk-sensor (W)",
-          "spot_price_sensor": "Spotprissensor (NOK/kWh)",
-          "electricity_provider_price_sensor": "Strømselskap-sensor (valgfri, NOK/kWh)",
+          "spot_price_sensor": "Nord Pool 'Current price' sensor (NOK/kWh)",
+          "electricity_provider_price_sensor": "Strømselskap-sensor (valgfri)",
           "energiledd_dag": "Energiledd dag (NOK/kWh)",
           "energiledd_natt": "Energiledd natt/helg (NOK/kWh)"
+        },
+        "data_description": {
+          "har_norgespris": "Aktiver hvis du har valgt Norgespris hos nettselskapet. Bruker fast pris (40-50 øre/kWh) i stedet for spotpris."
         }
       }
     }

@@ -5,7 +5,12 @@
         "title": "Strømkalkulator",
         "description": "Komplett oversikt over strømkostnader: nettleie, strømstøtte og Norgespris-sammenligning.\n\nVelg ditt nettselskap for å komme i gang.",
         "data": {
-          "tso": "Nettselskap"
+          "tso": "Nettselskap",
+          "avgiftssone": "Avgiftssone",
+          "har_norgespris": "Jeg har Norgespris"
+        },
+        "data_description": {
+          "har_norgespris": "Aktiver hvis du har valgt Norgespris hos nettselskapet. Bruker fast pris (40-50 øre/kWh) i stedet for spotpris."
         }
       },
       "sensors": {
@@ -37,14 +42,19 @@
     "step": {
       "init": {
         "title": "Strømkalkulator innstillinger",
-        "description": "Endre nettselskap eller sensorer.",
+        "description": "Endre nettselskap, sensorer eller Norgespris-innstillinger.",
         "data": {
           "tso": "Nettselskap",
+          "avgiftssone": "Avgiftssone",
+          "har_norgespris": "Jeg har Norgespris",
           "power_sensor": "Strømforbruk-sensor (W)",
           "spot_price_sensor": "Nord Pool 'Current price' sensor (NOK/kWh)",
           "electricity_provider_price_sensor": "Strømselskap-sensor (valgfri)",
           "energiledd_dag": "Energiledd dag (NOK/kWh)",
           "energiledd_natt": "Energiledd natt/helg (NOK/kWh)"
+        },
+        "data_description": {
+          "har_norgespris": "Aktiver hvis du har valgt Norgespris hos nettselskapet. Bruker fast pris (40-50 øre/kWh) i stedet for spotpris."
         }
       }
     }

@@ -119,8 +119,8 @@ Priser endres ofte 1. januar:
 ## Viktige formler
 
 ```python
-# Stromstotte (90% over 93.75 ore/kWh, 2025-sats)
-stromstotte = max(0, (spotpris - 0.9375) * 0.90)
+# Stromstotte (90% over 96,25 ore/kWh, 2026-sats)
+stromstotte = max(0, (spotpris - 0.9625) * 0.90)
 
 # Kapasitetsledd per kWh
 kapasitet_per_kwh = (kapasitetsledd_mnd / dager_i_maned) / 24
@@ -146,12 +146,12 @@ ssh ha-local "ha core logs" | grep -i stromkalkulator
 
 ### Vanlige feil
 
-| Feil | Arsak | Losning |
-|------|-------|---------|
-| `ImportError` | Fil pa HA er utdatert | Kopier oppdatert fil |
-| `Entity unavailable` | Kildesensor mangler | Sjekk at power/spotpris-sensor finnes |
-| Feil kapasitetstrinn | Data bygges over tid | Vent eller opprett testdata |
-| Feil dag/natt | Helligdag ikke registrert | Oppdater HELLIGDAGER i const.py |
+| Feil                 | Arsak                     | Losning                               |
+|----------------------|---------------------------|---------------------------------------|
+| `ImportError`        | Fil pa HA er utdatert     | Kopier oppdatert fil                  |
+| `Entity unavailable` | Kildesensor mangler       | Sjekk at power/spotpris-sensor finnes |
+| Feil kapasitetstrinn | Data bygges over tid      | Vent eller opprett testdata           |
+| Feil dag/natt        | Helligdag ikke registrert | Oppdater HELLIGDAGER i const.py       |
 
 ### Sjekkliste for deploy
 

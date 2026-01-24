@@ -246,9 +246,11 @@ electricity_company_total = strømselskap_pris + energiledd + fastledd_per_kwh
 
 ## Strømstøtte
 
-Strømstøtten dekker 90% av spotpris over terskelen.
+Strømstøtten dekker 90% av spotpris over terskelen for husholdninger (maks 5000 kWh/mnd).
 
-**Kilde:** [regjeringen.no - Regjeringens strømtiltak](https://www.regjeringen.no/no/tema/energi/strom/regjeringens-stromtiltak/id2900232/)
+**Kilder:**
+- [Regjeringens strømtiltak](https://www.regjeringen.no/no/tema/energi/strom/regjeringens-stromtiltak/id2900232/)
+- [Forskrift om strømstønad § 5](https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791)
 
 ### Historikk terskelverdi
 
@@ -256,62 +258,112 @@ Strømstøtten dekker 90% av spotpris over terskelen.
 |------|----------|-------------------|
 | 2024 | 73 øre   | 91,25 øre         |
 | 2025 | 75 øre   | 93,75 øre         |
-| 2026 | (ikke fastsatt, antar 75 øre) | 93,75 øre |
+| 2026 | 77 øre   | 96,25 øre         |
 
 ### Formel
 
 ```
-strømstøtte = max(0, (spotpris - 0.9375) * 0.90)
+strømstøtte = max(0, (spotpris - 0.9625) * 0.90)
 ```
 
 ### Parametere
-- **Terskel**: 93,75 øre/kWh inkl. mva (0.9375 NOK/kWh) - 2025-sats
+- **Terskel**: 96,25 øre/kWh inkl. mva (0.9625 NOK/kWh) - 2026-sats
 - **Dekningsgrad**: 90%
+- **Maks forbruk**: 5000 kWh/mnd
 - **Basis**: Spotpris fra Nord Pool
 
-### Eksempler
+### Begrensninger (ikke støttet i integrasjonen)
+- **Fritidsbolig**: 1000 kWh/mnd grense
+- **Næringsliv**: Egne stønadsatser
+- **Fjernvarme/nærvarme**: Egen støtteordning
+- **Borettslag med fellesmåling**: Støtte til borettslaget
+
+### Forenkling: 5000 kWh-grense
+
+Integrasjonen beregner strømstøtte per kWh uten å spore akkumulert månedlig forbruk. I virkeligheten får du kun støtte på de første 5000 kWh/mnd.
+
+**Praktisk betydning:**
+- De fleste husholdninger bruker under 5000 kWh/mnd (snitt ~1000-1500 kWh)
+- Ved høyt forbruk (f.eks. elbillading, varmepumpe) kan du overskride grensen
+- Integrasjonen vil da *overestimere* strømstøtten du faktisk får
+
+### Eksempler (2026-satser)
 
 | Spotpris   | Strømstøtte | Pris etter støtte |
 |------------|-------------|-------------------|
 | 0.50 NOK   | 0.00 NOK    | 0.50 NOK          |
-| 0.9375 NOK | 0.00 NOK    | 0.9375 NOK        |
-| 1.00 NOK   | 0.06 NOK    | 0.94 NOK          |
-| 1.50 NOK   | 0.51 NOK    | 0.99 NOK          |
-| 2.00 NOK   | 0.96 NOK    | 1.04 NOK          |
+| 0.9625 NOK | 0.00 NOK    | 0.9625 NOK        |
+| 1.00 NOK   | 0.03 NOK    | 0.97 NOK          |
+| 1.50 NOK   | 0.48 NOK    | 1.02 NOK          |
+| 2.00 NOK   | 0.93 NOK    | 1.07 NOK          |
 
 ## Norgespris
 
-Norgespris er et strømprodukt fra Elhub med fast pris på 50 øre/kWh inkl. mva.
+Norgespris er et strømprodukt fra nettselskapet med fast pris, som alternativ til spotpris.
+
+**Kilde:** [Regjeringens strømtiltak](https://www.regjeringen.no/no/tema/energi/strom/regjeringens-stromtiltak/id2900232/)
+
+### Priser (inkl. mva)
+
+| Område                  | Pris inkl. mva | Merverdiavgift  |
+|-------------------------|----------------|-----------------|
+| Sør-Norge               | 50 øre/kWh     | 25% mva         |
+| Nord-Norge/Tiltakssonen | 40 øre/kWh     | 0% mva (fritak) |
+
+**Merk:** Basispris eks. mva er 40 øre/kWh. Sør-Norge betaler 50 øre pga. 25% mva.
 
 ### Egenskaper
-- **Fast pris**: 50 øre/kWh (0.50 NOK/kWh) inkl. mva
+- **Fast pris**: Uavhengig av spotpris
 - **Ingen strømstøtte**: Kan ikke kombineres med strømstøtte
-- **Gjelder**: Strømforbruk hjemme og på hytte
+- **Velges hos nettselskapet**: Ikke alle nettselskaper tilbyr dette
+
+### Konfigurering
+
+Aktiver "Jeg har Norgespris" i integrasjonens innstillinger. Integrasjonen vil:
+1. Bruke fast Norgespris i stedet for spotpris
+2. Sette strømstøtte til 0 (Norgespris og strømstøtte kombineres ikke)
+3. Automatisk velge riktig pris basert på avgiftssone
 
 ### Formler
+
+```python
+# Priser (inkl. mva)
+NORGESPRIS_SOR = 0.50   # 50 øre/kWh (Sør-Norge med 25% mva)
+NORGESPRIS_NORD = 0.40  # 40 øre/kWh (Nord-Norge/Tiltakssonen, mva-fritak)
+
+def get_norgespris(avgiftssone: str) -> float:
+    """Returnerer Norgespris basert på avgiftssone."""
+    if avgiftssone in ("nord_norge", "tiltakssone"):
+        return 0.40  # Nord-Norge har mva-fritak
+    return 0.50  # Sør-Norge inkl. 25% mva
+
+total_pris_norgespris = norgespris + energiledd + fastledd_per_kwh
 ```
-NORGESPRIS_FAST = 0.50  # 50 øre/kWh inkl. mva
 
-total_pris_norgespris = NORGESPRIS_FAST + energiledd + fastledd_per_kwh
+### Sammenligning: Spotpris vs Norgespris
 
-kroner_spart_per_kwh = total_pris_etter_stotte - total_pris_norgespris
+Sensoren `sensor.prisforskjell_norgespris` viser forskjellen:
+
+```
+prisforskjell = total_pris_etter_stotte - total_pris_norgespris
 ```
 
-### Eksempel
+**Tolkning:**
+- **Positiv verdi**: Du betaler mer med spotpris (Norgespris er billigere)
+- **Negativ verdi**: Du betaler mindre med spotpris (din avtale er billigere)
+
+### Eksempel (Sør-Norge)
+
 **Forutsetninger:**
 - Din spotpris: 1.20 NOK/kWh
 - Energiledd: 0.4613 NOK/kWh
 - Fastledd: 0.56 NOK/kWh
 
 **Beregninger:**
-1. **Din strømstøtte**: (1.20 - 0.9375) * 0.90 = 0.24 NOK/kWh
-2. **Din totalpris etter støtte**: (1.20 - 0.24) + 0.4613 + 0.56 = 1.98 NOK/kWh
-3. **Totalpris med norgespris**: 0.50 + 0.4613 + 0.56 = 1.52 NOK/kWh
-4. **Prisforskjell**: 1.98 - 1.52 = 0.46 NOK/kWh (du betaler mer)
-
-### Tolkning av prisforskjell
-- **Positiv verdi**: Du betaler mer enn norgespris (norgespris er billigere)
-- **Negativ verdi**: Du betaler mindre enn norgespris (din avtale er billigere)
+1. **Din strømstøtte**: (1.20 - 0.9625) × 0.90 = 0.21 NOK/kWh
+2. **Din totalpris etter støtte**: (1.20 - 0.21) + 0.4613 + 0.56 = 2.01 NOK/kWh
+3. **Totalpris med Norgespris**: 0.50 + 0.4613 + 0.56 = 1.52 NOK/kWh
+4. **Prisforskjell**: 2.01 - 1.52 = 0.49 NOK/kWh (Norgespris er billigere)
 
 ## Komplett eksempel
 
@@ -324,9 +376,9 @@ kroner_spart_per_kwh = total_pris_etter_stotte - total_pris_norgespris
 
 **Beregninger:**
 1. **Fastledd per kWh**: (400 / 30) / 24 = 0.56 NOK/kWh
-2. **Strømstøtte**: (1.20 - 0.9375) * 0.90 = 0.24 NOK/kWh
+2. **Strømstøtte**: (1.20 - 0.9625) × 0.90 = 0.21 NOK/kWh
 3. **Totalpris uten støtte**: 1.20 + 0.4613 + 0.56 = 2.22 NOK/kWh
-4. **Totalpris med støtte**: (1.20 - 0.24) + 0.4613 + 0.56 = 1.98 NOK/kWh
+4. **Totalpris med støtte**: (1.20 - 0.21) + 0.4613 + 0.56 = 2.01 NOK/kWh
 
 **Offentlige avgifter (inkludert i energileddet, 2026-satser):**
 - Forbruksavgift: 7,13 øre/kWh eks. mva
@@ -348,8 +400,8 @@ Dette eksempelet viser hvordan samme strømforbruk gir ulik totalpris avhengig a
 ### Steg 1: Beregn strømstøtte (lik for alle)
 
 ```
-Strømstøtte = (1.50 - 0.9375) * 0.90 = 0.51 NOK/kWh
-Spotpris etter støtte = 1.50 - 0.51 = 0.99 NOK/kWh
+Strømstøtte = (1.50 - 0.9625) × 0.90 = 0.48 NOK/kWh
+Spotpris etter støtte = 1.50 - 0.48 = 1.02 NOK/kWh
 ```
 
 ### Steg 2: Beregn avgifter per sone (2026-satser)
@@ -366,11 +418,11 @@ Spotpris etter støtte = 1.50 - 0.51 = 0.99 NOK/kWh
 
 | Komponent                     | Standard    | Nord-Norge  | Tiltakssonen |
 |-------------------------------|-------------|-------------|--------------|
-| Spotpris etter støtte         | 0.78 kr     | 0.78 kr     | 0.78 kr      |
+| Spotpris etter støtte         | 1.02 kr     | 1.02 kr     | 1.02 kr      |
 | Energiledd                    | 0.45 kr     | 0.45 kr     | 0.45 kr      |
 | Kapasitetsledd per kWh        | 0.56 kr     | 0.56 kr     | 0.56 kr      |
 | Avgifter (inkl. i energiledd) | 0.1016 kr   | 0.0813 kr   | 0.0100 kr    |
-| **Totalpris per kWh**         | **1.79 kr** | **1.77 kr** | **1.79 kr**  |
+| **Totalpris per kWh**         | **2.03 kr** | **2.01 kr** | **2.03 kr**  |
 
 **Merk:** Energileddet fra nettselskapet inkluderer allerede avgiftene, så de varierer mellom nettselskaper i ulike soner. Tabellen over viser komponentene separat for å illustrere forskjellen.
 
@@ -426,6 +478,6 @@ Fra 2026 er forbruksavgiften lik for Standard og Nord-Norge. Forskjellen skyldes
 
 - Alle priser er i NOK/kWh
 - Strømforbruk konverteres fra W til kW (/1000)
-- Beregningene følger norske regler for strømstøtte
+- Beregningene følger norske regler for strømstøtte (2026: 90% over 96,25 øre/kWh)
 - Kapasitetstrinn varierer mellom nettselskaper
-- Norgespris er fast 50 øre/kWh fra Elhub (ingen strømstøtte)
+- Norgespris: 50 øre/kWh (Sør-Norge) eller 40 øre/kWh (Nord-Norge), ingen strømstøtte

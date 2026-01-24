@@ -11,7 +11,7 @@ Dette dokumentet beskriver arkitekturen til Stromkalkulator og fungerer som en g
 - Energiledd (fra nettselskap, varierer dag/natt)
 - Kapasitetsledd (basert pa topp-3 effektdager)
 - Offentlige avgifter (forbruksavgift, Enova, MVA)
-- Stromstotte (90% over 91,25 ore/kWh)
+- Stromstotte (90% over 96,25 ore/kWh)
 
 ## Prosjektstruktur
 
@@ -72,11 +72,11 @@ async def _async_update_data(self) -> dict:
 
 **22 sensorer gruppert i 3 devices:**
 
-| Device | Sensorer |
-|--------|----------|
-| Nettleie | energiledd, energiledd_dag, energiledd_natt_helg, tariff, kapasitetstrinn, kapasitetstrinn_nummer, kapasitetstrinn_intervall, toppforbruk_1/2/3, snitt_toppforbruk, offentlige_avgifter, forbruksavgift, enovaavgift |
-| Stromstotte | stromstotte, spotpris_etter_stotte, total_strompris_etter_stotte, stromstotte_aktiv |
-| Norgespris | total_strompris_norgespris, prisforskjell_norgespris |
+| Device      | Sensorer                                                                                                                                                                                                             |
+|-------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Nettleie    | energiledd, energiledd_dag, energiledd_natt_helg, tariff, kapasitetstrinn, kapasitetstrinn_nummer, kapasitetstrinn_intervall, toppforbruk_1/2/3, snitt_toppforbruk, offentlige_avgifter, forbruksavgift, enovaavgift |
+| Stromstotte | stromstotte, spotpris_etter_stotte, total_strompris_etter_stotte, stromstotte_aktiv                                                                                                                                  |
+| Norgespris  | total_strompris_norgespris, prisforskjell_norgespris                                                                                                                                                                 |
 
 **Sensor-arkitektur:**
 ```python
@@ -202,8 +202,8 @@ async def async_setup_entry(hass, entry):
 
 ### Stromstotte
 ```python
-# 2025: Terskel 75 øre eks. mva × 1,25 = 93,75 øre inkl. mva
-stromstotte = max(0, (spotpris - 0.9375) * 0.90)
+# 2026: Terskel 77 øre eks. mva × 1,25 = 96,25 øre inkl. mva
+stromstotte = max(0, (spotpris - 0.9625) * 0.90)
 ```
 
 ### Kapasitetsledd per kWh

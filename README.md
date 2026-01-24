@@ -14,7 +14,7 @@ En sensor (`sensor.total_strompris_etter_stotte`) som viser din **faktiske strom
 - Spotpris fra Nord Pool
 - Nettleie (energiledd dag/natt + kapasitetsledd)
 - Offentlige avgifter (forbruksavgift + Enova)
-- Minus stromstotte (90% over 91,25 ore/kWh)
+- Minus stromstotte (90% over 96,25 ore/kWh inkl. mva)
 
 ## Installasjon
 
@@ -37,32 +37,57 @@ Du trenger:
 - **Effektsensor** - Stromforbruk i Watt (f.eks. Tibber Pulse)
 - **Spotpris-sensor** - Nord Pool "Current price" (f.eks. `sensor.nord_pool_no5_current_price`)
 
-### Oppsett basert pa din stromleverandor
+### Oppsett basert pa din stromavtale
 
-#### Med Norgespris (anbefalt for de fleste)
+#### Med Norgespris (fra nettselskapet)
 
-Hvis du har Norgespris eller tilsvarende spotprisavtale:
+Hvis du har valgt [Norgespris](https://www.regjeringen.no/no/tema/energi/strom/regjeringens-stromtiltak/id2900232/) hos nettselskapet:
 
-1. Bruk `sensor.total_strompris_etter_stotte` i Energy Dashboard
-2. Denne inkluderer spotpris + nettleie + avgifter - stromstotte
-3. Sammenlign med `sensor.prisforskjell_norgespris` for a se om du sparer
+1. **Konfigurer integrasjonen** med "Jeg har Norgespris" avkrysset
+2. Bruker fast pris: **50 ore/kWh** (Sor-Norge) eller **40 ore/kWh** (Nord-Norge/Tiltakssonen)
+3. Ingen stromstotte - Norgespris erstatter bade spotpris og stotte
+4. Bruk `sensor.total_strompris_etter_stotte` i Energy Dashboard
 
-#### Med stromstotte (standard)
+> **Merk:** Norgespris inkluderer mva. Nord-Norge har mva-fritak, derfor lavere pris.
 
-Hvis du har stromstotte og vil se faktisk pris etter stotte:
+#### Med spotpris og stromstotte (standard)
+
+Hvis du har vanlig spotprisavtale med stromstotte:
 
 1. Bruk `sensor.total_strompris_etter_stotte` i Energy Dashboard
 2. Sensor `sensor.stromstotte` viser stottebelop per kWh
-3. Stotten trekkes automatisk fra i totalprisen
+3. Stotten (90% over 96,25 ore/kWh) trekkes automatisk fra i totalprisen
 
 ![Stromstotte](images/sensor_strømstøtte.png)
 
-#### Uten stromstotte og uten Norgespris
+#### Uten stromstotte
 
 Hvis du ikke har stromstotte (f.eks. naring, hytte, eller Nord-Norge med lave priser):
 
 1. Bruk `sensor.total_strompris_for_stotte` for totalpris uten stotte
 2. Eller bruk `sensor.nettleie_total` hvis du kun vil se nettleie
+
+### Sammenligne spotpris vs Norgespris
+
+Usikker pa om Norgespris lønner seg for deg?
+
+- `sensor.prisforskjell_norgespris` viser forskjellen mellom spotpris og Norgespris
+- Positiv verdi = du sparer med Norgespris
+- Negativ verdi = spotpris er billigere
+
+### Begrensninger
+
+Denne integrasjonen stotter **privatboliger med eget stromabonnement**.
+
+**Forenklet modell:**
+- **Forbruk over 5000 kWh/mnd**: Integrasjonen beregner stromstotte pa alt forbruk. I virkeligheten far du kun stotte pa de forste 5000 kWh. For de fleste husholdninger er dette ikke et problem.
+- **Norgespris over 5000 kWh**: Samme forenkling - vi antar at alt forbruk far Norgespris.
+
+**Ikke stottet:**
+- **Fritidsbolig** - Har 1000 kWh grense for stromstotte (ikke 5000 kWh)
+- **Naringsliv** - Har andre stonadssatser
+- **Fjernvarme/narvarme** - Egen stotteordning
+- **Borettslag med fellesmaling** - Stotte utbetales til borettslaget
 
 ## Energy Dashboard
 

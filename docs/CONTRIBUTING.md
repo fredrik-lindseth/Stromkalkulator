@@ -4,9 +4,9 @@ Vil du legge til støtte for ditt nettselskap? Følg guiden under og opprett en 
 
 ## Legge til nytt nettselskap (TSO)
 
-1. Åpne `custom_components/stromkalkulator/const.py`
+1. Åpne `custom_components/stromkalkulator/tso.py`
 2. Finn `TSO_LIST` dictionary
-3. Finn ditt nettselskap (alle 71 norske nettselskaper er allerede registrert)
+3. Finn ditt nettselskap (alle 71 norske nettselskaper er registrert, 23 har priser)
 4. Oppdater oppføringen med priser fra nettselskapets nettside
 
 ### Eksempel
@@ -70,7 +70,7 @@ Kunder i tiltakssonen har fritak for både forbruksavgift og MVA.
 Etter endringer, verifiser at syntaksen er korrekt:
 
 ```bash
-python3 -m py_compile custom_components/stromkalkulator/const.py
+python3 -m py_compile custom_components/stromkalkulator/tso.py
 ```
 
 ## Opprett Pull Request
@@ -82,5 +82,15 @@ python3 -m py_compile custom_components/stromkalkulator/const.py
    - Navn på nettselskap
    - Lenke til prisside (kilde)
    - Prisene du har lagt inn
+
+## Alternativ: Opprett et issue
+
+Hvis du ikke ønsker eller har mulighet til å forke/lage PR, kan du opprette et [issue på GitHub](https://github.com/fredrik-lindseth/Stromkalkulator/issues) med:
+- Navn på nettselskap
+- Lenke til prisside
+- Energiledd dag/natt (øre/kWh)
+- Kapasitetstrinn (kW-grenser og kr/mnd)
+
+Så legger vi inn prisene for deg!
 
 Vi setter pris på alle bidrag!

@@ -1,17 +1,17 @@
 # Arkitektur og Design
 
-Dette dokumentet beskriver arkitekturen til Stromkalkulator og fungerer som en guide for a gjenskape eller videreutvikle integrasjonen.
+Dette dokumentet beskriver arkitekturen til Strømkalkulator og fungerer som en guide for å gjenskape eller videreutvikle integrasjonen.
 
-## Formal
+## Formål
 
-**Problemet:** Home Assistant viser bare spotpris (fra Nord Pool/Tibber), men norske stromfakturaer inneholder mange flere komponenter.
+**Problemet:** Home Assistant viser bare spotpris (fra Nord Pool/Tibber), men norske strømfakturaer inneholder mange flere komponenter.
 
-**Losningen:** En integrasjon som beregner faktisk totalpris inkludert:
+**Løsningen:** En integrasjon som beregner faktisk totalpris inkludert:
 - Spotpris (fra ekstern sensor)
 - Energiledd (fra nettselskap, varierer dag/natt)
-- Kapasitetsledd (basert pa topp-3 effektdager)
+- Kapasitetsledd (basert på topp-3 effektdager)
 - Offentlige avgifter (forbruksavgift, Enova, MVA)
-- Stromstotte (90% over 96,25 ore/kWh)
+- Strømstøtte (90% over 96,25 øre/kWh)
 
 ## Prosjektstruktur
 
@@ -20,7 +20,8 @@ stromkalkulator/
 ├── custom_components/stromkalkulator/   # HA-integrasjon
 │   ├── __init__.py                      # Oppsett, PLATFORMS
 │   ├── config_flow.py                   # UI-konfigurasjon
-│   ├── const.py                         # TSO-data, konstanter
+│   ├── const.py                         # Konstanter, avgifter, helligdager
+│   ├── tso.py                           # Nettselskap-data (TSO_LIST)
 │   ├── coordinator.py                   # DataUpdateCoordinator
 │   ├── sensor.py                        # Alle sensorer
 │   └── manifest.json                    # HACS-metadata
@@ -50,12 +51,12 @@ stromkalkulator/
 
 ### 1. Coordinator (`coordinator.py`)
 
-**Formal:** Sentral datahub som oppdateres hvert minutt.
+**Formål:** Sentral datahub som oppdateres hvert minutt.
 
 **Ansvar:**
 - Lese effekt fra brukerens sensor (W)
 - Lese spotpris fra Nord Pool-sensor
-- Beregne alle verdier (stromstotte, kapasitet, etc.)
+- Beregne alle verdier (strømstøtte, kapasitet, etc.)
 - Lagre topp-3 effektdager til disk (persistens)
 
 **Viktige metoder:**
@@ -64,7 +65,7 @@ async def _async_update_data(self) -> dict:
     # 1. Les effekt og spotpris
     # 2. Oppdater daglig maks-effekt
     # 3. Beregn kapasitetstrinn
-    # 4. Beregn stromstotte
+    # 4. Beregn strømstøtte
     # 5. Beregn alle priser
     return data_dict
 ```
@@ -72,7 +73,7 @@ async def _async_update_data(self) -> dict:
 **Persistens:**
 - Data lagres i `/config/.storage/stromkalkulator_{tso_id}`
 - Format: `{"daily_max_power": {"2026-01-15": 5.2, ...}, "current_month": 1}`
-- Nullstilles automatisk ved manedsskifte
+- Nullstilles automatisk ved månedsskifte
 
 ### 2. Sensorer (`sensor.py`)
 
@@ -81,7 +82,7 @@ async def _async_update_data(self) -> dict:
 | Device      | Sensorer                                                                                                                                                                                                             |
 |-------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Nettleie    | energiledd, energiledd_dag, energiledd_natt_helg, tariff, kapasitetstrinn, kapasitetstrinn_nummer, kapasitetstrinn_intervall, toppforbruk_1/2/3, snitt_toppforbruk, offentlige_avgifter, forbruksavgift, enovaavgift |
-| Stromstotte | stromstotte, spotpris_etter_stotte, total_strompris_etter_stotte, stromstotte_aktiv                                                                                                                                  |
+| Strømstøtte | strømstøtte, spotpris_etter_stotte, total_strompris_etter_stotte, stromstotte_aktiv                                                                                                                                  |
 | Norgespris  | total_strompris_norgespris, prisforskjell_norgespris                                                                                                                                                                 |
 
 **Sensor-arkitektur:**
@@ -99,9 +100,9 @@ class NettleieBaseSensor(CoordinatorEntity, SensorEntity):
 **Steg 4:** Velg spotpris-sensor (NOK/kWh)
 **Steg 5:** (Valgfritt) Velg stromselskap-pris-sensor
 
-### 4. Konstanter (`const.py`)
+### 4. Konstanter (`const.py`) og TSO-data (`tso.py`)
 
-**TSO_LIST:** Dict med alle nettselskaper og deres priser:
+**TSO_LIST** (i `tso.py`): Dict med alle 71 nettselskaper og deres priser:
 ```python
 TSO_LIST = {
     "bkk": {
@@ -117,7 +118,7 @@ TSO_LIST = {
 }
 ```
 
-**Avgiftssoner:**
+**Avgiftssoner** (i `const.py`):
 ```python
 AVGIFTSSONER = {
     "standard": {"forbruksavgift": 0.0713, "mva": 0.25},
@@ -155,7 +156,7 @@ AVGIFTSSONER = {
 └─────────────────────────────────┘
 ```
 
-## Nodvendig for a gjenskape
+## Nødvendig for å gjenskape
 
 ### Steg 1: Grunnstruktur (manifest.json, __init__.py)
 
@@ -182,7 +183,7 @@ async def async_setup_entry(hass, entry):
 ### Steg 2: Config Flow
 
 1. Lag schema med voluptuous
-2. Bruk `selector` for a liste sensorer
+2. Bruk `selector` for å liste sensorer
 3. Lagre config i `entry.data`
 
 ### Steg 3: Coordinator
@@ -202,11 +203,11 @@ async def async_setup_entry(hass, entry):
 
 1. Samle priser fra nettselskapenes nettsider
 2. Struktur: energiledd_dag, energiledd_natt, kapasitetstrinn-liste
-3. Oppdater arlig (priser endres 1. januar)
+3. Oppdater årlig (priser endres 1. januar)
 
 ## Viktige formler
 
-### Stromstotte
+### Strømstøtte
 ```python
 # 2026: Terskel 77 øre eks. mva × 1,25 = 96,25 øre inkl. mva
 stromstotte = max(0, (spotpris - 0.9625) * 0.90)
@@ -225,7 +226,7 @@ total = (spotpris - stromstotte) + energiledd + kapasitet_per_kwh
 ### Dag/natt-tariff
 ```python
 def is_day_rate(dt: datetime) -> bool:
-    if dt.weekday() >= 5:  # Lordag/sondag
+    if dt.weekday() >= 5:  # Lørdag/søndag
         return False
     if is_holiday(dt):
         return False

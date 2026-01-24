@@ -10,9 +10,12 @@ from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import (
+    AVGIFTSSONE_STANDARD,
+    CONF_AVGIFTSSONE,
     CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
     CONF_ENERGILEDD_DAG,
     CONF_ENERGILEDD_NATT,
+    CONF_HAR_NORGESPRIS,
     CONF_POWER_SENSOR,
     CONF_SPOT_PRICE_SENSOR,
     CONF_TSO,
@@ -22,6 +25,7 @@ from .const import (
     STROMSTOTTE_LEVEL,
     STROMSTOTTE_RATE,
     TSO_LIST,
+    get_norgespris_inkl_mva,
 )
 
 if TYPE_CHECKING:
@@ -51,6 +55,12 @@ class NettleieCoordinator(DataUpdateCoordinator):
         tso_id = entry.data.get(CONF_TSO, "bkk")
         self.tso = TSO_LIST.get(tso_id, TSO_LIST["bkk"])
         self._tso_id = tso_id
+
+        # Get avgiftssone from config
+        self.avgiftssone = entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
+
+        # Get Norgespris setting from config
+        self.har_norgespris = entry.data.get(CONF_HAR_NORGESPRIS, False)
 
         # Get energiledd from config (allows override)
         self.energiledd_dag = entry.data.get(CONF_ENERGILEDD_DAG, self.tso["energiledd_dag"])
@@ -110,8 +120,13 @@ class NettleieCoordinator(DataUpdateCoordinator):
         spot_state = self.hass.states.get(self.spot_price_sensor)
         spot_price = float(spot_state.state) if spot_state and spot_state.state not in ("unknown", "unavailable") else 0
 
-        # Calculate strømstøtte (90% av spotpris over 91,25 øre/kWh inkl. mva)
-        if spot_price > STROMSTOTTE_LEVEL:
+        # Calculate strømstøtte
+        # Forskrift § 5: 90% av spotpris over 77 øre/kWh eks. mva (96,25 øre inkl. mva) i 2026
+        # Kilde: https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791
+        if self.har_norgespris:
+            # Norgespris: Ingen strømstøtte (kan ikke kombineres)
+            stromstotte = 0
+        elif spot_price > STROMSTOTTE_LEVEL:
             stromstotte = (spot_price - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE
         else:
             stromstotte = 0
@@ -123,25 +138,35 @@ class NettleieCoordinator(DataUpdateCoordinator):
         days_in_month = self._days_in_month(now)
         fastledd_per_kwh = (kapasitetsledd / days_in_month) / 24
 
-        # Norgespris (korrekt - fast pris fra Elhub)
-        # Fast pris: 50 øre/kWh inkl. mva = 0.50 NOK/kWh
-        # Kan ikke kombineres med strømstøtte
-        NORGESPRIS_FAST = 0.50  # 50 øre/kWh inkl. mva
+        # Norgespris - fast pris basert på avgiftssone
+        # Kilde: https://www.regjeringen.no/no/tema/energi/strom/regjeringens-stromtiltak/id2900232/
+        # Sør-Norge: 40 øre + 25% mva = 50 øre/kWh
+        # Nord-Norge/Tiltakssonen: 40 øre (mva-fritak)
+        norgespris = get_norgespris_inkl_mva(self.avgiftssone)
 
-        # Norgespris er fast pris, ingen strømstøtte
-        norgespris_stromstotte = 0  # Ingen strømstøtte med norgespris
+        # Norgespris har ingen strømstøtte
+        norgespris_stromstotte = 0
 
-        # Total price (Nord Pool + nettleie)
-        total_price = spot_price - stromstotte + energiledd + fastledd_per_kwh
+        # Total price calculation depends on whether user has Norgespris
+        if self.har_norgespris:
+            # Bruker har Norgespris: bruk fast pris i stedet for spotpris
+            total_price = norgespris + energiledd + fastledd_per_kwh
+            total_price_uten_stotte = norgespris + energiledd + fastledd_per_kwh  # Samme som total_price
+        else:
+            # Standard: spotpris minus strømstøtte
+            total_price = spot_price - stromstotte + energiledd + fastledd_per_kwh
+            total_price_uten_stotte = spot_price + energiledd + fastledd_per_kwh
 
-        # Total price UTEN strømstøtte (for de som vil se bruttopris)
-        total_price_uten_stotte = spot_price + energiledd + fastledd_per_kwh
-
-        # Total pris med norgespris
-        total_pris_norgespris = NORGESPRIS_FAST + energiledd + fastledd_per_kwh
+        # Total pris med norgespris (for sammenligning)
+        total_pris_norgespris = norgespris + energiledd + fastledd_per_kwh
 
         # Kroner spart/tapt per kWh (sammenligning)
-        kroner_spart_per_kwh = total_price - total_pris_norgespris
+        # Positiv = du betaler mer enn Norgespris
+        # Negativ = du betaler mindre enn Norgespris
+        if self.har_norgespris:
+            kroner_spart_per_kwh = 0  # Ingen forskjell når du HAR Norgespris
+        else:
+            kroner_spart_per_kwh = total_price - total_pris_norgespris
 
         # Get electricity company price if configured
         electricity_company_price = None
@@ -164,7 +189,7 @@ class NettleieCoordinator(DataUpdateCoordinator):
             "spot_price": round(spot_price, 4),
             "stromstotte": round(stromstotte, 4),
             "spotpris_etter_stotte": round(spotpris_etter_stotte, 4),
-            "norgespris": round(NORGESPRIS_FAST, 4),
+            "norgespris": round(norgespris, 4),
             "norgespris_stromstotte": norgespris_stromstotte,
             "total_pris_norgespris": round(total_pris_norgespris, 4),
             "kroner_spart_per_kwh": round(kroner_spart_per_kwh, 4),
@@ -177,6 +202,8 @@ class NettleieCoordinator(DataUpdateCoordinator):
             "top_3_days": top_3,
             "is_day_rate": self._is_day_rate(now),
             "tso": self.tso["name"],
+            "har_norgespris": self.har_norgespris,
+            "avgiftssone": self.avgiftssone,
         }
 
     def _get_top_3_days(self) -> dict[str, float]:

@@ -34,39 +34,77 @@ DEFAULT_ENERGILEDD_DAG: Final = 0.4613
 DEFAULT_ENERGILEDD_NATT: Final = 0.2329
 DEFAULT_TSO: Final = "bkk"
 
-# Strømstøtte
-# Kilde: https://www.regjeringen.no/no/tema/energi/strom/regjeringens-stromtiltak/id2900232/
+# === STRØMSTØTTE ===
+# Primærkilde: Forskrift om strømstønad § 5
+# https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791
 #
-# Historikk (terskelverdi eks. mva → inkl. 25% mva):
-# - 2021 (des): 70 øre eks. mva → 87,50 øre inkl. mva, 55% kompensasjon
+# Sekundærkilde: Regjeringens strømtiltak (oppsummering)
+# https://www.regjeringen.no/no/tema/energi/strom/regjeringens-stromtiltak/id2900232/
+#
+# Historikk terskelverdi (eks. mva → inkl. 25% mva):
+# - 2021 (des): 70 øre → 87,50 øre, 55% kompensasjon
 # - 2022 (jan-aug): 70 øre → 87,50 øre, 80% kompensasjon
-# - 2022 (sep) - 2023 (aug): 70 øre → 87,50 øre, 90% kompensasjon (med unntak apr-mai 2023: 80%)
-# - 2023 (sep-des): 70 øre → 87,50 øre, 90% kompensasjon, time-for-time
-# - 2024: 73 øre eks. mva → 91,25 øre inkl. mva, 90% kompensasjon
-# - 2025: 75 øre eks. mva → 93,75 øre inkl. mva, 90% kompensasjon
-# - 2026+: Ikke fastsatt ennå, antar samme som 2025
+# - 2022 (sep) - 2023 (aug): 70 øre → 87,50 øre, 90% (unntak apr-mai 2023: 80%)
+# - 2023 (sep-des): 70 øre → 87,50 øre, 90%, time-for-time
+# - 2024: 73 øre → 91,25 øre, 90%
+# - 2025: 75 øre → 93,75 øre, 90%
+# - 2026: 77 øre → 96,25 øre, 90% (GJELDENDE - Forskrift § 5)
 #
-# Merk: Fra 1. oktober 2025 kan husholdninger velge Norgespris (40 øre/kWh eks. mva)
-# som alternativ til strømstøtte. Se NORGESPRIS_* konstantene.
+# Ordningen gjelder til 31. desember 2029 (Forskrift § 2).
+# Maks 5000 kWh/mnd per målepunkt (Forskrift § 5).
 #
 # Verdiene under er inkl. mva (spotpris fra Nord Pool er inkl. mva)
-STROMSTOTTE_LEVEL: Final = 0.9375  # 75 øre eks. mva × 1,25 = 93,75 øre inkl. mva (2025)
-STROMSTOTTE_RATE: Final = 0.9  # 90% kompensasjon over terskel
+STROMSTOTTE_TERSKEL_EKS_MVA: Final = 0.77  # 77 øre/kWh eks. mva (2026)
+STROMSTOTTE_LEVEL: Final = 0.9625  # 77 * 1.25 = 96,25 øre inkl. mva (2026)
+STROMSTOTTE_RATE: Final = 0.90  # 90% kompensasjon over terskel
+STROMSTOTTE_MAX_KWH: Final = 5000  # Maks 5000 kWh/mnd per målepunkt
+STROMSTOTTE_KILDE: Final = "https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791"
 
-# Norgespris (fra 1. oktober 2025)
-# Kilde: https://www.regjeringen.no/no/tema/energi/strom/regjeringens-stromtiltak/id2900232/
+# === NORGESPRIS ===
+# Kilde: Regjeringens strømtiltak
+# https://www.regjeringen.no/no/tema/energi/strom/regjeringens-stromtiltak/id2900232/
 #
 # Norgespris er en valgfri ordning der husholdninger får strøm til fast pris.
-# Pris: 40 øre/kWh eks. mva (50 øre/kWh inkl. mva i Sør-Norge, 40 øre i Nord-Norge pga mva-fritak)
-# Grenser: 5000 kWh/mnd for bolig, 1000 kWh/mnd for fritidsbolig
-# Bindingstid: Ut kalenderåret, må velges på nytt hvert år
+# Gjelder: 1. oktober 2025 - 31. desember 2026
+# Pris: 40 øre/kWh eks. mva
+# - Sør-Norge (standard): 40 øre + 25% mva = 50 øre/kWh inkl. mva
+# - Nord-Norge/Tiltakssonen: 40 øre (mva-fritak)
 #
-# NB: Strømkalkulator beregner strømstøtte automatisk. Hvis bruker har Norgespris,
-# bør de bruke sensor uten strømstøtte eller sette opp manuell pris.
-NORGESPRIS_EKS_MVA: Final = 0.40  # 40 øre/kWh eks. mva (2025-2026)
-NORGESPRIS_INKL_MVA: Final = 0.50  # 50 øre/kWh inkl. mva (Sør-Norge)
-NORGESPRIS_MAX_KWH_BOLIG: Final = 5000  # Max 5000 kWh/mnd for bolig
-NORGESPRIS_MAX_KWH_FRITID: Final = 1000  # Max 1000 kWh/mnd for fritidsbolig
+# Grenser:
+# - Bolig: 5000 kWh/mnd (støttet)
+# - Fritidsbolig: 1000 kWh/mnd (IKKE støttet i denne integrasjonen)
+#
+# Regler:
+# - Norgespris er et alternativ til strømstøtte - kan IKKE kombineres
+# - Må velges aktivt hos nettselskapet
+# - Bindingstid: Ut kalenderåret, må velges på nytt hvert år
+#
+NORGESPRIS_EKS_MVA: Final = 0.40  # 40 øre/kWh eks. mva
+NORGESPRIS_INKL_MVA_STANDARD: Final = 0.50  # 50 øre inkl. 25% mva (Sør-Norge)
+NORGESPRIS_INKL_MVA_NORD: Final = 0.40  # 40 øre (Nord-Norge/Tiltakssonen, mva-fritak)
+NORGESPRIS_MAX_KWH_BOLIG: Final = 5000  # Maks 5000 kWh/mnd for bolig
+NORGESPRIS_MAX_KWH_FRITID: Final = 1000  # Maks 1000 kWh/mnd for fritidsbolig (ikke støttet)
+NORGESPRIS_KILDE: Final = "https://www.regjeringen.no/no/tema/energi/strom/regjeringens-stromtiltak/id2900232/"
+
+# Config key for Norgespris
+CONF_HAR_NORGESPRIS: Final = "har_norgespris"
+
+
+def get_norgespris_inkl_mva(avgiftssone: str) -> float:
+    """Returnerer Norgespris inkl. mva basert på avgiftssone.
+
+    Sør-Norge (standard): 40 øre + 25% mva = 50 øre/kWh
+    Nord-Norge/Tiltakssonen: 40 øre (mva-fritak)
+
+    Args:
+        avgiftssone: One of 'standard', 'nord_norge', 'tiltakssone'
+
+    Returns:
+        Norgespris in NOK/kWh inkl. mva
+    """
+    if avgiftssone in (AVGIFTSSONE_NORD_NORGE, AVGIFTSSONE_TILTAKSSONE):
+        return NORGESPRIS_INKL_MVA_NORD
+    return NORGESPRIS_INKL_MVA_STANDARD
 
 # Offentlige avgifter (NOK/kWh eks. mva, oppdateres årlig)
 # Kilde: https://www.skatteetaten.no/bedrift-og-organisasjon/avgifter/saravgifter/om/elektrisk-kraft/

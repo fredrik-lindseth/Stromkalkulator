@@ -2,18 +2,17 @@
 
 Tests the electricity subsidy (strømstøtte) calculation:
 - 90% coverage of spot price above threshold (inkl. mva)
+- Max 5000 kWh/month (not enforced in this integration)
 
 Historikk terskelverdi (eks. mva → inkl. 25% mva):
 - 2024: 73 øre → 91,25 øre inkl. mva
 - 2025: 75 øre → 93,75 øre inkl. mva
-- 2026+: Ikke fastsatt, antar samme som 2025
+- 2026: 77 øre → 96,25 øre inkl. mva
 
-Kilde: https://www.regjeringen.no/no/tema/energi/strom/regjeringens-stromtiltak/id2900232/
+Kilde: https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791
 """
 
 from __future__ import annotations
-
-import pytest
 
 # Import from const.py to ensure consistency
 from custom_components.stromkalkulator.const import STROMSTOTTE_LEVEL, STROMSTOTTE_RATE
@@ -21,10 +20,10 @@ from custom_components.stromkalkulator.const import STROMSTOTTE_LEVEL, STROMSTOT
 
 def calculate_stromstotte(spot_price: float) -> float:
     """Calculate strømstøtte based on spot price.
-    
+
     Args:
         spot_price: Spot price in NOK/kWh
-        
+
     Returns:
         Strømstøtte in NOK/kWh
     """
@@ -150,10 +149,10 @@ class TestStromstotteDocumentationExamples:
 class TestStromstotteThresholdValues:
     """Test that threshold values are correct."""
 
-    def test_threshold_is_2025_value(self):
-        """Verify threshold is set to 2025 value (75 øre eks. mva × 1.25)."""
-        # 75 øre/kWh eks. mva × 1.25 = 93.75 øre/kWh inkl. mva = 0.9375 NOK/kWh
-        assert STROMSTOTTE_LEVEL == 0.9375
+    def test_threshold_is_2026_value(self):
+        """Verify threshold is set to 2026 value (77 øre eks. mva * 1.25)."""
+        # 77 øre/kWh eks. mva * 1.25 = 96.25 øre/kWh inkl. mva = 0.9625 NOK/kWh
+        assert STROMSTOTTE_LEVEL == 0.9625
 
     def test_rate_is_90_percent(self):
         """Verify rate is 90%."""

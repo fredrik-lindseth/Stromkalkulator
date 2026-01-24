@@ -18,7 +18,7 @@ python -m pytest tests/ -v
 
 | Testfil                   | Beskrivelse                                  |
 |---------------------------|----------------------------------------------|
-| `test_stromstotte.py`     | Strømstøtte-beregning (90% over 91,25 øre)   |
+| `test_stromstotte.py`     | Strømstøtte-beregning (90% over 96,25 øre)   |
 | `test_avgifter.py`        | Forbruksavgift, Enova-avgift og MVA per sone |
 | `test_energiledd.py`      | Dag/natt-tariff inkl. helligdager            |
 | `test_kapasitetstrinn.py` | Kapasitetstrinn og topp-3-beregning          |
@@ -79,15 +79,15 @@ Ved FEIL, sjekk attributtene på sensoren:
 
 ### 1. Strømstøtte
 
-**Formel (2025):** `max(0, (spotpris - 0.9375) × 0.90)`
+**Formel (2026):** `max(0, (spotpris - 0.9625) × 0.90)`
 
 | Spotpris | Strømstøtte | Sjekk                      |
 |----------|-------------|----------------------------|
 | 0.50 kr  | 0.00 kr     | Under terskel              |
-| 0.93 kr  | 0.00 kr     | Under terskel              |
-| 1.00 kr  | 0.06 kr     | (1.00-0.9375)×0.9 = 0.0563 |
-| 1.50 kr  | 0.51 kr     | (1.50-0.9375)×0.9 = 0.5063 |
-| 2.00 kr  | 0.96 kr     | (2.00-0.9375)×0.9 = 0.9563 |
+| 0.96 kr  | 0.00 kr     | Under terskel              |
+| 1.00 kr  | 0.03 kr     | (1.00-0.9625)×0.9 = 0.0338 |
+| 1.50 kr  | 0.48 kr     | (1.50-0.9625)×0.9 = 0.4838 |
+| 2.00 kr  | 0.93 kr     | (2.00-0.9625)×0.9 = 0.9338 |
 
 ### 2. Tariff (dag/natt)
 

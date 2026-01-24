@@ -11,8 +11,6 @@ from __future__ import annotations
 
 from datetime import datetime
 
-import pytest
-
 # Faste helligdager (MM-DD format)
 HELLIGDAGER_FASTE = [
     "01-01",  # Nyttårsdag
@@ -45,13 +43,13 @@ HELLIGDAGER_BEVEGELIGE = [
 
 def is_day_rate(dt: datetime) -> bool:
     """Check if current time is day rate.
-    
+
     Day rate: Weekdays 06:00-22:00 (not holidays)
     Night rate: 22:00-06:00, weekends, and holidays
-    
+
     Args:
         dt: datetime to check
-        
+
     Returns:
         True if day rate, False if night rate
     """
@@ -68,12 +66,12 @@ def is_day_rate(dt: datetime) -> bool:
 
 def get_energiledd(dt: datetime, dag_pris: float, natt_pris: float) -> float:
     """Get energiledd based on time.
-    
+
     Args:
         dt: datetime to check
         dag_pris: Day rate in NOK/kWh
         natt_pris: Night rate in NOK/kWh
-        
+
     Returns:
         Energiledd in NOK/kWh
     """
@@ -222,7 +220,7 @@ class TestEnergyleddSelection:
         """Test with actual BKK values."""
         dag_pris = 0.4613  # BKK 2026
         natt_pris = 0.2329  # BKK 2026
-        
+
         # Weekday day
         assert get_energiledd(datetime(2026, 1, 26, 12, 0), dag_pris, natt_pris) == 0.4613
         # Weekday night

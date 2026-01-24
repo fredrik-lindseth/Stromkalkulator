@@ -7,8 +7,6 @@ Tests the capacity-based grid tariff calculation:
 
 from __future__ import annotations
 
-import pytest
-
 # BKK kapasitetstrinn 2026
 BKK_KAPASITETSTRINN = [
     (2, 155),
@@ -26,11 +24,11 @@ BKK_KAPASITETSTRINN = [
 
 def get_kapasitetsledd(avg_power: float, kapasitetstrinn: list[tuple[float, int]]) -> tuple[int, int, str]:
     """Get kapasitetsledd based on average power.
-    
+
     Args:
         avg_power: Average of top 3 days power consumption in kW
         kapasitetstrinn: List of (threshold, price) tuples
-        
+
     Returns:
         Tuple of (price, tier_number, tier_range_string)
     """
@@ -50,10 +48,10 @@ def get_kapasitetsledd(avg_power: float, kapasitetstrinn: list[tuple[float, int]
 
 def calculate_avg_top_3(daily_max_power: dict[str, float]) -> float:
     """Calculate average of top 3 days.
-    
+
     Args:
         daily_max_power: Dict of {date_str: max_power_kw}
-        
+
     Returns:
         Average power in kW
     """
@@ -153,7 +151,7 @@ class TestKapasitetstrinnSelection:
 
     def test_zero_consumption(self):
         """Zero consumption should give tier 1."""
-        price, tier, range_str = get_kapasitetsledd(0.0, BKK_KAPASITETSTRINN)
+        price, tier, _range_str = get_kapasitetsledd(0.0, BKK_KAPASITETSTRINN)
         assert price == 155
         assert tier == 1
 
@@ -226,7 +224,7 @@ class TestTop3DaysCalculation:
             "2026-01-20": 4.8,
         }
         result = calculate_avg_top_3(daily_max)
-        expected = (3.5 + 4.8 + 4.8) / 3
+        (3.5 + 4.8 + 4.8) / 3
         assert abs(result - 4.37) < 0.01
 
 
@@ -261,12 +259,12 @@ class TestFastleddPerKwh:
     def test_different_kapasitetsledd_values(self):
         """Test with different kapasitetsledd values."""
         days_in_month = 30
-        
+
         # Tier 1: 155 kr
         assert abs((155 / days_in_month / 24) - 0.215) < 0.01
-        
+
         # Tier 3: 415 kr
         assert abs((415 / days_in_month / 24) - 0.576) < 0.01
-        
+
         # Tier 5: 770 kr
         assert abs((770 / days_in_month / 24) - 1.069) < 0.01

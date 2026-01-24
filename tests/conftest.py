@@ -43,8 +43,8 @@ def bkk_kapasitetstrinn():
 @pytest.fixture
 def sample_spot_prices():
     """Sample spot prices for testing.
-    
-    Terskel 2025: 75 øre eks. mva × 1.25 = 93.75 øre inkl. mva = 0.9375 NOK/kWh
+
+    Terskel 2026: 77 øre eks. mva * 1.25 = 96.25 øre inkl. mva = 0.9625 NOK/kWh
     """
     from custom_components.stromkalkulator.const import STROMSTOTTE_LEVEL
     return {

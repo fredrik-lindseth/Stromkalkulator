@@ -17,6 +17,7 @@ from .const import (
     CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
     CONF_ENERGILEDD_DAG,
     CONF_ENERGILEDD_NATT,
+    CONF_HAR_NORGESPRIS,
     CONF_POWER_SENSOR,
     CONF_SPOT_PRICE_SENSOR,
     CONF_TSO,
@@ -85,6 +86,9 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             mode=selector.SelectSelectorMode.DROPDOWN,
                         ),
                     ),
+                    vol.Optional(
+                        CONF_HAR_NORGESPRIS, default=False
+                    ): selector.BooleanSelector(),
                 }
             ),
             errors=errors,
@@ -255,6 +259,10 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     ),
                 ),
+                vol.Optional(
+                    CONF_HAR_NORGESPRIS,
+                    default=current.get(CONF_HAR_NORGESPRIS, False),
+                ): selector.BooleanSelector(),
                 vol.Required(
                     CONF_POWER_SENSOR,
                     default=current.get(CONF_POWER_SENSOR),

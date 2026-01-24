@@ -25,12 +25,14 @@ template:
       # STRØMSTØTTE VALIDERING
       # =========================================================================
       # Bruker spotpris fra strømstøtte-sensorens attributt for konsistens
+      # Terskel 2025: 75 øre eks. mva × 1.25 = 93.75 øre inkl. mva = 0.9375 NOK/kWh
+      # Historikk: 2024: 91.25 øre, 2025: 93.75 øre
       - name: "Test: Strømstøtte beregning"
         unique_id: stromkalkulator_test_stromstotte
         icon: mdi:calculator-variant-outline
         state: >
           {% set spot = state_attr('sensor.stromstotte', 'spotpris') | float(0) %}
-          {% set terskel = 0.9125 %}
+          {% set terskel = 0.9375 %}
           {% set rate = 0.9 %}
           {% set forventet = ([0, (spot - terskel) * rate] | max) | round(4) %}
           {% set faktisk = states('sensor.stromstotte') | float(0) %}
@@ -38,18 +40,19 @@ template:
           {% if diff < 0.001 %}OK{% else %}FEIL{% endif %}
         attributes:
           spotpris: "{{ state_attr('sensor.stromstotte', 'spotpris') | float(0) | round(4) }}"
-          terskel: 0.9125
+          terskel: 0.9375
           dekningsgrad: "90%"
           forventet_stromstotte: >
             {% set spot = state_attr('sensor.stromstotte', 'spotpris') | float(0) %}
-            {{ ([0, (spot - 0.9125) * 0.9] | max) | round(4) }}
+            {{ ([0, (spot - 0.9375) * 0.9] | max) | round(4) }}
           faktisk_stromstotte: "{{ states('sensor.stromstotte') | float(0) | round(4) }}"
           differanse: >
             {% set spot = state_attr('sensor.stromstotte', 'spotpris') | float(0) %}
-            {% set forventet = ([0, (spot - 0.9125) * 0.9] | max) | round(4) %}
+            {% set forventet = ([0, (spot - 0.9375) * 0.9] | max) | round(4) %}
             {% set faktisk = states('sensor.stromstotte') | float(0) %}
             {{ (forventet - faktisk) | abs | round(4) }}
-          formel: "max(0, (spotpris - 0.9125) × 0.90)"
+          formel: "max(0, (spotpris - 0.9375) × 0.90)"
+          kilde: "https://www.regjeringen.no/no/tema/energi/strom/regjeringens-stromtiltak/id2900232/"
 
       # =========================================================================
       # SPOTPRIS ETTER STØTTE VALIDERING

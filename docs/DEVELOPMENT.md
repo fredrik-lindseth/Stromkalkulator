@@ -119,8 +119,8 @@ Priser endres ofte 1. januar:
 ## Viktige formler
 
 ```python
-# Stromstotte (90% over 91.25 ore/kWh)
-stromstotte = max(0, (spotpris - 0.9125) * 0.90)
+# Stromstotte (90% over 93.75 ore/kWh, 2025-sats)
+stromstotte = max(0, (spotpris - 0.9375) * 0.90)
 
 # Kapasitetsledd per kWh
 kapasitet_per_kwh = (kapasitetsledd_mnd / dager_i_maned) / 24

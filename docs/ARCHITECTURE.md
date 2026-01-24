@@ -202,7 +202,8 @@ async def async_setup_entry(hass, entry):
 
 ### Stromstotte
 ```python
-stromstotte = max(0, (spotpris - 0.9125) * 0.90)
+# 2025: Terskel 75 øre eks. mva × 1,25 = 93,75 øre inkl. mva
+stromstotte = max(0, (spotpris - 0.9375) * 0.90)
 ```
 
 ### Kapasitetsledd per kWh

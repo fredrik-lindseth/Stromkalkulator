@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "custom_components"))
 
 # Mock Home Assistant modules before importing our code
 sys.modules["homeassistant"] = MagicMock()
+sys.modules["homeassistant.const"] = MagicMock()
 sys.modules["homeassistant.core"] = MagicMock()
 sys.modules["homeassistant.config_entries"] = MagicMock()
 sys.modules["homeassistant.helpers"] = MagicMock()
@@ -41,10 +42,14 @@ def bkk_kapasitetstrinn():
 
 @pytest.fixture
 def sample_spot_prices():
-    """Sample spot prices for testing."""
+    """Sample spot prices for testing.
+    
+    Terskel 2025: 75 øre eks. mva × 1.25 = 93.75 øre inkl. mva = 0.9375 NOK/kWh
+    """
+    from custom_components.stromkalkulator.const import STROMSTOTTE_LEVEL
     return {
         "low": 0.50,      # Under terskel
-        "threshold": 0.9125,  # Akkurat på terskel
+        "threshold": STROMSTOTTE_LEVEL,  # Akkurat på terskel
         "medium": 1.20,   # Over terskel
         "high": 2.00,     # Høy pris
         "extreme": 5.00,  # Ekstrem pris

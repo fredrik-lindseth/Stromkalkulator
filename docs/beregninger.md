@@ -246,16 +246,26 @@ electricity_company_total = strømselskap_pris + energiledd + fastledd_per_kwh
 
 ## Strømstøtte
 
-Strømstøtten dekker 90% av spotpris over 91,25 øre/kWh (73 øre eks. mva).
+Strømstøtten dekker 90% av spotpris over terskelen.
+
+**Kilde:** [regjeringen.no - Regjeringens strømtiltak](https://www.regjeringen.no/no/tema/energi/strom/regjeringens-stromtiltak/id2900232/)
+
+### Historikk terskelverdi
+
+| År   | Eks. mva | Inkl. mva (×1.25) |
+|------|----------|-------------------|
+| 2024 | 73 øre   | 91,25 øre         |
+| 2025 | 75 øre   | 93,75 øre         |
+| 2026 | (ikke fastsatt, antar 75 øre) | 93,75 øre |
 
 ### Formel
 
 ```
-strømstøtte = max(0, (spotpris - 0.9125) * 0.90)
+strømstøtte = max(0, (spotpris - 0.9375) * 0.90)
 ```
 
 ### Parametere
-- **Terskel**: 91,25 øre/kWh inkl. mva (0.9125 NOK/kWh)
+- **Terskel**: 93,75 øre/kWh inkl. mva (0.9375 NOK/kWh) - 2025-sats
 - **Dekningsgrad**: 90%
 - **Basis**: Spotpris fra Nord Pool
 
@@ -264,10 +274,10 @@ strømstøtte = max(0, (spotpris - 0.9125) * 0.90)
 | Spotpris   | Strømstøtte | Pris etter støtte |
 |------------|-------------|-------------------|
 | 0.50 NOK   | 0.00 NOK    | 0.50 NOK          |
-| 0.9125 NOK | 0.00 NOK    | 0.9125 NOK        |
-| 1.00 NOK   | 0.08 NOK    | 0.92 NOK          |
-| 1.50 NOK   | 0.53 NOK    | 0.97 NOK          |
-| 2.00 NOK   | 0.98 NOK    | 1.02 NOK          |
+| 0.9375 NOK | 0.00 NOK    | 0.9375 NOK        |
+| 1.00 NOK   | 0.06 NOK    | 0.94 NOK          |
+| 1.50 NOK   | 0.51 NOK    | 0.99 NOK          |
+| 2.00 NOK   | 0.96 NOK    | 1.04 NOK          |
 
 ## Norgespris
 
@@ -294,10 +304,10 @@ kroner_spart_per_kwh = total_pris_etter_stotte - total_pris_norgespris
 - Fastledd: 0.56 NOK/kWh
 
 **Beregninger:**
-1. **Din strømstøtte**: (1.20 - 0.9125) * 0.90 = 0.26 NOK/kWh
-2. **Din totalpris etter støtte**: (1.20 - 0.26) + 0.4613 + 0.56 = 1.96 NOK/kWh
+1. **Din strømstøtte**: (1.20 - 0.9375) * 0.90 = 0.24 NOK/kWh
+2. **Din totalpris etter støtte**: (1.20 - 0.24) + 0.4613 + 0.56 = 1.98 NOK/kWh
 3. **Totalpris med norgespris**: 0.50 + 0.4613 + 0.56 = 1.52 NOK/kWh
-4. **Prisforskjell**: 1.96 - 1.52 = 0.44 NOK/kWh (du betaler mer)
+4. **Prisforskjell**: 1.98 - 1.52 = 0.46 NOK/kWh (du betaler mer)
 
 ### Tolkning av prisforskjell
 - **Positiv verdi**: Du betaler mer enn norgespris (norgespris er billigere)
@@ -314,9 +324,9 @@ kroner_spart_per_kwh = total_pris_etter_stotte - total_pris_norgespris
 
 **Beregninger:**
 1. **Fastledd per kWh**: (400 / 30) / 24 = 0.56 NOK/kWh
-2. **Strømstøtte**: (1.20 - 0.9125) * 0.90 = 0.26 NOK/kWh
+2. **Strømstøtte**: (1.20 - 0.9375) * 0.90 = 0.24 NOK/kWh
 3. **Totalpris uten støtte**: 1.20 + 0.4613 + 0.56 = 2.22 NOK/kWh
-4. **Totalpris med støtte**: (1.20 - 0.26) + 0.4613 + 0.56 = 1.96 NOK/kWh
+4. **Totalpris med støtte**: (1.20 - 0.24) + 0.4613 + 0.56 = 1.98 NOK/kWh
 
 **Offentlige avgifter (inkludert i energileddet, 2026-satser):**
 - Forbruksavgift: 7,13 øre/kWh eks. mva
@@ -338,8 +348,8 @@ Dette eksempelet viser hvordan samme strømforbruk gir ulik totalpris avhengig a
 ### Steg 1: Beregn strømstøtte (lik for alle)
 
 ```
-Strømstøtte = (1.50 - 0.9125) * 0.90 = 0.53 NOK/kWh
-Spotpris etter støtte = 1.50 - 0.53 = 0.97 NOK/kWh
+Strømstøtte = (1.50 - 0.9375) * 0.90 = 0.51 NOK/kWh
+Spotpris etter støtte = 1.50 - 0.51 = 0.99 NOK/kWh
 ```
 
 ### Steg 2: Beregn avgifter per sone (2026-satser)

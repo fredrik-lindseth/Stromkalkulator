@@ -18,6 +18,7 @@ from .const import (
     CONF_TSO,
     DOMAIN,
     ENOVA_AVGIFT,
+    STROMSTOTTE_LEVEL,
     TSO_LIST,
     get_forbruksavgift,
     get_mva_sats,
@@ -436,7 +437,7 @@ class StromstotteSensor(NettleieBaseSensor):
         if self.coordinator.data:
             return {
                 "spotpris": self.coordinator.data.get("spot_price"),
-                "terskel": 0.9125,
+                "terskel": STROMSTOTTE_LEVEL,
                 "dekningsgrad": "90%",
             }
         return None
@@ -777,10 +778,10 @@ class StromstotteKwhSensor(NettleieBaseSensor):
             stromstotte = self.coordinator.data.get("stromstotte", 0)
             return {
                 "spotpris": spot_price,
-                "terskel": 0.9125,
-                "over_terskel": spot_price > 0.9125,
+                "terskel": STROMSTOTTE_LEVEL,
+                "over_terskel": spot_price > STROMSTOTTE_LEVEL,
                 "stromstotte_per_kwh": stromstotte,
-                "note": "Timer hvor spotpris > 91,25 øre/kWh gir strømstøtte på fakturaen",
+                "note": f"Timer hvor spotpris > {STROMSTOTTE_LEVEL * 100:.2f} øre/kWh gir strømstøtte på fakturaen",
             }
         return None
 

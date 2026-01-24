@@ -1,6 +1,6 @@
 # Utvikling
 
-Guide for utvikling og vedlikehold av Stromkalkulator.
+Guide for utvikling og vedlikehold av Strømkalkulator.
 
 ## Prosjektstruktur
 
@@ -37,7 +37,7 @@ ruff check custom_components/stromkalkulator/
 ### Kopiere filer (utvikling)
 
 ```bash
-# Kopier enkeltfil (scp virker ikke pa HA, bruk ssh cat)
+# Kopier enkeltfil (scp virker ikke på HA, bruk ssh cat)
 ssh ha-local "cat > /config/custom_components/stromkalkulator/sensor.py" < custom_components/stromkalkulator/sensor.py
 
 # Kopier alle filer
@@ -52,9 +52,9 @@ ssh ha-local "ha core restart"
 ssh ha-local "ha core logs" | grep -i stromkalkulator
 ```
 
-### Ga tilbake til HACS (produksjon)
+### Gå tilbake til HACS (produksjon)
 
-Nar du er ferdig med utvikling og vil bruke HACS igjen:
+Når du er ferdig med utvikling og vil bruke HACS igjen:
 
 ```bash
 # 1. Slett manuelt kopiert integrasjon
@@ -69,7 +69,7 @@ ssh ha-local "ha core restart"
 
 ## Testdata for kapasitetstrinn
 
-For a teste kapasitetstrinn-beregninger kan du opprette testdata manuelt:
+For å teste kapasitetstrinn-beregninger kan du opprette testdata manuelt:
 
 ```bash
 ssh ha-local 'cat > /config/.storage/stromkalkulator_bkk << EOF
@@ -93,7 +93,7 @@ Endre `stromkalkulator_bkk` til din TSO-id (f.eks. `stromkalkulator_tensio`).
 
 ### Legge til nettselskap
 
-1. Apne `custom_components/stromkalkulator/tso.py`
+1. Åpne `custom_components/stromkalkulator/tso.py`
 2. Finn nettselskapet (alle er registrert, de fleste med `supported: False`)
 3. Legg til priser fra nettselskapets nettside:
    - `energiledd_dag` og `energiledd_natt` i NOK/kWh
@@ -101,14 +101,14 @@ Endre `stromkalkulator_bkk` til din TSO-id (f.eks. `stromkalkulator_tensio`).
 4. Sett `supported: True`
 5. Test at integrasjonen laster
 
-### Oppdatere priser (arlig)
+### Oppdatere priser (årlig)
 
 Priser endres ofte 1. januar:
 
 1. Sjekk nettselskapenes nettsider
 2. Oppdater `energiledd_dag`, `energiledd_natt`, `kapasitetstrinn` i `tso.py`
 3. Oppdater avgiftssatser i `const.py` hvis endret (sjekk Skatteetaten)
-4. Oppdater helligdager for nytt ar i `const.py`
+4. Oppdater helligdager for nytt år i `const.py`
 
 ### Legge til sensor
 
@@ -119,7 +119,7 @@ Priser endres ofte 1. januar:
 ## Viktige formler
 
 ```python
-# Stromstotte (90% over 96,25 ore/kWh, 2026-sats)
+# Strømstøtte (90% over 96,25 øre/kWh, 2026-sats)
 stromstotte = max(0, (spotpris - 0.9625) * 0.90)
 
 # Kapasitetsledd per kWh
@@ -140,15 +140,15 @@ is_day = weekday < 5 and not is_holiday and 6 <= hour < 22
 # Se logger (live)
 ssh ha-local "ha core logs --follow"
 
-# Sok etter stromkalkulator
+# Søk etter strømkalkulator
 ssh ha-local "ha core logs" | grep -i stromkalkulator
 ```
 
 ### Vanlige feil
 
-| Feil                 | Arsak                     | Losning                               |
+| Feil                 | Årsak                     | Løsning                               |
 |----------------------|---------------------------|---------------------------------------|
-| `ImportError`        | Fil pa HA er utdatert     | Kopier oppdatert fil                  |
+| `ImportError`        | Fil på HA er utdatert     | Kopier oppdatert fil                  |
 | `Entity unavailable` | Kildesensor mangler       | Sjekk at power/spotpris-sensor finnes |
 | Feil kapasitetstrinn | Data bygges over tid      | Vent eller opprett testdata           |
 | Feil dag/natt        | Helligdag ikke registrert | Oppdater HELLIGDAGER i const.py       |

@@ -184,7 +184,12 @@ Testet på Home Assistant 2026.1.2
 | Sensor                       | Beskrivelse                              |
 |------------------------------|------------------------------------------|
 | `sensor.energiledd`          | Energiledd i NOK/kWh (varierer dag/natt) |
+| `sensor.energiledd_dag`      | Energiledd dag-sats (NOK/kWh)            |
+| `sensor.energiledd_natt`     | Energiledd natt/helg-sats (NOK/kWh)      |
+| `sensor.tariff`              | Gjeldende tariff ("dag" eller "natt")    |
 | `sensor.offentlige_avgifter` | Forbruksavgift + Enova-avgift inkl. mva  |
+| `sensor.forbruksavgift`      | Forbruksavgift (elavgift) per kWh        |
+| `sensor.enovaavgift`         | Enova-avgift per kWh                     |
 
 ### Strømpriser
 
@@ -200,6 +205,7 @@ Testet på Home Assistant 2026.1.2
 | `sensor.stromstotte`             | Strømstøtte per kWh (90% over terskel)          |
 | `sensor.spotpris_etter_stotte`   | Spotpris etter strømstøtte                      |
 | `sensor.total_pris_etter_stotte` | Total strømpris ETTER støtte (dette betaler du) |
+| `sensor.stromstotte_aktiv`       | Ja/Nei om strømstøtte er aktiv akkurat nå       |
 
 ### Norgespris
 
@@ -344,3 +350,51 @@ Se [beregninger.md](beregninger.md) for detaljert informasjon om avgiftssoner og
 ## Bidra
 
 Vil du legge til støtte for ditt nettselskap? Se [CONTRIBUTING.md](CONTRIBUTING.md) for detaljert veiledning!
+
+## Utility Meter - Forbrukssporing og kostnad
+
+For å få månedlig kostnadsoversikt som matcher fakturaen kan du bruke Home Assistants `utility_meter` sammen med Strømkalkulator.
+
+### Ferdigpakket YAML-oppsett
+
+Vi har laget en ferdig YAML-pakke som setter opp:
+- Utility meter med dag/natt-tariffer
+- Automatisk tariff-bytte basert på `sensor.stromkalkulator_tariff`
+- Template-sensorer for månedlig kostnad
+
+**Oppsett:**
+1. Kopier `packages/stromkalkulator_utility.yaml` til din `/config/packages/`-mappe
+2. Aktiver packages i `configuration.yaml`:
+   ```yaml
+   homeassistant:
+     packages: !include_dir_named packages
+   ```
+3. Tilpass sensor-navnene i filen til dine faktiske sensorer
+4. Start Home Assistant på nytt
+
+Se [UTILITY_METER_PLAN.md](UTILITY_METER_PLAN.md) for detaljert dokumentasjon.
+
+### Kort oppsett (manuelt)
+
+```yaml
+# configuration.yaml
+utility_meter:
+  strom_maanedlig:
+    source: sensor.din_kwh_sensor
+    cycle: monthly
+    tariffs:
+      - dag
+      - natt
+
+automation:
+  - alias: "Oppdater strøm-tariff"
+    trigger:
+      - platform: state
+        entity_id: sensor.stromkalkulator_tariff
+    action:
+      - service: select.select_option
+        target:
+          entity_id: select.strom_maanedlig
+        data:
+          option: "{{ trigger.to_state.state }}"
+```

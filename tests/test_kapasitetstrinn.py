@@ -7,6 +7,8 @@ Tests the capacity-based grid tariff calculation:
 
 from __future__ import annotations
 
+import pytest
+
 # BKK kapasitetstrinn 2026
 BKK_KAPASITETSTRINN = [
     (2, 155),
@@ -34,7 +36,7 @@ def get_kapasitetsledd(avg_power: float, kapasitetstrinn: list[tuple[float, int]
     """
     for i, (threshold, price) in enumerate(kapasitetstrinn, 1):
         if avg_power <= threshold:
-            prev_threshold = kapasitetstrinn[i-2][0] if i > 1 else 0
+            prev_threshold = kapasitetstrinn[i - 2][0] if i > 1 else 0
             if threshold == float("inf"):
                 tier_range = f">{prev_threshold} kW"
             else:
@@ -64,207 +66,148 @@ def calculate_avg_top_3(daily_max_power: dict[str, float]) -> float:
     return sum(top_3) / max(len(top_3), 1)
 
 
-class TestKapasitetstrinnSelection:
-    """Test kapasitetstrinn tier selection."""
-
-    def test_tier_1_0_to_2_kw(self):
-        """Tier 1: 0-2 kW → 155 kr/mnd."""
-        price, tier, range_str = get_kapasitetsledd(0.5, BKK_KAPASITETSTRINN)
-        assert price == 155
-        assert tier == 1
-        assert range_str == "0-2 kW"
-
-        price, tier, range_str = get_kapasitetsledd(2.0, BKK_KAPASITETSTRINN)
-        assert price == 155
-        assert tier == 1
-
-    def test_tier_2_2_to_5_kw(self):
-        """Tier 2: 2-5 kW → 250 kr/mnd."""
-        price, tier, range_str = get_kapasitetsledd(2.1, BKK_KAPASITETSTRINN)
-        assert price == 250
-        assert tier == 2
-        assert range_str == "2-5 kW"
-
-        price, tier, range_str = get_kapasitetsledd(5.0, BKK_KAPASITETSTRINN)
-        assert price == 250
-        assert tier == 2
-
-    def test_tier_3_5_to_10_kw(self):
-        """Tier 3: 5-10 kW → 415 kr/mnd."""
-        price, tier, range_str = get_kapasitetsledd(5.1, BKK_KAPASITETSTRINN)
-        assert price == 415
-        assert tier == 3
-        assert range_str == "5-10 kW"
-
-        price, tier, range_str = get_kapasitetsledd(10.0, BKK_KAPASITETSTRINN)
-        assert price == 415
-        assert tier == 3
-
-    def test_tier_4_10_to_15_kw(self):
-        """Tier 4: 10-15 kW → 600 kr/mnd."""
-        price, tier, range_str = get_kapasitetsledd(10.1, BKK_KAPASITETSTRINN)
-        assert price == 600
-        assert tier == 4
-        assert range_str == "10-15 kW"
-
-    def test_tier_5_15_to_20_kw(self):
-        """Tier 5: 15-20 kW → 770 kr/mnd."""
-        price, tier, range_str = get_kapasitetsledd(15.1, BKK_KAPASITETSTRINN)
-        assert price == 770
-        assert tier == 5
-        assert range_str == "15-20 kW"
-
-    def test_tier_6_20_to_25_kw(self):
-        """Tier 6: 20-25 kW → 940 kr/mnd."""
-        price, tier, range_str = get_kapasitetsledd(20.1, BKK_KAPASITETSTRINN)
-        assert price == 940
-        assert tier == 6
-        assert range_str == "20-25 kW"
-
-    def test_tier_7_25_to_50_kw(self):
-        """Tier 7: 25-50 kW → 1800 kr/mnd."""
-        price, tier, range_str = get_kapasitetsledd(30.0, BKK_KAPASITETSTRINN)
-        assert price == 1800
-        assert tier == 7
-        assert range_str == "25-50 kW"
-
-    def test_tier_8_50_to_75_kw(self):
-        """Tier 8: 50-75 kW → 2650 kr/mnd."""
-        price, tier, range_str = get_kapasitetsledd(60.0, BKK_KAPASITETSTRINN)
-        assert price == 2650
-        assert tier == 8
-        assert range_str == "50-75 kW"
-
-    def test_tier_9_75_to_100_kw(self):
-        """Tier 9: 75-100 kW → 3500 kr/mnd."""
-        price, tier, range_str = get_kapasitetsledd(90.0, BKK_KAPASITETSTRINN)
-        assert price == 3500
-        assert tier == 9
-        assert range_str == "75-100 kW"
-
-    def test_tier_10_above_100_kw(self):
-        """Tier 10: >100 kW → 6900 kr/mnd."""
-        price, tier, range_str = get_kapasitetsledd(150.0, BKK_KAPASITETSTRINN)
-        assert price == 6900
-        assert tier == 10
-        assert range_str == ">100 kW"
-
-    def test_zero_consumption(self):
-        """Zero consumption should give tier 1."""
-        price, tier, _range_str = get_kapasitetsledd(0.0, BKK_KAPASITETSTRINN)
-        assert price == 155
-        assert tier == 1
-
-    def test_boundary_values(self):
-        """Test exact boundary values."""
-        # Exactly at boundary should stay in lower tier
-        assert get_kapasitetsledd(2.0, BKK_KAPASITETSTRINN)[0] == 155
-        assert get_kapasitetsledd(5.0, BKK_KAPASITETSTRINN)[0] == 250
-        assert get_kapasitetsledd(10.0, BKK_KAPASITETSTRINN)[0] == 415
-
-        # Just above boundary should move to next tier
-        assert get_kapasitetsledd(2.01, BKK_KAPASITETSTRINN)[0] == 250
-        assert get_kapasitetsledd(5.01, BKK_KAPASITETSTRINN)[0] == 415
-        assert get_kapasitetsledd(10.01, BKK_KAPASITETSTRINN)[0] == 600
+# =============================================================================
+# Kapasitetstrinn tier selection tests
+# =============================================================================
 
 
-class TestTop3DaysCalculation:
-    """Test top 3 days average calculation."""
-
-    def test_exactly_3_days(self):
-        """With exactly 3 days, return average."""
-        daily_max = {
-            "2026-01-01": 4.5,
-            "2026-01-02": 5.0,
-            "2026-01-03": 5.5,
-        }
-        result = calculate_avg_top_3(daily_max)
-        expected = (4.5 + 5.0 + 5.5) / 3
-        assert result == expected
-
-    def test_more_than_3_days_takes_top_3(self):
-        """With more than 3 days, take top 3."""
-        daily_max = {
-            "2026-01-01": 3.0,  # Not in top 3
-            "2026-01-02": 4.0,  # Not in top 3
-            "2026-01-03": 5.0,  # 3rd
-            "2026-01-04": 6.0,  # 2nd
-            "2026-01-05": 7.0,  # 1st
-        }
-        result = calculate_avg_top_3(daily_max)
-        expected = (5.0 + 6.0 + 7.0) / 3
-        assert result == expected
-
-    def test_less_than_3_days(self):
-        """With less than 3 days, average what we have."""
-        # 2 days
-        daily_max = {
-            "2026-01-01": 4.0,
-            "2026-01-02": 6.0,
-        }
-        result = calculate_avg_top_3(daily_max)
-        expected = (4.0 + 6.0) / 2
-        assert result == expected
-
-        # 1 day
-        daily_max = {"2026-01-01": 5.0}
-        result = calculate_avg_top_3(daily_max)
-        assert result == 5.0
-
-    def test_empty_returns_zero(self):
-        """Empty dict returns 0."""
-        assert calculate_avg_top_3({}) == 0.0
-
-    def test_documentation_example(self):
-        """Test example from beregninger.md."""
-        # Eksempel: 3.5, 4.8, 4.8 kW → snitt 4.37 kW
-        daily_max = {
-            "2026-01-05": 3.5,
-            "2026-01-12": 4.8,
-            "2026-01-20": 4.8,
-        }
-        result = calculate_avg_top_3(daily_max)
-        (3.5 + 4.8 + 4.8) / 3
-        assert abs(result - 4.37) < 0.01
+@pytest.mark.parametrize(
+    ("avg_power", "expected_price", "expected_tier", "expected_range"),
+    [
+        (0.0, 155, 1, "0-2 kW"),
+        (0.5, 155, 1, "0-2 kW"),
+        (2.0, 155, 1, "0-2 kW"),
+        (2.1, 250, 2, "2-5 kW"),
+        (5.0, 250, 2, "2-5 kW"),
+        (5.1, 415, 3, "5-10 kW"),
+        (10.0, 415, 3, "5-10 kW"),
+        (10.1, 600, 4, "10-15 kW"),
+        (15.1, 770, 5, "15-20 kW"),
+        (20.1, 940, 6, "20-25 kW"),
+        (30.0, 1800, 7, "25-50 kW"),
+        (60.0, 2650, 8, "50-75 kW"),
+        (90.0, 3500, 9, "75-100 kW"),
+        (150.0, 6900, 10, ">100 kW"),
+    ],
+    ids=[
+        "zero",
+        "tier1_low",
+        "tier1_boundary",
+        "tier2_low",
+        "tier2_boundary",
+        "tier3_low",
+        "tier3_boundary",
+        "tier4_low",
+        "tier5",
+        "tier6",
+        "tier7",
+        "tier8",
+        "tier9",
+        "tier10",
+    ],
+)
+def test_kapasitetstrinn_selection(
+    avg_power: float,
+    expected_price: int,
+    expected_tier: int,
+    expected_range: str,
+) -> None:
+    """Test kapasitetstrinn tier selection for various power levels."""
+    price, tier, range_str = get_kapasitetsledd(avg_power, BKK_KAPASITETSTRINN)
+    assert price == expected_price
+    assert tier == expected_tier
+    assert range_str == expected_range
 
 
-class TestFastleddPerKwh:
+@pytest.mark.parametrize(
+    ("boundary", "expected_lower", "expected_higher"),
+    [
+        (2.0, 155, 250),
+        (5.0, 250, 415),
+        (10.0, 415, 600),
+    ],
+    ids=["2kw", "5kw", "10kw"],
+)
+def test_boundary_values(boundary: float, expected_lower: int, expected_higher: int) -> None:
+    """Exactly at boundary stays in lower tier, just above moves to next."""
+    assert get_kapasitetsledd(boundary, BKK_KAPASITETSTRINN)[0] == expected_lower
+    assert get_kapasitetsledd(boundary + 0.01, BKK_KAPASITETSTRINN)[0] == expected_higher
+
+
+# =============================================================================
+# Top 3 days calculation tests
+# =============================================================================
+
+
+def test_exactly_3_days() -> None:
+    """With exactly 3 days, return average."""
+    daily_max = {
+        "2026-01-01": 4.5,
+        "2026-01-02": 5.0,
+        "2026-01-03": 5.5,
+    }
+    result = calculate_avg_top_3(daily_max)
+    expected = (4.5 + 5.0 + 5.5) / 3
+    assert result == expected
+
+
+def test_more_than_3_days_takes_top_3() -> None:
+    """With more than 3 days, take top 3."""
+    daily_max = {
+        "2026-01-01": 3.0,  # Not in top 3
+        "2026-01-02": 4.0,  # Not in top 3
+        "2026-01-03": 5.0,  # 3rd
+        "2026-01-04": 6.0,  # 2nd
+        "2026-01-05": 7.0,  # 1st
+    }
+    result = calculate_avg_top_3(daily_max)
+    expected = (5.0 + 6.0 + 7.0) / 3
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    ("daily_max", "expected"),
+    [
+        ({"2026-01-01": 4.0, "2026-01-02": 6.0}, (4.0 + 6.0) / 2),
+        ({"2026-01-01": 5.0}, 5.0),
+        ({}, 0.0),
+    ],
+    ids=["two_days", "one_day", "empty"],
+)
+def test_less_than_3_days(daily_max: dict[str, float], expected: float) -> None:
+    """With less than 3 days, average what we have."""
+    assert calculate_avg_top_3(daily_max) == expected
+
+
+def test_documentation_example() -> None:
+    """Test example from beregninger.md: 3.5, 4.8, 4.8 kW → snitt 4.37 kW."""
+    daily_max = {
+        "2026-01-05": 3.5,
+        "2026-01-12": 4.8,
+        "2026-01-20": 4.8,
+    }
+    result = calculate_avg_top_3(daily_max)
+    assert result == pytest.approx(4.37, abs=0.01)
+
+
+# =============================================================================
+# Fastledd per kWh tests
+# =============================================================================
+
+
+@pytest.mark.parametrize(
+    ("kapasitetsledd", "days_in_month", "expected_approx"),
+    [
+        (400, 30, 0.556),
+        (400, 31, 0.538),
+        (400, 28, 0.595),
+        (155, 30, 0.215),  # Tier 1
+        (415, 30, 0.576),  # Tier 3
+        (770, 30, 1.069),  # Tier 5
+    ],
+    ids=["30_days", "31_days", "28_days", "tier1", "tier3", "tier5"],
+)
+def test_fastledd_per_kwh(kapasitetsledd: int, days_in_month: int, expected_approx: float) -> None:
     """Test fastledd per kWh calculation."""
-
-    def test_fastledd_per_kwh_30_days(self):
-        """Test fastledd per kWh for 30-day month."""
-        kapasitetsledd = 400  # kr/mnd
-        days_in_month = 30
-        fastledd_per_kwh = (kapasitetsledd / days_in_month) / 24
-        expected = 400 / 30 / 24  # ≈ 0.556 NOK/kWh
-        assert abs(fastledd_per_kwh - expected) < 0.001
-        assert abs(fastledd_per_kwh - 0.556) < 0.01
-
-    def test_fastledd_per_kwh_31_days(self):
-        """Test fastledd per kWh for 31-day month."""
-        kapasitetsledd = 400  # kr/mnd
-        days_in_month = 31
-        fastledd_per_kwh = (kapasitetsledd / days_in_month) / 24
-        expected = 400 / 31 / 24  # ≈ 0.538 NOK/kWh
-        assert abs(fastledd_per_kwh - expected) < 0.001
-
-    def test_fastledd_per_kwh_28_days(self):
-        """Test fastledd per kWh for February (28 days)."""
-        kapasitetsledd = 400  # kr/mnd
-        days_in_month = 28
-        fastledd_per_kwh = (kapasitetsledd / days_in_month) / 24
-        expected = 400 / 28 / 24  # ≈ 0.595 NOK/kWh
-        assert abs(fastledd_per_kwh - expected) < 0.001
-
-    def test_different_kapasitetsledd_values(self):
-        """Test with different kapasitetsledd values."""
-        days_in_month = 30
-
-        # Tier 1: 155 kr
-        assert abs((155 / days_in_month / 24) - 0.215) < 0.01
-
-        # Tier 3: 415 kr
-        assert abs((415 / days_in_month / 24) - 0.576) < 0.01
-
-        # Tier 5: 770 kr
-        assert abs((770 / days_in_month / 24) - 1.069) < 0.01
+    fastledd_per_kwh = (kapasitetsledd / days_in_month) / 24
+    assert fastledd_per_kwh == pytest.approx(expected_approx, abs=0.01)

@@ -37,10 +37,10 @@ _LOGGER = logging.getLogger(__name__)
 
 def _get_tso_options() -> dict[str, str]:
     """Get TSO options for selector (only supported ones)."""
-    return {key: value["name"] for key, value in TSO_LIST.items() if value.get("supported", False)}
+    return {key: str(value["name"]) for key, value in TSO_LIST.items() if value.get("supported", False)}
 
 
-class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
     """Handle a config flow for Nettleie."""
 
     VERSION = 1
@@ -49,9 +49,7 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Initialize the config flow."""
         self._data: dict[str, Any] = {}
 
-    async def async_step_user(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Handle the initial step - select TSO and avgiftssone."""
         errors: dict[str, str] = {}
 
@@ -63,9 +61,7 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=vol.Schema(
                 {
-                    vol.Required(
-                        CONF_TSO, default=DEFAULT_TSO
-                    ): selector.SelectSelector(
+                    vol.Required(CONF_TSO, default=DEFAULT_TSO): selector.SelectSelector(
                         selector.SelectSelectorConfig(
                             options=[
                                 selector.SelectOptionDict(value=key, label=value["name"])
@@ -75,9 +71,7 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             mode=selector.SelectSelectorMode.DROPDOWN,
                         ),
                     ),
-                    vol.Required(
-                        CONF_AVGIFTSSONE, default=AVGIFTSSONE_STANDARD
-                    ): selector.SelectSelector(
+                    vol.Required(CONF_AVGIFTSSONE, default=AVGIFTSSONE_STANDARD): selector.SelectSelector(
                         selector.SelectSelectorConfig(
                             options=[
                                 selector.SelectOptionDict(value=key, label=label)
@@ -86,17 +80,13 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             mode=selector.SelectSelectorMode.DROPDOWN,
                         ),
                     ),
-                    vol.Optional(
-                        CONF_HAR_NORGESPRIS, default=False
-                    ): selector.BooleanSelector(),
+                    vol.Optional(CONF_HAR_NORGESPRIS, default=False): selector.BooleanSelector(),
                 }
             ),
             errors=errors,
         )
 
-    async def async_step_sensors(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_sensors(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Handle the sensors step."""
         errors: dict[str, str] = {}
 
@@ -148,9 +138,7 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    async def async_step_pricing(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_pricing(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Handle the pricing step for custom grid company."""
         errors: dict[str, str] = {}
 
@@ -162,9 +150,7 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="pricing",
             data_schema=vol.Schema(
                 {
-                    vol.Required(
-                        CONF_ENERGILEDD_DAG, default=DEFAULT_ENERGILEDD_DAG
-                    ): selector.NumberSelector(
+                    vol.Required(CONF_ENERGILEDD_DAG, default=DEFAULT_ENERGILEDD_DAG): selector.NumberSelector(
                         selector.NumberSelectorConfig(
                             min=0,
                             max=2,
@@ -173,9 +159,7 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             mode=selector.NumberSelectorMode.BOX,
                         ),
                     ),
-                    vol.Required(
-                        CONF_ENERGILEDD_NATT, default=DEFAULT_ENERGILEDD_NATT
-                    ): selector.NumberSelector(
+                    vol.Required(CONF_ENERGILEDD_NATT, default=DEFAULT_ENERGILEDD_NATT): selector.NumberSelector(
                         selector.NumberSelectorConfig(
                             min=0,
                             max=2,
@@ -214,16 +198,12 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class NettleieOptionsFlow(config_entries.OptionsFlow):
     """Handle options flow for Nettleie."""
 
-    async def async_step_init(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Manage the options."""
         if user_input is not None:
             # Update config entry data
             new_data = {**self.config_entry.data, **user_input}
-            self.hass.config_entries.async_update_entry(
-                self.config_entry, data=new_data
-            )
+            self.hass.config_entries.async_update_entry(self.config_entry, data=new_data)
             return self.async_create_entry(title="", data={})
 
         # Get current values from config entry
@@ -234,8 +214,7 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):
             if value.get("supported", False)
         ]
         avgiftssone_options = [
-            selector.SelectOptionDict(value=key, label=label)
-            for key, label in AVGIFTSSONE_OPTIONS.items()
+            selector.SelectOptionDict(value=key, label=label) for key, label in AVGIFTSSONE_OPTIONS.items()
         ]
 
         # Build schema with defaults from current config

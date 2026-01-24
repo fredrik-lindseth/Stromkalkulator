@@ -14,7 +14,8 @@ Kilde: https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791
 
 from __future__ import annotations
 
-# Import from const.py to ensure consistency
+import pytest
+
 from custom_components.stromkalkulator.const import STROMSTOTTE_LEVEL, STROMSTOTTE_RATE
 
 
@@ -32,128 +33,91 @@ def calculate_stromstotte(spot_price: float) -> float:
     return 0.0
 
 
-class TestStromstotteCalculation:
-    """Test strømstøtte calculation logic."""
-
-    def test_price_below_threshold_returns_zero(self):
-        """When spot price is below threshold, strømstøtte should be 0."""
-        assert calculate_stromstotte(0.50) == 0.0
-        assert calculate_stromstotte(0.70) == 0.0
-        assert calculate_stromstotte(0.90) == 0.0
-
-    def test_price_at_threshold_returns_zero(self):
-        """When spot price equals threshold, strømstøtte should be 0."""
-        assert calculate_stromstotte(STROMSTOTTE_LEVEL) == 0.0
-
-    def test_price_just_above_threshold(self):
-        """When spot price is just above threshold."""
-        result = calculate_stromstotte(1.00)
-        expected = round((1.00 - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE, 4)
-        assert result == expected
-
-    def test_price_medium_above_threshold(self):
-        """Test with medium price above threshold."""
-        result = calculate_stromstotte(1.20)
-        expected = round((1.20 - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE, 4)
-        assert result == expected
-
-    def test_price_high_above_threshold(self):
-        """Test with high price above threshold."""
-        result = calculate_stromstotte(1.50)
-        expected = round((1.50 - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE, 4)
-        assert result == expected
-
-    def test_price_very_high(self):
-        """Test with very high price."""
-        result = calculate_stromstotte(2.00)
-        expected = round((2.00 - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE, 4)
-        assert result == expected
-
-    def test_price_extreme(self):
-        """Test with extreme price."""
-        result = calculate_stromstotte(5.00)
-        expected = round((5.00 - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE, 4)
-        assert result == expected
-
-    def test_negative_price_returns_zero(self):
-        """Negative spot price should return 0 strømstøtte."""
-        assert calculate_stromstotte(-0.10) == 0.0
-        assert calculate_stromstotte(-1.00) == 0.0
-
-    def test_zero_price_returns_zero(self):
-        """Zero spot price should return 0 strømstøtte."""
-        assert calculate_stromstotte(0.0) == 0.0
+# =============================================================================
+# Strømstøtte calculation tests
+# =============================================================================
 
 
-class TestSpotprisEtterStotte:
-    """Test spotpris after strømstøtte deduction."""
-
-    def test_spotpris_etter_stotte_low_price(self):
-        """Low price remains unchanged."""
-        spot_price = 0.50
-        stromstotte = calculate_stromstotte(spot_price)
-        result = spot_price - stromstotte
-        assert result == 0.50
-
-    def test_spotpris_etter_stotte_high_price(self):
-        """High price is reduced by strømstøtte."""
-        spot_price = 2.00
-        stromstotte = calculate_stromstotte(spot_price)
-        result = round(spot_price - stromstotte, 4)
-        expected = round(spot_price - (spot_price - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE, 4)
-        assert result == expected
-
-    def test_spotpris_etter_stotte_never_below_threshold(self):
-        """Spotpris etter støtte should approach but never go below minimum for high prices."""
-        # For very high prices, spotpris etter støtte approaches:
-        # spotpris - (spotpris - terskel) * 0.9 = spotpris * 0.1 + terskel * 0.9
-        for price in [1.5, 2.0, 3.0, 5.0, 10.0]:
-            stromstotte = calculate_stromstotte(price)
-            etter_stotte = price - stromstotte
-            # Should always be positive
-            assert etter_stotte > 0
+@pytest.mark.parametrize(
+    ("spot_price", "expected"),
+    [
+        (0.50, 0.0),  # Below threshold
+        (0.70, 0.0),  # Below threshold
+        (0.90, 0.0),  # Below threshold
+        (STROMSTOTTE_LEVEL, 0.0),  # At threshold
+        (-0.10, 0.0),  # Negative price
+        (-1.00, 0.0),  # Negative price
+        (0.0, 0.0),  # Zero price
+    ],
+    ids=[
+        "low_price_50",
+        "low_price_70",
+        "low_price_90",
+        "at_threshold",
+        "negative_10",
+        "negative_100",
+        "zero_price",
+    ],
+)
+def test_stromstotte_no_support(spot_price: float, expected: float) -> None:
+    """When spot price is at or below threshold, strømstøtte should be 0."""
+    assert calculate_stromstotte(spot_price) == expected
 
 
-class TestStromstotteDocumentationExamples:
-    """Test examples with current threshold value."""
-
-    def test_example_spotpris_below_threshold(self):
-        """Price below threshold → 0 NOK strømstøtte."""
-        assert calculate_stromstotte(0.50) == 0.0
-        assert calculate_stromstotte(0.90) == 0.0
-
-    def test_example_spotpris_at_threshold(self):
-        """Price at threshold → 0 NOK strømstøtte."""
-        assert calculate_stromstotte(STROMSTOTTE_LEVEL) == 0.0
-
-    def test_example_spotpris_100(self):
-        """1.00 NOK/kWh → small strømstøtte."""
-        result = calculate_stromstotte(1.00)
-        expected = round((1.00 - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE, 4)
-        assert result == expected
-        assert result > 0  # Should be positive since 1.00 > threshold
-
-    def test_example_spotpris_150(self):
-        """1.50 NOK/kWh → medium strømstøtte."""
-        result = calculate_stromstotte(1.50)
-        expected = round((1.50 - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE, 4)
-        assert result == expected
-
-    def test_example_spotpris_200(self):
-        """2.00 NOK/kWh → high strømstøtte."""
-        result = calculate_stromstotte(2.00)
-        expected = round((2.00 - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE, 4)
-        assert result == expected
+@pytest.mark.parametrize(
+    "spot_price",
+    [1.00, 1.20, 1.50, 2.00, 5.00],
+    ids=["100_ore", "120_ore", "150_ore", "200_ore", "500_ore"],
+)
+def test_stromstotte_above_threshold(spot_price: float) -> None:
+    """When spot price is above threshold, strømstøtte is calculated."""
+    result = calculate_stromstotte(spot_price)
+    expected = round((spot_price - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE, 4)
+    assert result == expected
+    assert result > 0
 
 
-class TestStromstotteThresholdValues:
-    """Test that threshold values are correct."""
+# =============================================================================
+# Spotpris etter støtte tests
+# =============================================================================
 
-    def test_threshold_is_2026_value(self):
-        """Verify threshold is set to 2026 value (77 øre eks. mva * 1.25)."""
-        # 77 øre/kWh eks. mva * 1.25 = 96.25 øre/kWh inkl. mva = 0.9625 NOK/kWh
-        assert STROMSTOTTE_LEVEL == 0.9625
 
-    def test_rate_is_90_percent(self):
-        """Verify rate is 90%."""
-        assert STROMSTOTTE_RATE == 0.9
+def test_spotpris_etter_stotte_low_price() -> None:
+    """Low price remains unchanged."""
+    spot_price = 0.50
+    stromstotte = calculate_stromstotte(spot_price)
+    result = spot_price - stromstotte
+    assert result == 0.50
+
+
+def test_spotpris_etter_stotte_high_price() -> None:
+    """High price is reduced by strømstøtte."""
+    spot_price = 2.00
+    stromstotte = calculate_stromstotte(spot_price)
+    result = round(spot_price - stromstotte, 4)
+    expected = round(spot_price - (spot_price - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE, 4)
+    assert result == expected
+
+
+@pytest.mark.parametrize("price", [1.5, 2.0, 3.0, 5.0, 10.0])
+def test_spotpris_etter_stotte_always_positive(price: float) -> None:
+    """Spotpris etter støtte should always be positive."""
+    stromstotte = calculate_stromstotte(price)
+    etter_stotte = price - stromstotte
+    assert etter_stotte > 0
+
+
+# =============================================================================
+# Threshold and rate validation
+# =============================================================================
+
+
+def test_threshold_is_2026_value() -> None:
+    """Verify threshold is set to 2026 value (77 øre eks. mva * 1.25)."""
+    # 77 øre/kWh eks. mva * 1.25 = 96.25 øre/kWh inkl. mva = 0.9625 NOK/kWh
+    assert STROMSTOTTE_LEVEL == 0.9625
+
+
+def test_rate_is_90_percent() -> None:
+    """Verify rate is 90%."""
+    assert STROMSTOTTE_RATE == 0.9

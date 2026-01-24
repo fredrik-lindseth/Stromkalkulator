@@ -110,7 +110,7 @@ class NettleieCoordinator(DataUpdateCoordinator):
         spot_state = self.hass.states.get(self.spot_price_sensor)
         spot_price = float(spot_state.state) if spot_state and spot_state.state not in ("unknown", "unavailable") else 0
 
-        # Calculate strømstøtte (90% av spotpris over 70 øre/kWh)
+        # Calculate strømstøtte (90% av spotpris over 91,25 øre/kWh inkl. mva)
         if spot_price > STROMSTOTTE_LEVEL:
             stromstotte = (spot_price - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE
         else:

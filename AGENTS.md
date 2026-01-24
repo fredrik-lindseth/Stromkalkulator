@@ -19,7 +19,7 @@ Home Assistant-integrasjon for komplett oversikt over strømkostnader i Norge:
 | `custom_components/stromkalkulator/coordinator.py` | Beregningslogikk                             |
 | `custom_components/stromkalkulator/sensor.py`      | Sensor-definisjoner                          |
 | `custom_components/stromkalkulator/manifest.json`  | Versjon og avhengigheter                     |
-| `beregninger.md`                                   | Formler og beregningslogikk                  |
+| `docs/beregninger.md`                              | Formler og beregningslogikk                  |
 
 ## Nettleie-priser
 Prisene for nettleien oppdateres årlig (vanligvis 1. januar). Ved oppdatering:
@@ -86,57 +86,11 @@ INFO [custom_components.stromkalkulator] Setting up Strømkalkulator
 ```
 
 ### Vanlige feil
-| Feil | Årsak | Løsning |
-|------|-------|---------|
-| `ImportError: cannot import name 'X'` | const.py på HA er utdatert | Kopier oppdatert const.py |
-| `Error setting up entry` | Syntaksfeil i Python | Kjør `ruff check` lokalt først |
-| `Entity not available` | Sensor-avhengighet mangler | Sjekk at power_sensor og spot_price_sensor finnes |
-
-### Raskere restart
-HA bruker ca 30-60 sek på restart. For raskere iterasjon:
-
-**1. Reload integration (raskere enn full restart):**
-- Developer Tools → YAML → Reload Custom Components
-- Eller: `ha core reload-integrations`
-
-**2. Bruk `ruff check` lokalt** før deploy for å fange syntaksfeil
-
-**3. Deaktiver tunge integrasjoner** (se "Trege integrasjoner" under)
-
-### Finne trege integrasjoner
-```bash
-# Liste alle integrasjoner (57 stk per jan 2026)
-ssh ha-local "cat /config/.storage/core.config_entries" | python3 -c "
-import json,sys
-data=json.load(sys.stdin)
-entries=data.get('data',{}).get('entries',[])
-print(f'Antall integrasjoner: {len(entries)}')
-for e in sorted(entries, key=lambda x: x.get('domain','')):
-    print(f\"  - {e.get('domain')}: {e.get('title','')}\")
-"
-
-# Sjekk logger for timeout/blocking
-ssh ha-local "ha core logs" | grep -iE "timeout|blocking|slow|seconds"
-```
-
-### Kjente trege integrasjoner (jan 2026)
-
-| Integrasjon | Problem | Tiltak |
-|-------------|---------|--------|
-| `nmap_tracker` | Skanner 512 IP-er ved oppstart | **Deaktiver** - bruk router-integrasjon i stedet |
-| `esphome` (apollo-plt-1b-f73af4) | Enhet offline, timeout | Fiks eller fjern |
-| `samsungtv` (2 duplikater) | TV ofte av, timeout | Fjern duplikat |
-| `mobile_app` (2x MacBook Pro) | Duplikater | Fjern duplikat |
-
-### Deaktivere nmap_tracker
-1. Gå til **Settings → Devices & Services → Integrations**
-2. Finn **Nmap Tracker**
-3. Klikk ⋮ (tre prikker) → **Delete**
-4. Restart HA
-
-**Alternativ for device tracking:**
-- Bruk UniFi, Fritz!Box, eller annen router-integrasjon
-- Disse får device-info fra routeren i stedet for å skanne nettet
+| Feil                                  | Årsak                      | Løsning                                           |
+|---------------------------------------|----------------------------|---------------------------------------------------|
+| `ImportError: cannot import name 'X'` | const.py på HA er utdatert | Kopier oppdatert const.py                         |
+| `Error setting up entry`              | Syntaksfeil i Python       | Kjør `ruff check` lokalt først                    |
+| `Entity not available`                | Sensor-avhengighet mangler | Sjekk at power_sensor og spot_price_sensor finnes |
 
 ### Sjekkliste før deploy
 ```bash

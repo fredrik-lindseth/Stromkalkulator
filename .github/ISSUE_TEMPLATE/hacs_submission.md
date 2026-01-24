@@ -24,7 +24,7 @@ Home Assistant integrasjon for beregning av nettleie fra norske nettselskaper, r
 - ✅ Støtte for flere norske nettselskaper
 - ✅ Energiledd-sensor (dag/natt/helg)
 - ✅ Kapasitetstrinn-beregning basert på maksforbruk
-- ✅ Strømstøtte-sensorer (90% over 70 øre)
+- ✅ Strømstøtte-sensorer (90% over 91,25 øre)
 - ✅ Norgespris-sensorer (forenklet)
 - ✅ Total strømpris-beregninger
 - ✅ Config flow for enkel oppsett

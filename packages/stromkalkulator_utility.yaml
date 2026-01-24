@@ -86,16 +86,16 @@ template:
         state: >
           {% set dag_kwh = states('sensor.strom_maanedlig_dag') | float(0) %}
           {% set natt_kwh = states('sensor.strom_maanedlig_natt') | float(0) %}
-          {% set dag_pris = states('sensor.stromkalkulator_energiledd_dag') | float(0.46) %}
-          {% set natt_pris = states('sensor.stromkalkulator_energiledd_natt') | float(0.23) %}
-          {% set kapasitet = states('sensor.stromkalkulator_kapasitetstrinn') | float(0) %}
+          {% set dag_pris = states('sensor.energiledd_dag') | float(0.46) %}
+          {% set natt_pris = states('sensor.energiledd_natt_helg') | float(0.23) %}
+          {% set kapasitet = states('sensor.kapasitetstrinn') | float(0) %}
           {{ ((dag_kwh * dag_pris) + (natt_kwh * natt_pris) + kapasitet) | round(2) }}
         attributes:
           dag_forbruk_kwh: "{{ states('sensor.strom_maanedlig_dag') | float(0) | round(1) }}"
           natt_forbruk_kwh: "{{ states('sensor.strom_maanedlig_natt') | float(0) | round(1) }}"
-          dag_kostnad: "{{ (states('sensor.strom_maanedlig_dag') | float(0) * states('sensor.stromkalkulator_energiledd_dag') | float(0.46)) | round(2) }}"
-          natt_kostnad: "{{ (states('sensor.strom_maanedlig_natt') | float(0) * states('sensor.stromkalkulator_energiledd_natt') | float(0.23)) | round(2) }}"
-          kapasitetsledd: "{{ states('sensor.stromkalkulator_kapasitetstrinn') | float(0) | round(0) }}"
+          dag_kostnad: "{{ (states('sensor.strom_maanedlig_dag') | float(0) * states('sensor.energiledd_dag') | float(0.46)) | round(2) }}"
+          natt_kostnad: "{{ (states('sensor.strom_maanedlig_natt') | float(0) * states('sensor.energiledd_natt_helg') | float(0.23)) | round(2) }}"
+          kapasitetsledd: "{{ states('sensor.kapasitetstrinn') | float(0) | round(0) }}"
 
       # Månedlig forbruksavgift
       - name: "Månedlig forbruksavgift"
@@ -105,7 +105,7 @@ template:
         icon: mdi:lightning-bolt
         state: >
           {% set total_kwh = states('sensor.strom_maanedlig_dag') | float(0) + states('sensor.strom_maanedlig_natt') | float(0) %}
-          {% set avgift = states('sensor.stromkalkulator_forbruksavgift') | float(0.0891) %}
+          {% set avgift = states('sensor.forbruksavgift') | float(0.0891) %}
           {{ (total_kwh * avgift) | round(2) }}
 
       # Månedlig Enova-avgift
@@ -116,7 +116,7 @@ template:
         icon: mdi:leaf
         state: >
           {% set total_kwh = states('sensor.strom_maanedlig_dag') | float(0) + states('sensor.strom_maanedlig_natt') | float(0) %}
-          {% set avgift = states('sensor.stromkalkulator_enovaavgift') | float(0.0125) %}
+          {% set avgift = states('sensor.enovaavgift') | float(0.0125) %}
           {{ (total_kwh * avgift) | round(2) }}
 
       # Besparelse vs Norgespris
@@ -127,7 +127,7 @@ template:
         icon: mdi:piggy-bank
         state: >
           {% set total_kwh = states('sensor.strom_maanedlig_dag') | float(0) + states('sensor.strom_maanedlig_natt') | float(0) %}
-          {% set diff_per_kwh = states('sensor.stromkalkulator_prisforskjell_norgespris') | float(0) %}
+          {% set diff_per_kwh = states('sensor.prisforskjell_norgespris') | float(0) %}
           {{ (total_kwh * diff_per_kwh * -1) | round(2) }}
         attributes:
           note: "Positiv = du sparer, Negativ = du taper vs Norgespris (50 øre/kWh)"
@@ -142,7 +142,7 @@ automation:
     description: "Bytter utility_meter tariff basert på dag/natt fra Strømkalkulator"
     trigger:
       - platform: state
-        entity_id: sensor.stromkalkulator_tariff
+        entity_id: sensor.tariff
         not_to:
           - unavailable
           - unknown
@@ -167,7 +167,7 @@ automation:
         event: start
     condition:
       - condition: state
-        entity_id: sensor.stromkalkulator_tariff
+        entity_id: sensor.tariff
         state:
           - dag
           - natt
@@ -180,5 +180,5 @@ automation:
             - select.strom_maanedlig
             - select.strom_aarlig
         data:
-          option: "{{ states('sensor.stromkalkulator_tariff') }}"
+          option: "{{ states('sensor.tariff') }}"
     mode: single

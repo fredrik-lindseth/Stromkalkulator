@@ -436,7 +436,7 @@ class StromstotteSensor(NettleieBaseSensor):
         if self.coordinator.data:
             return {
                 "spotpris": self.coordinator.data.get("spot_price"),
-                "terskel": 0.70,
+                "terskel": 0.9125,
                 "dekningsgrad": "90%",
             }
         return None
@@ -746,7 +746,7 @@ class EnovaavgiftSensor(NettleieBaseSensor):
             "mva_sats": f"{int(mva_sats * 100)}%",
             "avgiftssone": avgiftssone,
             "ore_per_kwh_eks_mva": round(ENOVA_AVGIFT * 100, 2),
-            "note": "Fakturaen viser Enova-avgift eks. mva (1,25 øre/kWh i 2025)",
+            "note": "Fakturaen viser Enova-avgift eks. mva (1,0 øre/kWh)",
         }
 
 

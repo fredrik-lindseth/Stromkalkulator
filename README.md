@@ -116,7 +116,7 @@ Disse nettselskapene er registrert med prisområde, men mangler priser. Bidra gj
 
 </details>
 
-Se [beregninger.md](beregninger.md) for detaljert dokumentasjon av alle formler og beregninger.
+Se [beregninger.md](docs/beregninger.md) for detaljert dokumentasjon av alle formler og beregninger.
 
 
 ## Krav
@@ -157,13 +157,13 @@ Testet på Home Assistant 2026.1.2
 
 **Viktig:** Velg "Current price" - IKKE "Today lowest" eller "Today average". "Current price" gir deg spotprisen for nåværende time, som er korrekt for strømstøtte-beregninger.
 
-![integration](./integration.png)
+![integration](./images/integration.png)
 
 ### Sensors Dashboard
 
-![Nettleie](./sensor_nettleie.png)
-![Strømstøtte](./sensor_strømstøtte.png)
-![Norgespris](./sensor_norgespris.png)
+![Nettleie](./images/sensor_nettleie.png)
+![Strømstøtte](./images/sensor_strømstøtte.png)
+![Norgespris](./images/sensor_norgespris.png)
 
 ## Sensorer
 
@@ -251,11 +251,11 @@ Hver sensor har ekstra attributter som gir mer detaljer. Disse kan brukes i temp
 | `tso`                    | Nettselskap            |
 
 #### Strømstøtte (`sensor.stromstotte`)
-| Attributt      | Beskrivelse        |
-|----------------|--------------------|
-| `spotpris`     | Nåværende spotpris |
-| `terskel`      | 0.70 (70 øre/kWh)  |
-| `dekningsgrad` | "90%"              |
+| Attributt      | Beskrivelse            |
+|----------------|------------------------|
+| `spotpris`     | Nåværende spotpris     |
+| `terskel`      | 0.9125 (91,25 øre/kWh) |
+| `dekningsgrad` | "90%"                  |
 
 #### Total strømpris etter støtte (`sensor.total_pris_etter_stotte`)
 | Attributt                | Beskrivelse            |
@@ -333,10 +333,10 @@ Hver sensor har ekstra attributter som gir mer detaljer. Disse kan brukes i temp
 Avgiftssonen bestemmer hvilken forbruksavgift og MVA-sats som brukes i beregningene.
 
 | Avgiftssone      | Forbruksavgift (2026) | MVA | Gjelder                                  |
-|------------------|----------------------|-----|------------------------------------------|
-| **Standard**     | 7,13 øre/kWh         | 25% | Sør-Norge (NO1, NO2, NO5)                |
-| **Nord-Norge**   | 7,13 øre/kWh         | 0%  | Nordland og Troms (unntatt tiltakssonen) |
-| **Tiltakssonen** | Fritak               | 0%  | Finnmark + 7 kommuner i Nord-Troms       |
+|------------------|-----------------------|-----|------------------------------------------|
+| **Standard**     | 7,13 øre/kWh          | 25% | Sør-Norge (NO1, NO2, NO5)                |
+| **Nord-Norge**   | 7,13 øre/kWh          | 0%  | Nordland og Troms (unntatt tiltakssonen) |
+| **Tiltakssonen** | Fritak                | 0%  | Finnmark + 7 kommuner i Nord-Troms       |
 
 **Nytt fra 2026:** Forbruksavgiften er nå lik for Standard og Nord-Norge (7,13 øre/kWh). Forskjellen mellom sonene er primært MVA-fritak.
 
@@ -345,11 +345,11 @@ Avgiftssonen bestemmer hvilken forbruksavgift og MVA-sats som brukes i beregning
 - Bor du i Nordland eller Troms → **Nord-Norge** (MVA-fritak)
 - Bor du i Finnmark, Kåfjord, Skjervøy, Nordreisa, Kvænangen, Karlsøy, Lyngen eller Storfjord → **Tiltakssonen**
 
-Se [beregninger.md](beregninger.md) for detaljert informasjon om avgiftssoner og satser.
+Se [beregninger.md](docs/beregninger.md) for detaljert informasjon om avgiftssoner og satser.
 
 ## Bidra
 
-Vil du legge til støtte for ditt nettselskap? Se [CONTRIBUTING.md](CONTRIBUTING.md) for detaljert veiledning!
+Vil du legge til støtte for ditt nettselskap? Se [CONTRIBUTING.md](docs/CONTRIBUTING.md) for detaljert veiledning!
 
 ## Utility Meter - Forbrukssporing og kostnad
 
@@ -372,7 +372,7 @@ Vi har laget en ferdig YAML-pakke som setter opp:
 3. Tilpass sensor-navnene i filen til dine faktiske sensorer
 4. Start Home Assistant på nytt
 
-Se [UTILITY_METER_PLAN.md](UTILITY_METER_PLAN.md) for detaljert dokumentasjon.
+Se [UTILITY_METER_PLAN.md](docs/UTILITY_METER_PLAN.md) for detaljert dokumentasjon.
 
 ### Kort oppsett (manuelt)
 

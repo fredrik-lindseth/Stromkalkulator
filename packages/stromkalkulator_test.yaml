@@ -1,0 +1,270 @@
+# =============================================================================
+# Strømkalkulator Test & Validering Package
+# =============================================================================
+#
+# Denne pakken gir sanntids-validering av alle Strømkalkulator-beregninger.
+# Bruk den til å verifisere at integrasjonen regner korrekt.
+#
+# OPPSETT:
+# 1. Kopier til /config/packages/stromkalkulator_test.yaml
+# 2. Sørg for at packages er aktivert i configuration.yaml:
+#    homeassistant:
+#      packages: !include_dir_named packages
+# 3. Start Home Assistant på nytt
+# 4. Se på "Test:" entitetene i Developer Tools → States (filtrer på "test_")
+#
+# FEILSØKING:
+# - Hvis tester viser "FEIL", sjekk attributtene for å se forventet vs faktisk
+# - Alle tester bruker koordinatorens data, så timing-issues er eliminert
+#
+# =============================================================================
+
+template:
+  - sensor:
+      # =========================================================================
+      # STRØMSTØTTE VALIDERING
+      # =========================================================================
+      # Bruker spotpris fra strømstøtte-sensorens attributt for konsistens
+      - name: "Test: Strømstøtte beregning"
+        unique_id: stromkalkulator_test_stromstotte
+        icon: mdi:calculator-variant-outline
+        state: >
+          {% set spot = state_attr('sensor.stromstotte', 'spotpris') | float(0) %}
+          {% set terskel = 0.9125 %}
+          {% set rate = 0.9 %}
+          {% set forventet = ([0, (spot - terskel) * rate] | max) | round(4) %}
+          {% set faktisk = states('sensor.stromstotte') | float(0) %}
+          {% set diff = (forventet - faktisk) | abs %}
+          {% if diff < 0.001 %}OK{% else %}FEIL{% endif %}
+        attributes:
+          spotpris: "{{ state_attr('sensor.stromstotte', 'spotpris') | float(0) | round(4) }}"
+          terskel: 0.9125
+          dekningsgrad: "90%"
+          forventet_stromstotte: >
+            {% set spot = state_attr('sensor.stromstotte', 'spotpris') | float(0) %}
+            {{ ([0, (spot - 0.9125) * 0.9] | max) | round(4) }}
+          faktisk_stromstotte: "{{ states('sensor.stromstotte') | float(0) | round(4) }}"
+          differanse: >
+            {% set spot = state_attr('sensor.stromstotte', 'spotpris') | float(0) %}
+            {% set forventet = ([0, (spot - 0.9125) * 0.9] | max) | round(4) %}
+            {% set faktisk = states('sensor.stromstotte') | float(0) %}
+            {{ (forventet - faktisk) | abs | round(4) }}
+          formel: "max(0, (spotpris - 0.9125) × 0.90)"
+
+      # =========================================================================
+      # SPOTPRIS ETTER STØTTE VALIDERING
+      # =========================================================================
+      # Bruker spotpris fra spotpris_etter_stotte-sensorens attributt for konsistens
+      - name: "Test: Spotpris etter støtte"
+        unique_id: stromkalkulator_test_spotpris_etter_stotte
+        icon: mdi:calculator-variant-outline
+        state: >
+          {% set spot = state_attr('sensor.spotpris_etter_stotte', 'spotpris') | float(0) %}
+          {% set stotte = states('sensor.stromstotte') | float(0) %}
+          {% set forventet = (spot - stotte) | round(4) %}
+          {% set faktisk = states('sensor.spotpris_etter_stotte') | float(0) %}
+          {% set diff = (forventet - faktisk) | abs %}
+          {% if diff < 0.001 %}OK{% else %}FEIL{% endif %}
+        attributes:
+          spotpris: "{{ state_attr('sensor.spotpris_etter_stotte', 'spotpris') | float(0) | round(4) }}"
+          stromstotte: "{{ states('sensor.stromstotte') | float(0) | round(4) }}"
+          forventet: >
+            {% set spot = state_attr('sensor.spotpris_etter_stotte', 'spotpris') | float(0) %}
+            {% set stotte = states('sensor.stromstotte') | float(0) %}
+            {{ (spot - stotte) | round(4) }}
+          faktisk: "{{ states('sensor.spotpris_etter_stotte') | float(0) | round(4) }}"
+
+      # =========================================================================
+      # TARIFF VALIDERING
+      # =========================================================================
+      - name: "Test: Tariff korrekt"
+        unique_id: stromkalkulator_test_tariff
+        icon: mdi:clock-check-outline
+        state: >
+          {% set hour = now().hour %}
+          {% set weekday = now().weekday() %}
+          {% set is_weekend = weekday >= 5 %}
+          {% set is_night_hour = hour < 6 or hour >= 22 %}
+          {% set date_mmdd = now().strftime('%m-%d') %}
+          {% set holidays = ['01-01', '05-01', '05-17', '12-25', '12-26'] %}
+          {% set is_fixed_holiday = date_mmdd in holidays %}
+          {# Bevegelige helligdager 2026 #}
+          {% set date_full = now().strftime('%Y-%m-%d') %}
+          {% set moving_holidays_2026 = ['2026-04-02', '2026-04-03', '2026-04-05', '2026-04-06', '2026-05-14', '2026-05-24', '2026-05-25'] %}
+          {% set is_moving_holiday = date_full in moving_holidays_2026 %}
+          {% set should_be_natt = is_weekend or is_night_hour or is_fixed_holiday or is_moving_holiday %}
+          {% set forventet = 'natt' if should_be_natt else 'dag' %}
+          {% set faktisk = states('sensor.tariff') %}
+          {% if forventet == faktisk %}OK{% else %}FEIL{% endif %}
+        attributes:
+          time: "{{ now().strftime('%H:%M') }}"
+          weekday: "{{ ['Man','Tir','Ons','Tor','Fre','Lør','Søn'][now().weekday()] }}"
+          date: "{{ now().strftime('%Y-%m-%d') }}"
+          is_weekend: "{{ now().weekday() >= 5 }}"
+          is_night_hours: "{{ now().hour < 6 or now().hour >= 22 }}"
+          forventet_tariff: >
+            {% set hour = now().hour %}
+            {% set weekday = now().weekday() %}
+            {% set is_weekend = weekday >= 5 %}
+            {% set is_night_hour = hour < 6 or hour >= 22 %}
+            {% set date_mmdd = now().strftime('%m-%d') %}
+            {% set holidays = ['01-01', '05-01', '05-17', '12-25', '12-26'] %}
+            {% set is_fixed_holiday = date_mmdd in holidays %}
+            {% set should_be_natt = is_weekend or is_night_hour or is_fixed_holiday %}
+            {{ 'natt' if should_be_natt else 'dag' }}
+          faktisk_tariff: "{{ states('sensor.tariff') }}"
+
+      # =========================================================================
+      # ENERGILEDD VALIDERING
+      # =========================================================================
+      - name: "Test: Energiledd korrekt"
+        unique_id: stromkalkulator_test_energiledd
+        icon: mdi:transmission-tower
+        state: >
+          {% set tariff = states('sensor.tariff') %}
+          {% set dag_pris = states('sensor.energiledd_dag') | float(0) %}
+          {% set natt_pris = states('sensor.energiledd_natt_helg') | float(0) %}
+          {% set forventet = dag_pris if tariff == 'dag' else natt_pris %}
+          {% set faktisk = states('sensor.energiledd') | float(0) %}
+          {% set diff = (forventet - faktisk) | abs %}
+          {% if diff < 0.001 %}OK{% else %}FEIL{% endif %}
+        attributes:
+          tariff: "{{ states('sensor.tariff') }}"
+          energiledd_dag: "{{ states('sensor.energiledd_dag') | float(0) | round(4) }}"
+          energiledd_natt: "{{ states('sensor.energiledd_natt_helg') | float(0) | round(4) }}"
+          forventet_energiledd: >
+            {% set tariff = states('sensor.tariff') %}
+            {% set dag = states('sensor.energiledd_dag') | float(0) %}
+            {% set natt = states('sensor.energiledd_natt_helg') | float(0) %}
+            {{ dag if tariff == 'dag' else natt }}
+          faktisk_energiledd: "{{ states('sensor.energiledd') | float(0) | round(4) }}"
+
+      # =========================================================================
+      # TOTAL PRIS VALIDERING
+      # =========================================================================
+      - name: "Test: Total pris etter støtte"
+        unique_id: stromkalkulator_test_total_pris
+        icon: mdi:currency-usd
+        state: >
+          {% set spot_etter = states('sensor.spotpris_etter_stotte') | float(0) %}
+          {% set energiledd = states('sensor.energiledd') | float(0) %}
+          {% set kapasitet_per_kwh = states('sensor.kapasitetstrinn') | float(0) / (now().day | int) / 24 %}
+          {# Forenklet - vi sjekker bare at total > spot_etter + energiledd #}
+          {% set faktisk = states('sensor.total_strompris_etter_stotte') | float(0) %}
+          {% set min_forventet = spot_etter + energiledd %}
+          {% if faktisk >= min_forventet %}OK{% else %}FEIL{% endif %}
+        attributes:
+          spotpris_etter_stotte: "{{ states('sensor.spotpris_etter_stotte') | float(0) | round(4) }}"
+          energiledd: "{{ states('sensor.energiledd') | float(0) | round(4) }}"
+          kapasitetstrinn_mnd: "{{ states('sensor.kapasitetstrinn') | float(0) | round(0) }}"
+          faktisk_total: "{{ states('sensor.total_strompris_etter_stotte') | float(0) | round(4) }}"
+          minimum_forventet: >
+            {% set spot_etter = states('sensor.spotpris_etter_stotte') | float(0) %}
+            {% set energiledd = states('sensor.energiledd') | float(0) %}
+            {{ (spot_etter + energiledd) | round(4) }}
+
+      # =========================================================================
+      # OFFENTLIGE AVGIFTER VALIDERING
+      # =========================================================================
+      - name: "Test: Forbruksavgift"
+        unique_id: stromkalkulator_test_forbruksavgift
+        icon: mdi:lightning-bolt
+        state: >
+          {% set forventet = 0.0891 %}  {# 7.13 øre × 1.25 mva #}
+          {% set faktisk = states('sensor.forbruksavgift') | float(0) %}
+          {% set diff = (forventet - faktisk) | abs %}
+          {% if diff < 0.001 %}OK{% else %}FEIL{% endif %}
+        attributes:
+          forventet_inkl_mva: "0.0891 (7.13 øre × 1.25)"
+          faktisk: "{{ states('sensor.forbruksavgift') | float(0) | round(4) }}"
+          note: "2026: Flat sats hele året (ingen sesongvariasjon)"
+
+      - name: "Test: Enova-avgift"
+        unique_id: stromkalkulator_test_enovaavgift
+        icon: mdi:leaf
+        state: >
+          {% set forventet = 0.0125 %}  {# 1.0 øre × 1.25 mva #}
+          {% set faktisk = states('sensor.enovaavgift') | float(0) %}
+          {% set diff = (forventet - faktisk) | abs %}
+          {% if diff < 0.001 %}OK{% else %}FEIL{% endif %}
+        attributes:
+          forventet_inkl_mva: "0.0125 (1.0 øre × 1.25)"
+          faktisk: "{{ states('sensor.enovaavgift') | float(0) | round(4) }}"
+          note: "2026: 1.0 øre/kWh eks. mva"
+
+      # =========================================================================
+      # NORGESPRIS VALIDERING
+      # =========================================================================
+      - name: "Test: Norgespris sammenligning"
+        unique_id: stromkalkulator_test_norgespris
+        icon: mdi:compare-horizontal
+        state: >
+          {% set din_pris = states('sensor.total_strompris_etter_stotte') | float(0) %}
+          {% set norgespris = states('sensor.total_strompris_norgespris') | float(0) %}
+          {% set prisforskjell = states('sensor.prisforskjell_norgespris') | float(0) %}
+          {% set beregnet_diff = (din_pris - norgespris) | round(4) %}
+          {% set diff = (beregnet_diff - prisforskjell) | abs %}
+          {% if diff < 0.01 %}OK{% else %}FEIL{% endif %}
+        attributes:
+          din_totalpris: "{{ states('sensor.total_strompris_etter_stotte') | float(0) | round(4) }}"
+          norgespris_total: "{{ states('sensor.total_strompris_norgespris') | float(0) | round(4) }}"
+          prisforskjell_sensor: "{{ states('sensor.prisforskjell_norgespris') | float(0) | round(4) }}"
+          beregnet_forskjell: >
+            {% set din = states('sensor.total_strompris_etter_stotte') | float(0) %}
+            {% set norgespris = states('sensor.total_strompris_norgespris') | float(0) %}
+            {{ (din - norgespris) | round(4) }}
+          tolkning: >
+            {% set diff = states('sensor.prisforskjell_norgespris') | float(0) %}
+            {% if diff > 0 %}Du betaler {{ (diff * 100) | round(1) }} øre/kWh MER enn Norgespris
+            {% elif diff < 0 %}Du betaler {{ (diff * -100) | round(1) }} øre/kWh MINDRE enn Norgespris
+            {% else %}Likt{% endif %}
+
+      # =========================================================================
+      # KAPASITETSTRINN VALIDERING
+      # =========================================================================
+      - name: "Test: Kapasitetstrinn"
+        unique_id: stromkalkulator_test_kapasitetstrinn
+        icon: mdi:gauge
+        state: >
+          {% set trinn = states('sensor.kapasitetstrinn_nummer') | int(0) %}
+          {% set pris = states('sensor.kapasitetstrinn') | float(0) %}
+          {% set intervall = states('sensor.kapasitetstrinn_intervall') %}
+          {% if trinn > 0 and pris > 0 %}OK{% else %}MANGLER DATA{% endif %}
+        attributes:
+          trinn_nummer: "{{ states('sensor.kapasitetstrinn_nummer') }}"
+          trinn_intervall: "{{ states('sensor.kapasitetstrinn_intervall') }}"
+          kapasitetsledd_mnd: "{{ states('sensor.kapasitetstrinn') | float(0) | round(0) }} kr"
+          snitt_topp_3: "{{ states('sensor.snitt_toppforbruk') | float(0) | round(2) }} kW"
+          topp_1: "{{ states('sensor.maks_forbruk_1') | float(0) | round(2) }} kW"
+          topp_2: "{{ states('sensor.maks_forbruk_2') | float(0) | round(2) }} kW"
+          topp_3: "{{ states('sensor.maks_forbruk_3') | float(0) | round(2) }} kW"
+
+      # =========================================================================
+      # SAMLET STATUS
+      # =========================================================================
+      - name: "Test: Alle tester OK"
+        unique_id: stromkalkulator_test_alle_ok
+        icon: mdi:check-circle
+        state: >
+          {% set tests = [
+            states('sensor.test_stromstotte_beregning'),
+            states('sensor.test_spotpris_etter_stotte'),
+            states('sensor.test_tariff_korrekt'),
+            states('sensor.test_energiledd_korrekt'),
+            states('sensor.test_total_pris_etter_stotte'),
+            states('sensor.test_forbruksavgift'),
+            states('sensor.test_enova_avgift'),
+            states('sensor.test_norgespris_sammenligning')
+          ] %}
+          {% set ok_count = tests | select('eq', 'OK') | list | count %}
+          {% set total = tests | count %}
+          {{ ok_count }}/{{ total }} OK
+        attributes:
+          stromstotte: "{{ states('sensor.test_stromstotte_beregning') }}"
+          spotpris_etter_stotte: "{{ states('sensor.test_spotpris_etter_stotte') }}"
+          tariff: "{{ states('sensor.test_tariff_korrekt') }}"
+          energiledd: "{{ states('sensor.test_energiledd_korrekt') }}"
+          total_pris: "{{ states('sensor.test_total_pris_etter_stotte') }}"
+          forbruksavgift: "{{ states('sensor.test_forbruksavgift') }}"
+          enovaavgift: "{{ states('sensor.test_enova_avgift') }}"
+          norgespris: "{{ states('sensor.test_norgespris_sammenligning') }}"

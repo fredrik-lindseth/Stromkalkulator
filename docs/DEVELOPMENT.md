@@ -26,10 +26,10 @@ EOF
 
 ### Felter
 
-| Felt | Beskrivelse |
-|------|-------------|
-| `daily_max_power` | Dict med dato (YYYY-MM-DD) → maks kW |
-| `current_month` | Måned (1-12) - data nullstilles ved ny måned |
+| Felt              | Beskrivelse                                  |
+|-------------------|----------------------------------------------|
+| `daily_max_power` | Dict med dato (YYYY-MM-DD) → maks kW         |
+| `current_month`   | Måned (1-12) - data nullstilles ved ny måned |
 
 ### Eksempel: Test ulike kapasitetstrinn
 

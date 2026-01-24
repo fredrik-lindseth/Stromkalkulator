@@ -16,13 +16,13 @@ Denne planen beskriver hvordan sluttbrukere kan kombinere Strømkalkulator-integ
 
 Strømkalkulator gir disse sensorene som er relevante for utility_meter:
 
-| Sensor | Enhet | Beskrivelse |
-|--------|-------|-------------|
+| Sensor                                                | Enhet   | Beskrivelse                         |
+|-------------------------------------------------------|---------|-------------------------------------|
 | `sensor.stromkalkulator_total_strompris_etter_stotte` | NOK/kWh | Din faktiske pris etter strømstøtte |
-| `sensor.stromkalkulator_total_strompris_for_stotte` | NOK/kWh | Pris før strømstøtte |
-| `sensor.stromkalkulator_stromstotte` | NOK/kWh | Strømstøtte per kWh |
-| `sensor.stromkalkulator_energiledd` | NOK/kWh | Nettleie energiledd (dag/natt) |
-| `sensor.stromkalkulator_total_strompris_norgespris` | NOK/kWh | Pris med Norgespris (50 øre/kWh) |
+| `sensor.stromkalkulator_total_strompris_for_stotte`   | NOK/kWh | Pris før strømstøtte                |
+| `sensor.stromkalkulator_stromstotte`                  | NOK/kWh | Strømstøtte per kWh                 |
+| `sensor.stromkalkulator_energiledd`                   | NOK/kWh | Nettleie energiledd (dag/natt)      |
+| `sensor.stromkalkulator_total_strompris_norgespris`   | NOK/kWh | Pris med Norgespris (50 øre/kWh)    |
 
 **Mangler for utility_meter:**
 - Tariff-sensor som angir dag/natt for automatisk bytte
@@ -294,14 +294,14 @@ Fremtidig mulighet: La integrasjonen automatisk opprette utility_meters via conf
 
 ### Etter (med utility_meter)
 
-| Funksjon | Fordel |
-|----------|--------|
-| Automatisk tariff-bytte | Riktig pris alltid |
-| Daglig/månedlig oversikt | Se forbruk over tid |
-| Energy Dashboard | Vakker visualisering |
-| Kostnadsberegning | Nøyaktige månedskostnader |
-| Norgespris-sammenligning | Vit om du bør bytte |
-| Strømstøtte-sporing | Se hvor mye du får i støtte |
+| Funksjon                 | Fordel                      |
+|--------------------------|-----------------------------|
+| Automatisk tariff-bytte  | Riktig pris alltid          |
+| Daglig/månedlig oversikt | Se forbruk over tid         |
+| Energy Dashboard         | Vakker visualisering        |
+| Kostnadsberegning        | Nøyaktige månedskostnader   |
+| Norgespris-sammenligning | Vit om du bør bytte         |
+| Strømstøtte-sporing      | Se hvor mye du får i støtte |
 
 ---
 

@@ -107,17 +107,34 @@ For å vise faktisk strømpris i Energy Dashboard:
 1. **Settings > Dashboards > Energy**
 2. Under "Electricity grid" > "Add consumption"
 3. Velg din kWh-sensor (f.eks. `sensor.tibber_pulse_*_accumulated_consumption`)
-4. **"Use an entity with current price"**: Velg `sensor.total_strompris_etter_stotte`
+4. **"Use an entity with current price"**: Velg `sensor.totalpris_inkl_avgifter`
+
+> **Merk:** Bruk `sensor.totalpris_inkl_avgifter` for korrekt totalpris inkludert alle avgifter (forbruksavgift, Enova-avgift og mva).
 
 ## Sensorer
 
-| Sensor                                | Beskrivelse                                           |
-|---------------------------------------|-------------------------------------------------------|
-| `sensor.total_strompris_etter_stotte` | Din faktiske totalpris (for Energy Dashboard)         |
-| `sensor.stromstotte`                  | Støtte per kWh                                        |
-| `sensor.kapasitetstrinn`              | Månedlig kapasitetskostnad                            |
-| `sensor.tariff`                       | "dag" eller "natt" (natt er også helg og helligdager) |
-| `sensor.prisforskjell_norgespris`     | Sammenligning med Norgespris                          |
+### Hovedsensorer
+
+| Sensor                                | Beskrivelse                                    |
+|---------------------------------------|------------------------------------------------|
+| `sensor.totalpris_inkl_avgifter`      | **Bruk denne i Energy Dashboard** - inkl. alt  |
+| `sensor.total_strompris_etter_stotte` | Totalpris etter støtte (uten avgifter)         |
+| `sensor.stromstotte`                  | Støtte per kWh                                 |
+| `sensor.kapasitetstrinn`              | Månedlig kapasitetskostnad                     |
+| `sensor.tariff`                       | "dag" eller "natt" (natt er også helg/helligdager) |
+| `sensor.prisforskjell_norgespris`     | Sammenligning med Norgespris                   |
+
+### Månedlig forbruk (device: "Månedlig forbruk")
+
+| Sensor                            | Beskrivelse                               |
+|-----------------------------------|-------------------------------------------|
+| `sensor.manedlig_forbruk_dag`     | Forbruk på dagtariff denne måneden (kWh)  |
+| `sensor.manedlig_forbruk_natt`    | Forbruk på natt-/helgtariff (kWh)         |
+| `sensor.manedlig_forbruk_totalt`  | Totalt forbruk denne måneden (kWh)        |
+| `sensor.manedlig_nettleie`        | Nettleie (energiledd + kapasitet) (kr)    |
+| `sensor.manedlig_avgifter`        | Forbruksavgift + Enova-avgift (kr)        |
+| `sensor.manedlig_stromstotte`     | Estimert strømstøtte (kr)                 |
+| `sensor.manedlig_nettleie_total`  | Total nettleie etter støtte (kr)          |
 
 ![Nettleie sensorer](images/nettleie_sensors.png)
 ![Nettleie diagnostikk](images/nettleie_diagnostic.png)

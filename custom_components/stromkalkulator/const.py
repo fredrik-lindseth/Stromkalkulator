@@ -1,4 +1,5 @@
 """Constants for Strømkalkulator integration."""
+
 from typing import Final
 
 from .tso import TSO_LIST  # noqa: F401 - re-exported for backward compatibility
@@ -106,6 +107,7 @@ def get_norgespris_inkl_mva(avgiftssone: str) -> float:
         return NORGESPRIS_INKL_MVA_NORD
     return NORGESPRIS_INKL_MVA_STANDARD
 
+
 # Offentlige avgifter (NOK/kWh eks. mva, oppdateres årlig)
 # Kilde: https://www.skatteetaten.no/bedrift-og-organisasjon/avgifter/saravgifter/om/elektrisk-kraft/
 #
@@ -126,7 +128,7 @@ def get_norgespris_inkl_mva(avgiftssone: str) -> float:
 
 # 2026: Flat sats hele året, ingen sesongvariasjon
 FORBRUKSAVGIFT_ALMINNELIG: Final = 0.0713  # 7,13 øre/kWh eks. mva (husholdninger)
-FORBRUKSAVGIFT_REDUSERT: Final = 0.0060    # 0,60 øre/kWh eks. mva (næring i tiltakssonen)
+FORBRUKSAVGIFT_REDUSERT: Final = 0.0060  # 0,60 øre/kWh eks. mva (næring i tiltakssonen)
 
 ENOVA_AVGIFT: Final = 0.01  # 1,0 øre/kWh eks. mva (fast, alle regioner inkl. tiltakssonen)
 MVA_SATS: Final = 0.25  # 25% mva
@@ -182,6 +184,7 @@ def get_default_avgiftssone(prisomrade: str) -> str:
         return AVGIFTSSONE_NORD_NORGE
     return AVGIFTSSONE_STANDARD
 
+
 # Helligdager (YYYY-MM-DD for bevegelige, MM-DD for faste)
 # Faste helligdager
 HELLIGDAGER_FASTE: Final = [
@@ -211,6 +214,12 @@ HELLIGDAGER_BEVEGELIGE: Final = [
     "2027-05-16",  # 1. pinsedag
     "2027-05-17",  # 2. pinsedag (sammenfaller med 17. mai)
 ]
+
+# Device groups
+DEVICE_NETTLEIE: Final = "stromkalkulator"
+DEVICE_STROMSTOTTE: Final = "stromstotte"
+DEVICE_NORGESPRIS: Final = "norgespris"
+DEVICE_MAANEDLIG: Final = "maanedlig"
 
 # Sensor types
 SENSOR_ENERGILEDD: Final = "energiledd"

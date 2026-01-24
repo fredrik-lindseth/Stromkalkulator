@@ -20,11 +20,14 @@ from .const import (
     CONF_SPOT_PRICE_SENSOR,
     CONF_TSO,
     DOMAIN,
+    ENOVA_AVGIFT,
     HELLIGDAGER_BEVEGELIGE,
     HELLIGDAGER_FASTE,
     STROMSTOTTE_LEVEL,
     STROMSTOTTE_RATE,
     TSO_LIST,
+    get_forbruksavgift,
+    get_mva_sats,
     get_norgespris_inkl_mva,
 )
 
@@ -75,6 +78,11 @@ class NettleieCoordinator(DataUpdateCoordinator):
         self._daily_max_power: dict[str, float] = {}
         self._current_month: int = datetime.now().month
 
+        # Track energy consumption for monthly utility meter
+        # Format: {"dag": kwh, "natt": kwh}
+        self._monthly_consumption: dict[str, float] = {"dag": 0.0, "natt": 0.0}
+        self._last_update: datetime | None = None
+
         # Persistent storage - use TSO id for stable storage across reinstalls
         self._store = Store(hass, 1, f"{DOMAIN}_{tso_id}")
         self._store_loaded = False
@@ -91,6 +99,7 @@ class NettleieCoordinator(DataUpdateCoordinator):
         # Reset at new month
         if now.month != self._current_month:
             self._daily_max_power = {}
+            self._monthly_consumption = {"dag": 0.0, "natt": 0.0}
             self._current_month = now.month
             await self._save_stored_data()
 
@@ -101,12 +110,26 @@ class NettleieCoordinator(DataUpdateCoordinator):
         )
         current_power_kw = current_power_w / 1000
 
+        # Calculate energy consumption since last update (riemann sum)
+        consumption_updated = False
+        if self._last_update is not None and current_power_kw > 0:
+            elapsed_hours = (now - self._last_update).total_seconds() / 3600
+            energy_kwh = current_power_kw * elapsed_hours
+            # Add to appropriate tariff bucket
+            tariff = "dag" if self._is_day_rate(now) else "natt"
+            self._monthly_consumption[tariff] += energy_kwh
+            consumption_updated = True
+        self._last_update = now
+
         # Update daily max
         today_str = now.strftime("%Y-%m-%d")
         old_max = self._daily_max_power.get(today_str, 0)
         new_max = max(old_max, current_power_kw)
         if new_max > old_max:
             self._daily_max_power[today_str] = new_max
+
+        # Save if anything changed
+        if new_max > old_max or consumption_updated:
             await self._save_stored_data()
 
         # Get top 3 days
@@ -164,6 +187,17 @@ class NettleieCoordinator(DataUpdateCoordinator):
         # Total pris med norgespris (for sammenligning)
         total_pris_norgespris = norgespris + energiledd + fastledd_per_kwh
 
+        # Offentlige avgifter (for Energy Dashboard)
+        # Forbruksavgift og Enova-avgift inkl. mva
+        mva_sats = get_mva_sats(self.avgiftssone)
+        forbruksavgift = get_forbruksavgift(self.avgiftssone, now.month)
+        forbruksavgift_inkl_mva = forbruksavgift * (1 + mva_sats)
+        enova_inkl_mva = ENOVA_AVGIFT * (1 + mva_sats)
+        offentlige_avgifter = forbruksavgift_inkl_mva + enova_inkl_mva
+
+        # Totalpris inkl. alle avgifter (for Energy Dashboard)
+        total_price_inkl_avgifter = total_price + offentlige_avgifter
+
         # Kroner spart/tapt per kWh (sammenligning)
         # Positiv = du betaler mer enn Norgespris
         # Negativ = du betaler mindre enn Norgespris
@@ -200,6 +234,10 @@ class NettleieCoordinator(DataUpdateCoordinator):
             "kroner_spart_per_kwh": round(kroner_spart_per_kwh, 4),
             "total_price": round(total_price, 4),
             "total_price_uten_stotte": round(total_price_uten_stotte, 4),
+            "total_price_inkl_avgifter": round(total_price_inkl_avgifter, 4),
+            "forbruksavgift_inkl_mva": round(forbruksavgift_inkl_mva, 4),
+            "enova_inkl_mva": round(enova_inkl_mva, 4),
+            "offentlige_avgifter": round(offentlige_avgifter, 4),
             "electricity_company_price": round(electricity_company_price, 4)
             if electricity_company_price is not None
             else None,
@@ -213,6 +251,12 @@ class NettleieCoordinator(DataUpdateCoordinator):
             "tso": self.tso["name"],
             "har_norgespris": self.har_norgespris,
             "avgiftssone": self.avgiftssone,
+            # Monthly consumption tracking
+            "monthly_consumption_dag_kwh": round(self._monthly_consumption["dag"], 3),
+            "monthly_consumption_natt_kwh": round(self._monthly_consumption["natt"], 3),
+            "monthly_consumption_total_kwh": round(
+                self._monthly_consumption["dag"] + self._monthly_consumption["natt"], 3
+            ),
         }
 
     def _get_top_3_days(self) -> dict[str, float]:
@@ -276,16 +320,19 @@ class NettleieCoordinator(DataUpdateCoordinator):
 
         if data:
             self._daily_max_power = data.get("daily_max_power", {})
+            self._monthly_consumption = data.get("monthly_consumption", {"dag": 0.0, "natt": 0.0})
             stored_month = data.get("current_month")
             # If stored month is different, clear data
             if stored_month and stored_month != self._current_month:
                 self._daily_max_power = {}
+                self._monthly_consumption = {"dag": 0.0, "natt": 0.0}
             _LOGGER.debug("Loaded stored data: %s", self._daily_max_power)
 
     async def _save_stored_data(self) -> None:
         """Save data to disk."""
         data = {
             "daily_max_power": self._daily_max_power,
+            "monthly_consumption": self._monthly_consumption,
             "current_month": self._current_month,
         }
         await self._store.async_save(data)

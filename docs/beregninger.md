@@ -234,6 +234,34 @@ total_pris = spotpris + energiledd + fastledd_per_kwh
 total_pris_etter_stotte = (spotpris - strømstøtte) + energiledd + fastledd_per_kwh
 ```
 
+### Inkludert alle avgifter (for Energy Dashboard)
+
+For å vise korrekt totalpris i Home Assistant Energy Dashboard, bruk sensoren
+`sensor.totalpris_inkl_avgifter`. Denne inkluderer alle komponenter:
+
+```
+totalpris_inkl_avgifter = spotpris - strømstøtte + energiledd + kapasitetsledd_per_kwh 
+                         + forbruksavgift_inkl_mva + enova_inkl_mva
+```
+
+**Komponenter:**
+| Komponent              | Beskrivelse                                  |
+|------------------------|----------------------------------------------|
+| Spotpris               | Strømpris fra Nord Pool                      |
+| Strømstøtte            | 90% av spotpris over 96,25 øre (2026)        |
+| Energiledd             | Dag/natt-tariff fra nettselskapet            |
+| Kapasitetsledd per kWh | Fastledd fordelt på forventet forbruk        |
+| Forbruksavgift         | 7,13 øre/kWh + mva (avhenger av avgiftssone) |
+| Enova-avgift           | 1,00 øre/kWh + mva (avhenger av avgiftssone) |
+
+**Energy Dashboard oppsett:**
+1. Gå til **Innstillinger → Dashboards → Energi**
+2. Under **Strømnett**, velg:
+   - **Forbruk**: Din kWh-sensor (f.eks. "Tibber Accumulated consumption")
+   - **Bruk en enhet med nåværende pris**: `sensor.totalpris_inkl_avgifter`
+
+Dette gir korrekt beregning av strømkostnad inkludert alle avgifter.
+
 ## Strømselskap-pris
 
 Hvis du har konfigurert en pris-sensor fra strømselskapet (f.eks. Tibber), beregnes totalpris slik:
@@ -481,3 +509,69 @@ Fra 2026 er forbruksavgiften lik for Standard og Nord-Norge. Forskjellen skyldes
 - Beregningene følger norske regler for strømstøtte (2026: 90% over 96,25 øre/kWh)
 - Kapasitetstrinn varierer mellom nettselskaper
 - Norgespris: 50 øre/kWh (Sør-Norge) eller 40 øre/kWh (Nord-Norge), ingen strømstøtte
+
+## Månedlig forbruk og kostnad
+
+Integrasjonen sporer månedlig forbruk og beregner kostnader automatisk via device "Månedlig forbruk".
+
+### Sensorer
+
+| Sensor                          | Beskrivelse                                   | Enhet |
+|---------------------------------|-----------------------------------------------|-------|
+| `sensor.manedlig_forbruk_dag`   | Forbruk på dagtariff (06:00-22:00 hverdager)  | kWh   |
+| `sensor.manedlig_forbruk_natt`  | Forbruk på natt-/helgtariff                   | kWh   |
+| `sensor.manedlig_forbruk_total` | Totalt forbruk denne måneden                  | kWh   |
+| `sensor.manedlig_nettleie`      | Nettleie-kostnad (energiledd + kapasitet)     | kr    |
+| `sensor.manedlig_avgifter`      | Forbruksavgift + Enova-avgift                 | kr    |
+| `sensor.manedlig_stromstotte`   | Estimert strømstøtte                          | kr    |
+| `sensor.manedlig_nettleie_total`| Total nettleie inkl. avgifter minus støtte    | kr    |
+
+### Beregningsmetode
+
+Forbruket beregnes med Riemann-sum basert på effekt-sensoren:
+
+```python
+# Ved hver oppdatering (hvert minutt)
+elapsed_hours = (now - last_update).total_seconds() / 3600
+energy_kwh = current_power_kw * elapsed_hours
+
+# Legg til i riktig tariff-bøtte
+if is_day_rate:
+    monthly_consumption["dag"] += energy_kwh
+else:
+    monthly_consumption["natt"] += energy_kwh
+```
+
+### Månedlig nullstilling
+
+All forbruksdata nullstilles automatisk ved månedsskifte:
+- Forbruk dag/natt resettes til 0
+- Kapasitetstrinn-data beholdes (topp 3-dager)
+
+### Kostnadsberegning
+
+```python
+# Nettleie
+nettleie_dag = forbruk_dag * energiledd_dag
+nettleie_natt = forbruk_natt * energiledd_natt
+nettleie_total = nettleie_dag + nettleie_natt + kapasitetsledd
+
+# Avgifter (inkl. mva basert på avgiftssone)
+avgifter = total_forbruk * (forbruksavgift_inkl_mva + enova_inkl_mva)
+
+# Strømstøtte (estimat basert på gjennomsnittlig støtte-sats)
+stromstotte = total_forbruk * gjennomsnitt_stromstotte_per_kwh
+
+# Total nettleie etter støtte
+total = nettleie_total + avgifter - stromstotte
+```
+
+### Begrensninger
+
+- **Strømstøtte er estimat**: Sensoren bruker gjeldende strømstøtte-sats, ikke historisk akkumulert støtte
+- **Riemann-sum**: Forbruket beregnes fra effekt, ikke fra strømmåler (kan ha små avvik)
+- **Maks 5000 kWh**: Strømstøtte-begrensningen på 5000 kWh/mnd er ikke implementert
+
+### Alternativ: Utility Meter
+
+For mer nøyaktig sporing kan du bruke `packages/stromkalkulator_utility.yaml` som setter opp Home Assistant utility_meter med automatisk tariff-bytte basert på `sensor.tariff`.

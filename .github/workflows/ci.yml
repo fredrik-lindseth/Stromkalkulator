@@ -20,7 +20,12 @@ jobs:
 
       - name: Install linters
         run: |
-          pip install vulture
+          pip install vulture pytest
+
+      - name: Run unit tests
+        run: |
+          pytest tests/ -v
+          echo "✅ All unit tests passed"
 
       - name: Validate manifest
         run: |

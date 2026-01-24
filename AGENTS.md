@@ -1,135 +1,112 @@
-w# Agent-instruksjoner for Strømkalkulator
+# Agent-instruksjoner for Stromkalkulator
 
-## Generelle regler
-Se OpenCode "developer" agent for standard utviklingspraksis.
+## Prosjektoversikt
 
-## Prosjektspesifikk
+Home Assistant HACS-integrasjon som beregner **faktisk strompris** i Norge.
 
-## Prosjektbeskrivelse
-Home Assistant-integrasjon for komplett oversikt over strømkostnader i Norge:
-- **Nettleie** - Kapasitetsledd og energiledd fra norske nettselskaper
-- **Strømstøtte** - Automatisk beregning av statlig strømstøtte (90% over terskel)
-- **Norgespris** - Sammenligning med Elhubs fastprisprodukt (50 øre/kWh)
-- **Offentlige avgifter** - Forbruksavgift, Enova-avgift og mva
+**Hovedsensor:** `sensor.total_strompris_etter_stotte`
+
+Inkluderer: spotpris + nettleie + avgifter - stromstotte
+
+## Arkitektur
+
+```
+custom_components/stromkalkulator/
+├── __init__.py      # Oppsett, registrer platforms
+├── config_flow.py   # UI-konfigurasjon (velg nettselskap, sensorer)
+├── const.py         # TSO-priser, helligdager, konstanter
+├── coordinator.py   # DataUpdateCoordinator, all beregningslogikk
+├── sensor.py        # 22 sensorer gruppert i 3 devices
+└── manifest.json    # HACS-metadata, versjon
+```
 
 ## Viktige filer
-| Fil                                                | Beskrivelse                                  |
-|----------------------------------------------------|----------------------------------------------|
-| `custom_components/stromkalkulator/const.py`       | TSO-priser, helligdager, strømstøtte-terskel |
-| `custom_components/stromkalkulator/coordinator.py` | Beregningslogikk                             |
-| `custom_components/stromkalkulator/sensor.py`      | Sensor-definisjoner                          |
-| `custom_components/stromkalkulator/manifest.json`  | Versjon og avhengigheter                     |
-| `docs/beregninger.md`                              | Formler og beregningslogikk                  |
 
-## Nettleie-priser
-Prisene for nettleien oppdateres årlig (vanligvis 1. januar). Ved oppdatering:
-1. Verifiser priser mot offisielle nettsider
-2. Oppdater både energiledd (dag/natt) og kapasitetstrinn
-3. Legg til kommentar med årstall og kilde
+| Fil | Nar du endrer |
+|-----|---------------|
+| `const.py` | Legge til nettselskap, oppdatere priser, endre avgifter |
+| `coordinator.py` | Endre beregningslogikk, legge til ny funksjonalitet |
+| `sensor.py` | Legge til/endre sensorer |
+| `config_flow.py` | Endre konfigurasjonsflyten |
+
+## Nodvendige formler
+
+```python
+# Stromstotte (90% over 91.25 ore/kWh)
+stromstotte = max(0, (spotpris - 0.9125) * 0.90)
+
+# Kapasitetsledd per kWh
+kapasitet_per_kwh = (kapasitetsledd_mnd / dager_i_maned) / 24
+
+# Totalpris
+total = (spotpris - stromstotte) + energiledd + kapasitet_per_kwh
+
+# Dag/natt-tariff
+is_day = weekday < 5 and not is_holiday and 6 <= hour < 22
+```
 
 ## Testing
-- Verifiser at Home Assistant-integrasjonen laster uten feil
 
-## Debugging og Deployment
-
-### Lokasjon på Home Assistant
-```
-Integration:     /config/custom_components/stromkalkulator/
-Loggfil:         Tilgjengelig via `ha core logs` (ingen fil på disk)
-HA config:       /config/configuration.yaml
-```
-
-### SSH til Home Assistant
 ```bash
-# Koble til
-ssh ha-local
+# Unit-tester (lokalt)
+pipx run pytest tests/ -v
 
-# Sjekk status
-ha core info
+# Lint
+ruff check custom_components/stromkalkulator/
+```
 
-# Se logger (live)
-ha core logs --follow
+## Deploy til Home Assistant
 
-# Se siste 100 linjer
-ha core logs | tail -100
-
-# Søk etter stromkalkulator-feil
-ha core logs | grep -i stromkalkulator
+```bash
+# Kopier filer (scp virker ikke, bruk ssh cat)
+ssh ha-local "cat > /config/custom_components/stromkalkulator/sensor.py" < custom_components/stromkalkulator/sensor.py
 
 # Restart HA
-ha core restart
-```
-
-### Kopiere filer til HA
-```bash
-# Kopier enkeltfil (scp virker ikke, bruk ssh cat)
-ssh ha-local "cat > /config/custom_components/stromkalkulator/sensor.py" < custom_components/stromkalkulator/sensor.py
-
-# Kopier const.py
-ssh ha-local "cat > /config/custom_components/stromkalkulator/const.py" < custom_components/stromkalkulator/const.py
-
-# Kopier coordinator.py
-ssh ha-local "cat > /config/custom_components/stromkalkulator/coordinator.py" < custom_components/stromkalkulator/coordinator.py
-```
-
-### Hva se etter i loggene
-```
-# FEIL - Må fikses:
-ERROR (MainThread) [homeassistant.config_entries] Error setting up entry
-ImportError: cannot import name 'X' from 'custom_components.stromkalkulator.const'
-
-# ADVARSEL - OK, bare info om custom integrations:
-WARNING (SyncWorker_0) [homeassistant.loader] We found a custom integration stromkalkulator
-
-# SUKSESS - Integrasjonen lastet:
-INFO [custom_components.stromkalkulator] Setting up Strømkalkulator
-```
-
-### Vanlige feil
-| Feil                                  | Årsak                      | Løsning                                           |
-|---------------------------------------|----------------------------|---------------------------------------------------|
-| `ImportError: cannot import name 'X'` | const.py på HA er utdatert | Kopier oppdatert const.py                         |
-| `Error setting up entry`              | Syntaksfeil i Python       | Kjør `ruff check` lokalt først                    |
-| `Entity not available`                | Sensor-avhengighet mangler | Sjekk at power_sensor og spot_price_sensor finnes |
-
-### Sjekkliste før deploy
-```bash
-# 1. Lint lokalt
-ruff check custom_components/stromkalkulator/
-
-# 2. Kopier filer
-ssh ha-local "cat > /config/custom_components/stromkalkulator/sensor.py" < custom_components/stromkalkulator/sensor.py
-ssh ha-local "cat > /config/custom_components/stromkalkulator/const.py" < custom_components/stromkalkulator/const.py
-
-# 3. Restart eller reload
 ssh ha-local "ha core restart"
 
-# 4. Sjekk logger
+# Sjekk logger
 ssh ha-local "ha core logs" | grep -i stromkalkulator
 ```
 
-## Landing the Plane (Session Completion)
+## Vanlige oppgaver
 
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
+### Legge til nettselskap
+1. Finn priser pa nettselskapets nettside
+2. Legg til i `TSO_LIST` i `const.py`
+3. Sett `supported: True`
+4. Test at integrasjonen laster
 
-**MANDATORY WORKFLOW:**
+### Oppdatere priser (arlig)
+1. Sjekk nettselskapenes nettsider (priser endres ofte 1. januar)
+2. Oppdater `energiledd_dag`, `energiledd_natt`, `kapasitetstrinn` i `const.py`
+3. Oppdater avgiftssatser hvis endret (sjekk Skatteetaten)
 
-1. **File issues for remaining work** - Create issues for anything that needs follow-up
-2. **Run quality gates** (if code changed) - Tests, linters, builds
-3. **Update issue status** - Close finished work, update in-progress items
-4. **PUSH TO REMOTE** - This is MANDATORY:
-   ```bash
-   git pull --rebase
-   bd sync
-   git push
-   git status  # MUST show "up to date with origin"
-   ```
-5. **Clean up** - Clear stashes, prune remote branches
-6. **Verify** - All changes committed AND pushed
-7. **Hand off** - Provide context for next session
+### Legge til sensor
+1. Definer sensor-klasse i `sensor.py`
+2. Legg til i `async_setup_entry()`
+3. Hent data fra `coordinator.data["key"]`
 
-**CRITICAL RULES:**
-- Work is NOT complete until `git push` succeeds
-- NEVER stop before pushing - that leaves work stranded locally
-- NEVER say "ready to push when you are" - YOU must push
-- If push fails, resolve and retry until it succeeds
+## Dokumentasjon
+
+| Fil | Innhold |
+|-----|---------|
+| `docs/ARCHITECTURE.md` | Detaljert arkitektur og gjenskapingsguide |
+| `docs/beregninger.md` | Alle formler, avgiftssoner, eksempler |
+| `docs/CONTRIBUTING.md` | Guide for a legge til nettselskap |
+| `docs/TESTING.md` | Testguide (unit + live) |
+
+## Feilsoking
+
+| Problem | Losning |
+|---------|---------|
+| `ImportError` | Kopier oppdatert fil til HA |
+| `Entity unavailable` | Sjekk at kildesensorer finnes |
+| Feil kapasitetstrinn | Data bygges over tid, nullstilles ved manedsskifte |
+| Feil dag/natt | Sjekk helligdager i `const.py` |
+
+## Avhengigheter
+
+- **Effektsensor (W)** - Tibber Pulse, AMS-leser, etc.
+- **Spotpris-sensor (NOK/kWh)** - Nord Pool-integrasjonen
+
+Ingen Python-pakker (ren HA-integrasjon).

@@ -1,35 +1,37 @@
 # =============================================================================
 # Strømkalkulator Utility Meter Package
 # =============================================================================
-# 
-# Denne pakken setter opp utility_meter med dag/natt-tariffer for 
-# nøyaktig kostnadssporing som matcher BKK-fakturaen.
+#
+# Denne pakken setter opp utility_meter med dag/natt-tariffer for
+# nøyaktig forbrukssporing som matcher nettleie-fakturaen.
+#
+# HVORFOR BRUKE DENNE?
+# - Splitte forbruk på dag/natt-tariff (for faktura-validering)
+# - Beregne månedlige kostnader per komponent
+# - Se om du sparer vs. Norgespris
 #
 # OPPSETT:
 # 1. Kopier denne filen til /config/packages/
 # 2. Aktiver packages i configuration.yaml:
 #    homeassistant:
 #      packages: !include_dir_named packages
-# 3. Endre sensor-navnene nedenfor til dine faktiske sensorer
+# 3. VIKTIG: Endre sensor-navnene nedenfor til dine faktiske sensorer
 # 4. Start Home Assistant på nytt
 #
-# FORUTSETNINGER:
-# - Strømkalkulator-integrasjonen er installert og konfigurert
-# - Du har en energi-sensor (kWh) ELLER en effekt-sensor (W)
+# TILPASS DISSE VERDIENE (søk og erstatt):
+#   sensor.BYTT_EFFEKT_SENSOR  → Din effekt-sensor (W), f.eks. sensor.tibber_pulse_power
 #
 # =============================================================================
 
 # -----------------------------------------------------------------------------
-# TILPASS DISSE TIL DINE SENSORER
+# RIEMANN SUM - Konverter effekt (W) til energi (kWh)
 # -----------------------------------------------------------------------------
-# Bytt ut "sensor.power_meter" med din effekt-sensor (W)
-# Hvis du allerede har en kWh-sensor, kommenter ut "sensor"-seksjonen
-# og bruk din kWh-sensor direkte i utility_meter source
+# Hvis du allerede har en kWh-sensor (f.eks. fra Tibber eller AMS-leser),
+# kan du kommentere ut denne seksjonen og bruke den direkte.
 
 sensor:
-  # Konverter effekt (W) til energi (kWh) hvis du ikke har kWh-sensor
   - platform: integration
-    source: sensor.power_meter  # <-- BYTT UT med din effekt-sensor
+    source: sensor.BYTT_EFFEKT_SENSOR    # <-- BYTT UT med din effekt-sensor (W)
     name: "Strøm energiforbruk"
     unique_id: stromkalkulator_energiforbruk
     unit_prefix: k
@@ -43,7 +45,7 @@ sensor:
 utility_meter:
   # Daglig forbruk per tariff
   strom_daglig:
-    source: sensor.strom_energiforbruk  # <-- Eller din kWh-sensor
+    source: sensor.strom_energiforbruk   # <-- Eller din kWh-sensor direkte
     name: "Strøm daglig"
     unique_id: stromkalkulator_daglig
     cycle: daily
@@ -53,7 +55,7 @@ utility_meter:
 
   # Månedlig forbruk per tariff
   strom_maanedlig:
-    source: sensor.strom_energiforbruk  # <-- Eller din kWh-sensor
+    source: sensor.strom_energiforbruk   # <-- Eller din kWh-sensor direkte
     name: "Strøm månedlig"
     unique_id: stromkalkulator_maanedlig
     cycle: monthly
@@ -61,7 +63,7 @@ utility_meter:
       - dag
       - natt
 
-  # Årlig forbruk per tariff
+  # Årlig forbruk per tariff (valgfritt)
   strom_aarlig:
     source: sensor.strom_energiforbruk
     name: "Strøm årlig"
@@ -72,40 +74,40 @@ utility_meter:
       - natt
 
 # -----------------------------------------------------------------------------
-# TEMPLATE SENSORER - Kostnadsberegning
+# TEMPLATE SENSORER - Månedlig kostnadsberegning
 # -----------------------------------------------------------------------------
 
 template:
   - sensor:
-      # Månedlig strømkostnad (energiledd + kapasitetsledd)
+      # Månedlig nettleie-kostnad (energiledd + kapasitetsledd)
       - name: "Månedlig nettleie kostnad"
         unique_id: stromkalkulator_maanedlig_nettleie_kostnad
         unit_of_measurement: "kr"
         device_class: monetary
-        icon: mdi:currency-usd
+        icon: mdi:transmission-tower
         state: >
           {% set dag_kwh = states('sensor.strom_maanedlig_dag') | float(0) %}
           {% set natt_kwh = states('sensor.strom_maanedlig_natt') | float(0) %}
-          {% set dag_pris = states('sensor.energiledd_dag') | float(0.46) %}
-          {% set natt_pris = states('sensor.energiledd_natt_helg') | float(0.23) %}
+          {% set dag_pris = states('sensor.energiledd_dag') | float(0) %}
+          {% set natt_pris = states('sensor.energiledd_natt_helg') | float(0) %}
           {% set kapasitet = states('sensor.kapasitetstrinn') | float(0) %}
           {{ ((dag_kwh * dag_pris) + (natt_kwh * natt_pris) + kapasitet) | round(2) }}
         attributes:
           dag_forbruk_kwh: "{{ states('sensor.strom_maanedlig_dag') | float(0) | round(1) }}"
           natt_forbruk_kwh: "{{ states('sensor.strom_maanedlig_natt') | float(0) | round(1) }}"
-          dag_kostnad: "{{ (states('sensor.strom_maanedlig_dag') | float(0) * states('sensor.energiledd_dag') | float(0.46)) | round(2) }}"
-          natt_kostnad: "{{ (states('sensor.strom_maanedlig_natt') | float(0) * states('sensor.energiledd_natt_helg') | float(0.23)) | round(2) }}"
-          kapasitetsledd: "{{ states('sensor.kapasitetstrinn') | float(0) | round(0) }}"
+          dag_kostnad_kr: "{{ (states('sensor.strom_maanedlig_dag') | float(0) * states('sensor.energiledd_dag') | float(0)) | round(2) }}"
+          natt_kostnad_kr: "{{ (states('sensor.strom_maanedlig_natt') | float(0) * states('sensor.energiledd_natt_helg') | float(0)) | round(2) }}"
+          kapasitetsledd_kr: "{{ states('sensor.kapasitetstrinn') | float(0) | round(0) }}"
 
       # Månedlig forbruksavgift
       - name: "Månedlig forbruksavgift"
         unique_id: stromkalkulator_maanedlig_forbruksavgift
         unit_of_measurement: "kr"
         device_class: monetary
-        icon: mdi:lightning-bolt
+        icon: mdi:bank
         state: >
           {% set total_kwh = states('sensor.strom_maanedlig_dag') | float(0) + states('sensor.strom_maanedlig_natt') | float(0) %}
-          {% set avgift = states('sensor.forbruksavgift') | float(0.0891) %}
+          {% set avgift = states('sensor.forbruksavgift') | float(0) %}
           {{ (total_kwh * avgift) | round(2) }}
 
       # Månedlig Enova-avgift
@@ -116,10 +118,10 @@ template:
         icon: mdi:leaf
         state: >
           {% set total_kwh = states('sensor.strom_maanedlig_dag') | float(0) + states('sensor.strom_maanedlig_natt') | float(0) %}
-          {% set avgift = states('sensor.enovaavgift') | float(0.0125) %}
+          {% set avgift = states('sensor.enovaavgift') | float(0) %}
           {{ (total_kwh * avgift) | round(2) }}
 
-      # Besparelse vs Norgespris
+      # Besparelse vs Norgespris denne måneden
       - name: "Besparelse vs Norgespris"
         unique_id: stromkalkulator_besparelse_norgespris
         unit_of_measurement: "kr"
@@ -130,23 +132,23 @@ template:
           {% set diff_per_kwh = states('sensor.prisforskjell_norgespris') | float(0) %}
           {{ (total_kwh * diff_per_kwh * -1) | round(2) }}
         attributes:
-          note: "Positiv = du sparer, Negativ = du taper vs Norgespris (50 øre/kWh)"
+          forklaring: "Positiv = du sparer, Negativ = du taper vs Norgespris (50 øre/kWh)"
 
 # -----------------------------------------------------------------------------
 # AUTOMATISERING - Tariff-bytte
 # -----------------------------------------------------------------------------
 
 automation:
+  # Bytt tariff når Strømkalkulator melder dag/natt-endring
   - id: stromkalkulator_tariff_bytte
     alias: "Strømkalkulator: Oppdater tariff"
-    description: "Bytter utility_meter tariff basert på dag/natt fra Strømkalkulator"
+    description: "Bytter utility_meter tariff basert på sensor.tariff"
     trigger:
       - platform: state
         entity_id: sensor.tariff
-        not_to:
-          - unavailable
-          - unknown
-    condition: []
+        to:
+          - dag
+          - natt
     action:
       - service: select.select_option
         target:
@@ -158,7 +160,7 @@ automation:
           option: "{{ trigger.to_state.state }}"
     mode: single
 
-  # Alternativ: Trigger ved oppstart for å sette riktig tariff
+  # Sett riktig tariff ved oppstart
   - id: stromkalkulator_tariff_oppstart
     alias: "Strømkalkulator: Sett tariff ved oppstart"
     description: "Setter riktig tariff når Home Assistant starter"
@@ -172,7 +174,7 @@ automation:
           - dag
           - natt
     action:
-      - delay: "00:00:30"  # Vent til sensorer er klare
+      - delay: "00:00:30"
       - service: select.select_option
         target:
           entity_id:

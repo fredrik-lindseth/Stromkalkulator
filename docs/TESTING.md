@@ -16,12 +16,12 @@ python -m pytest tests/ -v
 
 ### Hva som testes
 
-| Testfil | Beskrivelse |
-|---------|-------------|
-| `test_stromstotte.py` | Strømstøtte-beregning (90% over 91,25 øre) |
-| `test_avgifter.py` | Forbruksavgift, Enova-avgift og MVA per sone |
-| `test_energiledd.py` | Dag/natt-tariff inkl. helligdager |
-| `test_kapasitetstrinn.py` | Kapasitetstrinn og topp-3-beregning |
+| Testfil                   | Beskrivelse                                  |
+|---------------------------|----------------------------------------------|
+| `test_stromstotte.py`     | Strømstøtte-beregning (90% over 91,25 øre)   |
+| `test_avgifter.py`        | Forbruksavgift, Enova-avgift og MVA per sone |
+| `test_energiledd.py`      | Dag/natt-tariff inkl. helligdager            |
+| `test_kapasitetstrinn.py` | Kapasitetstrinn og topp-3-beregning          |
 
 ## Live-tester i Home Assistant
 
@@ -51,18 +51,18 @@ Test-pakken gir sanntids-validering direkte i HA.
 
 ### Test-sensorer
 
-| Sensor | Beskrivelse |
-|--------|-------------|
-| `sensor.test_stromstotte_beregning` | Validerer strømstøtte-formelen |
-| `sensor.test_spotpris_etter_stotte` | Validerer spotpris - strømstøtte |
-| `sensor.test_tariff_korrekt` | Validerer dag/natt/helg-tariff |
-| `sensor.test_energiledd_korrekt` | Validerer energiledd-valg |
-| `sensor.test_total_pris_etter_stotte` | Validerer totalpris |
-| `sensor.test_forbruksavgift` | Validerer forbruksavgift (7,13 øre) |
-| `sensor.test_enova_avgift` | Validerer Enova-avgift (1,0 øre) |
+| Sensor                                 | Beskrivelse                            |
+|----------------------------------------|----------------------------------------|
+| `sensor.test_stromstotte_beregning`    | Validerer strømstøtte-formelen         |
+| `sensor.test_spotpris_etter_stotte`    | Validerer spotpris - strømstøtte       |
+| `sensor.test_tariff_korrekt`           | Validerer dag/natt/helg-tariff         |
+| `sensor.test_energiledd_korrekt`       | Validerer energiledd-valg              |
+| `sensor.test_total_pris_etter_stotte`  | Validerer totalpris                    |
+| `sensor.test_forbruksavgift`           | Validerer forbruksavgift (7,13 øre)    |
+| `sensor.test_enova_avgift`             | Validerer Enova-avgift (1,0 øre)       |
 | `sensor.test_norgespris_sammenligning` | Validerer prisforskjell mot Norgespris |
-| `sensor.test_kapasitetstrinn` | Validerer kapasitetstrinn |
-| `sensor.test_alle_tester_ok` | Samlet status (X/8 OK) |
+| `sensor.test_kapasitetstrinn`          | Validerer kapasitetstrinn              |
+| `sensor.test_alle_tester_ok`           | Samlet status (X/8 OK)                 |
 
 ### Tolkning av resultater
 
@@ -81,22 +81,22 @@ Ved FEIL, sjekk attributtene på sensoren:
 
 **Formel:** `max(0, (spotpris - 0.9125) × 0.90)`
 
-| Spotpris | Strømstøtte | Sjekk |
-|----------|-------------|-------|
-| 0.50 kr  | 0.00 kr     | Under terskel |
-| 0.91 kr  | 0.00 kr     | Under terskel |
+| Spotpris | Strømstøtte | Sjekk                      |
+|----------|-------------|----------------------------|
+| 0.50 kr  | 0.00 kr     | Under terskel              |
+| 0.91 kr  | 0.00 kr     | Under terskel              |
 | 1.00 kr  | 0.08 kr     | (1.00-0.9125)×0.9 = 0.0788 |
 | 1.50 kr  | 0.53 kr     | (1.50-0.9125)×0.9 = 0.5288 |
 | 2.00 kr  | 0.98 kr     | (2.00-0.9125)×0.9 = 0.9788 |
 
 ### 2. Tariff (dag/natt)
 
-| Tidspunkt | Forventet tariff |
-|-----------|------------------|
-| Man-Fre 06:00-21:59 | dag |
-| Man-Fre 22:00-05:59 | natt |
-| Lør-Søn hele døgnet | natt |
-| Helligdager | natt |
+| Tidspunkt           | Forventet tariff |
+|---------------------|------------------|
+| Man-Fre 06:00-21:59 | dag              |
+| Man-Fre 22:00-05:59 | natt             |
+| Lør-Søn hele døgnet | natt             |
+| Helligdager         | natt             |
 
 ### 3. Energiledd
 
@@ -106,12 +106,12 @@ Sjekk at:
 
 ### 4. Kapasitetstrinn (BKK)
 
-| Gjennomsnitt topp-3 | Forventet trinn | Pris |
-|---------------------|-----------------|------|
-| 0-2 kW | 1 | 155 kr/mnd |
-| 2-5 kW | 2 | 250 kr/mnd |
-| 5-10 kW | 3 | 415 kr/mnd |
-| 10-15 kW | 4 | 600 kr/mnd |
+| Gjennomsnitt topp-3 | Forventet trinn | Pris       |
+|---------------------|-----------------|------------|
+| 0-2 kW              | 1               | 155 kr/mnd |
+| 2-5 kW              | 2               | 250 kr/mnd |
+| 5-10 kW             | 3               | 415 kr/mnd |
+| 10-15 kW            | 4               | 600 kr/mnd |
 
 ### 5. Norgespris-sammenligning
 
@@ -125,10 +125,10 @@ prisforskjell = total_pris_etter_stotte - total_pris_norgespris
 
 ### 6. Offentlige avgifter (2026)
 
-| Avgift | Forventet |
-|--------|-----------|
+| Avgift         | Forventet                           |
+|----------------|-------------------------------------|
 | Forbruksavgift | 0.0891 kr/kWh (7,13 øre × 1.25 mva) |
-| Enova-avgift | 0.0125 kr/kWh (1,0 øre × 1.25 mva) |
+| Enova-avgift   | 0.0125 kr/kWh (1,0 øre × 1.25 mva)  |
 
 ## Feilsøking
 

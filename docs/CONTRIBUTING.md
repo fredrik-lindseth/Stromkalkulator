@@ -36,13 +36,13 @@ Vil du legge til støtte for ditt nettselskap? Følg guiden under og opprett en 
 
 ### Viktige retningslinjer
 
-| Felt | Format | Beskrivelse |
-|------|--------|-------------|
-| `energiledd_dag` | NOK/kWh | Dagpris i NOK (ikke øre), inkl. avgifter |
-| `energiledd_natt` | NOK/kWh | Nattpris i NOK (ikke øre), inkl. avgifter |
-| `supported` | True/False | Sett til `True` når priser er lagt inn |
-| `url` | URL | Lenke til nettselskapets offisielle prisside |
-| `kapasitetstrinn` | Liste | Liste med tupler: `(kW-grense, kr/mnd)` |
+| Felt              | Format     | Beskrivelse                                  |
+|-------------------|------------|----------------------------------------------|
+| `energiledd_dag`  | NOK/kWh    | Dagpris i NOK (ikke øre), inkl. avgifter     |
+| `energiledd_natt` | NOK/kWh    | Nattpris i NOK (ikke øre), inkl. avgifter    |
+| `supported`       | True/False | Sett til `True` når priser er lagt inn       |
+| `url`             | URL        | Lenke til nettselskapets offisielle prisside |
+| `kapasitetstrinn` | Liste      | Liste med tupler: `(kW-grense, kr/mnd)`      |
 
 ### Dag/natt-tider
 

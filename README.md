@@ -12,26 +12,21 @@
 
 Home Assistant-integrasjon som beregner **faktisk strømpris** i Norge - inkludert nettleie, avgifter og strømstøtte.
 
-![Oppsett](images/setup.png)
+## Hva du får
 
-## Hva dette gir deg
+Integrasjonen gir deg sensorer som viser din **faktiske strømpris** - ikke bare spotprisen. Den regner ut:
 
-En sensor (`sensor.total_strompris_etter_stotte`) som viser din **faktiske strømpris per kWh**. Sensoren tilpasser seg automatisk til din konfigurasjon:
-
-**Med Norgespris:**
-- Fast pris (50 øre Sør-Norge / 40 øre Nord-Norge)
-- Nettleie (energiledd + kapasitetsledd)
-
-**Med spotpris (standard):**
-- Spotpris fra Nord Pool
-- Nettleie (energiledd + kapasitetsledd)
-- Minus strømstøtte (90% over 96,25 øre/kWh)
+- **Nettleie** - Energiledd (dag/natt) og kapasitetsledd fra ditt nettselskap
+- **Strømstøtte** - Automatisk beregning (90% over 96,25 øre/kWh)
+- **Totalpris** - Alt inkludert, klar for Energy Dashboard
+- **Månedlig forbruk** - Sporer forbruk og kostnader per måned
+- **Faktura-sjekk** - Sammenlign med fakturaen når den kommer
 
 ## Installasjon
 
-### Via HACS
+### Via HACS (anbefalt)
 
-1. HACS > Integrations > Meny (tre prikker) > Custom repositories
+1. **HACS** > **Integrations** > Meny (tre prikker) > **Custom repositories**
 2. Legg til `https://github.com/fredrik-lindseth/Stromkalkulator` som "Integration"
 3. Last ned "Strømkalkulator"
 4. Start Home Assistant på nytt
@@ -40,192 +35,131 @@ En sensor (`sensor.total_strompris_etter_stotte`) som viser din **faktiske strø
 
 Kopier `custom_components/stromkalkulator` til `/config/custom_components/`
 
-## Konfigurasjon
+## Oppsett
 
 **Settings > Devices & Services > Add Integration > Strømkalkulator**
 
+![Oppsett](images/setup.png)
+
 Du trenger:
-- **Effektsensor** - Strømforbruk i Watt (f.eks. Tibber Pulse)
-- **Spotpris-sensor** - Nord Pool "Current price" (f.eks. `sensor.nord_pool_no5_current_price`)
+- **Effektsensor** - Strømforbruk i Watt (f.eks. fra Tibber Pulse, P1 Reader, eller Elhub)
+- **Spotpris-sensor** - Fra Nord Pool-integrasjonen
 
-### Oppsett basert på din strømavtale
+Velg ditt nettselskap fra listen, eller bruk "Egendefinert" hvis det ikke er støttet.
 
-#### Med Norgespris (fra nettselskapet)
+## Devices og sensorer
 
-Hvis du har valgt [Norgespris](https://www.regjeringen.no/no/tema/energi/strom/regjeringens-stromtiltak/id2900232/) hos nettselskapet:
+Integrasjonen oppretter fem devices med sensorer:
 
-1. **Konfigurer integrasjonen** med "Jeg har Norgespris" avkrysset
-2. Bruker fast pris: **50 øre/kWh** (Sør-Norge) eller **40 øre/kWh** (Nord-Norge/Tiltakssonen)
-3. Ingen strømstøtte - Norgespris erstatter både spotpris og støtte
-4. Bruk `sensor.total_strompris_etter_stotte` i Energy Dashboard
+### Nettleie
 
-> **Merk:** Norgespris inkluderer mva. Nord-Norge har mva-fritak, derfor lavere pris.
+Sanntids priser og beregninger for nettleie, strømstøtte og totalpris.
 
-#### Med spotpris og strømstøtte (standard)
+![Nettleie](images/nettleie.png)
 
-Hvis du har vanlig spotprisavtale med strømstøtte:
+### Strømstøtte
 
-1. Bruk `sensor.total_strompris_etter_stotte` i Energy Dashboard
-2. Sensor `sensor.stromstotte` viser støttebeløp per kWh
-3. Støtten (90% over 96,25 øre/kWh) trekkes automatisk fra i totalprisen
+Viser hvor mye du får i strømstøtte (90% over 96,25 øre/kWh).
 
 ![Strømstøtte](images/strømstøtte.png)
 
-#### Uten strømstøtte
+### Norgespris
 
-Hvis du ikke har strømstøtte (f.eks. næring, hytte, eller Nord-Norge med lave priser):
+Sammenligner din spotprisavtale med Norgespris - så du kan se hva som lønner seg.
 
-1. Bruk `sensor.total_strompris_for_stotte` for totalpris uten støtte
-2. Eller bruk `sensor.nettleie_total` hvis du kun vil se nettleie
+![Norgespris](images/norgespris.png)
 
-### Sammenligne spotpris vs Norgespris
+### Månedlig forbruk
 
-Usikker på om Norgespris lønner seg for deg?
+Sporer forbruk og kostnader for inneværende måned, fordelt på dag- og natt/helg-tariff.
 
-- `sensor.prisforskjell_norgespris` viser forskjellen mellom spotpris og Norgespris
-- Positiv verdi = du sparer med Norgespris
-- Negativ verdi = spotpris er billigere
+![Månedlig forbruk](images/månedlig_forbruk.png)
 
-### Begrensninger
+### Forrige måned
 
-Denne integrasjonen støtter **privatboliger med eget strømabonnement**.
+Lagrer forrige måneds data for enkel faktura-verifisering.
 
-**Forenklet modell:**
-- **Forbruk over 5000 kWh/mnd**: Integrasjonen beregner strømstøtte på alt forbruk. I virkeligheten får du kun støtte på de første 5000 kWh. For de fleste husholdninger er dette ikke et problem.
-- **Norgespris over 5000 kWh**: Samme forenkling - vi antar at alt forbruk får Norgespris.
+![Forrige måned](images/forrige_måned.png)
 
-**Ikke støttet:**
-- **Fritidsbolig** - Har 1000 kWh grense for strømstøtte (ikke 5000 kWh)
-- **Næringsliv** - Har andre stønadssatser
-- **Fjernvarme/nærvarme** - Egen støtteordning
-- **Borettslag med fellesmåling** - Støtte utbetales til borettslaget
+## Bruk med Energy Dashboard
 
-## Energy Dashboard
-
-For å vise faktisk strømpris i Energy Dashboard:
+For å se faktisk strømpris i Energy Dashboard:
 
 1. **Settings > Dashboards > Energy**
 2. Under "Electricity grid" > "Add consumption"
-3. Velg din kWh-sensor (f.eks. `sensor.tibber_pulse_*_accumulated_consumption`)
-4. **"Use an entity with current price"**: Velg `sensor.totalpris_inkl_avgifter`
+3. Velg din kWh-sensor (forbruksmåler)
+4. **"Use an entity with current price"**: Velg **Totalpris inkl. avgifter**
 
-> **Merk:** Bruk `sensor.totalpris_inkl_avgifter` for korrekt totalpris inkludert alle avgifter (forbruksavgift, Enova-avgift og mva).
+Nå viser dashboardet hva strømmen faktisk koster deg - inkludert nettleie, avgifter og strømstøtte.
 
-## Sensorer
+**Tips:** Vil du se priskomponentene (spotpris, nettleie, avgifter) separat? Bruk et custom dashboard-kort som ApexCharts med sensorene fra denne integrasjonen.
 
-### Hovedsensorer
+## Strømavtaler
 
-| Sensor                                | Beskrivelse                                    |
-|---------------------------------------|------------------------------------------------|
-| `sensor.totalpris_inkl_avgifter`      | **Bruk denne i Energy Dashboard** - inkl. alt  |
-| `sensor.total_strompris_etter_stotte` | Totalpris etter støtte (uten avgifter)         |
-| `sensor.stromstotte`                  | Støtte per kWh                                 |
-| `sensor.kapasitetstrinn`              | Månedlig kapasitetskostnad                     |
-| `sensor.tariff`                       | "dag" eller "natt" (natt er også helg/helligdager) |
-| `sensor.prisforskjell_norgespris`     | Sammenligning med Norgespris                   |
+### Spotpris (vanligste)
 
-### Månedlig forbruk (device: "Månedlig forbruk")
+Hvis du har vanlig spotprisavtale:
+- Strømstøtten (90% over 96,25 øre) trekkes automatisk fra
+- Sensoren "Strømstøtte" viser hvor mye du får i støtte
 
-| Sensor                            | Beskrivelse                               |
-|-----------------------------------|-------------------------------------------|
-| `sensor.manedlig_forbruk_dag`     | Forbruk på dagtariff denne måneden (kWh)  |
-| `sensor.manedlig_forbruk_natt`    | Forbruk på natt-/helgtariff (kWh)         |
-| `sensor.manedlig_forbruk_totalt`  | Totalt forbruk denne måneden (kWh)        |
-| `sensor.manedlig_nettleie`        | Nettleie (energiledd + kapasitet) (kr)    |
-| `sensor.manedlig_avgifter`        | Forbruksavgift + Enova-avgift (kr)        |
-| `sensor.manedlig_stromstotte`     | Estimert strømstøtte (kr)                 |
-| `sensor.manedlig_nettleie_total`  | Total nettleie etter støtte (kr)          |
+### Norgespris
 
-![Nettleie sensorer](images/nettleie_sensors.png)
+Har du valgt [Norgespris](https://www.regjeringen.no/no/tema/energi/strom/regjeringens-stromtiltak/) hos nettselskapet?
+
+1. Kryss av "Jeg har Norgespris" i oppsett
+2. Fast pris brukes: 50 øre (Sør-Norge) eller 40 øre (Nord-Norge)
+3. Ingen strømstøtte - Norgespris erstatter spotpris og støtte
+
+### Sammenligne avtalene
+
+Usikker på hva som lønner seg? Sensoren "Prisforskjell Norgespris" viser:
+- **Positiv verdi** = Du sparer med Norgespris
+- **Negativ verdi** = Spotpris er billigere akkurat nå
+
+## Sjekke mot faktura
+
+Når nettleie-fakturaen kommer, kan du enkelt sjekke at tallene stemmer:
+
+1. Gå til **Settings > Devices & Services > Strømkalkulator**
+2. Klikk på "Forrige måned"-devicen
+3. Sammenlign verdiene med fakturaen
+
+**Tips:** Klikk på en sensor for å se detaljer som topp-3 effektdager og kostnader fordelt på dag/natt.
+
 ![Nettleie diagnostikk](images/nettleie_diagnostic.png)
-![Norgespris](images/norgespris.png)
-
-Se [docs/beregninger.md](docs/beregninger.md) for alle sensorer og formler.
-
-## Verifisere mot faktura
-
-For å sjekke at integrasjonen beregner riktig, sammenlign med fakturaen fra nettselskapet.
-
-### Komplett oppsett for faktura-verifisering
-
-1. **Kopier utility-pakken:**
-   ```bash
-   cp packages/stromkalkulator_utility.yaml /config/packages/
-   ```
-
-2. **Rediger filen** - bytt ut `sensor.BYTT_EFFEKT_SENSOR` med din effekt-sensor (W)
-
-3. **Aktiver packages** i `configuration.yaml`:
-   ```yaml
-   homeassistant:
-     packages: !include_dir_named packages
-   ```
-
-4. **Start Home Assistant på nytt**
-
-### Automasjoner som følger med
-
-Pakken inkluderer to automasjoner som kjører automatisk:
-
-| Automasjon                        | Trigger                | Funksjon                              |
-|-----------------------------------|------------------------|---------------------------------------|
-| `stromkalkulator_tariff_bytte`    | `sensor.tariff` endres | Oppdaterer utility_meter til dag/natt |
-| `stromkalkulator_tariff_oppstart` | HA starter             | Setter riktig tariff ved oppstart     |
-
-> Du trenger ikke gjøre noe manuelt - tariff-byttet skjer automatisk.
-
-### Sensorer du får
-
-Etter oppsett får du disse sensorene for faktura-sammenligning:
-
-| Sensor                                   | Beskrivelse          | Matcher faktura-post      |
-|------------------------------------------|----------------------|---------------------------|
-| `sensor.strom_maanedlig_dag`             | kWh på dag-tariff    | Energiledd dag (forbruk)  |
-| `sensor.strom_maanedlig_natt`            | kWh på natt-tariff   | Energiledd natt (forbruk) |
-| `sensor.maanedlig_energiledd_dag`        | Energiledd dag i kr  | Energiledd dag (sum)      |
-| `sensor.maanedlig_energiledd_natt`       | Energiledd natt i kr | Energiledd natt (sum)     |
-| `sensor.kapasitetstrinn`                 | Kapasitetsledd i kr  | Kapasitetsledd            |
-| `sensor.maanedlig_forbruksavgift`        | Forbruksavgift i kr  | Forbruksavgift            |
-| `sensor.maanedlig_enovaavgift`           | Enova-avgift i kr    | Enovaavgift               |
-| `sensor.maanedlig_stromstotte`           | Strømstøtte i kr     | Midlert. strømstønad      |
-| `sensor.maanedlig_nettleie_etter_stotte` | Totalt å betale      | Å betale                  |
-
-### Eksempel: BKK-faktura desember 2025
-
-```
-Faktura fra BKK:                      Strømkalkulator:
-─────────────────────────────────────────────────────────────────
-Energiledd dag:    667 kWh = 240 kr   sensor.maanedlig_energiledd_dag: ~240 kr
-Energiledd natt:   887 kWh = 211 kr   sensor.maanedlig_energiledd_natt: ~211 kr
-Kapasitetsledd:    5-10 kW = 415 kr   sensor.kapasitetstrinn: 415 kr
-Forbruksavgift:   1555 kWh = 244 kr   sensor.maanedlig_forbruksavgift: ~244 kr
-Enovaavgift:      1555 kWh =  19 kr   sensor.maanedlig_enovaavgift: ~19 kr
-Strømstøtte:      1107 kWh = -122 kr  sensor.maanedlig_stromstotte: ~122 kr
-─────────────────────────────────────────────────────────────────
-Å betale:                  1006 kr    sensor.maanedlig_nettleie_etter_stotte: ~1006 kr
-```
-
-### Forventet avvik
-
-- **1-5% avvik er normalt** - skyldes avrunding og måleravvik
-- **Strømstøtte kan avvike mer** - fakturaen bruker time-for-time priser, vi bruker gjennomsnitt
-- **Større avvik?** Sjekk at energiledd-satsene i integrasjonen matcher nettselskapets prisliste
 
 ## Støttede nettselskaper
 
-Arva, Barents Nett, BKK, Elinett, Elmea, Elvia, Fagne, Føie, Glitre Nett, Griug, Lede, Linea, Linja, Lnett, Mellom, Midtnett, Nettselskapet, Noranett, Norgesnett, Nordvest Nett, Tensio, Vevig, + Egendefinert
+Arva, Barents Nett, BKK, Elinett, Elmea, Elvia, Fagne, Føie, Glitre Nett, Griug, Lede, Linea, Linja, Lnett, Mellom, Midtnett, Nettselskapet, Noranett, Norgesnett, Nordvest Nett, Tensio, Vevig + **Egendefinert**
 
-Mangler ditt? Se [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)
+Mangler ditt nettselskap? [Bidra med priser](docs/CONTRIBUTING.md) eller opprett et issue!
+
+## Begrensninger
+
+Integrasjonen er laget for **privatboliger med eget strømabonnement**.
+
+**Forenklet modell:**
+- Strømstøtte beregnes på alt forbruk (i virkeligheten maks 5000 kWh/mnd)
+- For de fleste husholdninger er dette ikke et problem
+
+**Ikke støttet:**
+- Fritidsbolig (har 1000 kWh grense)
+- Næringsliv (andre stønadssatser)
+- Borettslag med fellesmåling
+
+**Fremtidige ideer:**
+- Varsel når kapasitetstrinn øker
+- Støtte for fritidsbolig og næring
+- Faktura-import (PDF/CSV)
 
 ## Dokumentasjon
 
-| Dokument                                | Innhold                          |
-|-----------------------------------------|----------------------------------|
-| [beregninger.md](docs/beregninger.md)   | Formler, avgiftssoner, eksempler |
-| [CONTRIBUTING.md](docs/CONTRIBUTING.md) | Legge til nettselskap            |
-| [TESTING.md](docs/TESTING.md)           | Validere beregninger             |
-| [DEVELOPMENT.md](docs/DEVELOPMENT.md)   | Utviklerinfo                     |
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Arkitektur og design             |
+| Dokument                                | Innhold                      |
+|-----------------------------------------|------------------------------|
+| [SENSORS.md](docs/SENSORS.md)           | Alle sensorer og attributter |
+| [beregninger.md](docs/beregninger.md)   | Formler og avgiftssoner      |
+| [CONTRIBUTING.md](docs/CONTRIBUTING.md) | Legge til nettselskap        |
+| [TESTING.md](docs/TESTING.md)           | Validere beregninger         |
 
 ## Lisens
 

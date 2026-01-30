@@ -83,6 +83,11 @@ class NettleieCoordinator(DataUpdateCoordinator):
         self._monthly_consumption: dict[str, float] = {"dag": 0.0, "natt": 0.0}
         self._last_update: datetime | None = None
 
+        # Track previous month's data for invoice verification
+        self._previous_month_consumption: dict[str, float] = {"dag": 0.0, "natt": 0.0}
+        self._previous_month_top_3: dict[str, float] = {}
+        self._previous_month_name: str | None = None  # e.g., "januar 2026"
+
         # Persistent storage - use TSO id for stable storage across reinstalls
         self._store = Store(hass, 1, f"{DOMAIN}_{tso_id}")
         self._store_loaded = False
@@ -98,6 +103,14 @@ class NettleieCoordinator(DataUpdateCoordinator):
 
         # Reset at new month
         if now.month != self._current_month:
+            # Save previous month's data before reset
+            self._previous_month_consumption = self._monthly_consumption.copy()
+            self._previous_month_top_3 = self._get_top_3_days()
+            # Format: "januar 2026" (Norwegian month name)
+            prev_month_date = now.replace(day=1) - timedelta(days=1)
+            self._previous_month_name = self._format_month_name(prev_month_date)
+
+            # Reset current month data
             self._daily_max_power = {}
             self._monthly_consumption = {"dag": 0.0, "natt": 0.0}
             self._current_month = now.month
@@ -257,6 +270,19 @@ class NettleieCoordinator(DataUpdateCoordinator):
             "monthly_consumption_total_kwh": round(
                 self._monthly_consumption["dag"] + self._monthly_consumption["natt"], 3
             ),
+            # Previous month data for invoice verification
+            "previous_month_consumption_dag_kwh": round(self._previous_month_consumption["dag"], 3),
+            "previous_month_consumption_natt_kwh": round(self._previous_month_consumption["natt"], 3),
+            "previous_month_consumption_total_kwh": round(
+                self._previous_month_consumption["dag"] + self._previous_month_consumption["natt"], 3
+            ),
+            "previous_month_top_3": self._previous_month_top_3,
+            "previous_month_avg_top_3_kw": round(
+                sum(self._previous_month_top_3.values()) / max(len(self._previous_month_top_3), 1), 2
+            )
+            if self._previous_month_top_3
+            else 0.0,
+            "previous_month_name": self._previous_month_name,
         }
 
     def _get_top_3_days(self) -> dict[str, float]:
@@ -305,6 +331,24 @@ class NettleieCoordinator(DataUpdateCoordinator):
         next_month = (now.replace(day=1) + timedelta(days=32)).replace(day=1)
         return (next_month - now.replace(day=1)).days
 
+    def _format_month_name(self, dt: datetime) -> str:
+        """Format date as Norwegian month name with year."""
+        months = [
+            "januar",
+            "februar",
+            "mars",
+            "april",
+            "mai",
+            "juni",
+            "juli",
+            "august",
+            "september",
+            "oktober",
+            "november",
+            "desember",
+        ]
+        return f"{months[dt.month - 1]} {dt.year}"
+
     async def _load_stored_data(self) -> None:
         """Load stored data from disk."""
         data = await self._store.async_load()
@@ -321,6 +365,9 @@ class NettleieCoordinator(DataUpdateCoordinator):
         if data:
             self._daily_max_power = data.get("daily_max_power", {})
             self._monthly_consumption = data.get("monthly_consumption", {"dag": 0.0, "natt": 0.0})
+            self._previous_month_consumption = data.get("previous_month_consumption", {"dag": 0.0, "natt": 0.0})
+            self._previous_month_top_3 = data.get("previous_month_top_3", {})
+            self._previous_month_name = data.get("previous_month_name")
             stored_month = data.get("current_month")
             # If stored month is different, clear data
             if stored_month and stored_month != self._current_month:
@@ -334,6 +381,9 @@ class NettleieCoordinator(DataUpdateCoordinator):
             "daily_max_power": self._daily_max_power,
             "monthly_consumption": self._monthly_consumption,
             "current_month": self._current_month,
+            "previous_month_consumption": self._previous_month_consumption,
+            "previous_month_top_3": self._previous_month_top_3,
+            "previous_month_name": self._previous_month_name,
         }
         await self._store.async_save(data)
         _LOGGER.debug("Saved data: %s", data)

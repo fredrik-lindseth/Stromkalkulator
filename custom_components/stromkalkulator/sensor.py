@@ -36,6 +36,7 @@ DEVICE_NETTLEIE = "stromkalkulator"
 DEVICE_STROMSTOTTE = "stromstotte"
 DEVICE_NORGESPRIS = "norgespris"
 DEVICE_MAANEDLIG = "maanedlig"
+DEVICE_FORRIGE_MAANED = "forrige_maaned"
 
 
 async def async_setup_entry(
@@ -84,6 +85,12 @@ async def async_setup_entry(
         MaanedligAvgifterSensor(coordinator, entry),
         MaanedligStromstotteSensor(coordinator, entry),
         MaanedligTotalSensor(coordinator, entry),
+        # Forrige måned sensors
+        ForrigeMaanedForbrukDagSensor(coordinator, entry),
+        ForrigeMaanedForbrukNattSensor(coordinator, entry),
+        ForrigeMaanedForbrukTotalSensor(coordinator, entry),
+        ForrigeMaanedNettleieSensor(coordinator, entry),
+        ForrigeMaanedToppforbrukSensor(coordinator, entry),
     ]
 
     async_add_entities(entities)
@@ -883,7 +890,7 @@ class MaanedligForbrukDagSensor(MaanedligBaseSensor):
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
-        super().__init__(coordinator, entry, "maanedlig_forbruk_dag", "Månedlig forbruk dag")
+        super().__init__(coordinator, entry, "maanedlig_forbruk_dag", "Månedlig forbruk dagtariff")
         self._attr_native_unit_of_measurement = "kWh"
         self._attr_state_class = SensorStateClass.TOTAL_INCREASING
         self._attr_icon = "mdi:weather-sunny"
@@ -902,7 +909,7 @@ class MaanedligForbrukNattSensor(MaanedligBaseSensor):
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
-        super().__init__(coordinator, entry, "maanedlig_forbruk_natt", "Månedlig forbruk natt")
+        super().__init__(coordinator, entry, "maanedlig_forbruk_natt", "Månedlig forbruk natt/helg")
         self._attr_native_unit_of_measurement = "kWh"
         self._attr_state_class = SensorStateClass.TOTAL_INCREASING
         self._attr_icon = "mdi:weather-night"
@@ -1137,4 +1144,204 @@ class MaanedligTotalSensor(MaanedligBaseSensor):
                 "forbruk_natt_kwh": round(natt_kwh, 1),
                 "forbruk_total_kwh": round(total_kwh, 1),
             }
+        return None
+
+
+# =============================================================================
+# FORRIGE MÅNED - Device: "Forrige måned"
+# =============================================================================
+
+
+class ForrigeMaanedBaseSensor(NettleieBaseSensor):
+    """Base class for previous month sensors."""
+
+    _device_group: str = DEVICE_FORRIGE_MAANED
+
+    @property
+    def device_info(self):
+        """Return device info for Forrige måned device."""
+        return {
+            "identifiers": {(DOMAIN, f"{self._entry.entry_id}_{self._device_group}")},
+            "name": "Forrige måned",
+            "manufacturer": "Fredrik Lindseth",
+            "model": "Strømkalkulator",
+        }
+
+
+class ForrigeMaanedForbrukDagSensor(ForrigeMaanedBaseSensor):
+    """Sensor for previous month day tariff consumption."""
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "forrige_maaned_forbruk_dag", "Forrige måned forbruk dagtariff")
+        self._attr_native_unit_of_measurement = "kWh"
+        self._attr_state_class = SensorStateClass.TOTAL
+        self._attr_icon = "mdi:weather-sunny"
+        self._attr_suggested_display_precision = 1
+
+    @property
+    def native_value(self):
+        """Return previous month day consumption."""
+        if self.coordinator.data:
+            return self.coordinator.data.get("previous_month_consumption_dag_kwh")
+        return None
+
+    @property
+    def extra_state_attributes(self):
+        """Return the month name."""
+        if self.coordinator.data:
+            return {"måned": self.coordinator.data.get("previous_month_name")}
+        return None
+
+
+class ForrigeMaanedForbrukNattSensor(ForrigeMaanedBaseSensor):
+    """Sensor for previous month night tariff consumption."""
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "forrige_maaned_forbruk_natt", "Forrige måned forbruk natt/helg")
+        self._attr_native_unit_of_measurement = "kWh"
+        self._attr_state_class = SensorStateClass.TOTAL
+        self._attr_icon = "mdi:weather-night"
+        self._attr_suggested_display_precision = 1
+
+    @property
+    def native_value(self):
+        """Return previous month night consumption."""
+        if self.coordinator.data:
+            return self.coordinator.data.get("previous_month_consumption_natt_kwh")
+        return None
+
+    @property
+    def extra_state_attributes(self):
+        """Return the month name."""
+        if self.coordinator.data:
+            return {"måned": self.coordinator.data.get("previous_month_name")}
+        return None
+
+
+class ForrigeMaanedForbrukTotalSensor(ForrigeMaanedBaseSensor):
+    """Sensor for previous month total consumption."""
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "forrige_maaned_forbruk_total", "Forrige måned forbruk totalt")
+        self._attr_native_unit_of_measurement = "kWh"
+        self._attr_state_class = SensorStateClass.TOTAL
+        self._attr_icon = "mdi:lightning-bolt"
+        self._attr_suggested_display_precision = 1
+
+    @property
+    def native_value(self):
+        """Return previous month total consumption."""
+        if self.coordinator.data:
+            return self.coordinator.data.get("previous_month_consumption_total_kwh")
+        return None
+
+    @property
+    def extra_state_attributes(self):
+        """Return consumption breakdown."""
+        if self.coordinator.data:
+            return {
+                "måned": self.coordinator.data.get("previous_month_name"),
+                "dag_kwh": self.coordinator.data.get("previous_month_consumption_dag_kwh"),
+                "natt_kwh": self.coordinator.data.get("previous_month_consumption_natt_kwh"),
+            }
+        return None
+
+
+class ForrigeMaanedNettleieSensor(ForrigeMaanedBaseSensor):
+    """Sensor for previous month grid rent cost."""
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "forrige_maaned_nettleie", "Forrige måned nettleie")
+        self._attr_native_unit_of_measurement = "kr"
+        self._attr_state_class = SensorStateClass.TOTAL
+        self._attr_icon = "mdi:transmission-tower"
+        self._attr_suggested_display_precision = 0
+
+    @property
+    def native_value(self):
+        """Calculate previous month grid rent cost."""
+        if self.coordinator.data:
+            dag_kwh = self.coordinator.data.get("previous_month_consumption_dag_kwh", 0)
+            natt_kwh = self.coordinator.data.get("previous_month_consumption_natt_kwh", 0)
+            dag_pris = self.coordinator.data.get("energiledd_dag", 0)
+            natt_pris = self.coordinator.data.get("energiledd_natt", 0)
+
+            # Get kapasitetsledd from previous month's top 3
+            top_3 = self.coordinator.data.get("previous_month_top_3", {})
+            if top_3:
+                avg_power = sum(top_3.values()) / len(top_3)
+                kapasitet = self._get_kapasitetsledd_for_avg(avg_power)
+            else:
+                kapasitet = 0
+
+            return round((dag_kwh * dag_pris) + (natt_kwh * natt_pris) + kapasitet, 2)
+        return None
+
+    def _get_kapasitetsledd_for_avg(self, avg_power: float) -> int:
+        """Get kapasitetsledd based on average power."""
+        kapasitetstrinn = self.coordinator.kapasitetstrinn
+        for threshold, price in kapasitetstrinn:
+            if avg_power <= threshold:
+                return price
+        return kapasitetstrinn[-1][1] if kapasitetstrinn else 0
+
+    @property
+    def extra_state_attributes(self):
+        """Return cost breakdown."""
+        if self.coordinator.data:
+            dag_kwh = self.coordinator.data.get("previous_month_consumption_dag_kwh", 0)
+            natt_kwh = self.coordinator.data.get("previous_month_consumption_natt_kwh", 0)
+            dag_pris = self.coordinator.data.get("energiledd_dag", 0)
+            natt_pris = self.coordinator.data.get("energiledd_natt", 0)
+
+            top_3 = self.coordinator.data.get("previous_month_top_3", {})
+            if top_3:
+                avg_power = sum(top_3.values()) / len(top_3)
+                kapasitet = self._get_kapasitetsledd_for_avg(avg_power)
+            else:
+                avg_power = 0
+                kapasitet = 0
+
+            return {
+                "måned": self.coordinator.data.get("previous_month_name"),
+                "energiledd_dag_kr": round(dag_kwh * dag_pris, 2),
+                "energiledd_natt_kr": round(natt_kwh * natt_pris, 2),
+                "kapasitetsledd_kr": kapasitet,
+                "snitt_topp_3_kw": round(avg_power, 2),
+            }
+        return None
+
+
+class ForrigeMaanedToppforbrukSensor(ForrigeMaanedBaseSensor):
+    """Sensor for previous month top 3 power consumption average."""
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "forrige_maaned_toppforbruk", "Forrige måned toppforbruk")
+        self._attr_native_unit_of_measurement = "kW"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_icon = "mdi:arrow-up-bold"
+        self._attr_suggested_display_precision = 2
+
+    @property
+    def native_value(self):
+        """Return previous month average top 3 power."""
+        if self.coordinator.data:
+            return self.coordinator.data.get("previous_month_avg_top_3_kw")
+        return None
+
+    @property
+    def extra_state_attributes(self):
+        """Return top 3 days breakdown."""
+        if self.coordinator.data:
+            top_3 = self.coordinator.data.get("previous_month_top_3", {})
+            attrs = {"måned": self.coordinator.data.get("previous_month_name")}
+            for i, (date, kw) in enumerate(sorted(top_3.items(), key=lambda x: x[1], reverse=True), 1):
+                attrs[f"topp_{i}_dato"] = date
+                attrs[f"topp_{i}_kw"] = round(kw, 2)
+            return attrs
         return None

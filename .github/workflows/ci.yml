@@ -20,7 +20,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pytest pytest-cov vulture ruff mypy
+          pip install pytest pytest-asyncio pytest-cov vulture ruff mypy
 
       - name: Run linter (ruff)
         run: |

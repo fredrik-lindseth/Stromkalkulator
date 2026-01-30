@@ -2,7 +2,15 @@
 
 Guide for utvikling og vedlikehold av Strømkalkulator.
 
-## Prosjektstruktur
+## Arkitektur
+
+### Formål
+
+**Problemet:** Home Assistant viser bare spotpris, men norske strømfakturaer inneholder mange flere komponenter.
+
+**Løsningen:** En integrasjon som beregner faktisk totalpris inkludert spotpris, energiledd, kapasitetsledd, offentlige avgifter og strømstøtte.
+
+### Prosjektstruktur
 
 ```
 custom_components/stromkalkulator/
@@ -11,8 +19,43 @@ custom_components/stromkalkulator/
 ├── const.py         # Konstanter, avgifter, helligdager
 ├── tso.py           # Nettselskap-data (TSO_LIST)
 ├── coordinator.py   # DataUpdateCoordinator, beregningslogikk
-├── sensor.py        # 22 sensorer
+├── sensor.py        # Alle sensorer
 └── manifest.json    # HACS-metadata
+```
+
+### Kjernekomponenter
+
+**Coordinator** (`coordinator.py`):
+- Sentral datahub som oppdateres hvert minutt
+- Leser effekt og spotpris fra brukerens sensorer
+- Beregner alle verdier (strømstøtte, kapasitet, etc.)
+- Lagrer topp-3 effektdager til disk (persistens)
+
+**Sensorer** (`sensor.py`):
+- 24 sensorer gruppert i 5 devices
+- Arver fra `CoordinatorEntity` og `SensorEntity`
+- Leser fra `coordinator.data["key"]`
+
+**TSO-data** (`tso.py`):
+- Dict med alle 71 nettselskaper og deres priser
+- Energiledd dag/natt, kapasitetstrinn
+
+### Beregningsflyt
+
+```
+Effektsensor (W) + Spotpris (NOK/kWh)
+              │
+              ▼
+        Coordinator (oppdateres hvert minutt)
+              │
+    ┌─────────┼─────────┐
+    ▼         ▼         ▼
+ Topp-3    Strøm-    Energi-
+ effekt    støtte    ledd
+    │         │         │
+    └─────────┴─────────┘
+              ▼
+    total_strompris_etter_stotte
 ```
 
 ## Lokalt oppsett
@@ -25,7 +68,7 @@ cd Stromkalkulator
 # Installer dev-avhengigheter
 pip install ruff pytest
 
-# Kjor tester
+# Kjør tester
 pipx run pytest tests/ -v
 
 # Lint
@@ -37,9 +80,6 @@ ruff check custom_components/stromkalkulator/
 ### Kopiere filer (utvikling)
 
 ```bash
-# Kopier enkeltfil (scp virker ikke på HA, bruk ssh cat)
-ssh ha-local "cat > /config/custom_components/stromkalkulator/sensor.py" < custom_components/stromkalkulator/sensor.py
-
 # Kopier alle filer
 for f in __init__.py config_flow.py const.py tso.py coordinator.py sensor.py manifest.json; do
   ssh ha-local "cat > /config/custom_components/stromkalkulator/$f" < custom_components/stromkalkulator/$f
@@ -54,8 +94,6 @@ ssh ha-local "ha core logs" | grep -i stromkalkulator
 
 ### Gå tilbake til HACS (produksjon)
 
-Når du er ferdig med utvikling og vil bruke HACS igjen:
-
 ```bash
 # 1. Slett manuelt kopiert integrasjon
 ssh ha-local "rm -rf /config/custom_components/stromkalkulator"
@@ -66,28 +104,6 @@ ssh ha-local "ha core restart"
 # 3. I HA UI: HACS → Integrations → Stromkalkulator → Download
 # 4. Restart HA igjen
 ```
-
-## Testdata for kapasitetstrinn
-
-For å teste kapasitetstrinn-beregninger kan du opprette testdata manuelt:
-
-```bash
-ssh ha-local 'cat > /config/.storage/stromkalkulator_bkk << EOF
-{
-  "version": 1,
-  "data": {
-    "daily_max_power": {
-      "2026-01-17": 5.2,
-      "2026-01-18": 3.8,
-      "2026-01-19": 4.5
-    },
-    "current_month": 1
-  }
-}
-EOF'
-```
-
-Endre `stromkalkulator_bkk` til din TSO-id (f.eks. `stromkalkulator_tensio`).
 
 ## Vanlige oppgaver
 
@@ -115,6 +131,7 @@ Priser endres ofte 1. januar:
 1. Definer sensor-klasse i `sensor.py`
 2. Legg til i `async_setup_entry()`
 3. Hent data fra `coordinator.data["key"]`
+4. Sett `device_info` for gruppering
 
 ## Viktige formler
 
@@ -132,7 +149,7 @@ total = (spotpris - stromstotte) + energiledd + kapasitet_per_kwh
 is_day = weekday < 5 and not is_holiday and 6 <= hour < 22
 ```
 
-## Feilsoking
+## Feilsøking
 
 ### Logger
 
@@ -153,23 +170,22 @@ ssh ha-local "ha core logs" | grep -i stromkalkulator
 | Feil kapasitetstrinn | Data bygges over tid      | Vent eller opprett testdata           |
 | Feil dag/natt        | Helligdag ikke registrert | Oppdater HELLIGDAGER i const.py       |
 
-### Sjekkliste for deploy
+### Testdata for kapasitetstrinn
 
 ```bash
-# 1. Lint
-ruff check custom_components/stromkalkulator/
-
-# 2. Test
-pipx run pytest tests/ -v
-
-# 3. Kopier filer
-ssh ha-local "cat > /config/..." < ...
-
-# 4. Restart
-ssh ha-local "ha core restart"
-
-# 5. Sjekk logger
-ssh ha-local "ha core logs" | grep -i stromkalkulator
+ssh ha-local 'cat > /config/.storage/stromkalkulator_bkk << EOF
+{
+  "version": 1,
+  "data": {
+    "daily_max_power": {
+      "2026-01-17": 5.2,
+      "2026-01-18": 3.8,
+      "2026-01-19": 4.5
+    },
+    "current_month": 1
+  }
+}
+EOF'
 ```
 
 ## Kilder

@@ -242,9 +242,113 @@ template:
           topp_2: "{{ states('sensor.maks_forbruk_2') | float(0) | round(2) }} kW"
           topp_3: "{{ states('sensor.maks_forbruk_3') | float(0) | round(2) }} kW"
 
-      # =========================================================================
-      # SAMLET STATUS
-      # =========================================================================
+       # =========================================================================
+       # FORRIGE MÅNED VALIDERING
+       # =========================================================================
+       # Disse testene verifiserer at forrige måneds data er lagret korrekt.
+       # MERK: Testene vil vise "INGEN DATA" før første månedsskifte.
+       
+      - name: "Test: Forrige måned data"
+        unique_id: stromkalkulator_test_forrige_maaned
+        icon: mdi:calendar-arrow-left
+        state: >
+           {% set dag = states('sensor.forrige_maaned_forbruk_dag') %}
+           {% set natt = states('sensor.forrige_maaned_forbruk_natt') %}
+           {% set total = states('sensor.forrige_maaned_forbruk_total') %}
+           {% set nettleie = states('sensor.forrige_maaned_nettleie') %}
+           {% set topp = states('sensor.forrige_maaned_toppforbruk') %}
+           {% if dag in ['unknown', 'unavailable'] %}
+             SENSOR MANGLER
+           {% elif dag | float(0) == 0 and natt | float(0) == 0 %}
+             INGEN DATA (venter på månedsskifte)
+           {% else %}
+             {% set dag_v = dag | float(0) %}
+             {% set natt_v = natt | float(0) %}
+             {% set total_v = total | float(0) %}
+             {% set expected_total = dag_v + natt_v %}
+             {% if (total_v - expected_total) | abs < 0.1 %}OK{% else %}FEIL{% endif %}
+           {% endif %}
+        attributes:
+           forbruk_dag_kwh: "{{ states('sensor.forrige_maaned_forbruk_dag') }}"
+           forbruk_natt_kwh: "{{ states('sensor.forrige_maaned_forbruk_natt') }}"
+           forbruk_total_kwh: "{{ states('sensor.forrige_maaned_forbruk_total') }}"
+           nettleie_kr: "{{ states('sensor.forrige_maaned_nettleie') }}"
+           toppforbruk_kw: "{{ states('sensor.forrige_maaned_toppforbruk') }}"
+           måned: "{{ state_attr('sensor.forrige_maaned_forbruk_dag', 'måned') }}"
+           validering: >
+             {% set dag = states('sensor.forrige_maaned_forbruk_dag') | float(0) %}
+             {% set natt = states('sensor.forrige_maaned_forbruk_natt') | float(0) %}
+             {% set total = states('sensor.forrige_maaned_forbruk_total') | float(0) %}
+             {% set expected = dag + natt %}
+             Forventet total: {{ expected | round(1) }} kWh, Faktisk: {{ total | round(1) }} kWh
+
+      - name: "Test: Forrige måned nettleie beregning"
+        unique_id: stromkalkulator_test_forrige_maaned_nettleie
+        icon: mdi:calculator
+        state: >
+           {% set nettleie = states('sensor.forrige_maaned_nettleie') %}
+           {% if nettleie in ['unknown', 'unavailable'] %}
+             SENSOR MANGLER
+           {% elif nettleie | float(0) == 0 %}
+             INGEN DATA
+           {% else %}
+             {% set dag_kr = state_attr('sensor.forrige_maaned_nettleie', 'energiledd_dag_kr') | float(0) %}
+             {% set natt_kr = state_attr('sensor.forrige_maaned_nettleie', 'energiledd_natt_kr') | float(0) %}
+             {% set kap_kr = state_attr('sensor.forrige_maaned_nettleie', 'kapasitetsledd_kr') | float(0) %}
+             {% set expected = dag_kr + natt_kr + kap_kr %}
+             {% set faktisk = nettleie | float(0) %}
+             {% if (faktisk - expected) | abs < 1 %}OK{% else %}FEIL{% endif %}
+           {% endif %}
+        attributes:
+           nettleie_total: "{{ states('sensor.forrige_maaned_nettleie') | float(0) | round(2) }} kr"
+           energiledd_dag_kr: "{{ state_attr('sensor.forrige_maaned_nettleie', 'energiledd_dag_kr') }}"
+           energiledd_natt_kr: "{{ state_attr('sensor.forrige_maaned_nettleie', 'energiledd_natt_kr') }}"
+           kapasitetsledd_kr: "{{ state_attr('sensor.forrige_maaned_nettleie', 'kapasitetsledd_kr') }}"
+           snitt_topp_3_kw: "{{ state_attr('sensor.forrige_maaned_nettleie', 'snitt_topp_3_kw') }}"
+           beregning: >
+             {% set dag_kr = state_attr('sensor.forrige_maaned_nettleie', 'energiledd_dag_kr') | float(0) %}
+             {% set natt_kr = state_attr('sensor.forrige_maaned_nettleie', 'energiledd_natt_kr') | float(0) %}
+             {% set kap_kr = state_attr('sensor.forrige_maaned_nettleie', 'kapasitetsledd_kr') | float(0) %}
+             {{ dag_kr | round(2) }} + {{ natt_kr | round(2) }} + {{ kap_kr }} = {{ (dag_kr + natt_kr + kap_kr) | round(2) }} kr
+
+      - name: "Test: Forrige måned toppforbruk"
+        unique_id: stromkalkulator_test_forrige_maaned_topp
+        icon: mdi:arrow-up-bold
+        state: >
+           {% set topp = states('sensor.forrige_maaned_toppforbruk') %}
+           {% if topp in ['unknown', 'unavailable'] %}
+             SENSOR MANGLER
+           {% elif topp | float(0) == 0 %}
+             INGEN DATA
+           {% else %}
+             {% set topp_1 = state_attr('sensor.forrige_maaned_toppforbruk', 'topp_1_kw') | float(0) %}
+             {% set topp_2 = state_attr('sensor.forrige_maaned_toppforbruk', 'topp_2_kw') | float(0) %}
+             {% set topp_3 = state_attr('sensor.forrige_maaned_toppforbruk', 'topp_3_kw') | float(0) %}
+             {% set count = [topp_1, topp_2, topp_3] | select('gt', 0) | list | count %}
+             {% if count >= 1 %}
+               {% set expected_avg = ([topp_1, topp_2, topp_3] | select('gt', 0) | list | sum) / count %}
+               {% set faktisk = topp | float(0) %}
+               {% if (faktisk - expected_avg) | abs < 0.1 %}OK{% else %}FEIL{% endif %}
+             {% else %}
+               INGEN TOPP-DATA
+             {% endif %}
+           {% endif %}
+        attributes:
+           snitt_topp_3: "{{ states('sensor.forrige_maaned_toppforbruk') | float(0) | round(2) }} kW"
+           topp_1: >
+             {{ state_attr('sensor.forrige_maaned_toppforbruk', 'topp_1_dato') }}: 
+             {{ state_attr('sensor.forrige_maaned_toppforbruk', 'topp_1_kw') | float(0) | round(2) }} kW
+           topp_2: >
+             {{ state_attr('sensor.forrige_maaned_toppforbruk', 'topp_2_dato') }}: 
+             {{ state_attr('sensor.forrige_maaned_toppforbruk', 'topp_2_kw') | float(0) | round(2) }} kW
+           topp_3: >
+             {{ state_attr('sensor.forrige_maaned_toppforbruk', 'topp_3_dato') }}: 
+             {{ state_attr('sensor.forrige_maaned_toppforbruk', 'topp_3_kw') | float(0) | round(2) }} kW
+           måned: "{{ state_attr('sensor.forrige_maaned_toppforbruk', 'måned') }}"
+
+       # =========================================================================
+       # SAMLET STATUS
+       # =========================================================================
       - name: "Test: Alle tester OK"
         unique_id: stromkalkulator_test_alle_ok
         icon: mdi:check-circle

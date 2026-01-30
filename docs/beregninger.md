@@ -516,15 +516,15 @@ Integrasjonen sporer månedlig forbruk og beregner kostnader automatisk via devi
 
 ### Sensorer
 
-| Sensor                          | Beskrivelse                                   | Enhet |
-|---------------------------------|-----------------------------------------------|-------|
-| `sensor.manedlig_forbruk_dag`   | Forbruk på dagtariff (06:00-22:00 hverdager)  | kWh   |
-| `sensor.manedlig_forbruk_natt`  | Forbruk på natt-/helgtariff                   | kWh   |
-| `sensor.manedlig_forbruk_total` | Totalt forbruk denne måneden                  | kWh   |
-| `sensor.manedlig_nettleie`      | Nettleie-kostnad (energiledd + kapasitet)     | kr    |
-| `sensor.manedlig_avgifter`      | Forbruksavgift + Enova-avgift                 | kr    |
-| `sensor.manedlig_stromstotte`   | Estimert strømstøtte                          | kr    |
-| `sensor.manedlig_nettleie_total`| Total nettleie inkl. avgifter minus støtte    | kr    |
+| Sensor                           | Beskrivelse                                  | Enhet |
+|----------------------------------|----------------------------------------------|-------|
+| `sensor.manedlig_forbruk_dag`    | Forbruk på dagtariff (06:00-22:00 hverdager) | kWh   |
+| `sensor.manedlig_forbruk_natt`   | Forbruk på natt-/helgtariff                  | kWh   |
+| `sensor.manedlig_forbruk_total`  | Totalt forbruk denne måneden                 | kWh   |
+| `sensor.manedlig_nettleie`       | Nettleie-kostnad (energiledd + kapasitet)    | kr    |
+| `sensor.manedlig_avgifter`       | Forbruksavgift + Enova-avgift                | kr    |
+| `sensor.manedlig_stromstotte`    | Estimert strømstøtte                         | kr    |
+| `sensor.manedlig_nettleie_total` | Total nettleie inkl. avgifter minus støtte   | kr    |
 
 ### Beregningsmetode
 
@@ -575,3 +575,76 @@ total = nettleie_total + avgifter - stromstotte
 ### Alternativ: Utility Meter
 
 For mer nøyaktig sporing kan du bruke `packages/stromkalkulator_utility.yaml` som setter opp Home Assistant utility_meter med automatisk tariff-bytte basert på `sensor.tariff`.
+
+## Forrige måned (faktura-verifisering)
+
+Integrasjonen lagrer automatisk forrige måneds data ved månedsskifte for enkel faktura-verifisering.
+
+### Sensorer
+
+| Sensor                                | Beskrivelse                               | Enhet |
+|---------------------------------------|-------------------------------------------|-------|
+| `sensor.forrige_maaned_forbruk_dag`   | Forbruk på dagtariff forrige måned        | kWh   |
+| `sensor.forrige_maaned_forbruk_natt`  | Forbruk på natt-/helgtariff forrige måned | kWh   |
+| `sensor.forrige_maaned_forbruk_total` | Totalt forbruk forrige måned              | kWh   |
+| `sensor.forrige_maaned_nettleie`      | Nettleie-kostnad (energiledd + kapasitet) | kr    |
+| `sensor.forrige_maaned_toppforbruk`   | Gjennomsnitt av topp-3 effektdager        | kW    |
+
+### Attributter
+
+Alle sensorer har attributtet `måned` som viser hvilken måned dataene gjelder (f.eks. "januar 2026").
+
+**ForrigeMaanedNettleieSensor** har ekstra attributter:
+- `energiledd_dag_kr`: Kostnad for dag-forbruk
+- `energiledd_natt_kr`: Kostnad for natt-forbruk
+- `kapasitetsledd_kr`: Kapasitetsledd basert på forrige måneds topp-3
+- `snitt_topp_3_kw`: Gjennomsnitt av topp-3 effektdager
+
+**ForrigeMaanedToppforbrukSensor** har ekstra attributter:
+- `topp_1_dato`, `topp_1_kw`: Dato og effekt for høyeste dag
+- `topp_2_dato`, `topp_2_kw`: Dato og effekt for nest høyeste dag
+- `topp_3_dato`, `topp_3_kw`: Dato og effekt for tredje høyeste dag
+
+### Hvordan det fungerer
+
+Ved månedsskifte (f.eks. 1. februar kl 00:01):
+
+1. **Lagring**: Nåværende måneds forbruk og topp-3 kopieres til "forrige måned"-variabler
+2. **Nullstilling**: Nåværende måned nullstilles og starter på nytt
+3. **Persistens**: All data lagres til disk og overlever restart
+
+```python
+# Ved månedsskifte
+if now.month != self._current_month:
+    # Lagre forrige måneds data
+    self._previous_month_consumption = self._monthly_consumption.copy()
+    self._previous_month_top_3 = self._get_top_3_days()
+    self._previous_month_name = "januar 2026"  # Norsk månedsnavn
+    
+    # Nullstill for ny måned
+    self._monthly_consumption = {"dag": 0.0, "natt": 0.0}
+    self._daily_max_power = {}
+```
+
+### Nettleie-beregning for forrige måned
+
+Nettleien beregnes fra lagret data:
+
+```python
+# Energiledd
+energiledd_dag = forbruk_dag * energiledd_dag_pris
+energiledd_natt = forbruk_natt * energiledd_natt_pris
+
+# Kapasitetsledd (fra lagret topp-3)
+avg_top_3 = sum(previous_month_top_3.values()) / 3
+kapasitetsledd = finn_kapasitetstrinn(avg_top_3)
+
+# Total nettleie
+nettleie = energiledd_dag + energiledd_natt + kapasitetsledd
+```
+
+### Begrensninger
+
+- **Data kun tilgjengelig etter første månedsskifte**: Før første månedsskifte er sensorene tomme (0 eller None)
+- **Kun én måned lagres**: Bare siste fullførte måned er tilgjengelig (ikke historikk)
+- **Priser fra nåværende konfigurasjon**: Nettleie beregnes med gjeldende energiledd-priser, ikke historiske

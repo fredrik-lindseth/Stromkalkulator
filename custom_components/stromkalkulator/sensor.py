@@ -77,6 +77,7 @@ async def async_setup_entry(
         # Norgespris
         TotalPrisNorgesprisSensor(coordinator, entry),
         PrisforskjellNorgesprisSensor(coordinator, entry),
+        NorgesprisAktivSensor(coordinator, entry),
         # Månedlig forbruk og kostnad
         MaanedligForbrukDagSensor(coordinator, entry),
         MaanedligForbrukNattSensor(coordinator, entry),
@@ -625,7 +626,27 @@ class PrisforskjellNorgesprisSensor(NettleieBaseSensor):
                 "norgespris_etter_stotte": norgespris_etter_stotte,
                 "differens_per_kwh": self.coordinator.data.get("kroner_spart_per_kwh"),
                 "note": "Norgespris er fast 50 øre/kWh fra Elhub",
-            }
+             }
+        return None
+
+
+class NorgesprisAktivSensor(NettleieBaseSensor):
+    """Sensor showing if Norgespris is active."""
+
+    _device_group = DEVICE_NORGESPRIS
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "norgespris_aktiv", "Norgespris aktiv nå")
+        self._attr_icon = "mdi:check-circle"
+
+    @property
+    def native_value(self):
+        """Return 'Ja' if Norgespris is active, 'Nei' otherwise."""
+        if self.coordinator.data:
+            has_norgespris = self.coordinator.data.get("has_norgespris", False)
+            return "Ja" if has_norgespris else "Nei"
         return None
 
 
@@ -808,7 +829,7 @@ class StromstotteKwhSensor(NettleieBaseSensor):
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
-        super().__init__(coordinator, entry, "stromstotte_aktiv", "Støtte aktiv nå")
+        super().__init__(coordinator, entry, "stromstotte_aktiv", "Strømstøtte aktiv nå")
         self._attr_icon = "mdi:cash-check"
 
     @property

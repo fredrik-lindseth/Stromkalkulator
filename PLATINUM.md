@@ -6,39 +6,23 @@ Roadmap for å oppnå høyeste kvalitetsnivå for Strømkalkulator-integrasjonen
 
 | Nivå | Krav oppfylt | Status |
 |------|--------------|--------|
-| **HACS-opptak** | 90% | 🟡 Nesten klar |
-| **Bronze** | ~95% | 🟡 Mangler branding |
-| **Silver** | ~80% | 🟡 I arbeid |
-| **Gold** | ~70% | ⚪ Planlagt |
-| **Platinum** | ~60% | ⚪ Langsiktig mål |
+| **HACS-opptak** | 95% | 🟡 Venter på brands PR merge |
+| **Bronze** | ~85% | 🟡 Mangler has_entity_name, runtime_data |
+| **Silver** | ~90% | 🟡 Mangler parallel_updates |
+| **Gold** | ~75% | 🟡 Mangler device_class, entity_translations |
+| **Platinum** | ~90% | 🟡 Mangler strict typing |
 
 ---
 
-## 📋 Fase 1: HACS-Opptak (Kritisk)
+## 📋 Fase 1: HACS-Opptak
 
-### Påkrevde oppgaver
+### Status: Venter på eksterne
 
-- [ ] **LICENSE-fil** - Legg til MIT LICENSE i rot
-- [ ] **Versjonsynkronisering** - Synk pyproject.toml (v0.21.0) med manifest.json (v0.31.0)
-- [ ] **Branding assets** - Lag icon.png og logo.png
-- [ ] **Brands PR** - Send PR til home-assistant/brands
-- [ ] **HACS PR** - Send PR til hacs/default (etter brands er merget)
-
-### Brands Repository Krav
-
-```
-custom_integrations/stromkalkulator/
-├── icon.png        # 256x256px, kvadratisk, transparent bakgrunn
-├── icon@2x.png     # 512x512px (hDPI)
-├── logo.png        # Landskapsformat, korteste side 128-256px
-└── logo@2x.png     # hDPI versjon
-```
-
-**Bildekrav:**
-- PNG-format, komprimert (lossless)
-- Transparent bakgrunn foretrukket
-- Optimalisert for hvit bakgrunn
-- Valgfritt: `dark_icon.png` / `dark_logo.png` for mørk modus
+- [x] **LICENSE-fil** - MIT LICENSE lagt til
+- [x] **Versjonsynkronisering** - pyproject.toml og manifest.json synkronisert
+- [x] **Branding assets** - icon.png og logo.png i brands/
+- [ ] **Brands PR** - [PR #9262](https://github.com/home-assistant/brands/pull/9262) venter på merge
+- [ ] **HACS PR** - Venter på brands merge
 
 ---
 
@@ -46,96 +30,111 @@ custom_integrations/stromkalkulator/
 
 | Krav | Status | Kommentar |
 |------|--------|-----------|
-| Config flow (UI-oppsett) | ✅ | `config_flow.py` |
-| Entity unique IDs | ✅ | Implementert |
-| Dokumentasjon | ✅ | 8 docs-filer |
-| Tester for config flow | ✅ | 8 testmoduler |
-| Branding assets | ❌ | Må lages |
+| config-flow | ✅ | UI-basert oppsett |
+| entity-unique-id | ✅ | Alle sensorer har unique_id |
+| has-entity-name | ❌ | **Må implementeres** |
+| runtime-data | ❌ | **Må migreres fra hass.data** |
+| unique-config-entry | ✅ | Forhindrer duplikater |
+| test-before-configure | ✅ | Validerer sensorer |
+| brands | ✅ | Branding assets klare |
+
+### Gjenstående oppgaver
+- [ ] `has_entity_name = True` på alle 34 sensorklasser
+- [ ] Migrer til `entry.runtime_data`
 
 ---
 
 ## 🥈 Fase 3: Silver Quality Scale
 
-| Krav | Status | Handling |
-|------|--------|----------|
-| Aktive code owners | ✅ | @fredrik-lindseth |
-| Feilhåndtering og recovery | ⚠️ | Gjennomgå coordinator |
-| Re-autentisering støtte | N/A | Lokal polling |
-| Detaljert feilsøkingsdoku | ⚠️ | Utvid docs |
+| Krav | Status | Kommentar |
+|------|--------|-----------|
+| config-entry-unloading | ✅ | async_unload_entry implementert |
+| integration-owner | ✅ | @fredrik-lindseth |
+| parallel-updates | ❌ | Mangler PARALLEL_UPDATES konstant |
+| reauthentication-flow | N/A | Lokal polling, ingen auth |
+| test-coverage | ✅ | 185 tester passerer |
 
-### Oppgaver
-
-- [ ] **CODE_OF_CONDUCT.md** - Legg til community guidelines
-- [ ] **CHANGELOG.md** - Formell changelog (ikke bare GitHub releases)
-- [ ] **PR-template** - `.github/pull_request_template.md`
-- [ ] **Feilhåndtering** - Gjennomgå og forbedre error handling
-- [ ] **Logging** - Strukturert logging med riktige nivåer
+### Gjenstående oppgaver
+- [ ] Legg til `PARALLEL_UPDATES = 1` i sensor.py
 
 ---
 
 ## 🥇 Fase 4: Gold Quality Scale
 
-| Krav | Status | Handling |
-|------|--------|----------|
-| Automatisk oppdagelse | ❌ | Vurder discovery |
-| UI-rekonfigurering | ⚠️ | Options flow |
-| Oversettelser | ✅ | nb.json + en.json |
-| Full testdekning | ✅ | God dekning |
-| Diagnostics | ❌ | Implementer |
+| Krav | Status | Kommentar |
+|------|--------|-----------|
+| devices | ✅ | Device entries opprettes |
+| diagnostics | ✅ | diagnostics.py implementert |
+| entity-category | ⚠️ | Delvis - noen sensorer mangler |
+| entity-device-class | ❌ | **Må implementeres** |
+| entity-translations | ⚠️ | Delvis - hardkodede navn |
+| reconfiguration-flow | ✅ | Options flow fungerer |
+| stale-devices | ❌ | Mangler device cleanup |
 
-### Oppgaver
-
-- [ ] **Options flow** - Tillat rekonfigurering via UI
-- [ ] **Diagnostics** - Implementer diagnostics-plattform
-- [ ] **100% testdekning** - Utvid tester
-- [ ] **Discovery** - Vurder om automatisk oppdagelse er mulig
+### Gjenstående oppgaver
+- [ ] Legg til `SensorDeviceClass` (ENERGY, POWER, MONETARY)
+- [ ] Komplett `EntityCategory` dekning
+- [ ] Entity translations i strings.json
+- [ ] Device cleanup i async_unload_entry
 
 ---
 
 ## 🏆 Fase 5: Platinum Quality Scale
 
-| Krav | Status | Handling |
-|------|--------|----------|
-| Fullt typet | ⚠️ | mypy strict mode |
-| Fullt asynkron | ⚠️ | Audit for blokkerende kall |
-| Effektiv datahåndtering | ✅ | Coordinator-pattern |
-| Optimalisert ytelse | ⚠️ | Profiler |
+| Krav | Status | Kommentar |
+|------|--------|-----------|
+| async-dependency | ✅ | Ingen blokkerende avhengigheter |
+| inject-websession | N/A | Ingen HTTP-kall |
+| strict-typing | ⚠️ | Type annotations lagt til, men ikke strict mode |
 
-### Oppgaver
+### Gjenstående oppgaver
+- [ ] Aktiver `disallow_untyped_defs = true` i mypy
+- [ ] Fiks eventuelle type-feil
 
-- [ ] **Type annotations** - Full typing med mypy strict
-- [ ] **Async audit** - Fjern alle blokkerende kall
-- [ ] **Performance profiling** - Identifiser flaskehalser
-- [ ] **Memory optimization** - Minimer minnebruk
-- [ ] **Benchmark** - Sammenlign med andre integrasjoner
+---
+
+## ✅ Fullført i denne sesjonen
+
+### Commits
+1. `995d9ae` - feat: HACS/brands forberedelser og full type annotations
+2. `1618632` - feat: Silver quality scale - community og diagnostics
+
+### Lukkede issues
+- LICENSE-fil lagt til
+- Versjonsynkronisering
+- Branding assets skalert
+- Type annotations (alle 6 filer)
+- CODE_OF_CONDUCT.md
+- CHANGELOG.md
+- PR-template
+- Diagnostics-plattform
+- Async audit (ingen issues funnet)
+- Options flow (allerede implementert)
+
+---
+
+## 📋 Åpne issues
+
+| ID | Prioritet | Beskrivelse |
+|----|-----------|-------------|
+| `3j2` | P1 | has_entity_name = True på alle sensorer |
+| `5zj` | P1 | Migrer til entry.runtime_data |
+| `88s` | P2 | SensorDeviceClass på alle sensorer |
+| `kfe` | P2 | Brands PR venter på merge |
+| `671` | P2 | HACS PR (blokkert av kfe) |
 
 ---
 
 ## 🔗 Ressurser
 
 ### Offisiell dokumentasjon
-- [HACS Publish Requirements](https://hacs.xyz/docs/publish/include)
-- [HACS Integration Requirements](https://hacs.xyz/docs/publish/integration)
-- [Home Assistant Brands](https://github.com/home-assistant/brands)
 - [Integration Quality Scale](https://developers.home-assistant.io/docs/core/integration-quality-scale)
-- [Quality Scale Checklist](https://developers.home-assistant.io/docs/core/integration-quality-scale/checklist)
+- [Quality Scale Rules](https://developers.home-assistant.io/docs/core/integration-quality-scale/rules)
+- [HACS Publish Requirements](https://hacs.xyz/docs/publish/include)
 
-### Repositories
-- [hacs/default](https://github.com/hacs/default) - HACS default repository
-- [home-assistant/brands](https://github.com/home-assistant/brands) - Branding assets
-
----
-
-## 📅 Milepæler
-
-| Milepæl | Mål | Status |
-|---------|-----|--------|
-| HACS-opptak | Q1 2026 | 🟡 I arbeid |
-| Bronze | Q1 2026 | 🟡 Nesten |
-| Silver | Q2 2026 | ⚪ Planlagt |
-| Gold | Q3 2026 | ⚪ Planlagt |
-| Platinum | Q4 2026 | ⚪ Langsiktig |
+### PRs
+- [Brands PR #9262](https://github.com/home-assistant/brands/pull/9262)
 
 ---
 
-*Sist oppdatert: Januar 2026*
+*Sist oppdatert: 30. januar 2026*

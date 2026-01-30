@@ -9,10 +9,33 @@ Kilde for kapasitetstrinn-struktur: NVE (https://www.nve.no/reguleringsmyndighet
 Sist oppdatert: Januar 2026 (2026-priser)
 """
 
-from typing import Final
+from typing import Final, NotRequired, TypedDict
 
 # Type for kapasitetstrinn: tuple of (kW-grense, kr/mnd)
 type KapasitetstrinnTuple = tuple[float, int]
+
+
+# Type for kapasitetstrinn dict format (used by some TSOs like Barents Nett)
+class KapasitetstrinnDict(TypedDict):
+    """Kapasitetstrinn entry in dict format."""
+
+    min: int
+    max: int
+    pris: int
+
+
+class TSOEntry(TypedDict):
+    """Type definition for a TSO (Transmission System Operator) entry."""
+
+    name: str
+    prisomrade: str
+    supported: bool
+    energiledd_dag: float
+    energiledd_natt: float
+    url: str
+    kapasitetstrinn: list[KapasitetstrinnTuple | KapasitetstrinnDict]
+    tiltakssone: NotRequired[bool]
+
 
 # Transmission System Operators (TSO) with default values
 # Format: {tso_id: {name, prisomrade, supported, energiledd_dag, energiledd_natt, url, kapasitetstrinn}}
@@ -23,7 +46,7 @@ type KapasitetstrinnTuple = tuple[float, int]
 # 2. Sett energiledd_dag og energiledd_natt i NOK/kWh (inkl. avgifter)
 # 3. Legg til kapasitetstrinn som liste med tupler: (kW-grense, kr/mnd)
 # 4. Sett supported til True
-TSO_LIST: Final = {
+TSO_LIST: Final[dict[str, TSOEntry]] = {
     "bkk": {
         "name": "BKK",
         "prisomrade": "NO5",

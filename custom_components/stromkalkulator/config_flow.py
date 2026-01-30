@@ -32,7 +32,9 @@ from .const import (
 if TYPE_CHECKING:
     from homeassistant.data_entry_flow import FlowResult
 
-_LOGGER = logging.getLogger(__name__)
+    from .tso import TSOEntry
+
+_LOGGER: logging.Logger = logging.getLogger(__name__)
 
 
 def _get_tso_options() -> dict[str, str]:
@@ -43,7 +45,7 @@ def _get_tso_options() -> dict[str, str]:
 class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
     """Handle a config flow for Nettleie."""
 
-    VERSION = 1
+    VERSION: int = 1
 
     def __init__(self) -> None:
         """Initialize the config flow."""
@@ -92,11 +94,11 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
 
         if user_input is not None:
             # Validate sensors exist
-            power_sensor = user_input[CONF_POWER_SENSOR]
-            spot_sensor = user_input[CONF_SPOT_PRICE_SENSOR]
+            power_sensor: Any = user_input[CONF_POWER_SENSOR]
+            spot_sensor: Any = user_input[CONF_SPOT_PRICE_SENSOR]
 
-            power_state = self.hass.states.get(power_sensor)
-            spot_state = self.hass.states.get(spot_sensor)
+            power_state: Any = self.hass.states.get(power_sensor)
+            spot_state: Any = self.hass.states.get(spot_sensor)
 
             if power_state is None:
                 errors[CONF_POWER_SENSOR] = "sensor_not_found"
@@ -111,7 +113,7 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
                     return await self.async_step_pricing()
 
                 # Otherwise, use defaults from TSO
-                tso = TSO_LIST[self._data[CONF_TSO]]
+                tso: TSOEntry = TSO_LIST[self._data[CONF_TSO]]
                 self._data[CONF_ENERGILEDD_DAG] = tso["energiledd_dag"]
                 self._data[CONF_ENERGILEDD_NATT] = tso["energiledd_natt"]
 
@@ -178,8 +180,8 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
         await self.async_set_unique_id(f"{DOMAIN}_{self._data[CONF_POWER_SENSOR]}")
         self._abort_if_unique_id_configured()
 
-        tso_name = TSO_LIST[self._data[CONF_TSO]]["name"]
-        title = f"{DEFAULT_NAME} ({tso_name})"
+        tso_name: str = TSO_LIST[self._data[CONF_TSO]]["name"]
+        title: str = f"{DEFAULT_NAME} ({tso_name})"
 
         return self.async_create_entry(
             title=title,
@@ -190,7 +192,7 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
     @callback
     def async_get_options_flow(
         config_entry: config_entries.ConfigEntry,
-    ) -> config_entries.OptionsFlow:
+    ) -> NettleieOptionsFlow:
         """Create the options flow."""
         return NettleieOptionsFlow()
 
@@ -202,23 +204,23 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):
         """Manage the options."""
         if user_input is not None:
             # Update config entry data
-            new_data = {**self.config_entry.data, **user_input}
+            new_data: dict[str, Any] = {**self.config_entry.data, **user_input}
             self.hass.config_entries.async_update_entry(self.config_entry, data=new_data)
             return self.async_create_entry(title="", data={})
 
         # Get current values from config entry
-        current = self.config_entry.data
-        tso_options = [
+        current: dict[str, Any] = self.config_entry.data
+        tso_options: list[selector.SelectOptionDict] = [
             selector.SelectOptionDict(value=key, label=value["name"])
             for key, value in TSO_LIST.items()
             if value.get("supported", False)
         ]
-        avgiftssone_options = [
+        avgiftssone_options: list[selector.SelectOptionDict] = [
             selector.SelectOptionDict(value=key, label=label) for key, label in AVGIFTSSONE_OPTIONS.items()
         ]
 
         # Build schema with defaults from current config
-        options_schema = vol.Schema(
+        options_schema: vol.Schema = vol.Schema(
             {
                 vol.Required(
                     CONF_TSO,

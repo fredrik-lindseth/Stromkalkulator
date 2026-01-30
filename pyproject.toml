@@ -1,6 +1,6 @@
 [project]
 name = "stromkalkulator"
-version = "0.21.0"
+version = "0.31.0"
 description = "Home Assistant integration for Norwegian electricity cost calculation"
 readme = "README.md"
 requires-python = ">=3.12"

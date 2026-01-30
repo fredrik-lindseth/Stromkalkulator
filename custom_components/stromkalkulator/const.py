@@ -4,26 +4,26 @@ from typing import Final
 
 from .tso import TSO_LIST  # noqa: F401 - re-exported for backward compatibility
 
-DOMAIN: Final = "stromkalkulator"
+DOMAIN: Final[str] = "stromkalkulator"
 
 # Config keys
-CONF_POWER_SENSOR: Final = "power_sensor"
-CONF_SPOT_PRICE_SENSOR: Final = "spot_price_sensor"
-CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR: Final = "electricity_provider_price_sensor"
-CONF_TSO: Final = "tso"
-CONF_ENERGILEDD_DAG: Final = "energiledd_dag"
-CONF_ENERGILEDD_NATT: Final = "energiledd_natt"
-CONF_AVGIFTSSONE: Final = "avgiftssone"
+CONF_POWER_SENSOR: Final[str] = "power_sensor"
+CONF_SPOT_PRICE_SENSOR: Final[str] = "spot_price_sensor"
+CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR: Final[str] = "electricity_provider_price_sensor"
+CONF_TSO: Final[str] = "tso"
+CONF_ENERGILEDD_DAG: Final[str] = "energiledd_dag"
+CONF_ENERGILEDD_NATT: Final[str] = "energiledd_natt"
+CONF_AVGIFTSSONE: Final[str] = "avgiftssone"
 
 # Avgiftssoner for forbruksavgift og mva
 # - standard: Full forbruksavgift + mva (Sør-Norge: NO1, NO2, NO5)
 # - nord_norge: Redusert forbruksavgift + mva-fritak (Nordland, Troms utenom tiltakssonen)
 # - tiltakssone: Forbruksavgift-fritak + mva-fritak (Finnmark + 7 kommuner i Nord-Troms)
-AVGIFTSSONE_STANDARD: Final = "standard"
-AVGIFTSSONE_NORD_NORGE: Final = "nord_norge"
-AVGIFTSSONE_TILTAKSSONE: Final = "tiltakssone"
+AVGIFTSSONE_STANDARD: Final[str] = "standard"
+AVGIFTSSONE_NORD_NORGE: Final[str] = "nord_norge"
+AVGIFTSSONE_TILTAKSSONE: Final[str] = "tiltakssone"
 
-AVGIFTSSONE_OPTIONS: Final = {
+AVGIFTSSONE_OPTIONS: Final[dict[str, str]] = {
     AVGIFTSSONE_STANDARD: "Sør-Norge (full avgift + mva)",
     AVGIFTSSONE_NORD_NORGE: "Nord-Norge (redusert avgift, mva-fritak)",
     AVGIFTSSONE_TILTAKSSONE: "Tiltakssonen (avgiftsfritak, mva-fritak)",
@@ -31,9 +31,9 @@ AVGIFTSSONE_OPTIONS: Final = {
 
 
 # Default values (BKK)
-DEFAULT_ENERGILEDD_DAG: Final = 0.4613
-DEFAULT_ENERGILEDD_NATT: Final = 0.2329
-DEFAULT_TSO: Final = "bkk"
+DEFAULT_ENERGILEDD_DAG: Final[float] = 0.4613
+DEFAULT_ENERGILEDD_NATT: Final[float] = 0.2329
+DEFAULT_TSO: Final[str] = "bkk"
 
 # === STRØMSTØTTE ===
 # Primærkilde: Forskrift om strømstønad § 5
@@ -55,11 +55,11 @@ DEFAULT_TSO: Final = "bkk"
 # Maks 5000 kWh/mnd per målepunkt (Forskrift § 5).
 #
 # Verdiene under er inkl. mva (spotpris fra Nord Pool er inkl. mva)
-STROMSTOTTE_TERSKEL_EKS_MVA: Final = 0.77  # 77 øre/kWh eks. mva (2026)
-STROMSTOTTE_LEVEL: Final = 0.9625  # 77 * 1.25 = 96,25 øre inkl. mva (2026)
-STROMSTOTTE_RATE: Final = 0.90  # 90% kompensasjon over terskel
-STROMSTOTTE_MAX_KWH: Final = 5000  # Maks 5000 kWh/mnd per målepunkt
-STROMSTOTTE_KILDE: Final = "https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791"
+STROMSTOTTE_TERSKEL_EKS_MVA: Final[float] = 0.77  # 77 øre/kWh eks. mva (2026)
+STROMSTOTTE_LEVEL: Final[float] = 0.9625  # 77 * 1.25 = 96,25 øre inkl. mva (2026)
+STROMSTOTTE_RATE: Final[float] = 0.90  # 90% kompensasjon over terskel
+STROMSTOTTE_MAX_KWH: Final[int] = 5000  # Maks 5000 kWh/mnd per målepunkt
+STROMSTOTTE_KILDE: Final[str] = "https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791"
 
 # === NORGESPRIS ===
 # Kilde: Regjeringens strømtiltak
@@ -80,15 +80,15 @@ STROMSTOTTE_KILDE: Final = "https://lovdata.no/dokument/SF/forskrift/2025-09-08-
 # - Må velges aktivt hos nettselskapet
 # - Bindingstid: Ut kalenderåret, må velges på nytt hvert år
 #
-NORGESPRIS_EKS_MVA: Final = 0.40  # 40 øre/kWh eks. mva
-NORGESPRIS_INKL_MVA_STANDARD: Final = 0.50  # 50 øre inkl. 25% mva (Sør-Norge)
-NORGESPRIS_INKL_MVA_NORD: Final = 0.40  # 40 øre (Nord-Norge/Tiltakssonen, mva-fritak)
-NORGESPRIS_MAX_KWH_BOLIG: Final = 5000  # Maks 5000 kWh/mnd for bolig
-NORGESPRIS_MAX_KWH_FRITID: Final = 1000  # Maks 1000 kWh/mnd for fritidsbolig (ikke støttet)
-NORGESPRIS_KILDE: Final = "https://www.regjeringen.no/no/tema/energi/strom/regjeringens-stromtiltak/id2900232/"
+NORGESPRIS_EKS_MVA: Final[float] = 0.40  # 40 øre/kWh eks. mva
+NORGESPRIS_INKL_MVA_STANDARD: Final[float] = 0.50  # 50 øre inkl. 25% mva (Sør-Norge)
+NORGESPRIS_INKL_MVA_NORD: Final[float] = 0.40  # 40 øre (Nord-Norge/Tiltakssonen, mva-fritak)
+NORGESPRIS_MAX_KWH_BOLIG: Final[int] = 5000  # Maks 5000 kWh/mnd for bolig
+NORGESPRIS_MAX_KWH_FRITID: Final[int] = 1000  # Maks 1000 kWh/mnd for fritidsbolig (ikke støttet)
+NORGESPRIS_KILDE: Final[str] = "https://www.regjeringen.no/no/tema/energi/strom/regjeringens-stromtiltak/id2900232/"
 
 # Config key for Norgespris
-CONF_HAR_NORGESPRIS: Final = "har_norgespris"
+CONF_HAR_NORGESPRIS: Final[str] = "har_norgespris"
 
 
 def get_norgespris_inkl_mva(avgiftssone: str) -> float:
@@ -127,11 +127,11 @@ def get_norgespris_inkl_mva(avgiftssone: str) -> float:
 # For 2027-satser, sjekk: https://www.skatteetaten.no/satser/elektrisk-kraft/
 
 # 2026: Flat sats hele året, ingen sesongvariasjon
-FORBRUKSAVGIFT_ALMINNELIG: Final = 0.0713  # 7,13 øre/kWh eks. mva (husholdninger)
-FORBRUKSAVGIFT_REDUSERT: Final = 0.0060  # 0,60 øre/kWh eks. mva (næring i tiltakssonen)
+FORBRUKSAVGIFT_ALMINNELIG: Final[float] = 0.0713  # 7,13 øre/kWh eks. mva (husholdninger)
+FORBRUKSAVGIFT_REDUSERT: Final[float] = 0.0060  # 0,60 øre/kWh eks. mva (næring i tiltakssonen)
 
-ENOVA_AVGIFT: Final = 0.01  # 1,0 øre/kWh eks. mva (fast, alle regioner inkl. tiltakssonen)
-MVA_SATS: Final = 0.25  # 25% mva
+ENOVA_AVGIFT: Final[float] = 0.01  # 1,0 øre/kWh eks. mva (fast, alle regioner inkl. tiltakssonen)
+MVA_SATS: Final[float] = 0.25  # 25% mva
 
 
 def get_forbruksavgift(avgiftssone: str, month: int) -> float:
@@ -187,7 +187,7 @@ def get_default_avgiftssone(prisomrade: str) -> str:
 
 # Helligdager (YYYY-MM-DD for bevegelige, MM-DD for faste)
 # Faste helligdager
-HELLIGDAGER_FASTE: Final = [
+HELLIGDAGER_FASTE: Final[list[str]] = [
     "01-01",  # Nyttårsdag
     "05-01",  # Arbeidernes dag
     "05-17",  # Grunnlovsdag
@@ -196,7 +196,7 @@ HELLIGDAGER_FASTE: Final = [
 ]
 
 # Bevegelige helligdager (må oppdateres årlig)
-HELLIGDAGER_BEVEGELIGE: Final = [
+HELLIGDAGER_BEVEGELIGE: Final[list[str]] = [
     # 2026
     "2026-04-02",  # Skjærtorsdag
     "2026-04-03",  # Langfredag
@@ -216,15 +216,15 @@ HELLIGDAGER_BEVEGELIGE: Final = [
 ]
 
 # Device groups
-DEVICE_NETTLEIE: Final = "stromkalkulator"
-DEVICE_STROMSTOTTE: Final = "stromstotte"
-DEVICE_NORGESPRIS: Final = "norgespris"
-DEVICE_MAANEDLIG: Final = "maanedlig"
+DEVICE_NETTLEIE: Final[str] = "stromkalkulator"
+DEVICE_STROMSTOTTE: Final[str] = "stromstotte"
+DEVICE_NORGESPRIS: Final[str] = "norgespris"
+DEVICE_MAANEDLIG: Final[str] = "maanedlig"
 
 # Sensor types
-SENSOR_ENERGILEDD: Final = "energiledd"
-SENSOR_KAPASITETSTRINN: Final = "kapasitetstrinn"
-SENSOR_TOTAL_PRICE: Final = "total_price"
+SENSOR_ENERGILEDD: Final[str] = "energiledd"
+SENSOR_KAPASITETSTRINN: Final[str] = "kapasitetstrinn"
+SENSOR_TOTAL_PRICE: Final[str] = "total_price"
 
 # Defaults
-DEFAULT_NAME: Final = "Strømkalkulator"
+DEFAULT_NAME: Final[str] = "Strømkalkulator"

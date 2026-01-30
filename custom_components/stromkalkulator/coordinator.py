@@ -35,11 +35,34 @@ if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
 
+    from .tso import TSOEntry
+
 _LOGGER = logging.getLogger(__name__)
 
 
-class NettleieCoordinator(DataUpdateCoordinator):
+class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Coordinator for Nettleie data."""
+
+    entry: ConfigEntry
+    power_sensor: str | None
+    spot_price_sensor: str | None
+    electricity_company_price_sensor: str | None
+    tso: TSOEntry
+    _tso_id: str
+    avgiftssone: str
+    har_norgespris: bool
+    energiledd_dag: float
+    energiledd_natt: float
+    kapasitetstrinn: list[tuple[float, int]]
+    _daily_max_power: dict[str, float]
+    _current_month: int
+    _monthly_consumption: dict[str, float]
+    _last_update: datetime | None
+    _previous_month_consumption: dict[str, float]
+    _previous_month_top_3: dict[str, float]
+    _previous_month_name: str | None
+    _store: Store[dict[str, Any]]
+    _store_loaded: bool
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize the coordinator."""
@@ -66,27 +89,27 @@ class NettleieCoordinator(DataUpdateCoordinator):
         self.har_norgespris = entry.data.get(CONF_HAR_NORGESPRIS, False)
 
         # Get energiledd from config (allows override)
-        self.energiledd_dag: float = float(entry.data.get(CONF_ENERGILEDD_DAG, self.tso["energiledd_dag"]))
-        self.energiledd_natt: float = float(entry.data.get(CONF_ENERGILEDD_NATT, self.tso["energiledd_natt"]))
+        self.energiledd_dag = float(entry.data.get(CONF_ENERGILEDD_DAG, self.tso["energiledd_dag"]))
+        self.energiledd_natt = float(entry.data.get(CONF_ENERGILEDD_NATT, self.tso["energiledd_natt"]))
 
         # Get kapasitetstrinn from TSO
         # Type: list of tuples (kW_threshold, NOK_per_month)
-        self.kapasitetstrinn: list[tuple[float, int]] = cast("list[tuple[float, int]]", self.tso["kapasitetstrinn"])
+        self.kapasitetstrinn = cast("list[tuple[float, int]]", self.tso["kapasitetstrinn"])
 
         # Track max power for capacity calculation
         # Format: {date_str: max_power_kw}
-        self._daily_max_power: dict[str, float] = {}
-        self._current_month: int = datetime.now().month
+        self._daily_max_power = {}
+        self._current_month = datetime.now().month
 
         # Track energy consumption for monthly utility meter
         # Format: {"dag": kwh, "natt": kwh}
-        self._monthly_consumption: dict[str, float] = {"dag": 0.0, "natt": 0.0}
-        self._last_update: datetime | None = None
+        self._monthly_consumption = {"dag": 0.0, "natt": 0.0}
+        self._last_update = None
 
         # Track previous month's data for invoice verification
-        self._previous_month_consumption: dict[str, float] = {"dag": 0.0, "natt": 0.0}
-        self._previous_month_top_3: dict[str, float] = {}
-        self._previous_month_name: str | None = None  # e.g., "januar 2026"
+        self._previous_month_consumption = {"dag": 0.0, "natt": 0.0}
+        self._previous_month_top_3 = {}
+        self._previous_month_name = None  # e.g., "januar 2026"
 
         # Persistent storage - use TSO id for stable storage across reinstalls
         self._store = Store(hass, 1, f"{DOMAIN}_{tso_id}")
@@ -333,7 +356,7 @@ class NettleieCoordinator(DataUpdateCoordinator):
 
     def _format_month_name(self, dt: datetime) -> str:
         """Format date as Norwegian month name with year."""
-        months = [
+        months: list[str] = [
             "januar",
             "februar",
             "mars",
@@ -351,11 +374,11 @@ class NettleieCoordinator(DataUpdateCoordinator):
 
     async def _load_stored_data(self) -> None:
         """Load stored data from disk."""
-        data = await self._store.async_load()
+        data: dict[str, Any] | None = await self._store.async_load()
 
         # Migration: try to load from old entry_id based storage if new storage is empty
         if not data:
-            old_store = Store(self.hass, 1, f"{DOMAIN}_{self.entry.entry_id}")
+            old_store: Store[dict[str, Any]] = Store(self.hass, 1, f"{DOMAIN}_{self.entry.entry_id}")
             data = await old_store.async_load()
             if data:
                 _LOGGER.info("Migrated data from old storage format")
@@ -377,7 +400,7 @@ class NettleieCoordinator(DataUpdateCoordinator):
 
     async def _save_stored_data(self) -> None:
         """Save data to disk."""
-        data = {
+        data: dict[str, Any] = {
             "daily_max_power": self._daily_max_power,
             "monthly_consumption": self._monthly_consumption,
             "current_month": self._current_month,

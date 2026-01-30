@@ -181,6 +181,7 @@ class CoordinatorSimulator:
 class TestMonthTransitionIntegration:
     """Integration tests for month transition behavior."""
 
+    @pytest.mark.asyncio
     async def test_full_month_simulation(self):
         """Simulate a full month of usage and verify month transition."""
         coordinator = CoordinatorSimulator()

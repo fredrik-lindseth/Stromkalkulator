@@ -808,7 +808,7 @@ class StromstotteKwhSensor(NettleieBaseSensor):
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
-        super().__init__(coordinator, entry, "stromstotte_aktiv", "Strømstøtte aktiv")
+        super().__init__(coordinator, entry, "stromstotte_aktiv", "Støtte aktiv nå")
         self._attr_icon = "mdi:cash-check"
 
     @property

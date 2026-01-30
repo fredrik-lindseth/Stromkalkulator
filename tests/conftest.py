@@ -47,10 +47,11 @@ def sample_spot_prices():
     Terskel 2026: 77 øre eks. mva * 1.25 = 96.25 øre inkl. mva = 0.9625 NOK/kWh
     """
     from custom_components.stromkalkulator.const import STROMSTOTTE_LEVEL
+
     return {
-        "low": 0.50,      # Under terskel
+        "low": 0.50,  # Under terskel
         "threshold": STROMSTOTTE_LEVEL,  # Akkurat på terskel
-        "medium": 1.20,   # Over terskel
-        "high": 2.00,     # Høy pris
+        "medium": 1.20,  # Over terskel
+        "high": 2.00,  # Høy pris
         "extreme": 5.00,  # Ekstrem pris
     }

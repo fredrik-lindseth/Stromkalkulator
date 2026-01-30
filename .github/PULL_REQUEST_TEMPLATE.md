@@ -1,33 +1,24 @@
-## 📋 Pull Request
+## Beskrivelse
 
-### 🎯 Type
-- [ ] Bug fix
-- [ ] New feature
+<!-- Beskriv hva denne PR-en gjør og hvorfor -->
+
+## Type endring
+
+- [ ] Bugfix
+- [ ] Ny feature
+- [ ] Refactoring
+- [ ] Dokumentasjon
 - [ ] Breaking change
-- [ ] Documentation update
 
-### 📝 Description
-<!-- Beskriv endringene dine -->
+## Relaterte issues
 
-### ✅ Changes
-- 
-- 
-- 
+<!-- Lukk issues med "Closes #123" -->
 
-### 🧪 Testing
-- [ ] Tested locally
-- [ ] Added unit tests
-- [ ] Manual testing completed
+## Sjekkliste
 
-### 📸 Screenshots
-<!-- Legg til screenshots hvis relevant -->
-
-### 🔗 Related Issues
-<!-- Link til eventuelle issues -->
-
-### 📚 Checklist
-- [ ] Code follows project style guidelines
-- [ ] Self-review of the code completed
-- [ ] Documentation updated if needed
-- [ ] Manifest version updated if breaking changes
-- [ ] Tested on multiple Home Assistant versions if applicable
+- [ ] Koden følger prosjektets stil
+- [ ] Tester er skrevet/oppdatert
+- [ ] `pytest tests/` passerer
+- [ ] `ruff check` passerer
+- [ ] Dokumentasjon er oppdatert
+- [ ] Jeg har gjennomgått min egen kode

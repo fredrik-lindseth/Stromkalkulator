@@ -42,7 +42,7 @@ def _get_tso_options() -> dict[str, str]:
     return {key: str(value["name"]) for key, value in TSO_LIST.items() if value.get("supported", False)}
 
 
-class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
+class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,misc]
     """Handle a config flow for Nettleie."""
 
     VERSION: int = 1
@@ -189,7 +189,7 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
         )
 
     @staticmethod
-    @callback
+    @callback  # type: ignore[untyped-decorator]
     def async_get_options_flow(
         config_entry: config_entries.ConfigEntry,
     ) -> NettleieOptionsFlow:
@@ -197,7 +197,7 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
         return NettleieOptionsFlow()
 
 
-class NettleieOptionsFlow(config_entries.OptionsFlow):
+class NettleieOptionsFlow(config_entries.OptionsFlow):  # type: ignore[misc]
     """Handle options flow for Nettleie."""
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:

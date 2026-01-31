@@ -22,7 +22,6 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
 addopts = "-v --tb=short"
-asyncio_mode = "auto"
 
 [tool.ruff]
 target-version = "py312"
@@ -59,7 +58,7 @@ exclude = ["*test*"]
 python_version = "3.12"
 warn_return_any = true
 warn_unused_ignores = true
-disallow_untyped_defs = false  # Start med false, øk gradvis
+disallow_untyped_defs = true
 check_untyped_defs = true
 ignore_missing_imports = true  # Ignorer Home Assistant imports som ikke er installert lokalt
 files = ["custom_components/stromkalkulator"]

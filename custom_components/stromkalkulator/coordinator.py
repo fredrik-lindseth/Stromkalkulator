@@ -40,7 +40,7 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 
-class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
+class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignore[misc]
     """Coordinator for Nettleie data."""
 
     entry: ConfigEntry

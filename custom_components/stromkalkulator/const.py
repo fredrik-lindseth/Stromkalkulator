@@ -2,7 +2,7 @@
 
 from typing import Final
 
-from .tso import TSO_LIST  # noqa: F401 - re-exported for backward compatibility
+from .tso import TSO_LIST
 
 __all__ = ["TSO_LIST"]
 

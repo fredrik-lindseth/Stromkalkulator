@@ -20,10 +20,12 @@ class MockStore:
     def __init__(self):
         self.data: dict[str, Any] = {}
 
-    async def async_load(self) -> dict[str, Any] | None:
+    def async_load(self) -> dict[str, Any] | None:
+        """Load stored data (synchronous mock)."""
         return self.data if self.data else None
 
-    async def async_save(self, data: dict[str, Any]) -> None:
+    def async_save(self, data: dict[str, Any]) -> None:
+        """Save data to store (synchronous mock)."""
         self.data = data.copy()
 
 
@@ -92,12 +94,12 @@ class CoordinatorSimulator:
         """Check if current time is day rate."""
         return dt.weekday() < 5 and 6 <= dt.hour < 22
 
-    async def simulate_update(self, now: datetime, power_kw: float = 3.0) -> dict[str, Any]:
+    def simulate_update(self, now: datetime, power_kw: float = 3.0) -> dict[str, Any]:
         """Simulate a coordinator update at the given time."""
 
         # Load stored data on first run
         if not self._store_loaded:
-            await self._load_stored_data()
+            self._load_stored_data()
             self._store_loaded = True
 
         # Check for month transition
@@ -114,7 +116,7 @@ class CoordinatorSimulator:
             self._daily_max_power = {}
             self._monthly_consumption = {"dag": 0.0, "natt": 0.0}
             self._current_month = now.month
-            await self._save_stored_data()
+            self._save_stored_data()
 
         # Update daily max power
         today_str = now.strftime("%Y-%m-%d")
@@ -126,7 +128,7 @@ class CoordinatorSimulator:
         tariff = "dag" if self._is_day_rate(now) else "natt"
         self._monthly_consumption[tariff] += power_kw * (1 / 60)  # 1 minute in hours
 
-        await self._save_stored_data()
+        self._save_stored_data()
 
         # Return data dict similar to coordinator
         top_3 = self._get_top_3_days()
@@ -152,9 +154,9 @@ class CoordinatorSimulator:
             "previous_month_name": self._previous_month_name,
         }
 
-    async def _load_stored_data(self) -> None:
+    def _load_stored_data(self) -> None:
         """Load stored data."""
-        data = await self._store.async_load()
+        data = self._store.async_load()
         if data:
             self._daily_max_power = data.get("daily_max_power", {})
             self._monthly_consumption = data.get("monthly_consumption", {"dag": 0.0, "natt": 0.0})
@@ -165,7 +167,7 @@ class CoordinatorSimulator:
             if stored_month:
                 self._current_month = stored_month
 
-    async def _save_stored_data(self) -> None:
+    def _save_stored_data(self) -> None:
         """Save data to store."""
         data = {
             "daily_max_power": self._daily_max_power,
@@ -175,14 +177,13 @@ class CoordinatorSimulator:
             "previous_month_top_3": self._previous_month_top_3,
             "previous_month_name": self._previous_month_name,
         }
-        await self._store.async_save(data)
+        self._store.async_save(data)
 
 
 class TestMonthTransitionIntegration:
     """Integration tests for month transition behavior."""
 
-    @pytest.mark.asyncio
-    async def test_full_month_simulation(self):
+    def test_full_month_simulation(self):
         """Simulate a full month of usage and verify month transition."""
         coordinator = CoordinatorSimulator()
 
@@ -202,10 +203,10 @@ class TestMonthTransitionIntegration:
         for day, hour, power in january_days:
             dt = datetime(2026, 1, day, hour, 0)
             coordinator._current_month = 1  # Force January
-            await coordinator.simulate_update(dt, power)
+            coordinator.simulate_update(dt, power)
 
         # Verify January state before transition
-        data_jan = await coordinator.simulate_update(datetime(2026, 1, 31, 23, 59), 1.0)
+        data_jan = coordinator.simulate_update(datetime(2026, 1, 31, 23, 59), 1.0)
         assert data_jan["current_month"] == 1
         assert data_jan["monthly_consumption_dag_kwh"] > 0
         assert len(coordinator._daily_max_power) > 0
@@ -215,7 +216,7 @@ class TestMonthTransitionIntegration:
         jan_consumption = coordinator._monthly_consumption.copy()
 
         # Trigger month transition - first update in February
-        data_feb = await coordinator.simulate_update(datetime(2026, 2, 1, 0, 1), 2.0)
+        data_feb = coordinator.simulate_update(datetime(2026, 2, 1, 0, 1), 2.0)
 
         # Verify transition occurred
         assert data_feb["current_month"] == 2
@@ -230,8 +231,7 @@ class TestMonthTransitionIntegration:
         assert data_feb["monthly_consumption_dag_kwh"] < 0.1  # Just the one update
         assert len(coordinator._daily_max_power) == 1  # Only Feb 1
 
-    @pytest.mark.asyncio
-    async def test_top_3_preserved_correctly(self):
+    def test_top_3_preserved_correctly(self):
         """Verify top 3 power days are correctly preserved across month transition."""
         coordinator = CoordinatorSimulator()
         coordinator._current_month = 1
@@ -251,7 +251,7 @@ class TestMonthTransitionIntegration:
         coordinator._monthly_consumption = {"dag": 150.5, "natt": 80.3}
 
         # Trigger transition
-        await coordinator.simulate_update(datetime(2026, 2, 1, 0, 1), 2.0)
+        coordinator.simulate_update(datetime(2026, 2, 1, 0, 1), 2.0)
 
         # Verify top 3 was preserved
         prev_top_3 = coordinator._previous_month_top_3
@@ -261,8 +261,7 @@ class TestMonthTransitionIntegration:
         assert prev_top_3.get("2026-01-20") == 5.8
         assert "2026-01-25" not in prev_top_3  # 4th place excluded
 
-    @pytest.mark.asyncio
-    async def test_year_boundary_transition(self):
+    def test_year_boundary_transition(self):
         """Test month transition across year boundary (December -> January)."""
         coordinator = CoordinatorSimulator()
         coordinator._current_month = 12
@@ -276,14 +275,13 @@ class TestMonthTransitionIntegration:
         coordinator._monthly_consumption = {"dag": 200.0, "natt": 100.0}
 
         # Trigger year boundary transition
-        data = await coordinator.simulate_update(datetime(2026, 1, 1, 0, 1), 2.0)
+        data = coordinator.simulate_update(datetime(2026, 1, 1, 0, 1), 2.0)
 
         assert data["current_month"] == 1
         assert data["previous_month_name"] == "desember 2025"
         assert data["previous_month_consumption_total_kwh"] == 300.0
 
-    @pytest.mark.asyncio
-    async def test_persistence_survives_restart(self):
+    def test_persistence_survives_restart(self):
         """Test that previous month data survives a simulated restart."""
         coordinator1 = CoordinatorSimulator()
         coordinator1._current_month = 1
@@ -293,7 +291,7 @@ class TestMonthTransitionIntegration:
         coordinator1._monthly_consumption = {"dag": 100.0, "natt": 50.0}
 
         # Trigger transition to February
-        await coordinator1.simulate_update(datetime(2026, 2, 1, 0, 1), 2.0)
+        coordinator1.simulate_update(datetime(2026, 2, 1, 0, 1), 2.0)
 
         # Get the stored data
         stored_data = coordinator1._store.data
@@ -303,14 +301,13 @@ class TestMonthTransitionIntegration:
         coordinator2._store.data = stored_data  # Restore from "disk"
 
         # Load and verify
-        data = await coordinator2.simulate_update(datetime(2026, 2, 1, 0, 2), 2.0)
+        data = coordinator2.simulate_update(datetime(2026, 2, 1, 0, 2), 2.0)
 
         assert data["previous_month_name"] == "januar 2026"
         assert data["previous_month_consumption_dag_kwh"] == 100.0
         assert data["previous_month_consumption_natt_kwh"] == 50.0
 
-    @pytest.mark.asyncio
-    async def test_nettleie_calculation_from_previous_month(self):
+    def test_nettleie_calculation_from_previous_month(self):
         """Test that nettleie can be calculated from previous month data."""
         coordinator = CoordinatorSimulator()
         coordinator._current_month = 1
@@ -324,7 +321,7 @@ class TestMonthTransitionIntegration:
         coordinator._monthly_consumption = {"dag": 150.0, "natt": 80.0}
 
         # Transition
-        await coordinator.simulate_update(datetime(2026, 2, 1, 0, 1), 2.0)
+        coordinator.simulate_update(datetime(2026, 2, 1, 0, 1), 2.0)
 
         # Calculate nettleie from previous month
         dag_kwh = coordinator._previous_month_consumption["dag"]
@@ -352,8 +349,7 @@ class TestMonthTransitionIntegration:
         assert kapasitetsledd == 250  # 2-5 kW tier
         assert round(total_nettleie, 2) == 337.83
 
-    @pytest.mark.asyncio
-    async def test_empty_month_transition(self):
+    def test_empty_month_transition(self):
         """Test transition when current month has no data."""
         coordinator = CoordinatorSimulator()
         coordinator._current_month = 1
@@ -361,7 +357,7 @@ class TestMonthTransitionIntegration:
         # No data added for January
 
         # Transition
-        data = await coordinator.simulate_update(datetime(2026, 2, 1, 0, 1), 2.0)
+        data = coordinator.simulate_update(datetime(2026, 2, 1, 0, 1), 2.0)
 
         # Should still work, just with zeros
         assert data["previous_month_name"] == "januar 2026"
@@ -373,8 +369,7 @@ class TestMonthTransitionIntegration:
 class TestMonthTransitionEdgeCases:
     """Edge case tests for month transitions."""
 
-    @pytest.mark.asyncio
-    async def test_multiple_updates_same_minute(self):
+    def test_multiple_updates_same_minute(self):
         """Test multiple updates in the same minute don't cause issues."""
         coordinator = CoordinatorSimulator()
         coordinator._current_month = 1
@@ -382,22 +377,23 @@ class TestMonthTransitionEdgeCases:
 
         # Multiple updates at transition time
         dt = datetime(2026, 2, 1, 0, 1)
+        data = None
         for _ in range(5):
-            data = await coordinator.simulate_update(dt, 2.0)
+            data = coordinator.simulate_update(dt, 2.0)
 
         # Should only transition once
+        assert data is not None
         assert data["previous_month_name"] == "januar 2026"
         assert data["current_month"] == 2
 
-    @pytest.mark.asyncio
-    async def test_previous_month_only_stores_one_month(self):
+    def test_previous_month_only_stores_one_month(self):
         """Verify that transitioning again overwrites previous month."""
         coordinator = CoordinatorSimulator()
 
         # January -> February
         coordinator._current_month = 1
         coordinator._monthly_consumption = {"dag": 100.0, "natt": 50.0}
-        await coordinator.simulate_update(datetime(2026, 2, 1, 0, 1), 2.0)
+        coordinator.simulate_update(datetime(2026, 2, 1, 0, 1), 2.0)
 
         assert coordinator._previous_month_name == "januar 2026"
 
@@ -405,7 +401,7 @@ class TestMonthTransitionEdgeCases:
         coordinator._monthly_consumption = {"dag": 120.0, "natt": 60.0}
 
         # February -> March
-        await coordinator.simulate_update(datetime(2026, 3, 1, 0, 1), 2.0)
+        coordinator.simulate_update(datetime(2026, 3, 1, 0, 1), 2.0)
 
         # January data should be gone, replaced by February
         assert coordinator._previous_month_name == "februar 2026"

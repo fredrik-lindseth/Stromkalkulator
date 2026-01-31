@@ -102,7 +102,7 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class NettleieBaseSensor(CoordinatorEntity, SensorEntity):
+class NettleieBaseSensor(CoordinatorEntity, SensorEntity):  # type: ignore[misc]
     """Base class for Strømkalkulator sensors."""
 
     _attr_has_entity_name = True

@@ -58,5 +58,111 @@
         }
       }
     }
+  },
+  "entity": {
+    "sensor": {
+      "energiledd": {
+        "name": "Energiledd"
+      },
+      "kapasitetstrinn": {
+        "name": "Kapasitetstrinn"
+      },
+      "total_price": {
+        "name": "Total strømpris (før støtte)"
+      },
+      "maks_forbruk": {
+        "name": "Toppforbruk"
+      },
+      "gjs_forbruk": {
+        "name": "Snitt toppforbruk"
+      },
+      "trinn_nummer": {
+        "name": "Kapasitetstrinn (nummer)"
+      },
+      "trinn_intervall": {
+        "name": "Kapasitetstrinn (intervall)"
+      },
+      "offentlige_avgifter": {
+        "name": "Offentlige avgifter"
+      },
+      "electricity_company_total": {
+        "name": "Total strømpris (strømavtale)"
+      },
+      "stromstotte": {
+        "name": "Strømstøtte"
+      },
+      "spotpris_etter_stotte": {
+        "name": "Spotpris etter støtte"
+      },
+      "total_pris_etter_stotte": {
+        "name": "Total strømpris etter støtte"
+      },
+      "total_pris_inkl_avgifter": {
+        "name": "Totalpris inkl. avgifter"
+      },
+      "total_pris_norgespris": {
+        "name": "Total strømpris (norgespris)"
+      },
+      "prisforskjell_norgespris": {
+        "name": "Prisforskjell (norgespris)"
+      },
+      "norgespris_aktiv": {
+        "name": "Norgespris aktiv nå"
+      },
+      "energiledd_dag": {
+        "name": "Energiledd dag"
+      },
+      "energiledd_natt": {
+        "name": "Energiledd natt/helg"
+      },
+      "forbruksavgift": {
+        "name": "Forbruksavgift"
+      },
+      "enovaavgift": {
+        "name": "Enovaavgift"
+      },
+      "stromstotte_kwh": {
+        "name": "Strømstøtte aktiv nå"
+      },
+      "tariff": {
+        "name": "Tariff"
+      },
+      "maanedlig_forbruk_dag": {
+        "name": "Månedlig forbruk dagtariff"
+      },
+      "maanedlig_forbruk_natt": {
+        "name": "Månedlig forbruk natt/helg"
+      },
+      "maanedlig_forbruk_total": {
+        "name": "Månedlig forbruk totalt"
+      },
+      "maanedlig_nettleie": {
+        "name": "Månedlig nettleie"
+      },
+      "maanedlig_avgifter": {
+        "name": "Månedlig avgifter"
+      },
+      "maanedlig_stromstotte": {
+        "name": "Månedlig strømstøtte"
+      },
+      "maanedlig_total": {
+        "name": "Månedlig nettleie total"
+      },
+      "forrige_maaned_forbruk_dag": {
+        "name": "Forrige måned forbruk dagtariff"
+      },
+      "forrige_maaned_forbruk_natt": {
+        "name": "Forrige måned forbruk natt/helg"
+      },
+      "forrige_maaned_forbruk_total": {
+        "name": "Forrige måned forbruk totalt"
+      },
+      "forrige_maaned_nettleie": {
+        "name": "Forrige måned nettleie"
+      },
+      "forrige_maaned_toppforbruk": {
+        "name": "Forrige måned toppforbruk"
+      }
+    }
   }
 }

@@ -19,7 +19,6 @@ from .const import (
     CONF_POWER_SENSOR,
     CONF_SPOT_PRICE_SENSOR,
     CONF_TSO,
-    DOMAIN,
 )
 
 
@@ -29,7 +28,7 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
     This includes integration version, configuration, sensor entity IDs,
     TSO data, and coordinator data (sanitized).
     """
-    coordinator: NettleieCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator: NettleieCoordinator = entry.runtime_data
 
     return {
         "integration": {

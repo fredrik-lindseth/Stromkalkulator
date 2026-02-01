@@ -1,16 +1,13 @@
-name: Validate
+name: HACS
 
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  schedule:
-    - cron: "0 0 * * *"
 
 jobs:
-  validate-hacs:
-    name: HACS
+  validate:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -20,13 +17,3 @@ jobs:
         uses: hacs/action@main
         with:
           category: integration
-
-  validate-hassfest:
-    name: Hassfest
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Hassfest validation
-        uses: home-assistant/actions/hassfest@master

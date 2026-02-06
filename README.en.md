@@ -47,7 +47,7 @@ You need:
 - **Power sensor** - Electricity consumption in Watts (e.g., from Tibber Pulse, P1 Reader, or Elhub)
 - **Spot price sensor** - From the Nord Pool integration
 
-Select your grid company from the list. All 68 Norwegian grid companies are supported!
+Select your grid company from the list. All 71 Norwegian grid companies are supported!
 
 ## Devices and Sensors
 
@@ -132,7 +132,7 @@ When your grid tariff invoice arrives, you can easily verify the numbers:
 
 ## Supported Grid Companies
 
-**All 68 Norwegian grid companies are supported!** 🎉
+**All 71 Norwegian grid companies are supported!** 🎉
 
 Prices are updated annually at the start of each year. Found an error or outdated prices? [Create a PR](docs/CONTRIBUTING.md) or open an issue!
 

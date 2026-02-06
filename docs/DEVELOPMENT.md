@@ -37,7 +37,7 @@ custom_components/stromkalkulator/
 - Leser fra `coordinator.data["key"]`
 
 **TSO-data** (`tso.py`):
-- Dict med alle 71 nettselskaper og deres priser
+- Dict med alle 68 nettselskaper og deres priser (100% dekning)
 - Energiledd dag/natt, kapasitetstrinn
 
 ### Beregningsflyt
@@ -107,24 +107,15 @@ ssh ha-local "ha core restart"
 
 ## Vanlige oppgaver
 
-### Legge til nettselskap
+### Oppdatere nettleiepriser (årlig)
 
-1. Åpne `custom_components/stromkalkulator/tso.py`
-2. Finn nettselskapet (alle er registrert, de fleste med `supported: False`)
-3. Legg til priser fra nettselskapets nettside:
-   - `energiledd_dag` og `energiledd_natt` i NOK/kWh
-   - `kapasitetstrinn` som liste med tupler: `(kW-grense, kr/mnd)`
-4. Sett `supported: True`
-5. Test at integrasjonen laster
+Alle 68 nettselskaper er støttet. Priser endres ofte 1. januar:
 
-### Oppdatere priser (årlig)
-
-Priser endres ofte 1. januar:
-
-1. Sjekk nettselskapenes nettsider
+1. Sjekk nettselskapenes nettsider for nye priser
 2. Oppdater `energiledd_dag`, `energiledd_natt`, `kapasitetstrinn` i `tso.py`
 3. Oppdater avgiftssatser i `const.py` hvis endret (sjekk Skatteetaten)
 4. Oppdater helligdager for nytt år i `const.py`
+5. Test at integrasjonen laster
 
 ### Legge til sensor
 

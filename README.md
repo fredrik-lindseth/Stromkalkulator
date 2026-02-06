@@ -48,7 +48,7 @@ Du trenger:
 - **Effektsensor** - Strømforbruk i Watt (f.eks. fra Tibber Pulse, P1 Reader, eller Elhub)
 - **Spotpris-sensor** - Fra Nord Pool-integrasjonen
 
-Velg ditt nettselskap fra listen, eller bruk "Egendefinert" hvis det ikke er støttet.
+Velg ditt nettselskap fra listen. Alle 68 norske nettselskaper er støttet!
 
 ## Devices og sensorer
 
@@ -133,9 +133,9 @@ Når nettleie-fakturaen kommer, kan du enkelt sjekke at tallene stemmer:
 
 ## Støttede nettselskaper
 
-Arva, Barents Nett, BKK, Elinett, Elmea, Elvia, Fagne, Føie, Glitre Nett, Griug, Lede, Linea, Linja, Lnett, Mellom, Midtnett, Nettselskapet, Noranett, Norgesnett, Nordvest Nett, Tensio, Vevig + **Egendefinert**
+**Alle 68 norske nettselskaper er støttet!** 🎉
 
-Mangler ditt nettselskap? [Bidra med priser](docs/CONTRIBUTING.md) eller opprett et issue!
+Prisene oppdateres årlig ved nyttår. Finner du feil eller utdaterte priser? [Opprett en PR](docs/CONTRIBUTING.md) eller et issue!
 
 ## Begrensninger
 
@@ -145,7 +145,7 @@ Integrasjonen er laget for **privatboliger med eget strømabonnement**.
 - Strømstøtte beregnes på alt forbruk (i virkeligheten maks 5000 kWh/mnd)
 - For de fleste husholdninger er dette ikke et problem
 
-**Ikke støttet:**
+**Ikke støttet (ennå):**
 - Fritidsbolig (har 1000 kWh grense)
 - Næringsliv (andre stønadssatser)
 - Borettslag med fellesmåling
@@ -161,7 +161,7 @@ Integrasjonen er laget for **privatboliger med eget strømabonnement**.
 |-----------------------------------------|------------------------------|
 | [SENSORS.md](docs/SENSORS.md)           | Alle sensorer og attributter |
 | [beregninger.md](docs/beregninger.md)   | Formler og avgiftssoner      |
-| [CONTRIBUTING.md](docs/CONTRIBUTING.md) | Legge til nettselskap        |
+| [CONTRIBUTING.md](docs/CONTRIBUTING.md) | Oppdatere priser / rapportere feil |
 | [TESTING.md](docs/TESTING.md)           | Validere beregninger         |
 
 ## Lisens

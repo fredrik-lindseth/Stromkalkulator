@@ -1,13 +1,19 @@
 # Bidra til Strømkalkulator
 
-Vil du legge til støtte for ditt nettselskap? Følg guiden under og opprett en PR!
+Alle 68 norske nettselskaper er støttet! Men priser endres årlig, og feil kan forekomme. Hjelp oss holde prisene oppdatert!
 
-## Legge til nytt nettselskap (TSO)
+## Rapportere feil eller utdaterte priser
+
+Fant du feil i prisene for ditt nettselskap? Du kan enten:
+
+1. **Opprette et issue** med lenke til korrekte priser
+2. **Lage en PR** med oppdaterte priser (se under)
+
+## Oppdatere priser (PR)
 
 1. Åpne `custom_components/stromkalkulator/tso.py`
 2. Finn `TSO_LIST` dictionary
-3. Finn ditt nettselskap (alle 71 norske nettselskaper er registrert, 23 har priser)
-4. Oppdater oppføringen med priser fra nettselskapets nettside
+3. Finn ditt nettselskap og oppdater prisene
 
 ### Eksempel
 
@@ -15,7 +21,7 @@ Vil du legge til støtte for ditt nettselskap? Følg guiden under og opprett en 
 "ditt_nettselskap": {
     "name": "Eksempel Nett",
     "prisomrade": "NO1",
-    "supported": True,  # Endre fra False til True
+    "supported": True,
     "energiledd_dag": 0.4613,      # NOK/kWh inkl. avgifter
     "energiledd_natt": 0.2329,     # NOK/kWh inkl. avgifter
     "url": "https://www.eksempelnett.no/nettleiepriser",
@@ -40,7 +46,6 @@ Vil du legge til støtte for ditt nettselskap? Følg guiden under og opprett en 
 |-------------------|------------|----------------------------------------------|
 | `energiledd_dag`  | NOK/kWh    | Dagpris i NOK (ikke øre), inkl. avgifter     |
 | `energiledd_natt` | NOK/kWh    | Nattpris i NOK (ikke øre), inkl. avgifter    |
-| `supported`       | True/False | Sett til `True` når priser er lagt inn       |
 | `url`             | URL        | Lenke til nettselskapets offisielle prisside |
 | `kapasitetstrinn` | Liste      | Liste med tupler: `(kW-grense, kr/mnd)`      |
 
@@ -81,16 +86,19 @@ python3 -m py_compile custom_components/stromkalkulator/tso.py
 4. Opprett en PR med:
    - Navn på nettselskap
    - Lenke til prisside (kilde)
-   - Prisene du har lagt inn
+   - Hva som er endret
 
 ## Alternativ: Opprett et issue
 
 Hvis du ikke ønsker eller har mulighet til å forke/lage PR, kan du opprette et [issue på GitHub](https://github.com/fredrik-lindseth/Stromkalkulator/issues) med:
 - Navn på nettselskap
 - Lenke til prisside
-- Energiledd dag/natt (øre/kWh)
-- Kapasitetstrinn (kW-grenser og kr/mnd)
+- Hva som er feil / hva de korrekte prisene er
 
-Så legger vi inn prisene for deg!
+Så fikser vi det!
+
+## Årlige oppdateringer
+
+Nettleiepriser endres typisk ved nyttår. Vi prøver å oppdatere alle priser i januar hvert år, men setter pris på hjelp fra brukere som oppdager feil eller har tilgang til oppdaterte priser.
 
 Vi setter pris på alle bidrag!

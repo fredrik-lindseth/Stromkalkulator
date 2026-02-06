@@ -27,10 +27,12 @@ Integrasjonen gir deg sensorer som viser din **faktiske strømpris** - ikke bare
 
 ### Via HACS (anbefalt)
 
-1. **HACS** > **Integrations** > Meny (tre prikker) > **Custom repositories**
-2. Legg til `https://github.com/fredrik-lindseth/Stromkalkulator` som "Integration"
-3. Last ned "Strømkalkulator"
-4. Start Home Assistant på nytt
+1. Klikk på knappen under for å åpne integrasjonen i HACS:
+   [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=fredrik-lindseth&repository=Stromkalkulator&category=integration)
+2. Klikk **Download**
+3. Start Home Assistant på nytt
+
+*Alternativt: HACS > Integrations > Explore & Download Repositories > Søk etter "Strømkalkulator"*
 
 ### Manuell
 

@@ -6,10 +6,10 @@ Dette dokumentet beskriver prosessen for å publisere integrasjonen i HACS defau
 
 | Steg                         | Status       | Link                                               |
 |------------------------------|--------------|----------------------------------------------------|
-| Brand-bilder (icon/logo)     | Ferdig       |                                                    |
-| PR til home-assistant/brands | Åpen (draft) | https://github.com/home-assistant/brands/pull/9262 |
-| Vente på merge av brands PR  | Gjenstår     |                                                    |
-| PR til hacs/default          | Gjenstår     |                                                    |
+| Brand-bilder (icon/logo)     | ✅ Ferdig    |                                                    |
+| PR til home-assistant/brands | ✅ Merget    | https://github.com/home-assistant/brands/pull/9262 |
+| Vente på merge av brands PR  | ✅ Ferdig    |                                                    |
+| PR til hacs/default          | ⏳ Åpen      | https://github.com/hacs/default/pull/5440          |
 | Vente på merge av HACS PR    | Gjenstår     |                                                    |
 
 ---
@@ -52,7 +52,7 @@ Nåværende `hacs.json`:
 ### Brands (kun for integrasjoner)
 
 - [x] PR til home-assistant/brands opprettet
-- [ ] PR til home-assistant/brands merget
+- [x] PR til home-assistant/brands merget
 
 **Merk:** HACS-revieweren sjekker at brands er på plass. Du KAN sende inn HACS PR før brands er merget, men den vil bli draftet til brands er klart.
 

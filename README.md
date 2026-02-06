@@ -48,7 +48,7 @@ Du trenger:
 - **Effektsensor** - Strømforbruk i Watt (f.eks. fra Tibber Pulse, P1 Reader, eller Elhub)
 - **Spotpris-sensor** - Fra Nord Pool-integrasjonen
 
-Velg ditt nettselskap fra listen. Alle 68 norske nettselskaper er støttet!
+Velg ditt nettselskap fra listen. Alle 71 norske nettselskaper er støttet!
 
 ## Devices og sensorer
 
@@ -133,7 +133,7 @@ Når nettleie-fakturaen kommer, kan du enkelt sjekke at tallene stemmer:
 
 ## Støttede nettselskaper
 
-**Alle 68 norske nettselskaper er støttet!** 🎉
+**Alle 71 norske nettselskaper er støttet!** 🎉
 
 Prisene oppdateres årlig ved nyttår. Finner du feil eller utdaterte priser? [Opprett en PR](docs/CONTRIBUTING.md) eller et issue!
 

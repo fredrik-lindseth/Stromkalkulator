@@ -410,20 +410,42 @@ TSO_LIST: Final[dict[str, TSOEntry]] = {
     "alut": {
         "name": "Alut",
         "prisomrade": "NO4",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # NO4 - mva-fritak for husholdninger
+        # Flat sats: 13,10 øre/kWh (inkl. 4 øre rabatt)
+        # + forbruksavgift 7,13 + Enova 1,0 = 21,23 øre/kWh
+        "energiledd_dag": 0.2123,  # 21,23 øre/kWh inkl. avgifter (2026, NO4)
+        "energiledd_natt": 0.2123,  # Flat sats - ingen dag/natt-differensiering
+        "url": "https://alut.no/nettleie/",
+        "kapasitetstrinn": [
+            (2, 292),  # 3500/12
+            (5, 350),
+            (10, 500),
+            (15, 650),
+            (20, 800),
+            (25, 950),
+            (float("inf"), 1200),
+        ],
     },
     "area_nett": {
         "name": "Area Nett",
         "prisomrade": "NO4",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # NO4 - mva-fritak for husholdninger
+        # Priser eks. avgifter: dag 29,89, natt 24,89 øre/kWh
+        # + forbruksavgift 7,13 + Enova 1,0 = dag 38,02, natt 33,02 øre/kWh
+        "energiledd_dag": 0.3802,  # 38,02 øre/kWh inkl. avgifter (2026, NO4)
+        "energiledd_natt": 0.3302,  # 33,02 øre/kWh inkl. avgifter (2026, NO4)
+        "url": "https://www.area.no",
+        "kapasitetstrinn": [
+            (2, 250),
+            (5, 350),
+            (10, 500),
+            (15, 650),
+            (20, 800),
+            (25, 950),
+            (float("inf"), 1300),
+        ],
     },
     "asker_nett": {
         "name": "Asker Nett",
@@ -465,38 +487,89 @@ TSO_LIST: Final[dict[str, TSOEntry]] = {
     "bindal_kraftnett": {
         "name": "Bindal Kraftnett",
         "prisomrade": "NO3",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # Priser eks. avgifter: dag 26,3, natt 21,3 øre/kWh
+        # + forbruksavgift 8,91 + Enova 1,25 = dag 36,46, natt 31,46 øre/kWh eks. mva
+        # + 25% mva = dag 45,58, natt 39,33 øre/kWh inkl. mva
+        "energiledd_dag": 0.4304,  # 43,04 øre/kWh inkl. avgifter og mva (2025)
+        "energiledd_natt": 0.3679,  # 36,79 øre/kWh inkl. avgifter og mva (2025)
+        "url": "https://bindalkraftlag.no/tariffer",
+        "kapasitetstrinn": [
+            (2, 200),
+            (5, 300),
+            (10, 450),
+            (15, 600),
+            (20, 750),
+            (25, 900),
+            (float("inf"), 1200),
+        ],
     },
     "breheim_nett": {
         "name": "Breheim Nett",
         "prisomrade": "NO5",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # Priser inkl. avgifter og mva: dag 28,29, natt 18,29 øre/kWh
+        # (tidligere Luster Energiverk)
+        "energiledd_dag": 0.2829,  # 28,29 øre/kWh inkl. avgifter (2026)
+        "energiledd_natt": 0.1829,  # 18,29 øre/kWh inkl. avgifter (2026)
+        "url": "https://www.breheimnett.no/nettleige-for-kundar-under-100-000-kwh-i-arsforbruk2026",
+        "kapasitetstrinn": [
+            (5, 225),
+            (10, 350),
+            (15, 500),
+            (20, 650),
+            (25, 800),
+            (50, 1500),
+            (75, 2500),
+            (100, 3500),
+            (float("inf"), 5000),
+        ],
     },
     "bomlo_kraftnett": {
         "name": "Bømlo Kraftnett",
         "prisomrade": "NO5",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # Priser eks. avgifter: dag 35,5, natt 29,0 øre/kWh
+        # + forbruksavgift 8,91 + Enova 1,25 = dag 45,66, natt 39,16 øre/kWh eks. mva
+        # + 25% mva = dag 57,08, natt 48,95 øre/kWh inkl. mva
+        "energiledd_dag": 0.5454,  # 54,54 øre/kWh inkl. avgifter (2026)
+        "energiledd_natt": 0.4641,  # 46,41 øre/kWh inkl. avgifter (2026)
+        "url": "https://nett.finnas-kraftlag.no/nettleige-og-vilkar/category1618.html",
+        "kapasitetstrinn": [
+            (2, 200),
+            (5, 300),
+            (10, 450),
+            (15, 600),
+            (20, 750),
+            (25, 900),
+            (50, 1500),
+            (75, 2200),
+            (100, 3000),
+            (float("inf"), 4000),
+        ],
     },
     "de_nett": {
         "name": "De Nett",
         "prisomrade": "NO2",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # Har sesongpriser - bruker vinterpriser (høyest)
+        # Vinter dag: 31,4 øre + avgifter = ca 41,5 øre/kWh inkl. mva
+        # Vinter natt: 28,4 øre + avgifter = ca 38,5 øre/kWh inkl. mva
+        "energiledd_dag": 0.4150,  # 41,50 øre/kWh inkl. avgifter (2026, vinter)
+        "energiledd_natt": 0.3850,  # 38,50 øre/kWh inkl. avgifter (2026, vinter)
+        "url": "https://denett.no/priser-tariffer/",
+        "kapasitetstrinn": [
+            (2, 286),  # 3432/12
+            (5, 369),
+            (10, 451),
+            (15, 622),
+            (20, 787),
+            (25, 957),
+            (50, 1452),
+            (75, 2288),
+            (100, 3124),
+            (float("inf"), 4400),
+        ],
     },
     "elmea": {
         "name": "Elmea",
@@ -523,38 +596,81 @@ TSO_LIST: Final[dict[str, TSOEntry]] = {
     "enida": {
         "name": "Enida",
         "prisomrade": "NO2",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # Priser eks. avgifter: høylast 27, grunnpris 21 øre/kWh
+        # + forbruksavgift 8,91 + Enova 1,25 = dag 37,16, natt 31,16 øre/kWh eks. mva
+        # + 25% mva = dag 46,45, natt 38,95 øre/kWh inkl. mva
+        "energiledd_dag": 0.4645,  # 46,45 øre/kWh inkl. avgifter (2025)
+        "energiledd_natt": 0.3895,  # 38,95 øre/kWh inkl. avgifter (2025)
+        "url": "https://enida.no/strompris",
+        "kapasitetstrinn": [
+            (2, 232),  # 2784/12
+            (5, 280),
+            (10, 380),
+            (15, 500),
+            (20, 620),
+            (25, 740),
+            (float("inf"), 1000),
+        ],
     },
     "everket": {
         "name": "Everket",
         "prisomrade": "NO2",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # Everket/Kraftia bruker Midtnett som nettoperatør
+        # Priser inkl. forbruksavgift, Enova-avgift og 25% mva
+        "energiledd_dag": 0.4674,  # 46,74 øre/kWh inkl. avgifter (2026, dag 06-22)
+        "energiledd_natt": 0.4049,  # 40,49 øre/kWh inkl. avgifter (2026, natt 22-06)
+        "url": "https://midtnett.no/nettleie-informasjon-og-priser/",
+        "kapasitetstrinn": [
+            (5, 275),
+            (10, 413),
+            (15, 625),
+            (20, 938),
+            (25, 1250),
+            (50, 1746),
+            (75, 2620),
+            (100, 3250),
+            (float("inf"), 3750),
+        ],
     },
     "fjellnett": {
         "name": "Fjellnett",
         "prisomrade": "NO3",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # Flat sats: 26,29 øre/kWh inkl. alle avgifter og mva
+        # Ingen dag/natt-differensiering
+        "energiledd_dag": 0.2629,  # 26,29 øre/kWh inkl. avgifter (2026)
+        "energiledd_natt": 0.2629,  # Flat sats - ingen dag/natt-differensiering
+        "url": "https://www.fjellnett.no/nettleie/nettleiepriser/",
+        "kapasitetstrinn": [
+            (2, 208),  # Grunnbeløp 2500/12
+            (5, 300),
+            (10, 450),
+            (15, 600),
+            (20, 750),
+            (25, 900),
+            (float("inf"), 1200),
+        ],
     },
     "fore": {
         "name": "Føre",
         "prisomrade": "NO2",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # Flat sats: 19,29 øre/kWh eks. mva, 24,11 øre/kWh inkl. mva
+        # Kapasitetsbasert modell, ingen dag/natt-differensiering
+        "energiledd_dag": 0.2411,  # 24,11 øre/kWh inkl. mva (2026)
+        "energiledd_natt": 0.2411,  # Flat sats - ingen dag/natt-differensiering
+        "url": "https://foere.net/nettleie/",
+        "kapasitetstrinn": [
+            (2, 329),  # 328,8 kr/mnd inkl. mva
+            (5, 428),  # 427,5 kr/mnd inkl. mva
+            (10, 526),  # 526,3 kr/mnd inkl. mva
+            (15, 625),  # 625,0 kr/mnd inkl. mva
+            (20, 724),
+            (25, 823),
+            (float("inf"), 1000),
+        ],
     },
     "griug": {
         "name": "Griug",
@@ -580,101 +696,224 @@ TSO_LIST: Final[dict[str, TSOEntry]] = {
     "haringnett": {
         "name": "Haringnett",
         "prisomrade": "NO5",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # Priser inkl. avgifter og mva: dag 40,79, natt 30,79 øre/kWh
+        "energiledd_dag": 0.4079,  # 40,79 øre/kWh inkl. avgifter (2026)
+        "energiledd_natt": 0.3079,  # 30,79 øre/kWh inkl. avgifter (2026)
+        "url": "https://www.haringnett.no/nettleigeprisar2026",
+        "kapasitetstrinn": [
+            (2, 200),
+            (5, 300),
+            (10, 450),
+            (15, 600),
+            (20, 750),
+            (25, 900),
+            (float("inf"), 1200),
+        ],
     },
     "havnett": {
         "name": "Havnett",
         "prisomrade": "NO5",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # Flat sats: 47,31 øre/kWh inkl. avgifter og mva
+        # (Austevoll Kraftlag SA)
+        "energiledd_dag": 0.4731,  # 47,31 øre/kWh inkl. avgifter (2026)
+        "energiledd_natt": 0.4731,  # Flat sats - ingen dag/natt-differensiering
+        "url": "https://havnett.as/priser/nettleigetariff/",
+        "kapasitetstrinn": [
+            (5, 250),
+            (10, 320),
+            (15, 563),
+            (20, 788),
+            (25, 863),
+            (float("inf"), 1200),
+        ],
     },
     "holand_setskog": {
         "name": "Høland og Setskog Elverk",
         "prisomrade": "NO1",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # Priser eks. avgifter: dag 22,5, natt 17,5 øre/kWh
+        # + forbruksavgift 8,91 + Enova 1,25 = dag 32,66, natt 27,66 øre/kWh eks. mva
+        # + 25% mva = dag 40,83, natt 34,58 øre/kWh inkl. mva
+        "energiledd_dag": 0.3829,  # 38,29 øre/kWh inkl. avgifter og mva (2026)
+        "energiledd_natt": 0.3204,  # 32,04 øre/kWh inkl. avgifter og mva (2026)
+        "url": "https://hsev.no/nettleie",
+        "kapasitetstrinn": [
+            (2, 160),  # Estimert basert på lignende nettselskap
+            (5, 250),
+            (10, 400),
+            (15, 600),
+            (20, 800),
+            (25, 1000),
+            (50, 1800),
+            (75, 2600),
+            (100, 3500),
+            (float("inf"), 5000),
+        ],
     },
     "indre_hordaland": {
         "name": "Indre Hordaland Kraftnett",
         "prisomrade": "NO5",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # Flat sats: 45,86 øre/kWh inkl. avgifter og mva
+        "energiledd_dag": 0.4586,  # 45,86 øre/kWh inkl. avgifter (2026)
+        "energiledd_natt": 0.4586,  # Flat sats - ingen dag/natt-differensiering
+        "url": "https://ihk.no/prisar/nettleige",
+        "kapasitetstrinn": [
+            (2, 240),
+            (5, 300),
+            (10, 450),
+            (15, 600),
+            (20, 750),
+            (25, 900),
+            (50, 1800),
+            (75, 2700),
+            (100, 3600),
+            (float("inf"), 7200),
+        ],
     },
     "jaren_everk": {
         "name": "Jæren Everk",
         "prisomrade": "NO2",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # Priser inkl. mva: dag 20,00, natt 12,50 øre/kWh
+        # + forbruksavgift 8,91 + Enova 1,25 = dag 30,16, natt 22,66 øre/kWh inkl. mva
+        "energiledd_dag": 0.3016,  # 30,16 øre/kWh inkl. avgifter og mva (2026)
+        "energiledd_natt": 0.2266,  # 22,66 øre/kWh inkl. avgifter og mva (2026)
+        "url": "https://jev.no/nettleie-for-kunder-med-forbruk-under-100-000-kwh-2-2-2-2-2-2-2-2",
+        "kapasitetstrinn": [
+            (2, 200),
+            (5, 300),
+            (10, 450),
+            (15, 600),
+            (20, 800),
+            (25, 1000),
+            (float("inf"), 1500),
+        ],
     },
     "ke_nett": {
         "name": "KE Nett",
         "prisomrade": "NO2",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # Priser eks. avgifter: dag 18,00, natt 8,00 øre/kWh
+        # + forbruksavgift 8,91 + Enova 1,25 = dag 28,16, natt 18,16 øre/kWh eks. mva
+        # + 25% mva = dag 35,20, natt 22,70 øre/kWh inkl. mva
+        "energiledd_dag": 0.3266,  # 32,66 øre/kWh inkl. avgifter og mva (2026)
+        "energiledd_natt": 0.2016,  # 20,16 øre/kWh inkl. avgifter og mva (2026)
+        "url": "https://ke-nett.no/Nettleiepriser/",
+        "kapasitetstrinn": [
+            (2, 200),
+            (5, 300),
+            (10, 450),
+            (15, 600),
+            (20, 800),
+            (25, 1000),
+            (float("inf"), 1500),
+        ],
     },
     "klive": {
         "name": "Klive",
         "prisomrade": "NO3",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # Flat sats: 32,20 øre/kWh inkl. mva, forbruksavgift og Enova
+        # Kapasitetsbasert modell, ingen dag/natt-differensiering
+        "energiledd_dag": 0.3220,  # 32,20 øre/kWh inkl. avgifter (2026)
+        "energiledd_natt": 0.3220,  # Flat sats - ingen dag/natt-differensiering
+        "url": "https://klive.no/har-strom/nettleiepriser/",
+        "kapasitetstrinn": [
+            (2, 200),  # Estimert basert på kapasitetsmodell
+            (5, 300),
+            (10, 450),
+            (15, 600),
+            (20, 750),
+            (25, 900),
+            (50, 1500),
+            (float("inf"), 2000),
+        ],
     },
     "kystnett": {
         "name": "Kystnett",
         "prisomrade": "NO4",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # NO4 - mva-fritak for husholdninger
+        # Flat sats: 18 øre/kWh eks. avgifter
+        # + forbruksavgift 7,13 + Enova 1,0 = 26,13 øre/kWh (ingen mva i NO4)
+        "energiledd_dag": 0.2613,  # 26,13 øre/kWh inkl. avgifter (2026)
+        "energiledd_natt": 0.2613,  # Flat sats - ingen dag/natt-differensiering
+        "url": "https://kystnett.no/nettleie",
+        "kapasitetstrinn": [
+            (2, 200),  # Estimert basert på kapasitetsmodell
+            (5, 300),
+            (10, 450),
+            (15, 600),
+            (20, 750),
+            (25, 900),
+            (50, 1500),
+            (75, 2200),
+            (100, 3000),
+            (float("inf"), 4000),
+        ],
     },
     "lucerna": {
         "name": "Lucerna",
         "prisomrade": "NO4",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # NO4 - mva-fritak for husholdninger
+        # Priser: dag 19,32, natt 13,32 øre/kWh (inkl. Enova 1,0)
+        # + forbruksavgift 7,13 = dag 26,45, natt 20,45 øre/kWh
+        "energiledd_dag": 0.2645,  # 26,45 øre/kWh inkl. avgifter (2026, NO4)
+        "energiledd_natt": 0.2045,  # 20,45 øre/kWh inkl. avgifter (2026, NO4)
+        "url": "https://www.lucerna.no/priser",
+        "kapasitetstrinn": [
+            (2, 259),
+            (5, 350),
+            (10, 500),
+            (15, 650),
+            (20, 800),
+            (25, 950),
+            (float("inf"), 1300),
+        ],
     },
     "lysna": {
         "name": "Lysna",
         "prisomrade": "NO5",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # Priser eks. avgifter: dag 32, natt 24 øre/kWh
+        # + forbruksavgift 8,91 + Enova 1,25 = dag 42,16, natt 34,16 øre/kWh eks. mva
+        # + 25% mva = dag 52,70, natt 42,70 øre/kWh inkl. mva
+        "energiledd_dag": 0.5270,  # 52,70 øre/kWh inkl. avgifter (2026)
+        "energiledd_natt": 0.4270,  # 42,70 øre/kWh inkl. avgifter (2026)
+        "url": "https://lysna.no/prisar-for-private-kundar-2024",
+        "kapasitetstrinn": [
+            (2, 200),
+            (5, 300),
+            (10, 450),
+            (15, 600),
+            (20, 750),
+            (25, 900),
+            (float("inf"), 1200),
+        ],
     },
     "meloy_energi": {
         "name": "Meløy Energi",
         "prisomrade": "NO4",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # NO4 - mva-fritak for husholdninger
+        # Priser: dag 27,40, natt 17,40 øre/kWh
+        # + forbruksavgift 7,13 + Enova 1,0 = dag 35,53, natt 25,53 øre/kWh
+        "energiledd_dag": 0.3553,  # 35,53 øre/kWh inkl. avgifter (2026, NO4)
+        "energiledd_natt": 0.2553,  # 25,53 øre/kWh inkl. avgifter (2026, NO4)
+        "url": "https://www.meloyenergi.no/ac/nettleie-avregning",
+        "kapasitetstrinn": [
+            (2, 200),
+            (5, 300),
+            (10, 450),
+            (15, 600),
+            (20, 750),
+            (25, 900),
+            (float("inf"), 1200),
+        ],
     },
     "midtnett": {
         "name": "Midtnett",
@@ -698,38 +937,81 @@ TSO_LIST: Final[dict[str, TSOEntry]] = {
     "modalen_kraftlag": {
         "name": "Modalen Kraftlag",
         "prisomrade": "NO5",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # Flat sats: 71,16 øre/kWh inkl. avgifter og mva
+        # (nett via Mostraum Nett AS)
+        "energiledd_dag": 0.7116,  # 71,16 øre/kWh inkl. avgifter (2025)
+        "energiledd_natt": 0.7116,  # Flat sats - ingen dag/natt-differensiering
+        "url": "https://www.mostraumnett.no/nettprisar",
+        "kapasitetstrinn": [
+            (2, 78),
+            (5, 200),
+            (10, 400),
+            (15, 600),
+            (20, 800),
+            (25, 1000),
+            (50, 2000),
+            (75, 3500),
+            (100, 5000),
+            (float("inf"), 6900),
+        ],
     },
     "netera": {
         "name": "Netera",
         "prisomrade": "NO3",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # Har sesongpriser - bruker vinterpriser (høyest)
+        # Vinter: 36,3 øre/kWh, Sommer: 33,4 øre/kWh (inkl. avgifter og mva)
+        "energiledd_dag": 0.3630,  # 36,30 øre/kWh inkl. avgifter (2026, vinter)
+        "energiledd_natt": 0.3630,  # Flat sats - ingen dag/natt-differensiering
+        "url": "https://www.netera.no/nettleie/avtaler/privat/",
+        "kapasitetstrinn": [
+            (10, 167),  # 2000/12
+            (63, 333),  # 4000/12
+            (float("inf"), 667),  # 8000/12
+        ],
     },
     "noranett_andoy": {
         "name": "Noranett Andøy",
         "prisomrade": "NO4",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # NO4 - mva-fritak for husholdninger
+        # Flat sats: 16,4 øre/kWh + forbruksavgift 7,13 + Enova 1,0 = 24,53 øre/kWh
+        "energiledd_dag": 0.2453,  # 24,53 øre/kWh inkl. avgifter (2026, NO4)
+        "energiledd_natt": 0.2453,  # Flat sats - ingen dag/natt-differensiering
+        "url": "https://www.noranett.no/nettleiepriser/nettleiepriser-andoy-fra-1-1-2026-article4140-2415.html",
+        "kapasitetstrinn": [
+            (2, 310),
+            (4, 440),
+            (6, 530),
+            (8, 610),
+            (10, 680),
+            (15, 750),
+            (20, 890),
+            (25, 1200),
+            (float("inf"), 1500),
+        ],
     },
     "noranett_hadsel": {
         "name": "Noranett Hadsel",
         "prisomrade": "NO4",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # NO4 - mva-fritak for husholdninger
+        # Priser: dag 14,0, natt 9,0 øre/kWh + forbruksavgift 7,13 + Enova 1,0
+        "energiledd_dag": 0.2213,  # 22,13 øre/kWh inkl. avgifter (2026, NO4)
+        "energiledd_natt": 0.1713,  # 17,13 øre/kWh inkl. avgifter (2026, NO4)
+        "url": "https://www.noranett.no/nettleiepriser/nettleiepriser-hadsel-fra-1-1-2026-article4141-2415.html",
+        "kapasitetstrinn": [
+            (2, 270),
+            (4, 380),
+            (6, 460),
+            (8, 530),
+            (10, 590),
+            (15, 650),
+            (20, 770),
+            (25, 1040),
+            (float("inf"), 1300),
+        ],
     },
     "nordvest_nett": {
         "name": "Nordvest Nett",
@@ -754,173 +1036,353 @@ TSO_LIST: Final[dict[str, TSOEntry]] = {
     "norefjell_nett": {
         "name": "Norefjell Nett",
         "prisomrade": "NO1",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # Priser inkl. avgifter og mva: dag 38,33, natt 29,01 øre/kWh
+        "energiledd_dag": 0.3833,  # 38,33 øre/kWh inkl. avgifter (2026)
+        "energiledd_natt": 0.2901,  # 29,01 øre/kWh inkl. avgifter (2026)
+        "url": "https://norefjell-nett.no/strompris",
+        "kapasitetstrinn": [
+            (2, 200),
+            (5, 300),
+            (10, 450),
+            (15, 600),
+            (20, 750),
+            (25, 900),
+            (float("inf"), 1200),
+        ],
     },
     "r_nett": {
         "name": "R-Nett",
         "prisomrade": "NO1",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # Priser eks. avgifter: dag 25,67, natt 16,07 øre/kWh
+        # + forbruksavgift 8,91 + Enova 1,25 = dag 35,83, natt 26,23 øre/kWh eks. mva
+        # + 25% mva = dag 44,79, natt 32,79 øre/kWh inkl. mva
+        "energiledd_dag": 0.4225,  # 42,25 øre/kWh inkl. avgifter og mva (2026)
+        "energiledd_natt": 0.3025,  # 30,25 øre/kWh inkl. avgifter og mva (2026)
+        "url": "https://r-nett.no/overforingspriser/",
+        "kapasitetstrinn": [
+            (2, 200),
+            (5, 300),
+            (10, 450),
+            (15, 600),
+            (20, 800),
+            (25, 1000),
+            (50, 1800),
+            (75, 2600),
+            (100, 3500),
+            (float("inf"), 5000),
+        ],
     },
     "rakkestad_energi": {
         "name": "Rakkestad Energi",
         "prisomrade": "NO1",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # Nå del av Elvia - bruker Elvia-priser fra sept 2025
+        "energiledd_dag": 0.3640,  # 36,40 øre/kWh inkl. avgifter (2026)
+        "energiledd_natt": 0.2640,  # 26,40 øre/kWh inkl. avgifter (2026)
+        "url": "https://rakkestadenergi.no/nettleiepriser",
+        "kapasitetstrinn": [
+            (2, 125),
+            (5, 190),
+            (10, 300),
+            (15, 410),
+            (20, 520),
+            (float("inf"), 655),
+        ],
     },
     "rk_nett": {
         "name": "RK Nett",
         "prisomrade": "NO2",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # Flat sats: 20,14 øre/kWh eks. mva, 25,17 øre/kWh inkl. mva
+        # + forbruksavgift 8,91 + Enova 1,25 = 35,33 øre/kWh inkl. mva
+        "energiledd_dag": 0.3533,  # 35,33 øre/kWh inkl. avgifter og mva (2026)
+        "energiledd_natt": 0.3533,  # Flat sats - ingen dag/natt-differensiering
+        "url": "https://www.rauland-nett.no/nettleige",
+        "kapasitetstrinn": [
+            (2, 213),
+            (5, 320),
+            (10, 480),
+            (15, 640),
+            (20, 800),
+            (25, 960),
+            (float("inf"), 1500),
+        ],
     },
     "romsdalsnett": {
         "name": "Romsdalsnett",
         "prisomrade": "NO3",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # Priser inkl. avgifter: dag 38,40, natt 25,90 øre/kWh
+        "energiledd_dag": 0.3840,  # 38,40 øre/kWh inkl. avgifter (2026)
+        "energiledd_natt": 0.2590,  # 25,90 øre/kWh inkl. avgifter (2026)
+        "url": "https://www.romsdalsnettas.no/nettleie/",
+        "kapasitetstrinn": [
+            (2, 290),
+            (5, 400),
+            (10, 550),
+            (15, 700),
+            (20, 850),
+            (25, 1015),
+            (float("inf"), 1500),
+        ],
     },
     "s_nett": {
         "name": "S-Nett",
         "prisomrade": "NO3",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
-    },
-    "skjakernett": {
-        "name": "Skjåkernett",
-        "prisomrade": "NO3",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # Priser inkl. mva: dag 33,00, natt 26,76 øre/kWh
+        "energiledd_dag": 0.3300,  # 33,00 øre/kWh inkl. avgifter (2025)
+        "energiledd_natt": 0.2676,  # 26,76 øre/kWh inkl. avgifter (2025)
+        "url": "https://snett.no/nettleie-forbruk-under-100-000-kwh",
+        "kapasitetstrinn": [
+            (2, 200),
+            (5, 300),
+            (10, 450),
+            (15, 600),
+            (20, 750),
+            (25, 900),
+            (float("inf"), 1200),
+        ],
     },
     "stannum": {
         "name": "Stannum",
         "prisomrade": "NO2",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # Priser inkl. avgifter og mva: dag 41,42, natt 37,67 øre/kWh
+        "energiledd_dag": 0.4142,  # 41,42 øre/kWh inkl. avgifter (2025)
+        "energiledd_natt": 0.3767,  # 37,67 øre/kWh inkl. avgifter (2025)
+        "url": "https://stannum.no/nettleiepriser",
+        "kapasitetstrinn": [
+            (2, 200),
+            (5, 300),
+            (10, 450),
+            (15, 600),
+            (20, 750),
+            (25, 900),
+            (float("inf"), 1200),
+        ],
     },
     "stram": {
         "name": "Stram",
         "prisomrade": "NO4",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # NO4 - mva-fritak for husholdninger
+        # Priser eks. avgifter: dag 14,11, natt 4,11 øre/kWh
+        # + forbruksavgift 7,13 + Enova 1,0 = dag 22,24, natt 12,24 øre/kWh
+        "energiledd_dag": 0.2224,  # 22,24 øre/kWh inkl. avgifter (2026, NO4)
+        "energiledd_natt": 0.1224,  # 12,24 øre/kWh inkl. avgifter (2026, NO4)
+        "url": "https://www.stram.no/nettleiepris",
+        "kapasitetstrinn": [
+            (2, 200),
+            (5, 300),
+            (10, 450),
+            (15, 600),
+            (20, 750),
+            (25, 900),
+            (float("inf"), 1200),
+        ],
     },
     "straumen_nett": {
         "name": "Straumen Nett",
         "prisomrade": "NO3",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # Flat sats: 24,13 øre/kWh eks. avgifter, 33,04 øre/kWh inkl. avgifter og mva
+        # Ingen dag/natt-differensiering
+        "energiledd_dag": 0.3304,  # 33,04 øre/kWh inkl. avgifter (2026)
+        "energiledd_natt": 0.3304,  # Flat sats - ingen dag/natt-differensiering
+        "url": "https://straumen-nett.no/nettleige/nettleige-private-2026",
+        "kapasitetstrinn": [
+            (5, 290),
+            (10, 334),
+            (15, 495),
+            (20, 582),
+            (25, 873),
+            (float("inf"), 1163),
+        ],
     },
     "straumnett": {
         "name": "Straumnett",
         "prisomrade": "NO5",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # Priser: dag 26,20, natt 19,95 øre/kWh
+        # + forbruksavgift 8,91 + Enova 1,25 = dag 36,36, natt 30,11 øre/kWh eks. mva
+        # + 25% mva = dag 45,45, natt 37,64 øre/kWh inkl. mva
+        "energiledd_dag": 0.4545,  # 45,45 øre/kWh inkl. avgifter (2026)
+        "energiledd_natt": 0.3764,  # 37,64 øre/kWh inkl. avgifter (2026)
+        "url": "https://straumnett.no/prisar-for-nettleige",
+        "kapasitetstrinn": [
+            (2, 200),
+            (5, 300),
+            (10, 450),
+            (15, 600),
+            (20, 750),
+            (25, 900),
+            (float("inf"), 1200),
+        ],
     },
-    "svabo_industrinett": {
-        "name": "Svabo Industrinett",
-        "prisomrade": "NO4",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
-    },
+    # Svabo Industrinett (NO4) - Kun industrikunder, ikke relevant for husholdninger
+    # "svabo_industrinett": {
+    #     "name": "Svabo Industrinett",
+    #     "prisomrade": "NO4",
+    #     "supported": False,
+    #     "energiledd_dag": 0,
+    #     "energiledd_natt": 0,
+    #     "url": "",
+    #     "kapasitetstrinn": [],
+    # },
     "sygnir": {
         "name": "Sygnir",
         "prisomrade": "NO5",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # Flat sats: 37,73 øre/kWh inkl. forbruksavgift, Enova og mva
+        # Ingen dag/natt-differensiering
+        "energiledd_dag": 0.3773,  # 37,73 øre/kWh inkl. avgifter (2026)
+        "energiledd_natt": 0.3773,  # Flat sats - ingen dag/natt-differensiering
+        "url": "https://www.sygnir.no/s/Nettleigeprisar-1-januar-2026.pdf",
+        "kapasitetstrinn": [
+            (1, 240),
+            (2, 288),
+            (3, 338),
+            (4, 384),
+            (5, 431),
+            (6, 504),
+            (7, 575),
+            (8, 648),
+            (9, 720),
+            (10, 791),
+            (12, 938),
+            (14, 1081),
+            (16, 1225),
+            (18, 1369),
+            (20, 1519),
+            (40, 2713),
+            (60, 3913),
+            (float("inf"), 5000),
+        ],
     },
     "tendranett": {
         "name": "Tendranett",
         "prisomrade": "NO5",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # Priser inkl. forbruksavgift (21,2), Enova (1,25) og mva
+        "energiledd_dag": 0.5180,  # 51,8 øre/kWh inkl. avgifter (2025)
+        "energiledd_natt": 0.4550,  # 45,5 øre/kWh inkl. avgifter (2025)
+        "url": "https://www.tendranett.no/",
+        "kapasitetstrinn": [
+            (2, 209),
+            (5, 272),
+            (10, 335),
+            (15, 460),
+            (20, 586),
+            (25, 711),
+            (50, 879),
+            (75, 1046),
+            (100, 1213),
+            (float("inf"), 1255),
+        ],
     },
     "telemark_nett": {
         "name": "Telemark Nett",
         "prisomrade": "NO2",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # Flat sats: 25,0 øre/kWh eks. mva, 31,25 øre/kWh inkl. mva
+        # + forbruksavgift 8,91 + Enova 1,25 = 41,41 øre/kWh inkl. mva
+        "energiledd_dag": 0.4141,  # 41,41 øre/kWh inkl. avgifter og mva (2026)
+        "energiledd_natt": 0.4141,  # Flat sats - ingen dag/natt-differensiering
+        "url": "https://www.telemark-nett.no/prisar/nettleige-1/",
+        "kapasitetstrinn": [
+            (5, 284),
+            (10, 400),
+            (15, 550),
+            (20, 700),
+            (25, 850),
+            (float("inf"), 1200),
+        ],
     },
     "uvdal_kraftforsyning": {
         "name": "Uvdal Kraftforsyning",
         "prisomrade": "NO1",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # Priser inkl. avgifter og mva: dag 39,06, natt 29,06 øre/kWh
+        "energiledd_dag": 0.3906,  # 39,06 øre/kWh inkl. avgifter (2026)
+        "energiledd_natt": 0.2906,  # 29,06 øre/kWh inkl. avgifter (2026)
+        "url": "https://www.uvdalkraft.no/contact/nett/",
+        "kapasitetstrinn": [
+            (5, 278),  # 3331/12
+            (10, 350),
+            (15, 500),
+            (20, 650),
+            (25, 800),
+            (50, 1500),
+            (75, 2500),
+            (100, 3500),
+            (float("inf"), 7833),
+        ],
     },
     "vang_energiverk": {
         "name": "Vang Energiverk",
         "prisomrade": "NO1",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # Flat sats: 21,13 øre/kWh eks. mva, 26,41 øre/kWh inkl. mva
+        # Ingen dag/natt-differensiering
+        "energiledd_dag": 0.2641,  # 26,41 øre/kWh inkl. mva (2026)
+        "energiledd_natt": 0.2641,  # Flat sats - ingen dag/natt-differensiering
+        "url": "https://vangenergi.no/forbrukarkundar",
+        "kapasitetstrinn": [
+            (2, 450),  # Fra nettside - kapasitetsbasert
+            (5, 550),
+            (10, 700),
+            (15, 850),
+            (20, 1000),
+            (25, 1165),
+            (float("inf"), 1165),
+        ],
     },
     "vestall": {
         "name": "Vestall",
         "prisomrade": "NO4",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # NO4 - mva-fritak for husholdninger
+        # Priser eks. avgifter: dag 6,00, natt 3,00 øre/kWh
+        # + forbruksavgift 7,13 + Enova 1,0 = dag 14,13, natt 11,13 øre/kWh
+        "energiledd_dag": 0.1413,  # 14,13 øre/kWh inkl. avgifter (2026, NO4)
+        "energiledd_natt": 0.1113,  # 11,13 øre/kWh inkl. avgifter (2026, NO4)
+        "url": "https://vestall.no/nettleiepriser-fra-01-01-2026/",
+        "kapasitetstrinn": [
+            (2, 150),
+            (5, 250),
+            (10, 400),
+            (15, 550),
+            (20, 700),
+            (25, 850),
+            (float("inf"), 1100),
+        ],
     },
     "vestmar_nett": {
         "name": "Vestmar Nett",
         "prisomrade": "NO2",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # Flat sats: 17,10 øre/kWh eks. avgifter (2026)
+        # + forbruksavgift 7,13 + Enova 1,00 = 25,23 øre/kWh eks. mva
+        # + 25% mva = 31,54 øre/kWh inkl. mva
+        "energiledd_dag": 0.3154,  # 31,54 øre/kWh inkl. avgifter (2026)
+        "energiledd_natt": 0.3154,  # Flat sats - ingen dag/natt-differensiering
+        "url": "https://vestmar-nett.no/wp-content/uploads/2026/01/Tariffer-01.01.2026.pdf",
+        "kapasitetstrinn": [
+            (5, 291),  # 0-5 kW: 290,90 kr/mnd ekskl. mva
+            (10, 515),  # 5-10 kW: 514,60 kr/mnd ekskl. mva
+            (15, 745),  # 10-15 kW: 745,00 kr/mnd ekskl. mva
+            (20, 970),  # 15-20 kW: 970,00 kr/mnd ekskl. mva
+            (25, 1195),  # 20-25 kW: 1195,00 kr/mnd ekskl. mva
+            (50, 1870),  # 25-50 kW: 1870,00 kr/mnd ekskl. mva
+            (75, 3000),  # 50-75 kW: 3000,00 kr/mnd ekskl. mva
+            (100, 4100),  # 75-100 kW: 4100,00 kr/mnd ekskl. mva
+            (150, 5800),  # 100-150 kW: 5800,00 kr/mnd ekskl. mva
+            (200, 8050),  # 150-200 kW: 8050,00 kr/mnd ekskl. mva
+            (float("inf"), 11400),  # 200+ kW: 11400,00 kr/mnd ekskl. mva
+        ],
     },
     "vevig": {
         "name": "Vevig",
@@ -943,19 +1405,39 @@ TSO_LIST: Final[dict[str, TSOEntry]] = {
     "viermie": {
         "name": "Viermie",
         "prisomrade": "NO3",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # Priser inkl. mva: dag 28,5, natt 20,5 øre/kWh
+        # (tidligere Røros E-verk Nett)
+        "energiledd_dag": 0.2850,  # 28,50 øre/kWh inkl. mva (2026)
+        "energiledd_natt": 0.2050,  # 20,50 øre/kWh inkl. mva (2026)
+        "url": "https://viermie.no/nettleiepriser/priser-for-kunder-med-forbruk-under-100-000-kwh-ar/",
+        "kapasitetstrinn": [
+            (2, 200),
+            (5, 300),
+            (10, 450),
+            (15, 600),
+            (20, 750),
+            (25, 900),
+            (float("inf"), 1200),
+        ],
     },
     "vissi": {
         "name": "Vissi",
         "prisomrade": "NO4",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        # NO4 - mva-fritak for husholdninger
+        # Priser: dag 30,00, natt 14,00 øre/kWh (inkl. avgifter)
+        "energiledd_dag": 0.3000,  # 30,00 øre/kWh inkl. avgifter (2026, NO4)
+        "energiledd_natt": 0.1400,  # 14,00 øre/kWh inkl. avgifter (2026, NO4)
+        "url": "https://www.vissi.no/priser-og-vilkar/nettleie-privat/",
+        "kapasitetstrinn": [
+            (2, 200),
+            (5, 300),
+            (10, 450),
+            (15, 600),
+            (20, 750),
+            (25, 900),
+            (float("inf"), 1200),
+        ],
     },
 }

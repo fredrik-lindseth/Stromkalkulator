@@ -48,7 +48,7 @@ class TSOEntry(TypedDict):
 # 4. Sett supported til True
 TSO_LIST: Final[dict[str, TSOEntry]] = {
     "bkk": {
-        "name": "BKK",
+        "name": "BKK Nett",
         "prisomrade": "NO5",
         "supported": True,
         "energiledd_dag": 0.4613,
@@ -108,29 +108,56 @@ TSO_LIST: Final[dict[str, TSOEntry]] = {
             (float("inf"), 6250),
         ],
     },
-    "tensio": {
-        "name": "Tensio",
+    "tensio_tn": {
+        "name": "Tensio TN",
         "prisomrade": "NO3",
         "supported": True,
-        "energiledd_dag": 0.3604,  # 36,04 øre/kWh (2026, Trondheim)
-        "energiledd_natt": 0.2292,  # 22,92 øre/kWh (2026, Trondheim)
+        # Tidligere NTE Nett - Nord-Trøndelag
+        "energiledd_dag": 0.4254,  # 42,54 øre/kWh inkl. avgifter (2026, dag 06-21)
+        "energiledd_natt": 0.2642,  # 26,42 øre/kWh inkl. avgifter (2026, natt 21-06)
         "url": "https://www.tensio.no/no/kunde/nettleie/nettleiepriser-for-privat",
         "kapasitetstrinn": [
-            (2, 122),
-            (5, 218),
-            (10, 371),
-            (15, 547),
-            (20, 724),
-            (25, 901),
-            (50, 1547),
-            (75, 2429),
-            (100, 3312),
-            (150, 4782),
-            (200, 6545),
-            (300, 9483),
-            (400, 13014),
-            (500, 16539),
-            (float("inf"), 20068),
+            (2, 134),  # 1608/12
+            (5, 270),  # 3240/12
+            (10, 488),  # 5856/12
+            (15, 739),  # 8868/12
+            (20, 991),  # 11892/12
+            (25, 1243),  # 14916/12
+            (50, 2166),  # 25992/12
+            (75, 3427),  # 41124/12
+            (100, 4687),  # 56244/12
+            (150, 6784),  # 81408/12
+            (200, 9305),  # 111660/12
+            (300, 13500),  # 162000/12
+            (400, 18540),  # 222480/12
+            (500, 23580),  # 282960/12
+            (float("inf"), 28615),  # 343380/12
+        ],
+    },
+    "tensio_ts": {
+        "name": "Tensio TS",
+        "prisomrade": "NO3",
+        "supported": True,
+        # Tidligere Trønderenergi Nett - Sør-Trøndelag
+        "energiledd_dag": 0.3604,  # 36,04 øre/kWh inkl. avgifter (2026, dag 06-21)
+        "energiledd_natt": 0.2292,  # 22,92 øre/kWh inkl. avgifter (2026, natt 21-06)
+        "url": "https://www.tensio.no/no/kunde/nettleie/nettleiepriser-for-privat",
+        "kapasitetstrinn": [
+            (2, 122),  # 1464/12
+            (5, 218),  # 2616/12
+            (10, 371),  # 4452/12
+            (15, 547),  # 6564/12
+            (20, 724),  # 8688/12
+            (25, 901),  # 10812/12
+            (50, 1547),  # 18564/12
+            (75, 2429),  # 29148/12
+            (100, 3312),  # 39744/12
+            (150, 4782),  # 57384/12
+            (200, 6545),  # 78540/12
+            (300, 9483),  # 113796/12
+            (400, 13014),  # 156168/12
+            (500, 16539),  # 198468/12
+            (float("inf"), 20068),  # 240816/12
         ],
     },
     "lede": {

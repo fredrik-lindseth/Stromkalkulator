@@ -428,11 +428,22 @@ TSO_LIST: Final[dict[str, TSOEntry]] = {
     "asker_nett": {
         "name": "Asker Nett",
         "prisomrade": "NO1",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
+        "supported": True,
+        "energiledd_dag": 0.4000,  # 40 øre/kWh inkl. avgifter (2026, dag 06-22)
+        "energiledd_natt": 0.3000,  # 30 øre/kWh inkl. avgifter (2026, natt 22-06)
+        "url": "https://askernett.no/prisliste-for-privatkunder-i-2026/",
+        "kapasitetstrinn": [
+            (2, 215),  # 0-2 kW: 215 kr/mnd
+            (5, 270),  # 2-5 kW: 270 kr/mnd
+            (10, 395),  # 5-10 kW: 395 kr/mnd
+            (15, 825),  # 10-15 kW: 825 kr/mnd
+            (20, 1030),  # 15-20 kW: 1030 kr/mnd
+            (25, 1300),  # 20-25 kW: 1300 kr/mnd
+            (50, 1840),  # 25-50 kW: 1840 kr/mnd
+            (75, 2900),  # 50-75 kW: 2900 kr/mnd
+            (100, 3890),  # 75-100 kW: 3890 kr/mnd
+            (float("inf"), 6250),  # >100 kW: 6250 kr/mnd
+        ],
     },
     "barents_nett": {
         "name": "Barents Nett",
@@ -851,15 +862,6 @@ TSO_LIST: Final[dict[str, TSOEntry]] = {
     "sygnir": {
         "name": "Sygnir",
         "prisomrade": "NO5",
-        "supported": False,
-        "energiledd_dag": 0,
-        "energiledd_natt": 0,
-        "url": "",
-        "kapasitetstrinn": [],
-    },
-    "sor_aurdal_energi": {
-        "name": "Sør Aurdal Energi",
-        "prisomrade": "NO1",
         "supported": False,
         "energiledd_dag": 0,
         "energiledd_natt": 0,

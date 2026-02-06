@@ -8,7 +8,7 @@ Home Assistant-integrasjon for beregning av nettleie, strømstøtte og Norgespri
 
 **Hovedfiler:**
 - `custom_components/stromkalkulator/` - Integrasjonskode
-- `tso.py` - Nettselskap-data (71 registrert, ~23 med priser)
+- `tso.py` - Nettselskap-data (68 nettselskaper, 100% dekning)
 - `const.py` - Avgifter, satser, helligdager
 - `coordinator.py` - Beregningslogikk
 - `sensor.py` - Sensor-definisjoner
@@ -56,10 +56,9 @@ stromstotte = max(0, (spotpris - 0.9625) * 0.90)  # 90% over 96,25 øre
 - [ ] Oppdater tester
 - [ ] Verifiser mot faktura
 
-### Legge til nettselskap
-- [ ] Finn priser på nettselskapets nettside
-- [ ] Oppdater oppføring i `tso.py` (sett `supported: True`)
-- [ ] Legg til `energiledd_dag`, `energiledd_natt`, `kapasitetstrinn`
+### Oppdatere nettleiepriser
+- [ ] Finn oppdaterte priser på nettselskapets nettside
+- [ ] Oppdater `energiledd_dag`, `energiledd_natt`, `kapasitetstrinn` i `tso.py`
 - [ ] Test at integrasjonen laster
 
 ### Fikse bug
@@ -92,4 +91,4 @@ ruff check custom_components/stromkalkulator/ tests/
 - [docs/beregninger.md](docs/beregninger.md) - Alle formler og sensorer
 - [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) - Utvikling og arkitektur
 - [docs/TESTING.md](docs/TESTING.md) - Test-guide
-- [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) - Legge til nettselskap
+- [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) - Oppdatere priser / rapportere feil

@@ -47,7 +47,7 @@ You need:
 - **Power sensor** - Electricity consumption in Watts (e.g., from Tibber Pulse, P1 Reader, or Elhub)
 - **Spot price sensor** - From the Nord Pool integration
 
-Select your grid company from the list, or use "Custom" if yours isn't supported.
+Select your grid company from the list. All 68 Norwegian grid companies are supported!
 
 ## Devices and Sensors
 
@@ -132,9 +132,9 @@ When your grid tariff invoice arrives, you can easily verify the numbers:
 
 ## Supported Grid Companies
 
-Arva, Barents Nett, BKK, Elinett, Elmea, Elvia, Fagne, Føie, Glitre Nett, Griug, Lede, Linea, Linja, Lnett, Mellom, Midtnett, Nettselskapet, Noranett, Norgesnett, Nordvest Nett, Tensio, Vevig + **Custom**
+**All 68 Norwegian grid companies are supported!** 🎉
 
-Missing your grid company? [Contribute prices](docs/CONTRIBUTING.md) or create an issue!
+Prices are updated annually at the start of each year. Found an error or outdated prices? [Create a PR](docs/CONTRIBUTING.md) or open an issue!
 
 ## Limitations
 
@@ -144,7 +144,7 @@ This integration is designed for **residential homes with individual electricity
 - Electricity subsidy is calculated on all consumption (in reality max 5000 kWh/month)
 - For most households this isn't an issue
 
-**Not supported:**
+**Not supported (yet):**
 - Holiday homes (have 1000 kWh limit)
 - Commercial use (different subsidy rates)
 - Housing cooperatives with shared metering
@@ -160,7 +160,7 @@ This integration is designed for **residential homes with individual electricity
 |-----------------------------------------|----------------------------|
 | [SENSORS.md](docs/SENSORS.md)           | All sensors and attributes |
 | [beregninger.md](docs/beregninger.md)   | Formulas and tax zones     |
-| [CONTRIBUTING.md](docs/CONTRIBUTING.md) | Adding grid companies      |
+| [CONTRIBUTING.md](docs/CONTRIBUTING.md) | Update prices / report errors |
 | [TESTING.md](docs/TESTING.md)           | Validating calculations    |
 
 ## License

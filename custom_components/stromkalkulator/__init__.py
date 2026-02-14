@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 from homeassistant.const import Platform
 
 from .coordinator import NettleieCoordinator
+from .tso import TSO_MIGRATIONS, TSOFusjon
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -18,6 +19,19 @@ _LOGGER: logging.Logger = logging.getLogger(__name__)
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 type StromkalkulatorConfigEntry = ConfigEntry[NettleieCoordinator]
+
+# Build migration lookup once at import time
+_MIGRATION_INDEX: dict[str, TSOFusjon] = {m.gammel: m for m in TSO_MIGRATIONS}
+
+
+def _build_migration_index() -> dict[str, TSOFusjon]:
+    """Return the migration index (for testing)."""
+    return _MIGRATION_INDEX
+
+
+def _check_tso_migration(tso_id: str) -> TSOFusjon | None:
+    """Check if a TSO key needs migration. Returns TSOFusjon or None."""
+    return _MIGRATION_INDEX.get(tso_id)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: StromkalkulatorConfigEntry) -> bool:

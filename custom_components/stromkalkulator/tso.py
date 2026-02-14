@@ -9,6 +9,7 @@ Kilde for kapasitetstrinn-struktur: NVE (https://www.nve.no/reguleringsmyndighet
 Sist oppdatert: Januar 2026 (2026-priser)
 """
 
+from dataclasses import dataclass
 from typing import Final, NotRequired, TypedDict
 
 # Type for kapasitetstrinn: tuple of (kW-grense, kr/mnd)
@@ -35,6 +36,20 @@ class TSOEntry(TypedDict):
     url: str
     kapasitetstrinn: list[KapasitetstrinnTuple | KapasitetstrinnDict]
     tiltakssone: NotRequired[bool]
+
+
+@dataclass(frozen=True)
+class TSOFusjon:
+    """Represents a TSO merger: gammel (old key) -> ny (new key)."""
+
+    gammel: str
+    ny: str
+
+
+TSO_MIGRATIONS: Final[list[TSOFusjon]] = [
+    TSOFusjon(gammel="skiakernett", ny="vevig"),
+    TSOFusjon(gammel="norgesnett", ny="glitre"),
+]
 
 
 # Transmission System Operators (TSO) with default values

@@ -36,7 +36,6 @@ def test_tso_migrations_targets_exist_in_tso_list():
         )
 
 
-@pytest.mark.skip(reason="norgesnett removed in Task 5")
 def test_tso_migrations_sources_not_in_tso_list():
     """Migrated TSO keys should be removed from TSO_LIST."""
     for migration in TSO_MIGRATIONS:

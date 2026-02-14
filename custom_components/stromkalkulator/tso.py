@@ -207,26 +207,6 @@ TSO_LIST: Final[dict[str, TSOEntry]] = {
             (float("inf"), 1150),  # 20-25 kW: 1150 kr/mnd
         ],
     },
-    "norgesnett": {
-        "name": "Norgesnett",
-        "prisomrade": "NO1",
-        "supported": True,
-        "energiledd_dag": 0.3549,  # 35,49 øre/kWh inkl. mva (2026, dag 06-22)
-        "energiledd_natt": 0.2677,  # 26,77 øre/kWh inkl. mva (2026, natt 22-06)
-        "url": "https://norgesnett.no/kunde/nettleie/nettleiepriser/",
-        "kapasitetstrinn": [
-            (2, 118),  # 0-2 kW: 117,89 kr/mnd
-            (5, 196),  # 2-5 kW: 196,49 kr/mnd
-            (10, 323),  # 5-10 kW: 323,12 kr/mnd
-            (15, 575),  # 10-15 kW: 574,63 kr/mnd
-            (20, 763),  # 15-20 kW: 763,25 kr/mnd
-            (25, 947),  # 20-25 kW: 946,65 kr/mnd
-            (50, 1467),  # 25-50 kW: 1467,13 kr/mnd
-            (75, 2297),  # 50-75 kW: 2296,76 kr/mnd
-            (100, 3126),  # 75-100 kW: 3126,38 kr/mnd
-            (float("inf"), 5067),  # >100 kW: 5066,84 kr/mnd
-        ],
-    },
     "arva": {
         "name": "Arva",
         "prisomrade": "NO4",

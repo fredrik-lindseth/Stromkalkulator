@@ -1,1 +1,1 @@
-Se i @Agent.md
+Se i @AGENTS.md

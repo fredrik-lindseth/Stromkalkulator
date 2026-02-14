@@ -164,5 +164,18 @@
         "name": "Forrige måned toppforbruk"
       }
     }
+  },
+  "issues": {
+    "tso_migrated": {
+      "title": "Nettselskapet ditt har fusjonert",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Nettselskapet ditt har fusjonert",
+            "description": "{old_name} er nå en del av {new_name}. Integrasjonen er automatisk oppdatert, og forbruksdata og historikk er bevart."
+          }
+        }
+      }
+    }
   }
 }

@@ -6,11 +6,13 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from homeassistant import data_entry_flow
 from homeassistant.const import Platform
+from homeassistant.helpers import issue_registry as ir
 
-from .const import DOMAIN
+from .const import CONF_TSO, DOMAIN
 from .coordinator import NettleieCoordinator
-from .tso import TSO_MIGRATIONS, TSOFusjon
+from .tso import TSO_LIST, TSO_MIGRATIONS, TSOFusjon
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -59,6 +61,43 @@ async def _migrate_storage_file(storage_dir: str, old_tso: str, new_tso: str) ->
 
 async def async_setup_entry(hass: HomeAssistant, entry: StromkalkulatorConfigEntry) -> bool:
     """Set up Nettleie from a config entry."""
+    # Check for TSO migration (merger)
+    tso_id = entry.data.get(CONF_TSO, "bkk")
+    migration = _check_tso_migration(tso_id)
+
+    if migration is not None:
+        new_tso = TSO_LIST[migration.ny]
+        new_name = new_tso["name"]
+
+        _LOGGER.info(
+            "Migrerer nettselskap: %s → %s (%s)",
+            migration.gammel,
+            migration.ny,
+            new_name,
+        )
+
+        # Update config entry with new TSO key
+        new_data = {**entry.data, CONF_TSO: migration.ny}
+        hass.config_entries.async_update_entry(entry, data=new_data)
+
+        # Migrate storage file
+        storage_dir = hass.config.path(".storage")
+        await _migrate_storage_file(storage_dir, migration.gammel, migration.ny)
+
+        # Create repair issue
+        ir.async_create_issue(
+            hass,
+            DOMAIN,
+            f"tso_migration_{migration.gammel}_{migration.ny}",
+            is_fixable=True,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="tso_migrated",
+            translation_placeholders={
+                "old_name": migration.gammel,
+                "new_name": new_name,
+            },
+        )
+
     coordinator: NettleieCoordinator = NettleieCoordinator(hass, entry)
     await coordinator.async_config_entry_first_refresh()
 
@@ -74,3 +113,24 @@ async def async_unload_entry(hass: HomeAssistant, entry: StromkalkulatorConfigEn
     unload_ok: bool = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
     return unload_ok
+
+
+class TsoMigrationRepairFlow(data_entry_flow.FlowHandler):
+    """Handler for TSO migration repair flow."""
+
+    async def async_step_confirm(
+        self, user_input: dict[str, str] | None = None
+    ) -> data_entry_flow.FlowResult:
+        """Handle the confirm step."""
+        if user_input is not None:
+            return self.async_create_entry(data={})
+        return self.async_show_form(step_id="confirm")
+
+
+async def async_create_fix_flow(
+    hass: HomeAssistant,
+    issue_id: str,
+    data: dict[str, str] | None,
+) -> TsoMigrationRepairFlow:
+    """Create flow to fix a repair issue."""
+    return TsoMigrationRepairFlow()

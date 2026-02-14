@@ -8,7 +8,7 @@ Home Assistant-integrasjon for beregning av nettleie, strømstøtte og Norgespri
 
 **Hovedfiler:**
 - `custom_components/stromkalkulator/` - Integrasjonskode
-- `tso.py` - Nettselskap-data (68 nettselskaper, 100% dekning)
+- `tso.py` - Nettselskap-data (alle nettselskaper + 1 egendefinert)
 - `const.py` - Avgifter, satser, helligdager
 - `coordinator.py` - Beregningslogikk
 - `sensor.py` - Sensor-definisjoner

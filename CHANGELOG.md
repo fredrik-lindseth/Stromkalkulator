@@ -7,6 +7,14 @@ og prosjektet følger [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Lagt til
+- Automatisk migrering ved fusjon av nettselskaper (Skiakernett → Vevig, Norgesnett → Glitre Nett)
+- Repair issue som varsler brukeren etter automatisk migrering
+- Forbruksdata og historikk bevares ved migrering
+
+### Fjernet
+- Norgesnett fjernet fra nettselskap-listen (fusjonert inn i Glitre Nett)
+
 ## [0.31.0] - 2026-01-30
 
 ### Lagt til

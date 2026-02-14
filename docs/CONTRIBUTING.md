@@ -1,6 +1,6 @@
 # Bidra til Strømkalkulator
 
-Alle 68 norske nettselskaper er støttet! Men priser endres årlig, og feil kan forekomme. Hjelp oss holde prisene oppdatert!
+Alle 72 norske nettselskaper er støttet! Men priser endres årlig, og feil kan forekomme. Hjelp oss holde prisene oppdatert!
 
 ## Rapportere feil eller utdaterte priser
 
@@ -96,6 +96,26 @@ Hvis du ikke ønsker eller har mulighet til å forke/lage PR, kan du opprette et
 - Hva som er feil / hva de korrekte prisene er
 
 Så fikser vi det!
+
+## Fusjon av nettselskaper
+
+Når nettselskaper fusjonerer, må vi:
+
+1. Oppdatere prisene for det nye selskapet i `TSO_LIST`
+2. Legge til en migrering i `TSO_MIGRATIONS` (i `tso.py`)
+3. Fjerne det gamle selskapet fra `TSO_LIST`
+
+### Eksempel: Norgesnett fusjonerer inn i Glitre Nett
+
+```python
+# I tso.py, legg til i TSO_MIGRATIONS:
+TSO_MIGRATIONS: Final[list[TSOFusjon]] = [
+    TSOFusjon(gammel="skiakernett", ny="vevig"),
+    TSOFusjon(gammel="norgesnett", ny="glitre"),   # ← ny linje
+]
+```
+
+Deretter fjern `"norgesnett"` fra `TSO_LIST`. Brukere som hadde det gamle selskapet migreres automatisk ved neste oppstart.
 
 ## Årlige oppdateringer
 

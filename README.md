@@ -137,6 +137,10 @@ Når nettleie-fakturaen kommer, kan du enkelt sjekke at tallene stemmer:
 
 Prisene oppdateres årlig ved nyttår. Finner du feil eller utdaterte priser? [Opprett en PR](docs/CONTRIBUTING.md) eller et issue!
 
+## Fusjon av nettselskaper
+
+Nettselskaper i Norge fusjonerer jevnlig. Integrasjonen håndterer dette automatisk — hvis nettselskapet ditt har fusjonert, oppdateres konfigurasjonen ved neste oppstart. Forbruksdata og historikk bevares. Du får en melding under **Settings > Repairs** som bekrefter endringen.
+
 ## Begrensninger
 
 Integrasjonen er laget for **privatboliger med eget strømabonnement**.

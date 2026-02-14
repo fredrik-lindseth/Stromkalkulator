@@ -37,7 +37,7 @@ custom_components/stromkalkulator/
 - Leser fra `coordinator.data["key"]`
 
 **TSO-data** (`tso.py`):
-- Dict med alle 68 nettselskaper og deres priser (100% dekning)
+- Dict med alle 72 nettselskaper og deres priser (100% dekning)
 - Energiledd dag/natt, kapasitetstrinn
 
 ### Beregningsflyt
@@ -109,7 +109,7 @@ ssh ha-local "ha core restart"
 
 ### Oppdatere nettleiepriser (årlig)
 
-Alle 68 nettselskaper er støttet. Priser endres ofte 1. januar:
+Alle 72 nettselskaper er støttet. Priser endres ofte 1. januar:
 
 1. Sjekk nettselskapenes nettsider for nye priser
 2. Oppdater `energiledd_dag`, `energiledd_natt`, `kapasitetstrinn` i `tso.py`

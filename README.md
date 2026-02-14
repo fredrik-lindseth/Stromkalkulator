@@ -6,7 +6,8 @@
   <a href="https://github.com/hacs/integration"><img src="https://img.shields.io/badge/HACS-Custom-41BDF5.svg" alt="HACS"></a>
   <a href="https://github.com/fredrik-lindseth/Stromkalkulator/releases"><img src="https://img.shields.io/github/release/fredrik-lindseth/Stromkalkulator.svg" alt="GitHub release"></a>
   <img src="https://img.shields.io/badge/dynamic/json?color=41BDF5&logo=home-assistant&label=Installs&cacheSeconds=15600&url=https://analytics.home-assistant.io/custom_integrations.json&query=$.stromkalkulator.total" alt="Installs">
-  <a href="https://github.com/fredrik-lindseth/Stromkalkulator/actions/workflows/validate.yml"><img src="https://github.com/fredrik-lindseth/Stromkalkulator/actions/workflows/validate.yml/badge.svg" alt="HACS"></a>
+  <a href="https://github.com/fredrik-lindseth/Stromkalkulator/actions/workflows/ci.yml"><img src="https://github.com/fredrik-lindseth/Stromkalkulator/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/fredrik-lindseth/Stromkalkulator/actions/workflows/validate.yml"><img src="https://github.com/fredrik-lindseth/Stromkalkulator/actions/workflows/validate.yml/badge.svg" alt="HACS Validation"></a>
   <a href="https://github.com/fredrik-lindseth/Stromkalkulator/actions/workflows/hassfest.yml"><img src="https://github.com/fredrik-lindseth/Stromkalkulator/actions/workflows/hassfest.yml/badge.svg" alt="Hassfest"></a>
   <a href="https://codecov.io/gh/fredrik-lindseth/Stromkalkulator"><img src="https://codecov.io/gh/fredrik-lindseth/Stromkalkulator/graph/badge.svg" alt="codecov"></a>
 </p>
@@ -48,7 +49,7 @@ Du trenger:
 - **Effektsensor** - Strømforbruk i Watt (f.eks. fra Tibber Pulse, P1 Reader, eller Elhub)
 - **Spotpris-sensor** - Fra Nord Pool-integrasjonen
 
-Velg ditt nettselskap fra listen. Alle 72 norske nettselskaper er støttet!
+Velg ditt nettselskap fra listen. Alle norske nettselskaper er støttet!
 
 ## Devices og sensorer
 
@@ -133,7 +134,7 @@ Når nettleie-fakturaen kommer, kan du enkelt sjekke at tallene stemmer:
 
 ## Støttede nettselskaper
 
-**Alle 72 norske nettselskaper er støttet!** 🎉
+**Alle norske nettselskaper er støttet!** 🎉
 
 Prisene oppdateres årlig ved nyttår. Finner du feil eller utdaterte priser? [Opprett en PR](docs/CONTRIBUTING.md) eller et issue!
 

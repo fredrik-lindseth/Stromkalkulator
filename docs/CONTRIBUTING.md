@@ -1,6 +1,6 @@
 # Bidra til Strømkalkulator
 
-Alle 72 norske nettselskaper er støttet! Men priser endres årlig, og feil kan forekomme. Hjelp oss holde prisene oppdatert!
+Alle norske nettselskaper er støttet! Men priser endres årlig, og feil kan forekomme. Hjelp oss holde prisene oppdatert!
 
 ## Rapportere feil eller utdaterte priser
 
@@ -64,7 +64,7 @@ Hvis nettselskapet har flat sats (ingen dag/natt-forskjell), bruk samme verdi fo
 "energiledd_natt": 0.2556,  # Flat sats
 ```
 
-#### Nord-Norge (NO4) - MVA-fritak
+#### Nord-Norge (NO3, NO4) - MVA-fritak
 Husholdninger i Nord-Norge har MVA-fritak. Bruk priser **eks mva** fra nettselskapets nettside.
 
 #### Tiltakssonen (Finnmark + Nord-Troms)

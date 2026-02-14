@@ -16,12 +16,17 @@ python -m pytest tests/ -v
 
 ### Hva som testes
 
-| Testfil                   | Beskrivelse                                  |
-|---------------------------|----------------------------------------------|
-| `test_stromstotte.py`     | Strømstøtte-beregning (90% over 96,25 øre)   |
-| `test_avgifter.py`        | Forbruksavgift, Enova-avgift og MVA per sone |
-| `test_energiledd.py`      | Dag/natt-tariff inkl. helligdager            |
-| `test_kapasitetstrinn.py` | Kapasitetstrinn og topp-3-beregning          |
+| Testfil                              | Beskrivelse                                  |
+|--------------------------------------|----------------------------------------------|
+| `test_stromstotte.py`               | Strømstøtte-beregning (90% over 96,25 øre)   |
+| `test_avgifter.py`                  | Forbruksavgift, Enova-avgift og MVA per sone |
+| `test_energiledd.py`                | Dag/natt-tariff inkl. helligdager            |
+| `test_kapasitetstrinn.py`           | Kapasitetstrinn og topp-3-beregning          |
+| `test_norgespris.py`                | Norgespris-beregning og sammenligning        |
+| `test_faktura_validering.py`        | Faktura-verifisering mot beregninger         |
+| `test_forrige_maaned.py`            | Forrige måned sensorer og månedsskifte       |
+| `test_month_transition_integration.py` | Integrasjonstest for månedsskifte         |
+| `test_tso_migration.py`             | TSO-migrering ved nettselskap-fusjoner       |
 
 ## Live-tester i Home Assistant
 
@@ -102,7 +107,7 @@ Ved FEIL, sjekk attributtene på sensoren:
 
 Sjekk at:
 - `sensor.energiledd` = `sensor.energiledd_dag` når tariff er "dag"
-- `sensor.energiledd` = `sensor.energiledd_natt_helg` når tariff er "natt"
+- `sensor.energiledd` = `sensor.energiledd_natt` når tariff er "natt"
 
 ### 4. Kapasitetstrinn (BKK)
 
@@ -151,6 +156,6 @@ prisforskjell = total_pris_etter_stotte - total_pris_norgespris
 
 ### Kapasitetstrinn er feil
 
-- Sjekk `sensor.snitt_toppforbruk` - viser gjennomsnittet av topp 3
+- Sjekk "Snitt toppforbruk"-sensoren - viser gjennomsnittet av topp 3
 - Data lagres per måned og nullstilles ved månedsskift
 - Ved ny installasjon tar det tid å bygge opp data

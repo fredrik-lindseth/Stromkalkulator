@@ -725,7 +725,7 @@ class NorgesprisAktivSensor(NettleieBaseSensor):
     def native_value(self) -> str | None:
         """Return 'Ja' if Norgespris is active, 'Nei' otherwise."""
         if self.coordinator.data:
-            has_norgespris = self.coordinator.data.get("has_norgespris", False)
+            has_norgespris = self.coordinator.data.get("har_norgespris", False)
             return "Ja" if has_norgespris else "Nei"
         return None
 

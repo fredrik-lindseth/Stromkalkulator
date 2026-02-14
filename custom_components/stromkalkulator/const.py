@@ -19,7 +19,7 @@ CONF_AVGIFTSSONE: Final[str] = "avgiftssone"
 
 # Avgiftssoner for forbruksavgift og mva
 # - standard: Full forbruksavgift + mva (Sør-Norge: NO1, NO2, NO5)
-# - nord_norge: Redusert forbruksavgift + mva-fritak (Nordland, Troms utenom tiltakssonen)
+# - nord_norge: Samme forbruksavgift som standard (fra 2026) + mva-fritak (Nordland, Troms utenom tiltakssonen)
 # - tiltakssone: Forbruksavgift-fritak + mva-fritak (Finnmark + 7 kommuner i Nord-Troms)
 AVGIFTSSONE_STANDARD: Final[str] = "standard"
 AVGIFTSSONE_NORD_NORGE: Final[str] = "nord_norge"

@@ -20,6 +20,9 @@ custom_components/stromkalkulator/
 ├── tso.py           # Nettselskap-data (TSO_LIST)
 ├── coordinator.py   # DataUpdateCoordinator, beregningslogikk
 ├── sensor.py        # Alle sensorer
+├── diagnostics.py   # HA diagnostikk-integrasjon
+├── strings.json     # Oversettbare strenger
+├── translations/    # Oversettelser (nb.json, en.json)
 └── manifest.json    # HACS-metadata
 ```
 
@@ -32,12 +35,12 @@ custom_components/stromkalkulator/
 - Lagrer topp-3 effektdager til disk (persistens)
 
 **Sensorer** (`sensor.py`):
-- 24 sensorer gruppert i 5 devices
+- 36 sensorer gruppert i 5 devices
 - Arver fra `CoordinatorEntity` og `SensorEntity`
 - Leser fra `coordinator.data["key"]`
 
 **TSO-data** (`tso.py`):
-- Dict med alle 72 nettselskaper og deres priser (100% dekning)
+- Dict med alle nettselskaper og deres priser + 1 egendefinert
 - Energiledd dag/natt, kapasitetstrinn
 
 ### Beregningsflyt
@@ -109,7 +112,7 @@ ssh ha-local "ha core restart"
 
 ### Oppdatere nettleiepriser (årlig)
 
-Alle 72 nettselskaper er støttet. Priser endres ofte 1. januar:
+Alle nettselskaper er støttet. Priser endres ofte 1. januar:
 
 1. Sjekk nettselskapenes nettsider for nye priser
 2. Oppdater `energiledd_dag`, `energiledd_natt`, `kapasitetstrinn` i `tso.py`

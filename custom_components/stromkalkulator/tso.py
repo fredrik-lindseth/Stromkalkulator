@@ -63,7 +63,7 @@ TSO_MIGRATIONS: Final[list[TSOFusjon]] = [
 # 4. Sett supported til True
 TSO_LIST: Final[dict[str, TSOEntry]] = {
     "bkk": {
-        "name": "BKK Nett",
+        "name": "BKK",
         "prisomrade": "NO5",
         "supported": True,
         "energiledd_dag": 0.4613,

@@ -72,9 +72,10 @@ def test_migrate_tso_returns_none_for_current():
     assert result is None
 
 
-@pytest.mark.asyncio
-async def test_migrate_storage_file_renames(tmp_path):
+def test_migrate_storage_file_renames(tmp_path):
     """Storage file is renamed from old to new TSO key."""
+    import asyncio
+
     from stromkalkulator.__init__ import _migrate_storage_file
 
     # Create a fake old storage file
@@ -83,7 +84,7 @@ async def test_migrate_storage_file_renames(tmp_path):
     old_file = storage_dir / "stromkalkulator_norgesnett"
     old_file.write_text('{"data": "test"}')
 
-    await _migrate_storage_file(str(storage_dir), "norgesnett", "glitre")
+    asyncio.run(_migrate_storage_file(str(storage_dir), "norgesnett", "glitre"))
 
     new_file = storage_dir / "stromkalkulator_glitre"
     assert new_file.exists()
@@ -91,21 +92,23 @@ async def test_migrate_storage_file_renames(tmp_path):
     assert new_file.read_text() == '{"data": "test"}'
 
 
-@pytest.mark.asyncio
-async def test_migrate_storage_file_no_old_file(tmp_path):
+def test_migrate_storage_file_no_old_file(tmp_path):
     """No error when old storage file doesn't exist."""
+    import asyncio
+
     from stromkalkulator.__init__ import _migrate_storage_file
 
     storage_dir = tmp_path / ".storage"
     storage_dir.mkdir()
 
     # Should not raise
-    await _migrate_storage_file(str(storage_dir), "norgesnett", "glitre")
+    asyncio.run(_migrate_storage_file(str(storage_dir), "norgesnett", "glitre"))
 
 
-@pytest.mark.asyncio
-async def test_migrate_storage_file_target_exists(tmp_path):
+def test_migrate_storage_file_target_exists(tmp_path):
     """Don't overwrite if target storage file already exists."""
+    import asyncio
+
     from stromkalkulator.__init__ import _migrate_storage_file
 
     storage_dir = tmp_path / ".storage"
@@ -115,7 +118,7 @@ async def test_migrate_storage_file_target_exists(tmp_path):
     new_file = storage_dir / "stromkalkulator_glitre"
     new_file.write_text('{"data": "existing"}')
 
-    await _migrate_storage_file(str(storage_dir), "norgesnett", "glitre")
+    asyncio.run(_migrate_storage_file(str(storage_dir), "norgesnett", "glitre"))
 
     # Existing file should not be overwritten
     assert new_file.read_text() == '{"data": "existing"}'

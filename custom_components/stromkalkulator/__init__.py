@@ -39,7 +39,13 @@ def _check_tso_migration(tso_id: str) -> TSOFusjon | None:
 
 
 async def _migrate_storage_file(storage_dir: str, old_tso: str, new_tso: str) -> None:
-    """Rename storage file from old TSO key to new TSO key."""
+    """Rename storage file from old TSO key to new TSO key.
+
+    NOTE: Since v0.55.0, storage files are keyed by entry_id, not TSO.
+    This function only handles transitional migration for users upgrading
+    from <=v0.54 who also have a TSO merger. The coordinator's
+    _load_stored_data handles the TSO→entry_id migration separately.
+    """
     old_path = Path(storage_dir) / f"{DOMAIN}_{old_tso}"
     new_path = Path(storage_dir) / f"{DOMAIN}_{new_tso}"
 

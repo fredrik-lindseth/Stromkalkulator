@@ -111,9 +111,9 @@ def test_two_entries_same_tso_get_different_storage(mock_store, mock_hass):
     assert key1 != key2, f"Two entries got same storage key: {key1}"
 
 
-@pytest.mark.asyncio
-async def test_migration_from_tso_storage(mock_hass):
+def test_migration_from_tso_storage(mock_hass):
     """Loading data falls back to TSO-based storage key for migration."""
+    import asyncio
     import importlib
 
     import stromkalkulator.coordinator as coord
@@ -147,7 +147,7 @@ async def test_migration_from_tso_storage(mock_hass):
 
     entry = _make_entry("entry_new", tso_id="bkk")
     coordinator = coord.NettleieCoordinator(mock_hass, entry)
-    await coordinator._load_stored_data()
+    asyncio.run(coordinator._load_stored_data())
 
     # Should have loaded data from TSO-based fallback
     assert coordinator._daily_max_power == {"2026-03-01": 5.5}

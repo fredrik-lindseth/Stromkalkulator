@@ -5,12 +5,17 @@ Alle viktige endringer i dette prosjektet dokumenteres i denne filen.
 Formatet er basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 og prosjektet følger [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.55.0]
 
 ### Lagt til
+- **Støtte for flere strømmålere** — det er nå mulig å sette opp flere instanser av integrasjonen med samme nettselskap (f.eks. to Tibber-pulser i samme nettområde)
 - Automatisk migrering ved fusjon av nettselskaper (Skiakernett → Vevig, Norgesnett → Glitre Nett)
 - Repair issue som varsler brukeren etter automatisk migrering
 - Forbruksdata og historikk bevares ved migrering
+
+### Fikset
+- Lagring bruker nå unik nøkkel per instans (`entry_id`) i stedet for nettselskap-ID, slik at data ikke deles mellom instanser
+- Eksisterende data migreres automatisk fra gammelt lagringsformat ved oppgradering
 
 ### Fjernet
 - Norgesnett fjernet fra nettselskap-listen (fusjonert inn i Glitre Nett)

@@ -111,8 +111,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         self._previous_month_top_3 = {}
         self._previous_month_name = None  # e.g., "januar 2026"
 
-        # Persistent storage - use TSO id for stable storage across reinstalls
-        self._store = Store(hass, 1, f"{DOMAIN}_{tso_id}")
+        # Persistent storage - keyed by entry_id for multi-instance isolation
+        self._store = Store(hass, 1, f"{DOMAIN}_{entry.entry_id}")
         self._store_loaded = False
 
     async def _async_update_data(self) -> dict[str, Any]:
@@ -376,12 +376,12 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         """Load stored data from disk."""
         data: dict[str, Any] | None = await self._store.async_load()
 
-        # Migration: try to load from old entry_id based storage if new storage is empty
+        # Migration: try to load from old TSO-based storage if new storage is empty
         if not data:
-            old_store: Store[dict[str, Any]] = Store(self.hass, 1, f"{DOMAIN}_{self.entry.entry_id}")
+            old_store: Store[dict[str, Any]] = Store(self.hass, 1, f"{DOMAIN}_{self._tso_id}")
             data = await old_store.async_load()
             if data:
-                _LOGGER.info("Migrated data from old storage format")
+                _LOGGER.info("Migrated data from TSO-based storage to entry-based storage")
                 # Save to new location immediately
                 await self._store.async_save(data)
 

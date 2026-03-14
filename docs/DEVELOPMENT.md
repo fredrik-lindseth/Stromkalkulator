@@ -166,8 +166,11 @@ ssh ha-local "ha core logs" | grep -i stromkalkulator
 
 ### Testdata for kapasitetstrinn
 
+Lagringsfiler er nøklet med `entry_id` (ikke nettselskap). Finn din entry_id i HA under Innstillinger → Integrasjoner → Strømkalkulator.
+
 ```bash
-ssh ha-local 'cat > /config/.storage/stromkalkulator_bkk << EOF
+# Erstatt <entry_id> med din faktiske entry_id
+ssh ha-local 'cat > /config/.storage/stromkalkulator_<entry_id> << EOF
 {
   "version": 1,
   "data": {

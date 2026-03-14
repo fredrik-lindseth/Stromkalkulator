@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import pytest
-
 from stromkalkulator.tso import TSO_LIST, TSO_MIGRATIONS, TSOFusjon
 
 

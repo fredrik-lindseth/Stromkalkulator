@@ -213,7 +213,7 @@ Bruk "Forrige måned"-sensorene når fakturaen kommer:
 ### Persistens
 
 - All data lagres til disk og overlever restart
-- Lagringsformat: `/config/.storage/stromkalkulator_<tso_id>`
+- Lagringsformat: `/config/.storage/stromkalkulator_<entry_id>` (unik per instans)
 
 ### Nøyaktighet
 

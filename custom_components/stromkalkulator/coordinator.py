@@ -376,12 +376,12 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         """Load stored data from disk."""
         data: dict[str, Any] | None = await self._store.async_load()
 
-        # Migration: try to load from old entry_id based storage if new storage is empty
+        # Migration: try to load from old TSO-based storage if new storage is empty
         if not data:
-            old_store: Store[dict[str, Any]] = Store(self.hass, 1, f"{DOMAIN}_{self.entry.entry_id}")
+            old_store: Store[dict[str, Any]] = Store(self.hass, 1, f"{DOMAIN}_{self._tso_id}")
             data = await old_store.async_load()
             if data:
-                _LOGGER.info("Migrated data from old storage format")
+                _LOGGER.info("Migrated data from TSO-based storage to entry-based storage")
                 # Save to new location immediately
                 await self._store.async_save(data)
 

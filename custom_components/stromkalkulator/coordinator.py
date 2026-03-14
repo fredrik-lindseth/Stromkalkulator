@@ -111,8 +111,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         self._previous_month_top_3 = {}
         self._previous_month_name = None  # e.g., "januar 2026"
 
-        # Persistent storage - use TSO id for stable storage across reinstalls
-        self._store = Store(hass, 1, f"{DOMAIN}_{tso_id}")
+        # Persistent storage - use entry_id for unique storage per config entry
+        self._store = Store(hass, 1, f"{DOMAIN}_{entry.entry_id}")
         self._store_loaded = False
 
     async def _async_update_data(self) -> dict[str, Any]:

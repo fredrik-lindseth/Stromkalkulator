@@ -117,8 +117,9 @@ Alle nettselskaper er støttet. Priser endres ofte 1. januar:
 1. Sjekk nettselskapenes nettsider for nye priser
 2. Oppdater `energiledd_dag`, `energiledd_natt`, `kapasitetstrinn` i `tso.py`
 3. Oppdater avgiftssatser i `const.py` hvis endret (sjekk Skatteetaten)
-4. Oppdater helligdager for nytt år i `const.py`
-5. Test at integrasjonen laster
+4. Test at integrasjonen laster
+
+Helligdager beregnes automatisk fra påskeformelen — ingen manuell oppdatering nødvendig.
 
 ### Legge til sensor
 
@@ -162,7 +163,7 @@ ssh ha-local "ha core logs" | grep -i stromkalkulator
 | `ImportError`        | Fil på HA er utdatert     | Kopier oppdatert fil                  |
 | `Entity unavailable` | Kildesensor mangler       | Sjekk at power/spotpris-sensor finnes |
 | Feil kapasitetstrinn | Data bygges over tid      | Vent eller opprett testdata           |
-| Feil dag/natt        | Helligdag ikke registrert | Oppdater HELLIGDAGER i const.py       |
+| Feil dag/natt        | Helligdag ikke registrert | Beregnes automatisk fra påskeformelen |
 
 ### Testdata for kapasitetstrinn
 

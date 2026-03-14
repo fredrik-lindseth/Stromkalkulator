@@ -1,5 +1,6 @@
 """Constants for Strømkalkulator integration."""
 
+from datetime import date, timedelta
 from typing import Final
 
 from .tso import TSO_LIST
@@ -187,8 +188,8 @@ def get_default_avgiftssone(prisomrade: str) -> str:
     return AVGIFTSSONE_STANDARD
 
 
-# Helligdager (YYYY-MM-DD for bevegelige, MM-DD for faste)
-# Faste helligdager
+# Helligdager
+# Faste helligdager (MM-DD format)
 HELLIGDAGER_FASTE: Final[list[str]] = [
     "01-01",  # Nyttårsdag
     "05-01",  # Arbeidernes dag
@@ -197,25 +198,51 @@ HELLIGDAGER_FASTE: Final[list[str]] = [
     "12-26",  # 2. juledag
 ]
 
-# Bevegelige helligdager (må oppdateres årlig)
-HELLIGDAGER_BEVEGELIGE: Final[list[str]] = [
-    # 2026
-    "2026-04-02",  # Skjærtorsdag
-    "2026-04-03",  # Langfredag
-    "2026-04-05",  # 1. påskedag
-    "2026-04-06",  # 2. påskedag
-    "2026-05-14",  # Kristi himmelfartsdag
-    "2026-05-24",  # 1. pinsedag
-    "2026-05-25",  # 2. pinsedag
-    # 2027
-    "2027-03-25",  # Skjærtorsdag
-    "2027-03-26",  # Langfredag
-    "2027-03-28",  # 1. påskedag
-    "2027-03-29",  # 2. påskedag
-    "2027-05-06",  # Kristi himmelfartsdag
-    "2027-05-16",  # 1. pinsedag
-    "2027-05-17",  # 2. pinsedag (sammenfaller med 17. mai)
-]
+
+def _easter(year: int) -> date:
+    """Beregn påskedag for et gitt år (Anonymous/Meeus-algoritmen).
+
+    Kilde: https://no.wikipedia.org/wiki/P%C3%A5skeformelen
+    """
+    a = year % 19
+    b, c = divmod(year, 100)
+    d, e = divmod(b, 4)
+    f = (b + 8) // 25
+    g = (b - f + 1) // 3
+    h = (19 * a + b - d - g + 15) % 30
+    i, k = divmod(c, 4)
+    l = (32 + 2 * e + 2 * i - h - k) % 7  # noqa: E741
+    m = (a + 11 * h + 22 * l) // 451
+    month, day = divmod(h + l - 7 * m + 114, 31)
+    return date(year, month, day + 1)
+
+
+def _bevegelige_helligdager(year: int) -> list[str]:
+    """Beregn alle bevegelige helligdager for et gitt år.
+
+    Alle er utledet fra påskedato:
+    - Skjærtorsdag: påske - 3
+    - Langfredag: påske - 2
+    - 1. påskedag: påske
+    - 2. påskedag: påske + 1
+    - Kristi himmelfartsdag: påske + 39
+    - 1. pinsedag: påske + 49
+    - 2. pinsedag: påske + 50
+    """
+    easter = _easter(year)
+    offsets = [-3, -2, 0, 1, 39, 49, 50]
+    return [(easter + timedelta(days=d)).isoformat() for d in offsets]
+
+
+# Bevegelige helligdager — beregnes automatisk fra påskeformelen
+HELLIGDAGER_BEVEGELIGE: Final[list[str]] = (
+    _bevegelige_helligdager(2025)
+    + _bevegelige_helligdager(2026)
+    + _bevegelige_helligdager(2027)
+    + _bevegelige_helligdager(2028)
+    + _bevegelige_helligdager(2029)
+    + _bevegelige_helligdager(2030)
+)
 
 # Device groups
 DEVICE_NETTLEIE: Final[str] = "stromkalkulator"

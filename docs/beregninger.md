@@ -217,7 +217,7 @@ Følgende dager regnes som natt/helg-rate (lavere pris):
 - 25. desember (1. juledag)
 - 26. desember (2. juledag)
 
-**Bevegelige helligdager (oppdateres årlig):**
+**Bevegelige helligdager (beregnes automatisk fra påskeformelen):**
 - Skjærtorsdag, Langfredag, 1. og 2. påskedag
 - Kristi himmelfartsdag
 - 1. og 2. pinsedag

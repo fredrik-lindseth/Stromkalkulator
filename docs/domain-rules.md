@@ -39,7 +39,7 @@ stromstotte = max(0, (spotpris - 0.9625) * 0.90)  # 90% over 96,25 øre
 - [ ] Finn offisiell kilde
 - [ ] Oppdater `const.py` (avgifter, terskel)
 - [ ] Oppdater `tso.py` (energiledd, kapasitetstrinn)
-- [ ] Oppdater helligdager i `const.py`
+- Helligdager beregnes automatisk fra påskeformelen (ingen oppdatering nødvendig)
 - [ ] Oppdater tester
 - [ ] Verifiser mot faktura
 

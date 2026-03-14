@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import sys
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -25,7 +25,7 @@ def _patch_update_coordinator():
             return cls
 
         def __init__(self, hass, logger, *, name, update_interval):
-            pass
+            self.hass = hass
 
     mod = sys.modules["homeassistant.helpers.update_coordinator"]
     original = getattr(mod, "DataUpdateCoordinator", None)
@@ -109,3 +109,50 @@ def test_two_entries_same_tso_get_different_storage(mock_store, mock_hass):
     key1 = mock_store.call_args_list[0][0][2]
     key2 = mock_store.call_args_list[1][0][2]
     assert key1 != key2, f"Two entries got same storage key: {key1}"
+
+
+@pytest.mark.asyncio
+async def test_migration_from_tso_storage(mock_hass):
+    """Loading data falls back to TSO-based storage key for migration."""
+    import importlib
+
+    import stromkalkulator.coordinator as coord
+
+    stored_data = {
+        "daily_max_power": {"2026-03-01": 5.5},
+        "monthly_consumption": {"dag": 100.0, "natt": 50.0},
+        "current_month": 3,
+        "previous_month_consumption": {"dag": 0.0, "natt": 0.0},
+        "previous_month_top_3": {},
+        "previous_month_name": None,
+    }
+
+    # Track Store instances by key
+    stores = {}
+
+    def make_store(hass, version, key):
+        store = MagicMock()
+        stores[key] = store
+        if key == "stromkalkulator_bkk":
+            # Old TSO-based store has data
+            store.async_load = AsyncMock(return_value=stored_data)
+        else:
+            # New entry_id-based store is empty
+            store.async_load = AsyncMock(return_value=None)
+        store.async_save = AsyncMock()
+        return store
+
+    importlib.reload(coord)
+    coord.Store = MagicMock(side_effect=make_store)
+
+    entry = _make_entry("entry_new", tso_id="bkk")
+    coordinator = coord.NettleieCoordinator(mock_hass, entry)
+    await coordinator._load_stored_data()
+
+    # Should have loaded data from TSO-based fallback
+    assert coordinator._daily_max_power == {"2026-03-01": 5.5}
+    assert coordinator._monthly_consumption == {"dag": 100.0, "natt": 50.0}
+
+    # Should have saved to new entry_id-based store
+    entry_store = stores["stromkalkulator_entry_new"]
+    entry_store.async_save.assert_called_once()

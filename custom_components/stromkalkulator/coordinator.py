@@ -111,7 +111,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         self._previous_month_top_3 = {}
         self._previous_month_name = None  # e.g., "januar 2026"
 
-        # Persistent storage - use entry_id for unique storage per config entry
+        # Persistent storage - keyed by entry_id for multi-instance isolation
         self._store = Store(hass, 1, f"{DOMAIN}_{entry.entry_id}")
         self._store_loaded = False
 

@@ -13,34 +13,11 @@ from datetime import datetime
 
 import pytest
 
-# Faste helligdager (MM-DD format)
-HELLIGDAGER_FASTE = [
-    "01-01",  # Nyttårsdag
-    "05-01",  # Arbeidernes dag
-    "05-17",  # Grunnlovsdag
-    "12-25",  # 1. juledag
-    "12-26",  # 2. juledag
-]
-
-# Bevegelige helligdager (YYYY-MM-DD format) - 2024-2027
-HELLIGDAGER_BEVEGELIGE = [
-    # 2025
-    "2025-04-17",  # Skjærtorsdag
-    "2025-04-18",  # Langfredag
-    "2025-04-20",  # 1. påskedag
-    "2025-04-21",  # 2. påskedag
-    "2025-05-29",  # Kristi himmelfartsdag
-    "2025-06-08",  # 1. pinsedag
-    "2025-06-09",  # 2. pinsedag
-    # 2026
-    "2026-04-02",  # Skjærtorsdag
-    "2026-04-03",  # Langfredag
-    "2026-04-05",  # 1. påskedag
-    "2026-04-06",  # 2. påskedag
-    "2026-05-14",  # Kristi himmelfartsdag
-    "2026-05-24",  # 1. pinsedag
-    "2026-05-25",  # 2. pinsedag
-]
+# Import holidays from const.py — single source of truth
+from custom_components.stromkalkulator.const import (
+    HELLIGDAGER_BEVEGELIGE,
+    HELLIGDAGER_FASTE,
+)
 
 
 def is_day_rate(dt: datetime) -> bool:

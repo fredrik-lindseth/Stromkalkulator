@@ -384,6 +384,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
                 _LOGGER.info("Migrated data from TSO-based storage to entry-based storage")
                 # Save to new location immediately
                 await self._store.async_save(data)
+                # Remove old TSO-based storage to prevent a second instance
+                # with the same TSO from loading the same data (issue #1)
+                await old_store.async_remove()
 
         if data:
             self._daily_max_power = data.get("daily_max_power", {})

@@ -136,6 +136,7 @@ def test_migration_from_tso_storage(mock_hass):
         if key == "stromkalkulator_bkk":
             # Old TSO-based store has data
             store.async_load = AsyncMock(return_value=stored_data)
+            store.async_remove = AsyncMock()
         else:
             # New entry_id-based store is empty
             store.async_load = AsyncMock(return_value=None)
@@ -156,3 +157,70 @@ def test_migration_from_tso_storage(mock_hass):
     # Should have saved to new entry_id-based store
     entry_store = stores["stromkalkulator_entry_new"]
     entry_store.async_save.assert_called_once()
+
+    # Should have removed old TSO-based store to prevent second instance from loading same data
+    old_store = stores["stromkalkulator_bkk"]
+    old_store.async_remove.assert_called_once()
+
+
+def test_two_instances_same_tso_migration_no_data_sharing(mock_hass):
+    """Second instance must NOT inherit first instance's migrated data.
+
+    Regression test for https://github.com/fredrik-lindseth/Stromkalkulator/issues/1
+    When two config entries share the same TSO, the first to migrate should
+    clean up the old TSO-based storage so the second starts fresh.
+    """
+    import asyncio
+    import importlib
+
+    import stromkalkulator.coordinator as coord
+
+    stored_data = {
+        "daily_max_power": {"2026-03-01": 5.5, "2026-03-02": 7.2, "2026-03-03": 6.1},
+        "monthly_consumption": {"dag": 100.0, "natt": 50.0},
+        "current_month": 3,
+        "previous_month_consumption": {"dag": 0.0, "natt": 0.0},
+        "previous_month_top_3": {},
+        "previous_month_name": None,
+    }
+
+    # Track whether old store was removed
+    old_store_removed = False
+
+    def make_store(hass, version, key):
+        nonlocal old_store_removed
+        store = MagicMock()
+        if key == "stromkalkulator_bkk":
+            # Old TSO-based store: return data only if not yet removed
+            if old_store_removed:
+                store.async_load = AsyncMock(return_value=None)
+            else:
+                store.async_load = AsyncMock(return_value=stored_data)
+
+            async def do_remove():
+                nonlocal old_store_removed
+                old_store_removed = True
+
+            store.async_remove = AsyncMock(side_effect=do_remove)
+        else:
+            # Entry-based stores start empty
+            store.async_load = AsyncMock(return_value=None)
+            store.async_save = AsyncMock()
+        return store
+
+    importlib.reload(coord)
+    coord.Store = MagicMock(side_effect=make_store)
+
+    # First instance migrates and gets the data
+    entry1 = _make_entry("entry_meter1", tso_id="bkk")
+    coord1 = coord.NettleieCoordinator(mock_hass, entry1)
+    asyncio.run(coord1._load_stored_data())
+    assert coord1._daily_max_power == {"2026-03-01": 5.5, "2026-03-02": 7.2, "2026-03-03": 6.1}
+
+    # Second instance must NOT get the same data (old store was cleaned up)
+    entry2 = _make_entry("entry_meter2", tso_id="bkk")
+    coord2 = coord.NettleieCoordinator(mock_hass, entry2)
+    asyncio.run(coord2._load_stored_data())
+    assert coord2._daily_max_power == {}, (
+        "Second instance should start fresh, not inherit first instance's migrated data"
+    )

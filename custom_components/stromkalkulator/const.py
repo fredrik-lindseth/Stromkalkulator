@@ -17,6 +17,7 @@ CONF_TSO: Final[str] = "tso"
 CONF_ENERGILEDD_DAG: Final[str] = "energiledd_dag"
 CONF_ENERGILEDD_NATT: Final[str] = "energiledd_natt"
 CONF_AVGIFTSSONE: Final[str] = "avgiftssone"
+CONF_KAPASITET_VARSEL_TERSKEL: Final[str] = "kapasitet_varsel_terskel"
 
 # Avgiftssoner for forbruksavgift og mva
 # - standard: Full forbruksavgift + mva (Sør-Norge: NO1, NO2, NO5)
@@ -37,6 +38,7 @@ AVGIFTSSONE_OPTIONS: Final[dict[str, str]] = {
 DEFAULT_ENERGILEDD_DAG: Final[float] = 0.4613
 DEFAULT_ENERGILEDD_NATT: Final[float] = 0.2329
 DEFAULT_TSO: Final[str] = "bkk"
+DEFAULT_KAPASITET_VARSEL_TERSKEL: Final[float] = 2.0
 
 # === STRØMSTØTTE ===
 # Primærkilde: Forskrift om strømstønad § 5

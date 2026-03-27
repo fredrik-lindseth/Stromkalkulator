@@ -837,9 +837,7 @@ class EnergileddDagSensor(NettleieBaseSensor):
             energiledd_dag = self.coordinator.data.get("energiledd_dag", 0)
             # Beregn pris eks. avgifter for fakturasammenligning
             forbruksavgift = get_forbruksavgift(avgiftssone, datetime.now().month)
-            energiledd_eks_avgifter = energiledd_dag - forbruksavgift - ENOVA_AVGIFT
-            if mva_sats > 0:
-                energiledd_eks_avgifter = energiledd_eks_avgifter / (1 + mva_sats)
+            energiledd_eks_avgifter = energiledd_dag / (1 + mva_sats) - forbruksavgift - ENOVA_AVGIFT
             return {
                 "inkl_avgifter_mva": energiledd_dag,
                 "eks_avgifter_mva": round(energiledd_eks_avgifter, 4),
@@ -882,9 +880,7 @@ class EnergileddNattSensor(NettleieBaseSensor):
             energiledd_natt = self.coordinator.data.get("energiledd_natt", 0)
             # Beregn pris eks. avgifter for fakturasammenligning
             forbruksavgift = get_forbruksavgift(avgiftssone, datetime.now().month)
-            energiledd_eks_avgifter = energiledd_natt - forbruksavgift - ENOVA_AVGIFT
-            if mva_sats > 0:
-                energiledd_eks_avgifter = energiledd_eks_avgifter / (1 + mva_sats)
+            energiledd_eks_avgifter = energiledd_natt / (1 + mva_sats) - forbruksavgift - ENOVA_AVGIFT
             return {
                 "inkl_avgifter_mva": energiledd_natt,
                 "eks_avgifter_mva": round(energiledd_eks_avgifter, 4),

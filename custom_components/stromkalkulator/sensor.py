@@ -94,6 +94,7 @@ async def async_setup_entry(
         MaanedligAvgifterSensor(coordinator, entry),
         MaanedligStromstotteSensor(coordinator, entry),
         MaanedligTotalSensor(coordinator, entry),
+        MaanedligNorgesprisDifferanseSensor(coordinator, entry),
         # Forrige måned sensors
         ForrigeMaanedForbrukDagSensor(coordinator, entry),
         ForrigeMaanedForbrukNattSensor(coordinator, entry),
@@ -1410,6 +1411,50 @@ class MaanedligTotalSensor(MaanedligBaseSensor):
                 "forbruk_dag_kwh": round(dag_kwh, 1),
                 "forbruk_natt_kwh": round(natt_kwh, 1),
                 "forbruk_total_kwh": round(total_kwh, 1),
+            }
+        return None
+
+
+class MaanedligNorgesprisDifferanseSensor(NettleieBaseSensor):
+    """Sensor for accumulated monthly Norgespris savings/loss."""
+
+    _device_group: str = DEVICE_MAANEDLIG
+    _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
+    _attr_native_unit_of_measurement: str = "kr"
+    _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
+    _attr_icon: str = "mdi:scale-balance"
+    _attr_suggested_display_precision: int = 0
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        super().__init__(coordinator, entry, "maanedlig_norgespris_diff", "maanedlig_norgespris_diff")
+        self._attr_native_unit_of_measurement = "kr"
+        self._attr_state_class = SensorStateClass.TOTAL
+        self._attr_icon = "mdi:scale-balance"
+        self._attr_suggested_display_precision = 0
+
+    @property
+    def device_info(self) -> dict[str, Any]:
+        """Return device info for Månedlig device."""
+        return {
+            "identifiers": {(DOMAIN, f"{self._entry.entry_id}_{self._device_group}")},
+            "name": "Månedlig forbruk",
+            "manufacturer": "Fredrik Lindseth",
+            "model": "Strømkalkulator",
+        }
+
+    @property
+    def native_value(self) -> float | None:
+        if self.coordinator.data:
+            return cast("float | None", self.coordinator.data.get("monthly_norgespris_diff_kr"))
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        if self.coordinator.data:
+            har_norgespris = self.coordinator.data.get("har_norgespris", False)
+            return {
+                "sammenligner_med": "spotpris" if har_norgespris else "Norgespris",
+                "positiv_betyr": "du sparer med nåværende avtale",
             }
         return None
 

@@ -15,6 +15,7 @@ Tre nye features identifisert fra gap-analyse mot [visjonen](../visjon.md):
 ### Nye sensorer
 
 **MarginNesteTrinnSensor** (enhet: kW)
+
 - Viser kW igjen til neste trinngrense
 - Beregning: `neste_trinn_grense - avg_power`
 - Viser 0 hvis brukeren allerede er på høyeste trinn
@@ -23,6 +24,7 @@ Tre nye features identifisert fra gap-analyse mot [visjonen](../visjon.md):
   - `nåværende_trinn_pris` (kr/mnd)
 
 **KapasitetVarselSensor** (binary sensor)
+
 - `on` når margin < konfigurerbar terskel
 - Default terskel: 2.0 kW
 - Brukeren bygger automasjoner på denne (varsling, slå av lading, etc.)
@@ -30,6 +32,7 @@ Tre nye features identifisert fra gap-analyse mot [visjonen](../visjon.md):
 ### Konfigurasjon
 
 Ny parameter i options flow: `kapasitet_varsel_terskel`
+
 - Type: float
 - Default: 2.0 kW
 - Konfigurerbar etter oppsett
@@ -53,6 +56,7 @@ varsel = margin < terskel
 ### Ny sensor
 
 **MaanedligNorgesprisDifferanseSensor** (enhet: kr)
+
 - Akkumulert kr spart/tapt denne måneden vs alternativet
 - Positiv = du sparer med nåværende avtale
 - Negativ = du taper
@@ -60,6 +64,7 @@ varsel = margin < terskel
 ### Beregning
 
 Hver oppdatering (hvert minutt):
+
 ```python
 forbruk_kwh = current_power_kw * elapsed_hours
 
@@ -91,6 +96,7 @@ Både spot- og Norgespris-brukere ser sammenligningen.
 ### Endring i eksisterende beregning
 
 Når `månedlig_total_forbruk >= 5000 kWh`:
+
 - Strømstøtte settes til 0 for resten av måneden
 - Påvirker alle strømstøtte-avhengige sensorer:
   - `StromstotteSensor`
@@ -102,6 +108,7 @@ Når `månedlig_total_forbruk >= 5000 kWh`:
 ### Ny sensor
 
 **StromstotteForbrukGjenstaaendeSensor** (enhet: kWh)
+
 - Viser gjenstående kWh av 5000-taket
 - Beregning: `max(0, 5000 - månedlig_total_forbruk)`
 
@@ -112,6 +119,7 @@ Extra state attribute på strømstøtte-sensoren: `tak_naadd: true/false`
 ### Konstant
 
 Ny i `const.py`:
+
 ```python
 STROMSTOTTE_MONTHLY_CAP_KWH = 5000
 ```
@@ -119,7 +127,7 @@ STROMSTOTTE_MONTHLY_CAP_KWH = 5000
 ## Sensorer — oppsummert
 
 | Sensor | Enhet | Device | Ny/endret |
-|--------|-------|--------|-----------|
+| -------- | ------- | -------- | ----------- |
 | MarginNesteTrinnSensor | kW | Nettleie | Ny |
 | KapasitetVarselSensor | binary | Nettleie | Ny |
 | MaanedligNorgesprisDifferanseSensor | kr | Månedlig | Ny |

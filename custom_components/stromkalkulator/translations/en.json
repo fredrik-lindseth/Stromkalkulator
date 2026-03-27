@@ -51,12 +51,22 @@
           "spot_price_sensor": "Nord Pool 'Current price' sensor (NOK/kWh)",
           "electricity_provider_price_sensor": "Electricity provider sensor (optional)",
           "energiledd_dag": "Energy tariff day (NOK/kWh)",
-          "energiledd_natt": "Energy tariff night/weekend (NOK/kWh)"
+          "energiledd_natt": "Energy tariff night/weekend (NOK/kWh)",
+          "kapasitet_varsel_terskel": "Capacity warning threshold (kW)"
         },
         "data_description": {
-          "har_norgespris": "Enable if you have opted for Norgespris from your grid company. Uses fixed price (40-50 øre/kWh) instead of spot price."
+          "har_norgespris": "Enable if you have opted for Norgespris from your grid company. Uses fixed price (40-50 øre/kWh) instead of spot price.",
+          "kapasitet_varsel_terskel": "Warn when margin to next capacity tier is below this value. Default: 2.0 kW."
         }
       }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "margin_neste_trinn": { "name": "Margin to next tier" },
+      "kapasitet_varsel": { "name": "Capacity warning" },
+      "stromstotte_gjenstaaende": { "name": "Subsidy remaining" },
+      "maanedlig_norgespris_diff": { "name": "Norgespris savings" }
     }
   }
 }

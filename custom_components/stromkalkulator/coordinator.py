@@ -16,9 +16,11 @@ from .const import (
     CONF_ENERGILEDD_DAG,
     CONF_ENERGILEDD_NATT,
     CONF_HAR_NORGESPRIS,
+    CONF_KAPASITET_VARSEL_TERSKEL,
     CONF_POWER_SENSOR,
     CONF_SPOT_PRICE_SENSOR,
     CONF_TSO,
+    DEFAULT_KAPASITET_VARSEL_TERSKEL,
     DOMAIN,
     ENOVA_AVGIFT,
     HELLIGDAGER_BEVEGELIGE,
@@ -55,6 +57,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
     energiledd_dag: float
     energiledd_natt: float
     kapasitetstrinn: list[tuple[float, int]]
+    kapasitet_varsel_terskel: float
     _daily_max_power: dict[str, float]
     _current_month: int
     _monthly_consumption: dict[str, float]
@@ -96,6 +99,10 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         # Get kapasitetstrinn from TSO
         # Type: list of tuples (kW_threshold, NOK_per_month)
         self.kapasitetstrinn = cast("list[tuple[float, int]]", self.tso["kapasitetstrinn"])
+
+        self.kapasitet_varsel_terskel = float(
+            entry.data.get(CONF_KAPASITET_VARSEL_TERSKEL, DEFAULT_KAPASITET_VARSEL_TERSKEL)
+        )
 
         # Track max power for capacity calculation
         # Format: {date_str: max_power_kw}
@@ -175,6 +182,18 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
 
         # Calculate capacity tier
         kapasitetsledd, trinn_nummer, trinn_intervall = self._get_kapasitetsledd(avg_power)
+
+        # Calculate margin to next tier
+        margin_neste_trinn = 0.0
+        neste_trinn_pris = kapasitetsledd
+        for i, (threshold, _price) in enumerate(self.kapasitetstrinn):
+            if avg_power <= threshold:
+                if i + 1 < len(self.kapasitetstrinn):
+                    margin_neste_trinn = round(threshold - avg_power, 2)
+                    neste_trinn_pris = self.kapasitetstrinn[i + 1][1]
+                break
+
+        kapasitet_varsel = margin_neste_trinn < self.kapasitet_varsel_terskel
 
         # Calculate energiledd
         energiledd = self._get_energiledd(now)
@@ -315,6 +334,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             "previous_month_name": self._previous_month_name,
             "stromstotte_tak_naadd": monthly_total_kwh >= STROMSTOTTE_MAX_KWH,
             "stromstotte_gjenstaaende_kwh": round(stromstotte_gjenstaaende, 1),
+            "margin_neste_trinn_kw": margin_neste_trinn,
+            "neste_trinn_pris": neste_trinn_pris,
+            "kapasitet_varsel": kapasitet_varsel,
         }
 
     def _get_top_3_days(self) -> dict[str, float]:

@@ -65,6 +65,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
     _previous_month_consumption: dict[str, float]
     _previous_month_top_3: dict[str, float]
     _previous_month_name: str | None
+    _monthly_norgespris_diff: float
     _store: Store[dict[str, Any]]
     _store_loaded: bool
 
@@ -112,6 +113,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         # Track energy consumption for monthly utility meter
         # Format: {"dag": kwh, "natt": kwh}
         self._monthly_consumption = {"dag": 0.0, "natt": 0.0}
+        self._monthly_norgespris_diff = 0.0
         self._last_update = None
 
         # Track previous month's data for invoice verification
@@ -144,6 +146,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             # Reset current month data
             self._daily_max_power = {}
             self._monthly_consumption = {"dag": 0.0, "natt": 0.0}
+            self._monthly_norgespris_diff = 0.0
             self._current_month = now.month
             await self._save_stored_data()
 
@@ -155,6 +158,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         current_power_kw = current_power_w / 1000
 
         # Calculate energy consumption since last update (riemann sum)
+        energy_kwh = 0.0
         consumption_updated = False
         if self._last_update is not None and current_power_kw > 0:
             elapsed_hours = (now - self._last_update).total_seconds() / 3600
@@ -269,6 +273,14 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         else:
             kroner_spart_per_kwh = total_price - total_pris_norgespris
 
+        # Accumulate monthly Norgespris comparison
+        if energy_kwh > 0:
+            if self.har_norgespris:
+                diff_per_kwh = total_price_uten_stotte - total_pris_norgespris
+            else:
+                diff_per_kwh = total_pris_norgespris - total_price
+            self._monthly_norgespris_diff += diff_per_kwh * energy_kwh
+
         # Get electricity company price if configured
         electricity_company_price = None
         electricity_company_total = None
@@ -337,6 +349,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             "margin_neste_trinn_kw": margin_neste_trinn,
             "neste_trinn_pris": neste_trinn_pris,
             "kapasitet_varsel": kapasitet_varsel,
+            "monthly_norgespris_diff_kr": round(self._monthly_norgespris_diff, 2),
         }
 
     def _get_top_3_days(self) -> dict[str, float]:
@@ -422,6 +435,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         if data:
             self._daily_max_power = data.get("daily_max_power", {})
             self._monthly_consumption = data.get("monthly_consumption", {"dag": 0.0, "natt": 0.0})
+            self._monthly_norgespris_diff = data.get("monthly_norgespris_diff", 0.0)
             self._previous_month_consumption = data.get("previous_month_consumption", {"dag": 0.0, "natt": 0.0})
             self._previous_month_top_3 = data.get("previous_month_top_3", {})
             self._previous_month_name = data.get("previous_month_name")
@@ -430,6 +444,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             if stored_month and stored_month != self._current_month:
                 self._daily_max_power = {}
                 self._monthly_consumption = {"dag": 0.0, "natt": 0.0}
+                self._monthly_norgespris_diff = 0.0
             _LOGGER.debug("Loaded stored data: %s", self._daily_max_power)
 
     async def _save_stored_data(self) -> None:
@@ -441,6 +456,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             "previous_month_consumption": self._previous_month_consumption,
             "previous_month_top_3": self._previous_month_top_3,
             "previous_month_name": self._previous_month_name,
+            "monthly_norgespris_diff": self._monthly_norgespris_diff,
         }
         await self._store.async_save(data)
         _LOGGER.debug("Saved data: %s", data)

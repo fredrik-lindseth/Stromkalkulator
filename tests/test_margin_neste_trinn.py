@@ -92,7 +92,7 @@ def test_calculate_margin(
 
 def test_margin_at_each_boundary() -> None:
     """At exact boundary, margin should be 0 but stay in current tier."""
-    for i, (threshold, _price) in enumerate(BKK_KAPASITETSTRINN):
+    for _i, (threshold, _price) in enumerate(BKK_KAPASITETSTRINN):
         if threshold == float("inf"):
             continue
         margin, _current, _next = calculate_margin(threshold, BKK_KAPASITETSTRINN)

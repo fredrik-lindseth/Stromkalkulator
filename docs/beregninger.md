@@ -254,13 +254,7 @@ totalpris_inkl_avgifter = spotpris - strømstøtte + energiledd + kapasitetsledd
 | Forbruksavgift         | 7,13 øre/kWh + mva (avhenger av avgiftssone) |
 | Enova-avgift           | 1,00 øre/kWh + mva (avhenger av avgiftssone) |
 
-**Energy Dashboard oppsett:**
-1. Gå til **Innstillinger → Dashboards → Energi**
-2. Under **Strømnett**, velg:
-   - **Forbruk**: Din kWh-sensor (f.eks. "Tibber Accumulated consumption")
-   - **Bruk en enhet med nåværende pris**: `sensor.totalpris_inkl_avgifter`
-
-Dette gir korrekt beregning av strømkostnad inkludert alle avgifter.
+**Energy Dashboard oppsett:** Se [SENSORS.md](SENSORS.md#energy-dashboard).
 
 ## Strømselskap-pris
 
@@ -306,14 +300,16 @@ strømstøtte = max(0, (spotpris - 0.9625) * 0.90)
 - **Fjernvarme/nærvarme**: Egen støtteordning
 - **Borettslag med fellesmåling**: Støtte til borettslaget
 
-### Forenkling: 5000 kWh-grense
+### 5000 kWh månedlig tak
 
-Integrasjonen beregner strømstøtte per kWh uten å spore akkumulert månedlig forbruk. I virkeligheten får du kun støtte på de første 5000 kWh/mnd.
+Strømstøtten gjelder kun de første 5000 kWh per måned per målepunkt. Integrasjonen sporer akkumulert månedlig forbruk og setter strømstøtte til 0 kr/kWh når taket er nådd.
+
+Sensoren `stromstotte_gjenstaaende` viser hvor mange kWh som gjenstår av taket. Attributtet `tak_naadd` på strømstøtte-sensoren viser om taket er nådd.
 
 **Praktisk betydning:**
 - De fleste husholdninger bruker under 5000 kWh/mnd (snitt ~1000-1500 kWh)
 - Ved høyt forbruk (f.eks. elbillading, varmepumpe) kan du overskride grensen
-- Integrasjonen vil da *overestimere* strømstøtten du faktisk får
+- Integrasjonen kutter strømstøtte automatisk når taket nås
 
 ### Eksempler (2026-satser)
 
@@ -570,7 +566,7 @@ total = nettleie_total + avgifter - stromstotte
 
 - **Strømstøtte er estimat**: Sensoren bruker gjeldende strømstøtte-sats, ikke historisk akkumulert støtte
 - **Riemann-sum**: Forbruket beregnes fra effekt, ikke fra strømmåler (kan ha små avvik)
-- **Maks 5000 kWh**: Strømstøtte-begrensningen på 5000 kWh/mnd er ikke implementert
+- **Maks 5000 kWh**: Strømstøtte kuttes automatisk når månedlig forbruk overstiger 5000 kWh
 
 ### Alternativ: Utility Meter
 
@@ -648,3 +644,16 @@ nettleie = energiledd_dag + energiledd_natt + kapasitetsledd
 - **Data kun tilgjengelig etter første månedsskifte**: Før første månedsskifte er sensorene tomme (0 eller None)
 - **Kun én måned lagres**: Bare siste fullførte måned er tilgjengelig (ikke historikk)
 - **Priser fra nåværende konfigurasjon**: Nettleie beregnes med gjeldende energiledd-priser, ikke historiske
+
+## Verifisering mot faktiske fakturaer
+
+Alle beregninger er verifisert mot ekte BKK-fakturaer. Verifiseringsrapportene dokumenterer at integrasjonen beregner nettleie korrekt innenfor avrundingsfeil (< 0.01 kr avvik per fakturalinje).
+
+| Periode | Type | Nettleie (faktura) | Avvik | Rapport |
+|---|---|---|---|---|
+| Februar 2026 | Norgespris | 1008.86 kr | 0.01 kr | [Rapport](fakturaer/BKK_Faktura_februar_2026.md) |
+| Desember 2025 | Spot + stromstotte | 1006.20 kr | < 1% | [Data](fakturaer/BKK_Faktura_desember_2025.md) |
+| November 2025 | Spot + stromstotte | 696.28 kr | < 1% | [Data](fakturaer/BKK_Faktura_november_2025.md) |
+| Oktober 2025 | Spot + stromstotte | 999.65 kr | < 1% | [Data](fakturaer/BKK_Faktura_oktober_2025.md) |
+
+Verifiseringen dekker bade spotpris-kunder (med stromstotte) og Norgespris-kunder, og validerer alle komponenter: energiledd dag/natt, kapasitetstrinn, forbruksavgift, Enova-avgift og MVA. Se `tests/test_faktura_validering.py` og `tests/test_faktura_februar_2026.py` for de tilhorende testene.

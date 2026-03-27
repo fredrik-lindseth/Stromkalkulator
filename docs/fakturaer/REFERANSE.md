@@ -4,6 +4,10 @@ Dette er anonymiserte fakturaer fra BKK (Bergen) brukt for å validere integrasj
 
 ## Fakturaer
 
+### 2026 (Norgespris, 2026-satser)
+- [Februar 2026](BKK_Faktura_februar_2026.md) — verifiseringsrapport med full gjennomgang
+
+### 2025 (spotpris + stromstotte, 2025-satser)
 - [Oktober 2025](BKK_Faktura_oktober_2025.md)
 - [November 2025](BKK_Faktura_november_2025.md)
 - [Desember 2025](BKK_Faktura_desember_2025.md)

@@ -79,6 +79,7 @@ async def async_setup_entry(
         TotalPrisEtterStotteSensor(coordinator, entry),
         TotalPrisInklAvgifterSensor(coordinator, entry),
         StromstotteKwhSensor(coordinator, entry),
+        StromstotteGjenstaaendeSensor(coordinator, entry),
         # Norgespris
         TotalPrisNorgesprisSensor(coordinator, entry),
         PrisforskjellNorgesprisSensor(coordinator, entry),
@@ -505,6 +506,7 @@ class StromstotteSensor(NettleieBaseSensor):
                 "spotpris": self.coordinator.data.get("spot_price"),
                 "terskel": STROMSTOTTE_LEVEL,
                 "dekningsgrad": "90%",
+                "tak_naadd": self.coordinator.data.get("stromstotte_tak_naadd", False),
             }
         return None
 
@@ -954,6 +956,29 @@ class StromstotteKwhSensor(NettleieBaseSensor):
                 "stromstotte_per_kwh": stromstotte,
                 "note": f"Timer hvor spotpris > {STROMSTOTTE_LEVEL * 100:.2f} øre/kWh gir strømstøtte på fakturaen",
             }
+        return None
+
+
+class StromstotteGjenstaaendeSensor(NettleieBaseSensor):
+    """Sensor for remaining kWh before strømstøtte cap."""
+
+    _device_group: str = DEVICE_STROMSTOTTE
+    _attr_native_unit_of_measurement: str = "kWh"
+    _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
+    _attr_icon: str = "mdi:gauge"
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "stromstotte_gjenstaaende", "stromstotte_gjenstaaende")
+        self._attr_native_unit_of_measurement = "kWh"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_icon = "mdi:gauge"
+
+    @property
+    def native_value(self) -> float | None:
+        """Return remaining kWh before cap is reached."""
+        if self.coordinator.data:
+            return cast("float | None", self.coordinator.data.get("stromstotte_gjenstaaende_kwh"))
         return None
 
 

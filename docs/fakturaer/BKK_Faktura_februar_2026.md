@@ -9,7 +9,7 @@
 ## Fakturadata
 
 | Priselement | Forbruk | Pris | Faktura (kr) | Vår beregning (kr) | Avvik |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | Energiledd dag | 893.615 kWh | 35.963 øre/kWh | 321.36 | 321.36 | 0.00 |
 | Energiledd natt/helg | 780.171 kWh | 13.125 øre/kWh | 102.40 | 102.40 | 0.00 |
 | Kapasitet 5-10 kW | 28 dager | 415 kr/mnd | 415.00 | 415.00 | 0.00 |
@@ -25,7 +25,7 @@
 ## Kapasitetstrinn-verifisering
 
 | Faktura | Vår beregning | Match? |
-|---|---|---|
+| --- | --- | --- |
 | Maks effekt 1: 5.909 kW (06.02 kl. 08:00) | Spores via `_daily_max_power` | N/A (vi sporer effekt, ikke klokkeslett) |
 | Maks effekt 2: 5.733 kW (10.02 kl. 16:00) | Spores via `_daily_max_power` | N/A |
 | Maks effekt 3: 5.477 kW (03.02 kl. 09:00) | Spores via `_daily_max_power` | N/A |
@@ -38,7 +38,7 @@
 Fakturaen viser individuelle priskomponenter. Vi verifiserer at tso.py inneholder riktig sum:
 
 | Komponent | Faktura (øre inkl. mva) | Vårt tall | Beregning |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Energiledd dag | 35.963 | | |
 | + Forbruksavgift | 8.913 | | 7.13 * 1.25 = 8.9125 |
 | + Enovaavgift | 1.25 | | 1.0 * 1.25 = 1.25 |
@@ -52,7 +52,7 @@ Fakturaen viser individuelle priskomponenter. Vi verifiserer at tso.py inneholde
 ## Norgespris-verifisering
 
 | Parameter | Faktura | Vår kode | Match? |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Norgespris fastpris | (implisitt 50 øre/kWh) | `NORGESPRIS_INKL_MVA_STANDARD = 0.50` | Ja |
 | Strømstøtte | 0 (Norgespris-kunde) | `stromstotte = 0.0` når `har_norgespris` | Ja |
 | Kompensasjon | -1.0883 kr/kWh snitt | Beregnes time-for-time av BKK | N/A |
@@ -66,7 +66,7 @@ Norgespris-kompensasjonslinjen (-1821.64 kr) beregnes av BKK basert på time-for
 ## Avgiftsverifisering
 
 | Avgift | Faktura (øre/kWh) | Vår const (eks. mva) | Vår const * 1.25 | Match? |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | Forbruksavgift | 8.913 | 7.13 | 8.9125 | Ja |
 | Enovaavgift | 1.25 | 1.00 | 1.25 | Ja |
 | MVA-sats | 25% | 0.25 | — | Ja |

@@ -1,7 +1,7 @@
 # Incident 001: Delt data mellom instanser med samme nettselskap
 
 **Dato:** mars 2026
-**Rapportert av:** OleBandole (GitHub issue #1)
+**Rapportert i:** [GitHub issue #1](https://github.com/fredrik-lindseth/Stromkalkulator/issues/1)
 **Status:** Løst
 
 ## Symptomer
@@ -72,4 +72,4 @@ Integrasjoner som støtter flere config entries må ha tester som verifiserer fu
 
 ### 4. Brukere oppdager subtile datafeil
 
-OleBandole fanget at kapasitetstrinn var feil selv etter at den åpenbare feilen (identiske verdier) var fikset. Brukere som sammenligner med eksterne systemer (Elvias egne tall) er verdifulle for å avdekke datakvalitetsproblemer.
+Brukeren i issue #1 fanget at kapasitetstrinn var feil selv etter at den åpenbare feilen (identiske verdier) var fikset. Brukere som sammenligner med eksterne systemer (Elvias egne tall) er verdifulle for å avdekke datakvalitetsproblemer.

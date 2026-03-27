@@ -3,18 +3,18 @@
 **Fakturanr:** 063926706
 **Periode:** 01.02.2026 - 01.03.2026 (28 dager)
 **Nettselskap:** BKK (NO5, standard avgiftssone)
-**Avtale:** Norgespris (fast 50 ore/kWh inkl. mva)
+**Avtale:** Norgespris (fast 50 øre/kWh inkl. mva)
 **Verifisert dato:** 2026-03-27
 
 ## Fakturadata
 
 | Priselement | Forbruk | Pris | Faktura (kr) | Vår beregning (kr) | Avvik |
 |---|---|---|---|---|---|
-| Energiledd dag | 893.615 kWh | 35.963 ore/kWh | 321.36 | 321.36 | 0.00 |
-| Energiledd natt/helg | 780.171 kWh | 13.125 ore/kWh | 102.40 | 102.40 | 0.00 |
+| Energiledd dag | 893.615 kWh | 35.963 øre/kWh | 321.36 | 321.36 | 0.00 |
+| Energiledd natt/helg | 780.171 kWh | 13.125 øre/kWh | 102.40 | 102.40 | 0.00 |
 | Kapasitet 5-10 kW | 28 dager | 415 kr/mnd | 415.00 | 415.00 | 0.00 |
-| Forbruksavgift | 1673.786 kWh | 8.913 ore/kWh | 149.17 | 149.17 | 0.00 |
-| Enovaavgift | 1673.786 kWh | 1.25 ore/kWh | 20.93 | 20.92 | 0.01 |
+| Forbruksavgift | 1673.786 kWh | 8.913 øre/kWh | 149.17 | 149.17 | 0.00 |
+| Enovaavgift | 1673.786 kWh | 1.25 øre/kWh | 20.93 | 20.92 | 0.01 |
 | **Nettleie subtotal** | | | **1008.86** | **1008.85** | **0.01** |
 | Norgespris | 1673.786 kWh | -1.0883 kr/kWh | -1821.64 | -1821.64 | 0.00 |
 | **Total** | | | **-812.78** | **-812.79** | **0.01** |
@@ -37,7 +37,7 @@
 
 Fakturaen viser individuelle priskomponenter. Vi verifiserer at tso.py inneholder riktig sum:
 
-| Komponent | Faktura (ore inkl. mva) | Vart tall | Beregning |
+| Komponent | Faktura (øre inkl. mva) | Vårt tall | Beregning |
 |---|---|---|---|
 | Energiledd dag | 35.963 | | |
 | + Forbruksavgift | 8.913 | | 7.13 * 1.25 = 8.9125 |
@@ -51,24 +51,25 @@ Fakturaen viser individuelle priskomponenter. Vi verifiserer at tso.py inneholde
 
 ## Norgespris-verifisering
 
-| Parameter | Faktura | Var kode | Match? |
+| Parameter | Faktura | Vår kode | Match? |
 |---|---|---|---|
-| Norgespris fastpris | (implisitt 50 ore/kWh) | `NORGESPRIS_INKL_MVA_STANDARD = 0.50` | Ja |
-| Stromstotte | 0 (Norgespris-kunde) | `stromstotte = 0.0` nar `har_norgespris` | Ja |
+| Norgespris fastpris | (implisitt 50 øre/kWh) | `NORGESPRIS_INKL_MVA_STANDARD = 0.50` | Ja |
+| Strømstøtte | 0 (Norgespris-kunde) | `stromstotte = 0.0` når `har_norgespris` | Ja |
 | Kompensasjon | -1.0883 kr/kWh snitt | Beregnes time-for-time av BKK | N/A |
 
-Norgespris-kompensasjonslinjen (-1821.64 kr) beregnes av BKK basert pa time-for-time spotpriser gjennom hele maneden. Vart system kan ikke reprodusere dette eksakte tallet uten historiske spotpriser, men vi verifiserer at:
-- Fastprisen er korrekt (50 ore/kWh)
-- Stromstotte er 0 for Norgespris-kunder
+Norgespris-kompensasjonslinjen (-1821.64 kr) beregnes av BKK basert på time-for-time spotpriser gjennom hele måneden. Vårt system kan ikke reprodusere dette eksakte tallet uten historiske spotpriser, men vi verifiserer at:
+
+- Fastprisen er korrekt (50 øre/kWh)
+- Strømstøtte er 0 for Norgespris-kunder
 - Nettleiedelen (1008.86 kr) beregnes korrekt
 
 ## Avgiftsverifisering
 
-| Avgift | Faktura (ore/kWh) | Var const (eks. mva) | Var const * 1.25 | Match? |
+| Avgift | Faktura (øre/kWh) | Vår const (eks. mva) | Vår const * 1.25 | Match? |
 |---|---|---|---|---|
 | Forbruksavgift | 8.913 | 7.13 | 8.9125 | Ja |
 | Enovaavgift | 1.25 | 1.00 | 1.25 | Ja |
-| MVA-sats | 25% | 0.25 | - | Ja |
+| MVA-sats | 25% | 0.25 | — | Ja |
 
 ## Bugfiks avdekket under verifisering
 
@@ -80,4 +81,4 @@ Under denne verifiseringen ble en feil i reverse-beregningen av `eks_avgifter_mv
 
 ## Konklusjon
 
-Integrasjonen beregner nettleie korrekt for februar 2026. Alle fakturaposter matcher innenfor avrundingsfeil (maks 0.01 kr pa en faktura pa 1008.86 kr nettleie).
+Integrasjonen beregner nettleie korrekt for februar 2026. Alle fakturaposter matcher innenfor avrundingsfeil (maks 0.01 kr på en faktura på 1008.86 kr nettleie).

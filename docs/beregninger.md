@@ -652,8 +652,8 @@ Alle beregninger er verifisert mot ekte BKK-fakturaer. Verifiseringsrapportene d
 | Periode | Type | Nettleie (faktura) | Avvik | Rapport |
 |---|---|---|---|---|
 | Februar 2026 | Norgespris | 1008.86 kr | 0.01 kr | [Rapport](fakturaer/BKK_Faktura_februar_2026.md) |
-| Desember 2025 | Spot + stromstotte | 1006.20 kr | < 1% | [Data](fakturaer/BKK_Faktura_desember_2025.md) |
-| November 2025 | Spot + stromstotte | 696.28 kr | < 1% | [Data](fakturaer/BKK_Faktura_november_2025.md) |
-| Oktober 2025 | Spot + stromstotte | 999.65 kr | < 1% | [Data](fakturaer/BKK_Faktura_oktober_2025.md) |
+| Desember 2025 | Spot + strømstøtte | 1006.20 kr | < 1% | [Data](fakturaer/BKK_Faktura_desember_2025.md) |
+| November 2025 | Spot + strømstøtte | 696.28 kr | < 1% | [Data](fakturaer/BKK_Faktura_november_2025.md) |
+| Oktober 2025 | Spot + strømstøtte | 999.65 kr | < 1% | [Data](fakturaer/BKK_Faktura_oktober_2025.md) |
 
-Verifiseringen dekker bade spotpris-kunder (med stromstotte) og Norgespris-kunder, og validerer alle komponenter: energiledd dag/natt, kapasitetstrinn, forbruksavgift, Enova-avgift og MVA. Se `tests/test_faktura_validering.py` og `tests/test_faktura_februar_2026.py` for de tilhorende testene.
+Verifiseringen dekker både spotpris-kunder (med strømstøtte) og Norgespris-kunder, og validerer alle komponenter: energiledd dag/natt, kapasitetstrinn, forbruksavgift, Enova-avgift og MVA. Se `tests/test_faktura_validering.py` og `tests/test_faktura_februar_2026.py` for de tilhørende testene.

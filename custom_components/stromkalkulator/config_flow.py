@@ -18,11 +18,13 @@ from .const import (
     CONF_ENERGILEDD_DAG,
     CONF_ENERGILEDD_NATT,
     CONF_HAR_NORGESPRIS,
+    CONF_KAPASITET_VARSEL_TERSKEL,
     CONF_POWER_SENSOR,
     CONF_SPOT_PRICE_SENSOR,
     CONF_TSO,
     DEFAULT_ENERGILEDD_DAG,
     DEFAULT_ENERGILEDD_NATT,
+    DEFAULT_KAPASITET_VARSEL_TERSKEL,
     DEFAULT_NAME,
     DEFAULT_TSO,
     DOMAIN,
@@ -278,6 +280,18 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):  # type: ignore[misc]
                     selector.NumberSelectorConfig(
                         min=0,
                         max=2,
+                    ),
+                ),
+                vol.Optional(
+                    CONF_KAPASITET_VARSEL_TERSKEL,
+                    default=current.get(CONF_KAPASITET_VARSEL_TERSKEL, DEFAULT_KAPASITET_VARSEL_TERSKEL),
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=0,
+                        max=20,
+                        step=0.5,
+                        unit_of_measurement="kW",
+                        mode=selector.NumberSelectorMode.BOX,
                     ),
                 ),
             }

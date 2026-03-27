@@ -24,6 +24,7 @@ from .const import (
     HELLIGDAGER_BEVEGELIGE,
     HELLIGDAGER_FASTE,
     STROMSTOTTE_LEVEL,
+    STROMSTOTTE_MAX_KWH,
     STROMSTOTTE_RATE,
     TSO_LIST,
     get_forbruksavgift,
@@ -184,15 +185,21 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
 
         # Calculate strømstøtte
         # Forskrift § 5: 90% av spotpris over 77 øre/kWh eks. mva (96,25 øre inkl. mva) i 2026
+        # Maks 5000 kWh/mnd per målepunkt (Forskrift § 5)
         # Kilde: https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791
+        monthly_total_kwh = self._monthly_consumption["dag"] + self._monthly_consumption["natt"]
         stromstotte: float
         if self.har_norgespris:
             # Norgespris: Ingen strømstøtte (kan ikke kombineres)
+            stromstotte = 0.0
+        elif monthly_total_kwh >= STROMSTOTTE_MAX_KWH:
             stromstotte = 0.0
         elif spot_price > STROMSTOTTE_LEVEL:
             stromstotte = (spot_price - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE
         else:
             stromstotte = 0.0
+
+        stromstotte_gjenstaaende = max(0.0, STROMSTOTTE_MAX_KWH - monthly_total_kwh)
 
         # Spotpris etter strømstøtte
         spotpris_etter_stotte = spot_price - stromstotte
@@ -306,6 +313,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             if self._previous_month_top_3
             else 0.0,
             "previous_month_name": self._previous_month_name,
+            "stromstotte_tak_naadd": monthly_total_kwh >= STROMSTOTTE_MAX_KWH,
+            "stromstotte_gjenstaaende_kwh": round(stromstotte_gjenstaaende, 1),
         }
 
     def _get_top_3_days(self) -> dict[str, float]:

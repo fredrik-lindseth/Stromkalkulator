@@ -61,6 +61,8 @@ async def async_setup_entry(
         TrinnNummerSensor(coordinator, entry),
         TrinnIntervallSensor(coordinator, entry),
         KapasitetstrinnSensor(coordinator, entry),
+        MarginNesteTrinnSensor(coordinator, entry),
+        KapasitetVarselSensor(coordinator, entry),
         # Nettleie - Energiledd
         EnergileddSensor(coordinator, entry),
         EnergileddDagSensor(coordinator, entry),
@@ -222,6 +224,69 @@ class KapasitetstrinnSensor(NettleieBaseSensor):
                 attrs[f"maks_{i}_dato"] = date
                 attrs[f"maks_{i}_kw"] = round(power, 2)
             return attrs
+        return None
+
+
+class MarginNesteTrinnSensor(NettleieBaseSensor):
+    """Sensor for margin to next capacity tier."""
+
+    _attr_device_class: SensorDeviceClass = SensorDeviceClass.POWER
+    _attr_native_unit_of_measurement: str = "kW"
+    _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
+    _attr_icon: str = "mdi:arrow-up-bold"
+    _attr_suggested_display_precision: int = 1
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "margin_neste_trinn", "margin_neste_trinn")
+        self._attr_native_unit_of_measurement = "kW"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_icon = "mdi:arrow-up-bold"
+        self._attr_suggested_display_precision = 1
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the state."""
+        if self.coordinator.data:
+            return cast("float | None", self.coordinator.data.get("margin_neste_trinn_kw"))
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return extra attributes."""
+        if self.coordinator.data:
+            return {
+                "nåværende_trinn_pris": self.coordinator.data.get("kapasitetsledd"),
+                "neste_trinn_pris": self.coordinator.data.get("neste_trinn_pris"),
+            }
+        return None
+
+
+class KapasitetVarselSensor(NettleieBaseSensor):
+    """Binary-like sensor that warns when close to next capacity tier."""
+
+    _attr_icon: str = "mdi:alert"
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "kapasitet_varsel", "kapasitet_varsel")
+        self._attr_icon = "mdi:alert"
+
+    @property
+    def native_value(self) -> str | None:
+        """Return the state."""
+        if self.coordinator.data:
+            varsel = self.coordinator.data.get("kapasitet_varsel", False)
+            return "on" if varsel else "off"
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return extra attributes."""
+        if self.coordinator.data:
+            return {
+                "margin_kw": self.coordinator.data.get("margin_neste_trinn_kw"),
+            }
         return None
 
 

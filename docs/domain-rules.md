@@ -12,19 +12,21 @@ stromstotte = max(0, (spotpris - 0.9625) * 0.90)  # 90% over 96,25 øre
 - **Natt**: 22:00-06:00 + helger + helligdager
 
 ### Avgiftssoner
-| Sone         | Forbruksavgift | MVA |
-|--------------|----------------|-----|
-| Standard     | 7,13 øre       | 25% |
-| Nord-Norge   | 7,13 øre       | 0%  |
-| Tiltakssonen | 0 øre          | 0%  |
+| Sone         | Strømsoner        | Forbruksavgift | MVA |
+|--------------|-------------------|----------------|-----|
+| Sør-Norge    | NO1, NO2, NO5     | 7,13 øre/kWh  | 25% |
+| Nord-Norge   | NO3, NO4          | 7,13 øre/kWh  | 0%  |
+| Tiltakssonen | Finnmark/Nord-Troms | 0 øre/kWh    | 0%  |
+
+Avgiftssone settes automatisk fra nettselskap ved oppsett. Kan overstyres i innstillinger.
 
 ## Fakta-sjekk
 
 **Ved endringer i satser/avgifter:**
 1. Finn offisiell kilde (lovdata.no, regjeringen.no, skatteetaten.no)
-2. Lagre kopi i `docs/fakta/`
-3. Verifiser mot fakturaer i `docs/fakturaer/`
-4. Dokumenter kilden i koden
+2. Lagre kopi i `docs/fakta/` med dato og URL
+3. Verifiser mot fakturaer i `docs/fakturaer/` — beregnet total bør stemme innenfor ±2%
+4. Dokumenter kilden som kommentar i koden: `# Kilde: [URL] YYYY-MM-DD`
 
 ## Sjekklister
 
@@ -46,7 +48,8 @@ stromstotte = max(0, (spotpris - 0.9625) * 0.90)  # 90% over 96,25 øre
 ### Oppdatere nettleiepriser
 - [ ] Finn oppdaterte priser på nettselskapets nettside
 - [ ] Oppdater `energiledd_dag`, `energiledd_natt`, `kapasitetstrinn` i `tso.py`
-- [ ] Test at integrasjonen laster
+- [ ] Oppdater avgiftssatser i `const.py` hvis endret (sjekk skatteetaten.no)
+- [ ] Kjør `pipx run pytest tests/ -v` — alle tester må bestå
 
 ### Fikse bug
 - [ ] Reproduser bug

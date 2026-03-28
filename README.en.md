@@ -45,11 +45,28 @@ Copy `custom_components/stromkalkulator` to `/config/custom_components/`
 
 ![Setup](images/setup.png)
 
-You need:
-- **Power sensor** - Electricity consumption in Watts (e.g., from Tibber Pulse, P1 Reader, or Elhub)
-- **Spot price sensor** - From the Nord Pool integration
+### Step 1: Select grid company
 
-Select your grid company from the list. All Norwegian grid companies are supported!
+Select your grid company from the dropdown. Tax zone (VAT and consumption tax) is set automatically based on your grid company.
+
+### Step 2: Select sensors
+
+You need two sensors:
+- **Power meter (W)** - Sensor showing current power consumption in watts. Typically from HAN port, Tibber Pulse, or P1 meter.
+- **Spot price sensor (NOK/kWh)** - Sensor with current spot price. Usually "Current price" from the [Nord Pool integration](https://www.home-assistant.io/integrations/nordpool/).
+- **Electricity provider sensor** (optional) - Total price from your provider (e.g. Tibber). Used to show what you actually pay.
+
+All Norwegian grid companies are supported!
+
+### Tax zones
+
+The tax zone determines VAT and consumption tax, and is set automatically from your grid company. You can override in settings if needed.
+
+| Tax zone          | Price areas    | Consumption tax | VAT  |
+|-------------------|----------------|-----------------|------|
+| Southern Norway   | NO1, NO2, NO5 | 7.13 øre/kWh   | 25%  |
+| Northern Norway   | NO3, NO4      | 7.13 øre/kWh   | 0%   |
+| Tiltakssonen      | Finnmark/Nord-Troms | 0 øre      | 0%   |
 
 ## Devices and Sensors
 
@@ -87,14 +104,27 @@ Stores previous month's data for easy invoice verification.
 
 ## Using with Energy Dashboard
 
-To see actual electricity cost in Energy Dashboard:
+Energy Dashboard needs two things: a **consumption meter** (kWh) and a **price sensor** (NOK/kWh). Strømkalkulator provides the price sensor — the consumption meter comes from your power meter integration.
 
-1. **Settings > Dashboards > Energy**
-2. Under "Electricity grid" > "Add consumption"
-3. Select your kWh sensor (consumption meter)
-4. **"Use an entity with current price"**: Select **Total price incl. taxes**
+### What comes from where?
 
-The dashboard now shows what your electricity actually costs - including grid tariffs, taxes, and subsidies.
+| What                 | Sensor                         | Source                   |
+|----------------------|--------------------------------|--------------------------|
+| Consumption (kWh)    | Your consumption meter         | Tibber, P1, Elhub, etc.  |
+| Price (NOK/kWh)      | **Total price incl. taxes**    | Strømkalkulator          |
+
+### Step-by-step setup
+
+1. Go to **Settings > Dashboards > Energy**
+2. Under **Electricity grid**, click **Add consumption**
+3. **Consumed energy** — select your kWh consumption sensor (e.g. `sensor.power_consumption` from Tibber/P1/Elhub)
+4. Enable **Use an entity with current price**
+5. Select **Total price incl. taxes** (`sensor.totalpris_inkl_avgifter_*`)
+6. Click **Save**
+
+The dashboard now shows what your electricity actually costs — including grid tariffs, taxes, and subsidies.
+
+> **Don't have a kWh sensor?** You need an integration that reads your power meter. Common choices are [Tibber](https://www.home-assistant.io/integrations/tibber/) (with Pulse), a [P1 meter](https://www.home-assistant.io/integrations/dsmr/) connected to the HAN port, or [Elhub](https://github.com/custom-components/elhub) for hourly data.
 
 **Tip:** Want to see price components (spot price, grid tariff, taxes) separately? Use a custom dashboard card like ApexCharts with the sensors from this integration.
 
@@ -156,11 +186,34 @@ This integration is designed for **residential homes with individual electricity
 - Support for holiday homes and commercial use
 - Invoice import (PDF/CSV)
 
+## Frequently asked questions
+
+**Why does the sensor show "natt" (night) in the middle of the day?**
+
+The "natt" (night) tariff isn't just for nighttime. It's actually "natt/helg" (night/weekend) and applies during:
+- Nights (22:00-06:00) every day
+- All weekends (Saturday and Sunday, all day)
+- Public holidays (all day)
+
+So on a Saturday at 14:00, "natt" tariff is correct — you're paying the lower rate.
+
+**Why is "Totalpris inkl. avgifter" higher than the spot price?**
+
+The spot price is just the electricity. Total price also includes grid tariff (energy + capacity component), consumption tax, Enova levy, and VAT. For most people, grid tariff and taxes make up 30-50% of the total price.
+
+**Electricity subsidy shows 0 — is that wrong?**
+
+No. The subsidy is only paid when the spot price exceeds 96.25 øre/kWh (2026). When the price is lower, the subsidy is 0.
+
+**The numbers don't quite match my invoice?**
+
+1-5% deviation is normal. The integration calculates consumption from the power sensor (Riemann sum), while the invoice uses the electricity meter's kWh counter. See [beregninger.md](docs/beregninger.md#nøyaktighet) for details.
+
 ## Documentation
 
 | Document                                | Content                    |
 |-----------------------------------------|----------------------------|
-| [SENSORS.md](docs/SENSORS.md)           | All sensors and attributes |
+| [SENSORS.en.md](docs/SENSORS.en.md)     | All sensors and attributes |
 | [beregninger.md](docs/beregninger.md)   | Formulas and tax zones     |
 | [CONTRIBUTING.md](docs/CONTRIBUTING.md) | Update prices / report errors |
 | [TESTING.md](docs/TESTING.md)           | Validating calculations    |

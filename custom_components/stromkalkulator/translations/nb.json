@@ -3,10 +3,9 @@
     "step": {
       "user": {
         "title": "Strømkalkulator",
-        "description": "Komplett oversikt over strømkostnader: nettleie, strømstøtte og Norgespris-sammenligning.\n\nVelg ditt nettselskap for å komme i gang.",
+        "description": "Komplett oversikt over strømkostnader: nettleie, strømstøtte og Norgespris-sammenligning.\n\nVelg ditt nettselskap for å komme i gang. Avgiftssone settes automatisk.",
         "data": {
           "tso": "Nettselskap",
-          "avgiftssone": "Avgiftssone",
           "har_norgespris": "Jeg har Norgespris"
         },
         "data_description": {
@@ -15,19 +14,28 @@
       },
       "sensors": {
         "title": "Velg sensorer",
-        "description": "Koble til dine strømsensorer for automatisk beregning.",
+        "description": "Velg sensorene integrasjonen skal bruke for å beregne nettleie og strømstøtte.",
         "data": {
-          "power_sensor": "Strømforbruk-sensor (W)",
-          "spot_price_sensor": "Nord Pool 'Current price' sensor (NOK/kWh)",
-          "electricity_provider_price_sensor": "Strømselskap-sensor (valgfri, f.eks. Tibber)"
+          "power_sensor": "Effektmåler (W)",
+          "spot_price_sensor": "Spotpris-sensor (NOK/kWh)",
+          "electricity_provider_price_sensor": "Strømleverandør-sensor (valgfri)"
+        },
+        "data_description": {
+          "power_sensor": "Sensor som viser nåværende strømforbruk i watt, f.eks. fra HAN-port, Tibber Pulse eller P1-måler.",
+          "spot_price_sensor": "Sensor med gjeldende spotpris i NOK/kWh. Vanligvis «Current price» fra Nord Pool-integrasjonen.",
+          "electricity_provider_price_sensor": "Totalpris fra strømselskapet (f.eks. Tibber-sensor). Brukes til å vise hva du faktisk betaler. Kan legges til senere."
         }
       },
       "pricing": {
         "title": "Egendefinerte priser",
-        "description": "Angi energiledd-priser fra ditt nettselskap i NOK/kWh (inkl. avgifter).",
+        "description": "Velg avgiftssone og angi energiledd-priser i NOK/kWh (inkl. avgifter).",
         "data": {
+          "avgiftssone": "Avgiftssone",
           "energiledd_dag": "Energiledd dag (NOK/kWh)",
           "energiledd_natt": "Energiledd natt/helg (NOK/kWh)"
+        },
+        "data_description": {
+          "avgiftssone": "Bestemmer mva og forbruksavgift. De fleste i Sør-Norge (NO1, NO2, NO5) velger «Sør-Norge». Nord-Norge (NO3, NO4) har mva-fritak."
         }
       }
     },
@@ -47,14 +55,15 @@
           "tso": "Nettselskap",
           "avgiftssone": "Avgiftssone",
           "har_norgespris": "Jeg har Norgespris",
-          "power_sensor": "Strømforbruk-sensor (W)",
-          "spot_price_sensor": "Nord Pool 'Current price' sensor (NOK/kWh)",
-          "electricity_provider_price_sensor": "Strømselskap-sensor (valgfri)",
+          "power_sensor": "Effektmåler (W)",
+          "spot_price_sensor": "Spotpris-sensor (NOK/kWh)",
+          "electricity_provider_price_sensor": "Strømleverandør-sensor (valgfri)",
           "energiledd_dag": "Energiledd dag (NOK/kWh)",
           "energiledd_natt": "Energiledd natt/helg (NOK/kWh)",
           "kapasitet_varsel_terskel": "Kapasitetsvarsel-terskel (kW)"
         },
         "data_description": {
+          "avgiftssone": "Settes automatisk fra nettselskap. Overstyr kun hvis du vet du tilhører en annen sone.",
           "har_norgespris": "Aktiver hvis du har valgt Norgespris hos nettselskapet. Bruker fast pris (40-50 øre/kWh) i stedet for spotpris.",
           "kapasitet_varsel_terskel": "Varsle når margin til neste kapasitetstrinn er under denne verdien. Standard: 2.0 kW."
         }

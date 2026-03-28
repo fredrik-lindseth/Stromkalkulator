@@ -45,11 +45,28 @@ Kopier `custom_components/stromkalkulator` til `/config/custom_components/`
 
 ![Oppsett](images/setup.png)
 
-Du trenger:
-- **Effektsensor** - Strømforbruk i Watt (f.eks. fra Tibber Pulse, P1 Reader, eller Elhub)
-- **Spotpris-sensor** - Fra Nord Pool-integrasjonen
+### Steg 1: Velg nettselskap
 
-Velg ditt nettselskap fra listen. Alle norske nettselskaper er støttet!
+Velg nettselskapet ditt fra nedtrekkslisten. Avgiftssone (mva og forbruksavgift) settes automatisk basert på nettselskapet.
+
+### Steg 2: Velg sensorer
+
+Du trenger to sensorer:
+- **Effektmåler (W)** - Sensor som viser nåværende strømforbruk i watt. Typisk fra HAN-port, Tibber Pulse, eller P1-måler.
+- **Spotpris-sensor (NOK/kWh)** - Sensor med gjeldende spotpris. Vanligvis "Current price" fra [Nord Pool-integrasjonen](https://www.home-assistant.io/integrations/nordpool/).
+- **Strømleverandør-sensor** (valgfri) - Totalpris fra strømselskapet (f.eks. Tibber). Brukes til å vise hva du faktisk betaler.
+
+Alle norske nettselskaper er støttet!
+
+### Avgiftssoner
+
+Avgiftssonen bestemmer mva og forbruksavgift, og settes automatisk fra nettselskapet ditt. Du kan overstyre i innstillingene hvis nødvendig.
+
+| Avgiftssone  | Strømsoner   | Forbruksavgift | MVA  |
+|--------------|--------------|----------------|------|
+| Sør-Norge    | NO1, NO2, NO5 | 7,13 øre/kWh  | 25%  |
+| Nord-Norge   | NO3, NO4     | 7,13 øre/kWh  | 0%   |
+| Tiltakssonen | Finnmark/Nord-Troms | 0 øre   | 0%   |
 
 ## Devices og sensorer
 
@@ -87,14 +104,27 @@ Lagrer forrige måneds data for enkel faktura-verifisering.
 
 ## Bruk med Energy Dashboard
 
-For å se faktisk strømpris i Energy Dashboard:
+Energy Dashboard trenger to ting: en **forbruksmåler** (kWh) og en **prissensor** (kr/kWh). Strømkalkulator gir deg prissensoren — forbruksmåleren kommer fra din strømmåler-integrasjon.
 
-1. **Settings > Dashboards > Energy**
-2. Under "Electricity grid" > "Add consumption"
-3. Velg din kWh-sensor (forbruksmåler)
-4. **"Use an entity with current price"**: Velg **Totalpris inkl. avgifter**
+### Hva kommer fra hvor?
 
-Nå viser dashboardet hva strømmen faktisk koster deg - inkludert nettleie, avgifter og strømstøtte.
+| Hva                  | Sensor                         | Kommer fra               |
+|----------------------|--------------------------------|--------------------------|
+| Forbruk (kWh)        | Din forbruksmåler              | Tibber, P1, Elhub, o.l.  |
+| Pris (kr/kWh)        | **Totalpris inkl. avgifter**   | Strømkalkulator          |
+
+### Oppsett steg for steg
+
+1. Gå til **Settings > Dashboards > Energy**
+2. Under **Electricity grid**, klikk **Add consumption**
+3. **Consumed energy** — velg din kWh-forbrukssensor (f.eks. `sensor.power_consumption` fra Tibber/P1/Elhub)
+4. Slå på **Use an entity with current price**
+5. Velg **Totalpris inkl. avgifter** (`sensor.totalpris_inkl_avgifter_*`)
+6. Klikk **Save**
+
+Nå viser dashboardet hva strømmen faktisk koster deg — inkludert nettleie, avgifter og strømstøtte.
+
+> **Har du ikke en kWh-sensor?** Du trenger en integrasjon som leser av strømmåleren din. Vanlige valg er [Tibber](https://www.home-assistant.io/integrations/tibber/) (med Pulse), en [P1-måler](https://www.home-assistant.io/integrations/dsmr/) koblet til HAN-porten, eller [Elhub](https://github.com/custom-components/elhub) for timebaserte data.
 
 **Tips:** Vil du se priskomponentene (spotpris, nettleie, avgifter) separat? Bruk et custom dashboard-kort som ApexCharts med sensorene fra denne integrasjonen.
 
@@ -159,6 +189,29 @@ Integrasjonen er laget for **privatboliger med eget strømabonnement**.
 - Varsel når kapasitetstrinn øker
 - Støtte for fritidsbolig og næring
 - Faktura-import (PDF/CSV)
+
+## Ofte stilte spørsmål
+
+**Hvorfor viser sensoren "natt" midt på dagen?**
+
+"Natt"-tariffen gjelder ikke bare om natten. Den heter egentlig "natt/helg" og brukes på:
+- Netter (22:00-06:00) alle dager
+- Hele helger (lørdag og søndag, hele døgnet)
+- Helligdager (hele døgnet)
+
+Så på en lørdag kl. 14:00 er "natt"-tariff helt riktig — du betaler den lavere satsen.
+
+**Hvorfor er "Totalpris inkl. avgifter" høyere enn spotprisen?**
+
+Spotprisen er bare strømmen. Totalpris inkluderer også nettleie (energiledd + kapasitetsledd), forbruksavgift, Enova-avgift og mva. For de fleste utgjør nettleie og avgifter 30-50% av totalprisen.
+
+**Strømstøtte viser 0 — er det feil?**
+
+Nei. Strømstøtte utbetales kun når spotprisen er over 96,25 øre/kWh (2026). Når prisen er lavere, er støtten 0.
+
+**Tallene stemmer ikke helt med fakturaen?**
+
+1-5% avvik er normalt. Integrasjonen beregner forbruk fra effektsensoren (Riemann-sum), mens fakturaen bruker strømmålerens kWh-teller. Se [beregninger.md](docs/beregninger.md#nøyaktighet) for detaljer.
 
 ## Dokumentasjon
 

@@ -163,12 +163,21 @@ Alle sensorer har:
 
 ### Energy Dashboard
 
-Bruk **Totalpris inkl. avgifter** for korrekt totalpris:
+Energy Dashboard trenger to ting: en **forbruksmåler** (kWh) og en **prissensor** (kr/kWh).
 
+| Felt i Energy Dashboard       | Hva du velger                    | Kilde              |
+|-------------------------------|----------------------------------|---------------------|
+| **Consumed energy**           | Din kWh-forbrukssensor           | Tibber, P1, Elhub   |
+| **Use an entity with current price** | **Totalpris inkl. avgifter** | Strømkalkulator     |
+
+**Steg for steg:**
 1. **Settings > Dashboards > Energy**
-2. Under "Electricity grid" > "Add consumption"
-3. Velg din kWh-sensor
-4. **"Use an entity with current price"**: Velg "Totalpris inkl. avgifter"
+2. Under **Electricity grid**, klikk **Add consumption**
+3. **Consumed energy** — velg din kWh-sensor (f.eks. fra Tibber Pulse, P1-måler eller Elhub)
+4. Slå på **Use an entity with current price**
+5. Velg **Totalpris inkl. avgifter** (`sensor.totalpris_inkl_avgifter_*`)
+
+> **Merk:** Strømkalkulator gir deg prisen — forbruksmåleren (kWh) kommer fra din strømmåler-integrasjon (Tibber, P1, Elhub, o.l.).
 
 ### Sammenligne Norgespris
 

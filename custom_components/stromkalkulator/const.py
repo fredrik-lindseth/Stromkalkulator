@@ -28,9 +28,9 @@ AVGIFTSSONE_NORD_NORGE: Final[str] = "nord_norge"
 AVGIFTSSONE_TILTAKSSONE: Final[str] = "tiltakssone"
 
 AVGIFTSSONE_OPTIONS: Final[dict[str, str]] = {
-    AVGIFTSSONE_STANDARD: "Sør-Norge (full avgift + mva)",
-    AVGIFTSSONE_NORD_NORGE: "Nord-Norge (redusert avgift, mva-fritak)",
-    AVGIFTSSONE_TILTAKSSONE: "Tiltakssonen (avgiftsfritak, mva-fritak)",
+    AVGIFTSSONE_STANDARD: "Sør-Norge — NO1, NO2, NO5 (full avgift + mva)",
+    AVGIFTSSONE_NORD_NORGE: "Nord-Norge — NO3, NO4 (redusert avgift, mva-fritak)",
+    AVGIFTSSONE_TILTAKSSONE: "Tiltakssonen — Finnmark/Nord-Troms (avgiftsfritak, mva-fritak)",
 }
 
 

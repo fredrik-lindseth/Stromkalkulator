@@ -13,6 +13,7 @@ from homeassistant.helpers import selector
 from .const import (
     AVGIFTSSONE_OPTIONS,
     AVGIFTSSONE_STANDARD,
+    AVGIFTSSONE_TILTAKSSONE,
     CONF_AVGIFTSSONE,
     CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
     CONF_ENERGILEDD_DAG,
@@ -29,6 +30,7 @@ from .const import (
     DEFAULT_TSO,
     DOMAIN,
     TSO_LIST,
+    get_default_avgiftssone,
 )
 
 if TYPE_CHECKING:
@@ -75,15 +77,6 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
                             mode=selector.SelectSelectorMode.DROPDOWN,
                         ),
                     ),
-                    vol.Required(CONF_AVGIFTSSONE, default=AVGIFTSSONE_STANDARD): selector.SelectSelector(
-                        selector.SelectSelectorConfig(
-                            options=[
-                                selector.SelectOptionDict(value=key, label=label)
-                                for key, label in AVGIFTSSONE_OPTIONS.items()
-                            ],
-                            mode=selector.SelectSelectorMode.DROPDOWN,
-                        ),
-                    ),
                     vol.Optional(CONF_HAR_NORGESPRIS, default=False): selector.BooleanSelector(),
                 }
             ),
@@ -110,12 +103,17 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
             if not errors:
                 self._data.update(user_input)
 
-                # If custom TSO, go to pricing step
+                # If custom TSO, go to pricing step (includes avgiftssone)
                 if self._data.get(CONF_TSO) == "custom":
                     return await self.async_step_pricing()
 
-                # Otherwise, use defaults from TSO
+                # Auto-detect avgiftssone from TSO
                 tso: TSOEntry = TSO_LIST[self._data[CONF_TSO]]
+                if tso.get("tiltakssone"):
+                    self._data[CONF_AVGIFTSSONE] = AVGIFTSSONE_TILTAKSSONE
+                else:
+                    self._data[CONF_AVGIFTSSONE] = get_default_avgiftssone(tso["prisomrade"])
+
                 self._data[CONF_ENERGILEDD_DAG] = tso["energiledd_dag"]
                 self._data[CONF_ENERGILEDD_NATT] = tso["energiledd_natt"]
 
@@ -154,6 +152,15 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
             step_id="pricing",
             data_schema=vol.Schema(
                 {
+                    vol.Required(CONF_AVGIFTSSONE, default=AVGIFTSSONE_STANDARD): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=[
+                                selector.SelectOptionDict(value=key, label=label)
+                                for key, label in AVGIFTSSONE_OPTIONS.items()
+                            ],
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                        ),
+                    ),
                     vol.Required(CONF_ENERGILEDD_DAG, default=DEFAULT_ENERGILEDD_DAG): selector.NumberSelector(
                         selector.NumberSelectorConfig(
                             min=0,
@@ -250,7 +257,10 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):  # type: ignore[misc]
                     CONF_POWER_SENSOR,
                     default=current.get(CONF_POWER_SENSOR),
                 ): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="sensor"),
+                    selector.EntitySelectorConfig(
+                        domain="sensor",
+                        device_class="power",
+                    ),
                 ),
                 vol.Required(
                     CONF_SPOT_PRICE_SENSOR,

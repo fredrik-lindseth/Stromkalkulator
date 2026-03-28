@@ -3,10 +3,9 @@
     "step": {
       "user": {
         "title": "Strømkalkulator",
-        "description": "Complete overview of electricity costs: grid tariffs, government subsidies, and Norgespris comparison.\n\nSelect your grid company to get started.",
+        "description": "Complete overview of electricity costs: grid tariffs, government subsidies, and Norgespris comparison.\n\nSelect your grid company to get started. Tax zone is set automatically.",
         "data": {
           "tso": "Grid company",
-          "avgiftssone": "Tax zone",
           "har_norgespris": "I have Norgespris"
         },
         "data_description": {
@@ -15,19 +14,28 @@
       },
       "sensors": {
         "title": "Select sensors",
-        "description": "Connect your power sensors for automatic calculation.",
+        "description": "Select the sensors the integration should use for calculating grid tariffs and subsidies.",
         "data": {
-          "power_sensor": "Power consumption sensor (W)",
-          "spot_price_sensor": "Nord Pool 'Current price' sensor (NOK/kWh)",
-          "electricity_provider_price_sensor": "Electricity provider sensor (optional, e.g. Tibber)"
+          "power_sensor": "Power meter (W)",
+          "spot_price_sensor": "Spot price sensor (NOK/kWh)",
+          "electricity_provider_price_sensor": "Electricity provider sensor (optional)"
+        },
+        "data_description": {
+          "power_sensor": "Sensor showing current power consumption in watts, e.g. from HAN port, Tibber Pulse, or P1 meter.",
+          "spot_price_sensor": "Sensor with current spot price in NOK/kWh. Usually 'Current price' from the Nord Pool integration.",
+          "electricity_provider_price_sensor": "Total price from your electricity provider (e.g. Tibber sensor). Used to show what you actually pay. Can be added later."
         }
       },
       "pricing": {
         "title": "Custom pricing",
-        "description": "Enter energy tariff prices from your grid company in NOK/kWh (incl. taxes).",
+        "description": "Select your tax zone and enter energy tariff prices in NOK/kWh (incl. taxes).",
         "data": {
+          "avgiftssone": "Tax zone",
           "energiledd_dag": "Energy tariff day (NOK/kWh)",
           "energiledd_natt": "Energy tariff night/weekend (NOK/kWh)"
+        },
+        "data_description": {
+          "avgiftssone": "Determines VAT and consumption tax. Most in Southern Norway (NO1, NO2, NO5) select 'Sør-Norge'. Northern Norway (NO3, NO4) has VAT exemption."
         }
       }
     },
@@ -47,14 +55,15 @@
           "tso": "Grid company",
           "avgiftssone": "Tax zone",
           "har_norgespris": "I have Norgespris",
-          "power_sensor": "Power consumption sensor (W)",
-          "spot_price_sensor": "Nord Pool 'Current price' sensor (NOK/kWh)",
+          "power_sensor": "Power meter (W)",
+          "spot_price_sensor": "Spot price sensor (NOK/kWh)",
           "electricity_provider_price_sensor": "Electricity provider sensor (optional)",
           "energiledd_dag": "Energy tariff day (NOK/kWh)",
           "energiledd_natt": "Energy tariff night/weekend (NOK/kWh)",
           "kapasitet_varsel_terskel": "Capacity warning threshold (kW)"
         },
         "data_description": {
+          "avgiftssone": "Set automatically from grid company. Override only if you know you belong to a different zone.",
           "har_norgespris": "Enable if you have opted for Norgespris from your grid company. Uses fixed price (40-50 øre/kWh) instead of spot price.",
           "kapasitet_varsel_terskel": "Warn when margin to next capacity tier is below this value. Default: 2.0 kW."
         }

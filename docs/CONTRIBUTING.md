@@ -42,6 +42,8 @@ Fant du feil i prisene for ditt nettselskap? Du kan enten:
 
 ### Viktige retningslinjer
 
+**Viktig:** Energiledd-priser må alltid være i NOK/kWh (ikke øre) og inkludere alle avgifter (forbruksavgift + MVA). Feil format gir feil beregninger for alle brukere av nettselskapet.
+
 | Felt              | Format     | Beskrivelse                                  |
 |-------------------|------------|----------------------------------------------|
 | `energiledd_dag`  | NOK/kWh    | Dagpris i NOK (ikke øre), inkl. avgifter     |

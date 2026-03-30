@@ -10,6 +10,7 @@
   <a href="https://github.com/fredrik-lindseth/Stromkalkulator/actions/workflows/validate.yml"><img src="https://github.com/fredrik-lindseth/Stromkalkulator/actions/workflows/validate.yml/badge.svg" alt="HACS Validation"></a>
   <a href="https://github.com/fredrik-lindseth/Stromkalkulator/actions/workflows/hassfest.yml"><img src="https://github.com/fredrik-lindseth/Stromkalkulator/actions/workflows/hassfest.yml/badge.svg" alt="Hassfest"></a>
   <a href="https://codecov.io/gh/fredrik-lindseth/Stromkalkulator"><img src="https://codecov.io/gh/fredrik-lindseth/Stromkalkulator/graph/badge.svg" alt="codecov"></a>
+  <a href="SECURITY.md"><img src="https://slsa.dev/images/gh-badge-level1.svg" alt="SLSA 1"></a>
 </p>
 
 Home Assistant-integrasjon som beregner **faktisk strømpris** i Norge - inkludert nettleie, avgifter og strømstøtte.
@@ -221,6 +222,14 @@ Nei. Strømstøtte utbetales kun når spotprisen er over 96,25 øre/kWh (2026). 
 | [beregninger.md](docs/beregninger.md)   | Formler og avgiftssoner      |
 | [CONTRIBUTING.md](docs/CONTRIBUTING.md) | Oppdatere priser / rapportere feil |
 | [TESTING.md](docs/TESTING.md)           | Validere beregninger         |
+
+## Verifisering av releases
+
+Alle releases har en kryptografisk attestasjon som beviser at ZIP-filen ble bygd fra kildekoden i dette repoet. Se [SECURITY.md](SECURITY.md) for detaljer.
+
+```bash
+gh attestation verify stromkalkulator.zip --repo fredrik-lindseth/Stromkalkulator
+```
 
 ## Lisens
 

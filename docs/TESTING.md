@@ -27,6 +27,8 @@ python -m pytest tests/ -v
 | `test_forrige_maaned.py`            | Forrige måned sensorer og månedsskifte       |
 | `test_month_transition_integration.py` | Integrasjonstest for månedsskifte         |
 | `test_tso_migration.py`             | TSO-migrering ved nettselskap-fusjoner       |
+| `test_property.py`                  | Property-baserte tester (Hypothesis)         |
+| `test_storage_key.py`               | Lagringsnøkkel-isolasjon mellom instanser    |
 
 ## Live-tester i Home Assistant
 
@@ -98,8 +100,8 @@ Ved FEIL, sjekk attributtene på sensoren:
 
 | Tidspunkt           | Forventet tariff |
 |---------------------|------------------|
-| Man-Fre 06:00-21:59 | dag              |
-| Man-Fre 22:00-05:59 | natt             |
+| Man-Fre 06:00-22:00 | dag              |
+| Man-Fre 22:00-06:00 | natt             |
 | Lør-Søn hele døgnet | natt             |
 | Helligdager         | natt             |
 

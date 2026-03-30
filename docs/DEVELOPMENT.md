@@ -112,37 +112,16 @@ ssh ha-local "ha core restart"
 
 ### Oppdatere nettleiepriser (årlig)
 
-Alle nettselskaper er støttet. Priser endres ofte 1. januar:
-
-1. Sjekk nettselskapenes nettsider for nye priser
-2. Oppdater `energiledd_dag`, `energiledd_natt`, `kapasitetstrinn` i `tso.py`
-3. Oppdater avgiftssatser i `const.py` hvis endret (sjekk Skatteetaten)
-4. Test at integrasjonen laster
-
+Se sjekklisten i [domain-rules.md](domain-rules.md#oppdatere-nettleiepriser).
 Helligdager beregnes automatisk fra påskeformelen — ingen manuell oppdatering nødvendig.
 
 ### Legge til sensor
 
-1. Definer sensor-klasse i `sensor.py`
-2. Legg til i `async_setup_entry()`
-3. Hent data fra `coordinator.data["key"]`
-4. Sett `device_info` for gruppering
+Se sjekklisten i [domain-rules.md](domain-rules.md#legge-til-ny-sensor).
 
 ## Viktige formler
 
-```python
-# Strømstøtte (90% over 96,25 øre/kWh, 2026-sats)
-stromstotte = max(0, (spotpris - 0.9625) * 0.90)
-
-# Kapasitetsledd per kWh
-kapasitet_per_kwh = (kapasitetsledd_mnd / dager_i_maned) / 24
-
-# Totalpris
-total = (spotpris - stromstotte) + energiledd + kapasitet_per_kwh
-
-# Dag/natt-tariff
-is_day = weekday < 5 and not is_holiday and 6 <= hour < 22
-```
+Se [beregninger.md](beregninger.md) for alle formler og eksempler.
 
 ## Feilsøking
 

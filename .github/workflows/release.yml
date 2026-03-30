@@ -9,6 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
+      attestations: write
     
     steps:
       - name: Checkout
@@ -33,6 +35,20 @@ jobs:
             echo "Creating new release v${{ steps.version.outputs.version }}"
           fi
 
+      - name: Create ZIP for HACS
+        if: steps.check_release.outputs.exists == 'false'
+        run: |
+          mkdir -p dist
+          zip -r dist/stromkalkulator.zip custom_components/stromkalkulator
+          echo "✅ Created ZIP for HACS"
+
+      - name: Generate SHA256 checksum
+        id: checksum
+        if: steps.check_release.outputs.exists == 'false'
+        run: |
+          SHA256=$(sha256sum dist/stromkalkulator.zip | awk '{print $1}')
+          echo "sha256=$SHA256" >> $GITHUB_OUTPUT
+
       - name: Get commit messages since last tag
         id: changelog
         if: steps.check_release.outputs.exists == 'false'
@@ -40,7 +56,7 @@ jobs:
           # Get all tags, find the one before current version
           CURRENT_VERSION="v${{ steps.version.outputs.version }}"
           PREV_TAG=$(git tag --sort=-version:refname | grep -v "$CURRENT_VERSION" | head -n 1)
-          
+
           if [ -z "$PREV_TAG" ]; then
             # First release - get all commits
             COMMITS=$(git log --pretty=format:"- %s" --no-merges)
@@ -50,11 +66,11 @@ jobs:
             COMMITS=$(git log ${PREV_TAG}..HEAD --pretty=format:"- %s" --no-merges)
             echo "📝 Commits since $PREV_TAG"
           fi
-          
+
           if [ -z "$COMMITS" ]; then
             COMMITS="- Initial release"
           fi
-          
+
           echo "commits<<EOF" >> $GITHUB_OUTPUT
           echo "$COMMITS" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
@@ -67,17 +83,19 @@ jobs:
           name: v${{ steps.version.outputs.version }}
           body: |
             ## Endringer
-            
+
             ${{ steps.changelog.outputs.commits }}
+
+            ## Verifisering
+
+            **SHA256:** `${{ steps.checksum.outputs.sha256 }}`
+
+            Verifiser at denne releasen ble bygd fra kildekoden:
+            ```bash
+            gh attestation verify stromkalkulator.zip --repo fredrik-lindseth/Stromkalkulator
+            ```
           draft: false
           prerelease: false
-
-      - name: Create ZIP for HACS
-        if: steps.check_release.outputs.exists == 'false'
-        run: |
-          mkdir -p dist
-          zip -r dist/stromkalkulator.zip custom_components/stromkalkulator
-          echo "✅ Created ZIP for HACS"
 
       - name: Upload ZIP to release
         if: steps.check_release.outputs.exists == 'false'
@@ -85,3 +103,9 @@ jobs:
         with:
           tag_name: v${{ steps.version.outputs.version }}
           files: dist/stromkalkulator.zip
+
+      - name: Attest build provenance
+        if: steps.check_release.outputs.exists == 'false'
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: dist/stromkalkulator.zip

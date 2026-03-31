@@ -82,7 +82,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         self.spot_price_sensor = entry.data.get(CONF_SPOT_PRICE_SENSOR)
         self.electricity_company_price_sensor = entry.data.get(CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR)
 
-        # Get TSO config
+        # Get DSO config
         tso_id = entry.data.get(CONF_TSO, "bkk")
         self.tso = TSO_LIST.get(tso_id, TSO_LIST["bkk"])
         self._tso_id = tso_id
@@ -97,7 +97,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         self.energiledd_dag = float(entry.data.get(CONF_ENERGILEDD_DAG, self.tso["energiledd_dag"]))
         self.energiledd_natt = float(entry.data.get(CONF_ENERGILEDD_NATT, self.tso["energiledd_natt"]))
 
-        # Get kapasitetstrinn from TSO
+        # Get kapasitetstrinn from DSO
         # Type: list of tuples (kW_threshold, NOK_per_month)
         self.kapasitetstrinn = cast("list[tuple[float, int]]", self.tso["kapasitetstrinn"])
 
@@ -204,7 +204,10 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
 
         # Get spot price
         spot_state = self.hass.states.get(self.spot_price_sensor)
-        spot_price = float(spot_state.state) if spot_state and spot_state.state not in ("unknown", "unavailable") else 0
+        try:
+            spot_price = float(spot_state.state) if spot_state and spot_state.state not in ("unknown", "unavailable") else 0
+        except (ValueError, TypeError):
+            spot_price = 0
 
         # Calculate strømstøtte
         # Forskrift § 5: 90% av spotpris over 77 øre/kWh eks. mva (96,25 øre inkl. mva) i 2026
@@ -420,16 +423,16 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         """Load stored data from disk."""
         data: dict[str, Any] | None = await self._store.async_load()
 
-        # Migration: try to load from old TSO-based storage if new storage is empty
+        # Migration: try to load from old DSO-based storage if new storage is empty
         if not data:
             old_store: Store[dict[str, Any]] = Store(self.hass, 1, f"{DOMAIN}_{self._tso_id}")
             data = await old_store.async_load()
             if data:
-                _LOGGER.info("Migrated data from TSO-based storage to entry-based storage")
+                _LOGGER.info("Migrated data from DSO-based storage to entry-based storage")
                 # Save to new location immediately
                 await self._store.async_save(data)
-                # Remove old TSO-based storage to prevent a second instance
-                # with the same TSO from loading the same data (issue #1)
+                # Remove old DSO-based storage to prevent a second instance
+                # with the same DSO from loading the same data (issue #1)
                 await old_store.async_remove()
 
         if data:

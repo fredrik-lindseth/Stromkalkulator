@@ -26,7 +26,7 @@ python -m pytest tests/ -v
 | `test_faktura_validering.py`        | Faktura-verifisering mot beregninger         |
 | `test_forrige_maaned.py`            | Forrige måned sensorer og månedsskifte       |
 | `test_month_transition_integration.py` | Integrasjonstest for månedsskifte         |
-| `test_tso_migration.py`             | TSO-migrering ved nettselskap-fusjoner       |
+| `test_tso_migration.py`             | DSO-migrering ved nettselskap-fusjoner       |
 | `test_property.py`                  | Property-baserte tester (Hypothesis)         |
 | `test_storage_key.py`               | Lagringsnøkkel-isolasjon mellom instanser    |
 

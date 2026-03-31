@@ -69,11 +69,14 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
                 {
                     vol.Required(CONF_TSO, default=DEFAULT_TSO): selector.SelectSelector(
                         selector.SelectSelectorConfig(
-                            options=[
-                                selector.SelectOptionDict(value=key, label=value["name"])
-                                for key, value in TSO_LIST.items()
-                                if value.get("supported", False)
-                            ],
+                            options=sorted(
+                                [
+                                    selector.SelectOptionDict(value=key, label=value["name"])
+                                    for key, value in TSO_LIST.items()
+                                    if value.get("supported", False)
+                                ],
+                                key=lambda x: x["label"],
+                            ),
                             mode=selector.SelectSelectorMode.DROPDOWN,
                         ),
                     ),
@@ -219,11 +222,14 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):  # type: ignore[misc]
 
         # Get current values from config entry
         current: dict[str, Any] = self.config_entry.data
-        tso_options: list[selector.SelectOptionDict] = [
-            selector.SelectOptionDict(value=key, label=value["name"])
-            for key, value in TSO_LIST.items()
-            if value.get("supported", False)
-        ]
+        tso_options: list[selector.SelectOptionDict] = sorted(
+            [
+                selector.SelectOptionDict(value=key, label=value["name"])
+                for key, value in TSO_LIST.items()
+                if value.get("supported", False)
+            ],
+            key=lambda x: x["label"],
+        )
         avgiftssone_options: list[selector.SelectOptionDict] = [
             selector.SelectOptionDict(value=key, label=label) for key, label in AVGIFTSSONE_OPTIONS.items()
         ]

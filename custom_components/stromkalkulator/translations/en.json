@@ -40,7 +40,8 @@
       }
     },
     "error": {
-      "sensor_not_found": "Sensor not found"
+      "sensor_not_found": "Sensor not found",
+      "already_configured": "This power sensor is already used by another Strømkalkulator instance"
     },
     "abort": {
       "already_configured": "Already configured"

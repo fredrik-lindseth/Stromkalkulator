@@ -30,7 +30,7 @@ Effekttoppene fra begge målerne ble blandet i én `_daily_max_power`-dict, og b
 
 ### Bug 2: Kontaminert data etter migrering
 
-Migreringskoden flyttet data fra gammel TSO-basert fil til ny entry-basert fil. Men:
+Migreringskoden flyttet data fra gammel DSO-basert fil til ny entry-basert fil. Men:
 
 - **Instans 1** fikk all den gamle (blandede) dataen — toppverdiene tilhørte kanskje ikke denne måleren
 - **Instans 2** startet med tom data — hadde bare noen få dager, ikke et komplett bilde

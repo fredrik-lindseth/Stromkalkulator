@@ -26,7 +26,7 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
     """Return diagnostics for a config entry.
 
     This includes integration version, configuration, sensor entity IDs,
-    TSO data, and coordinator data (sanitized).
+    DSO data, and coordinator data (sanitized).
     """
     coordinator: NettleieCoordinator = entry.runtime_data
 

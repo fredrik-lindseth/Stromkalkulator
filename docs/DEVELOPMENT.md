@@ -17,7 +17,7 @@ custom_components/stromkalkulator/
 ├── __init__.py      # Oppsett, registrer platforms
 ├── config_flow.py   # UI-konfigurasjon
 ├── const.py         # Konstanter, avgifter, helligdager
-├── tso.py           # Nettselskap-data (TSO_LIST)
+├── tso.py           # Nettselskap-data (DSO_LIST)
 ├── coordinator.py   # DataUpdateCoordinator, beregningslogikk
 ├── sensor.py        # Alle sensorer
 ├── diagnostics.py   # HA diagnostikk-integrasjon
@@ -39,7 +39,7 @@ custom_components/stromkalkulator/
 - Arver fra `CoordinatorEntity` og `SensorEntity`
 - Leser fra `coordinator.data["key"]`
 
-**TSO-data** (`tso.py`):
+**DSO-data** (`tso.py`):
 - Dict med alle nettselskaper og deres priser + 1 egendefinert
 - Energiledd dag/natt, kapasitetstrinn
 

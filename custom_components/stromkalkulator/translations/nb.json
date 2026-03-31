@@ -40,7 +40,8 @@
       }
     },
     "error": {
-      "sensor_not_found": "Sensor ikke funnet"
+      "sensor_not_found": "Sensor ikke funnet",
+      "already_configured": "Denne effektmåleren er allerede i bruk av en annen Strømkalkulator-instans"
     },
     "abort": {
       "already_configured": "Allerede konfigurert"

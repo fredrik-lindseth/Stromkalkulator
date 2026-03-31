@@ -34,17 +34,17 @@ def _build_migration_index() -> dict[str, TSOFusjon]:
 
 
 def _check_tso_migration(tso_id: str) -> TSOFusjon | None:
-    """Check if a TSO key needs migration. Returns TSOFusjon or None."""
+    """Check if a DSO key needs migration. Returns TSOFusjon or None."""
     return _MIGRATION_INDEX.get(tso_id)
 
 
 async def _migrate_storage_file(storage_dir: str, old_tso: str, new_tso: str) -> None:
-    """Rename storage file from old TSO key to new TSO key.
+    """Rename storage file from old DSO key to new DSO key.
 
-    NOTE: Since v0.55.0, storage files are keyed by entry_id, not TSO.
+    NOTE: Since v0.55.0, storage files are keyed by entry_id, not DSO.
     This function only handles transitional migration for users upgrading
-    from <=v0.54 who also have a TSO merger. The coordinator's
-    _load_stored_data handles the TSO→entry_id migration separately.
+    from <=v0.54 who also have a DSO merger. The coordinator's
+    _load_stored_data handles the DSO→entry_id migration separately.
     """
     old_path = Path(storage_dir) / f"{DOMAIN}_{old_tso}"
     new_path = Path(storage_dir) / f"{DOMAIN}_{new_tso}"
@@ -67,7 +67,7 @@ async def _migrate_storage_file(storage_dir: str, old_tso: str, new_tso: str) ->
 
 async def async_setup_entry(hass: HomeAssistant, entry: StromkalkulatorConfigEntry) -> bool:
     """Set up Nettleie from a config entry."""
-    # Check for TSO migration (merger)
+    # Check for DSO migration (merger)
     tso_id = entry.data.get(CONF_TSO, "bkk")
     migration = _check_tso_migration(tso_id)
 
@@ -82,7 +82,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: StromkalkulatorConfigEnt
             new_name,
         )
 
-        # Update config entry with new TSO key
+        # Update config entry with new DSO key
         new_data = {**entry.data, CONF_TSO: migration.ny}
         hass.config_entries.async_update_entry(entry, data=new_data)
 
@@ -122,7 +122,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: StromkalkulatorConfigEn
 
 
 class TsoMigrationRepairFlow(data_entry_flow.FlowHandler):
-    """Handler for TSO migration repair flow."""
+    """Handler for DSO migration repair flow."""
 
     async def async_step_confirm(
         self, user_input: dict[str, str] | None = None

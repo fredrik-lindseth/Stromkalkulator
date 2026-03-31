@@ -2,9 +2,9 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Fix bug where two config entries with the same TSO share storage, causing data to bleed between instances.
+**Goal:** Fix bug where two config entries with the same DSO share storage, causing data to bleed between instances.
 
-**Architecture:** Change storage key from `stromkalkulator_{tso_id}` to `stromkalkulator_{entry_id}` so each config entry has isolated persistent storage. Add migration fallback from TSO-based key for existing users.
+**Architecture:** Change storage key from `stromkalkulator_{tso_id}` to `stromkalkulator_{entry_id}` so each config entry has isolated persistent storage. Add migration fallback from DSO-based key for existing users.
 
 **Tech Stack:** Python, Home Assistant helpers.storage.Store
 
@@ -141,7 +141,7 @@ now get separate storage files instead of sharing one."
 
 ---
 
-### Task 3: Update migration to fall back from TSO-based storage
+### Task 3: Update migration to fall back from DSO-based storage
 
 **Files:**
 
@@ -297,6 +297,6 @@ git commit -m "chore: update storage comment, bump version for multi-instance fi
 | User scenario                   | What happens                                                                                          |
 | ------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | Fresh install                   | Storage key is `stromkalkulator_{entry_id}` — just works                                              |
-| Single entry, upgrading         | Loads empty from entry_id key → falls back to TSO key → migrates                                      |
-| Two entries same TSO, upgrading | First to load gets the shared data, second starts fresh (best possible outcome for corrupted state)   |
-| TSO merger + upgrade            | `__init__.py` renames old TSO file → coordinator falls back to new TSO key → migrates to entry_id key |
+| Single entry, upgrading         | Loads empty from entry_id key → falls back to DSO key → migrates                                      |
+| Two entries same DSO, upgrading | First to load gets the shared data, second starts fresh (best possible outcome for corrupted state)   |
+| DSO merger + upgrade            | `__init__.py` renames old DSO file → coordinator falls back to new DSO key → migrates to entry_id key |

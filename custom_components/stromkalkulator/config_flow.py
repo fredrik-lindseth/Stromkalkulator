@@ -41,9 +41,19 @@ if TYPE_CHECKING:
 _LOGGER: logging.Logger = logging.getLogger(__name__)
 
 
-def _get_tso_options() -> dict[str, str]:
-    """Get TSO options for selector (only supported ones)."""
-    return {key: str(value["name"]) for key, value in TSO_LIST.items() if value.get("supported", False)}
+def _tso_options() -> list[selector.SelectOptionDict]:
+    """Get sorted DSO options with Egendefinert last."""
+    return [
+        *sorted(
+            [
+                selector.SelectOptionDict(value=key, label=value["name"])
+                for key, value in TSO_LIST.items()
+                if value.get("supported", False) and key != "custom"
+            ],
+            key=lambda x: x["label"],
+        ),
+        selector.SelectOptionDict(value="custom", label="Egendefinert"),
+    ]
 
 
 class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,misc]
@@ -56,7 +66,7 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
         self._data: dict[str, Any] = {}
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Handle the initial step - select TSO and avgiftssone."""
+        """Handle the initial step - select DSO and avgiftssone."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
@@ -69,14 +79,7 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
                 {
                     vol.Required(CONF_TSO, default=DEFAULT_TSO): selector.SelectSelector(
                         selector.SelectSelectorConfig(
-                            options=sorted(
-                                [
-                                    selector.SelectOptionDict(value=key, label=value["name"])
-                                    for key, value in TSO_LIST.items()
-                                    if value.get("supported", False)
-                                ],
-                                key=lambda x: x["label"],
-                            ),
+                            options=_tso_options(),
                             mode=selector.SelectSelectorMode.DROPDOWN,
                         ),
                     ),
@@ -103,14 +106,22 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
             if spot_state is None:
                 errors[CONF_SPOT_PRICE_SENSOR] = "sensor_not_found"
 
+            # Check if this power sensor is already used by another instance
+            if not errors:
+                unique_id = f"{DOMAIN}_{power_sensor}"
+                for entry in self._async_current_entries():
+                    if entry.unique_id == unique_id:
+                        errors[CONF_POWER_SENSOR] = "already_configured"
+                        break
+
             if not errors:
                 self._data.update(user_input)
 
-                # If custom TSO, go to pricing step (includes avgiftssone)
+                # If custom DSO, go to pricing step (includes avgiftssone)
                 if self._data.get(CONF_TSO) == "custom":
                     return await self.async_step_pricing()
 
-                # Auto-detect avgiftssone from TSO
+                # Auto-detect avgiftssone from DSO
                 tso: TSOEntry = TSO_LIST[self._data[CONF_TSO]]
                 if tso.get("tiltakssone"):
                     self._data[CONF_AVGIFTSSONE] = AVGIFTSSONE_TILTAKSSONE
@@ -133,10 +144,16 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
                         ),
                     ),
                     vol.Required(CONF_SPOT_PRICE_SENSOR): selector.EntitySelector(
-                        selector.EntitySelectorConfig(domain="sensor"),
+                        selector.EntitySelectorConfig(
+                            domain="sensor",
+                            device_class="monetary",
+                        ),
                     ),
                     vol.Optional(CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR): selector.EntitySelector(
-                        selector.EntitySelectorConfig(domain="sensor"),
+                        selector.EntitySelectorConfig(
+                            domain="sensor",
+                            device_class="monetary",
+                        ),
                     ),
                 }
             ),
@@ -168,7 +185,7 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
                         selector.NumberSelectorConfig(
                             min=0,
                             max=2,
-                            step=0.0001,
+                            step="any",
                             unit_of_measurement="NOK/kWh",
                             mode=selector.NumberSelectorMode.BOX,
                         ),
@@ -177,7 +194,7 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
                         selector.NumberSelectorConfig(
                             min=0,
                             max=2,
-                            step=0.0001,
+                            step="any",
                             unit_of_measurement="NOK/kWh",
                             mode=selector.NumberSelectorMode.BOX,
                         ),
@@ -222,14 +239,6 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):  # type: ignore[misc]
 
         # Get current values from config entry
         current: dict[str, Any] = self.config_entry.data
-        tso_options: list[selector.SelectOptionDict] = sorted(
-            [
-                selector.SelectOptionDict(value=key, label=value["name"])
-                for key, value in TSO_LIST.items()
-                if value.get("supported", False)
-            ],
-            key=lambda x: x["label"],
-        )
         avgiftssone_options: list[selector.SelectOptionDict] = [
             selector.SelectOptionDict(value=key, label=label) for key, label in AVGIFTSSONE_OPTIONS.items()
         ]
@@ -242,7 +251,7 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):  # type: ignore[misc]
                     default=current.get(CONF_TSO, DEFAULT_TSO),
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=tso_options,
+                        options=_tso_options(),
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     ),
                 ),
@@ -272,13 +281,19 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):  # type: ignore[misc]
                     CONF_SPOT_PRICE_SENSOR,
                     default=current.get(CONF_SPOT_PRICE_SENSOR),
                 ): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="sensor"),
+                    selector.EntitySelectorConfig(
+                        domain="sensor",
+                        device_class="monetary",
+                    ),
                 ),
                 vol.Optional(
                     CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
                     description={"suggested_value": current.get(CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR)},
                 ): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="sensor"),
+                    selector.EntitySelectorConfig(
+                        domain="sensor",
+                        device_class="monetary",
+                    ),
                 ),
                 vol.Required(
                     CONF_ENERGILEDD_DAG,

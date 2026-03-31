@@ -1,4 +1,4 @@
-"""Transmission System Operators (nettselskap) data for Strømkalkulator.
+"""Distribution System Operators (nettselskap) data for Strømkalkulator.
 
 Alle priser er hentet fra nettselskapenes offisielle nettsider (se url-felt).
 Prisene er oppgitt i NOK/kWh inkl. mva (Sør-Norge) eller eks. mva (Nord-Norge).
@@ -16,7 +16,7 @@ from typing import Final, NotRequired, TypedDict
 type KapasitetstrinnTuple = tuple[float, int]
 
 
-# Type for kapasitetstrinn dict format (used by some TSOs like Barents Nett)
+# Type for kapasitetstrinn dict format (used by some DSOs like Barents Nett)
 class KapasitetstrinnDict(TypedDict):
     """Kapasitetstrinn entry in dict format."""
 
@@ -26,7 +26,7 @@ class KapasitetstrinnDict(TypedDict):
 
 
 class TSOEntry(TypedDict):
-    """Type definition for a TSO (Transmission System Operator) entry."""
+    """Type definition for a DSO (Distribution System Operator) entry."""
 
     name: str
     prisomrade: str
@@ -40,7 +40,7 @@ class TSOEntry(TypedDict):
 
 @dataclass(frozen=True)
 class TSOFusjon:
-    """Represents a TSO merger: gammel (old key) -> ny (new key)."""
+    """Represents a DSO merger: gammel (old key) -> ny (new key)."""
 
     gammel: str
     ny: str
@@ -52,7 +52,7 @@ TSO_MIGRATIONS: Final[list[TSOFusjon]] = [
 ]
 
 
-# Transmission System Operators (TSO) with default values
+# Distribution System Operators (DSO) with default values
 # Format: {tso_id: {name, prisomrade, supported, energiledd_dag, energiledd_natt, url, kapasitetstrinn}}
 #
 # supported: True = har priser, False = mangler priser (trenger bidrag)

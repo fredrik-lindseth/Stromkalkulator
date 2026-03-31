@@ -129,7 +129,7 @@ class NettleieBaseSensor(CoordinatorEntity, SensorEntity):  # type: ignore[misc]
         self._attr_translation_key = translation_key
         self._entry = entry
 
-        # Get TSO name for device info
+        # Get DSO name for device info
         tso_id = entry.data.get(CONF_TSO, "bkk")
         self._tso = TSO_LIST.get(tso_id, TSO_LIST["bkk"])
 

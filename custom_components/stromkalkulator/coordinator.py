@@ -25,12 +25,12 @@ from .const import (
     DEFAULT_KAPASITET_VARSEL_TERSKEL,
     DOMAIN,
     ENOVA_AVGIFT,
-    HELLIGDAGER_BEVEGELIGE,
     HELLIGDAGER_FASTE,
     STROMSTOTTE_LEVEL,
     STROMSTOTTE_MAX_KWH,
     STROMSTOTTE_RATE,
     TSO_LIST,
+    _bevegelige_helligdager,
     get_forbruksavgift,
     get_mva_sats,
     get_norgespris_inkl_mva,
@@ -444,7 +444,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         date_yyyy_mm_dd = now.strftime("%Y-%m-%d")
 
         is_fixed_holiday = date_mm_dd in HELLIGDAGER_FASTE
-        is_moving_holiday = date_yyyy_mm_dd in HELLIGDAGER_BEVEGELIGE
+        # Compute moving holidays dynamically for the current year
+        bevegelige = _bevegelige_helligdager(now.year)
+        is_moving_holiday = date_yyyy_mm_dd in bevegelige
         is_weekend = now.weekday() >= 5
         is_night = now.hour < 6 or now.hour >= 22
 

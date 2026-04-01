@@ -29,6 +29,40 @@ python -m pytest tests/ -v
 | `test_tso_migration.py`             | DSO-migrering ved nettselskap-fusjoner       |
 | `test_property.py`                  | Property-baserte tester (Hypothesis)         |
 | `test_storage_key.py`               | Lagringsnøkkel-isolasjon mellom instanser    |
+| `test_config_flow.py`               | Config flow struktur-validering              |
+| `test_init_setup.py`                | Setup/unload/DSO-migrering                   |
+| `test_diagnostics.py`               | Diagnostics-output struktur                  |
+| `test_sensor_classes.py`            | Sensor native_value, attributter, unique_id  |
+| `test_persistens.py`                | Lagring: save/load-syklus, migrering         |
+| `test_coordinator_update.py`        | End-to-end coordinator update                |
+| `test_coordinator_robustness.py`    | Spotpris-caching, clamping, validering       |
+| `test_monthly_sensors.py`           | Månedlige sensorer (nettleie, avgifter)      |
+| `test_offentlige_avgifter_sensor.py`| OffentligeAvgifterSensor                     |
+| `test_passthrough_sensors.py`       | Passthrough-sensorer (dag/natt, avgifter)    |
+| `test_quality_r3.py`               | R3: UpdateFailed, 500kW clamp, OSError m.m.  |
+| `test_strompris_per_kwh.py`        | Strømpris per kWh uten kapasitetsledd        |
+| `test_stromstotte_tak.py`          | 5000 kWh månedlig tak                        |
+| `test_norgespris_akkumulert.py`    | Akkumulert Norgespris-besparelse             |
+| `test_margin_neste_trinn.py`       | Margin til neste kapasitetstrinn             |
+| `test_faktura_februar_2026.py`     | BKK-faktura feb 2026 (Norgespris)           |
+| `test_tso_data_validation.py`      | Validering av alle TSO-oppføringer           |
+
+### Kjente begrensninger
+
+Testsuiten kjører uten Home Assistant installert (alle HA-moduler er mocket).
+Dette betyr at noen ting ikke kan testes med dagens infrastruktur:
+
+| Område | Begrunnelse |
+|--------|------------|
+| Config flow multi-step (user → sensors → pricing) | Trenger HA FlowHandler-infrastruktur |
+| Options flow → reload → reberegning | Trenger HA config entry lifecycle |
+| End-to-end setup → coordinator → sensor | Trenger HA platform setup |
+| `CoordinatorSimulator` bruker int-måned (vs YYYY-MM) | Supplementær — ekte coordinator testes i `test_coordinator_update.py` |
+| `test_forrige_maaned.py` tester Python-operasjoner, ikke produksjonskode | Tech debt — skader ikke, hjelper ikke |
+| Regex-parsing av kildekode i `test_config_flow.py` | Fragilt men funksjonelt, lav regresjonsrisiko |
+| Testdata bruker kun BKK kapasitetstrinn | Diminishing returns — property-tester dekker alle DSOer |
+
+Vurdert 2026-04-01 via `/test-my-tests` (10 parallelle reviewers, 131 funn → 28 action points → 14 fikset).
 
 ## Live-tester i Home Assistant
 

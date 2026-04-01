@@ -75,6 +75,7 @@ async def async_setup_entry(
         # Strømpriser
         TotalPriceSensor(coordinator, entry),
         ElectricityCompanyTotalSensor(coordinator, entry),
+        StromprisPerKwhSensor(coordinator, entry),
         # Strømstøtte
         StromstotteSensor(coordinator, entry),
         SpotprisEtterStotteSensor(coordinator, entry),
@@ -82,6 +83,7 @@ async def async_setup_entry(
         TotalPrisInklAvgifterSensor(coordinator, entry),
         StromstotteKwhSensor(coordinator, entry),
         StromstotteGjenstaaendeSensor(coordinator, entry),
+        StromprisPerKwhEtterStotteSensor(coordinator, entry),
         # Norgespris
         TotalPrisNorgesprisSensor(coordinator, entry),
         PrisforskjellNorgesprisSensor(coordinator, entry),
@@ -535,6 +537,41 @@ class ElectricityCompanyTotalSensor(NettleieBaseSensor):
                 "electricity_company_pris": self.coordinator.data.get("electricity_company_price"),
                 "energiledd": self.coordinator.data.get("energiledd"),
                 "kapasitetsledd_per_kwh": self.coordinator.data.get("kapasitetsledd_per_kwh"),
+            }
+        return None
+
+
+class StromprisPerKwhSensor(NettleieBaseSensor):
+    """Sensor for electricity price per kWh (without capacity fee)."""
+
+    _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
+    _attr_native_unit_of_measurement: str = "NOK/kWh"
+    _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
+    _attr_icon: str = "mdi:flash"
+    _attr_suggested_display_precision: int = 2
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "strompris_per_kwh", "strompris_per_kwh")
+        self._attr_native_unit_of_measurement = "NOK/kWh"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_icon = "mdi:flash"
+        self._attr_suggested_display_precision = 2
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the state."""
+        if self.coordinator.data:
+            return cast("float | None", self.coordinator.data.get("strompris_per_kwh"))
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return extra attributes."""
+        if self.coordinator.data:
+            return {
+                "spot_price": self.coordinator.data.get("spot_price"),
+                "energiledd": self.coordinator.data.get("energiledd"),
             }
         return None
 
@@ -1041,6 +1078,43 @@ class StromstotteGjenstaaendeSensor(NettleieBaseSensor):
         """Return remaining kWh before cap is reached."""
         if self.coordinator.data:
             return cast("float | None", self.coordinator.data.get("stromstotte_gjenstaaende_kwh"))
+        return None
+
+
+class StromprisPerKwhEtterStotteSensor(NettleieBaseSensor):
+    """Sensor for electricity price per kWh after subsidy (without capacity fee)."""
+
+    _device_group: str = DEVICE_STROMSTOTTE
+    _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
+    _attr_native_unit_of_measurement: str = "NOK/kWh"
+    _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
+    _attr_icon: str = "mdi:flash-outline"
+    _attr_suggested_display_precision: int = 2
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "strompris_per_kwh_etter_stotte", "strompris_per_kwh_etter_stotte")
+        self._attr_native_unit_of_measurement = "NOK/kWh"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_icon = "mdi:flash-outline"
+        self._attr_suggested_display_precision = 2
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the state."""
+        if self.coordinator.data:
+            return cast("float | None", self.coordinator.data.get("strompris_per_kwh_etter_stotte"))
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return extra attributes."""
+        if self.coordinator.data:
+            return {
+                "spotpris": self.coordinator.data.get("spot_price"),
+                "stromstotte": self.coordinator.data.get("stromstotte"),
+                "energiledd": self.coordinator.data.get("energiledd"),
+            }
         return None
 
 

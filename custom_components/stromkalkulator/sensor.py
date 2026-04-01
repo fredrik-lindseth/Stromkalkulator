@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.components.sensor import (
@@ -12,6 +11,7 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.const import EntityCategory
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import dt as dt_util
 
 from .const import (
     AVGIFTSSONE_STANDARD,
@@ -464,7 +464,7 @@ class OffentligeAvgifterSensor(NettleieBaseSensor):
     def _get_forbruksavgift(self) -> float:
         """Get forbruksavgift based on avgiftssone and current month."""
         avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
-        month = datetime.now().month
+        month = dt_util.now().month
         return get_forbruksavgift(avgiftssone, month)
 
     def _get_mva_sats(self) -> float:
@@ -486,7 +486,7 @@ class OffentligeAvgifterSensor(NettleieBaseSensor):
         forbruksavgift = self._get_forbruksavgift()
         mva_sats = self._get_mva_sats()
         avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
-        month = datetime.now().month
+        month = dt_util.now().month
         sesong = "vinter" if month <= 3 else "sommer"
 
         forbruksavgift_inkl_mva = round(forbruksavgift * (1 + mva_sats), 4)
@@ -873,7 +873,7 @@ class EnergileddDagSensor(NettleieBaseSensor):
             mva_sats = get_mva_sats(avgiftssone)
             energiledd_dag = self.coordinator.data.get("energiledd_dag", 0)
             # Beregn pris eks. avgifter for fakturasammenligning
-            forbruksavgift = get_forbruksavgift(avgiftssone, datetime.now().month)
+            forbruksavgift = get_forbruksavgift(avgiftssone, dt_util.now().month)
             energiledd_eks_avgifter = energiledd_dag / (1 + mva_sats) - forbruksavgift - ENOVA_AVGIFT
             return {
                 "inkl_avgifter_mva": energiledd_dag,
@@ -916,7 +916,7 @@ class EnergileddNattSensor(NettleieBaseSensor):
             mva_sats = get_mva_sats(avgiftssone)
             energiledd_natt = self.coordinator.data.get("energiledd_natt", 0)
             # Beregn pris eks. avgifter for fakturasammenligning
-            forbruksavgift = get_forbruksavgift(avgiftssone, datetime.now().month)
+            forbruksavgift = get_forbruksavgift(avgiftssone, dt_util.now().month)
             energiledd_eks_avgifter = energiledd_natt / (1 + mva_sats) - forbruksavgift - ENOVA_AVGIFT
             return {
                 "inkl_avgifter_mva": energiledd_natt,
@@ -947,7 +947,7 @@ class ForbruksavgiftSensor(NettleieBaseSensor):
     def _get_forbruksavgift(self) -> float:
         """Get forbruksavgift based on avgiftssone."""
         avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
-        month = datetime.now().month
+        month = dt_util.now().month
         return get_forbruksavgift(avgiftssone, month)
 
     def _get_mva_sats(self) -> float:
@@ -1330,7 +1330,7 @@ class MaanedligAvgifterSensor(MaanedligBaseSensor):
         """Calculate monthly public fees."""
         if self.coordinator.data:
             total_kwh = self.coordinator.data.get("monthly_consumption_total_kwh", 0)
-            month = datetime.now().month
+            month = dt_util.now().month
             forbruksavgift = get_forbruksavgift(self._avgiftssone, month)
             mva_sats = get_mva_sats(self._avgiftssone)
 
@@ -1346,7 +1346,7 @@ class MaanedligAvgifterSensor(MaanedligBaseSensor):
         """Return fee breakdown."""
         if self.coordinator.data:
             total_kwh = self.coordinator.data.get("monthly_consumption_total_kwh", 0)
-            month = datetime.now().month
+            month = dt_util.now().month
             forbruksavgift = get_forbruksavgift(self._avgiftssone, month)
             mva_sats = get_mva_sats(self._avgiftssone)
 
@@ -1434,7 +1434,7 @@ class MaanedligTotalSensor(MaanedligBaseSensor):
             kapasitet = self.coordinator.data.get("kapasitetsledd", 0)
             stromstotte = self.coordinator.data.get("stromstotte", 0)
 
-            month = datetime.now().month
+            month = dt_util.now().month
             forbruksavgift = get_forbruksavgift(self._avgiftssone, month)
             mva_sats = get_mva_sats(self._avgiftssone)
 
@@ -1466,7 +1466,7 @@ class MaanedligTotalSensor(MaanedligBaseSensor):
             kapasitet = self.coordinator.data.get("kapasitetsledd", 0)
             stromstotte = self.coordinator.data.get("stromstotte", 0)
 
-            month = datetime.now().month
+            month = dt_util.now().month
             forbruksavgift = get_forbruksavgift(self._avgiftssone, month)
             mva_sats = get_mva_sats(self._avgiftssone)
 

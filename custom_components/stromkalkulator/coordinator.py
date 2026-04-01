@@ -116,7 +116,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         # Track max power for capacity calculation
         # Format: {date_str: max_power_kw}
         self._daily_max_power = {}
-        self._current_month = datetime.now().strftime("%Y-%m")
+        self._current_month = dt_util.now().strftime("%Y-%m")
 
         # Track energy consumption for monthly utility meter
         # Format: {"dag": kwh, "natt": kwh}
@@ -515,7 +515,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
                     # Backward compat: old format stored month as integer
                     if isinstance(stored_month, int):
                         # Cannot reconstruct year from int alone; assume current year
-                        stored_month = f"{datetime.now().year}-{stored_month:02d}"
+                        stored_month = f"{dt_util.now().year}-{stored_month:02d}"
                     if stored_month != self._current_month:
                         # Set to stored month so the normal month-transition in
                         # _async_update_data fires and properly archives previous month data

@@ -121,6 +121,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         self._previous_month_top_3 = {}
         self._previous_month_name = None  # e.g., "januar 2026"
 
+        # Cache last known electricity company price (survives brief API outages)
+        self._last_electricity_company_price: float | None = None
+
         # Persistent storage - keyed by entry_id for multi-instance isolation
         self._store = Store(hass, 1, f"{DOMAIN}_{entry.entry_id}")
         self._store_loaded = False
@@ -293,12 +296,17 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             self._monthly_norgespris_diff += diff_per_kwh * energy_kwh
 
         # Get electricity company price if configured
+        # Caches last known price to survive brief API outages (price changes max once per hour)
         electricity_company_price = None
         electricity_company_total = None
         if self.electricity_company_price_sensor:
             electricity_company_state = self.hass.states.get(self.electricity_company_price_sensor)
             if electricity_company_state and electricity_company_state.state not in ("unknown", "unavailable"):
                 electricity_company_price = float(electricity_company_state.state)
+                self._last_electricity_company_price = electricity_company_price
+            elif self._last_electricity_company_price is not None:
+                electricity_company_price = self._last_electricity_company_price
+            if electricity_company_price is not None:
                 # Electricity company total = strømpris + nettleie (energiledd + kapasitetsledd per kWh)
                 electricity_company_total = electricity_company_price + energiledd + fastledd_per_kwh
 

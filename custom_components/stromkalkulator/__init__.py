@@ -38,8 +38,8 @@ def _check_tso_migration(tso_id: str) -> TSOFusjon | None:
     return _MIGRATION_INDEX.get(tso_id)
 
 
-async def _migrate_storage_file(storage_dir: str, old_tso: str, new_tso: str) -> None:
-    """Rename storage file from old DSO key to new DSO key.
+def _migrate_storage_file_sync(storage_dir: str, old_tso: str, new_tso: str) -> None:
+    """Rename storage file from old DSO key to new DSO key (sync, runs in executor).
 
     NOTE: Since v0.55.0, storage files are keyed by entry_id, not DSO.
     This function only handles transitional migration for users upgrading
@@ -65,6 +65,13 @@ async def _migrate_storage_file(storage_dir: str, old_tso: str, new_tso: str) ->
     _LOGGER.info("Migrated storage file: %s → %s", old_path.name, new_path.name)
 
 
+async def _migrate_storage_file(
+    hass: HomeAssistant, storage_dir: str, old_tso: str, new_tso: str
+) -> None:
+    """Migrate storage file in executor to avoid blocking the event loop."""
+    await hass.async_add_executor_job(_migrate_storage_file_sync, storage_dir, old_tso, new_tso)
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: StromkalkulatorConfigEntry) -> bool:
     """Set up Nettleie from a config entry."""
     # Check for DSO migration (merger)
@@ -82,13 +89,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: StromkalkulatorConfigEnt
             new_name,
         )
 
+        # Migrate storage file FIRST (before updating config entry)
+        storage_dir = hass.config.path(".storage")
+        await _migrate_storage_file(hass, storage_dir, migration.gammel, migration.ny)
+
         # Update config entry with new DSO key
         new_data = {**entry.data, CONF_TSO: migration.ny}
         hass.config_entries.async_update_entry(entry, data=new_data)
-
-        # Migrate storage file
-        storage_dir = hass.config.path(".storage")
-        await _migrate_storage_file(storage_dir, migration.gammel, migration.ny)
 
         # Create repair issue
         ir.async_create_issue(

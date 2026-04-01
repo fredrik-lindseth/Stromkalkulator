@@ -29,7 +29,7 @@ def calculate_stromstotte(
         monthly_consumption_kwh: Total monthly consumption so far in kWh
 
     Returns:
-        Strømstøtte in NOK/kWh (negative = discount, 0 = no support)
+        Strømstøtte in NOK/kWh (positive = support amount, 0 = no support)
     """
     # Norgespris users don't get strømstøtte
     if har_norgespris:
@@ -43,8 +43,8 @@ def calculate_stromstotte(
     if spot_price <= STROMSTOTTE_LEVEL:
         return 0.0
 
-    # Support = 90% of amount above threshold
-    return -((spot_price - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE)
+    # Support = 90% of amount above threshold (positive, matching coordinator convention)
+    return (spot_price - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE
 
 
 def stromstotte_gjenstaaende(monthly_consumption_kwh: float) -> float:
@@ -67,10 +67,10 @@ def stromstotte_gjenstaaende(monthly_consumption_kwh: float) -> float:
 @pytest.mark.parametrize(
     ("spot_price", "har_norgespris", "monthly_kwh", "expected"),
     [
-        # Under cap: normal strømstøtte
-        (1.50, False, 2000, -((1.50 - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE)),
-        (1.20, False, 0, -((1.20 - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE)),
-        (2.00, False, 4999, -((2.00 - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE)),
+        # Under cap: normal strømstøtte (positive = support amount)
+        (1.50, False, 2000, (1.50 - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE),
+        (1.20, False, 0, (1.20 - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE),
+        (2.00, False, 4999, (2.00 - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE),
         # At 5000 kWh: strømstøtte = 0
         (1.50, False, 5000, 0.0),
         # Over 5000 kWh: strømstøtte = 0
@@ -111,19 +111,19 @@ def test_calculate_stromstotte(
     assert result == pytest.approx(expected)
 
 
-def test_stromstotte_is_negative_discount() -> None:
-    """Strømstøtte should be negative (a discount) when applicable."""
+def test_stromstotte_is_positive_when_applicable() -> None:
+    """Strømstøtte should be positive (matching coordinator convention) when applicable."""
     result = calculate_stromstotte(1.50, False, 1000)
-    assert result < 0.0
+    assert result > 0.0
 
 
 def test_stromstotte_magnitude() -> None:
     """Verify exact strømstøtte amount for a known spot price.
 
-    Spot 1.50 NOK/kWh: (1.50 - 0.9625) * 0.90 = 0.48375 NOK/kWh discount
+    Spot 1.50 NOK/kWh: (1.50 - 0.9625) * 0.90 = 0.48375 NOK/kWh
     """
     result = calculate_stromstotte(1.50, False, 1000)
-    assert result == pytest.approx(-0.48375)
+    assert result == pytest.approx(0.48375)
 
 
 # =============================================================================

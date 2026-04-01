@@ -256,6 +256,14 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         # Total pris med norgespris (for sammenligning)
         total_pris_norgespris = norgespris + energiledd + fastledd_per_kwh
 
+        # Strømpris per kWh (uten kapasitetsledd)
+        if self.har_norgespris:
+            strompris_per_kwh = norgespris + energiledd
+            strompris_per_kwh_etter_stotte = norgespris + energiledd
+        else:
+            strompris_per_kwh = spot_price + energiledd
+            strompris_per_kwh_etter_stotte = spot_price - stromstotte + energiledd
+
         # Offentlige avgifter (for Energy Dashboard)
         # Forbruksavgift og Enova-avgift inkl. mva
         mva_sats = get_mva_sats(self.avgiftssone)
@@ -312,6 +320,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             "total_price": round(total_price, 4),
             "total_price_uten_stotte": round(total_price_uten_stotte, 4),
             "total_price_inkl_avgifter": round(total_price_inkl_avgifter, 4),
+            "strompris_per_kwh": round(strompris_per_kwh, 4),
+            "strompris_per_kwh_etter_stotte": round(strompris_per_kwh_etter_stotte, 4),
             "forbruksavgift_inkl_mva": round(forbruksavgift_inkl_mva, 4),
             "enova_inkl_mva": round(enova_inkl_mva, 4),
             "offentlige_avgifter": round(offentlige_avgifter, 4),

@@ -234,6 +234,15 @@ total_pris = spotpris + energiledd + fastledd_per_kwh
 total_pris_etter_stotte = (spotpris - strømstøtte) + energiledd + fastledd_per_kwh
 ```
 
+### Uten kapasitetsledd
+
+Viser den faktiske variable kWh-prisen uten estimert kapasitetsledd.
+
+```
+strompris_per_kwh = spotpris + energiledd
+strompris_per_kwh_etter_stotte = (spotpris - strømstøtte) + energiledd
+```
+
 ### Inkludert alle avgifter (for Energy Dashboard)
 
 For å vise korrekt totalpris i Home Assistant Energy Dashboard, bruk sensoren

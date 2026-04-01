@@ -1,85 +1,77 @@
 # Visjon: Strømkalkulator
 
-*Sist oppdatert: mars 2026*
+## Hva strømmen koster — nå
 
----
+Strømkalkulator viser hva strømmen koster i det øyeblikket du bruker den. Spotpris, nettleie, avgifter, strømstøtte, kapasitetsledd — summert til en totalpris per kWh, oppdatert hvert minutt.
 
-## Sannheten om strømregningen — i sanntid
+De fleste norske strømkunder ser ikke hva de betaler før fakturaen kommer. Strømkalkulator viser kostnaden mens den oppstår.
 
-Strømkalkulator er den definitive kilden til hva strømmen faktisk koster, i det øyeblikket du bruker den. Ikke en tilnærming. Ikke et estimat basert på gårsdagens priser. Den eksakte kronebeløpet — spotpris, nettleie, avgifter, strømstøtte, kapasitetsledd — alt inkludert, oppdatert hvert minutt.
+## Prisen, lag for lag
 
-Norske strømkunder har tradisjonelt måttet vente til fakturaen kommer for å vite hva de betalte. Strømkalkulator snur dette på hodet. Kostnaden er synlig *mens den oppstår*, og brukeren kan handle på den informasjonen i sanntid.
+Norsk strømpris er sammensatt: spotpris, energiledd, kapasitetsledd, forbruksavgift, Enova-avgift, mva, og eventuelt strømstøtte. Strømkalkulator viser hvert lag separat og summert.
 
-## Kapasitetstrinn du faktisk forstår
+Brukeren velger detaljeringsnivå. Én sensor for totalpris. Eller drill ned: spotpris, energiledd, kapasitetsledd per kWh, offentlige avgifter, strømstøtte — alt tilgjengelig som egne sensorer.
 
-Kapasitetsmodellen er det mest forvirrende elementet i den norske nettleien. Tre dager med høyest forbruk bestemmer hele månedens fastledd — men de færreste vet hvilke dager det er, eller hvor nærme de er neste trinn.
+Strømpris per kWh viser den variable kWh-prisen (spotpris + energiledd) uten estimert kapasitetsledd. Totalpris inkl. avgifter viser den fulle estimerte kostnaden. Begge svarer på forskjellige spørsmål.
 
-Strømkalkulator viser de tre toppene visuelt, med dato, klokkeslett og effekt. Brukeren ser sitt nåværende trinn, hva det koster per måned, og hvor mange kilowatt som gjenstår før neste trinn slår inn. Når forbruket nærmer seg en trinngrense, varsles brukeren — tidsnok til å reagere. Skru av varmtvannsberederen. Utsett elbil-ladingen. Et konkret valg med et konkret beløp knyttet til det.
+## Kapasitetstrinn
 
-Historikken over kapasitetstrinn vises måned for måned. Brukeren ser trenden: «I januar var jeg på trinn 4, i februar trinn 3, nå i mars er jeg på vei mot trinn 2.» Denne oversikten gjør det mulig å forstå effekten av endringer i vaner, og gir motivasjon til å holde forbruket jevnt.
+Tre dager med høyest effektforbruk bestemmer månedens kapasitetsledd. Strømkalkulator viser hvilke tre dager det er, med dato og effekt. Nåværende trinn, månedskostnad, og hvor mange kW som gjenstår før neste trinn. Varsel når forbruket nærmer seg en trinngrense.
 
-## Fakturaen — før den kommer
+## Dagen og måneden, i kroner
 
-Ved månedsslutt har Strømkalkulator allerede regnet ut hva nettleiefakturaen kommer til å vise. Dag- og nattforbruk er splittet og priset etter riktige satser. Kapasitetsleddet er beregnet fra de faktiske toppene. Avgiftene er lagt på krone for krone.
+De fleste vil vite «hva har strømmen kostet i dag?» og «hva ligger jeg an til denne måneden?» — ikke øre per kWh.
 
-Brukeren sammenligner dette med den faktiske fakturaen. Avvik markeres tydelig: «Forventet 847 kr, fakturert 863 kr — differanse 16 kr.» Dette gir brukeren et verktøy for å oppdage feil i faktureringen, noe som faktisk forekommer.
+Dagens kostnad akkumulerer gjennom døgnet. Estimert månedskostnad projiserer basert på forbrukstempo hittil. Vektet snittpris viser hva du faktisk har betalt per kWh denne måneden, basert på når du brukte strøm.
 
-Forrige måneds data lever videre som referansepunkt helt til neste måned er over, slik at man alltid har to måneder å sammenligne med.
+## Fakturasjekk
 
-## Norgespris — et informert valg
+Ved månedsslutt har Strømkalkulator beregnet nettleien: dag- og nattforbruk splittet og priset, kapasitetsledd fra faktiske topper, avgifter krone for krone. Brukeren kan sammenligne med fakturaen manuelt.
 
-Norgespris-ordningen gir forbrukere et reelt valg: fast pris eller spotpris med støtte. Men valget er blindt uten data. Strømkalkulator eliminerer gjettingen.
+Forrige måneds data bevares med komplett nedbrytning. Typisk avvik fra faktura er 1-5% (avrunding, målefeil).
 
-En løpende sammenligning viser hva brukeren betaler med sin nåværende avtale versus hva de *ville* betalt med alternativet. Ikke bare akkurat nå, men akkumulert gjennom hele måneden. «Du har spart 127 kr denne måneden ved å velge spotpris» — eller «Du ville spart 84 kr med Norgespris.»
+## Norgespris-sammenligning
 
-Denne sammenligningen tar hensyn til alt: spotpris, strømstøtte-terskelen, avgiftssone, og volumtak. Den gir et ærlig svar på et spørsmål de fleste bare kan spekulere i.
+Løpende sammenligning mellom spotpris-avtale og Norgespris (40 øre/kWh fast). Akkumulert gjennom måneden, inkludert strømstøtte-terskelen, avgiftssone og volumtak. Viser om du ville spart eller tapt på å bytte.
 
-## Alle nettselskaper, oppdatert
+## Nettselskaper
 
-Strømkalkulator kjenner prissatsene til hvert nettselskap i Norge. Ikke bare de store — alle. Energileddet, kapasitetstrinnene, og eventuelle særordninger er lagt inn med referanse til offisielle kilder.
+Alle nettselskaper er støttet med energiledd og kapasitetstrinn. For operatører som ikke er innebygd kan brukeren sette egendefinerte priser. Priser legges inn med referanse til offisielle kilder.
 
-Når nettselskaper fusjonerer, håndteres overgangen automatisk. Brukeren trenger ikke gjøre noe — konfigurasjonen oppdateres, lagringen migreres, og beregningene fortsetter uten avbrudd.
+Når nettselskaper fusjonerer, håndteres overgangen automatisk — konfigurasjonen oppdateres og data migreres.
 
-Nye priser for kommende år er tilgjengelige så fort nettselskapene publiserer dem, gjerne før årsskiftet. Fellesskapet bidrar med oppdateringer, og hver endring er sporbar tilbake til en offisiell kilde.
+## Avgiftssoner
 
-## Regionalt korrekt, ned til kommunenivå
-
-Norge er ikke ett strømmarked. Avgiftssonene — standard, Nord-Norge, og tiltakssonen — gir dramatisk forskjellig sluttregning for identisk forbruk. Strømkalkulator beregner riktig forbruksavgift, Enova-avgift og merverdiavgift basert på brukerens sone.
-
-En bruker i Hammerfest og en bruker i Oslo med samme spotpris og samme nettselskap får forskjellig totalpris. Strømkalkulator viser begge riktig, uten at brukeren trenger å forstå avgiftsreglene selv.
+Tre avgiftssoner gir forskjellig sluttregning for identisk forbruk: standard (25% mva), Nord-Norge (mva-fritak), og tiltakssonen (fritak for både mva og forbruksavgift). Strømkalkulator beregner riktig basert på brukerens sone.
 
 ## Elbil og topplast
 
-Elbillading er den vanligste årsaken til at husholdninger havner på et høyere kapasitetstrinn. En enkel ladeøkt på 11 kW kan flytte en husholdning fra trinn 3 til trinn 5 — en forskjell på flere hundre kroner i måneden.
+Elbillading er den vanligste årsaken til høyere kapasitetstrinn. 11 kW lading kan flytte en husholdning fra trinn 3 til trinn 5. Strømkalkulator viser nåværende effekt, dagens topp, og konsekvensen for kapasitetstrinn i sanntid.
 
-Strømkalkulator viser konsekvensen av lading i sanntid. «Nåværende effekt: 9.2 kW. Topp i dag: 11.4 kW. Ditt kapasitetstrinn er allerede satt av denne toppen.» Brukeren ser at videre lading i dag ikke gjør vondt verre — men at en ny toppdag i morgen kan bli dyr.
+## Forbruksmønster
 
-Denne innsikten gjør det mulig å ta bevisste valg om *når* man lader, uten å måtte forstå den underliggende modellen.
+Andel av forbruket på dagtariff versus natt/helg, som enkel prosent. Synliggjør effekten av å flytte forbruk til billigere timer.
 
-## Helligdager og tariffperioder
+## Helligdager
 
-Dag- og nattariff styres av klokken, ukedagen og kalenderen. Helligdager betyr nattariff hele døgnet — inkludert bevegelige helligdager som påske, pinse og Kristi himmelfartsdag.
+Bevegelige helligdager (påske, pinse, Kristi himmelfartsdag) beregnes algoritmisk fra påskeformelen. Ingen hardkodede datoer som må vedlikeholdes.
 
-Strømkalkulator beregner alle bevegelige helligdager algoritmisk fra påskeformelen. Ingen hardkodede datoer som må oppdateres. Ingen feil andre påskedag 2028 fordi noen glemte å legge den inn. Formelen dekker alle år, automatisk.
+## Flere målere
 
-## Flere målere, isolert
+Hver strømmåler konfigureres som egen instans med isolert lagring. Data krysser aldri mellom instanser.
 
-En husholdning med flere strømmålere — garasje, anneks, utleiebolig — konfigurerer hver måler som en egen instans. Hver instans har sin egen lagring, sine egne topper, sitt eget kapasitetstrinn. Data krysser aldri mellom instanser, selv når de tilhører samme nettselskap.
+## Robusthet
 
-Hver måler vises som en egen enhet i Home Assistant, med et fullt sett av sensorer. Oversikten er tydelig: «Hovedhus: trinn 3, 415 kr/mnd. Garasje: trinn 1, 155 kr/mnd.»
+Prissensorer kan feile midlertidig. Priser som endrer seg maks én gang i timen caches, slik at korte avbrudd ikke gir hull i data. Effektmålinger caches ikke — der reflekterer vi virkeligheten.
 
-## Ingen sky, ingen API, ingen avhengigheter
+## Lokalt først
 
-Strømkalkulator gjør ingen API-kall. Den sender ingen data ut av hjemmet. Alt beregnes lokalt fra to sensorverdier som allerede finnes i Home Assistant: effektmålingen fra HAN-porten og spotprisen fra Nord Pool.
+All beregning skjer lokalt. Strømkalkulator gjør ingen egne API-kall og sender ingen data ut. Kildedata (spotpris fra NordPool, eventuelt Tibber-pris) hentes av andre integrasjoner som er avhengige av internett, men Strømkalkulator legger ingen nye skyavhengigheter oppå.
 
-Det finnes ingen ekstern tjeneste som kan gå ned og ta med seg beregningene. Ingen persondata som sendes til en tredjepart. Ingen API-nøkler som utløper. Integrasjonen er selvforsynt — den trenger bare Home Assistant og en strømmåler.
+## Verifiserbarhet
 
-## Tillit gjennom transparens
-
-Hver formel, hver sats, og hver terskelverdi i Strømkalkulator er dokumentert med referanse til offisielle kilder. Forbruksavgiften refererer til Stortingets avgiftsvedtak. Strømstøtte-terskelen refererer til Lovdata. Kapasitetstrinnene refererer til nettselskapets egen prisliste.
-
-Brukeren trenger ikke stole på at beregningen er riktig — de kan verifisere det selv. Og det gjør de. Brukere som sammenligner med sine faktiske fakturaer er den beste kvalitetssikringen integrasjonen har.
+Hver sats og terskelverdi er dokumentert med offisiell kilde (Lovdata, Stortingets avgiftsvedtak, nettselskapenes prislister). En fullstendig testsuite verifiserer formlene, inkludert reelle fakturaer som testdata.
 
 ---
 
-*Strømkalkulator er det verktøyet norske strømkunder burde fått fra nettselskapet sitt: en ærlig, fullstendig og oppdatert oversikt over hva strømmen faktisk koster. Ikke en forenklet graf. Ikke en faktura som kommer for sent. En levende beregning som gir deg kontroll over ditt eget forbruk — fordi du endelig ser hva det betyr i kroner og øre.*
+_Strømkalkulator gir norske strømkunder en komplett og oppdatert oversikt over hva strømmen koster — synlig mens forbruket skjer, ikke når fakturaen kommer._

@@ -29,19 +29,23 @@ custom_components/stromkalkulator/
 ### Kjernekomponenter
 
 **Coordinator** (`coordinator.py`):
+
 - Sentral datahub som oppdateres hvert minutt
 - Leser effekt og spotpris fra brukerens sensorer
 - Beregner alle verdier (strømstøtte, kapasitet, etc.)
 - Lagrer topp-3 effektdager til disk (persistens)
 
 **Sensorer** (`sensor.py`):
+
 - 36 sensorer gruppert i 5 devices
 - Arver fra `CoordinatorEntity` og `SensorEntity`
 - Leser fra `coordinator.data["key"]`
 
 **DSO-data** (`dso.py`):
+
 - Dict med alle nettselskaper og deres priser + 1 egendefinert
 - Energiledd dag/natt, kapasitetstrinn
+- Tidligere kalt `tso.py` — config-nøkkelen `CONF_DSO` beholder strengverdien `"tso"` for bakoverkompatibilitet
 
 ### Beregningsflyt
 
@@ -138,7 +142,7 @@ ssh ha-local "ha core logs" | grep -i stromkalkulator
 ### Vanlige feil
 
 | Feil                 | Årsak                     | Løsning                               |
-|----------------------|---------------------------|---------------------------------------|
+| -------------------- | ------------------------- | ------------------------------------- |
 | `ImportError`        | Fil på HA er utdatert     | Kopier oppdatert fil                  |
 | `Entity unavailable` | Kildesensor mangler       | Sjekk at power/spotpris-sensor finnes |
 | Feil kapasitetstrinn | Data bygges over tid      | Vent eller opprett testdata           |

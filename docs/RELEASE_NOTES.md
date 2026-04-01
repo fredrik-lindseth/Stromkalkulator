@@ -11,7 +11,7 @@
 
 ## Struktur
 
-````markdown
+```markdown
 ## Bugfixes
 
 - **Kort beskrivelse** — teknisk detalj på en linje
@@ -34,7 +34,7 @@
 - feat: ...
 - fix: ...
 </details>
-````
+```
 
 ## Viktig om verifisering
 

@@ -82,6 +82,9 @@
       "total_price": {
         "name": "Total strømpris (før støtte)"
       },
+      "strompris_per_kwh": {
+        "name": "Strømpris per kWh"
+      },
       "maks_forbruk": {
         "name": "Toppforbruk"
       },
@@ -111,6 +114,9 @@
       },
       "total_pris_inkl_avgifter": {
         "name": "Totalpris inkl. avgifter"
+      },
+      "strompris_per_kwh_etter_stotte": {
+        "name": "Strømpris per kWh (etter støtte)"
       },
       "total_pris_norgespris": {
         "name": "Total strømpris (norgespris)"

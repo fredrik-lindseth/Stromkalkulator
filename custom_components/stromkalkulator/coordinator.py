@@ -98,8 +98,13 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         self.energiledd_natt = float(entry.data.get(CONF_ENERGILEDD_NATT, self.tso["energiledd_natt"]))
 
         # Get kapasitetstrinn from DSO
-        # Type: list of tuples (kW_threshold, NOK_per_month)
-        self.kapasitetstrinn = cast("list[tuple[float, int]]", self.tso["kapasitetstrinn"])
+        # Normalize: some DSOs (e.g. Barents Nett) use dict format {"min", "max", "pris"}
+        # Convert to standard tuple format (kW_threshold, NOK_per_month)
+        raw_trinn = self.tso["kapasitetstrinn"]
+        if raw_trinn and isinstance(raw_trinn[0], dict):
+            self.kapasitetstrinn = [(entry["max"], entry["pris"]) for entry in raw_trinn]
+        else:
+            self.kapasitetstrinn = cast("list[tuple[float, int]]", raw_trinn)
 
         self.kapasitet_varsel_terskel = float(
             entry.data.get(CONF_KAPASITET_VARSEL_TERSKEL, DEFAULT_KAPASITET_VARSEL_TERSKEL)

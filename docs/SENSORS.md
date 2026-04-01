@@ -4,12 +4,12 @@ Komplett oversikt over alle sensorer og devices i Strømkalkulator.
 
 ## Oversikt
 
-Integrasjonen oppretter **5 devices** med totalt **36 sensorer**:
+Integrasjonen oppretter **5 devices** med totalt **38 sensorer**:
 
 | Device           | Beskrivelse                        | Antall sensorer |
 |------------------|------------------------------------|-----------------|
-| Nettleie         | Energiledd, kapasitet, avgifter    | 16              |
-| Strømstøtte      | Strømstøtte og totalpris           | 5               |
+| Nettleie         | Energiledd, kapasitet, avgifter    | 17              |
+| Strømstøtte      | Strømstøtte og totalpris           | 6               |
 | Norgespris       | Norgespris-sammenligning           | 3               |
 | Månedlig forbruk | Forbruk og kostnader denne måneden | 7               |
 | Forrige måned    | Forbruk og kostnader forrige måned | 5               |
@@ -49,6 +49,7 @@ Hoveddevicen med nettleie-priser, kapasitetstrinn og offentlige avgifter. Device
 |-------------------------------|--------|-----------------------------------------------------|
 | Total strømpris (før støtte)  | kr/kWh | Spotpris + nettleie (uten støtte-fratrekk)          |
 | Total strømpris (strømavtale) | kr/kWh | Strømselskap-pris + nettleie (valgfri, krever sensor) |
+| Strømpris per kWh             | kr/kWh | Spotpris + energiledd (uten kapasitetsledd)     |
 
 ### Diagnostikk (avgifter)
 
@@ -72,6 +73,7 @@ Sensorer for strømstøtte-beregning og totalpris inkl. alle avgifter.
 | Spotpris etter støtte        | kr/kWh | Spotpris minus strømstøtte                    |
 | Total strømpris etter støtte | kr/kWh | Spotpris + nettleie - strømstøtte             |
 | Totalpris inkl. avgifter     | kr/kWh | **Anbefalt for Energy Dashboard** - inkl. alt |
+| Strømpris per kWh (etter støtte) | kr/kWh | Spotpris + energiledd - strømstøtte (uten kapasitetsledd) |
 | Strømstøtte aktiv nå         | -      | "Ja" / "Nei" - om spotpris er over terskelen  |
 
 ---

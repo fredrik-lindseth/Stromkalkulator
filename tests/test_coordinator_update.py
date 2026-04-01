@@ -72,7 +72,7 @@ def _make_state(value):
 
 def _make_entry(
     entry_id="test_entry",
-    tso_id="bkk",
+    dso_id="bkk",
     har_norgespris=False,
     avgiftssone="standard",
     electricity_company_price_sensor=None,
@@ -81,7 +81,7 @@ def _make_entry(
     entry = MagicMock()
     entry.entry_id = entry_id
     entry.data = {
-        "tso": tso_id,
+        "tso": dso_id,
         "power_sensor": "sensor.power",
         "spot_price_sensor": "sensor.spot_price",
         "har_norgespris": har_norgespris,
@@ -137,7 +137,7 @@ class TestBasicUpdate:
             "forbruksavgift_inkl_mva", "enova_inkl_mva", "offentlige_avgifter",
             "electricity_company_price", "electricity_company_total",
             "current_power_kw", "avg_top_3_kw", "top_3_days",
-            "is_day_rate", "tso", "har_norgespris", "avgiftssone",
+            "is_day_rate", "dso", "har_norgespris", "avgiftssone",
             "monthly_consumption_dag_kwh", "monthly_consumption_natt_kwh",
             "monthly_consumption_total_kwh",
             "previous_month_consumption_dag_kwh", "previous_month_consumption_natt_kwh",
@@ -181,13 +181,13 @@ class TestBasicUpdate:
         result = _run_update(coord_module, coordinator)
         assert result["spot_price"] == 1.50
 
-    def test_tso_name_in_result(self, coord_module):
+    def test_dso_name_in_result(self, coord_module):
         hass = _make_hass()
-        entry = _make_entry(tso_id="bkk")
+        entry = _make_entry(dso_id="bkk")
         coordinator = coord_module.NettleieCoordinator(hass, entry)
 
         result = _run_update(coord_module, coordinator)
-        assert result["tso"] == "BKK"
+        assert result["dso"] == "BKK"
 
 
 class TestDayNightRate:

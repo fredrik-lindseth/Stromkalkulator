@@ -3,9 +3,9 @@
 from datetime import date, timedelta
 from typing import Final
 
-from .tso import TSO_LIST
+from .dso import DSO_LIST
 
-__all__ = ["TSO_LIST"]
+__all__ = ["DSO_LIST"]
 
 DOMAIN: Final[str] = "stromkalkulator"
 
@@ -13,7 +13,9 @@ DOMAIN: Final[str] = "stromkalkulator"
 CONF_POWER_SENSOR: Final[str] = "power_sensor"
 CONF_SPOT_PRICE_SENSOR: Final[str] = "spot_price_sensor"
 CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR: Final[str] = "electricity_provider_price_sensor"
-CONF_TSO: Final[str] = "tso"
+# NOTE: The string value remains "tso" for backward compatibility with
+# existing Home Assistant config entries stored on disk.
+CONF_DSO: Final[str] = "tso"
 CONF_ENERGILEDD_DAG: Final[str] = "energiledd_dag"
 CONF_ENERGILEDD_NATT: Final[str] = "energiledd_natt"
 CONF_AVGIFTSSONE: Final[str] = "avgiftssone"
@@ -37,7 +39,7 @@ AVGIFTSSONE_OPTIONS: Final[dict[str, str]] = {
 # Default values (BKK)
 DEFAULT_ENERGILEDD_DAG: Final[float] = 0.4613
 DEFAULT_ENERGILEDD_NATT: Final[float] = 0.2329
-DEFAULT_TSO: Final[str] = "bkk"
+DEFAULT_DSO: Final[str] = "bkk"
 DEFAULT_KAPASITET_VARSEL_TERSKEL: Final[float] = 2.0
 
 # === STRØMSTØTTE ===

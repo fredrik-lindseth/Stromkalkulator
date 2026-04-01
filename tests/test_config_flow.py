@@ -83,7 +83,7 @@ class TestNumberSelectorStep:
 
 
 class TestEnergileddPrecision:
-    """Energiledd values in TSO_LIST must not lose precision through config flow."""
+    """Energiledd values in DSO_LIST must not lose precision through config flow."""
 
     def test_default_energiledd_has_four_decimals(self):
         """Default values must have 4 decimal places."""
@@ -113,15 +113,15 @@ class TestEnergileddPrecision:
         stored = float(value)
         assert stored == value
 
-    def test_all_tso_energiledd_are_valid_floats(self):
-        """Every TSO energiledd_dag/natt must be a valid non-negative float."""
-        from stromkalkulator.tso import TSO_LIST
+    def test_all_dso_energiledd_are_valid_floats(self):
+        """Every DSO energiledd_dag/natt must be a valid non-negative float."""
+        from stromkalkulator.dso import DSO_LIST
 
-        for key, tso in TSO_LIST.items():
-            if not tso.get("supported"):
+        for key, dso in DSO_LIST.items():
+            if not dso.get("supported"):
                 continue
-            dag = tso["energiledd_dag"]
-            natt = tso["energiledd_natt"]
+            dag = dso["energiledd_dag"]
+            natt = dso["energiledd_natt"]
             assert isinstance(dag, (int, float)), f"{key}: energiledd_dag is not numeric"
             assert isinstance(natt, (int, float)), f"{key}: energiledd_natt is not numeric"
             assert dag >= 0, f"{key}: energiledd_dag is negative: {dag}"
@@ -129,15 +129,15 @@ class TestEnergileddPrecision:
             assert dag < 5, f"{key}: energiledd_dag suspiciously high: {dag}"
             assert natt < 5, f"{key}: energiledd_natt suspiciously high: {natt}"
 
-    def test_energiledd_dag_ge_natt_for_all_tso(self):
+    def test_energiledd_dag_ge_natt_for_all_dso(self):
         """Day rate should be >= night rate for all grid companies."""
-        from stromkalkulator.tso import TSO_LIST
+        from stromkalkulator.dso import DSO_LIST
 
-        for key, tso in TSO_LIST.items():
-            if not tso.get("supported"):
+        for key, dso in DSO_LIST.items():
+            if not dso.get("supported"):
                 continue
-            assert tso["energiledd_dag"] >= tso["energiledd_natt"], (
-                f"{key}: dag ({tso['energiledd_dag']}) < natt ({tso['energiledd_natt']})"
+            assert dso["energiledd_dag"] >= dso["energiledd_natt"], (
+                f"{key}: dag ({dso['energiledd_dag']}) < natt ({dso['energiledd_natt']})"
             )
 
 
@@ -189,39 +189,39 @@ class TestTranslationCompleteness:
 
 
 # ---------------------------------------------------------------------------
-# 4. TSO list validation
+# 4. DSO list validation
 # ---------------------------------------------------------------------------
 
 
-class TestTSOList:
-    """Validate TSO list structure and config flow options."""
+class TestDSOList:
+    """Validate DSO list structure and config flow options."""
 
-    def test_custom_tso_exists(self):
-        from stromkalkulator.tso import TSO_LIST
+    def test_custom_dso_exists(self):
+        from stromkalkulator.dso import DSO_LIST
 
-        assert "custom" in TSO_LIST, "Egendefinert (custom) TSO must exist"
-        assert TSO_LIST["custom"]["supported"] is True
+        assert "custom" in DSO_LIST, "Egendefinert (custom) DSO must exist"
+        assert DSO_LIST["custom"]["supported"] is True
 
-    def test_all_supported_tso_have_required_fields(self):
-        from stromkalkulator.tso import TSO_LIST
+    def test_all_supported_dso_have_required_fields(self):
+        from stromkalkulator.dso import DSO_LIST
 
         required = {"name", "prisomrade", "supported", "energiledd_dag", "energiledd_natt", "kapasitetstrinn"}
-        for key, tso in TSO_LIST.items():
-            if tso.get("supported"):
-                missing = required - set(tso.keys())
-                assert not missing, f"TSO '{key}' missing fields: {missing}"
+        for key, dso in DSO_LIST.items():
+            if dso.get("supported"):
+                missing = required - set(dso.keys())
+                assert not missing, f"DSO '{key}' missing fields: {missing}"
 
-    def test_custom_tso_not_sorted_into_middle(self):
+    def test_custom_dso_not_sorted_into_middle(self):
         """Egendefinert must always be last, never alphabetically sorted in."""
-        from stromkalkulator.tso import TSO_LIST
+        from stromkalkulator.dso import DSO_LIST
 
         supported_names = sorted(
-            tso["name"]
-            for key, tso in TSO_LIST.items()
-            if tso.get("supported") and key != "custom"
+            dso["name"]
+            for key, dso in DSO_LIST.items()
+            if dso.get("supported") and key != "custom"
         )
         assert "Egendefinert" not in supported_names
-        assert TSO_LIST["custom"]["name"] == "Egendefinert"
+        assert DSO_LIST["custom"]["name"] == "Egendefinert"
 
 
 # ---------------------------------------------------------------------------

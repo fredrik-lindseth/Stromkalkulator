@@ -40,14 +40,14 @@ Avgiftssone settes automatisk fra nettselskap ved oppsett. Kan overstyres i inns
 ### Oppdatere satser (årlig ved nyttår)
 - [ ] Finn offisiell kilde
 - [ ] Oppdater `const.py` (avgifter, terskel)
-- [ ] Oppdater `tso.py` (energiledd, kapasitetstrinn)
+- [ ] Oppdater `dso.py` (energiledd, kapasitetstrinn)
 - Helligdager beregnes automatisk fra påskeformelen (ingen oppdatering nødvendig)
 - [ ] Oppdater tester
 - [ ] Verifiser mot faktura
 
 ### Oppdatere nettleiepriser
 - [ ] Finn oppdaterte priser på nettselskapets nettside
-- [ ] Oppdater `energiledd_dag`, `energiledd_natt`, `kapasitetstrinn` i `tso.py`
+- [ ] Oppdater `energiledd_dag`, `energiledd_natt`, `kapasitetstrinn` i `dso.py`
 - [ ] Oppdater avgiftssatser i `const.py` hvis endret (sjekk skatteetaten.no)
 - [ ] Kjør `pipx run pytest tests/ -v` — alle tester må bestå
 

@@ -120,7 +120,7 @@ SAMPLE_DATA = {
     "avg_top_3_kw": 8.33,
     "top_3_days": {"2026-04-01": 10.0, "2026-04-02": 8.0, "2026-04-03": 7.0},
     "is_day_rate": True,
-    "tso": "BKK",
+    "dso": "BKK",
     "har_norgespris": False,
     "avgiftssone": "standard",
     "monthly_consumption_dag_kwh": 250.5,
@@ -384,7 +384,7 @@ class TestSensorAttributes:
         assert "rate_type" in attrs
         assert "energiledd_dag" in attrs
         assert "energiledd_natt" in attrs
-        assert "tso" in attrs
+        assert "dso" in attrs
 
     def test_kapasitetstrinn_attributes(self, mock_coordinator, mock_entry):
         sensor = KapasitetstrinnSensor(mock_coordinator, mock_entry)

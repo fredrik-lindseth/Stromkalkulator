@@ -1,50 +1,50 @@
-"""Tests for TSO migration data structures."""
+"""Tests for DSO migration data structures."""
 
 from __future__ import annotations
 
 import pytest
-from stromkalkulator.tso import TSO_LIST, TSO_MIGRATIONS, TSOFusjon
+from stromkalkulator.dso import DSO_LIST, DSO_MIGRATIONS, DSOFusjon
 
 
-def test_tso_fusjon_dataclass():
-    """TSOFusjon has gammel and ny fields."""
-    fusjon = TSOFusjon(gammel="old_tso", ny="new_tso")
-    assert fusjon.gammel == "old_tso"
-    assert fusjon.ny == "new_tso"
+def test_dso_fusjon_dataclass():
+    """DSOFusjon has gammel and ny fields."""
+    fusjon = DSOFusjon(gammel="old_dso", ny="new_dso")
+    assert fusjon.gammel == "old_dso"
+    assert fusjon.ny == "new_dso"
 
 
-def test_tso_fusjon_is_frozen():
-    """TSOFusjon is immutable."""
-    fusjon = TSOFusjon(gammel="old_tso", ny="new_tso")
+def test_dso_fusjon_is_frozen():
+    """DSOFusjon is immutable."""
+    fusjon = DSOFusjon(gammel="old_dso", ny="new_dso")
     with pytest.raises(AttributeError):
         fusjon.gammel = "other"  # type: ignore[misc]
 
 
-def test_tso_migrations_exist():
-    """TSO_MIGRATIONS contains known mergers."""
-    gammel_keys = [m.gammel for m in TSO_MIGRATIONS]
+def test_dso_migrations_exist():
+    """DSO_MIGRATIONS contains known mergers."""
+    gammel_keys = [m.gammel for m in DSO_MIGRATIONS]
     assert "skiakernett" in gammel_keys
     assert "norgesnett" in gammel_keys
 
 
-def test_tso_migrations_targets_exist_in_tso_list():
-    """Every migration target must exist in TSO_LIST."""
-    for migration in TSO_MIGRATIONS:
-        assert migration.ny in TSO_LIST, (
-            f"Migration target '{migration.ny}' not found in TSO_LIST"
+def test_dso_migrations_targets_exist_in_dso_list():
+    """Every migration target must exist in DSO_LIST."""
+    for migration in DSO_MIGRATIONS:
+        assert migration.ny in DSO_LIST, (
+            f"Migration target '{migration.ny}' not found in DSO_LIST"
         )
 
 
-def test_tso_migrations_sources_not_in_tso_list():
-    """Migrated TSO keys should be removed from TSO_LIST."""
-    for migration in TSO_MIGRATIONS:
-        assert migration.gammel not in TSO_LIST, (
-            f"Migrated key '{migration.gammel}' should be removed from TSO_LIST"
+def test_dso_migrations_sources_not_in_dso_list():
+    """Migrated DSO keys should be removed from DSO_LIST."""
+    for migration in DSO_MIGRATIONS:
+        assert migration.gammel not in DSO_LIST, (
+            f"Migrated key '{migration.gammel}' should be removed from DSO_LIST"
         )
 
 
 def test_build_migration_index():
-    """_build_migration_index returns dict mapping gammel → TSOFusjon."""
+    """_build_migration_index returns dict mapping gammel -> DSOFusjon."""
     from stromkalkulator.__init__ import _build_migration_index
 
     index = _build_migration_index()
@@ -55,25 +55,25 @@ def test_build_migration_index():
     assert index["norgesnett"].ny == "glitre"
 
 
-def test_migrate_tso_returns_new_key():
-    """_check_tso_migration returns TSOFusjon when migration exists."""
-    from stromkalkulator.__init__ import _check_tso_migration
+def test_migrate_dso_returns_new_key():
+    """_check_dso_migration returns DSOFusjon when migration exists."""
+    from stromkalkulator.__init__ import _check_dso_migration
 
-    result = _check_tso_migration("skiakernett")
+    result = _check_dso_migration("skiakernett")
     assert result is not None
     assert result.ny == "vevig"
 
 
-def test_migrate_tso_returns_none_for_current():
-    """_check_tso_migration returns None when no migration needed."""
-    from stromkalkulator.__init__ import _check_tso_migration
+def test_migrate_dso_returns_none_for_current():
+    """_check_dso_migration returns None when no migration needed."""
+    from stromkalkulator.__init__ import _check_dso_migration
 
-    result = _check_tso_migration("bkk")
+    result = _check_dso_migration("bkk")
     assert result is None
 
 
 def test_migrate_storage_file_renames(tmp_path):
-    """Storage file is renamed from old to new TSO key."""
+    """Storage file is renamed from old to new DSO key."""
     from stromkalkulator.__init__ import _migrate_storage_file_sync as _migrate_storage_file
 
     # Create a fake old storage file

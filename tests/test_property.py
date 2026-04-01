@@ -2,7 +2,7 @@
 
 Three tiers of testing:
 1. Property tests (Hypothesis) — random inputs, verify invariants
-2. Exhaustive tests — brute-force every hour of the year, every TSO
+2. Exhaustive tests — brute-force every hour of the year, every DSO
 3. Differential tests — two independent implementations must agree
 
 Inspired by SQLite's approach of redundant verification across
@@ -42,7 +42,8 @@ from custom_components.stromkalkulator.const import (
     get_mva_sats,
     get_norgespris_inkl_mva,
 )
-from custom_components.stromkalkulator.tso import TSO_LIST
+
+from custom_components.stromkalkulator.dso import DSO_LIST
 
 
 def calculate_stromstotte(spot_price: float) -> float:
@@ -404,11 +405,11 @@ def test_exhaustive_every_hour_of_2026() -> None:
 
 
 def test_exhaustive_every_boundary_of_every_kapasitetstrinn() -> None:
-    """Test every exact boundary and boundary±epsilon for all TSOs."""
-    for tso_id, tso in TSO_LIST.items():
-        if not tso["supported"]:
+    """Test every exact boundary and boundary+/-epsilon for all DSOs."""
+    for dso_id, dso in DSO_LIST.items():
+        if not dso["supported"]:
             continue
-        trinn = tso["kapasitetstrinn"]
+        trinn = dso["kapasitetstrinn"]
         # Skip dict-format kapasitetstrinn
         if trinn and isinstance(trinn[0], dict):
             continue
@@ -420,7 +421,7 @@ def test_exhaustive_every_boundary_of_every_kapasitetstrinn() -> None:
             # At boundary: should be this tier
             price_at, _, _ = get_kapasitetsledd(threshold, trinn)
             assert price_at == expected_price, (
-                f"{tso_id}: at {threshold} kW expected {expected_price}, got {price_at}"
+                f"{dso_id}: at {threshold} kW expected {expected_price}, got {price_at}"
             )
 
             # Just above: should be next tier
@@ -428,48 +429,48 @@ def test_exhaustive_every_boundary_of_every_kapasitetstrinn() -> None:
                 next_price = trinn[i + 1][1]
                 price_above, _, _ = get_kapasitetsledd(threshold + 0.001, trinn)
                 assert price_above == next_price, (
-                    f"{tso_id}: at {threshold}+ε expected {next_price}, got {price_above}"
+                    f"{dso_id}: at {threshold}+e expected {next_price}, got {price_above}"
                 )
 
 
-def test_exhaustive_all_tso_kapasitetstrinn_monotonic() -> None:
-    """Every TSO's kapasitetstrinn must be monotonically non-decreasing."""
-    for tso_id, tso in TSO_LIST.items():
-        if not tso["supported"]:
+def test_exhaustive_all_dso_kapasitetstrinn_monotonic() -> None:
+    """Every DSO's kapasitetstrinn must be monotonically non-decreasing."""
+    for dso_id, dso in DSO_LIST.items():
+        if not dso["supported"]:
             continue
-        trinn = tso["kapasitetstrinn"]
+        trinn = dso["kapasitetstrinn"]
         if trinn and isinstance(trinn[0], dict):
             continue
 
         prev_price = 0
         for threshold, price in trinn:
             assert price >= prev_price, (
-                f"{tso_id}: price decreased from {prev_price} to {price} at {threshold} kW"
+                f"{dso_id}: price decreased from {prev_price} to {price} at {threshold} kW"
             )
             prev_price = price
 
 
-def test_exhaustive_all_tso_have_catch_all_tier() -> None:
-    """Every TSO must have a final tier with inf threshold (catch-all)."""
-    for tso_id, tso in TSO_LIST.items():
-        if not tso["supported"]:
+def test_exhaustive_all_dso_have_catch_all_tier() -> None:
+    """Every DSO must have a final tier with inf threshold (catch-all)."""
+    for dso_id, dso in DSO_LIST.items():
+        if not dso["supported"]:
             continue
-        trinn = tso["kapasitetstrinn"]
+        trinn = dso["kapasitetstrinn"]
         if trinn and isinstance(trinn[0], dict):
             continue
         last_threshold = trinn[-1][0]
         assert last_threshold == float("inf"), (
-            f"{tso_id}: last tier threshold is {last_threshold}, not inf"
+            f"{dso_id}: last tier threshold is {last_threshold}, not inf"
         )
 
 
-def test_exhaustive_all_tso_energiledd_dag_gte_natt() -> None:
-    """Day rate must be >= night rate for all supported TSOs."""
-    for tso_id, tso in TSO_LIST.items():
-        if not tso["supported"]:
+def test_exhaustive_all_dso_energiledd_dag_gte_natt() -> None:
+    """Day rate must be >= night rate for all supported DSOs."""
+    for dso_id, dso in DSO_LIST.items():
+        if not dso["supported"]:
             continue
-        assert tso["energiledd_dag"] >= tso["energiledd_natt"], (
-            f"{tso_id}: dag ({tso['energiledd_dag']}) < natt ({tso['energiledd_natt']})"
+        assert dso["energiledd_dag"] >= dso["energiledd_natt"], (
+            f"{dso_id}: dag ({dso['energiledd_dag']}) < natt ({dso['energiledd_natt']})"
         )
 
 
@@ -625,15 +626,15 @@ def test_exhaustive_fastledd_per_kwh_all_months_all_tiers() -> None:
                 assert fastledd_31 < fastledd_28
 
 
-@pytest.mark.parametrize("tso_id", [k for k, v in TSO_LIST.items() if v["supported"]])
-def test_exhaustive_total_price_sane_for_each_tso(tso_id: str) -> None:
-    """For each TSO, compute total price at various spot prices and verify sanity."""
-    tso = TSO_LIST[tso_id]
-    trinn = tso["kapasitetstrinn"]
+@pytest.mark.parametrize("dso_id", [k for k, v in DSO_LIST.items() if v["supported"]])
+def test_exhaustive_total_price_sane_for_each_dso(dso_id: str) -> None:
+    """For each DSO, compute total price at various spot prices and verify sanity."""
+    dso = DSO_LIST[dso_id]
+    trinn = dso["kapasitetstrinn"]
     if trinn and isinstance(trinn[0], dict):
-        pytest.skip(f"{tso_id} uses dict-format kapasitetstrinn")
+        pytest.skip(f"{dso_id} uses dict-format kapasitetstrinn")
 
-    energiledd_dag = tso["energiledd_dag"]
+    energiledd_dag = dso["energiledd_dag"]
     # Use lowest kapasitetstrinn for baseline
     kapasitetsledd = trinn[0][1]
 
@@ -642,7 +643,7 @@ def test_exhaustive_total_price_sane_for_each_tso(tso_id: str) -> None:
         fastledd = (kapasitetsledd / 30) / 24
         total = (spot - stotte) + energiledd_dag + fastledd
         # Total should never be negative for non-negative spot
-        assert total >= -1e-10, f"{tso_id}: negative total {total} at spot={spot}"
+        assert total >= -1e-10, f"{dso_id}: negative total {total} at spot={spot}"
         # Total without støtte should always be >= total with støtte
         total_uten = spot + energiledd_dag + fastledd
         assert total_uten >= total - 1e-10

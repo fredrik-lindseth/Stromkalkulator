@@ -26,15 +26,16 @@ Disse kan ikke testes uten `pytest-homeassistant-custom-component` eller tilsvar
 
 ### Repair flow (`__init__.py`)
 
-- **`TsoMigrationRepairFlow.async_step_confirm`** og **`async_create_fix_flow`**:
+- **`DsoMigrationRepairFlow.async_step_confirm`** og **`async_create_fix_flow`**:
   Kræver `data_entry_flow.FlowHandler` fra HA. Lav risiko — veldig enkel kode (2 linjer logikk).
 
 ## Mulig fremtidig forbedring
 
 Hvis vi legger til `pytest-homeassistant-custom-component` som dev-dependency, kan vi:
+
 1. Teste config flow steg-for-steg med ekte HA-kontekst
 2. Teste options flow med unikhetsvalidering mot flere config entries
 3. Teste at sensor.async_setup_entry registrerer riktig antall entiteter
-4. Teste TsoMigrationRepairFlow
+4. Teste DsoMigrationRepairFlow
 
 Prioritet: Lav. Statiske tester + coordinator-tester dekker all beregningslogikk. Config flow bugs viser seg typisk som krasj ved oppsett, som brukere rapporterer umiddelbart.

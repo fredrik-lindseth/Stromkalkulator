@@ -21,8 +21,8 @@ def mock_hass():
 @pytest.fixture
 def mock_coordinator():
     coordinator = MagicMock()
-    coordinator._tso_id = "bkk"
-    coordinator.tso = {"name": "BKK"}
+    coordinator._dso_id = "bkk"
+    coordinator.dso = {"name": "BKK"}
     coordinator.energiledd_dag = 0.4613
     coordinator.energiledd_natt = 0.2329
     coordinator.kapasitetstrinn = [
@@ -82,14 +82,14 @@ class TestDiagnosticsStructure:
         assert "power_sensor" in result["sensor_entity_ids"]
         assert "spot_price_sensor" in result["sensor_entity_ids"]
 
-    def test_has_tso_info(self, mock_hass, mock_entry):
+    def test_has_dso_info(self, mock_hass, mock_entry):
         result = asyncio.run(async_get_config_entry_diagnostics(mock_hass, mock_entry))
-        assert "tso_info" in result
-        assert result["tso_info"]["id"] == "bkk"
-        assert result["tso_info"]["name"] == "BKK"
-        assert result["tso_info"]["energiledd_dag"] == 0.4613
-        assert result["tso_info"]["energiledd_natt"] == 0.2329
-        assert result["tso_info"]["kapasitetstrinn_count"] == 10
+        assert "dso_info" in result
+        assert result["dso_info"]["id"] == "bkk"
+        assert result["dso_info"]["name"] == "BKK"
+        assert result["dso_info"]["energiledd_dag"] == 0.4613
+        assert result["dso_info"]["energiledd_natt"] == 0.2329
+        assert result["dso_info"]["kapasitetstrinn_count"] == 10
 
     def test_has_coordinator_data(self, mock_hass, mock_entry):
         result = asyncio.run(async_get_config_entry_diagnostics(mock_hass, mock_entry))
@@ -101,9 +101,9 @@ class TestDiagnosticsStructure:
         result = asyncio.run(async_get_config_entry_diagnostics(mock_hass, mock_entry))
         assert result["coordinator_data"] == {}
 
-    def test_config_entry_includes_tso(self, mock_hass, mock_entry):
+    def test_config_entry_includes_dso(self, mock_hass, mock_entry):
         result = asyncio.run(async_get_config_entry_diagnostics(mock_hass, mock_entry))
-        assert result["config_entry"]["data"]["tso"] == "bkk"
+        assert result["config_entry"]["data"]["dso"] == "bkk"
 
     def test_config_entry_includes_avgiftssone(self, mock_hass, mock_entry):
         result = asyncio.run(async_get_config_entry_diagnostics(mock_hass, mock_entry))

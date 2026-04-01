@@ -16,11 +16,11 @@ from homeassistant.util import dt as dt_util
 from .const import (
     AVGIFTSSONE_STANDARD,
     CONF_AVGIFTSSONE,
-    CONF_TSO,
+    CONF_DSO,
     DOMAIN,
+    DSO_LIST,
     ENOVA_AVGIFT,
     STROMSTOTTE_LEVEL,
-    TSO_LIST,
     get_forbruksavgift,
     get_mva_sats,
 )
@@ -31,7 +31,7 @@ if TYPE_CHECKING:
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
     from .coordinator import NettleieCoordinator
-    from .tso import TSOEntry
+    from .dso import DSOEntry
 
 # Device group constants
 DEVICE_NETTLEIE = "stromkalkulator"
@@ -116,7 +116,7 @@ class NettleieBaseSensor(CoordinatorEntity, SensorEntity):  # type: ignore[misc]
     _attr_unique_id: str
     _attr_translation_key: str
     _entry: ConfigEntry
-    _tso: TSOEntry
+    _dso: DSOEntry
 
     def __init__(
         self,
@@ -132,20 +132,20 @@ class NettleieBaseSensor(CoordinatorEntity, SensorEntity):  # type: ignore[misc]
         self._entry = entry
 
         # Get DSO name for device info
-        tso_id = entry.data.get(CONF_TSO, "bkk")
-        self._tso = TSO_LIST.get(tso_id, TSO_LIST["bkk"])
+        dso_id = entry.data.get(CONF_DSO, "bkk")
+        self._dso = DSO_LIST.get(dso_id, DSO_LIST["bkk"])
 
     @property
     def device_info(self) -> dict[str, Any]:
         """Return device info."""
         device_names: dict[str, str] = {
-            DEVICE_NETTLEIE: f"Nettleie ({self._tso['name']})",
+            DEVICE_NETTLEIE: f"Nettleie ({self._dso['name']})",
             DEVICE_STROMSTOTTE: "Strømstøtte",
             DEVICE_NORGESPRIS: "Norgespris",
         }
         return {
             "identifiers": {(DOMAIN, f"{self._entry.entry_id}_{self._device_group}")},
-            "name": device_names.get(self._device_group, f"Nettleie ({self._tso['name']})"),
+            "name": device_names.get(self._device_group, f"Nettleie ({self._dso['name']})"),
             "manufacturer": "Fredrik Lindseth",
             "model": "Strømkalkulator",
         }
@@ -184,7 +184,7 @@ class EnergileddSensor(NettleieBaseSensor):
                 "rate_type": "dag" if self.coordinator.data.get("is_day_rate") else "natt/helg",
                 "energiledd_dag": self.coordinator.data.get("energiledd_dag"),
                 "energiledd_natt": self.coordinator.data.get("energiledd_natt"),
-                "tso": self.coordinator.data.get("tso"),
+                "dso": self.coordinator.data.get("dso"),
             }
         return None
 
@@ -221,7 +221,7 @@ class KapasitetstrinnSensor(NettleieBaseSensor):
                 "intervall": self.coordinator.data.get("kapasitetstrinn_intervall"),
                 "gjennomsnitt_kw": self.coordinator.data.get("avg_top_3_kw"),
                 "current_power_kw": self.coordinator.data.get("current_power_kw"),
-                "tso": self.coordinator.data.get("tso"),
+                "dso": self.coordinator.data.get("dso"),
             }
             for i, (date, power) in enumerate(top_3.items(), 1):
                 attrs[f"maks_{i}_dato"] = date
@@ -325,7 +325,7 @@ class TotalPriceSensor(NettleieBaseSensor):
                 "spot_price": self.coordinator.data.get("spot_price"),
                 "energiledd": self.coordinator.data.get("energiledd"),
                 "kapasitetsledd_per_kwh": self.coordinator.data.get("kapasitetsledd_per_kwh"),
-                "tso": self.coordinator.data.get("tso"),
+                "dso": self.coordinator.data.get("dso"),
             }
         return None
 
@@ -400,7 +400,7 @@ class GjsForbrukSensor(NettleieBaseSensor):
         if self.coordinator.data:
             return {
                 "kapasitetstrinn": self.coordinator.data.get("kapasitetsledd"),
-                "tso": self.coordinator.data.get("tso"),
+                "dso": self.coordinator.data.get("dso"),
             }
         return None
 

@@ -26,7 +26,7 @@ python -m pytest tests/ -v
 | `test_faktura_validering.py`        | Faktura-verifisering mot beregninger         |
 | `test_forrige_maaned.py`            | Forrige måned sensorer og månedsskifte       |
 | `test_month_transition_integration.py` | Integrasjonstest for månedsskifte         |
-| `test_tso_migration.py`             | DSO-migrering ved nettselskap-fusjoner       |
+| `test_dso_migration.py`             | DSO-migrering ved nettselskap-fusjoner       |
 | `test_property.py`                  | Property-baserte tester (Hypothesis)         |
 | `test_storage_key.py`               | Lagringsnøkkel-isolasjon mellom instanser    |
 | `test_config_flow.py`               | Config flow struktur-validering              |
@@ -45,7 +45,7 @@ python -m pytest tests/ -v
 | `test_norgespris_akkumulert.py`    | Akkumulert Norgespris-besparelse             |
 | `test_margin_neste_trinn.py`       | Margin til neste kapasitetstrinn             |
 | `test_faktura_februar_2026.py`     | BKK-faktura feb 2026 (Norgespris)           |
-| `test_tso_data_validation.py`      | Validering av alle TSO-oppføringer           |
+| `test_dso_data_validation.py`      | Validering av alle DSO-oppføringer           |
 
 ### Kjente begrensninger
 

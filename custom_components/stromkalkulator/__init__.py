@@ -10,9 +10,9 @@ from homeassistant import data_entry_flow
 from homeassistant.const import Platform
 from homeassistant.helpers import issue_registry as ir
 
-from .const import CONF_TSO, DOMAIN
+from .const import CONF_DSO, DOMAIN
 from .coordinator import NettleieCoordinator
-from .tso import TSO_LIST, TSO_MIGRATIONS, TSOFusjon
+from .dso import DSO_LIST, DSO_MIGRATIONS, DSOFusjon
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -25,20 +25,20 @@ PLATFORMS: list[Platform] = [Platform.SENSOR]
 type StromkalkulatorConfigEntry = ConfigEntry[NettleieCoordinator]
 
 # Build migration lookup once at import time
-_MIGRATION_INDEX: dict[str, TSOFusjon] = {m.gammel: m for m in TSO_MIGRATIONS}
+_MIGRATION_INDEX: dict[str, DSOFusjon] = {m.gammel: m for m in DSO_MIGRATIONS}
 
 
-def _build_migration_index() -> dict[str, TSOFusjon]:
+def _build_migration_index() -> dict[str, DSOFusjon]:
     """Return the migration index (for testing)."""
     return _MIGRATION_INDEX
 
 
-def _check_tso_migration(tso_id: str) -> TSOFusjon | None:
-    """Check if a DSO key needs migration. Returns TSOFusjon or None."""
-    return _MIGRATION_INDEX.get(tso_id)
+def _check_dso_migration(dso_id: str) -> DSOFusjon | None:
+    """Check if a DSO key needs migration. Returns DSOFusjon or None."""
+    return _MIGRATION_INDEX.get(dso_id)
 
 
-def _migrate_storage_file_sync(storage_dir: str, old_tso: str, new_tso: str) -> None:
+def _migrate_storage_file_sync(storage_dir: str, old_dso: str, new_dso: str) -> None:
     """Rename storage file from old DSO key to new DSO key (sync, runs in executor).
 
     NOTE: Since v0.55.0, storage files are keyed by entry_id, not DSO.
@@ -46,8 +46,8 @@ def _migrate_storage_file_sync(storage_dir: str, old_tso: str, new_tso: str) -> 
     from <=v0.54 who also have a DSO merger. The coordinator's
     _load_stored_data handles the DSO→entry_id migration separately.
     """
-    old_path = Path(storage_dir) / f"{DOMAIN}_{old_tso}"
-    new_path = Path(storage_dir) / f"{DOMAIN}_{new_tso}"
+    old_path = Path(storage_dir) / f"{DOMAIN}_{old_dso}"
+    new_path = Path(storage_dir) / f"{DOMAIN}_{new_dso}"
 
     if not old_path.exists():
         _LOGGER.debug("No storage file to migrate: %s", old_path)
@@ -56,8 +56,8 @@ def _migrate_storage_file_sync(storage_dir: str, old_tso: str, new_tso: str) -> 
     if new_path.exists():
         _LOGGER.warning(
             "Storage file already exists for %s, skipping migration from %s",
-            new_tso,
-            old_tso,
+            new_dso,
+            old_dso,
         )
         return
 
@@ -66,21 +66,21 @@ def _migrate_storage_file_sync(storage_dir: str, old_tso: str, new_tso: str) -> 
 
 
 async def _migrate_storage_file(
-    hass: HomeAssistant, storage_dir: str, old_tso: str, new_tso: str
+    hass: HomeAssistant, storage_dir: str, old_dso: str, new_dso: str
 ) -> None:
     """Migrate storage file in executor to avoid blocking the event loop."""
-    await hass.async_add_executor_job(_migrate_storage_file_sync, storage_dir, old_tso, new_tso)
+    await hass.async_add_executor_job(_migrate_storage_file_sync, storage_dir, old_dso, new_dso)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: StromkalkulatorConfigEntry) -> bool:
     """Set up Nettleie from a config entry."""
     # Check for DSO migration (merger)
-    tso_id = entry.data.get(CONF_TSO, "bkk")
-    migration = _check_tso_migration(tso_id)
+    dso_id = entry.data.get(CONF_DSO, "bkk")
+    migration = _check_dso_migration(dso_id)
 
     if migration is not None:
-        new_tso = TSO_LIST[migration.ny]
-        new_name = new_tso["name"]
+        new_dso = DSO_LIST[migration.ny]
+        new_name = new_dso["name"]
 
         _LOGGER.info(
             "Migrerer nettselskap: %s → %s (%s)",
@@ -94,14 +94,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: StromkalkulatorConfigEnt
         await _migrate_storage_file(hass, storage_dir, migration.gammel, migration.ny)
 
         # Update config entry with new DSO key
-        new_data = {**entry.data, CONF_TSO: migration.ny}
+        new_data = {**entry.data, CONF_DSO: migration.ny}
         hass.config_entries.async_update_entry(entry, data=new_data)
 
         # Create repair issue
         ir.async_create_issue(
             hass,
             DOMAIN,
-            f"tso_migration_{migration.gammel}_{migration.ny}",
+            f"dso_migration_{migration.gammel}_{migration.ny}",
             is_fixable=True,
             severity=ir.IssueSeverity.WARNING,
             translation_key="tso_migrated",
@@ -135,7 +135,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: StromkalkulatorConfigEn
     return unload_ok
 
 
-class TsoMigrationRepairFlow(data_entry_flow.FlowHandler):
+class DsoMigrationRepairFlow(data_entry_flow.FlowHandler):
     """Handler for DSO migration repair flow."""
 
     async def async_step_confirm(
@@ -151,6 +151,6 @@ async def async_create_fix_flow(
     hass: HomeAssistant,
     issue_id: str,
     data: dict[str, str] | None,
-) -> TsoMigrationRepairFlow:
+) -> DsoMigrationRepairFlow:
     """Create flow to fix a repair issue."""
-    return TsoMigrationRepairFlow()
+    return DsoMigrationRepairFlow()

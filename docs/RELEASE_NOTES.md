@@ -26,12 +26,7 @@
 
 ## Verifisering
 
-**SHA256:** `abc123...`
-
-Verifiser at denne releasen ble bygd fra kildekoden:
-\```bash
-gh attestation verify stromkalkulator.zip --repo fredrik-lindseth/Stromkalkulator
-\```
+**SHA256:** `abc123...` — [hvordan verifisere](SECURITY.md)
 
 <details>
 <summary>Alle commits</summary>
@@ -43,15 +38,9 @@ gh attestation verify stromkalkulator.zip --repo fredrik-lindseth/Stromkalkulato
 
 ## Viktig om verifisering
 
-Release-workflowen genererer SHA256 og artifact attestation automatisk. Verifiseringsseksjonen **MÅ** være med i release notes.
+Release-workflowen genererer SHA256 automatisk. SHA256-linjen **MÅ** være med. Lenk til SECURITY.md for detaljer, ikke forklar attestation i selve releasen.
 
-Workflow-body inneholder allerede SHA256 og verifisering. Hvis du bruker `gh release edit --notes` overskriver du hele body-en. Da må du:
-
-1. Hente eksisterende body: `gh release view vX.Y.Z --json body -q .body`
-2. Legge til ditt innhold
-3. Beholde verifiseringsseksjonen
-
-Eller enda bedre: bruk `--notes-file` med en fil som inneholder alt.
+Hvis du bruker `gh release edit --notes` overskriver du hele body-en — hent eksisterende body først med `gh release view vX.Y.Z --json body -q .body`.
 
 ## Commits i detaljer
 

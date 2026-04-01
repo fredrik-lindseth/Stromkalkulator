@@ -14,6 +14,7 @@ from homeassistant.util import dt as dt_util
 from .const import (
     AVGIFTSSONE_STANDARD,
     CONF_AVGIFTSSONE,
+    CONF_DSO,
     CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
     CONF_ENERGILEDD_DAG,
     CONF_ENERGILEDD_NATT,
@@ -21,15 +22,14 @@ from .const import (
     CONF_KAPASITET_VARSEL_TERSKEL,
     CONF_POWER_SENSOR,
     CONF_SPOT_PRICE_SENSOR,
-    CONF_TSO,
     DEFAULT_KAPASITET_VARSEL_TERSKEL,
     DOMAIN,
+    DSO_LIST,
     ENOVA_AVGIFT,
     HELLIGDAGER_FASTE,
     STROMSTOTTE_LEVEL,
     STROMSTOTTE_MAX_KWH,
     STROMSTOTTE_RATE,
-    TSO_LIST,
     _bevegelige_helligdager,
     get_forbruksavgift,
     get_mva_sats,
@@ -40,7 +40,7 @@ if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
 
-    from .tso import TSOEntry
+    from .dso import DSOEntry
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -52,8 +52,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
     power_sensor: str | None
     spot_price_sensor: str | None
     electricity_company_price_sensor: str | None
-    tso: TSOEntry
-    _tso_id: str
+    dso: DSOEntry
+    _dso_id: str
     avgiftssone: str
     har_norgespris: bool
     energiledd_dag: float
@@ -86,9 +86,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         self.electricity_company_price_sensor = entry.data.get(CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR)
 
         # Get DSO config
-        tso_id = entry.data.get(CONF_TSO, "bkk")
-        self.tso = TSO_LIST.get(tso_id, TSO_LIST["bkk"])
-        self._tso_id = tso_id
+        dso_id = entry.data.get(CONF_DSO, "bkk")
+        self.dso = DSO_LIST.get(dso_id, DSO_LIST["bkk"])
+        self._dso_id = dso_id
 
         # Get avgiftssone from config
         self.avgiftssone = entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
@@ -98,18 +98,18 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
 
         # Get energiledd from config (allows override)
         try:
-            self.energiledd_dag = float(entry.data.get(CONF_ENERGILEDD_DAG, self.tso["energiledd_dag"]))
+            self.energiledd_dag = float(entry.data.get(CONF_ENERGILEDD_DAG, self.dso["energiledd_dag"]))
         except (ValueError, TypeError):
-            self.energiledd_dag = float(self.tso["energiledd_dag"])
+            self.energiledd_dag = float(self.dso["energiledd_dag"])
         try:
-            self.energiledd_natt = float(entry.data.get(CONF_ENERGILEDD_NATT, self.tso["energiledd_natt"]))
+            self.energiledd_natt = float(entry.data.get(CONF_ENERGILEDD_NATT, self.dso["energiledd_natt"]))
         except (ValueError, TypeError):
-            self.energiledd_natt = float(self.tso["energiledd_natt"])
+            self.energiledd_natt = float(self.dso["energiledd_natt"])
 
         # Get kapasitetstrinn from DSO
         # Normalize: some DSOs (e.g. Barents Nett) use dict format {"min", "max", "pris"}
         # Convert to standard tuple format (kW_threshold, NOK_per_month)
-        raw_trinn = self.tso["kapasitetstrinn"]
+        raw_trinn = self.dso["kapasitetstrinn"]
         if raw_trinn and isinstance(raw_trinn[0], dict):
             self.kapasitetstrinn = [(entry["max"], entry["pris"]) for entry in raw_trinn]
         else:
@@ -259,9 +259,11 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         elif self._last_spot_price is not None:
             spot_price = self._last_spot_price
 
-        # Raise if both sensor entities are completely missing (not registered)
-        if power_state is None and spot_state is None:
-            raise UpdateFailed("Both power and spot price sensors are unavailable")
+        # Raise if either sensor entity is completely missing (not registered)
+        if power_state is None:
+            raise UpdateFailed(f"Power sensor entity not found: {self.power_sensor}")
+        if spot_state is None:
+            raise UpdateFailed(f"Spot price sensor entity not found: {self.spot_price_sensor}")
 
         # Calculate strømstøtte
         # Forskrift § 5: 90% av spotpris over 77 øre/kWh eks. mva (96,25 øre inkl. mva) i 2026
@@ -399,7 +401,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             "avg_top_3_kw": round(avg_power, 2),
             "top_3_days": top_3,
             "is_day_rate": self._is_day_rate(now),
-            "tso": self.tso["name"],
+            "dso": self.dso["name"],
             "har_norgespris": self.har_norgespris,
             "avgiftssone": self.avgiftssone,
             # Monthly consumption tracking
@@ -502,7 +504,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
 
         # Migration: try to load from old DSO-based storage if new storage is empty
         if not data:
-            old_store: Store[dict[str, Any]] = Store(self.hass, 1, f"{DOMAIN}_{self._tso_id}")
+            old_store: Store[dict[str, Any]] = Store(self.hass, 1, f"{DOMAIN}_{self._dso_id}")
             data = await old_store.async_load()
             if data:
                 _LOGGER.info("Migrated data from DSO-based storage to entry-based storage")

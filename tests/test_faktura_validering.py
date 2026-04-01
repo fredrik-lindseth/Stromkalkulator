@@ -192,9 +192,9 @@ def test_total_nettleie_oktober(faktura_oktober_2025):
 
 def test_bkk_har_2026_priser():
     """BKK skal ha oppdaterte 2026-priser i integrasjonen."""
-    from custom_components.stromkalkulator.tso import TSO_LIST
+    from custom_components.stromkalkulator.dso import DSO_LIST
 
-    bkk = TSO_LIST["bkk"]
+    bkk = DSO_LIST["bkk"]
 
     # 2026-priser fra BKK (inkl. mva)
     # Dag: 46.13 øre/kWh, Natt: 23.29 øre/kWh
@@ -204,9 +204,9 @@ def test_bkk_har_2026_priser():
 
 def test_bkk_kapasitetstrinn_5_10_matcher_faktura():
     """BKK kapasitetstrinn 5-10 kW skal matche fakturaen (uendret fra 2025)."""
-    from custom_components.stromkalkulator.tso import TSO_LIST
+    from custom_components.stromkalkulator.dso import DSO_LIST
 
-    bkk = TSO_LIST["bkk"]
+    bkk = DSO_LIST["bkk"]
     # Finn kapasitetstrinn for 5-10 kW (index 2 i listen)
     kapasitet_5_10 = bkk["kapasitetstrinn"][2][1]  # (10, 415) -> 415
 
@@ -215,9 +215,9 @@ def test_bkk_kapasitetstrinn_5_10_matcher_faktura():
 
 def test_bkk_priser_er_rimelige():
     """BKK-priser skal være innenfor rimelig område."""
-    from custom_components.stromkalkulator.tso import TSO_LIST
+    from custom_components.stromkalkulator.dso import DSO_LIST
 
-    bkk = TSO_LIST["bkk"]
+    bkk = DSO_LIST["bkk"]
 
     # Energiledd bør være mellom 0.10 og 1.00 NOK/kWh
     assert 0.10 < bkk["energiledd_dag"] < 1.00

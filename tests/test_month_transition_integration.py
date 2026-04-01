@@ -36,7 +36,7 @@ class CoordinatorSimulator:
     requiring Home Assistant infrastructure.
     """
 
-    def __init__(self, tso_id: str = "bkk"):
+    def __init__(self, dso_id: str = "bkk"):
         # Current month tracking
         self._current_month: int = datetime.now().month
         self._daily_max_power: dict[str, float] = {}
@@ -51,7 +51,7 @@ class CoordinatorSimulator:
         self._store = MockStore()
         self._store_loaded = False
 
-        # TSO config (BKK defaults)
+        # DSO config (BKK defaults)
         self.energiledd_dag = 0.4613
         self.energiledd_natt = 0.2329
         self.kapasitetstrinn = [

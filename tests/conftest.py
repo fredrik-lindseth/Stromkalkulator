@@ -22,7 +22,10 @@ sys.modules["homeassistant.helpers.issue_registry"] = MagicMock()
 sys.modules["homeassistant.helpers.storage"] = MagicMock()
 sys.modules["homeassistant.helpers.update_coordinator"] = MagicMock()
 sys.modules["homeassistant.helpers.entity"] = MagicMock()
+sys.modules["homeassistant.helpers.selector"] = MagicMock()
 sys.modules["homeassistant.components.sensor"] = MagicMock()
+sys.modules["homeassistant.util"] = MagicMock()
+sys.modules["homeassistant.util.dt"] = MagicMock()
 
 
 @pytest.fixture

@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import logging
+import math
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.util import dt as dt_util
 
 from .const import (
     AVGIFTSSONE_STANDARD,
@@ -23,12 +25,12 @@ from .const import (
     DEFAULT_KAPASITET_VARSEL_TERSKEL,
     DOMAIN,
     ENOVA_AVGIFT,
-    HELLIGDAGER_BEVEGELIGE,
     HELLIGDAGER_FASTE,
     STROMSTOTTE_LEVEL,
     STROMSTOTTE_MAX_KWH,
     STROMSTOTTE_RATE,
     TSO_LIST,
+    _bevegelige_helligdager,
     get_forbruksavgift,
     get_mva_sats,
     get_norgespris_inkl_mva,
@@ -59,13 +61,14 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
     kapasitetstrinn: list[tuple[float, int]]
     kapasitet_varsel_terskel: float
     _daily_max_power: dict[str, float]
-    _current_month: int
+    _current_month: str  # "YYYY-MM" format for year-aware month tracking
     _monthly_consumption: dict[str, float]
     _last_update: datetime | None
     _previous_month_consumption: dict[str, float]
     _previous_month_top_3: dict[str, float]
     _previous_month_name: str | None
     _monthly_norgespris_diff: float
+    _previous_month_norgespris_diff: float
     _store: Store[dict[str, Any]]
     _store_loaded: bool
 
@@ -98,8 +101,13 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         self.energiledd_natt = float(entry.data.get(CONF_ENERGILEDD_NATT, self.tso["energiledd_natt"]))
 
         # Get kapasitetstrinn from DSO
-        # Type: list of tuples (kW_threshold, NOK_per_month)
-        self.kapasitetstrinn = cast("list[tuple[float, int]]", self.tso["kapasitetstrinn"])
+        # Normalize: some DSOs (e.g. Barents Nett) use dict format {"min", "max", "pris"}
+        # Convert to standard tuple format (kW_threshold, NOK_per_month)
+        raw_trinn = self.tso["kapasitetstrinn"]
+        if raw_trinn and isinstance(raw_trinn[0], dict):
+            self.kapasitetstrinn = [(entry["max"], entry["pris"]) for entry in raw_trinn]
+        else:
+            self.kapasitetstrinn = cast("list[tuple[float, int]]", raw_trinn)
 
         self.kapasitet_varsel_terskel = float(
             entry.data.get(CONF_KAPASITET_VARSEL_TERSKEL, DEFAULT_KAPASITET_VARSEL_TERSKEL)
@@ -108,7 +116,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         # Track max power for capacity calculation
         # Format: {date_str: max_power_kw}
         self._daily_max_power = {}
-        self._current_month = datetime.now().month
+        self._current_month = datetime.now().strftime("%Y-%m")
 
         # Track energy consumption for monthly utility meter
         # Format: {"dag": kwh, "natt": kwh}
@@ -120,9 +128,11 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         self._previous_month_consumption = {"dag": 0.0, "natt": 0.0}
         self._previous_month_top_3 = {}
         self._previous_month_name = None  # e.g., "januar 2026"
+        self._previous_month_norgespris_diff = 0.0
 
-        # Cache last known electricity company price (survives brief API outages)
+        # Cache last known prices (survives brief sensor outages)
         self._last_electricity_company_price: float | None = None
+        self._last_spot_price: float | None = None
 
         # Persistent storage - keyed by entry_id for multi-instance isolation
         self._store = Store(hass, 1, f"{DOMAIN}_{entry.entry_id}")
@@ -130,7 +140,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from sensors and calculate values."""
-        now = datetime.now()
+        now = dt_util.now()
 
         # Load stored data on first run
         if not self._store_loaded:
@@ -138,7 +148,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             self._store_loaded = True
 
         # Reset at new month
-        if now.month != self._current_month:
+        current_month_str = now.strftime("%Y-%m")
+        if current_month_str != self._current_month:
             # Save previous month's data before reset
             self._previous_month_consumption = self._monthly_consumption.copy()
             self._previous_month_top_3 = self._get_top_3_days()
@@ -146,18 +157,26 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             prev_month_date = now.replace(day=1) - timedelta(days=1)
             self._previous_month_name = self._format_month_name(prev_month_date)
 
+            # Archive Norgespris diff before reset
+            self._previous_month_norgespris_diff = self._monthly_norgespris_diff
+
             # Reset current month data
             self._daily_max_power = {}
             self._monthly_consumption = {"dag": 0.0, "natt": 0.0}
             self._monthly_norgespris_diff = 0.0
-            self._current_month = now.month
+            self._current_month = current_month_str
             await self._save_stored_data()
 
         # Get current power consumption
         power_state = self.hass.states.get(self.power_sensor)
-        current_power_w = (
-            float(power_state.state) if power_state and power_state.state not in ("unknown", "unavailable") else 0
-        )
+        try:
+            current_power_w = (
+                float(power_state.state) if power_state and power_state.state not in ("unknown", "unavailable") else 0
+            )
+        except (ValueError, TypeError):
+            current_power_w = 0
+        if not math.isfinite(current_power_w):
+            current_power_w = 0
         current_power_kw = current_power_w / 1000
 
         # Calculate energy consumption since last update (riemann sum)
@@ -165,6 +184,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         consumption_updated = False
         if self._last_update is not None and current_power_kw > 0:
             elapsed_hours = (now - self._last_update).total_seconds() / 3600
+            # Clamp to 0-6 minutes: reject negative (clock jump back) and spikes (clock jump forward)
+            elapsed_hours = max(0.0, min(elapsed_hours, 0.1))
             energy_kwh = current_power_kw * elapsed_hours
             # Add to appropriate tariff bucket
             tariff = "dag" if self._is_day_rate(now) else "natt"
@@ -205,12 +226,21 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         # Calculate energiledd
         energiledd = self._get_energiledd(now)
 
-        # Get spot price
+        # Get spot price (cache last known value to survive brief sensor outages)
         spot_state = self.hass.states.get(self.spot_price_sensor)
-        try:
-            spot_price = float(spot_state.state) if spot_state and spot_state.state not in ("unknown", "unavailable") else 0
-        except (ValueError, TypeError):
-            spot_price = 0
+        spot_price: float = 0
+        if spot_state and spot_state.state not in ("unknown", "unavailable"):
+            try:
+                raw_spot = float(spot_state.state)
+            except (ValueError, TypeError):
+                raw_spot = None
+            if raw_spot is not None and math.isfinite(raw_spot):
+                spot_price = raw_spot
+                self._last_spot_price = spot_price
+            elif self._last_spot_price is not None:
+                spot_price = self._last_spot_price
+        elif self._last_spot_price is not None:
+            spot_price = self._last_spot_price
 
         # Calculate strømstøtte
         # Forskrift § 5: 90% av spotpris over 77 øre/kWh eks. mva (96,25 øre inkl. mva) i 2026
@@ -302,8 +332,13 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         if self.electricity_company_price_sensor:
             electricity_company_state = self.hass.states.get(self.electricity_company_price_sensor)
             if electricity_company_state and electricity_company_state.state not in ("unknown", "unavailable"):
-                electricity_company_price = float(electricity_company_state.state)
-                self._last_electricity_company_price = electricity_company_price
+                try:
+                    raw_price = float(electricity_company_state.state)
+                except (ValueError, TypeError):
+                    raw_price = None
+                if raw_price is not None and math.isfinite(raw_price):
+                    electricity_company_price = raw_price
+                    self._last_electricity_company_price = electricity_company_price
             elif self._last_electricity_company_price is not None:
                 electricity_company_price = self._last_electricity_company_price
             if electricity_company_price is not None:
@@ -371,6 +406,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             "neste_trinn_pris": neste_trinn_pris,
             "kapasitet_varsel": kapasitet_varsel,
             "monthly_norgespris_diff_kr": round(self._monthly_norgespris_diff, 2),
+            "previous_month_norgespris_diff_kr": round(self._previous_month_norgespris_diff, 2),
         }
 
     def _get_top_3_days(self) -> dict[str, float]:
@@ -408,7 +444,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         date_yyyy_mm_dd = now.strftime("%Y-%m-%d")
 
         is_fixed_holiday = date_mm_dd in HELLIGDAGER_FASTE
-        is_moving_holiday = date_yyyy_mm_dd in HELLIGDAGER_BEVEGELIGE
+        # Compute moving holidays dynamically for the current year
+        bevegelige = _bevegelige_helligdager(now.year)
+        is_moving_holiday = date_yyyy_mm_dd in bevegelige
         is_weekend = now.weekday() >= 5
         is_night = now.hour < 6 or now.hour >= 22
 
@@ -454,19 +492,75 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
                 await old_store.async_remove()
 
         if data:
-            self._daily_max_power = data.get("daily_max_power", {})
-            self._monthly_consumption = data.get("monthly_consumption", {"dag": 0.0, "natt": 0.0})
-            self._monthly_norgespris_diff = data.get("monthly_norgespris_diff", 0.0)
-            self._previous_month_consumption = data.get("previous_month_consumption", {"dag": 0.0, "natt": 0.0})
-            self._previous_month_top_3 = data.get("previous_month_top_3", {})
-            self._previous_month_name = data.get("previous_month_name")
-            stored_month = data.get("current_month")
-            # If stored month is different, clear data
-            if stored_month and stored_month != self._current_month:
-                self._daily_max_power = {}
-                self._monthly_consumption = {"dag": 0.0, "natt": 0.0}
-                self._monthly_norgespris_diff = 0.0
+            try:
+                self._daily_max_power = self._validate_daily_max_power(data.get("daily_max_power", {}))
+                self._monthly_consumption = self._validate_consumption(
+                    data.get("monthly_consumption", {"dag": 0.0, "natt": 0.0})
+                )
+                self._monthly_norgespris_diff = self._validate_float(
+                    data.get("monthly_norgespris_diff", 0.0)
+                )
+                self._previous_month_consumption = self._validate_consumption(
+                    data.get("previous_month_consumption", {"dag": 0.0, "natt": 0.0})
+                )
+                self._previous_month_top_3 = self._validate_daily_max_power(
+                    data.get("previous_month_top_3", {})
+                )
+                self._previous_month_name = data.get("previous_month_name")
+                self._previous_month_norgespris_diff = self._validate_float(
+                    data.get("previous_month_norgespris_diff", 0.0)
+                )
+                stored_month = data.get("current_month")
+                if stored_month is not None:
+                    # Backward compat: old format stored month as integer
+                    if isinstance(stored_month, int):
+                        # Cannot reconstruct year from int alone; assume current year
+                        stored_month = f"{datetime.now().year}-{stored_month:02d}"
+                    if stored_month != self._current_month:
+                        # Set to stored month so the normal month-transition in
+                        # _async_update_data fires and properly archives previous month data
+                        self._current_month = stored_month
+            except (TypeError, KeyError, AttributeError) as err:
+                _LOGGER.warning("Corrupt storage data, using defaults: %s", err)
             _LOGGER.debug("Loaded stored data: %s", self._daily_max_power)
+
+    @staticmethod
+    def _validate_float(value: Any) -> float:
+        """Validate and return a finite float, defaulting to 0.0."""
+        try:
+            val = float(value)
+        except (ValueError, TypeError):
+            return 0.0
+        return val if math.isfinite(val) else 0.0
+
+    @staticmethod
+    def _validate_daily_max_power(data: Any) -> dict[str, float]:
+        """Validate daily max power dict: all values must be finite floats."""
+        if not isinstance(data, dict):
+            return {}
+        result: dict[str, float] = {}
+        for key, val in data.items():
+            try:
+                fval = float(val)
+            except (ValueError, TypeError):
+                continue
+            if math.isfinite(fval):
+                result[str(key)] = fval
+        return result
+
+    @staticmethod
+    def _validate_consumption(data: Any) -> dict[str, float]:
+        """Validate consumption dict has dag/natt keys with finite floats."""
+        if not isinstance(data, dict):
+            return {"dag": 0.0, "natt": 0.0}
+        result: dict[str, float] = {"dag": 0.0, "natt": 0.0}
+        for key in ("dag", "natt"):
+            try:
+                val = float(data.get(key, 0.0))
+            except (ValueError, TypeError):
+                val = 0.0
+            result[key] = val if math.isfinite(val) else 0.0
+        return result
 
     async def _save_stored_data(self) -> None:
         """Save data to disk."""
@@ -478,6 +572,11 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             "previous_month_top_3": self._previous_month_top_3,
             "previous_month_name": self._previous_month_name,
             "monthly_norgespris_diff": self._monthly_norgespris_diff,
+            "previous_month_norgespris_diff": self._previous_month_norgespris_diff,
         }
-        await self._store.async_save(data)
+        try:
+            await self._store.async_save(data)
+        except OSError:
+            _LOGGER.warning("Failed to save storage data (disk full?)")
+            return
         _LOGGER.debug("Saved data: %s", data)

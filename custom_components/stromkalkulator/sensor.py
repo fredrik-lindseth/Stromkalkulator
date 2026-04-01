@@ -259,7 +259,7 @@ class MarginNesteTrinnSensor(NettleieBaseSensor):
         """Return extra attributes."""
         if self.coordinator.data:
             return {
-                "nåværende_trinn_pris": self.coordinator.data.get("kapasitetsledd"),
+                "naavarende_trinn_pris": self.coordinator.data.get("kapasitetsledd"),
                 "neste_trinn_pris": self.coordinator.data.get("neste_trinn_pris"),
             }
         return None
@@ -1578,7 +1578,7 @@ class ForrigeMaanedForbrukDagSensor(ForrigeMaanedBaseSensor):
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return the month name."""
         if self.coordinator.data:
-            return {"måned": self.coordinator.data.get("previous_month_name")}
+            return {"maaned": self.coordinator.data.get("previous_month_name")}
         return None
 
 
@@ -1610,7 +1610,7 @@ class ForrigeMaanedForbrukNattSensor(ForrigeMaanedBaseSensor):
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return the month name."""
         if self.coordinator.data:
-            return {"måned": self.coordinator.data.get("previous_month_name")}
+            return {"maaned": self.coordinator.data.get("previous_month_name")}
         return None
 
 
@@ -1643,7 +1643,7 @@ class ForrigeMaanedForbrukTotalSensor(ForrigeMaanedBaseSensor):
         """Return consumption breakdown."""
         if self.coordinator.data:
             return {
-                "måned": self.coordinator.data.get("previous_month_name"),
+                "maaned": self.coordinator.data.get("previous_month_name"),
                 "dag_kwh": self.coordinator.data.get("previous_month_consumption_dag_kwh"),
                 "natt_kwh": self.coordinator.data.get("previous_month_consumption_natt_kwh"),
             }
@@ -1718,11 +1718,14 @@ class ForrigeMaanedNettleieSensor(ForrigeMaanedBaseSensor):
                 kapasitet = 0
 
             return {
-                "måned": self.coordinator.data.get("previous_month_name"),
+                "maaned": self.coordinator.data.get("previous_month_name"),
                 "energiledd_dag_kr": round(dag_kwh * dag_pris, 2),
                 "energiledd_natt_kr": round(natt_kwh * natt_pris, 2),
                 "kapasitetsledd_kr": kapasitet,
                 "snitt_topp_3_kw": round(avg_power, 2),
+                "norgespris_differanse_kr": self.coordinator.data.get(
+                    "previous_month_norgespris_diff_kr", 0.0
+                ),
             }
         return None
 
@@ -1756,7 +1759,7 @@ class ForrigeMaanedToppforbrukSensor(ForrigeMaanedBaseSensor):
         """Return top 3 days breakdown."""
         if self.coordinator.data:
             top_3 = self.coordinator.data.get("previous_month_top_3", {})
-            attrs: dict[str, Any] = {"måned": self.coordinator.data.get("previous_month_name")}
+            attrs: dict[str, Any] = {"maaned": self.coordinator.data.get("previous_month_name")}
             for i, (date, kw) in enumerate(sorted(top_3.items(), key=lambda x: x[1], reverse=True), 1):
                 attrs[f"topp_{i}_dato"] = date
                 attrs[f"topp_{i}_kw"] = round(kw, 2)

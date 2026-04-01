@@ -578,11 +578,11 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
     async def _save_stored_data(self) -> None:
         """Save data to disk."""
         data: dict[str, Any] = {
-            "daily_max_power": self._daily_max_power,
-            "monthly_consumption": self._monthly_consumption,
+            "daily_max_power": dict(self._daily_max_power),
+            "monthly_consumption": dict(self._monthly_consumption),
             "current_month": self._current_month,
-            "previous_month_consumption": self._previous_month_consumption,
-            "previous_month_top_3": self._previous_month_top_3,
+            "previous_month_consumption": dict(self._previous_month_consumption),
+            "previous_month_top_3": dict(self._previous_month_top_3),
             "previous_month_name": self._previous_month_name,
             "monthly_norgespris_diff": self._monthly_norgespris_diff,
             "previous_month_norgespris_diff": self._previous_month_norgespris_diff,

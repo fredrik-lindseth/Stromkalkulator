@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+from datetime import datetime
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -24,8 +25,12 @@ sys.modules["homeassistant.helpers.update_coordinator"] = MagicMock()
 sys.modules["homeassistant.helpers.entity"] = MagicMock()
 sys.modules["homeassistant.helpers.selector"] = MagicMock()
 sys.modules["homeassistant.components.sensor"] = MagicMock()
-sys.modules["homeassistant.util"] = MagicMock()
-sys.modules["homeassistant.util.dt"] = MagicMock()
+_ha_util_mock = MagicMock()
+_dt_util_mock = MagicMock()
+_dt_util_mock.now.return_value = datetime.now()
+_ha_util_mock.dt = _dt_util_mock
+sys.modules["homeassistant.util"] = _ha_util_mock
+sys.modules["homeassistant.util.dt"] = _dt_util_mock
 
 
 @pytest.fixture

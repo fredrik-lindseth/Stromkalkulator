@@ -51,7 +51,7 @@ def coord_module():
     importlib.reload(coord)
 
     coord.dt_util = MagicMock()
-    coord.dt_util.now.return_value = _real_datetime.now()
+    coord.dt_util.now.return_value = _real_datetime(2026, 6, 15, 12, 0)
 
     def make_store(hass, version, key):
         store = MagicMock()

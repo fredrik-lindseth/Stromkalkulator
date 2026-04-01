@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.helpers.storage import Store
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -97,8 +97,14 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         self.har_norgespris = entry.data.get(CONF_HAR_NORGESPRIS, False)
 
         # Get energiledd from config (allows override)
-        self.energiledd_dag = float(entry.data.get(CONF_ENERGILEDD_DAG, self.tso["energiledd_dag"]))
-        self.energiledd_natt = float(entry.data.get(CONF_ENERGILEDD_NATT, self.tso["energiledd_natt"]))
+        try:
+            self.energiledd_dag = float(entry.data.get(CONF_ENERGILEDD_DAG, self.tso["energiledd_dag"]))
+        except (ValueError, TypeError):
+            self.energiledd_dag = float(self.tso["energiledd_dag"])
+        try:
+            self.energiledd_natt = float(entry.data.get(CONF_ENERGILEDD_NATT, self.tso["energiledd_natt"]))
+        except (ValueError, TypeError):
+            self.energiledd_natt = float(self.tso["energiledd_natt"])
 
         # Get kapasitetstrinn from DSO
         # Normalize: some DSOs (e.g. Barents Nett) use dict format {"min", "max", "pris"}
@@ -109,14 +115,17 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         else:
             self.kapasitetstrinn = cast("list[tuple[float, int]]", raw_trinn)
 
-        self.kapasitet_varsel_terskel = float(
-            entry.data.get(CONF_KAPASITET_VARSEL_TERSKEL, DEFAULT_KAPASITET_VARSEL_TERSKEL)
-        )
+        try:
+            self.kapasitet_varsel_terskel = float(
+                entry.data.get(CONF_KAPASITET_VARSEL_TERSKEL, DEFAULT_KAPASITET_VARSEL_TERSKEL)
+            )
+        except (ValueError, TypeError):
+            self.kapasitet_varsel_terskel = float(DEFAULT_KAPASITET_VARSEL_TERSKEL)
 
         # Track max power for capacity calculation
         # Format: {date_str: max_power_kw}
         self._daily_max_power = {}
-        self._current_month = datetime.now().strftime("%Y-%m")
+        self._current_month = dt_util.now().strftime("%Y-%m")
 
         # Track energy consumption for monthly utility meter
         # Format: {"dag": kwh, "natt": kwh}
@@ -177,6 +186,10 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             current_power_w = 0
         if not math.isfinite(current_power_w):
             current_power_w = 0
+        # Clamp to reasonable residential range (0-500 kW = 500,000 W)
+        if current_power_w > 500_000:
+            _LOGGER.warning("Power reading %s W exceeds 500 kW, clamping", current_power_w)
+            current_power_w = 0
         current_power_kw = current_power_w / 1000
 
         # Calculate energy consumption since last update (riemann sum)
@@ -221,7 +234,11 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
                     neste_trinn_pris = self.kapasitetstrinn[i + 1][1]
                 break
 
-        kapasitet_varsel = margin_neste_trinn < self.kapasitet_varsel_terskel
+        # If in the highest tier (no next tier), don't warn
+        if margin_neste_trinn == 0.0 and neste_trinn_pris == kapasitetsledd:
+            kapasitet_varsel = False
+        else:
+            kapasitet_varsel = margin_neste_trinn < self.kapasitet_varsel_terskel
 
         # Calculate energiledd
         energiledd = self._get_energiledd(now)
@@ -241,6 +258,10 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
                 spot_price = self._last_spot_price
         elif self._last_spot_price is not None:
             spot_price = self._last_spot_price
+
+        # Raise if both sensor entities are completely missing (not registered)
+        if power_state is None and spot_state is None:
+            raise UpdateFailed("Both power and spot price sensors are unavailable")
 
         # Calculate strømstøtte
         # Forskrift § 5: 90% av spotpris over 77 øre/kWh eks. mva (96,25 øre inkl. mva) i 2026
@@ -515,7 +536,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
                     # Backward compat: old format stored month as integer
                     if isinstance(stored_month, int):
                         # Cannot reconstruct year from int alone; assume current year
-                        stored_month = f"{datetime.now().year}-{stored_month:02d}"
+                        stored_month = f"{dt_util.now().year}-{stored_month:02d}"
                     if stored_month != self._current_month:
                         # Set to stored month so the normal month-transition in
                         # _async_update_data fires and properly archives previous month data
@@ -544,7 +565,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
                 fval = float(val)
             except (ValueError, TypeError):
                 continue
-            if math.isfinite(fval):
+            if math.isfinite(fval) and fval >= 0:
                 result[str(key)] = fval
         return result
 
@@ -559,17 +580,19 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
                 val = float(data.get(key, 0.0))
             except (ValueError, TypeError):
                 val = 0.0
-            result[key] = val if math.isfinite(val) else 0.0
+            if not math.isfinite(val) or val < 0:
+                val = 0.0
+            result[key] = val
         return result
 
     async def _save_stored_data(self) -> None:
         """Save data to disk."""
         data: dict[str, Any] = {
-            "daily_max_power": self._daily_max_power,
-            "monthly_consumption": self._monthly_consumption,
+            "daily_max_power": dict(self._daily_max_power),
+            "monthly_consumption": dict(self._monthly_consumption),
             "current_month": self._current_month,
-            "previous_month_consumption": self._previous_month_consumption,
-            "previous_month_top_3": self._previous_month_top_3,
+            "previous_month_consumption": dict(self._previous_month_consumption),
+            "previous_month_top_3": dict(self._previous_month_top_3),
             "previous_month_name": self._previous_month_name,
             "monthly_norgespris_diff": self._monthly_norgespris_diff,
             "previous_month_norgespris_diff": self._previous_month_norgespris_diff,

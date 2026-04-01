@@ -60,7 +60,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
     kapasitetstrinn: list[tuple[float, int]]
     kapasitet_varsel_terskel: float
     _daily_max_power: dict[str, float]
-    _current_month: int
+    _current_month: str  # "YYYY-MM" format for year-aware month tracking
     _monthly_consumption: dict[str, float]
     _last_update: datetime | None
     _previous_month_consumption: dict[str, float]
@@ -114,7 +114,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         # Track max power for capacity calculation
         # Format: {date_str: max_power_kw}
         self._daily_max_power = {}
-        self._current_month = datetime.now().month
+        self._current_month = datetime.now().strftime("%Y-%m")
 
         # Track energy consumption for monthly utility meter
         # Format: {"dag": kwh, "natt": kwh}
@@ -144,7 +144,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             self._store_loaded = True
 
         # Reset at new month
-        if now.month != self._current_month:
+        current_month_str = now.strftime("%Y-%m")
+        if current_month_str != self._current_month:
             # Save previous month's data before reset
             self._previous_month_consumption = self._monthly_consumption.copy()
             self._previous_month_top_3 = self._get_top_3_days()
@@ -156,7 +157,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             self._daily_max_power = {}
             self._monthly_consumption = {"dag": 0.0, "natt": 0.0}
             self._monthly_norgespris_diff = 0.0
-            self._current_month = now.month
+            self._current_month = current_month_str
             await self._save_stored_data()
 
         # Get current power consumption
@@ -481,11 +482,15 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             self._previous_month_top_3 = data.get("previous_month_top_3", {})
             self._previous_month_name = data.get("previous_month_name")
             stored_month = data.get("current_month")
-            # If stored month is different, clear data
-            if stored_month and stored_month != self._current_month:
-                self._daily_max_power = {}
-                self._monthly_consumption = {"dag": 0.0, "natt": 0.0}
-                self._monthly_norgespris_diff = 0.0
+            if stored_month is not None:
+                # Backward compat: old format stored month as integer
+                if isinstance(stored_month, int):
+                    # Cannot reconstruct year from int alone; assume current year
+                    stored_month = f"{datetime.now().year}-{stored_month:02d}"
+                if stored_month != self._current_month:
+                    # Set to stored month so the normal month-transition in
+                    # _async_update_data fires and properly archives previous month data
+                    self._current_month = stored_month
             _LOGGER.debug("Loaded stored data: %s", self._daily_max_power)
 
     async def _save_stored_data(self) -> None:

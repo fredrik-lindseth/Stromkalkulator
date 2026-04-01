@@ -4,7 +4,7 @@
 
 **Goal:** Fix bug where two config entries with the same DSO share storage, causing data to bleed between instances.
 
-**Architecture:** Change storage key from `stromkalkulator_{tso_id}` to `stromkalkulator_{entry_id}` so each config entry has isolated persistent storage. Add migration fallback from DSO-based key for existing users.
+**Architecture:** Change storage key from `stromkalkulator_{dso_id}` to `stromkalkulator_{entry_id}` so each config entry has isolated persistent storage. Add migration fallback from DSO-based key for existing users.
 
 **Tech Stack:** Python, Home Assistant helpers.storage.Store
 
@@ -14,9 +14,9 @@
 
 **Bug:** When a user sets up two config entries with the same nettselskap (e.g., two Tibber pulses in the same BKK area), both coordinators create `Store(hass, 1, "stromkalkulator_bkk")` — the same storage key. Data from one instance overwrites the other.
 
-**Root cause:** `coordinator.py:115` uses `tso_id` in storage key instead of `entry.entry_id`.
+**Root cause:** `coordinator.py:115` uses `dso_id` in storage key instead of `entry.entry_id`.
 
-**Migration concern:** Existing users have files named `stromkalkulator_{tso_id}`. The fix must migrate data from the old key on first load.
+**Migration concern:** Existing users have files named `stromkalkulator_{dso_id}`. The fix must migrate data from the old key on first load.
 
 ---
 
@@ -53,22 +53,22 @@ def mock_hass():
     return hass
 
 
-def _make_entry(entry_id: str, tso_id: str = "bkk") -> MagicMock:
+def _make_entry(entry_id: str, dso_id: str = "bkk") -> MagicMock:
     """Create a mock config entry."""
     entry = MagicMock()
     entry.entry_id = entry_id
     entry.data = {
-        "tso": tso_id,
+        "tso": dso_id,
         "power_sensor": f"sensor.power_{entry_id}",
     }
     return entry
 
 
 def test_storage_key_uses_entry_id(mock_store, mock_hass):
-    """Storage key must include entry_id, not just tso_id."""
+    """Storage key must include entry_id, not just dso_id."""
     from stromkalkulator.coordinator import NettleieCoordinator
 
-    entry = _make_entry("entry_abc123", tso_id="bkk")
+    entry = _make_entry("entry_abc123", dso_id="bkk")
     NettleieCoordinator(mock_hass, entry)
 
     mock_store.assert_called_once()
@@ -76,12 +76,12 @@ def test_storage_key_uses_entry_id(mock_store, mock_hass):
     assert "entry_abc123" in store_key, f"Storage key should contain entry_id, got: {store_key}"
 
 
-def test_two_entries_same_tso_get_different_storage(mock_store, mock_hass):
-    """Two entries with same TSO must get different storage keys."""
+def test_two_entries_same_dso_get_different_storage(mock_store, mock_hass):
+    """Two entries with same DSO must get different storage keys."""
     from stromkalkulator.coordinator import NettleieCoordinator
 
-    entry1 = _make_entry("entry_111", tso_id="bkk")
-    entry2 = _make_entry("entry_222", tso_id="bkk")
+    entry1 = _make_entry("entry_111", dso_id="bkk")
+    entry2 = _make_entry("entry_222", dso_id="bkk")
 
     NettleieCoordinator(mock_hass, entry1)
     NettleieCoordinator(mock_hass, entry2)
@@ -95,7 +95,7 @@ def test_two_entries_same_tso_get_different_storage(mock_store, mock_hass):
 **Step 2: Run test to verify it fails**
 
 Run: `pipx run pytest tests/test_storage_key.py -v`
-Expected: FAIL — storage key currently uses `tso_id`, not `entry_id`
+Expected: FAIL — storage key currently uses `dso_id`, not `entry_id`
 
 ---
 
@@ -110,7 +110,7 @@ Expected: FAIL — storage key currently uses `tso_id`, not `entry_id`
 In `coordinator.py`, change line 115 from:
 
 ```python
-self._store = Store(hass, 1, f"{DOMAIN}_{tso_id}")
+self._store = Store(hass, 1, f"{DOMAIN}_{dso_id}")
 ```
 
 to:
@@ -135,7 +135,7 @@ Expected: All tests pass
 git add custom_components/stromkalkulator/coordinator.py tests/test_storage_key.py
 git commit -m "fix: use entry_id for storage key to support multiple instances
 
-Two config entries with the same TSO (e.g. two meters in same grid area)
+Two config entries with the same DSO (e.g. two meters in same grid area)
 now get separate storage files instead of sharing one."
 ```
 
@@ -153,8 +153,8 @@ Add to `tests/test_storage_key.py`:
 
 ```python
 @pytest.mark.asyncio
-async def test_migration_from_tso_storage(mock_hass):
-    """Loading data falls back to TSO-based storage key for migration."""
+async def test_migration_from_dso_storage(mock_hass):
+    """Loading data falls back to DSO-based storage key for migration."""
     from stromkalkulator.coordinator import NettleieCoordinator
 
     stored_data = {
@@ -173,7 +173,7 @@ async def test_migration_from_tso_storage(mock_hass):
         store = MagicMock()
         stores[key] = store
         if key == "stromkalkulator_bkk":
-            # Old TSO-based store has data
+            # Old DSO-based store has data
             store.async_load = MagicMock(return_value=stored_data)
         else:
             # New entry_id-based store is empty
@@ -181,11 +181,11 @@ async def test_migration_from_tso_storage(mock_hass):
         return store
 
     with patch("stromkalkulator.coordinator.Store", side_effect=make_store):
-        entry = _make_entry("entry_new", tso_id="bkk")
+        entry = _make_entry("entry_new", dso_id="bkk")
         coordinator = NettleieCoordinator(mock_hass, entry)
         await coordinator._load_stored_data()
 
-    # Should have loaded data from TSO-based fallback
+    # Should have loaded data from DSO-based fallback
     assert coordinator._daily_max_power == {"2026-03-01": 5.5}
     assert coordinator._monthly_consumption == {"dag": 100.0, "natt": 50.0}
 
@@ -196,7 +196,7 @@ async def test_migration_from_tso_storage(mock_hass):
 
 **Step 2: Run test to verify it fails**
 
-Run: `pipx run pytest tests/test_storage_key.py::test_migration_from_tso_storage -v`
+Run: `pipx run pytest tests/test_storage_key.py::test_migration_from_dso_storage -v`
 Expected: FAIL — current migration code tries entry_id as fallback (which is now primary)
 
 **Step 3: Update migration logic**
@@ -208,12 +208,12 @@ async def _load_stored_data(self) -> None:
     """Load stored data from disk."""
     data: dict[str, Any] | None = await self._store.async_load()
 
-    # Migration: try to load from old TSO-based storage if new storage is empty
+    # Migration: try to load from old DSO-based storage if new storage is empty
     if not data:
-        old_store: Store[dict[str, Any]] = Store(self.hass, 1, f"{DOMAIN}_{self._tso_id}")
+        old_store: Store[dict[str, Any]] = Store(self.hass, 1, f"{DOMAIN}_{self._dso_id}")
         data = await old_store.async_load()
         if data:
-            _LOGGER.info("Migrated data from TSO-based storage to entry-based storage")
+            _LOGGER.info("Migrated data from DSO-based storage to entry-based storage")
             # Save to new location immediately
             await self._store.async_save(data)
 
@@ -245,9 +245,9 @@ Expected: All tests pass
 
 ```bash
 git add custom_components/stromkalkulator/coordinator.py tests/test_storage_key.py
-git commit -m "fix: migrate existing data from TSO-based to entry-based storage
+git commit -m "fix: migrate existing data from DSO-based to entry-based storage
 
-Existing users with stromkalkulator_{tso_id} files will have data
+Existing users with stromkalkulator_{dso_id} files will have data
 automatically migrated to stromkalkulator_{entry_id} on first load."
 ```
 
@@ -265,7 +265,7 @@ automatically migrated to stromkalkulator_{entry_id} on first load."
 Change:
 
 ```python
-# Persistent storage - use TSO id for stable storage across reinstalls
+# Persistent storage - use DSO id for stable storage across reinstalls
 ```
 
 to:

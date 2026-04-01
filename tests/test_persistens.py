@@ -36,11 +36,11 @@ def _patch_update_coordinator():
     mod.DataUpdateCoordinator = original
 
 
-def _make_entry(entry_id="entry_test", tso_id="bkk"):
+def _make_entry(entry_id="entry_test", dso_id="bkk"):
     entry = MagicMock()
     entry.entry_id = entry_id
     entry.data = {
-        "tso": tso_id,
+        "tso": dso_id,
         "power_sensor": "sensor.power",
         "spot_price_sensor": "sensor.spot_price",
     }
@@ -145,8 +145,8 @@ class TestSaveLoadCycle:
 class TestMigrationFromDSOStorage:
     """Migration from old DSO-based storage to entry-based storage."""
 
-    def test_migrates_from_tso_key_to_entry_key(self):
-        """When entry store is empty, data from TSO store is loaded and migrated."""
+    def test_migrates_from_dso_key_to_entry_key(self):
+        """When entry store is empty, data from DSO store is loaded and migrated."""
         coord = _reload_coord()
 
         now = datetime.now()
@@ -175,7 +175,7 @@ class TestMigrationFromDSOStorage:
         coord.Store = MagicMock(side_effect=make_store)
 
         hass = MagicMock()
-        entry = _make_entry("entry_new", tso_id="bkk")
+        entry = _make_entry("entry_new", dso_id="bkk")
         coordinator = coord.NettleieCoordinator(hass, entry)
         asyncio.run(coordinator._load_stored_data())
 
@@ -221,7 +221,7 @@ class TestMigrationFromDSOStorage:
         coord.Store = MagicMock(side_effect=make_store)
 
         hass = MagicMock()
-        entry = _make_entry("entry_test", tso_id="bkk")
+        entry = _make_entry("entry_test", dso_id="bkk")
         coordinator = coord.NettleieCoordinator(hass, entry)
         asyncio.run(coordinator._load_stored_data())
 

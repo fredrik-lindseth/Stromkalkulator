@@ -12,13 +12,13 @@ if TYPE_CHECKING:
 
 from .const import (
     CONF_AVGIFTSSONE,
+    CONF_DSO,
     CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
     CONF_ENERGILEDD_DAG,
     CONF_ENERGILEDD_NATT,
     CONF_HAR_NORGESPRIS,
     CONF_POWER_SENSOR,
     CONF_SPOT_PRICE_SENSOR,
-    CONF_TSO,
 )
 
 
@@ -39,7 +39,7 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
         "config_entry": {
             "entry_id": entry.entry_id,
             "data": {
-                "tso": entry.data.get(CONF_TSO),
+                "dso": entry.data.get(CONF_DSO),
                 "avgiftssone": entry.data.get(CONF_AVGIFTSSONE),
                 "har_norgespris": entry.data.get(CONF_HAR_NORGESPRIS),
                 "energiledd_dag_override": entry.data.get(CONF_ENERGILEDD_DAG),
@@ -51,9 +51,9 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
             "spot_price_sensor": entry.data.get(CONF_SPOT_PRICE_SENSOR),
             "electricity_provider_price_sensor": entry.data.get(CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR),
         },
-        "tso_info": {
-            "id": coordinator._tso_id,
-            "name": coordinator.tso.get("name"),
+        "dso_info": {
+            "id": coordinator._dso_id,
+            "name": coordinator.dso.get("name"),
             "energiledd_dag": coordinator.energiledd_dag,
             "energiledd_natt": coordinator.energiledd_natt,
             "kapasitetstrinn_count": len(coordinator.kapasitetstrinn),

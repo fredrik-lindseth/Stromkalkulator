@@ -36,7 +36,7 @@ energiledd_eks_avgifter = energiledd_dag / (1 + mva_sats) - forbruksavgift - ENO
 # 0.4613 / 1.25 - 0.0713 - 0.01 = 0.2877 (28.77 øre) ← RIKTIG
 ```
 
-Feilen oppstod fordi `energiledd_dag` (fra tso.py) er inkl. mva, mens `FORBRUKSAVGIFT_ALMINNELIG` og `ENOVA_AVGIFT` er eks. mva. Når man trekker eks. mva verdier fra en inkl. mva verdi og deretter deler på (1 + mva), får man feil resultat.
+Feilen oppstod fordi `energiledd_dag` (fra dso.py) er inkl. mva, mens `FORBRUKSAVGIFT_ALMINNELIG` og `ENOVA_AVGIFT` er eks. mva. Når man trekker eks. mva verdier fra en inkl. mva verdi og deretter deler på (1 + mva), får man feil resultat.
 
 Matematisk: `(a*1.25 - b) / 1.25 != a - b` (med mindre b = 0).
 

@@ -39,6 +39,12 @@ def _patch_update_coordinator():
     mod = sys.modules["homeassistant.helpers.update_coordinator"]
     original = getattr(mod, "DataUpdateCoordinator", None)
     mod.DataUpdateCoordinator = FakeDataUpdateCoordinator
+    # Ensure UpdateFailed is a real exception class (not a MagicMock)
+    original_uf = getattr(mod, "UpdateFailed", None)
+    if not isinstance(original_uf, type) or not issubclass(original_uf, BaseException):
+        class UpdateFailed(Exception):
+            pass
+        mod.UpdateFailed = UpdateFailed
     yield
     mod.DataUpdateCoordinator = original
 
@@ -72,13 +78,13 @@ def _make_state(value):
 
 def _make_entry(
     entry_id="test_entry",
-    tso_id="bkk",
+    dso_id="bkk",
     avgiftssone="standard",
 ):
     entry = MagicMock()
     entry.entry_id = entry_id
     entry.data = {
-        "tso": tso_id,
+        "tso": dso_id,
         "power_sensor": "sensor.power",
         "spot_price_sensor": "sensor.spot_price",
         "avgiftssone": avgiftssone,
@@ -192,8 +198,8 @@ class TestSpotprisCaching:
         result = _run_update(coord_module, coordinator)
         assert result["spot_price"] == 0
 
-    def test_none_sensor_without_cache_uses_zero(self, coord_module):
-        """Sensor not found at all (returns None), no cache -> 0."""
+    def test_none_sensor_without_cache_raises(self, coord_module):
+        """Sensor not found at all (returns None) -> UpdateFailed."""
         hass = MagicMock()
 
         def get_state(eid):
@@ -204,8 +210,8 @@ class TestSpotprisCaching:
         hass.states.get = MagicMock(side_effect=get_state)
         coordinator = coord_module.NettleieCoordinator(hass, _make_entry())
 
-        result = _run_update(coord_module, coordinator)
-        assert result["spot_price"] == 0
+        with pytest.raises(coord_module.UpdateFailed, match="Spot price sensor"):
+            _run_update(coord_module, coordinator)
 
     def test_nan_spot_with_cache_uses_cache(self, coord_module):
         """NaN spot value should fall back to cache."""

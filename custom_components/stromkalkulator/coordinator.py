@@ -97,8 +97,14 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         self.har_norgespris = entry.data.get(CONF_HAR_NORGESPRIS, False)
 
         # Get energiledd from config (allows override)
-        self.energiledd_dag = float(entry.data.get(CONF_ENERGILEDD_DAG, self.tso["energiledd_dag"]))
-        self.energiledd_natt = float(entry.data.get(CONF_ENERGILEDD_NATT, self.tso["energiledd_natt"]))
+        try:
+            self.energiledd_dag = float(entry.data.get(CONF_ENERGILEDD_DAG, self.tso["energiledd_dag"]))
+        except (ValueError, TypeError):
+            self.energiledd_dag = float(self.tso["energiledd_dag"])
+        try:
+            self.energiledd_natt = float(entry.data.get(CONF_ENERGILEDD_NATT, self.tso["energiledd_natt"]))
+        except (ValueError, TypeError):
+            self.energiledd_natt = float(self.tso["energiledd_natt"])
 
         # Get kapasitetstrinn from DSO
         # Normalize: some DSOs (e.g. Barents Nett) use dict format {"min", "max", "pris"}
@@ -109,9 +115,12 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         else:
             self.kapasitetstrinn = cast("list[tuple[float, int]]", raw_trinn)
 
-        self.kapasitet_varsel_terskel = float(
-            entry.data.get(CONF_KAPASITET_VARSEL_TERSKEL, DEFAULT_KAPASITET_VARSEL_TERSKEL)
-        )
+        try:
+            self.kapasitet_varsel_terskel = float(
+                entry.data.get(CONF_KAPASITET_VARSEL_TERSKEL, DEFAULT_KAPASITET_VARSEL_TERSKEL)
+            )
+        except (ValueError, TypeError):
+            self.kapasitet_varsel_terskel = float(DEFAULT_KAPASITET_VARSEL_TERSKEL)
 
         # Track max power for capacity calculation
         # Format: {date_str: max_power_kw}

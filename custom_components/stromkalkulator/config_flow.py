@@ -231,11 +231,7 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):  # type: ignore[misc]
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Manage the options."""
-        if user_input is not None:
-            # Update config entry data
-            new_data: dict[str, Any] = {**self.config_entry.data, **user_input}
-            self.hass.config_entries.async_update_entry(self.config_entry, data=new_data)
-            return self.async_create_entry(title="", data={})
+        errors: dict[str, str] = {}
 
         # Get current values from config entry
         current: dict[str, Any] = self.config_entry.data
@@ -334,7 +330,24 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):  # type: ignore[misc]
             }
         )
 
+        if user_input is not None:
+            # Validate power sensor uniqueness
+            new_power = user_input.get(CONF_POWER_SENSOR)
+            if new_power and new_power != self.config_entry.data.get(CONF_POWER_SENSOR):
+                new_unique_id = f"{DOMAIN}_{new_power}"
+                for entry in self.hass.config_entries.async_entries(DOMAIN):
+                    if entry.entry_id != self.config_entry.entry_id and entry.unique_id == new_unique_id:
+                        errors[CONF_POWER_SENSOR] = "already_configured"
+                        break
+
+            if not errors:
+                # Update config entry data
+                new_data: dict[str, Any] = {**self.config_entry.data, **user_input}
+                self.hass.config_entries.async_update_entry(self.config_entry, data=new_data)
+                return self.async_create_entry(title="", data={})
+
         return self.async_show_form(
             step_id="init",
             data_schema=options_schema,
+            errors=errors,
         )

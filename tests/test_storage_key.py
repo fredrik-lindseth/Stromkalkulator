@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -118,10 +119,11 @@ def test_migration_from_tso_storage(mock_hass):
 
     import stromkalkulator.coordinator as coord
 
+    now = datetime.now()
     stored_data = {
-        "daily_max_power": {"2026-03-01": 5.5},
+        "daily_max_power": {now.strftime("%Y-%m-01"): 5.5},
         "monthly_consumption": {"dag": 100.0, "natt": 50.0},
-        "current_month": 3,
+        "current_month": now.month,
         "previous_month_consumption": {"dag": 0.0, "natt": 0.0},
         "previous_month_top_3": {},
         "previous_month_name": None,
@@ -151,7 +153,7 @@ def test_migration_from_tso_storage(mock_hass):
     asyncio.run(coordinator._load_stored_data())
 
     # Should have loaded data from TSO-based fallback
-    assert coordinator._daily_max_power == {"2026-03-01": 5.5}
+    assert coordinator._daily_max_power == {now.strftime("%Y-%m-01"): 5.5}
     assert coordinator._monthly_consumption == {"dag": 100.0, "natt": 50.0}
 
     # Should have saved to new entry_id-based store
@@ -175,10 +177,15 @@ def test_two_instances_same_tso_migration_no_data_sharing(mock_hass):
 
     import stromkalkulator.coordinator as coord
 
+    now = datetime.now()
     stored_data = {
-        "daily_max_power": {"2026-03-01": 5.5, "2026-03-02": 7.2, "2026-03-03": 6.1},
+        "daily_max_power": {
+            now.strftime("%Y-%m-01"): 5.5,
+            now.strftime("%Y-%m-02"): 7.2,
+            now.strftime("%Y-%m-03"): 6.1,
+        },
         "monthly_consumption": {"dag": 100.0, "natt": 50.0},
-        "current_month": 3,
+        "current_month": now.month,
         "previous_month_consumption": {"dag": 0.0, "natt": 0.0},
         "previous_month_top_3": {},
         "previous_month_name": None,
@@ -215,7 +222,11 @@ def test_two_instances_same_tso_migration_no_data_sharing(mock_hass):
     entry1 = _make_entry("entry_meter1", tso_id="bkk")
     coord1 = coord.NettleieCoordinator(mock_hass, entry1)
     asyncio.run(coord1._load_stored_data())
-    assert coord1._daily_max_power == {"2026-03-01": 5.5, "2026-03-02": 7.2, "2026-03-03": 6.1}
+    assert coord1._daily_max_power == {
+        now.strftime("%Y-%m-01"): 5.5,
+        now.strftime("%Y-%m-02"): 7.2,
+        now.strftime("%Y-%m-03"): 6.1,
+    }
 
     # Second instance must NOT get the same data (old store was cleaned up)
     entry2 = _make_entry("entry_meter2", tso_id="bkk")

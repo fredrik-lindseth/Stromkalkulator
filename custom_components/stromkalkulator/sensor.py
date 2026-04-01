@@ -1723,6 +1723,9 @@ class ForrigeMaanedNettleieSensor(ForrigeMaanedBaseSensor):
                 "energiledd_natt_kr": round(natt_kwh * natt_pris, 2),
                 "kapasitetsledd_kr": kapasitet,
                 "snitt_topp_3_kw": round(avg_power, 2),
+                "norgespris_differanse_kr": self.coordinator.data.get(
+                    "previous_month_norgespris_diff_kr", 0.0
+                ),
             }
         return None
 

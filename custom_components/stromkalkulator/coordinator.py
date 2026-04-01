@@ -67,6 +67,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
     _previous_month_top_3: dict[str, float]
     _previous_month_name: str | None
     _monthly_norgespris_diff: float
+    _previous_month_norgespris_diff: float
     _store: Store[dict[str, Any]]
     _store_loaded: bool
 
@@ -126,6 +127,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         self._previous_month_consumption = {"dag": 0.0, "natt": 0.0}
         self._previous_month_top_3 = {}
         self._previous_month_name = None  # e.g., "januar 2026"
+        self._previous_month_norgespris_diff = 0.0
 
         # Cache last known electricity company price (survives brief API outages)
         self._last_electricity_company_price: float | None = None
@@ -152,6 +154,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             # Format: "januar 2026" (Norwegian month name)
             prev_month_date = now.replace(day=1) - timedelta(days=1)
             self._previous_month_name = self._format_month_name(prev_month_date)
+
+            # Archive Norgespris diff before reset
+            self._previous_month_norgespris_diff = self._monthly_norgespris_diff
 
             # Reset current month data
             self._daily_max_power = {}
@@ -392,6 +397,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             "neste_trinn_pris": neste_trinn_pris,
             "kapasitet_varsel": kapasitet_varsel,
             "monthly_norgespris_diff_kr": round(self._monthly_norgespris_diff, 2),
+            "previous_month_norgespris_diff_kr": round(self._previous_month_norgespris_diff, 2),
         }
 
     def _get_top_3_days(self) -> dict[str, float]:
@@ -481,6 +487,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             self._previous_month_consumption = data.get("previous_month_consumption", {"dag": 0.0, "natt": 0.0})
             self._previous_month_top_3 = data.get("previous_month_top_3", {})
             self._previous_month_name = data.get("previous_month_name")
+            self._previous_month_norgespris_diff = data.get("previous_month_norgespris_diff", 0.0)
             stored_month = data.get("current_month")
             if stored_month is not None:
                 # Backward compat: old format stored month as integer
@@ -503,6 +510,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             "previous_month_top_3": self._previous_month_top_3,
             "previous_month_name": self._previous_month_name,
             "monthly_norgespris_diff": self._monthly_norgespris_diff,
+            "previous_month_norgespris_diff": self._previous_month_norgespris_diff,
         }
         await self._store.async_save(data)
         _LOGGER.debug("Saved data: %s", data)

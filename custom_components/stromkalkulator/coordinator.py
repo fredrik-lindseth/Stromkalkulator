@@ -481,24 +481,75 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
                 await old_store.async_remove()
 
         if data:
-            self._daily_max_power = data.get("daily_max_power", {})
-            self._monthly_consumption = data.get("monthly_consumption", {"dag": 0.0, "natt": 0.0})
-            self._monthly_norgespris_diff = data.get("monthly_norgespris_diff", 0.0)
-            self._previous_month_consumption = data.get("previous_month_consumption", {"dag": 0.0, "natt": 0.0})
-            self._previous_month_top_3 = data.get("previous_month_top_3", {})
-            self._previous_month_name = data.get("previous_month_name")
-            self._previous_month_norgespris_diff = data.get("previous_month_norgespris_diff", 0.0)
-            stored_month = data.get("current_month")
-            if stored_month is not None:
-                # Backward compat: old format stored month as integer
-                if isinstance(stored_month, int):
-                    # Cannot reconstruct year from int alone; assume current year
-                    stored_month = f"{datetime.now().year}-{stored_month:02d}"
-                if stored_month != self._current_month:
-                    # Set to stored month so the normal month-transition in
-                    # _async_update_data fires and properly archives previous month data
-                    self._current_month = stored_month
+            try:
+                self._daily_max_power = self._validate_daily_max_power(data.get("daily_max_power", {}))
+                self._monthly_consumption = self._validate_consumption(
+                    data.get("monthly_consumption", {"dag": 0.0, "natt": 0.0})
+                )
+                self._monthly_norgespris_diff = self._validate_float(
+                    data.get("monthly_norgespris_diff", 0.0)
+                )
+                self._previous_month_consumption = self._validate_consumption(
+                    data.get("previous_month_consumption", {"dag": 0.0, "natt": 0.0})
+                )
+                self._previous_month_top_3 = self._validate_daily_max_power(
+                    data.get("previous_month_top_3", {})
+                )
+                self._previous_month_name = data.get("previous_month_name")
+                self._previous_month_norgespris_diff = self._validate_float(
+                    data.get("previous_month_norgespris_diff", 0.0)
+                )
+                stored_month = data.get("current_month")
+                if stored_month is not None:
+                    # Backward compat: old format stored month as integer
+                    if isinstance(stored_month, int):
+                        # Cannot reconstruct year from int alone; assume current year
+                        stored_month = f"{datetime.now().year}-{stored_month:02d}"
+                    if stored_month != self._current_month:
+                        # Set to stored month so the normal month-transition in
+                        # _async_update_data fires and properly archives previous month data
+                        self._current_month = stored_month
+            except (TypeError, KeyError, AttributeError) as err:
+                _LOGGER.warning("Corrupt storage data, using defaults: %s", err)
             _LOGGER.debug("Loaded stored data: %s", self._daily_max_power)
+
+    @staticmethod
+    def _validate_float(value: Any) -> float:
+        """Validate and return a finite float, defaulting to 0.0."""
+        try:
+            val = float(value)
+        except (ValueError, TypeError):
+            return 0.0
+        return val if math.isfinite(val) else 0.0
+
+    @staticmethod
+    def _validate_daily_max_power(data: Any) -> dict[str, float]:
+        """Validate daily max power dict: all values must be finite floats."""
+        if not isinstance(data, dict):
+            return {}
+        result: dict[str, float] = {}
+        for key, val in data.items():
+            try:
+                fval = float(val)
+            except (ValueError, TypeError):
+                continue
+            if math.isfinite(fval):
+                result[str(key)] = fval
+        return result
+
+    @staticmethod
+    def _validate_consumption(data: Any) -> dict[str, float]:
+        """Validate consumption dict has dag/natt keys with finite floats."""
+        if not isinstance(data, dict):
+            return {"dag": 0.0, "natt": 0.0}
+        result: dict[str, float] = {"dag": 0.0, "natt": 0.0}
+        for key in ("dag", "natt"):
+            try:
+                val = float(data.get(key, 0.0))
+            except (ValueError, TypeError):
+                val = 0.0
+            result[key] = val if math.isfinite(val) else 0.0
+        return result
 
     async def _save_stored_data(self) -> None:
         """Save data to disk."""
@@ -512,5 +563,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             "monthly_norgespris_diff": self._monthly_norgespris_diff,
             "previous_month_norgespris_diff": self._previous_month_norgespris_diff,
         }
-        await self._store.async_save(data)
+        try:
+            await self._store.async_save(data)
+        except OSError:
+            _LOGGER.warning("Failed to save storage data (disk full?)")
+            return
         _LOGGER.debug("Saved data: %s", data)

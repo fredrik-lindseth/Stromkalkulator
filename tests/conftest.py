@@ -27,7 +27,8 @@ sys.modules["homeassistant.helpers.selector"] = MagicMock()
 sys.modules["homeassistant.components.sensor"] = MagicMock()
 _ha_util_mock = MagicMock()
 _dt_util_mock = MagicMock()
-_dt_util_mock.now.return_value = datetime.now()
+# Fast tidspunkt for å unngå flakiness ved midnatt/månedsskifte
+_dt_util_mock.now.return_value = datetime(2026, 6, 15, 12, 0, 0)
 _ha_util_mock.dt = _dt_util_mock
 sys.modules["homeassistant.util"] = _ha_util_mock
 sys.modules["homeassistant.util.dt"] = _dt_util_mock

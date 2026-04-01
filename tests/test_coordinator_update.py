@@ -50,7 +50,7 @@ def coord_module():
 
     # Patch dt_util.now to return a real datetime
     coord.dt_util = MagicMock()
-    coord.dt_util.now.return_value = _real_datetime.now()
+    coord.dt_util.now.return_value = _real_datetime(2026, 6, 15, 12, 0)
 
     def make_store(hass, version, key):
         store = MagicMock()
@@ -575,8 +575,8 @@ class TestDailyMaxPower:
         )
         _run_update(coord_module, coordinator)
 
-        # Max should still be 10 kW
-        today = _real_datetime.now().strftime("%Y-%m-%d")
+        # Max should still be 10 kW (use the fixture's fixed date)
+        today = coord_module.dt_util.now.return_value.strftime("%Y-%m-%d")
         assert coordinator._daily_max_power.get(today) == 10.0
 
 

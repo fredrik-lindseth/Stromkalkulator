@@ -24,3 +24,4 @@ beads-prompt.md
 .dogcats/config.local.toml
 .claude/
 .hypothesis/
+.worktrees/

@@ -371,7 +371,8 @@ class TestSaveDataStructure:
         coordinator = coord.NettleieCoordinator(hass, entry)
         asyncio.run(coordinator._save_stored_data())
 
-        assert saved_data["current_month"] == datetime.now().strftime("%Y-%m")
+        # Coordinator init uses dt_util.now() which conftest sets to 2026-06-15
+        assert saved_data["current_month"] == "2026-06"
 
 
 class TestLoadMissingFields:

@@ -221,7 +221,11 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
                     neste_trinn_pris = self.kapasitetstrinn[i + 1][1]
                 break
 
-        kapasitet_varsel = margin_neste_trinn < self.kapasitet_varsel_terskel
+        # If in the highest tier (no next tier), don't warn
+        if margin_neste_trinn == 0.0 and neste_trinn_pris == kapasitetsledd:
+            kapasitet_varsel = False
+        else:
+            kapasitet_varsel = margin_neste_trinn < self.kapasitet_varsel_terskel
 
         # Calculate energiledd
         energiledd = self._get_energiledd(now)

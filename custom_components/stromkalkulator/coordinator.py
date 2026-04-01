@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import math
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, cast
 
@@ -160,9 +161,14 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
 
         # Get current power consumption
         power_state = self.hass.states.get(self.power_sensor)
-        current_power_w = (
-            float(power_state.state) if power_state and power_state.state not in ("unknown", "unavailable") else 0
-        )
+        try:
+            current_power_w = (
+                float(power_state.state) if power_state and power_state.state not in ("unknown", "unavailable") else 0
+            )
+        except (ValueError, TypeError):
+            current_power_w = 0
+        if not math.isfinite(current_power_w):
+            current_power_w = 0
         current_power_kw = current_power_w / 1000
 
         # Calculate energy consumption since last update (riemann sum)
@@ -170,6 +176,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         consumption_updated = False
         if self._last_update is not None and current_power_kw > 0:
             elapsed_hours = (now - self._last_update).total_seconds() / 3600
+            # Clamp to 0-6 minutes: reject negative (clock jump back) and spikes (clock jump forward)
+            elapsed_hours = max(0.0, min(elapsed_hours, 0.1))
             energy_kwh = current_power_kw * elapsed_hours
             # Add to appropriate tariff bucket
             tariff = "dag" if self._is_day_rate(now) else "natt"
@@ -215,6 +223,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         try:
             spot_price = float(spot_state.state) if spot_state and spot_state.state not in ("unknown", "unavailable") else 0
         except (ValueError, TypeError):
+            spot_price = 0
+        if not math.isfinite(spot_price):
             spot_price = 0
 
         # Calculate strømstøtte
@@ -307,8 +317,13 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         if self.electricity_company_price_sensor:
             electricity_company_state = self.hass.states.get(self.electricity_company_price_sensor)
             if electricity_company_state and electricity_company_state.state not in ("unknown", "unavailable"):
-                electricity_company_price = float(electricity_company_state.state)
-                self._last_electricity_company_price = electricity_company_price
+                try:
+                    raw_price = float(electricity_company_state.state)
+                except (ValueError, TypeError):
+                    raw_price = None
+                if raw_price is not None and math.isfinite(raw_price):
+                    electricity_company_price = raw_price
+                    self._last_electricity_company_price = electricity_company_price
             elif self._last_electricity_company_price is not None:
                 electricity_company_price = self._last_electricity_company_price
             if electricity_company_price is not None:

@@ -60,7 +60,7 @@ jobs:
             "custom_components/stromkalkulator/sensor.py"
             "custom_components/stromkalkulator/coordinator.py"
             "custom_components/stromkalkulator/const.py"
-            "custom_components/stromkalkulator/tso.py"
+            "custom_components/stromkalkulator/dso.py"
             "README.md"
           )
           for file in "${REQUIRED_FILES[@]}"; do

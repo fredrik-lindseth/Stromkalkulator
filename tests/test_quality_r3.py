@@ -73,12 +73,12 @@ def _make_state(value):
     return state
 
 
-def _make_entry(entry_id="test_entry", tso_id="bkk", avgiftssone="standard",
+def _make_entry(entry_id="test_entry", dso_id="bkk", avgiftssone="standard",
                 har_norgespris=False, elco_sensor=None):
     entry = MagicMock()
     entry.entry_id = entry_id
     entry.data = {
-        "tso": tso_id,
+        "tso": dso_id,
         "power_sensor": "sensor.power",
         "spot_price_sensor": "sensor.spot_price",
         "avgiftssone": avgiftssone,
@@ -113,15 +113,15 @@ def _run(coord_module, coordinator, now=None):
 
 
 # ===========================================================================
-# Item 3: UpdateFailed når begge sensorer er None (commit e26ac3a)
+# Item 3: UpdateFailed når sensor-entiteter mangler (commit e26ac3a)
 # ===========================================================================
 
 
-class TestUpdateFailedBothSensorsMissing:
-    """coordinator.py:262-264 — raise UpdateFailed."""
+class TestUpdateFailedSensorsMissing:
+    """coordinator.py:262-265 — raise UpdateFailed for each missing sensor."""
 
     def test_both_sensors_none_raises(self, coord_module):
-        """Når begge sensorer returnerer None, skal UpdateFailed raises."""
+        """Når begge sensorer returnerer None, skal UpdateFailed raises (power first)."""
         # UpdateFailed er mocka — gjør den til et ekte exception
         class FakeUpdateFailed(Exception):
             pass
@@ -133,11 +133,16 @@ class TestUpdateFailedBothSensorsMissing:
 
         coordinator = coord_module.NettleieCoordinator(hass, _make_entry())
 
-        with pytest.raises(FakeUpdateFailed, match="Both power and spot price sensors"):
+        with pytest.raises(FakeUpdateFailed, match="Power sensor"):
             _run(coord_module, coordinator)
 
-    def test_only_power_missing_still_works(self, coord_module):
-        """Bare power mangler → ingen feil, power=0."""
+    def test_only_power_missing_raises(self, coord_module):
+        """Bare power mangler → UpdateFailed."""
+        class FakeUpdateFailed(Exception):
+            pass
+
+        coord_module.UpdateFailed = FakeUpdateFailed
+
         hass = MagicMock()
 
         def get_state(eid):
@@ -148,9 +153,28 @@ class TestUpdateFailedBothSensorsMissing:
         hass.states.get = MagicMock(side_effect=get_state)
         coordinator = coord_module.NettleieCoordinator(hass, _make_entry())
 
-        result = _run(coord_module, coordinator)
-        assert result["current_power_kw"] == 0
-        assert result["spot_price"] == 1.20
+        with pytest.raises(FakeUpdateFailed, match="Power sensor"):
+            _run(coord_module, coordinator)
+
+    def test_only_spot_missing_raises(self, coord_module):
+        """Bare spot mangler → UpdateFailed."""
+        class FakeUpdateFailed(Exception):
+            pass
+
+        coord_module.UpdateFailed = FakeUpdateFailed
+
+        hass = MagicMock()
+
+        def get_state(eid):
+            if "power" in eid:
+                return _make_state(5000)
+            return None
+
+        hass.states.get = MagicMock(side_effect=get_state)
+        coordinator = coord_module.NettleieCoordinator(hass, _make_entry())
+
+        with pytest.raises(FakeUpdateFailed, match="Spot price sensor"):
+            _run(coord_module, coordinator)
 
 
 # ===========================================================================
@@ -360,7 +384,7 @@ class TestBarentsNettDictFormat:
 
     def test_dict_format_normalized_to_tuples(self, coord_module):
         hass = _make_hass()
-        entry = _make_entry(tso_id="barents_nett", avgiftssone="tiltakssone")
+        entry = _make_entry(dso_id="barents_nett", avgiftssone="tiltakssone")
         coordinator = coord_module.NettleieCoordinator(hass, entry)
 
         # Should be normalized to tuples
@@ -372,7 +396,7 @@ class TestBarentsNettDictFormat:
 
     def test_dict_format_runs_full_update(self, coord_module):
         hass = _make_hass()
-        entry = _make_entry(tso_id="barents_nett", avgiftssone="tiltakssone")
+        entry = _make_entry(dso_id="barents_nett", avgiftssone="tiltakssone")
         coordinator = coord_module.NettleieCoordinator(hass, entry)
 
         result = _run(coord_module, coordinator)

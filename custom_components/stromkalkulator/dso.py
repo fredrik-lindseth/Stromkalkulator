@@ -25,7 +25,7 @@ class KapasitetstrinnDict(TypedDict):
     pris: int
 
 
-class TSOEntry(TypedDict):
+class DSOEntry(TypedDict):
     """Type definition for a DSO (Distribution System Operator) entry."""
 
     name: str
@@ -39,21 +39,21 @@ class TSOEntry(TypedDict):
 
 
 @dataclass(frozen=True)
-class TSOFusjon:
+class DSOFusjon:
     """Represents a DSO merger: gammel (old key) -> ny (new key)."""
 
     gammel: str
     ny: str
 
 
-TSO_MIGRATIONS: Final[list[TSOFusjon]] = [
-    TSOFusjon(gammel="skiakernett", ny="vevig"),
-    TSOFusjon(gammel="norgesnett", ny="glitre"),
+DSO_MIGRATIONS: Final[list[DSOFusjon]] = [
+    DSOFusjon(gammel="skiakernett", ny="vevig"),
+    DSOFusjon(gammel="norgesnett", ny="glitre"),
 ]
 
 
 # Distribution System Operators (DSO) with default values
-# Format: {tso_id: {name, prisomrade, supported, energiledd_dag, energiledd_natt, url, kapasitetstrinn}}
+# Format: {dso_id: {name, prisomrade, supported, energiledd_dag, energiledd_natt, url, kapasitetstrinn}}
 #
 # supported: True = har priser, False = mangler priser (trenger bidrag)
 # For å legge til priser for et nettselskap:
@@ -61,7 +61,7 @@ TSO_MIGRATIONS: Final[list[TSOFusjon]] = [
 # 2. Sett energiledd_dag og energiledd_natt i NOK/kWh (inkl. avgifter)
 # 3. Legg til kapasitetstrinn som liste med tupler: (kW-grense, kr/mnd)
 # 4. Sett supported til True
-TSO_LIST: Final[dict[str, TSOEntry]] = {
+DSO_LIST: Final[dict[str, DSOEntry]] = {
     "bkk": {
         "name": "BKK",
         "prisomrade": "NO5",

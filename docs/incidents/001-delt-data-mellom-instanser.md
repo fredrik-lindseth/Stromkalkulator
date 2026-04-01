@@ -16,11 +16,11 @@ Bruker med to strømmålere hos samme nettselskap (Elvia) opplevde:
 
 ### Bug 1: Delt lagring
 
-Lagringsnøkkelen var basert på nettselskap-ID (`stromkalkulator_{tso_id}`), ikke config entry-ID. Når to instanser hadde samme nettselskap, delte de samme lagringsfil:
+Lagringsnøkkelen var basert på nettselskap-ID (`stromkalkulator_{dso_id}`), ikke config entry-ID. Når to instanser hadde samme nettselskap, delte de samme lagringsfil:
 
 ```
 # Før fix — begge instanser brukte samme fil:
-Store(hass, 1, f"{DOMAIN}_{tso_id}")
+Store(hass, 1, f"{DOMAIN}_{dso_id}")
 
 # Etter fix — unik fil per instans:
 Store(hass, 1, f"{DOMAIN}_{entry.entry_id}")
@@ -41,7 +41,7 @@ Begge viste dermed feil kapasitetstrinn sammenlignet med Elvias beregning.
 
 ### Bug 1 — commit 68d7947, 6d5573d, e2807f4
 
-1. Byttet lagringsnøkkel fra `tso_id` til `entry.entry_id`
+1. Byttet lagringsnøkkel fra `dso_id` til `entry.entry_id`
 2. La til migrering fra gammel til ny nøkkel
 3. La til `await old_store.async_remove()` etter migrering — forhindrer at instans 2 laster samme data
 

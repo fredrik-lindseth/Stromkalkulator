@@ -88,14 +88,14 @@ def _make_state(value):
 
 def _make_entry(
     entry_id="test_entry",
-    tso_id="bkk",
+    dso_id="bkk",
     avgiftssone="standard",
     extra_data=None,
 ):
     entry = MagicMock()
     entry.entry_id = entry_id
     entry.data = {
-        "tso": tso_id,
+        "tso": dso_id,
         "power_sensor": "sensor.power",
         "spot_price_sensor": "sensor.spot_price",
         "avgiftssone": avgiftssone,
@@ -126,12 +126,12 @@ def _run_update(coord_module, coordinator, now=None):
 
 
 # ===========================================================================
-# 1. UpdateFailed when both sensors are None (e26ac3a)
+# 1. UpdateFailed when sensor entities are missing (e26ac3a)
 # ===========================================================================
 
 
-class TestUpdateFailedBothSensorsNone:
-    """Coordinator must raise UpdateFailed when both sensors are missing."""
+class TestUpdateFailedSensorsMissing:
+    """Coordinator must raise UpdateFailed when either sensor is missing."""
 
     def test_both_sensors_none_raises(self, coord_module):
         """When both power and spot sensor return None, raise UpdateFailed."""
@@ -140,11 +140,11 @@ class TestUpdateFailedBothSensorsNone:
 
         coordinator = coord_module.NettleieCoordinator(hass, _make_entry())
 
-        with pytest.raises(coord_module.UpdateFailed):
+        with pytest.raises(coord_module.UpdateFailed, match="Power sensor"):
             _run_update(coord_module, coordinator)
 
-    def test_power_none_spot_valid_no_raise(self, coord_module):
-        """When only power is None but spot exists, should NOT raise."""
+    def test_power_none_spot_valid_raises(self, coord_module):
+        """When only power is None, should raise UpdateFailed."""
         hass = MagicMock()
 
         def get_state(eid):
@@ -155,11 +155,11 @@ class TestUpdateFailedBothSensorsNone:
         hass.states.get = MagicMock(side_effect=get_state)
         coordinator = coord_module.NettleieCoordinator(hass, _make_entry())
 
-        result = _run_update(coord_module, coordinator)
-        assert result["current_power_kw"] == 0
+        with pytest.raises(coord_module.UpdateFailed, match="Power sensor"):
+            _run_update(coord_module, coordinator)
 
-    def test_spot_none_power_valid_no_raise(self, coord_module):
-        """When only spot is None but power exists, should NOT raise."""
+    def test_spot_none_power_valid_raises(self, coord_module):
+        """When only spot is None, should raise UpdateFailed."""
         hass = MagicMock()
 
         def get_state(eid):
@@ -170,8 +170,8 @@ class TestUpdateFailedBothSensorsNone:
         hass.states.get = MagicMock(side_effect=get_state)
         coordinator = coord_module.NettleieCoordinator(hass, _make_entry())
 
-        result = _run_update(coord_module, coordinator)
-        assert result["spot_price"] == 0
+        with pytest.raises(coord_module.UpdateFailed, match="Spot price sensor"):
+            _run_update(coord_module, coordinator)
 
 
 # ===========================================================================
@@ -185,7 +185,7 @@ class TestDictFormatKapasitetstrinn:
     def test_barents_nett_dict_format_normalized(self, coord_module):
         """Barents Nett uses dict-format, should be converted to tuples."""
         hass = _make_hass()
-        entry = _make_entry(tso_id="barents_nett")
+        entry = _make_entry(dso_id="barents_nett")
 
         coordinator = coord_module.NettleieCoordinator(hass, entry)
 
@@ -198,7 +198,7 @@ class TestDictFormatKapasitetstrinn:
     def test_barents_nett_values_correct(self, coord_module):
         """Verify dict->tuple conversion preserves correct values."""
         hass = _make_hass()
-        entry = _make_entry(tso_id="barents_nett")
+        entry = _make_entry(dso_id="barents_nett")
 
         coordinator = coord_module.NettleieCoordinator(hass, entry)
 
@@ -208,15 +208,15 @@ class TestDictFormatKapasitetstrinn:
         assert coordinator.kapasitetstrinn[-1] == (999, 931)
 
     def test_barents_nett_update_runs(self, coord_module):
-        """Full update with dict-format TSO should not crash."""
+        """Full update with dict-format DSO should not crash."""
         hass = _make_hass()
-        entry = _make_entry(tso_id="barents_nett", avgiftssone="tiltakssone")
+        entry = _make_entry(dso_id="barents_nett", avgiftssone="tiltakssone")
 
         coordinator = coord_module.NettleieCoordinator(hass, entry)
         result = _run_update(coord_module, coordinator)
 
         assert result["kapasitetsledd"] > 0
-        assert result["tso"] == "Barents Nett"
+        assert result["dso"] == "Barents Nett"
 
 
 # ===========================================================================
@@ -620,10 +620,10 @@ class TestSaveOSErrorHandler:
 
 
 class TestCoordinatorInitFallbacks:
-    """Invalid config values in entry.data should fall back to TSO defaults."""
+    """Invalid config values in entry.data should fall back to DSO defaults."""
 
     def test_invalid_energiledd_dag_falls_back(self, coord_module):
-        """Non-numeric energiledd_dag should fall back to TSO default."""
+        """Non-numeric energiledd_dag should fall back to DSO default."""
         hass = MagicMock()
         entry = _make_entry(extra_data={"energiledd_dag": "invalid"})
         coordinator = coord_module.NettleieCoordinator(hass, entry)
@@ -632,7 +632,7 @@ class TestCoordinatorInitFallbacks:
         assert coordinator.energiledd_dag == 0.4613
 
     def test_invalid_energiledd_natt_falls_back(self, coord_module):
-        """Non-numeric energiledd_natt should fall back to TSO default."""
+        """Non-numeric energiledd_natt should fall back to DSO default."""
         hass = MagicMock()
         entry = _make_entry(extra_data={"energiledd_natt": None})
         coordinator = coord_module.NettleieCoordinator(hass, entry)
@@ -648,7 +648,7 @@ class TestCoordinatorInitFallbacks:
         assert coordinator.kapasitet_varsel_terskel == 2.0
 
     def test_valid_custom_energiledd_used(self, coord_module):
-        """Valid custom energiledd should override TSO defaults."""
+        """Valid custom energiledd should override DSO defaults."""
         hass = MagicMock()
         entry = _make_entry(extra_data={
             "energiledd_dag": 0.55,

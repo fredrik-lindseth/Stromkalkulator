@@ -17,7 +17,7 @@ custom_components/stromkalkulator/
 ├── __init__.py      # Oppsett, registrer platforms
 ├── config_flow.py   # UI-konfigurasjon
 ├── const.py         # Konstanter, avgifter, helligdager
-├── tso.py           # Nettselskap-data (DSO_LIST)
+├── dso.py           # Nettselskap-data (DSO_LIST)
 ├── coordinator.py   # DataUpdateCoordinator, beregningslogikk
 ├── sensor.py        # Alle sensorer
 ├── diagnostics.py   # HA diagnostikk-integrasjon
@@ -39,7 +39,7 @@ custom_components/stromkalkulator/
 - Arver fra `CoordinatorEntity` og `SensorEntity`
 - Leser fra `coordinator.data["key"]`
 
-**DSO-data** (`tso.py`):
+**DSO-data** (`dso.py`):
 - Dict med alle nettselskaper og deres priser + 1 egendefinert
 - Energiledd dag/natt, kapasitetstrinn
 
@@ -84,7 +84,7 @@ ruff check custom_components/stromkalkulator/
 
 ```bash
 # Kopier alle filer
-for f in __init__.py config_flow.py const.py tso.py coordinator.py sensor.py manifest.json; do
+for f in __init__.py config_flow.py const.py dso.py coordinator.py sensor.py manifest.json; do
   ssh ha-local "cat > /config/custom_components/stromkalkulator/$f" < custom_components/stromkalkulator/$f
 done
 

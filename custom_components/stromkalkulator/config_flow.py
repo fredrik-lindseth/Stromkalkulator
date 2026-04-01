@@ -15,6 +15,7 @@ from .const import (
     AVGIFTSSONE_STANDARD,
     AVGIFTSSONE_TILTAKSSONE,
     CONF_AVGIFTSSONE,
+    CONF_DSO,
     CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
     CONF_ENERGILEDD_DAG,
     CONF_ENERGILEDD_NATT,
@@ -22,32 +23,31 @@ from .const import (
     CONF_KAPASITET_VARSEL_TERSKEL,
     CONF_POWER_SENSOR,
     CONF_SPOT_PRICE_SENSOR,
-    CONF_TSO,
+    DEFAULT_DSO,
     DEFAULT_ENERGILEDD_DAG,
     DEFAULT_ENERGILEDD_NATT,
     DEFAULT_KAPASITET_VARSEL_TERSKEL,
     DEFAULT_NAME,
-    DEFAULT_TSO,
     DOMAIN,
-    TSO_LIST,
+    DSO_LIST,
     get_default_avgiftssone,
 )
 
 if TYPE_CHECKING:
     from homeassistant.data_entry_flow import FlowResult
 
-    from .tso import TSOEntry
+    from .dso import DSOEntry
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
 
 
-def _tso_options() -> list[selector.SelectOptionDict]:
+def _dso_options() -> list[selector.SelectOptionDict]:
     """Get sorted DSO options with Egendefinert last."""
     return [
         *sorted(
             [
                 selector.SelectOptionDict(value=key, label=value["name"])
-                for key, value in TSO_LIST.items()
+                for key, value in DSO_LIST.items()
                 if value.get("supported", False) and key != "custom"
             ],
             key=lambda x: x["label"],
@@ -77,9 +77,9 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
             step_id="user",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_TSO, default=DEFAULT_TSO): selector.SelectSelector(
+                    vol.Required(CONF_DSO, default=DEFAULT_DSO): selector.SelectSelector(
                         selector.SelectSelectorConfig(
-                            options=_tso_options(),
+                            options=_dso_options(),
                             mode=selector.SelectSelectorMode.DROPDOWN,
                         ),
                     ),
@@ -118,18 +118,18 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
                 self._data.update(user_input)
 
                 # If custom DSO, go to pricing step (includes avgiftssone)
-                if self._data.get(CONF_TSO) == "custom":
+                if self._data.get(CONF_DSO) == "custom":
                     return await self.async_step_pricing()
 
                 # Auto-detect avgiftssone from DSO
-                tso: TSOEntry = TSO_LIST[self._data[CONF_TSO]]
-                if tso.get("tiltakssone"):
+                dso: DSOEntry = DSO_LIST[self._data[CONF_DSO]]
+                if dso.get("tiltakssone"):
                     self._data[CONF_AVGIFTSSONE] = AVGIFTSSONE_TILTAKSSONE
                 else:
-                    self._data[CONF_AVGIFTSSONE] = get_default_avgiftssone(tso["prisomrade"])
+                    self._data[CONF_AVGIFTSSONE] = get_default_avgiftssone(dso["prisomrade"])
 
-                self._data[CONF_ENERGILEDD_DAG] = tso["energiledd_dag"]
-                self._data[CONF_ENERGILEDD_NATT] = tso["energiledd_natt"]
+                self._data[CONF_ENERGILEDD_DAG] = dso["energiledd_dag"]
+                self._data[CONF_ENERGILEDD_NATT] = dso["energiledd_natt"]
 
                 return await self._create_entry()
 
@@ -209,8 +209,8 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
         await self.async_set_unique_id(f"{DOMAIN}_{self._data[CONF_POWER_SENSOR]}")
         self._abort_if_unique_id_configured()
 
-        tso_name: str = TSO_LIST[self._data[CONF_TSO]]["name"]
-        title: str = f"{DEFAULT_NAME} ({tso_name})"
+        dso_name: str = DSO_LIST[self._data[CONF_DSO]]["name"]
+        title: str = f"{DEFAULT_NAME} ({dso_name})"
 
         return self.async_create_entry(
             title=title,
@@ -243,11 +243,11 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):  # type: ignore[misc]
         options_schema: vol.Schema = vol.Schema(
             {
                 vol.Required(
-                    CONF_TSO,
-                    default=current.get(CONF_TSO, DEFAULT_TSO),
+                    CONF_DSO,
+                    default=current.get(CONF_DSO, DEFAULT_DSO),
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=_tso_options(),
+                        options=_dso_options(),
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     ),
                 ),

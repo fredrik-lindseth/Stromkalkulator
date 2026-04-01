@@ -11,8 +11,8 @@ Fant du feil i prisene for ditt nettselskap? Du kan enten:
 
 ## Oppdatere priser (PR)
 
-1. Åpne `custom_components/stromkalkulator/tso.py`
-2. Finn `TSO_LIST` dictionary
+1. Åpne `custom_components/stromkalkulator/dso.py`
+2. Finn `DSO_LIST` dictionary
 3. Finn ditt nettselskap og oppdater prisene
 
 ### Eksempel
@@ -77,7 +77,7 @@ Kunder i tiltakssonen har fritak for både forbruksavgift og MVA.
 Etter endringer, verifiser at syntaksen er korrekt:
 
 ```bash
-python3 -m py_compile custom_components/stromkalkulator/tso.py
+python3 -m py_compile custom_components/stromkalkulator/dso.py
 ```
 
 ## Opprett Pull Request
@@ -103,21 +103,21 @@ Så fikser vi det!
 
 Når nettselskaper fusjonerer, må vi:
 
-1. Oppdatere prisene for det nye selskapet i `TSO_LIST`
-2. Legge til en migrering i `TSO_MIGRATIONS` (i `tso.py`)
-3. Fjerne det gamle selskapet fra `TSO_LIST`
+1. Oppdatere prisene for det nye selskapet i `DSO_LIST`
+2. Legge til en migrering i `DSO_MIGRATIONS` (i `dso.py`)
+3. Fjerne det gamle selskapet fra `DSO_LIST`
 
 ### Eksempel: Norgesnett fusjonerer inn i Glitre Nett
 
 ```python
-# I tso.py, legg til i TSO_MIGRATIONS:
-TSO_MIGRATIONS: Final[list[TSOFusjon]] = [
-    TSOFusjon(gammel="skiakernett", ny="vevig"),
-    TSOFusjon(gammel="norgesnett", ny="glitre"),   # ← ny linje
+# I dso.py, legg til i DSO_MIGRATIONS:
+DSO_MIGRATIONS: Final[list[DSOFusjon]] = [
+    DSOFusjon(gammel="skiakernett", ny="vevig"),
+    DSOFusjon(gammel="norgesnett", ny="glitre"),   # <- ny linje
 ]
 ```
 
-Deretter fjern `"norgesnett"` fra `TSO_LIST`. Brukere som hadde det gamle selskapet migreres automatisk ved neste oppstart.
+Deretter fjern `"norgesnett"` fra `DSO_LIST`. Brukere som hadde det gamle selskapet migreres automatisk ved neste oppstart.
 
 ## Årlige oppdateringer
 

@@ -98,9 +98,9 @@ def test_enovaavgift_matcher_const():
 
 def test_kapasitetstrinn(faktura_februar_2026):
     """Kapasitet 5-10 kW = 415 kr/mnd."""
-    from custom_components.stromkalkulator.tso import TSO_LIST
+    from custom_components.stromkalkulator.dso import DSO_LIST
 
-    bkk = TSO_LIST["bkk"]
+    bkk = DSO_LIST["bkk"]
     # Trinn 3: 5-10 kW
     assert bkk["kapasitetstrinn"][2] == (10, 415)
     assert faktura_februar_2026["forventet_kapasitet_kr"] == 415
@@ -157,32 +157,32 @@ def test_mva_beregning(faktura_februar_2026):
     assert mva == pytest.approx(faktura_februar_2026["forventet_mva_kr"], abs=0.10)
 
 
-# --- Integrasjon: tso.py matcher fakturaen ---
+# --- Integrasjon: dso.py matcher fakturaen ---
 
 
 def test_bkk_energiledd_dag_matcher_faktura():
-    """tso.py energiledd_dag = energiledd + forbruksavgift + enova (alt inkl. mva)."""
-    from custom_components.stromkalkulator.tso import TSO_LIST
+    """dso.py energiledd_dag = energiledd + forbruksavgift + enova (alt inkl. mva)."""
+    from custom_components.stromkalkulator.dso import DSO_LIST
 
-    bkk = TSO_LIST["bkk"]
+    bkk = DSO_LIST["bkk"]
     forventet = (BKK_ENERGILEDD_DAG_2026_ORE + BKK_FORBRUKSAVGIFT_2026_ORE + BKK_ENOVAAVGIFT_2026_ORE) / 100
     assert bkk["energiledd_dag"] == pytest.approx(forventet, abs=0.001)
 
 
 def test_bkk_energiledd_natt_matcher_faktura():
-    """tso.py energiledd_natt = energiledd + forbruksavgift + enova (alt inkl. mva)."""
-    from custom_components.stromkalkulator.tso import TSO_LIST
+    """dso.py energiledd_natt = energiledd + forbruksavgift + enova (alt inkl. mva)."""
+    from custom_components.stromkalkulator.dso import DSO_LIST
 
-    bkk = TSO_LIST["bkk"]
+    bkk = DSO_LIST["bkk"]
     forventet = (BKK_ENERGILEDD_NATT_2026_ORE + BKK_FORBRUKSAVGIFT_2026_ORE + BKK_ENOVAAVGIFT_2026_ORE) / 100
     assert bkk["energiledd_natt"] == pytest.approx(forventet, abs=0.001)
 
 
 def test_reverse_energiledd_dag_eks_avgifter():
     """Reverse-beregning: energiledd_dag → eks. avgifter eks. mva (for fakturasammenligning)."""
-    from custom_components.stromkalkulator.tso import TSO_LIST
+    from custom_components.stromkalkulator.dso import DSO_LIST
 
-    bkk = TSO_LIST["bkk"]
+    bkk = DSO_LIST["bkk"]
     energiledd_dag = bkk["energiledd_dag"]
 
     # Korrekt reverse: del på (1+mva) først, trekk fra avgifter
@@ -196,9 +196,9 @@ def test_reverse_energiledd_dag_eks_avgifter():
 
 def test_reverse_energiledd_natt_eks_avgifter():
     """Reverse-beregning: energiledd_natt → eks. avgifter eks. mva."""
-    from custom_components.stromkalkulator.tso import TSO_LIST
+    from custom_components.stromkalkulator.dso import DSO_LIST
 
-    bkk = TSO_LIST["bkk"]
+    bkk = DSO_LIST["bkk"]
     energiledd_natt = bkk["energiledd_natt"]
 
     eks_avgifter = energiledd_natt / (1 + MVA_SATS) - FORBRUKSAVGIFT_ALMINNELIG - ENOVA_AVGIFT

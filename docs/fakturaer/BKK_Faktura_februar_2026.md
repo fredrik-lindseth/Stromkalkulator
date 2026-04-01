@@ -33,21 +33,21 @@
 | Trinn: 5-10 kW (trinn 3) | `kapasitetstrinn_nummer: 3` | Match |
 | Pris: 415 kr/mnd | `kapasitetsledd: 415` | Match |
 
-## Satsverifisering mot tso.py
+## Satsverifisering mot dso.py
 
-Fakturaen viser individuelle priskomponenter. Vi verifiserer at tso.py inneholder riktig sum:
+Fakturaen viser individuelle priskomponenter. Vi verifiserer at dso.py inneholder riktig sum:
 
 | Komponent | Faktura (øre inkl. mva) | Vårt tall | Beregning |
 | --- | --- | --- | --- |
 | Energiledd dag | 35.963 | | |
 | + Forbruksavgift | 8.913 | | 7.13 * 1.25 = 8.9125 |
 | + Enovaavgift | 1.25 | | 1.0 * 1.25 = 1.25 |
-| **= tso energiledd_dag** | **46.126** | **46.13** | Match (avrunding) |
+| **= dso energiledd_dag** | **46.126** | **46.13** | Match (avrunding) |
 | | | | |
 | Energiledd natt | 13.125 | | |
 | + Forbruksavgift | 8.913 | | |
 | + Enovaavgift | 1.25 | | |
-| **= tso energiledd_natt** | **23.288** | **23.29** | Match (avrunding) |
+| **= dso energiledd_natt** | **23.288** | **23.29** | Match (avrunding) |
 
 ## Norgespris-verifisering
 

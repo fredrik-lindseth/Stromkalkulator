@@ -68,11 +68,11 @@ def _make_hass():
     return hass
 
 
-def _make_entry(entry_id="test_entry", tso_id="bkk"):
+def _make_entry(entry_id="test_entry", dso_id="bkk"):
     entry = MagicMock()
     entry.entry_id = entry_id
     entry.data = {
-        "tso": tso_id,
+        "tso": dso_id,
         "power_sensor": "sensor.power",
         "spot_price_sensor": "sensor.spot_price",
     }
@@ -124,21 +124,21 @@ class TestAsyncUnloadEntry:
 
 
 class TestDSOMigrationInSetup:
-    """DSO migration triggers during setup for old TSO keys."""
+    """DSO migration triggers during setup for old DSO keys."""
 
-    def test_migrated_tso_updates_config_entry(self, init_module):
-        """Setup with old TSO key should update config entry to new key."""
+    def test_migrated_dso_updates_config_entry(self, init_module):
+        """Setup with old DSO key should update config entry to new key."""
         hass = _make_hass()
-        entry = _make_entry(tso_id="skiakernett")
+        entry = _make_entry(dso_id="skiakernett")
 
         with patch.object(init_module, "_migrate_storage_file", new_callable=AsyncMock):
             asyncio.run(init_module.async_setup_entry(hass, entry))
 
-        # Config entry should be updated with new TSO key
+        # Config entry should be updated with new DSO key
         hass.config_entries.async_update_entry.assert_called_once()
         call_kwargs = hass.config_entries.async_update_entry.call_args
         new_data = call_kwargs[1]["data"] if "data" in call_kwargs[1] else call_kwargs[0][1] if len(call_kwargs[0]) > 1 else None
-        # The update call should contain the new TSO key
+        # The update call should contain the new DSO key
         if new_data is None:
             # Check positional args
             for arg in call_kwargs[0]:
@@ -148,20 +148,20 @@ class TestDSOMigrationInSetup:
         if new_data:
             assert new_data["tso"] == "vevig"
 
-    def test_current_tso_no_migration(self, init_module):
-        """Setup with current TSO key should not trigger migration."""
+    def test_current_dso_no_migration(self, init_module):
+        """Setup with current DSO key should not trigger migration."""
         hass = _make_hass()
-        entry = _make_entry(tso_id="bkk")
+        entry = _make_entry(dso_id="bkk")
 
         asyncio.run(init_module.async_setup_entry(hass, entry))
 
         # async_update_entry should NOT be called
         hass.config_entries.async_update_entry.assert_not_called()
 
-    def test_migrated_tso_creates_repair_issue(self, init_module):
+    def test_migrated_dso_creates_repair_issue(self, init_module):
         """DSO migration should create a repair issue."""
         hass = _make_hass()
-        entry = _make_entry(tso_id="norgesnett")
+        entry = _make_entry(dso_id="norgesnett")
 
         # Patch ir on the init_module (the module uses `ir.async_create_issue`)
         mock_ir = MagicMock()

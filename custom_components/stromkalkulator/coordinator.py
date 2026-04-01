@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.util import dt as dt_util
 
 from .const import (
     AVGIFTSSONE_STANDARD,
@@ -129,8 +130,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         self._previous_month_name = None  # e.g., "januar 2026"
         self._previous_month_norgespris_diff = 0.0
 
-        # Cache last known electricity company price (survives brief API outages)
+        # Cache last known prices (survives brief sensor outages)
         self._last_electricity_company_price: float | None = None
+        self._last_spot_price: float | None = None
 
         # Persistent storage - keyed by entry_id for multi-instance isolation
         self._store = Store(hass, 1, f"{DOMAIN}_{entry.entry_id}")
@@ -138,7 +140,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from sensors and calculate values."""
-        now = datetime.now()
+        now = dt_util.now()
 
         # Load stored data on first run
         if not self._store_loaded:
@@ -224,14 +226,21 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         # Calculate energiledd
         energiledd = self._get_energiledd(now)
 
-        # Get spot price
+        # Get spot price (cache last known value to survive brief sensor outages)
         spot_state = self.hass.states.get(self.spot_price_sensor)
-        try:
-            spot_price = float(spot_state.state) if spot_state and spot_state.state not in ("unknown", "unavailable") else 0
-        except (ValueError, TypeError):
-            spot_price = 0
-        if not math.isfinite(spot_price):
-            spot_price = 0
+        spot_price: float = 0
+        if spot_state and spot_state.state not in ("unknown", "unavailable"):
+            try:
+                raw_spot = float(spot_state.state)
+            except (ValueError, TypeError):
+                raw_spot = None
+            if raw_spot is not None and math.isfinite(raw_spot):
+                spot_price = raw_spot
+                self._last_spot_price = spot_price
+            elif self._last_spot_price is not None:
+                spot_price = self._last_spot_price
+        elif self._last_spot_price is not None:
+            spot_price = self._last_spot_price
 
         # Calculate strømstøtte
         # Forskrift § 5: 90% av spotpris over 77 øre/kWh eks. mva (96,25 øre inkl. mva) i 2026

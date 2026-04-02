@@ -112,7 +112,8 @@
       "margin_neste_trinn": { "name": "Margin til neste trinn" },
       "kapasitet_varsel": { "name": "Kapasitetsvarsel" },
       "stromstotte_gjenstaaende": { "name": "Strømstøtte gjenstående" },
-      "maanedlig_norgespris_diff": { "name": "Norgespris besparelse" }
+      "maanedlig_norgespris_diff": { "name": "Norgespris besparelse" },
+      "estimert_maanedskostnad": { "name": "Estimert månedskostnad" }
     }
   }
 }

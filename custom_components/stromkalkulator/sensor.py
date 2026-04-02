@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.components.sensor import (
@@ -98,6 +99,7 @@ async def async_setup_entry(
         MaanedligTotalSensor(coordinator, entry),
         MaanedligNorgesprisDifferanseSensor(coordinator, entry),
         DagskostnadSensor(coordinator, entry),
+        EstimertMaanedskostnadSensor(coordinator, entry),
         # Forrige måned sensors
         ForrigeMaanedForbrukDagSensor(coordinator, entry),
         ForrigeMaanedForbrukNattSensor(coordinator, entry),
@@ -1524,6 +1526,59 @@ class DagskostnadSensor(MaanedligBaseSensor):
         if self.coordinator.data:
             return cast("float | None", self.coordinator.data.get("daily_cost_kr"))
         return None
+
+
+class EstimertMaanedskostnadSensor(MaanedligBaseSensor):
+    """Sensor for estimated total monthly cost."""
+
+    _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
+    _attr_native_unit_of_measurement: str = "kr"
+    _attr_icon: str = "mdi:crystal-ball"
+    _attr_suggested_display_precision: int = 0
+    _avgiftssone: str
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        super().__init__(coordinator, entry, "estimert_maanedskostnad", "estimert_maanedskostnad")
+        self._attr_native_unit_of_measurement = "kr"
+        self._attr_icon = "mdi:crystal-ball"
+        self._attr_suggested_display_precision = 0
+        self._avgiftssone = entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
+
+    @property
+    def native_value(self) -> float | None:
+        if not self.coordinator.data:
+            return None
+
+        now = dt_util.now()
+        day_of_month = now.day
+        # Calculate days in current month
+        if now.month == 12:
+            days_in_month = 31
+        else:
+            days_in_month = (now.replace(month=now.month + 1, day=1) - timedelta(days=1)).day
+
+        dag_kwh = self.coordinator.data.get("monthly_consumption_dag_kwh", 0)
+        natt_kwh = self.coordinator.data.get("monthly_consumption_natt_kwh", 0)
+        total_kwh = dag_kwh + natt_kwh
+        dag_pris = self.coordinator.data.get("energiledd_dag", 0)
+        natt_pris = self.coordinator.data.get("energiledd_natt", 0)
+        kapasitet = self.coordinator.data.get("kapasitetsledd", 0)
+        stromstotte = self.coordinator.data.get("stromstotte", 0)
+
+        month = now.month
+        forbruksavgift = get_forbruksavgift(self._avgiftssone, month)
+        mva_sats = get_mva_sats(self._avgiftssone)
+
+        nettleie_variable = (dag_kwh * dag_pris) + (natt_kwh * natt_pris)
+        avgifter = total_kwh * ((forbruksavgift + ENOVA_AVGIFT) * (1 + mva_sats))
+        stotte = total_kwh * stromstotte
+        variable_cost = nettleie_variable + avgifter - stotte
+
+        if day_of_month == 0:
+            return None
+
+        estimated_variable = (variable_cost / day_of_month) * days_in_month
+        return round(estimated_variable + kapasitet, 0)
 
 
 # =============================================================================

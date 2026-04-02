@@ -4,21 +4,21 @@ Complete overview of all sensors and devices in Stromkalkulator.
 
 ## Overview
 
-The integration creates **5 devices** with a total of **44 sensors**. Of these, **~17 are active** by default — the rest are disabled and can be enabled as needed.
+The integration creates **5 devices** with a total of **44 sensors**. Of these, **32 are active** by default — the rest are disabled and can be enabled as needed.
 
 | Device             | Description                      | Active | Total |
 |--------------------|----------------------------------|--------|-------|
-| Grid tariff        | Energy component, capacity, taxes | 9     | 19    |
-| Electricity subsidy | Subsidy and total price          | 3     | 7     |
-| Norgespris         | Norgespris comparison            | 0     | 3     |
-| Monthly consumption | Consumption and costs this month | 4     | 10    |
-| Previous month     | Consumption and costs last month | 2     | 5     |
+| Grid tariff        | Energy component, capacity, taxes | 11    | 19    |
+| Electricity subsidy | Subsidy and total price          | 6     | 7     |
+| Norgespris         | Norgespris comparison            | 3     | 3     |
+| Monthly consumption | Consumption and costs this month | 7     | 10    |
+| Previous month     | Consumption and costs last month | 5     | 5     |
 
 ### Enabling more sensors
 
 Go to **Settings > Devices > Stromkalkulator > (select device) > Entities**. Click on a disabled sensor and toggle "Enabled". The sensor will start updating at the next minute.
 
-Sensors marked with 🔇 in the tables below are disabled by default.
+Sensors marked *(optional)* are disabled by default. Disabling a sensor does not affect calculations — the coordinator computes all values regardless. Sensors are display only.
 
 ---
 
@@ -43,12 +43,12 @@ Main device with grid tariff prices, capacity tiers, and public taxes. Named "Ne
 |------------------------------|--------|----------------------------------------------------------------------------------------------|
 | Kapasitetstrinn              | kr/mo  | Fixed monthly cost based on your highest power usage (average of your 3 peak days)            |
 | Snitt toppforbruk            | kW     | Average of your 3 highest power days this month — this determines your capacity tier          |
-| 🔇 Kapasitetstrinn (nummer)     | -      | Which tier you are on now (1, 2, 3, ...) — lower is cheaper                                 |
-| 🔇 Kapasitetstrinn (intervall)  | -      | The kW range for your active tier (e.g. "2-5 kW")                                           |
-| 🔇 Toppforbruk #1               | kW     | Your highest power day this month — the day you used the most electricity                    |
-| 🔇 Toppforbruk #2               | kW     | Second highest power day this month                                                          |
-| 🔇 Toppforbruk #3               | kW     | Third highest power day this month                                                           |
-| 🔇 Margin til neste trinn       | kW     | How much more power you can use before you move up to the next (more expensive) capacity tier |
+| *(optional)* Kapasitetstrinn (nummer)     | -      | Which tier you are on now (1, 2, 3, ...) — lower is cheaper                                 |
+| *(optional)* Kapasitetstrinn (intervall)  | -      | The kW range for your active tier (e.g. "2-5 kW")                                           |
+| Toppforbruk #1               | kW     | Your highest power day this month — the day you used the most electricity                    |
+| Toppforbruk #2               | kW     | Second highest power day this month                                                          |
+| Toppforbruk #3               | kW     | Third highest power day this month                                                           |
+| Margin til neste trinn       | kW     | How much more power you can use before you move up to the next (more expensive) capacity tier |
 | Kapasitetsvarsel             | -      | Turns "on" when you are close to the next capacity tier — use for alerts/automation           |
 
 ### Electricity price
@@ -56,18 +56,18 @@ Main device with grid tariff prices, capacity tiers, and public taxes. Named "Ne
 | Sensor                        | Unit   | Description                                                                                       |
 |-------------------------------|--------|---------------------------------------------------------------------------------------------------|
 | Total strompris (for stotte)  | kr/kWh | Everything you pay per kWh right now: spot price + grid tariff (before any subsidy is deducted)    |
-| 🔇 Total strompris (stromavtale) | kr/kWh | Same as above, but with your provider's price instead of spot price (optional — needs price sensor) |
+| *(optional)* Total strompris (stromavtale) | kr/kWh | Same as above, but with your provider's price instead of spot price (optional — needs price sensor) |
 | Strompris per kWh             | kr/kWh | Spot price + energy component without capacity fee — the variable cost per kWh you use             |
 
 ### Diagnostics (taxes)
 
 | Sensor               | Unit   | Description                                                                                |
 |-----------------------|--------|--------------------------------------------------------------------------------------------|
-| 🔇 Energiledd dag        | kr/kWh | Grid tariff rate for daytime hours (weekdays 06-22), including all taxes and VAT            |
-| 🔇 Energiledd natt/helg  | kr/kWh | Grid tariff rate for night/weekend/holidays, including all taxes and VAT                    |
-| 🔇 Offentlige avgifter   | kr/kWh | Sum of consumption tax and Enova levy incl. VAT — the government's surcharge per kWh        |
-| 🔇 Forbruksavgift        | kr/kWh | Electricity consumption tax (government tax on electricity usage) incl. VAT                  |
-| 🔇 Enovaavgift           | kr/kWh | Enova levy (funds energy efficiency programs) incl. VAT                                      |
+| *(optional)* Energiledd dag        | kr/kWh | Grid tariff rate for daytime hours (weekdays 06-22), including all taxes and VAT            |
+| *(optional)* Energiledd natt/helg  | kr/kWh | Grid tariff rate for night/weekend/holidays, including all taxes and VAT                    |
+| *(optional)* Offentlige avgifter   | kr/kWh | Sum of consumption tax and Enova levy incl. VAT — the government's surcharge per kWh        |
+| *(optional)* Forbruksavgift        | kr/kWh | Electricity consumption tax (government tax on electricity usage) incl. VAT                  |
+| *(optional)* Enovaavgift           | kr/kWh | Enova levy (funds energy efficiency programs) incl. VAT                                      |
 
 ---
 
@@ -79,11 +79,11 @@ Sensors for subsidy calculation and total price incl. all taxes.
 |-----------------------------------|--------|------------------------------------------------------------------------------------------------|
 | Stromstotte                       | kr/kWh | Government subsidy per kWh when spot price exceeds 96.25 ore (you get 90% of the excess)       |
 | Spotpris etter stotte             | kr/kWh | What the spot price effectively costs you after the subsidy is deducted                        |
-| 🔇 Total strompris etter stotte      | kr/kWh | Your actual total price right now: spot price + grid tariff - subsidy                          |
+| Total strompris etter stotte      | kr/kWh | Your actual total price right now: spot price + grid tariff - subsidy                          |
 | Totalpris inkl. avgifter          | kr/kWh | **Recommended for Energy Dashboard** — your total electricity price incl. grid, taxes & subsidy |
 | Stromstotte aktiv na              | -      | "Yes" / "No" — whether the current spot price is high enough for you to receive subsidy         |
-| 🔇 Stromstotte gjenstaaende kWh      | kWh    | How many kWh remain before you hit the subsidy cap (5000 kWh/month)                             |
-| 🔇 Strompris per kWh (etter stotte)  | kr/kWh | Spot price + energy component - subsidy, without capacity fee — variable kWh cost after subsidy  |
+| Stromstotte gjenstaaende kWh      | kWh    | How many kWh remain before you hit the subsidy cap (5000 kWh/month)                             |
+| *(optional)* Strompris per kWh (etter stotte)  | kr/kWh | Spot price + energy component - subsidy, without capacity fee — variable kWh cost after subsidy  |
 
 ---
 
@@ -93,10 +93,10 @@ Comparison between your spot price contract and Norgespris (fixed 50 ore/kWh fro
 
 | Sensor                              | Unit   | Description                                                                                     |
 |-------------------------------------|--------|-------------------------------------------------------------------------------------------------|
-| 🔇 Total strompris (norgespris)        | kr/kWh | What you would pay per kWh with Norgespris: fixed 50 ore + grid tariff                          |
-| 🔇 Prisforskjell (norgespris)          | kr/kWh | How much you save/lose per kWh compared to Norgespris (positive = you pay more)                  |
-| 🔇 Norgespris aktiv na                 | -      | "Yes" / "No" — whether you have opted for Norgespris as your electricity contract               |
-| 🔇 Maanedlig Norgespris-differanse     | kr     | Accumulated savings/loss in NOK this month compared to the alternative contract                   |
+| Total strompris (norgespris)        | kr/kWh | What you would pay per kWh with Norgespris: fixed 50 ore + grid tariff                          |
+| Prisforskjell (norgespris)          | kr/kWh | How much you save/lose per kWh compared to Norgespris (positive = you pay more)                  |
+| Norgespris aktiv na                 | -      | "Yes" / "No" — whether you have opted for Norgespris as your electricity contract               |
+| Maanedlig Norgespris-differanse     | kr     | Accumulated savings/loss in NOK this month compared to the alternative contract                   |
 
 **Price difference interpretation:**
 - **Positive value** = You pay more than Norgespris (Norgespris is cheaper)
@@ -112,17 +112,17 @@ Tracks consumption and costs for the current month. Resets automatically at mont
 
 | Sensor                     | Unit | Description                                                                              |
 |----------------------------|------|------------------------------------------------------------------------------------------|
-| 🔇 Maanedlig forbruk dagtariff | kWh  | Electricity used on day tariff this month (weekdays 06:00-22:00, not public holidays)    |
-| 🔇 Maanedlig forbruk natt/helg | kWh  | Electricity used on night/weekend tariff this month (nights, weekends, public holidays)   |
+| Maanedlig forbruk dagtariff | kWh  | Electricity used on day tariff this month (weekdays 06:00-22:00, not public holidays)    |
+| Maanedlig forbruk natt/helg | kWh  | Electricity used on night/weekend tariff this month (nights, weekends, public holidays)   |
 | Maanedlig forbruk totalt    | kWh  | All electricity consumption this month — sum of day and night                             |
 
 ### Costs
 
 | Sensor                    | Unit | Description                                                                                          |
 |---------------------------|------|------------------------------------------------------------------------------------------------------|
-| 🔇 Maanedlig nettleie        | kr   | Grid tariff so far this month: energy component (day + night) + capacity fee                          |
-| 🔇 Maanedlig avgifter        | kr   | Public taxes so far: consumption tax + Enova levy incl. VAT                                           |
-| 🔇 Maanedlig stromstotte     | kr   | Estimated subsidy earned this month (actual subsidy is calculated hourly)                              |
+| *(optional)* Maanedlig nettleie        | kr   | Grid tariff so far this month: energy component (day + night) + capacity fee                          |
+| *(optional)* Maanedlig avgifter        | kr   | Public taxes so far: consumption tax + Enova levy incl. VAT                                           |
+| *(optional)* Maanedlig stromstotte     | kr   | Estimated subsidy earned this month (actual subsidy is calculated hourly)                              |
 | Maanedlig nettleie total  | kr   | The bottom line: grid tariff + taxes - subsidy — what you actually pay for the grid portion            |
 | Dagens kostnad            | kr   | What electricity has cost you today — accumulated cost since midnight                                  |
 | Estimert maanedskostnad   | kr   | Forecast for what the whole month will cost, based on usage so far (gets more accurate each day)       |
@@ -157,8 +157,8 @@ Stores previous month's data for invoice verification. Updated automatically at 
 
 | Sensor                          | Unit | Description                                                                    |
 |---------------------------------|------|--------------------------------------------------------------------------------|
-| 🔇 Forrige maaned forbruk dagtariff | kWh  | Electricity used on day tariff last month (weekdays 06:00-22:00)              |
-| 🔇 Forrige maaned forbruk natt/helg | kWh  | Electricity used on night/weekend tariff last month (nights, weekends, holidays) |
+| Forrige maaned forbruk dagtariff | kWh  | Electricity used on day tariff last month (weekdays 06:00-22:00)              |
+| Forrige maaned forbruk natt/helg | kWh  | Electricity used on night/weekend tariff last month (nights, weekends, holidays) |
 | Forrige maaned forbruk totalt    | kWh  | Total electricity consumption last month                                       |
 
 ### Costs and power
@@ -166,7 +166,7 @@ Stores previous month's data for invoice verification. Updated automatically at 
 | Sensor                    | Unit | Description                                                                                  |
 |---------------------------|------|----------------------------------------------------------------------------------------------|
 | Forrige maaned nettleie   | kr   | What you paid in grid tariff last month — use to compare with your invoice                    |
-| 🔇 Forrige maaned toppforbruk | kW   | Average of the 3 highest power days last month — this determined your capacity tier           |
+| Forrige maaned toppforbruk | kW   | Average of the 3 highest power days last month — this determined your capacity tier           |
 
 ### Attributes
 

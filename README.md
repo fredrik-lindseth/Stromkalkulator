@@ -173,6 +173,14 @@ Prisene oppdateres årlig ved nyttår. Finner du feil eller utdaterte priser? [O
 
 Nettselskaper i Norge fusjonerer jevnlig. Integrasjonen håndterer dette automatisk — hvis nettselskapet ditt har fusjonert, oppdateres konfigurasjonen ved neste oppstart. Forbruksdata og historikk bevares. Du får en melding under **Settings > Repairs** som bekrefter endringen.
 
+## Sensorer
+
+Integrasjonen oppretter ~17 aktive sensorer som dekker det de fleste trenger: totalpris, strømstøtte, kapasitet, månedlig forbruk og kostnad. I tillegg finnes ~25 sensorer som er **deaktivert som standard** — diagnostikk, detaljerte nedbrytninger og Norgespris-sammenligning.
+
+Aktiver flere sensorer under **Settings > Devices > Strømkalkulator > (velg device) > Entities** — klikk på sensoren og slå på "Enabled".
+
+Se [SENSORS.md](docs/SENSORS.md) for komplett oversikt.
+
 ## Begrensninger
 
 Integrasjonen er laget for **privatboliger med eget strømabonnement**.

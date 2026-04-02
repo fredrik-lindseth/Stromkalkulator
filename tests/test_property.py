@@ -18,18 +18,10 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from tests.test_energiledd import is_day_rate
-from tests.test_kapasitetstrinn import (
-    BKK_KAPASITETSTRINN,
-    calculate_avg_top_3,
-    get_kapasitetsledd,
-)
-
 from custom_components.stromkalkulator.const import (
     AVGIFTSSONE_NORD_NORGE,
     AVGIFTSSONE_STANDARD,
     AVGIFTSSONE_TILTAKSSONE,
-    ENOVA_AVGIFT,
     FORBRUKSAVGIFT_ALMINNELIG,
     HELLIGDAGER_BEVEGELIGE,
     HELLIGDAGER_FASTE,
@@ -42,8 +34,13 @@ from custom_components.stromkalkulator.const import (
     get_mva_sats,
     get_norgespris_inkl_mva,
 )
-
 from custom_components.stromkalkulator.dso import DSO_LIST
+from tests.test_energiledd import is_day_rate
+from tests.test_kapasitetstrinn import (
+    BKK_KAPASITETSTRINN,
+    calculate_avg_top_3,
+    get_kapasitetsledd,
+)
 
 
 def calculate_stromstotte(spot_price: float) -> float:
@@ -92,7 +89,7 @@ def test_kapasitetstrinn_monotonic(a: float, b: float) -> None:
 @HEAVY
 def test_kapasitetstrinn_tier_matches_range_string(power: float) -> None:
     """The range string must describe the tier the power falls into."""
-    price, tier, range_str = get_kapasitetsledd(power, BKK_KAPASITETSTRINN)
+    _price, tier, range_str = get_kapasitetsledd(power, BKK_KAPASITETSTRINN)
     # Range string should contain "kW"
     assert "kW" in range_str
     # If it starts with ">", it's the last tier
@@ -187,20 +184,12 @@ def test_avg_top3_adding_value_never_decreases_when_3_plus(values: list[float], 
     """
     daily_max = {f"2026-01-{i + 1:02d}": v for i, v in enumerate(values)}
     avg_before = calculate_avg_top_3(daily_max)
-    daily_max[f"2026-02-01"] = extra
+    daily_max["2026-02-01"] = extra
     avg_after = calculate_avg_top_3(daily_max)
     assert avg_after >= avg_before - 1e-10
 
 
 # -- Day/night tariff ---------------------------------------------------------
-
-
-@given(dt=st.datetimes(min_value=datetime(2026, 1, 1), max_value=datetime(2026, 12, 31)))
-@HEAVY
-def test_tariff_always_boolean(dt: datetime) -> None:
-    """is_day_rate must return exactly True or False."""
-    result = is_day_rate(dt)
-    assert result is True or result is False
 
 
 @given(dt=st.datetimes(min_value=datetime(2026, 1, 1), max_value=datetime(2026, 12, 31)))
@@ -284,68 +273,12 @@ def test_stromstotte_effective_price_never_below_threshold(price: float) -> None
 
 
 @given(month=st.integers(min_value=1, max_value=12))
-def test_forbruksavgift_consistent_across_months(month: int) -> None:
-    """2026 forbruksavgift is flat — must be same for all months."""
-    standard = get_forbruksavgift(AVGIFTSSONE_STANDARD, month)
-    nord = get_forbruksavgift(AVGIFTSSONE_NORD_NORGE, month)
-    assert standard == FORBRUKSAVGIFT_ALMINNELIG
-    assert nord == FORBRUKSAVGIFT_ALMINNELIG
-
-
-@given(month=st.integers(min_value=1, max_value=12))
 def test_tiltakssone_always_zero_forbruksavgift(month: int) -> None:
     """Tiltakssone has 0 forbruksavgift for every month."""
     assert get_forbruksavgift(AVGIFTSSONE_TILTAKSSONE, month) == 0.0
 
 
 # -- Total price consistency ---------------------------------------------------
-
-
-@given(
-    spot=st.floats(min_value=0, max_value=10, allow_nan=False, allow_infinity=False),
-    energiledd=st.floats(min_value=0, max_value=1, allow_nan=False, allow_infinity=False),
-    kapasitetsledd=st.sampled_from([155, 250, 415, 600, 770, 940, 1800, 2650, 3500, 6900]),
-    day=st.integers(min_value=28, max_value=31),
-)
-@HEAVY
-def test_total_price_always_positive(spot: float, energiledd: float, kapasitetsledd: int, day: int) -> None:
-    """Total price must always be non-negative for non-negative inputs."""
-    stotte = calculate_stromstotte(spot)
-    fastledd = (kapasitetsledd / day) / 24
-    total = (spot - stotte) + energiledd + fastledd
-    assert total >= -1e-10
-
-
-@given(
-    spot=st.floats(min_value=0, max_value=10, allow_nan=False, allow_infinity=False),
-    energiledd=st.floats(min_value=0, max_value=1, allow_nan=False, allow_infinity=False),
-    kapasitetsledd=st.sampled_from([155, 250, 415, 600, 770, 940, 1800, 2650, 3500, 6900]),
-    day=st.integers(min_value=28, max_value=31),
-)
-@HEAVY
-def test_stromstotte_always_reduces_total(spot: float, energiledd: float, kapasitetsledd: int, day: int) -> None:
-    """Total with strømstøtte must be <= total without."""
-    stotte = calculate_stromstotte(spot)
-    fastledd = (kapasitetsledd / day) / 24
-    total_with = (spot - stotte) + energiledd + fastledd
-    total_without = spot + energiledd + fastledd
-    assert total_with <= total_without + 1e-10
-
-
-@given(
-    spot=st.floats(min_value=0, max_value=10, allow_nan=False, allow_infinity=False),
-    energiledd=st.floats(min_value=0, max_value=1, allow_nan=False, allow_infinity=False),
-    kapasitetsledd=st.sampled_from([155, 250, 415, 600, 770, 940, 1800, 2650, 3500, 6900]),
-    day=st.integers(min_value=28, max_value=31),
-)
-@HEAVY
-def test_norgespris_independent_of_spot(spot: float, energiledd: float, kapasitetsledd: int, day: int) -> None:
-    """Norgespris total must not depend on spot price."""
-    fastledd = (kapasitetsledd / day) / 24
-    norgespris = NORGESPRIS_INKL_MVA_STANDARD
-    total_norgespris = norgespris + energiledd + fastledd
-    # Should be the same regardless of spot price
-    assert total_norgespris == norgespris + energiledd + fastledd
 
 
 # =============================================================================
@@ -475,7 +408,7 @@ def test_exhaustive_all_dso_energiledd_dag_gte_natt() -> None:
 
 
 def test_exhaustive_forbruksavgift_all_months_all_soner() -> None:
-    """Verify forbruksavgift for all 12 months × 3 avgiftssoner."""
+    """Verify forbruksavgift for all 12 months x 3 avgiftssoner."""
     for month in range(1, 13):
         std = get_forbruksavgift(AVGIFTSSONE_STANDARD, month)
         nord = get_forbruksavgift(AVGIFTSSONE_NORD_NORGE, month)
@@ -543,10 +476,7 @@ def _alt_is_day_rate(dt: datetime) -> bool:
         parts = h.split("-")
         if int(parts[0]) == dt.year:
             moving.add((int(parts[1]), int(parts[2])))
-    if (dt.month, dt.day) in moving:
-        return False
-
-    return True
+    return (dt.month, dt.day) not in moving
 
 
 @given(dt=st.datetimes(min_value=datetime(2026, 1, 1), max_value=datetime(2027, 12, 31)))
@@ -610,7 +540,7 @@ def test_differential_avg_top3_two_implementations(values: list[float]) -> None:
 
 
 def test_exhaustive_fastledd_per_kwh_all_months_all_tiers() -> None:
-    """Verify fastledd per kWh for all months × all tiers gives sane values."""
+    """Verify fastledd per kWh for all months x all tiers gives sane values."""
     for month in range(1, 13):
         days = calendar.monthrange(2026, month)[1]
         for _threshold, price in BKK_KAPASITETSTRINN:

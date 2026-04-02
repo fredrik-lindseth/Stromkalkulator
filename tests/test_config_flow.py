@@ -5,6 +5,10 @@ Covers bugs found from user reports:
 - Duplicate power sensor not caught until after pricing step
 - Translation keys must exist for all error codes
 - Energiledd must support 4+ decimal places
+
+Note: Some tests use regex on source code (fragile by design) because we
+cannot run HA config flow without pytest-homeassistant-custom-component.
+These structural checks catch real constraints that have caused bugs.
 """
 
 from __future__ import annotations

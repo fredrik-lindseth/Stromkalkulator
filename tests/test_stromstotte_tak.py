@@ -1,19 +1,27 @@
-"""Test strømstøtte 5000 kWh-tak (monthly consumption cap).
+"""Test strømstøtte calculations.
 
-Tests the electricity subsidy calculation with the 5000 kWh/month cap:
-- 90% of spot price above 96.25 øre/kWh (inkl. mva)
-- Zero support when monthly consumption exceeds 5000 kWh
+Tests the electricity subsidy (strømstøtte) calculation:
+- 90% coverage of spot price above threshold (inkl. mva)
+- Max 5000 kWh/month cap
 - Always calculated from spot price (also for Norgespris, for comparison)
+
+Historikk terskelverdi (eks. mva → inkl. 25% mva):
+- 2024: 73 øre → 91,25 øre inkl. mva
+- 2025: 75 øre → 93,75 øre inkl. mva
+- 2026: 77 øre → 96,25 øre inkl. mva
+
+Kilde: https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791
 """
 
 from __future__ import annotations
 
 import pytest
 
-# Constants matching const.py
-STROMSTOTTE_LEVEL = 0.9625  # 96.25 øre/kWh inkl. mva (terskel 2026)
-STROMSTOTTE_RATE = 0.90  # 90% kompensasjon over terskel
-STROMSTOTTE_MAX_KWH = 5000  # Maks 5000 kWh/mnd per målepunkt
+from custom_components.stromkalkulator.const import (
+    STROMSTOTTE_LEVEL,
+    STROMSTOTTE_MAX_KWH,
+    STROMSTOTTE_RATE,
+)
 
 
 def calculate_stromstotte(
@@ -154,3 +162,23 @@ def test_stromstotte_gjenstaaende(
 def test_gjenstaaende_never_negative() -> None:
     """Remaining kWh should never be negative, even with extreme consumption."""
     assert stromstotte_gjenstaaende(99999) == 0.0
+
+
+# =============================================================================
+# Threshold and rate validation
+# =============================================================================
+
+
+def test_threshold_is_2026_value() -> None:
+    """Verify threshold is set to 2026 value (77 øre eks. mva * 1.25)."""
+    assert STROMSTOTTE_LEVEL == 0.9625
+
+
+def test_rate_is_90_percent() -> None:
+    """Verify rate is 90%."""
+    assert STROMSTOTTE_RATE == 0.9
+
+
+def test_cap_is_5000_kwh() -> None:
+    """Verify monthly cap is 5000 kWh."""
+    assert STROMSTOTTE_MAX_KWH == 5000

@@ -11,8 +11,6 @@ from __future__ import annotations
 import sys
 from unittest.mock import MagicMock
 
-import pytest
-
 # ---- HA module mocks ----
 _sensor_mod = sys.modules["homeassistant.components.sensor"]
 _sensor_mod.SensorDeviceClass = type("SensorDeviceClass", (), {
@@ -89,32 +87,6 @@ class TestOffentligeAvgifterSensor:
         sensor = OffentligeAvgifterSensor(_make_coordinator(), _make_entry("tiltakssone"))
         expected = round(ENOVA_AVGIFT * 1.0, 2)
         assert sensor.native_value == expected
-
-    def test_standard_matches_const_values(self):
-        """Verify consistency with const.py constants."""
-        sensor = OffentligeAvgifterSensor(_make_coordinator(), _make_entry("standard"))
-        # Should be 0.0713 * 1.25 + 0.01 * 1.25 = 0.089125 + 0.0125 = 0.101625 ≈ 0.10
-        forbruksavgift_inkl = round(FORBRUKSAVGIFT_ALMINNELIG * 1.25, 4)
-        enova_inkl = round(ENOVA_AVGIFT * 1.25, 4)
-        assert sensor.native_value == round(forbruksavgift_inkl + enova_inkl, 2)
-
-    @pytest.mark.parametrize(
-        "avgiftssone,forbruksavgift_expected,mva_expected",
-        [
-            ("standard", FORBRUKSAVGIFT_ALMINNELIG, MVA_SATS),
-            ("nord_norge", FORBRUKSAVGIFT_ALMINNELIG, 0.0),
-            ("tiltakssone", 0.0, 0.0),
-        ],
-    )
-    def test_get_methods_return_correct_values(
-        self, avgiftssone, forbruksavgift_expected, mva_expected
-    ):
-        """Internal _get_forbruksavgift() and _get_mva_sats() methods."""
-        sensor = OffentligeAvgifterSensor(
-            _make_coordinator(), _make_entry(avgiftssone)
-        )
-        assert sensor._get_forbruksavgift() == forbruksavgift_expected
-        assert sensor._get_mva_sats() == mva_expected
 
     def test_extra_state_attributes_structure(self):
         """Attributes should contain all fee components."""

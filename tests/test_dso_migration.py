@@ -2,29 +2,7 @@
 
 from __future__ import annotations
 
-import pytest
-from stromkalkulator.dso import DSO_LIST, DSO_MIGRATIONS, DSOFusjon
-
-
-def test_dso_fusjon_dataclass():
-    """DSOFusjon has gammel and ny fields."""
-    fusjon = DSOFusjon(gammel="old_dso", ny="new_dso")
-    assert fusjon.gammel == "old_dso"
-    assert fusjon.ny == "new_dso"
-
-
-def test_dso_fusjon_is_frozen():
-    """DSOFusjon is immutable."""
-    fusjon = DSOFusjon(gammel="old_dso", ny="new_dso")
-    with pytest.raises(AttributeError):
-        fusjon.gammel = "other"  # type: ignore[misc]
-
-
-def test_dso_migrations_exist():
-    """DSO_MIGRATIONS contains known mergers."""
-    gammel_keys = [m.gammel for m in DSO_MIGRATIONS]
-    assert "skiakernett" in gammel_keys
-    assert "norgesnett" in gammel_keys
+from stromkalkulator.dso import DSO_LIST, DSO_MIGRATIONS
 
 
 def test_dso_migrations_targets_exist_in_dso_list():

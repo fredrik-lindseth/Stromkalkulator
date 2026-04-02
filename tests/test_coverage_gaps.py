@@ -658,3 +658,189 @@ class TestCoordinatorInitFallbacks:
 
         assert coordinator.energiledd_dag == 0.55
         assert coordinator.energiledd_natt == 0.33
+
+
+# ===========================================================================
+# Nord-Norge avgiftssone i coordinator update (from test_quality_r3)
+# ===========================================================================
+
+
+class TestNordNorgeAvgiftssone:
+    """Forbruksavgift uten MVA (nord_norge: full avgift, 0% mva)."""
+
+    def test_nord_norge_forbruksavgift_no_mva(self, coord_module):
+        hass = _make_hass()
+        entry = _make_entry(extra_data={"avgiftssone": "nord_norge"})
+        entry.data["avgiftssone"] = "nord_norge"
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+
+        result = _run_update(coord_module, coordinator)
+        # forbruksavgift: 0.0713 * (1 + 0.0) = 0.0713 (no MVA)
+        assert result["forbruksavgift_inkl_mva"] == round(0.0713, 4)
+        # enova: 0.01 * (1 + 0.0) = 0.01 (no MVA)
+        assert result["enova_inkl_mva"] == round(0.01, 4)
+        # total avgifter: 0.0713 + 0.01 = 0.0813
+        assert result["offentlige_avgifter"] == round(0.0813, 4)
+
+
+# ===========================================================================
+# Electricity company price — bad values (from test_quality_r3)
+# ===========================================================================
+
+
+class TestElectricityCompanyPriceBadValues:
+    """coordinator.py caching av strømleverandør-pris."""
+
+    def test_unavailable_elco_price_uses_cache(self, coord_module):
+        """Cache survives when sensor becomes unavailable."""
+        hass = MagicMock()
+
+        def get_state_valid(eid):
+            if "power" in eid:
+                return _make_state(5000)
+            if "spot" in eid:
+                return _make_state(1.20)
+            if "elco" in eid:
+                return _make_state(0.85)
+            return None
+
+        hass.states.get = MagicMock(side_effect=get_state_valid)
+
+        entry = _make_entry(extra_data={
+            "electricity_provider_price_sensor": "sensor.elco",
+            "spot_price_sensor": "sensor.spot_price",
+        })
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+        _run_update(coord_module, coordinator)  # cache 0.85
+
+        # Now make sensor unavailable
+        unavailable_state = MagicMock()
+        unavailable_state.state = "unavailable"
+
+        def get_state_unavail(eid):
+            if "power" in eid:
+                return _make_state(5000)
+            if "spot" in eid:
+                return _make_state(1.20)
+            if "elco" in eid:
+                return unavailable_state
+            return None
+
+        hass.states.get = MagicMock(side_effect=get_state_unavail)
+
+        result = _run_update(coord_module, coordinator)
+        assert result["electricity_company_price"] == 0.85
+
+    def test_garbage_elco_price_without_cache_returns_none(self, coord_module):
+        """ValueError on parse, no cache → None."""
+        garbage_state = MagicMock()
+        garbage_state.state = "abc"
+
+        hass = MagicMock()
+
+        def get_state(eid):
+            if "power" in eid:
+                return _make_state(5000)
+            if "spot" in eid:
+                return _make_state(1.20)
+            if "elco" in eid:
+                return garbage_state
+            return None
+
+        hass.states.get = MagicMock(side_effect=get_state)
+
+        entry = _make_entry(extra_data={
+            "electricity_provider_price_sensor": "sensor.elco",
+            "spot_price_sensor": "sensor.spot_price",
+        })
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+
+        result = _run_update(coord_module, coordinator)
+        assert result["electricity_company_price"] is None
+
+    def test_nan_elco_price_not_cached(self, coord_module):
+        """NaN parses as float but isfinite() rejects it → None (not cached)."""
+        nan_state = MagicMock()
+        nan_state.state = "nan"
+
+        hass = MagicMock()
+
+        def get_state(eid):
+            if "power" in eid:
+                return _make_state(5000)
+            if "spot" in eid:
+                return _make_state(1.20)
+            if "elco" in eid:
+                return nan_state
+            return None
+
+        hass.states.get = MagicMock(side_effect=get_state)
+
+        entry = _make_entry(extra_data={
+            "electricity_provider_price_sensor": "sensor.elco",
+            "spot_price_sensor": "sensor.spot_price",
+        })
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+
+        result = _run_update(coord_module, coordinator)
+        assert result["electricity_company_price"] is None
+
+
+# ===========================================================================
+# 5000 kWh strømstøtte-tak boundary (from test_quality_r3)
+# ===========================================================================
+
+
+class TestStromstotteTakBoundary:
+    """coordinator.py >= 5000 kWh grense."""
+
+    def test_4999_9_kwh_still_gets_stromstotte(self, coord_module):
+        hass = _make_hass(spot_price=2.00)
+        entry = _make_entry()
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+        coordinator._monthly_consumption = {"dag": 3000.0, "natt": 1999.9}
+
+        result = _run_update(coord_module, coordinator)
+        assert result["stromstotte"] > 0
+        assert result["stromstotte_tak_naadd"] is False
+
+    def test_5000_kwh_no_stromstotte(self, coord_module):
+        hass = _make_hass(spot_price=2.00)
+        entry = _make_entry()
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+        coordinator._monthly_consumption = {"dag": 3000.0, "natt": 2000.0}
+
+        result = _run_update(coord_module, coordinator)
+        assert result["stromstotte"] == 0.0
+        assert result["stromstotte_tak_naadd"] is True
+
+    def test_5001_kwh_no_stromstotte(self, coord_module):
+        hass = _make_hass(spot_price=2.00)
+        entry = _make_entry()
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+        coordinator._monthly_consumption = {"dag": 3000.0, "natt": 2001.0}
+
+        result = _run_update(coord_module, coordinator)
+        assert result["stromstotte"] == 0.0
+        assert result["stromstotte_tak_naadd"] is True
+
+
+# ===========================================================================
+# Negative verdier i validators (from test_quality_r3)
+# ===========================================================================
+
+
+class TestValidatorsNegativeValues:
+    """coordinator.py negative verdier filtreres/clampes."""
+
+    def test_validate_daily_max_power_skips_negative(self, coord_module):
+        validate = coord_module.NettleieCoordinator._validate_daily_max_power
+        result = validate({"2026-04-01": -5.0, "2026-04-02": 3.0})
+        assert "2026-04-01" not in result
+        assert result["2026-04-02"] == 3.0
+
+    def test_validate_consumption_clamps_negative_to_zero(self, coord_module):
+        validate = coord_module.NettleieCoordinator._validate_consumption
+        result = validate({"dag": -100.0, "natt": 50.0})
+        assert result["dag"] == 0.0
+        assert result["natt"] == 50.0

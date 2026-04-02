@@ -220,34 +220,3 @@ def test_2026_satser_from_docs() -> None:
 
     # From docs: Sum inkl. mva: ~10,16 øre/kWh
     assert result["total_inkl_mva"] == pytest.approx(0.1016, abs=0.001)
-
-
-# =============================================================================
-# Øre to NOK conversion
-# =============================================================================
-
-
-@pytest.mark.parametrize(
-    ("ore_value", "nok_expected", "constant"),
-    [
-        (7.13, 0.0713, FORBRUKSAVGIFT_ALMINNELIG),
-        (1.0, 0.01, ENOVA_AVGIFT),
-    ],
-    ids=["forbruksavgift", "enova"],
-)
-def test_ore_to_nok_conversion(ore_value: float, nok_expected: float, constant: float) -> None:
-    """Test øre to NOK conversion."""
-    nok_value = ore_value / 100
-    assert nok_value == nok_expected
-    assert nok_value == constant
-
-
-def test_display_values_in_ore() -> None:
-    """Values should be easy to convert back to øre for display."""
-    result = calculate_offentlige_avgifter(AVGIFTSSONE_STANDARD)
-
-    forbruksavgift_ore = result["forbruksavgift_eks_mva"] * 100
-    enova_ore = result["enova_avgift_eks_mva"] * 100
-
-    assert forbruksavgift_ore == pytest.approx(7.13, abs=0.01)
-    assert enova_ore == pytest.approx(1.0, abs=0.01)

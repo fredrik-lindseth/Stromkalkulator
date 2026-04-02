@@ -30,7 +30,17 @@ Din totalpris bruker fortsatt fast Norgespris — strømstøtte vises kun for sa
 - Options flow reloader integrasjonen ved endring
 - Options flow bevarer energiledd-presisjon (0.4613 ble til 0)
 - Effektsensor-unikhet valideres i options flow
-- Monetary-sensorer ga HA-warnings (fjernet ugyldig state_class=MEASUREMENT)
+- Monetary-sensorer ga HA-warnings (fjernet ugyldig state_class=MEASUREMENT). Du vil se 17 "state_class_removed" repairs i HA — klikk "ignore" på alle. Prissensorer (kr/kWh) er øyeblikkssatser som ikke hører hjemme i langtidsstatistikk. De nye sensorene (dagens kostnad, estimert månedskostnad) gir mer nyttige aggregeringer
+
+## Nye sensorer
+
+- **Dagens kostnad** — akkumulert strømkostnad i dag (nullstilles ved midnatt)
+- **Estimert månedskostnad** — projiserer totalkostnad basert på forbruk hittil
+
+## Nye attributter
+
+- `dag_pct`/`natt_pct` på månedlig forbruk total — dag/natt-fordeling i prosent
+- `vektet_snittpris_kr_per_kwh` på månedlig total — faktisk snittpris denne måneden
 
 ## Forbedringer
 
@@ -39,7 +49,7 @@ Din totalpris bruker fortsatt fast Norgespris — strømstøtte vises kun for sa
 
 ## Vedlikehold
 
-- 1655 automatiserte tester
+- 1668 automatiserte tester
 - To runder adversarial fuzzing med 40 agenter
 - Coverage-review: 34 nye tester for 10 dekningshull
 - Test-kvalitetsreview: 31 nye tester fra 10 parallelle reviewers
@@ -70,5 +80,10 @@ Din totalpris bruker fortsatt fast Norgespris — strømstøtte vises kun for sa
 - fix: fjern state_class=MEASUREMENT fra monetary-sensorer
 - fix: beregn strømstøtte alltid fra spotpris (Norgespris-sammenligning)
 - refactor: rename TSO→DSO overalt
+- feat: sensor for dagens kostnad
+- feat: sensor for estimert månedskostnad
+- feat: attributt dag/natt-fordeling (%) på månedlig forbruk
+- feat: attributt vektet snittpris (kr/kWh) på månedlig total
+- feat: akkumuler daglig kostnad i coordinator
 
 </details>

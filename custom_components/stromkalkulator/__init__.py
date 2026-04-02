@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 from homeassistant import data_entry_flow
 from homeassistant.const import Platform
-from homeassistant.helpers import entity_registry as er, issue_registry as ir
+from homeassistant.helpers import issue_registry as ir
 
 from .const import CONF_DSO, DOMAIN
 from .coordinator import NettleieCoordinator
@@ -117,13 +117,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: StromkalkulatorConfigEnt
     entry.runtime_data = coordinator
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-
-    # Fix entity names cached before translations were deployed (one-time migration)
-    # Remove and re-register entities with wrong names so HA picks up translation_key
-    ent_reg = er.async_get(hass)
-    for ent in er.async_entries_for_config_entry(ent_reg, entry.entry_id):
-        if ent.original_name and "Monetary balance" in ent.original_name:
-            ent_reg.async_remove(ent.entity_id)
 
     entry.async_on_unload(entry.add_update_listener(_async_update_options))
 

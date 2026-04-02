@@ -89,7 +89,7 @@ Sensors for subsidy calculation and total price incl. all taxes.
 
 ## Device: Norgespris
 
-Comparison between your spot price contract and Norgespris (fixed 50 ore/kWh from Elhub).
+Comparison between your spot price contract and Norgespris (fixed 50 ore/kWh).
 
 | Sensor                              | Unit   | Description                                                                                     |
 |-------------------------------------|--------|-------------------------------------------------------------------------------------------------|
@@ -195,17 +195,17 @@ Energy Dashboard needs two things: a **consumption meter** (kWh) and a **price s
 
 | Energy Dashboard field        | What to select                   | Source              |
 |-------------------------------|----------------------------------|---------------------|
-| **Consumed energy**           | Your kWh consumption sensor      | Tibber, P1, Elhub   |
+| **Consumed energy**           | Your kWh consumption sensor      | AMS meter via HAN port |
 | **Use an entity with current price** | **Totalpris inkl. avgifter** | Stromkalkulator     |
 
 **Step by step:**
 1. **Settings > Dashboards > Energy**
 2. Under **Electricity grid**, click **Add consumption**
-3. **Consumed energy** — select your kWh sensor (e.g. from Tibber Pulse, P1 meter, or Elhub)
+3. **Consumed energy** — select your kWh sensor (e.g. from Tibber Pulse or AMS reader)
 4. Enable **Use an entity with current price**
 5. Select **Totalpris inkl. avgifter** (`sensor.totalpris_inkl_avgifter_*`)
 
-> **Note:** Stromkalkulator provides the price — the consumption meter (kWh) comes from your power meter integration (Tibber, P1, Elhub, etc.).
+> **Note:** Stromkalkulator provides the price — the consumption meter (kWh) comes from your AMS reader (e.g. Tibber Pulse).
 
 ### Comparing Norgespris
 

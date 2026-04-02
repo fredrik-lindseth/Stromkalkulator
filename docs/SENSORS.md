@@ -89,7 +89,7 @@ Sensorer for strømstøtte-beregning og totalpris inkl. alle avgifter.
 
 ## Device: Norgespris
 
-Sammenligning mellom din spotprisavtale og Norgespris (fast 50 øre/kWh fra Elhub).
+Sammenligning mellom din spotprisavtale og Norgespris (fast 50 øre/kWh).
 
 | Sensor                              | Enhet  | Beskrivelse                                                                           |
 |-------------------------------------|--------|---------------------------------------------------------------------------------------|
@@ -195,17 +195,17 @@ Energy Dashboard trenger to ting: en **forbruksmåler** (kWh) og en **prissensor
 
 | Felt i Energy Dashboard       | Hva du velger                    | Kilde              |
 |-------------------------------|----------------------------------|---------------------|
-| **Consumed energy**           | Din kWh-forbrukssensor           | Tibber, P1, Elhub   |
+| **Consumed energy**           | Din kWh-forbrukssensor           | AMS-leser via HAN-port |
 | **Use an entity with current price** | **Totalpris inkl. avgifter** | Strømkalkulator     |
 
 **Steg for steg:**
 1. **Settings > Dashboards > Energy**
 2. Under **Electricity grid**, klikk **Add consumption**
-3. **Consumed energy** — velg din kWh-sensor (f.eks. fra Tibber Pulse, P1-måler eller Elhub)
+3. **Consumed energy** — velg din kWh-sensor (f.eks. fra Tibber Pulse eller AMS-leser)
 4. Slå på **Use an entity with current price**
 5. Velg **Totalpris inkl. avgifter** (`sensor.totalpris_inkl_avgifter_*`)
 
-> **Merk:** Strømkalkulator gir deg prisen — forbruksmåleren (kWh) kommer fra din strømmåler-integrasjon (Tibber, P1, Elhub, o.l.).
+> **Merk:** Strømkalkulator gir deg prisen — forbruksmåleren (kWh) kommer fra din AMS-leser (f.eks. Tibber Pulse).
 
 ### Sammenligne Norgespris
 

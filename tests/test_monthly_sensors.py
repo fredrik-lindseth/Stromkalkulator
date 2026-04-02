@@ -9,7 +9,8 @@ rather than just forwarding a coordinator key.
 from __future__ import annotations
 
 import sys
-from unittest.mock import MagicMock
+from datetime import datetime
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -54,6 +55,7 @@ from stromkalkulator.const import (  # noqa: E402
 )
 from stromkalkulator.sensor import (  # noqa: E402
     DagskostnadSensor,
+    EstimertMaanedskostnadSensor,
     ForrigeMaanedNettleieSensor,
     MaanedligAvgifterSensor,
     MaanedligForbrukTotalSensor,
@@ -533,3 +535,85 @@ class TestDagskostnadSensor:
         data = {}
         sensor = DagskostnadSensor(_make_coordinator(data), _make_entry())
         assert sensor.native_value is None
+
+
+# ---------------------------------------------------------------------------
+# EstimertMaanedskostnadSensor
+# ---------------------------------------------------------------------------
+
+
+class TestEstimertMaanedskostnadSensor:
+    """Projiserer variable kostnader til full måned + kapasitetsledd."""
+
+    def _base_data(self):
+        return {
+            "monthly_consumption_dag_kwh": 150.0,
+            "monthly_consumption_natt_kwh": 50.0,
+            "energiledd_dag": 0.4613,
+            "energiledd_natt": 0.2329,
+            "kapasitetsledd": 415,
+            "stromstotte": 0.0,
+        }
+
+    @patch("stromkalkulator.sensor.dt_util")
+    def test_basic_projection_mid_month(self, mock_dt):
+        """Dag 15 av 30-dagers måned: estimat ~2x nåværende variable + kapasitet."""
+        # April has 30 days, mock day 15
+        mock_dt.now.return_value = datetime(2026, 4, 15, 12, 0, 0)
+        data = self._base_data()
+        sensor = EstimertMaanedskostnadSensor(
+            _make_coordinator(data), _make_entry("standard")
+        )
+        value = sensor.native_value
+        assert value is not None
+
+        # Calculate expected manually
+        from stromkalkulator.const import get_forbruksavgift, get_mva_sats
+
+        dag_kwh, natt_kwh = 150.0, 50.0
+        total_kwh = dag_kwh + natt_kwh
+        forbruksavgift = get_forbruksavgift("standard", 4)
+        mva = get_mva_sats("standard")
+        nettleie_variable = dag_kwh * 0.4613 + natt_kwh * 0.2329
+        avgifter = total_kwh * ((forbruksavgift + ENOVA_AVGIFT) * (1 + mva))
+        stotte = total_kwh * 0.0
+        variable_cost = nettleie_variable + avgifter - stotte
+        # 15 of 30 days -> project to 30 days
+        estimated_variable = (variable_cost / 15) * 30
+        expected = round(estimated_variable + 415, 0)
+        assert value == expected
+
+    @patch("stromkalkulator.sensor.dt_util")
+    def test_first_day_returns_value(self, mock_dt):
+        """Dag 1 skal returnere en verdi (ikke None eller krasje)."""
+        mock_dt.now.return_value = datetime(2026, 4, 1, 8, 0, 0)
+        data = self._base_data()
+        sensor = EstimertMaanedskostnadSensor(
+            _make_coordinator(data), _make_entry("standard")
+        )
+        value = sensor.native_value
+        assert value is not None
+        # On day 1, variable cost projected to full month + kapasitet
+        assert value > 0
+
+    @patch("stromkalkulator.sensor.dt_util")
+    def test_returns_none_when_no_data(self, mock_dt):
+        """Returnerer None når coordinator.data er None."""
+        mock_dt.now.return_value = datetime(2026, 4, 15, 12, 0, 0)
+        coord = MagicMock()
+        coord.data = None
+        sensor = EstimertMaanedskostnadSensor(coord, _make_entry())
+        assert sensor.native_value is None
+
+    @patch("stromkalkulator.sensor.dt_util")
+    def test_december_days_in_month(self, mock_dt):
+        """Desember har 31 dager — spesialcase i koden."""
+        mock_dt.now.return_value = datetime(2026, 12, 10, 12, 0, 0)
+        data = self._base_data()
+        sensor = EstimertMaanedskostnadSensor(
+            _make_coordinator(data), _make_entry("standard")
+        )
+        value = sensor.native_value
+        assert value is not None
+        # Just verify it computes without error and is positive
+        assert value > 0

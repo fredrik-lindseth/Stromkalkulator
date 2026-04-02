@@ -192,6 +192,9 @@
       },
       "maanedlig_norgespris_diff": {
         "name": "Norgespris besparelse"
+      },
+      "estimert_maanedskostnad": {
+        "name": "Estimert månedskostnad"
       }
     }
   },

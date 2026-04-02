@@ -265,16 +265,15 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         if spot_state is None:
             raise UpdateFailed(f"Spot price sensor entity not found: {self.spot_price_sensor}")
 
-        # Calculate strømstøtte
+        # Calculate strømstøtte (always from spot price, for comparison)
         # Forskrift § 5: 90% av spotpris over 77 øre/kWh eks. mva (96,25 øre inkl. mva) i 2026
         # Maks 5000 kWh/mnd per målepunkt (Forskrift § 5)
         # Kilde: https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791
+        # NB: Norgespris-kunder mottar ikke strømstøtte, men vi beregner den
+        # alltid slik at sammenligning mellom Norgespris og spot+støtte fungerer.
         monthly_total_kwh = self._monthly_consumption["dag"] + self._monthly_consumption["natt"]
         stromstotte: float
-        if self.har_norgespris:
-            # Norgespris: Ingen strømstøtte (kan ikke kombineres)
-            stromstotte = 0.0
-        elif monthly_total_kwh >= STROMSTOTTE_MAX_KWH:
+        if monthly_total_kwh >= STROMSTOTTE_MAX_KWH:
             stromstotte = 0.0
         elif spot_price > STROMSTOTTE_LEVEL:
             stromstotte = (spot_price - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE
@@ -332,18 +331,22 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         total_price_inkl_avgifter = total_price + offentlige_avgifter
 
         # Kroner spart/tapt per kWh (sammenligning)
-        # Positiv = du betaler mer enn Norgespris
-        # Negativ = du betaler mindre enn Norgespris
+        # Positiv = du betaler mer enn alternativet
+        # Negativ = du betaler mindre enn alternativet
         kroner_spart_per_kwh: float
         if self.har_norgespris:
-            kroner_spart_per_kwh = 0.0  # Ingen forskjell når du HAR Norgespris
+            # Sammenlign Norgespris med hva spot etter støtte ville kostet
+            spot_total_etter_stotte = spot_price - stromstotte + energiledd + fastledd_per_kwh
+            kroner_spart_per_kwh = total_price - spot_total_etter_stotte
         else:
             kroner_spart_per_kwh = total_price - total_pris_norgespris
 
         # Accumulate monthly Norgespris comparison
+        # Positiv = du sparer med nåværende avtale
         if energy_kwh > 0:
             if self.har_norgespris:
-                diff_per_kwh = total_price_uten_stotte - total_pris_norgespris
+                # Sammenlign med spot etter støtte
+                diff_per_kwh = spot_total_etter_stotte - total_price
             else:
                 diff_per_kwh = total_pris_norgespris - total_price
             self._monthly_norgespris_diff += diff_per_kwh * energy_kwh

@@ -275,14 +275,20 @@ class TestStromstotte:
             result["spot_price"] - result["stromstotte"], 4
         )
 
-    def test_no_stromstotte_with_norgespris(self, coord_module):
-        """When user has Norgespris, strømstøtte should always be 0."""
+    def test_stromstotte_calculated_with_norgespris(self, coord_module):
+        """Strømstøtte is always calculated from spot price, even with Norgespris.
+
+        This enables comparison between Norgespris and spot+støtte.
+        """
+        from stromkalkulator.const import STROMSTOTTE_LEVEL, STROMSTOTTE_RATE
+
         hass = _make_hass(spot_price=2.00)
         entry = _make_entry(har_norgespris=True)
         coordinator = coord_module.NettleieCoordinator(hass, entry)
 
         result = _run_update(coord_module, coordinator)
-        assert result["stromstotte"] == 0.0
+        expected = round((2.00 - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE, 4)
+        assert result["stromstotte"] == expected
 
     def test_no_stromstotte_at_cap(self, coord_module):
         """When monthly consumption >= 5000 kWh, no strømstøtte."""
@@ -327,14 +333,26 @@ class TestNorgespris:
         # (compares current price to norgespris)
         assert result["kroner_spart_per_kwh"] != 0.0
 
-    def test_norgespris_kroner_spart_zero_when_active(self, coord_module):
-        """kroner_spart_per_kwh is 0 when user has Norgespris."""
+    def test_norgespris_kroner_spart_compares_to_spot(self, coord_module):
+        """With Norgespris, kroner_spart compares to spot etter støtte."""
+        from stromkalkulator.const import STROMSTOTTE_LEVEL, STROMSTOTTE_RATE
+
         hass = _make_hass(spot_price=2.00)
         entry = _make_entry(har_norgespris=True)
         coordinator = coord_module.NettleieCoordinator(hass, entry)
 
         result = _run_update(coord_module, coordinator)
-        assert result["kroner_spart_per_kwh"] == 0.0
+        # norgespris_total - spot_total_etter_stotte
+        # With spot=2.00, strømstøtte is significant, so norgespris should be cheaper
+        stromstotte = (2.00 - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE
+        spot_etter = 2.00 - stromstotte
+        # kroner_spart = norgespris_total - spot_total_etter_stotte
+        # = (norgespris + energiledd + fastledd) - (spot - støtte + energiledd + fastledd)
+        # = norgespris - (spot - støtte)
+        expected = round(result["norgespris"] - spot_etter, 4)
+        assert result["kroner_spart_per_kwh"] == expected
+        # With spot=2.00 and norgespris=0.50, norgespris is cheaper → negative value
+        assert result["kroner_spart_per_kwh"] < 0
 
     def test_norgespris_nord_norge_avgiftssone(self, coord_module):
         """Nord-Norge gets lower norgespris (mva-fritak)."""
@@ -344,6 +362,43 @@ class TestNorgespris:
 
         result = _run_update(coord_module, coordinator)
         assert result["norgespris"] == 0.40  # 40 øre, no mva
+
+    def test_norgespris_comparison_chain_regression(self, coord_module):
+        """Regression: all comparison sensors must work with Norgespris.
+
+        When har_norgespris=True, the user needs to compare their Norgespris
+        total with what spot+støtte would cost. This requires:
+        1. strømstøtte calculated from spot (not forced to 0)
+        2. spotpris_etter_stotte = spot - strømstøtte (not raw spot)
+        3. kroner_spart_per_kwh != 0 (actual comparison)
+        4. total_price uses norgespris (not spot)
+        """
+        from stromkalkulator.const import STROMSTOTTE_LEVEL
+
+        hass = _make_hass(spot_price=2.00)  # Well above strømstøtte threshold
+        entry = _make_entry(har_norgespris=True)
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+
+        result = _run_update(coord_module, coordinator)
+
+        # 1. Strømstøtte must be calculated (not 0)
+        assert result["stromstotte"] > 0, "strømstøtte must be calculated for comparison"
+
+        # 2. Spotpris etter støtte must be lower than raw spot
+        assert result["spotpris_etter_stotte"] < result["spot_price"], (
+            "spotpris_etter_stotte must deduct strømstøtte"
+        )
+
+        # 3. Comparison must be non-zero
+        assert result["kroner_spart_per_kwh"] != 0.0, (
+            "kroner_spart_per_kwh must compare norgespris vs spot+støtte"
+        )
+
+        # 4. Total price must use norgespris (not spot)
+        assert result["spot_price"] > STROMSTOTTE_LEVEL  # sanity
+        assert result["total_price"] < result["spot_price"], (
+            "total_price should use norgespris (0.50), not spot (2.00)"
+        )
 
 
 class TestStromprisPerKwh:

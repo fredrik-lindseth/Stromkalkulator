@@ -37,7 +37,7 @@ custom_components/stromkalkulator/
 
 **Sensorer** (`sensor.py`):
 
-- 44 sensorer gruppert i 5 devices (~17 aktive, ~25 disabled by default)
+- 44 sensorer gruppert i 5 devices (~17 aktive, ~25 deaktivert som standard)
 - Arver fra `CoordinatorEntity` og `SensorEntity`
 - Leser fra `coordinator.data["key"]`
 

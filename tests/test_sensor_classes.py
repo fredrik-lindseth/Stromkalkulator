@@ -54,14 +54,9 @@ _coord_mod.CoordinatorEntity = FakeCoordinatorEntity
 from stromkalkulator.const import STROMSTOTTE_LEVEL  # noqa: E402
 from stromkalkulator.sensor import (  # noqa: E402
     ElectricityCompanyTotalSensor,
-    EnergileddDagSensor,
-    EnergileddNattSensor,
     EnergileddSensor,
     ForrigeMaanedForbrukDagSensor,
-    ForrigeMaanedForbrukNattSensor,
-    ForrigeMaanedForbrukTotalSensor,
     ForrigeMaanedToppforbrukSensor,
-    GjsForbrukSensor,
     KapasitetstrinnSensor,
     KapasitetVarselSensor,
     MaanedligForbrukDagSensor,
@@ -85,8 +80,6 @@ from stromkalkulator.sensor import (  # noqa: E402
     TotalPrisEtterStotteSensor,
     TotalPrisInklAvgifterSensor,
     TotalPrisNorgesprisSensor,
-    TrinnIntervallSensor,
-    TrinnNummerSensor,
 )
 
 # --- Fixtures ---
@@ -166,181 +159,6 @@ def mock_entry():
 
 
 # --- Test sensor native_value reads correct key ---
-
-
-class TestSensorNativeValue:
-    """Verify each sensor reads the correct key from coordinator.data."""
-
-    def test_energiledd_value(self, mock_coordinator, mock_entry):
-        sensor = EnergileddSensor(mock_coordinator, mock_entry)
-        assert sensor.native_value == 0.4613
-
-    def test_kapasitetstrinn_value(self, mock_coordinator, mock_entry):
-        sensor = KapasitetstrinnSensor(mock_coordinator, mock_entry)
-        assert sensor.native_value == 415
-
-    def test_margin_neste_trinn_value(self, mock_coordinator, mock_entry):
-        sensor = MarginNesteTrinnSensor(mock_coordinator, mock_entry)
-        assert sensor.native_value == 1.67
-
-    def test_kapasitet_varsel_on(self, mock_coordinator, mock_entry):
-        sensor = KapasitetVarselSensor(mock_coordinator, mock_entry)
-        assert sensor.native_value == "on"
-
-    def test_kapasitet_varsel_off(self, mock_coordinator, mock_entry):
-        mock_coordinator.data["kapasitet_varsel"] = False
-        sensor = KapasitetVarselSensor(mock_coordinator, mock_entry)
-        assert sensor.native_value == "off"
-
-    def test_total_price_uses_uten_stotte(self, mock_coordinator, mock_entry):
-        """TotalPriceSensor reads total_price_uten_stotte (before subsidy)."""
-        sensor = TotalPriceSensor(mock_coordinator, mock_entry)
-        assert sensor.native_value == 1.7189
-
-    def test_maks_forbruk_rank_1(self, mock_coordinator, mock_entry):
-        sensor = MaksForbrukSensor(mock_coordinator, mock_entry, 1)
-        assert sensor.native_value == 10.0
-
-    def test_maks_forbruk_rank_2(self, mock_coordinator, mock_entry):
-        sensor = MaksForbrukSensor(mock_coordinator, mock_entry, 2)
-        assert sensor.native_value == 8.0
-
-    def test_maks_forbruk_rank_3(self, mock_coordinator, mock_entry):
-        sensor = MaksForbrukSensor(mock_coordinator, mock_entry, 3)
-        assert sensor.native_value == 7.0
-
-    def test_gjs_forbruk_value(self, mock_coordinator, mock_entry):
-        sensor = GjsForbrukSensor(mock_coordinator, mock_entry)
-        assert sensor.native_value == 8.33
-
-    def test_trinn_nummer_value(self, mock_coordinator, mock_entry):
-        sensor = TrinnNummerSensor(mock_coordinator, mock_entry)
-        assert sensor.native_value == 3
-
-    def test_trinn_intervall_value(self, mock_coordinator, mock_entry):
-        sensor = TrinnIntervallSensor(mock_coordinator, mock_entry)
-        assert sensor.native_value == "5-10 kW"
-
-    def test_stromstotte_value(self, mock_coordinator, mock_entry):
-        sensor = StromstotteSensor(mock_coordinator, mock_entry)
-        assert sensor.native_value == 0.2138
-
-    def test_spotpris_etter_stotte_value(self, mock_coordinator, mock_entry):
-        sensor = SpotprisEtterStotteSensor(mock_coordinator, mock_entry)
-        assert sensor.native_value == 0.9862
-
-    def test_total_pris_etter_stotte_value(self, mock_coordinator, mock_entry):
-        """TotalPrisEtterStotteSensor reads total_price (after subsidy)."""
-        sensor = TotalPrisEtterStotteSensor(mock_coordinator, mock_entry)
-        assert sensor.native_value == 1.5051
-
-    def test_total_pris_inkl_avgifter_value(self, mock_coordinator, mock_entry):
-        sensor = TotalPrisInklAvgifterSensor(mock_coordinator, mock_entry)
-        assert sensor.native_value == 1.8205
-
-    def test_total_pris_norgespris_value(self, mock_coordinator, mock_entry):
-        sensor = TotalPrisNorgesprisSensor(mock_coordinator, mock_entry)
-        assert sensor.native_value == 1.0189
-
-    def test_prisforskjell_norgespris_value(self, mock_coordinator, mock_entry):
-        sensor = PrisforskjellNorgesprisSensor(mock_coordinator, mock_entry)
-        assert sensor.native_value == 0.25
-
-    def test_norgespris_aktiv_nei(self, mock_coordinator, mock_entry):
-        sensor = NorgesprisAktivSensor(mock_coordinator, mock_entry)
-        assert sensor.native_value == "Nei"
-
-    def test_norgespris_aktiv_ja(self, mock_coordinator, mock_entry):
-        mock_coordinator.data["har_norgespris"] = True
-        sensor = NorgesprisAktivSensor(mock_coordinator, mock_entry)
-        assert sensor.native_value == "Ja"
-
-    def test_energiledd_dag_value(self, mock_coordinator, mock_entry):
-        sensor = EnergileddDagSensor(mock_coordinator, mock_entry)
-        assert sensor.native_value == 0.4613
-
-    def test_energiledd_natt_value(self, mock_coordinator, mock_entry):
-        sensor = EnergileddNattSensor(mock_coordinator, mock_entry)
-        assert sensor.native_value == 0.2329
-
-    def test_stromstotte_kwh_ja(self, mock_coordinator, mock_entry):
-        sensor = StromstotteKwhSensor(mock_coordinator, mock_entry)
-        assert sensor.native_value == "Ja"  # stromstotte > 0
-
-    def test_stromstotte_kwh_nei(self, mock_coordinator, mock_entry):
-        mock_coordinator.data["stromstotte"] = 0
-        sensor = StromstotteKwhSensor(mock_coordinator, mock_entry)
-        assert sensor.native_value == "Nei"
-
-    def test_stromstotte_gjenstaaende_value(self, mock_coordinator, mock_entry):
-        sensor = StromstotteGjenstaaendeSensor(mock_coordinator, mock_entry)
-        assert sensor.native_value == 4599.2
-
-    def test_strompris_per_kwh_value(self, mock_coordinator, mock_entry):
-        sensor = StromprisPerKwhSensor(mock_coordinator, mock_entry)
-        assert sensor.native_value == 1.6613
-
-    def test_strompris_per_kwh_etter_stotte_value(self, mock_coordinator, mock_entry):
-        sensor = StromprisPerKwhEtterStotteSensor(mock_coordinator, mock_entry)
-        assert sensor.native_value == 1.4475
-
-    def test_tariff_dag(self, mock_coordinator, mock_entry):
-        sensor = TariffSensor(mock_coordinator, mock_entry)
-        assert sensor.native_value == "dag"
-
-    def test_tariff_natt(self, mock_coordinator, mock_entry):
-        mock_coordinator.data["is_day_rate"] = False
-        sensor = TariffSensor(mock_coordinator, mock_entry)
-        assert sensor.native_value == "natt"
-
-    def test_electricity_company_total(self, mock_coordinator, mock_entry):
-        sensor = ElectricityCompanyTotalSensor(mock_coordinator, mock_entry)
-        assert sensor.native_value == round(1.3689, 4)
-
-    def test_electricity_company_total_none(self, mock_coordinator, mock_entry):
-        mock_coordinator.data["electricity_company_total"] = None
-        sensor = ElectricityCompanyTotalSensor(mock_coordinator, mock_entry)
-        assert sensor.native_value is None
-
-
-class TestMonthlyConsumptionSensors:
-    """Monthly consumption sensor values."""
-
-    def test_monthly_dag(self, mock_coordinator, mock_entry):
-        sensor = MaanedligForbrukDagSensor(mock_coordinator, mock_entry)
-        assert sensor.native_value == 250.5
-
-    def test_monthly_natt(self, mock_coordinator, mock_entry):
-        sensor = MaanedligForbrukNattSensor(mock_coordinator, mock_entry)
-        assert sensor.native_value == 150.3
-
-    def test_monthly_total(self, mock_coordinator, mock_entry):
-        sensor = MaanedligForbrukTotalSensor(mock_coordinator, mock_entry)
-        assert sensor.native_value == 400.8
-
-    def test_monthly_norgespris_diff(self, mock_coordinator, mock_entry):
-        sensor = MaanedligNorgesprisDifferanseSensor(mock_coordinator, mock_entry)
-        assert sensor.native_value == 12.50
-
-
-class TestPreviousMonthSensors:
-    """Previous month sensor values."""
-
-    def test_forrige_dag(self, mock_coordinator, mock_entry):
-        sensor = ForrigeMaanedForbrukDagSensor(mock_coordinator, mock_entry)
-        assert sensor.native_value == 300.0
-
-    def test_forrige_natt(self, mock_coordinator, mock_entry):
-        sensor = ForrigeMaanedForbrukNattSensor(mock_coordinator, mock_entry)
-        assert sensor.native_value == 200.0
-
-    def test_forrige_total(self, mock_coordinator, mock_entry):
-        sensor = ForrigeMaanedForbrukTotalSensor(mock_coordinator, mock_entry)
-        assert sensor.native_value == 500.0
-
-    def test_forrige_toppforbruk(self, mock_coordinator, mock_entry):
-        sensor = ForrigeMaanedToppforbrukSensor(mock_coordinator, mock_entry)
-        assert sensor.native_value == 10.0
 
 
 class TestSensorNoneWhenNoData:

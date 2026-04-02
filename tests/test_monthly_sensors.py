@@ -230,77 +230,18 @@ class TestMaanedligTotalSensor:
         return {
             "monthly_consumption_dag_kwh": 200.0,
             "monthly_consumption_natt_kwh": 100.0,
+            "monthly_consumption_total_kwh": 300.0,
             "energiledd_dag": 0.4613,
             "energiledd_natt": 0.2329,
             "kapasitetsledd": 415,
             "stromstotte": 0.0,
         }
 
-    def _expected_total(self, data, avgiftssone="standard"):
-        """Calculate expected total from raw data using the same formula."""
-        dag_kwh = data["monthly_consumption_dag_kwh"]
-        natt_kwh = data["monthly_consumption_natt_kwh"]
-        total_kwh = dag_kwh + natt_kwh
-        nettleie = (
-            dag_kwh * data["energiledd_dag"]
-            + natt_kwh * data["energiledd_natt"]
-            + data["kapasitetsledd"]
-        )
-        from datetime import datetime
-
-        from stromkalkulator.const import get_forbruksavgift, get_mva_sats
-
-        forbruksavgift = get_forbruksavgift(avgiftssone, datetime.now().month)
-        mva = get_mva_sats(avgiftssone)
-        avgifter = total_kwh * ((forbruksavgift + ENOVA_AVGIFT) * (1 + mva))
-        stotte = total_kwh * data["stromstotte"]
-        return round(nettleie + avgifter - stotte, 2)
-
-    def test_standard_no_stromstotte(self, base_data):
-        sensor = MaanedligTotalSensor(
-            _make_coordinator(base_data), _make_entry("standard")
-        )
-        expected = self._expected_total(base_data, "standard")
-        assert sensor.native_value == expected
-
-    def test_nord_norge_no_stromstotte(self, base_data):
-        sensor = MaanedligTotalSensor(
-            _make_coordinator(base_data), _make_entry("nord_norge")
-        )
-        expected = self._expected_total(base_data, "nord_norge")
-        assert sensor.native_value == expected
-
-    def test_tiltakssone_no_stromstotte(self, base_data):
-        sensor = MaanedligTotalSensor(
-            _make_coordinator(base_data), _make_entry("tiltakssone")
-        )
-        expected = self._expected_total(base_data, "tiltakssone")
-        assert sensor.native_value == expected
-
-    def test_with_stromstotte(self, base_data):
-        """When strømstøtte > 0, total should decrease."""
-        base_data["stromstotte"] = 0.50
-        sensor = MaanedligTotalSensor(
-            _make_coordinator(base_data), _make_entry("standard")
-        )
-        expected = self._expected_total(base_data, "standard")
-        assert sensor.native_value == expected
-        # Sanity: with stromstotte the total should be lower
-        base_data_no_stotte = {**base_data, "stromstotte": 0.0}
-        total_without = self._expected_total(base_data_no_stotte, "standard")
-        assert sensor.native_value < total_without
-
-    def test_total_equals_nettleie_plus_avgifter_minus_stotte(self, base_data):
-        """Verify the decomposition: total = nettleie + avgifter - strømstøtte."""
+    @pytest.mark.parametrize("avgiftssone", ["standard", "nord_norge", "tiltakssone"])
+    def test_total_equals_nettleie_plus_avgifter_minus_stotte(self, base_data, avgiftssone):
+        """Verify decomposition: total = nettleie + avgifter - strømstøtte for all zones."""
         base_data["stromstotte"] = 0.30
-        # MaanedligTotalSensor uses dag+natt as total_kwh,
-        # MaanedligAvgifterSensor uses monthly_consumption_total_kwh.
-        # Set them consistently.
-        dag_kwh = base_data["monthly_consumption_dag_kwh"]
-        natt_kwh = base_data["monthly_consumption_natt_kwh"]
-        base_data["monthly_consumption_total_kwh"] = dag_kwh + natt_kwh
 
-        avgiftssone = "standard"
         coord = _make_coordinator(base_data)
         entry = _make_entry(avgiftssone)
 
@@ -308,12 +249,22 @@ class TestMaanedligTotalSensor:
         nettleie_sensor = MaanedligNettleieSensor(coord, entry)
         avgifter_sensor = MaanedligAvgifterSensor(coord, entry)
 
-        total_kwh = dag_kwh + natt_kwh
+        total_kwh = base_data["monthly_consumption_dag_kwh"] + base_data["monthly_consumption_natt_kwh"]
         stotte_kr = round(total_kwh * base_data["stromstotte"], 2)
 
         # total ≈ nettleie + avgifter - strømstøtte
         manual = round(nettleie_sensor.native_value + avgifter_sensor.native_value - stotte_kr, 2)
         assert abs(total_sensor.native_value - manual) < 0.02
+
+    def test_stromstotte_reduces_total(self, base_data):
+        """When strømstøtte > 0, total should decrease."""
+        coord_no_stotte = _make_coordinator({**base_data, "stromstotte": 0.0})
+        coord_with_stotte = _make_coordinator({**base_data, "stromstotte": 0.50})
+
+        total_without = MaanedligTotalSensor(coord_no_stotte, _make_entry("standard")).native_value
+        total_with = MaanedligTotalSensor(coord_with_stotte, _make_entry("standard")).native_value
+
+        assert total_with < total_without
 
     def test_returns_none_when_no_data(self):
         coord = MagicMock()

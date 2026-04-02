@@ -175,9 +175,9 @@ Nettselskaper i Norge fusjonerer jevnlig. Integrasjonen håndterer dette automat
 
 ## Sensorer
 
-Integrasjonen oppretter ~17 aktive sensorer som dekker det de fleste trenger: totalpris, strømstøtte, kapasitet, månedlig forbruk og kostnad. I tillegg finnes ~25 sensorer som er **deaktivert som standard** — diagnostikk, detaljerte nedbrytninger og Norgespris-sammenligning.
+Integrasjonen oppretter 32 aktive sensorer fordelt på 5 devices. 12 diagnostikk-sensorer (individuelle avgiftssatser, nedbrytninger) er deaktivert som standard — de kan slås på under **Settings > Devices > Entities**.
 
-Aktiver flere sensorer under **Settings > Devices > Strømkalkulator > (velg device) > Entities** — klikk på sensoren og slå på "Enabled".
+Å deaktivere en sensor påvirker ikke beregningene. All logikk kjører i bakgrunnen uansett — sensorene er bare visning.
 
 Se [SENSORS.md](docs/SENSORS.md) for komplett oversikt.
 

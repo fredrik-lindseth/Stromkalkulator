@@ -53,6 +53,7 @@ from stromkalkulator.const import (  # noqa: E402
     FORBRUKSAVGIFT_ALMINNELIG,
 )
 from stromkalkulator.sensor import (  # noqa: E402
+    DagskostnadSensor,
     ForrigeMaanedNettleieSensor,
     MaanedligAvgifterSensor,
     MaanedligForbrukTotalSensor,
@@ -503,3 +504,32 @@ class TestDagNattFordeling:
         attrs = sensor.extra_state_attributes
         assert attrs["dag_pct"] == 0.0
         assert attrs["natt_pct"] == 0.0
+
+
+# ---------------------------------------------------------------------------
+# DagskostnadSensor
+# ---------------------------------------------------------------------------
+
+
+class TestDagskostnadSensor:
+    """Tester for DagskostnadSensor som leser daily_cost_kr fra coordinator."""
+
+    def test_dagskostnad_sensor(self):
+        """Normal verdi fra coordinator.data."""
+        data = {"daily_cost_kr": 42.50}
+        sensor = DagskostnadSensor(_make_coordinator(data), _make_entry())
+        assert sensor.native_value == 42.50
+        assert sensor._attr_native_unit_of_measurement == "kr"
+
+    def test_dagskostnad_sensor_none_when_no_data(self):
+        """Returnerer None når coordinator.data er None."""
+        coord = MagicMock()
+        coord.data = None
+        sensor = DagskostnadSensor(coord, _make_entry())
+        assert sensor.native_value is None
+
+    def test_dagskostnad_sensor_none_when_key_missing(self):
+        """Returnerer None når daily_cost_kr ikke finnes i data."""
+        data = {}
+        sensor = DagskostnadSensor(_make_coordinator(data), _make_entry())
+        assert sensor.native_value is None

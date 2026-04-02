@@ -119,10 +119,10 @@
         "name": "Strømpris per kWh (etter støtte)"
       },
       "total_pris_norgespris": {
-        "name": "Total strømpris (norgespris)"
+        "name": "Total strømpris (Norgespris)"
       },
       "prisforskjell_norgespris": {
-        "name": "Prisforskjell (norgespris)"
+        "name": "Prisforskjell (Norgespris)"
       },
       "norgespris_aktiv": {
         "name": "Norgespris aktiv nå"

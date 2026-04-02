@@ -4,14 +4,14 @@ Komplett oversikt over alle sensorer og devices i Strømkalkulator.
 
 ## Oversikt
 
-Integrasjonen oppretter **5 devices** med totalt **38 sensorer**:
+Integrasjonen oppretter **5 devices** med totalt **44 sensorer**:
 
 | Device           | Beskrivelse                        | Antall sensorer |
 |------------------|------------------------------------|-----------------|
-| Nettleie         | Energiledd, kapasitet, avgifter    | 17              |
-| Strømstøtte      | Strømstøtte og totalpris           | 6               |
+| Nettleie         | Energiledd, kapasitet, avgifter    | 19              |
+| Strømstøtte      | Strømstøtte og totalpris           | 7               |
 | Norgespris       | Norgespris-sammenligning           | 3               |
-| Månedlig forbruk | Forbruk og kostnader denne måneden | 7               |
+| Månedlig forbruk | Forbruk og kostnader denne måneden | 10              |
 | Forrige måned    | Forbruk og kostnader forrige måned | 5               |
 
 ---
@@ -22,10 +22,10 @@ Hoveddevicen med nettleie-priser, kapasitetstrinn og offentlige avgifter. Device
 
 ### Energiledd
 
-| Sensor         | Enhet  | Beskrivelse                        |
-|----------------|--------|------------------------------------|
-| Energiledd     | kr/kWh | Aktivt energiledd (dag eller natt) |
-| Tariff         | -      | "dag" eller "natt"                 |
+| Sensor         | Enhet  | Beskrivelse                                                                      |
+|----------------|--------|----------------------------------------------------------------------------------|
+| Energiledd     | kr/kWh | Hva du betaler per kWh til nettselskapet akkurat nå (bytter mellom dag- og nattsats) |
+| Tariff         | -      | Hvilken tariffperiode som gjelder nå: "dag" eller "natt" (styrer utility_meter)   |
 
 **Tariff-regler:**
 - **Dag**: Man-fre 06:00-22:00 (ikke helligdager)
@@ -33,33 +33,35 @@ Hoveddevicen med nettleie-priser, kapasitetstrinn og offentlige avgifter. Device
 
 ### Kapasitet
 
-| Sensor                       | Enhet  | Beskrivelse                              |
-|------------------------------|--------|------------------------------------------|
-| Kapasitetstrinn              | kr/mnd | Månedlig kapasitetskostnad basert på topp-3 |
-| Snitt toppforbruk            | kW     | Gjennomsnitt av 3 høyeste effektdager    |
-| Kapasitetstrinn (nummer)     | -      | Aktivt trinn (1, 2, 3, ...)             |
-| Kapasitetstrinn (intervall)  | -      | Trinn-intervall (f.eks. "2-5 kW")       |
-| Toppforbruk #1               | kW     | Høyeste effektdag denne måneden          |
-| Toppforbruk #2               | kW     | Nest høyeste effektdag                   |
-| Toppforbruk #3               | kW     | Tredje høyeste effektdag                 |
+| Sensor                       | Enhet  | Beskrivelse                                                                            |
+|------------------------------|--------|----------------------------------------------------------------------------------------|
+| Kapasitetstrinn              | kr/mnd | Fast månedskostnad basert på ditt høyeste strømforbruk (snitt av 3 topp-dager)         |
+| Snitt toppforbruk            | kW     | Snittet av de 3 dagene du har brukt mest strøm denne måneden — bestemmer kapasitetstrinn |
+| Kapasitetstrinn (nummer)     | -      | Hvilket trinn du er på nå (1, 2, 3, ...) — lavere er billigere                        |
+| Kapasitetstrinn (intervall)  | -      | kW-intervallet for ditt aktive trinn (f.eks. "2-5 kW")                                |
+| Toppforbruk #1               | kW     | Høyeste effektdag denne måneden — den dagen du brukte mest strøm                      |
+| Toppforbruk #2               | kW     | Nest høyeste effektdag denne måneden                                                   |
+| Toppforbruk #3               | kW     | Tredje høyeste effektdag denne måneden                                                 |
+| Margin til neste trinn       | kW     | Hvor mye mer strøm du kan bruke før du rykker opp til neste (dyrere) kapasitetstrinn   |
+| Kapasitetsvarsel             | -      | Slår seg "on" når du er nær neste kapasitetstrinn — bruk til varsling/automatisering   |
 
 ### Strømpris
 
-| Sensor                        | Enhet  | Beskrivelse                                         |
-|-------------------------------|--------|-----------------------------------------------------|
-| Total strømpris (før støtte)  | kr/kWh | Spotpris + nettleie (uten støtte-fratrekk)          |
-| Total strømpris (strømavtale) | kr/kWh | Strømselskap-pris + nettleie (valgfri, krever sensor) |
-| Strømpris per kWh             | kr/kWh | Spotpris + energiledd (uten kapasitetsledd)     |
+| Sensor                        | Enhet  | Beskrivelse                                                                                      |
+|-------------------------------|--------|--------------------------------------------------------------------------------------------------|
+| Total strømpris (før støtte)  | kr/kWh | Alt du betaler per kWh akkurat nå: spotpris + nettleie (før eventuell strømstøtte trekkes fra)    |
+| Total strømpris (strømavtale) | kr/kWh | Som over, men med strømselskapets pris istedenfor spotpris (valgfri — krever ekstern prissensor)  |
+| Strømpris per kWh             | kr/kWh | Spotpris + energiledd uten kapasitetsledd — den variable kostnaden per kWh du bruker              |
 
 ### Diagnostikk (avgifter)
 
-| Sensor             | Enhet  | Beskrivelse                                 |
-|--------------------|--------|---------------------------------------------|
-| Energiledd dag     | kr/kWh | Energiledd dagsats (inkl. avgifter)         |
-| Energiledd natt/helg | kr/kWh | Energiledd nattsats (inkl. avgifter)      |
-| Offentlige avgifter | kr/kWh | Sum forbruksavgift + Enova inkl. mva       |
-| Forbruksavgift     | kr/kWh | Forbruksavgift (elavgift) inkl. mva         |
-| Enovaavgift        | kr/kWh | Enova-avgift inkl. mva                      |
+| Sensor               | Enhet  | Beskrivelse                                                                       |
+|-----------------------|--------|-----------------------------------------------------------------------------------|
+| Energiledd dag        | kr/kWh | Nettleie-satsen for dagtimer (hverdager 06-22), inkludert alle avgifter og mva     |
+| Energiledd natt/helg  | kr/kWh | Nettleie-satsen for natt/helg/helligdager, inkludert alle avgifter og mva          |
+| Offentlige avgifter   | kr/kWh | Sum av forbruksavgift og Enova-avgift inkl. mva — dette er statens påslag per kWh  |
+| Forbruksavgift        | kr/kWh | Elavgiften (statlig avgift på strømforbruk) inkl. mva                              |
+| Enovaavgift           | kr/kWh | Enova-avgiften (finansierer energieffektivisering) inkl. mva                       |
 
 ---
 
@@ -67,26 +69,28 @@ Hoveddevicen med nettleie-priser, kapasitetstrinn og offentlige avgifter. Device
 
 Sensorer for strømstøtte-beregning og totalpris inkl. alle avgifter.
 
-| Sensor                       | Enhet  | Beskrivelse                                   |
-|------------------------------|--------|-----------------------------------------------|
-| Strømstøtte                  | kr/kWh | Støtte per kWh (90% over 96,25 øre)           |
-| Spotpris etter støtte        | kr/kWh | Spotpris minus strømstøtte                    |
-| Total strømpris etter støtte | kr/kWh | Spotpris + nettleie - strømstøtte             |
-| Totalpris inkl. avgifter     | kr/kWh | **Anbefalt for Energy Dashboard** - inkl. alt |
-| Strømpris per kWh (etter støtte) | kr/kWh | Spotpris + energiledd - strømstøtte (uten kapasitetsledd) |
-| Strømstøtte aktiv nå         | -      | "Ja" / "Nei" - om spotpris er over terskelen  |
+| Sensor                            | Enhet  | Beskrivelse                                                                                 |
+|-----------------------------------|--------|---------------------------------------------------------------------------------------------|
+| Strømstøtte                       | kr/kWh | Statens støtte per kWh når spotpris er over 96,25 øre (du får dekket 90% av overskytende)   |
+| Spotpris etter støtte             | kr/kWh | Hva spotprisen effektivt koster deg etter at strømstøtten er trukket fra                    |
+| Total strømpris etter støtte      | kr/kWh | Din reelle totalpris akkurat nå: spotpris + nettleie - strømstøtte                          |
+| Totalpris inkl. avgifter          | kr/kWh | **Anbefalt for Energy Dashboard** — din totale strømpris inkl. nettleie, avgifter og støtte |
+| Strømstøtte aktiv nå              | -      | "Ja" / "Nei" — om spotprisen akkurat nå er høy nok til at du får strømstøtte               |
+| Strømstøtte gjenstående kWh       | kWh    | Hvor mange kWh du har igjen før du treffer støtte-taket (5000 kWh/mnd)                      |
+| Strømpris per kWh (etter støtte)  | kr/kWh | Spotpris + energiledd - strømstøtte, uten kapasitetsledd — variabel kWh-kostnad etter støtte |
 
 ---
 
 ## Device: Norgespris
 
-Sammenligning mellom din spotprisavtale og Norgespris.
+Sammenligning mellom din spotprisavtale og Norgespris (fast 50 øre/kWh fra Elhub).
 
-| Sensor                       | Enhet  | Beskrivelse                                      |
-|------------------------------|--------|--------------------------------------------------|
-| Total strømpris (norgespris) | kr/kWh | Norgespris + nettleie                            |
-| Prisforskjell (norgespris)   | kr/kWh | Forskjell mellom din pris og Norgespris          |
-| Norgespris aktiv nå          | -      | "Ja" / "Nei" - om du har valgt Norgespris        |
+| Sensor                              | Enhet  | Beskrivelse                                                                           |
+|-------------------------------------|--------|---------------------------------------------------------------------------------------|
+| Total strømpris (norgespris)        | kr/kWh | Hva du ville betalt per kWh med Norgespris: fast 50 øre + nettleie                   |
+| Prisforskjell (norgespris)          | kr/kWh | Hvor mye du sparer/taper per kWh sammenlignet med Norgespris (positiv = du betaler mer) |
+| Norgespris aktiv nå                 | -      | "Ja" / "Nei" — om du har valgt Norgespris som din strømavtale                        |
+| Månedlig Norgespris-differanse      | kr     | Akkumulert besparelse/tap i kroner denne måneden sammenlignet med alternativ avtale    |
 
 **Prisforskjell tolkning:**
 - **Positiv verdi** = Du betaler mer enn Norgespris (Norgespris er billigere)
@@ -100,27 +104,42 @@ Sporer forbruk og kostnader for inneværende måned. Nullstilles automatisk ved 
 
 ### Forbruk
 
-| Sensor                     | Enhet | Beskrivelse                                     |
-|----------------------------|-------|-------------------------------------------------|
-| Månedlig forbruk dagtariff | kWh   | Forbruk på dagtariff (hverdag 06:00-22:00)      |
-| Månedlig forbruk natt/helg | kWh   | Forbruk på natt/helg-tariff (inkl. helligdager) |
-| Månedlig forbruk totalt    | kWh   | Totalt forbruk denne måneden                    |
+| Sensor                     | Enhet | Beskrivelse                                                                         |
+|----------------------------|-------|-------------------------------------------------------------------------------------|
+| Månedlig forbruk dagtariff | kWh   | Strøm brukt på dagtariff denne måneden (hverdager 06:00-22:00, ikke helligdager)    |
+| Månedlig forbruk natt/helg | kWh   | Strøm brukt på natt/helg-tariff denne måneden (netter, helger og helligdager)       |
+| Månedlig forbruk totalt    | kWh   | Alt strømforbruk denne måneden — sum av dag og natt                                 |
 
 ### Kostnader
 
-| Sensor                 | Enhet | Beskrivelse                            |
-|------------------------|-------|----------------------------------------|
-| Månedlig nettleie      | kr    | Nettleie (energiledd + kapasitetsledd) |
-| Månedlig avgifter      | kr    | Forbruksavgift + Enova-avgift          |
-| Månedlig strømstøtte   | kr    | Estimert strømstøtte                   |
-| Månedlig nettleie total | kr   | Total nettleie etter støtte            |
+| Sensor                    | Enhet | Beskrivelse                                                                                       |
+|---------------------------|-------|---------------------------------------------------------------------------------------------------|
+| Månedlig nettleie         | kr    | Nettleie hittil denne måneden: energiledd (dag + natt) + kapasitetsledd                           |
+| Månedlig avgifter         | kr    | Offentlige avgifter hittil: forbruksavgift + Enova-avgift inkl. mva                               |
+| Månedlig strømstøtte      | kr    | Estimert strømstøtte du har tjent inn denne måneden (faktisk støtte beregnes time-for-time)        |
+| Månedlig nettleie total   | kr    | Bunnlinjen: nettleie + avgifter - strømstøtte — det du faktisk betaler for nettdelen               |
+| Dagens kostnad            | kr    | Hva strømmen har kostet deg i dag — akkumulert kostnad siden midnatt                               |
+| Estimert månedskostnad    | kr    | Prognose for hva hele måneden vil koste, basert på forbruket hittil (oppdateres daglig mer presist) |
 
 ### Attributter
 
-Kostnadssensorene har ekstra attributter:
+**Månedlig forbruk totalt** har:
+- `dag_kwh` - Forbruk på dagtariff
+- `natt_kwh` - Forbruk på natt/helg-tariff
+- `dag_pct` - Prosentandel av forbruket som er på dagtariff
+- `natt_pct` - Prosentandel av forbruket som er på natt/helg-tariff
+
+**Månedlig nettleie** har:
 - `energiledd_dag_kr` - Kostnad for dagforbruk
 - `energiledd_natt_kr` - Kostnad for nattforbruk
 - `kapasitetsledd_kr` - Kapasitetsledd
+
+**Månedlig nettleie total** har:
+- `nettleie_kr` - Nettleie-delen av totalkostnaden
+- `avgifter_kr` - Avgifts-delen av totalkostnaden
+- `stromstotte_kr` - Strømstøtte-fradraget
+- `forbruk_dag_kwh` / `forbruk_natt_kwh` / `forbruk_total_kwh` - Forbruk
+- `vektet_snittpris_kr_per_kwh` - Gjennomsnittlig pris per kWh for hele måneden
 
 ---
 
@@ -130,18 +149,18 @@ Lagrer forrige måneds data for faktura-verifisering. Oppdateres automatisk ved 
 
 ### Forbruk
 
-| Sensor                              | Enhet | Beskrivelse                                     |
-|-------------------------------------|-------|-------------------------------------------------|
-| Forrige måned forbruk dagtariff     | kWh   | Forbruk på dagtariff (hverdag 06:00-22:00)      |
-| Forrige måned forbruk natt/helg     | kWh   | Forbruk på natt/helg-tariff (inkl. helligdager) |
-| Forrige måned forbruk totalt        | kWh   | Totalt forbruk                                  |
+| Sensor                              | Enhet | Beskrivelse                                                                    |
+|-------------------------------------|-------|--------------------------------------------------------------------------------|
+| Forrige måned forbruk dagtariff     | kWh   | Strøm brukt på dagtariff forrige måned (hverdager 06:00-22:00)                |
+| Forrige måned forbruk natt/helg     | kWh   | Strøm brukt på natt/helg-tariff forrige måned (netter, helger, helligdager)   |
+| Forrige måned forbruk totalt        | kWh   | Totalt strømforbruk forrige måned                                              |
 
 ### Kostnader og effekt
 
-| Sensor                     | Enhet | Beskrivelse                   |
-|----------------------------|-------|-------------------------------|
-| Forrige måned nettleie     | kr    | Nettleie inkl. kapasitetsledd |
-| Forrige måned toppforbruk  | kW    | Snitt av topp-3 effektdager   |
+| Sensor                     | Enhet | Beskrivelse                                                                          |
+|----------------------------|-------|--------------------------------------------------------------------------------------|
+| Forrige måned nettleie     | kr    | Hva du betalte i nettleie forrige måned — bruk til å sammenligne med fakturaen       |
+| Forrige måned toppforbruk  | kW    | Snitt av de 3 dagene med høyest forbruk forrige måned — bestemte kapasitetstrinn     |
 
 ### Attributter
 
@@ -153,6 +172,7 @@ Alle sensorer har:
 - `energiledd_natt_kr` - Kostnad for nattforbruk
 - `kapasitetsledd_kr` - Kapasitetsledd
 - `snitt_topp_3_kw` - Gjennomsnitt av topp-3 effektdager
+- `norgespris_differanse_kr` - Norgespris-differanse for måneden
 
 **Toppforbruk-sensor har også:**
 - `topp_1_dato`, `topp_1_kw` - Høyeste dag

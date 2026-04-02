@@ -9,6 +9,22 @@ Strømstøtte beregnes nå alltid fra spotpris, også for Norgespris-kunder. Tid
 
 Din totalpris bruker fortsatt fast Norgespris — strømstøtte vises kun for sammenligning.
 
+## Nye sensorer
+
+- **Dagens kostnad** — akkumulert strømkostnad i dag (nullstilles ved midnatt)
+- **Estimert månedskostnad** — projiserer totalkostnad basert på forbruk hittil
+
+## Nye attributter
+
+- `dag_pct`/`natt_pct` på månedlig forbruk total — dag/natt-fordeling i prosent
+- `vektet_snittpris_kr_per_kwh` på månedlig total — faktisk snittpris denne måneden
+
+## Forbedringer
+
+- 32 sensorer aktive som standard, 12 diagnostikk-sensorer deaktivert (individuelle avgiftssatser, nedbrytninger). Å deaktivere sensorer påvirker ikke beregningene
+- Rename TSO → DSO overalt (TSO er Statnett, nettselskaper er DSO)
+- Manglende kildesensor gir nå spesifikk feilmelding per sensor
+
 ## Bugfixes
 
 - Barents Nett krasjet ved lasting (dict-format kapasitetstrinn)
@@ -32,22 +48,6 @@ Din totalpris bruker fortsatt fast Norgespris — strømstøtte vises kun for sa
 - Effektsensor-unikhet valideres i options flow
 - Monetary-sensorer ga HA-warnings (fjernet ugyldig state_class=MEASUREMENT). Du vil se 17 "state_class_removed" repairs i HA — klikk "ignore" på alle. Prissensorer (kr/kWh) er øyeblikkssatser som ikke hører hjemme i langtidsstatistikk. De nye sensorene (dagens kostnad, estimert månedskostnad) gir mer nyttige aggregeringer
 
-## Nye sensorer
-
-- **Dagens kostnad** — akkumulert strømkostnad i dag (nullstilles ved midnatt)
-- **Estimert månedskostnad** — projiserer totalkostnad basert på forbruk hittil
-
-## Nye attributter
-
-- `dag_pct`/`natt_pct` på månedlig forbruk total — dag/natt-fordeling i prosent
-- `vektet_snittpris_kr_per_kwh` på månedlig total — faktisk snittpris denne måneden
-
-## Forbedringer
-
-- 32 sensorer aktive som standard, 12 diagnostikk-sensorer deaktivert (individuelle avgiftssatser, nedbrytninger). Å deaktivere sensorer påvirker ikke beregningene
-- Rename TSO → DSO overalt (TSO er Statnett, nettselskaper er DSO)
-- Manglende kildesensor gir nå spesifikk feilmelding per sensor
-
 ## Vedlikehold
 
 - 1668 automatiserte tester
@@ -62,6 +62,12 @@ Din totalpris bruker fortsatt fast Norgespris — strømstøtte vises kun for sa
 <details>
 <summary>Alle commits</summary>
 
+- feat: sensor for dagens kostnad
+- feat: sensor for estimert månedskostnad
+- feat: attributt dag/natt-fordeling (%) på månedlig forbruk
+- feat: attributt vektet snittpris (kr/kWh) på månedlig total
+- feat: akkumuler daglig kostnad i coordinator
+- feat: deaktivert som standard for diagnostikk- og nisje-sensorer
 - fix: normaliser Barents Nett dict-format kapasitetstrinn ved lasting
 - fix: beskytt sensoravlesning mot ugyldig input
 - fix: korrekt månedsskifte ved HA-restart og årsbevisst månedsformat
@@ -74,18 +80,12 @@ Din totalpris bruker fortsatt fast Norgespris — strømstøtte vises kun for sa
 - fix: bruk dt_util.now() for konsistent tidssone
 - fix: kapasitet_varsel alltid på i høyeste trinn
 - fix: fang ValueError/TypeError i float()-konvertering i init
-- fix: kopier dict-referanser i \_save_stored_data
+- fix: kopier dict-referanser i _save_stored_data
 - fix: avvis negative verdier og urimelige effektavlesninger
 - fix: valider unikhet for effektsensor i options flow
 - fix: raise UpdateFailed når begge sensorer mangler
 - fix: fjern state_class=MEASUREMENT fra monetary-sensorer
 - fix: beregn strømstøtte alltid fra spotpris (Norgespris-sammenligning)
 - refactor: rename TSO→DSO overalt
-- feat: sensor for dagens kostnad
-- feat: sensor for estimert månedskostnad
-- feat: attributt dag/natt-fordeling (%) på månedlig forbruk
-- feat: attributt vektet snittpris (kr/kWh) på månedlig total
-- feat: akkumuler daglig kostnad i coordinator
-- feat: deaktivert som standard for diagnostikk- og nisje-sensorer
 
 </details>

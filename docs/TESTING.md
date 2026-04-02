@@ -18,34 +18,33 @@ python -m pytest tests/ -v
 
 | Testfil                              | Beskrivelse                                  |
 |--------------------------------------|----------------------------------------------|
-| `test_stromstotte.py`               | Strømstøtte-beregning (90% over 96,25 øre)   |
+| `test_stromstotte_tak.py`          | Strømstøtte-beregning + 5000 kWh-tak         |
 | `test_avgifter.py`                  | Forbruksavgift, Enova-avgift og MVA per sone |
 | `test_energiledd.py`                | Dag/natt-tariff inkl. helligdager            |
 | `test_kapasitetstrinn.py`           | Kapasitetstrinn og topp-3-beregning          |
 | `test_norgespris.py`                | Norgespris-beregning og sammenligning        |
+| `test_norgespris_akkumulert.py`    | Akkumulert Norgespris-besparelse             |
 | `test_faktura_validering.py`        | Faktura-verifisering mot beregninger         |
-| `test_forrige_maaned.py`            | Forrige måned sensorer og månedsskifte       |
+| `test_faktura_februar_2026.py`     | BKK-faktura feb 2026 (Norgespris)           |
 | `test_month_transition_integration.py` | Integrasjonstest for månedsskifte         |
 | `test_dso_migration.py`             | DSO-migrering ved nettselskap-fusjoner       |
+| `test_dso_data_validation.py`      | Validering av alle DSO-oppføringer           |
 | `test_property.py`                  | Property-baserte tester (Hypothesis)         |
 | `test_storage_key.py`               | Lagringsnøkkel-isolasjon mellom instanser    |
 | `test_config_flow.py`               | Config flow struktur-validering              |
 | `test_init_setup.py`                | Setup/unload/DSO-migrering                   |
 | `test_diagnostics.py`               | Diagnostics-output struktur                  |
-| `test_sensor_classes.py`            | Sensor native_value, attributter, unique_id  |
+| `test_sensor_classes.py`            | Sensor None-håndtering, attributter, units   |
 | `test_persistens.py`                | Lagring: save/load-syklus, migrering         |
 | `test_coordinator_update.py`        | End-to-end coordinator update                |
 | `test_coordinator_robustness.py`    | Spotpris-caching, clamping, validering       |
 | `test_monthly_sensors.py`           | Månedlige sensorer (nettleie, avgifter)      |
-| `test_offentlige_avgifter_sensor.py`| OffentligeAvgifterSensor                     |
+| `test_offentlige_avgifter_sensor.py`| OffentligeAvgifterSensor attributter         |
 | `test_passthrough_sensors.py`       | Passthrough-sensorer (dag/natt, avgifter)    |
-| `test_quality_r3.py`               | R3: UpdateFailed, 500kW clamp, OSError m.m.  |
+| `test_coverage_gaps.py`            | Bugfiks-dekning: UpdateFailed, clamp, OSError, cache |
 | `test_strompris_per_kwh.py`        | Strømpris per kWh uten kapasitetsledd        |
-| `test_stromstotte_tak.py`          | 5000 kWh månedlig tak                        |
-| `test_norgespris_akkumulert.py`    | Akkumulert Norgespris-besparelse             |
 | `test_margin_neste_trinn.py`       | Margin til neste kapasitetstrinn             |
-| `test_faktura_februar_2026.py`     | BKK-faktura feb 2026 (Norgespris)           |
-| `test_dso_data_validation.py`      | Validering av alle DSO-oppføringer           |
+| `test_edge_cases.py`               | DST, helligdager 2031+, strømstøtte-presisjon |
 
 ### Kjente begrensninger
 
@@ -58,11 +57,11 @@ Dette betyr at noen ting ikke kan testes med dagens infrastruktur:
 | Options flow → reload → reberegning | Trenger HA config entry lifecycle |
 | End-to-end setup → coordinator → sensor | Trenger HA platform setup |
 | `CoordinatorSimulator` bruker int-måned (vs YYYY-MM) | Supplementær — ekte coordinator testes i `test_coordinator_update.py` |
-| `test_forrige_maaned.py` tester Python-operasjoner, ikke produksjonskode | Tech debt — skader ikke, hjelper ikke |
-| Regex-parsing av kildekode i `test_config_flow.py` | Fragilt men funksjonelt, lav regresjonsrisiko |
+| Regex-parsing av kildekode i `test_config_flow.py` | Fragilt men funksjonelt, fanger ekte HA-bugs |
 | Testdata bruker kun BKK kapasitetstrinn | Diminishing returns — property-tester dekker alle DSOer |
+| Bevegelige helligdager 2031+ ikke i cache | Dokumentert i test_edge_cases.py |
 
-Vurdert 2026-04-01 via `/test-my-tests` (10 parallelle reviewers, 131 funn → 28 action points → 14 fikset).
+Vurdert 2026-04-02 via `/test-lead` (konsolidering + rydding + nye tester).
 
 ## Live-tester i Home Assistant
 

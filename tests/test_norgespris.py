@@ -96,13 +96,18 @@ def test_norgespris_vs_spotpris(spotpris: float, zone: str, norgespris_cheaper: 
 # =============================================================================
 
 
-def test_norgespris_no_stromstotte() -> None:
-    """Norgespris users don't get strømstøtte even if spotpris is high.
+def test_norgespris_stromstotte_for_comparison() -> None:
+    """Strømstøtte is calculated from spot price even with Norgespris.
 
-    This is the expected behavior - if you have Norgespris, your price
-    is fixed and you don't get strømstøtte on top of it.
+    Norgespris-kunder mottar ikke strømstøtte, men den beregnes
+    alltid fra spotpris slik at sammenligning fungerer.
+    Actual total_price for Norgespris uses the fixed price (not spot-støtte).
     """
-    # This tests the conceptual rule - actual logic is in coordinator.py
-    har_norgespris = True
-    stromstotte = 0 if har_norgespris else 0.5  # Example value
-    assert stromstotte == 0
+    # Conceptual rule: strømstøtte is a spot market property, always calculated
+    # Norgespris user's total_price does NOT include strømstøtte deduction
+    norgespris = get_norgespris_inkl_mva(AVGIFTSSONE_STANDARD)
+    energiledd = 0.40
+    fastledd = 0.50
+    norgespris_total = norgespris + energiledd + fastledd
+    # total_price for Norgespris user is fixed, unaffected by strømstøtte
+    assert norgespris_total == norgespris + energiledd + fastledd

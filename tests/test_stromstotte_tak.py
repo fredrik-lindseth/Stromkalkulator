@@ -3,7 +3,7 @@
 Tests the electricity subsidy calculation with the 5000 kWh/month cap:
 - 90% of spot price above 96.25 øre/kWh (inkl. mva)
 - Zero support when monthly consumption exceeds 5000 kWh
-- Zero support for Norgespris users (alternative scheme)
+- Always calculated from spot price (also for Norgespris, for comparison)
 """
 
 from __future__ import annotations
@@ -18,23 +18,20 @@ STROMSTOTTE_MAX_KWH = 5000  # Maks 5000 kWh/mnd per målepunkt
 
 def calculate_stromstotte(
     spot_price: float,
-    har_norgespris: bool,
     monthly_consumption_kwh: float,
 ) -> float:
     """Calculate strømstøtte per kWh.
 
+    Always calculated from spot price regardless of whether user has Norgespris,
+    since it's needed for comparison between Norgespris and spot+støtte.
+
     Args:
         spot_price: Current spot price in NOK/kWh (inkl. mva)
-        har_norgespris: Whether user has Norgespris (alternative to strømstøtte)
         monthly_consumption_kwh: Total monthly consumption so far in kWh
 
     Returns:
         Strømstøtte in NOK/kWh (positive = support amount, 0 = no support)
     """
-    # Norgespris users don't get strømstøtte
-    if har_norgespris:
-        return 0.0
-
     # Over monthly cap: no support
     if monthly_consumption_kwh >= STROMSTOTTE_MAX_KWH:
         return 0.0
@@ -65,25 +62,25 @@ def stromstotte_gjenstaaende(monthly_consumption_kwh: float) -> float:
 
 
 @pytest.mark.parametrize(
-    ("spot_price", "har_norgespris", "monthly_kwh", "expected"),
+    ("spot_price", "monthly_kwh", "expected"),
     [
         # Under cap: normal strømstøtte (positive = support amount)
-        (1.50, False, 2000, (1.50 - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE),
-        (1.20, False, 0, (1.20 - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE),
-        (2.00, False, 4999, (2.00 - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE),
+        (1.50, 2000, (1.50 - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE),
+        (1.20, 0, (1.20 - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE),
+        (2.00, 4999, (2.00 - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE),
         # At 5000 kWh: strømstøtte = 0
-        (1.50, False, 5000, 0.0),
+        (1.50, 5000, 0.0),
         # Over 5000 kWh: strømstøtte = 0
-        (1.50, False, 6000, 0.0),
-        (2.00, False, 10000, 0.0),
-        # Norgespris user: always 0
-        (1.50, True, 2000, 0.0),
-        (2.00, True, 0, 0.0),
-        (1.50, True, 6000, 0.0),
+        (1.50, 6000, 0.0),
+        (2.00, 10000, 0.0),
+        # Norgespris user: same calculation (needed for comparison)
+        (1.50, 2000, (1.50 - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE),
+        (2.00, 0, (2.00 - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE),
+        (1.50, 6000, 0.0),  # Still capped at 5000 kWh
         # Spot under threshold: no support regardless of cap
-        (0.50, False, 1000, 0.0),
-        (STROMSTOTTE_LEVEL, False, 1000, 0.0),
-        (0.80, False, 0, 0.0),
+        (0.50, 1000, 0.0),
+        (STROMSTOTTE_LEVEL, 1000, 0.0),
+        (0.80, 0, 0.0),
     ],
     ids=[
         "under_cap_high_spot",
@@ -102,18 +99,17 @@ def stromstotte_gjenstaaende(monthly_consumption_kwh: float) -> float:
 )
 def test_calculate_stromstotte(
     spot_price: float,
-    har_norgespris: bool,
     monthly_kwh: float,
     expected: float,
 ) -> None:
     """Test strømstøtte calculation with 5000 kWh cap."""
-    result = calculate_stromstotte(spot_price, har_norgespris, monthly_kwh)
+    result = calculate_stromstotte(spot_price, monthly_kwh)
     assert result == pytest.approx(expected)
 
 
 def test_stromstotte_is_positive_when_applicable() -> None:
     """Strømstøtte should be positive (matching coordinator convention) when applicable."""
-    result = calculate_stromstotte(1.50, False, 1000)
+    result = calculate_stromstotte(1.50, 1000)
     assert result > 0.0
 
 
@@ -122,7 +118,7 @@ def test_stromstotte_magnitude() -> None:
 
     Spot 1.50 NOK/kWh: (1.50 - 0.9625) * 0.90 = 0.48375 NOK/kWh
     """
-    result = calculate_stromstotte(1.50, False, 1000)
+    result = calculate_stromstotte(1.50, 1000)
     assert result == pytest.approx(0.48375)
 
 

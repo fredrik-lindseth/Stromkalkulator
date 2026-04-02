@@ -232,6 +232,7 @@ class KapasitetstrinnSensor(NettleieBaseSensor):
 class MarginNesteTrinnSensor(NettleieBaseSensor):
     """Sensor for margin to next capacity tier."""
 
+    _attr_entity_registry_enabled_default: bool = False
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.POWER
     _attr_native_unit_of_measurement: str = "kW"
     _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
@@ -332,6 +333,7 @@ class MaksForbrukSensor(NettleieBaseSensor):
 
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.POWER
     _attr_entity_category: EntityCategory = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default: bool = False
     _attr_native_unit_of_measurement: str = "kW"
     _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
     _attr_icon: str = "mdi:lightning-bolt"
@@ -406,6 +408,7 @@ class TrinnNummerSensor(NettleieBaseSensor):
     """Sensor for capacity tier number."""
 
     _attr_entity_category: EntityCategory = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default: bool = False
     _attr_icon: str = "mdi:numeric"
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -425,6 +428,7 @@ class TrinnIntervallSensor(NettleieBaseSensor):
     """Sensor for capacity tier interval."""
 
     _attr_entity_category: EntityCategory = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default: bool = False
     _attr_icon: str = "mdi:arrow-expand-horizontal"
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -445,6 +449,7 @@ class OffentligeAvgifterSensor(NettleieBaseSensor):
 
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_entity_category: EntityCategory = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default: bool = False
     _attr_native_unit_of_measurement: str = "NOK/kWh"
     _attr_icon: str = "mdi:bank"
     _attr_suggested_display_precision: int = 2
@@ -501,6 +506,7 @@ class OffentligeAvgifterSensor(NettleieBaseSensor):
 class ElectricityCompanyTotalSensor(NettleieBaseSensor):
     """Sensor for total price with electricity company + nettleie."""
 
+    _attr_entity_registry_enabled_default: bool = False
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "NOK/kWh"
     _attr_icon: str = "mdi:cash-plus"
@@ -640,6 +646,7 @@ class SpotprisEtterStotteSensor(NettleieBaseSensor):
 class TotalPrisEtterStotteSensor(NettleieBaseSensor):
     """Sensor for total price after strømstøtte (spot + nettleie - støtte)."""
 
+    _attr_entity_registry_enabled_default: bool = False
     _device_group: str = DEVICE_STROMSTOTTE
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "NOK/kWh"
@@ -718,6 +725,7 @@ class TotalPrisInklAvgifterSensor(NettleieBaseSensor):
 class TotalPrisNorgesprisSensor(NettleieBaseSensor):
     """Sensor for totalpris med norgespris."""
 
+    _attr_entity_registry_enabled_default: bool = False
     _device_group: str = DEVICE_NORGESPRIS
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "NOK/kWh"
@@ -755,6 +763,7 @@ class TotalPrisNorgesprisSensor(NettleieBaseSensor):
 class PrisforskjellNorgesprisSensor(NettleieBaseSensor):
     """Sensor for prisforskjell mellom norgespris og vanlig pris."""
 
+    _attr_entity_registry_enabled_default: bool = False
     _device_group: str = DEVICE_NORGESPRIS
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "NOK/kWh"
@@ -796,6 +805,7 @@ class PrisforskjellNorgesprisSensor(NettleieBaseSensor):
 class NorgesprisAktivSensor(NettleieBaseSensor):
     """Sensor showing if Norgespris is active."""
 
+    _attr_entity_registry_enabled_default: bool = False
     _device_group: str = DEVICE_NORGESPRIS
     _attr_entity_category: EntityCategory = EntityCategory.DIAGNOSTIC
     _attr_icon: str = "mdi:check-circle"
@@ -824,6 +834,7 @@ class EnergileddDagSensor(NettleieBaseSensor):
 
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_entity_category: EntityCategory = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default: bool = False
     _attr_native_unit_of_measurement: str = "NOK/kWh"
     _attr_icon: str = "mdi:weather-sunny"
     _attr_suggested_display_precision: int = 2
@@ -865,6 +876,7 @@ class EnergileddNattSensor(NettleieBaseSensor):
 
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_entity_category: EntityCategory = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default: bool = False
     _attr_native_unit_of_measurement: str = "NOK/kWh"
     _attr_icon: str = "mdi:weather-night"
     _attr_suggested_display_precision: int = 2
@@ -906,6 +918,7 @@ class ForbruksavgiftSensor(NettleieBaseSensor):
 
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_entity_category: EntityCategory = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default: bool = False
     _attr_native_unit_of_measurement: str = "NOK/kWh"
     _attr_icon: str = "mdi:lightning-bolt"
     _attr_suggested_display_precision: int = 2
@@ -956,6 +969,7 @@ class EnovaavgiftSensor(NettleieBaseSensor):
 
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_entity_category: EntityCategory = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default: bool = False
     _attr_native_unit_of_measurement: str = "NOK/kWh"
     _attr_icon: str = "mdi:leaf"
     _attr_suggested_display_precision: int = 2
@@ -1032,6 +1046,7 @@ class StromstotteKwhSensor(NettleieBaseSensor):
 class StromstotteGjenstaaendeSensor(NettleieBaseSensor):
     """Sensor for remaining kWh before strømstøtte cap."""
 
+    _attr_entity_registry_enabled_default: bool = False
     _device_group: str = DEVICE_STROMSTOTTE
     _attr_native_unit_of_measurement: str = "kWh"
     _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
@@ -1055,6 +1070,7 @@ class StromstotteGjenstaaendeSensor(NettleieBaseSensor):
 class StromprisPerKwhEtterStotteSensor(NettleieBaseSensor):
     """Sensor for electricity price per kWh after subsidy (without capacity fee)."""
 
+    _attr_entity_registry_enabled_default: bool = False
     _device_group: str = DEVICE_STROMSTOTTE
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "NOK/kWh"
@@ -1142,6 +1158,7 @@ class MaanedligBaseSensor(NettleieBaseSensor):
 class MaanedligForbrukDagSensor(MaanedligBaseSensor):
     """Sensor for monthly day tariff consumption."""
 
+    _attr_entity_registry_enabled_default: bool = False
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.ENERGY
     _attr_native_unit_of_measurement: str = "kWh"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL_INCREASING
@@ -1167,6 +1184,7 @@ class MaanedligForbrukDagSensor(MaanedligBaseSensor):
 class MaanedligForbrukNattSensor(MaanedligBaseSensor):
     """Sensor for monthly night tariff consumption."""
 
+    _attr_entity_registry_enabled_default: bool = False
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.ENERGY
     _attr_native_unit_of_measurement: str = "kWh"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL_INCREASING
@@ -1232,6 +1250,7 @@ class MaanedligForbrukTotalSensor(MaanedligBaseSensor):
 class MaanedligNettleieSensor(MaanedligBaseSensor):
     """Sensor for monthly grid rent cost (energiledd + kapasitetsledd)."""
 
+    _attr_entity_registry_enabled_default: bool = False
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "kr"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
@@ -1283,6 +1302,7 @@ class MaanedligNettleieSensor(MaanedligBaseSensor):
 class MaanedligAvgifterSensor(MaanedligBaseSensor):
     """Sensor for monthly public fees (forbruksavgift + Enova)."""
 
+    _attr_entity_registry_enabled_default: bool = False
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "kr"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
@@ -1342,6 +1362,7 @@ class MaanedligStromstotteSensor(MaanedligBaseSensor):
     Actual subsidy is calculated hourly by grid company.
     """
 
+    _attr_entity_registry_enabled_default: bool = False
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "kr"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
@@ -1464,6 +1485,7 @@ class MaanedligTotalSensor(MaanedligBaseSensor):
 class MaanedligNorgesprisDifferanseSensor(NettleieBaseSensor):
     """Sensor for accumulated monthly Norgespris savings/loss."""
 
+    _attr_entity_registry_enabled_default: bool = False
     _device_group: str = DEVICE_MAANEDLIG
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "kr"
@@ -1605,6 +1627,7 @@ class ForrigeMaanedBaseSensor(NettleieBaseSensor):
 class ForrigeMaanedForbrukDagSensor(ForrigeMaanedBaseSensor):
     """Sensor for previous month day tariff consumption."""
 
+    _attr_entity_registry_enabled_default: bool = False
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.ENERGY
     _attr_native_unit_of_measurement: str = "kWh"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
@@ -1637,6 +1660,7 @@ class ForrigeMaanedForbrukDagSensor(ForrigeMaanedBaseSensor):
 class ForrigeMaanedForbrukNattSensor(ForrigeMaanedBaseSensor):
     """Sensor for previous month night tariff consumption."""
 
+    _attr_entity_registry_enabled_default: bool = False
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.ENERGY
     _attr_native_unit_of_measurement: str = "kWh"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
@@ -1785,6 +1809,7 @@ class ForrigeMaanedNettleieSensor(ForrigeMaanedBaseSensor):
 class ForrigeMaanedToppforbrukSensor(ForrigeMaanedBaseSensor):
     """Sensor for previous month top 3 power consumption average."""
 
+    _attr_entity_registry_enabled_default: bool = False
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.POWER
     _attr_native_unit_of_measurement: str = "kW"
     _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT

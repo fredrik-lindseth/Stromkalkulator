@@ -44,6 +44,7 @@ Din totalpris bruker fortsatt fast Norgespris — strømstøtte vises kun for sa
 
 ## Forbedringer
 
+- ~17 sensorer aktive som standard, ~25 deaktivert — diagnostikk, nedbrytninger og Norgespris slås på ved behov under Enheter > Entities
 - Rename TSO → DSO overalt (TSO er Statnett, nettselskaper er DSO)
 - Manglende kildesensor gir nå spesifikk feilmelding per sensor
 
@@ -85,5 +86,6 @@ Din totalpris bruker fortsatt fast Norgespris — strømstøtte vises kun for sa
 - feat: attributt dag/natt-fordeling (%) på månedlig forbruk
 - feat: attributt vektet snittpris (kr/kWh) på månedlig total
 - feat: akkumuler daglig kostnad i coordinator
+- feat: disabled-by-default for diagnostikk- og nisje-sensorer
 
 </details>

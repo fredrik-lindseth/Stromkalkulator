@@ -44,7 +44,7 @@ Din totalpris bruker fortsatt fast Norgespris — strømstøtte vises kun for sa
 
 ## Forbedringer
 
-- ~17 sensorer aktive som standard, ~25 deaktivert — diagnostikk, nedbrytninger og Norgespris slås på ved behov under Enheter > Entities
+- 32 sensorer aktive som standard, 12 diagnostikk-sensorer deaktivert (individuelle avgiftssatser, nedbrytninger). Å deaktivere sensorer påvirker ikke beregningene
 - Rename TSO → DSO overalt (TSO er Statnett, nettselskaper er DSO)
 - Manglende kildesensor gir nå spesifikk feilmelding per sensor
 

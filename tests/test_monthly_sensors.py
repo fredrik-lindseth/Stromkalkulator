@@ -55,6 +55,7 @@ from stromkalkulator.const import (  # noqa: E402
 from stromkalkulator.sensor import (  # noqa: E402
     ForrigeMaanedNettleieSensor,
     MaanedligAvgifterSensor,
+    MaanedligForbrukTotalSensor,
     MaanedligNettleieSensor,
     MaanedligTotalSensor,
 )
@@ -329,6 +330,35 @@ class TestMaanedligTotalSensor:
         assert "stromstotte_kr" in attrs
         assert "forbruk_total_kwh" in attrs
 
+    def test_vektet_snittpris_with_consumption(self, base_data):
+        """vektet_snittpris_kr_per_kwh == native_value / total_kwh for known consumption."""
+        base_data["monthly_consumption_dag_kwh"] = 500.0
+        base_data["monthly_consumption_natt_kwh"] = 200.0
+        base_data["stromstotte"] = 0.10
+        sensor = MaanedligTotalSensor(
+            _make_coordinator(base_data), _make_entry("standard")
+        )
+        total_kwh = 500.0 + 200.0
+        expected = round(sensor.native_value / total_kwh, 4)
+        attrs = sensor.extra_state_attributes
+        assert attrs["vektet_snittpris_kr_per_kwh"] == expected
+
+    def test_vektet_snittpris_zero_consumption(self):
+        """vektet_snittpris_kr_per_kwh is None when total_kwh == 0."""
+        data = {
+            "monthly_consumption_dag_kwh": 0.0,
+            "monthly_consumption_natt_kwh": 0.0,
+            "energiledd_dag": 0.4613,
+            "energiledd_natt": 0.2329,
+            "kapasitetsledd": 415,
+            "stromstotte": 0.0,
+        }
+        sensor = MaanedligTotalSensor(
+            _make_coordinator(data), _make_entry("standard")
+        )
+        attrs = sensor.extra_state_attributes
+        assert attrs["vektet_snittpris_kr_per_kwh"] is None
+
 
 # ---------------------------------------------------------------------------
 # P1.4 — ForrigeMaanedNettleieSensor (med _get_kapasitetsledd_for_avg)
@@ -440,3 +470,36 @@ class TestForrigeMaanedNettleieSensor:
         coord.kapasitetstrinn = BKK_KAPASITETSTRINN
         sensor = ForrigeMaanedNettleieSensor(coord, _make_entry())
         assert sensor.native_value is None
+
+
+# ---------------------------------------------------------------------------
+# MaanedligForbrukTotalSensor — dag/natt-fordeling (%)
+# ---------------------------------------------------------------------------
+
+
+class TestDagNattFordeling:
+    """Tester for dag_pct og natt_pct attributter på MaanedligForbrukTotalSensor."""
+
+    def test_dag_natt_fordeling_normal(self):
+        """750 dag / 250 natt = 75.0% / 25.0%."""
+        data = {
+            "monthly_consumption_dag_kwh": 750.0,
+            "monthly_consumption_natt_kwh": 250.0,
+            "monthly_consumption_total_kwh": 1000.0,
+        }
+        sensor = MaanedligForbrukTotalSensor(_make_coordinator(data), _make_entry())
+        attrs = sensor.extra_state_attributes
+        assert attrs["dag_pct"] == 75.0
+        assert attrs["natt_pct"] == 25.0
+
+    def test_dag_natt_fordeling_zero_consumption(self):
+        """0/0 forbruk => 0.0% / 0.0%, ingen division by zero."""
+        data = {
+            "monthly_consumption_dag_kwh": 0.0,
+            "monthly_consumption_natt_kwh": 0.0,
+            "monthly_consumption_total_kwh": 0.0,
+        }
+        sensor = MaanedligForbrukTotalSensor(_make_coordinator(data), _make_entry())
+        attrs = sensor.extra_state_attributes
+        assert attrs["dag_pct"] == 0.0
+        assert attrs["natt_pct"] == 0.0

@@ -345,6 +345,8 @@ class TestSaveDataStructure:
             "previous_month_name",
             "monthly_norgespris_diff",
             "previous_month_norgespris_diff",
+            "daily_cost",
+            "current_date",
         }
         assert expected_keys == set(saved_data.keys())
 

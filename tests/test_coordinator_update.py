@@ -147,6 +147,7 @@ class TestBasicUpdate:
             "stromstotte_tak_naadd", "stromstotte_gjenstaaende_kwh",
             "margin_neste_trinn_kw", "neste_trinn_pris", "kapasitet_varsel",
             "monthly_norgespris_diff_kr", "previous_month_norgespris_diff_kr",
+            "daily_cost_kr",
         }
         assert expected_keys.issubset(set(result.keys())), (
             f"Mangler nøkler: {expected_keys - set(result.keys())}"
@@ -599,6 +600,63 @@ class TestMonthTransition:
         # Consumption should not be reset, values >= what we set
         total = result["monthly_consumption_dag_kwh"] + result["monthly_consumption_natt_kwh"]
         assert total >= 150.0
+
+
+class TestDailyCost:
+    """Daily cost accumulation."""
+
+    def test_daily_cost_kr_in_result(self, coord_module):
+        """daily_cost_kr should exist in coordinator result after update."""
+        hass = _make_hass(power_w=5000, spot_price=1.20)
+        entry = _make_entry()
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+
+        result = _run_update(coord_module, coordinator)
+        assert "daily_cost_kr" in result
+        assert isinstance(result["daily_cost_kr"], float)
+
+    def test_daily_cost_accumulates(self, coord_module):
+        """Daily cost should accumulate when energy is consumed."""
+        now = _real_datetime(2026, 4, 9, 12, 0)  # Thursday noon
+        later = now + timedelta(minutes=1)
+
+        hass = _make_hass(power_w=6000, spot_price=1.50)  # 6 kW
+        entry = _make_entry()
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+
+        # First call: no accumulation (no previous timestamp)
+        result1 = _run_update(coord_module, coordinator, now=now)
+        assert result1["daily_cost_kr"] == 0.0
+
+        # Second call: should accumulate cost
+        result2 = _run_update(coord_module, coordinator, now=later)
+        assert result2["daily_cost_kr"] > 0.0
+
+    def test_daily_cost_resets_on_date_change(self, coord_module):
+        """Daily cost should reset to 0 when the date changes."""
+        day1_noon = _real_datetime(2026, 4, 9, 12, 0)  # Thursday
+        day1_later = day1_noon + timedelta(minutes=1)
+
+        hass = _make_hass(power_w=6000, spot_price=1.50)
+        entry = _make_entry()
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+
+        # Build up some cost on day 1
+        _run_update(coord_module, coordinator, now=day1_noon)
+        result_day1 = _run_update(coord_module, coordinator, now=day1_later)
+        assert result_day1["daily_cost_kr"] > 0.0
+
+        # Simulate date change: set _current_date to yesterday so next update
+        # triggers the reset. Use zero power so no new cost accumulates.
+        coordinator._current_date = "2026-04-08"
+        hass.states.get = MagicMock(
+            side_effect=lambda eid: _make_state(0) if "power" in eid else _make_state(1.50)
+        )
+        day2_time = day1_later + timedelta(minutes=1)
+        result_day2 = _run_update(coord_module, coordinator, now=day2_time)
+
+        # Cost should be reset (no energy at 0 W means nothing new accumulated)
+        assert result_day2["daily_cost_kr"] == 0.0
 
 
 class TestDailyMaxPower:

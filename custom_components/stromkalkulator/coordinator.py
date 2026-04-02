@@ -139,6 +139,10 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         self._previous_month_name = None  # e.g., "januar 2026"
         self._previous_month_norgespris_diff = 0.0
 
+        # Daily cost accumulation
+        self._daily_cost = 0.0
+        self._current_date = dt_util.now().strftime("%Y-%m-%d")
+
         # Cache last known prices (survives brief sensor outages)
         self._last_electricity_company_price: float | None = None
         self._last_spot_price: float | None = None
@@ -208,6 +212,12 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
 
         # Update daily max
         today_str = now.strftime("%Y-%m-%d")
+
+        # Reset daily cost at date change
+        if today_str != self._current_date:
+            self._daily_cost = 0.0
+            self._current_date = today_str
+
         old_max = self._daily_max_power.get(today_str, 0)
         new_max = max(old_max, current_power_kw)
         if new_max > old_max:
@@ -351,6 +361,10 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
                 diff_per_kwh = total_pris_norgespris - total_price
             self._monthly_norgespris_diff += diff_per_kwh * energy_kwh
 
+        # Accumulate daily cost
+        if energy_kwh > 0:
+            self._daily_cost += (total_price_inkl_avgifter - stromstotte) * energy_kwh
+
         # Get electricity company price if configured
         # Caches last known price to survive brief API outages (price changes max once per hour)
         electricity_company_price = None
@@ -433,6 +447,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             "kapasitet_varsel": kapasitet_varsel,
             "monthly_norgespris_diff_kr": round(self._monthly_norgespris_diff, 2),
             "previous_month_norgespris_diff_kr": round(self._previous_month_norgespris_diff, 2),
+            "daily_cost_kr": round(self._daily_cost, 2),
         }
 
     def _get_top_3_days(self) -> dict[str, float]:
@@ -536,6 +551,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
                 self._previous_month_norgespris_diff = self._validate_float(
                     data.get("previous_month_norgespris_diff", 0.0)
                 )
+                self._daily_cost = self._validate_float(data.get("daily_cost", 0.0))
+                self._current_date = data.get("current_date", dt_util.now().strftime("%Y-%m-%d"))
                 stored_month = data.get("current_month")
                 if stored_month is not None:
                     # Backward compat: old format stored month as integer
@@ -601,6 +618,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             "previous_month_name": self._previous_month_name,
             "monthly_norgespris_diff": self._monthly_norgespris_diff,
             "previous_month_norgespris_diff": self._previous_month_norgespris_diff,
+            "daily_cost": self._daily_cost,
+            "current_date": self._current_date,
         }
         try:
             await self._store.async_save(data)

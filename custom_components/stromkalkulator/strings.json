@@ -195,6 +195,9 @@
       },
       "estimert_maanedskostnad": {
         "name": "Estimert månedskostnad"
+      },
+      "dagskostnad": {
+        "name": "Dagens kostnad"
       }
     }
   },

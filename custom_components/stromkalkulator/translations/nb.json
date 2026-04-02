@@ -113,7 +113,8 @@
       "kapasitet_varsel": { "name": "Kapasitetsvarsel" },
       "stromstotte_gjenstaaende": { "name": "Strømstøtte gjenstående" },
       "maanedlig_norgespris_diff": { "name": "Norgespris besparelse" },
-      "estimert_maanedskostnad": { "name": "Estimert månedskostnad" }
+      "estimert_maanedskostnad": { "name": "Estimert månedskostnad" },
+      "dagskostnad": { "name": "Dagens kostnad" }
     }
   }
 }

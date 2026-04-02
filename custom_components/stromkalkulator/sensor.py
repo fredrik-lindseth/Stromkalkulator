@@ -1520,7 +1520,6 @@ class MaanedligNorgesprisDifferanseSensor(NettleieBaseSensor):
 class DagskostnadSensor(MaanedligBaseSensor):
     """Sensor for today's accumulated cost."""
 
-    _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "kr"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
     _attr_icon: str = "mdi:calendar-today"
@@ -1544,7 +1543,6 @@ class DagskostnadSensor(MaanedligBaseSensor):
 class EstimertMaanedskostnadSensor(MaanedligBaseSensor):
     """Sensor for estimated total monthly cost."""
 
-    _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "kr"
     _attr_icon: str = "mdi:crystal-ball"
     _attr_suggested_display_precision: int = 0

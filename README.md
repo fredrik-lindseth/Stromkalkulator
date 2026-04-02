@@ -185,19 +185,10 @@ Se [SENSORS.md](docs/SENSORS.md) for komplett oversikt.
 
 Integrasjonen er laget for **privatboliger med eget strømabonnement**.
 
-**Forenklet modell:**
-- Strømstøtte beregnes på alt forbruk (i virkeligheten maks 5000 kWh/mnd)
-- For de fleste husholdninger er dette ikke et problem
-
 **Ikke støttet (ennå):**
-- Fritidsbolig (har 1000 kWh grense)
+- Fritidsbolig (har 1000 kWh grense for strømstøtte)
 - Næringsliv (andre stønadssatser)
 - Borettslag med fellesmåling
-
-**Fremtidige ideer:**
-- Varsel når kapasitetstrinn øker
-- Støtte for fritidsbolig og næring
-- Faktura-import (PDF/CSV)
 
 ## Ofte stilte spørsmål
 

@@ -515,6 +515,36 @@ Fra 2026 er forbruksavgiften lik for Standard og Nord-Norge. Forskjellen skyldes
 - Kapasitetstrinn varierer mellom nettselskaper
 - Norgespris: 50 øre/kWh (Sør-Norge) eller 40 øre/kWh (Nord-Norge), ingen strømstøtte
 
+## Dagens kostnad
+
+Akkumulerer total strømkostnad gjennom dagen, nullstilles ved midnatt.
+
+```python
+# Ved hver oppdatering (hvert minutt), når energy_kwh > 0:
+daily_cost += (total_price_inkl_avgifter - stromstotte) * energy_kwh
+
+# Ved datobytte:
+if today != current_date:
+    daily_cost = 0.0
+```
+
+Verdien persisteres til disk og overlever restart.
+
+## Estimert månedskostnad
+
+Projiserer totalkostnad for inneværende måned basert på forbrukstempo hittil.
+
+```python
+# Variable kostnader (energiledd × kWh + avgifter - støtte) projiseres
+variable_cost = nettleie_variable + avgifter - stotte
+estimated_variable = (variable_cost / day_of_month) * days_in_month
+
+# Kapasitetsledd er fast per måned, legges til uten projisering
+estimert_total = estimated_variable + kapasitetsledd
+```
+
+Estimatet blir mer presist utover i måneden — dag 1 er usikkert, dag 25 er ganske nøyaktig.
+
 ## Månedlig forbruk og kostnad
 
 Integrasjonen sporer månedlig forbruk og beregner kostnader automatisk via device "Månedlig forbruk".

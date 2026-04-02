@@ -1214,9 +1214,14 @@ class MaanedligForbrukTotalSensor(MaanedligBaseSensor):
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return consumption breakdown."""
         if self.coordinator.data:
+            dag = self.coordinator.data.get("monthly_consumption_dag_kwh", 0)
+            natt = self.coordinator.data.get("monthly_consumption_natt_kwh", 0)
+            total = self.coordinator.data.get("monthly_consumption_total_kwh", 0)
             return {
-                "dag_kwh": self.coordinator.data.get("monthly_consumption_dag_kwh"),
-                "natt_kwh": self.coordinator.data.get("monthly_consumption_natt_kwh"),
+                "dag_kwh": dag,
+                "natt_kwh": natt,
+                "dag_pct": round(dag / total * 100, 1) if total > 0 else 0.0,
+                "natt_pct": round(natt / total * 100, 1) if total > 0 else 0.0,
             }
         return None
 
@@ -1439,6 +1444,7 @@ class MaanedligTotalSensor(MaanedligBaseSensor):
             nettleie = (dag_kwh * dag_pris) + (natt_kwh * natt_pris) + kapasitet
             avgifter = total_kwh * ((forbruksavgift + ENOVA_AVGIFT) * (1 + mva_sats))
             stotte = total_kwh * stromstotte
+            total_kostnad = nettleie + avgifter - stotte
 
             return {
                 "nettleie_kr": round(nettleie, 2),
@@ -1447,6 +1453,7 @@ class MaanedligTotalSensor(MaanedligBaseSensor):
                 "forbruk_dag_kwh": round(dag_kwh, 1),
                 "forbruk_natt_kwh": round(natt_kwh, 1),
                 "forbruk_total_kwh": round(total_kwh, 1),
+                "vektet_snittpris_kr_per_kwh": round(total_kostnad / total_kwh, 4) if total_kwh > 0 else None,
             }
         return None
 

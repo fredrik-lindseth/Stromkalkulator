@@ -53,7 +53,7 @@ Velg nettselskapet ditt fra nedtrekkslisten. Avgiftssone (mva og forbruksavgift)
 ### Steg 2: Velg sensorer
 
 Du trenger to sensorer:
-- **Effektmåler (W)** - Sensor som viser nåværende strømforbruk i watt. Typisk fra HAN-port, Tibber Pulse, eller P1-måler.
+- **Effektmåler (W)** - Sensor som viser nåværende strømforbruk i watt. Typisk fra AMS-leser via HAN-porten (f.eks. Tibber Pulse).
 - **Spotpris-sensor (NOK/kWh)** - Sensor med gjeldende spotpris. Vanligvis "Current price" fra [Nord Pool-integrasjonen](https://www.home-assistant.io/integrations/nordpool/).
 - **Strømleverandør-sensor** (valgfri) - Totalpris fra strømselskapet (f.eks. Tibber). Brukes til å vise hva du faktisk betaler.
 
@@ -111,21 +111,21 @@ Energy Dashboard trenger to ting: en **forbruksmåler** (kWh) og en **prissensor
 
 | Hva                  | Sensor                         | Kommer fra               |
 |----------------------|--------------------------------|--------------------------|
-| Forbruk (kWh)        | Din forbruksmåler              | Tibber, P1, Elhub, o.l.  |
+| Forbruk (kWh)        | Din forbruksmåler              | Noe som leser fra HANporten, Tibber Pulse osv.  |
 | Pris (kr/kWh)        | **Totalpris inkl. avgifter**   | Strømkalkulator          |
 
 ### Oppsett steg for steg
 
 1. Gå til **Settings > Dashboards > Energy**
 2. Under **Electricity grid**, klikk **Add consumption**
-3. **Consumed energy** — velg din kWh-forbrukssensor (f.eks. `sensor.power_consumption` fra Tibber/P1/Elhub)
+3. **Consumed energy** — velg din kWh-forbrukssensor (f.eks. `sensor.power_consumption` fra AMSleseren din)
 4. Slå på **Use an entity with current price**
 5. Velg **Totalpris inkl. avgifter** (`sensor.totalpris_inkl_avgifter_*`)
 6. Klikk **Save**
 
 Nå viser dashboardet hva strømmen faktisk koster deg — inkludert nettleie, avgifter og strømstøtte.
 
-> **Har du ikke en kWh-sensor?** Du trenger en integrasjon som leser av strømmåleren din. Vanlige valg er [Tibber](https://www.home-assistant.io/integrations/tibber/) (med Pulse), en [P1-måler](https://www.home-assistant.io/integrations/dsmr/) koblet til HAN-porten, eller [Elhub](https://github.com/custom-components/elhub) for timebaserte data.
+> **Har du ikke en kWh-sensor?** Du trenger noe som leser av strømmåleren din via HAN-porten, f.eks. en [Tibber Pulse](https://www.home-assistant.io/integrations/tibber/) eller en annen AMS-leser.
 
 **Tips:** Vil du se priskomponentene (spotpris, nettleie, avgifter) separat? Bruk et custom dashboard-kort som ApexCharts med sensorene fra denne integrasjonen.
 

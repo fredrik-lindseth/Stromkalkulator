@@ -52,7 +52,7 @@ Select your grid company from the dropdown. Tax zone (VAT and consumption tax) i
 ### Step 2: Select sensors
 
 You need two sensors:
-- **Power meter (W)** - Sensor showing current power consumption in watts. Typically from HAN port, Tibber Pulse, or P1 meter.
+- **Power meter (W)** - Sensor showing current power consumption in watts. Typically from an AMS reader via the HAN port (e.g. Tibber Pulse).
 - **Spot price sensor (NOK/kWh)** - Sensor with current spot price. Usually "Current price" from the [Nord Pool integration](https://www.home-assistant.io/integrations/nordpool/).
 - **Electricity provider sensor** (optional) - Total price from your provider (e.g. Tibber). Used to show what you actually pay.
 
@@ -110,21 +110,21 @@ Energy Dashboard needs two things: a **consumption meter** (kWh) and a **price s
 
 | What                 | Sensor                         | Source                   |
 |----------------------|--------------------------------|--------------------------|
-| Consumption (kWh)    | Your consumption meter         | Tibber, P1, Elhub, etc.  |
+| Consumption (kWh)    | Your consumption meter         | AMS meter via HAN port (e.g. Tibber Pulse)  |
 | Price (NOK/kWh)      | **Total price incl. taxes**    | Strømkalkulator          |
 
 ### Step-by-step setup
 
 1. Go to **Settings > Dashboards > Energy**
 2. Under **Electricity grid**, click **Add consumption**
-3. **Consumed energy** — select your kWh consumption sensor (e.g. `sensor.power_consumption` from Tibber/P1/Elhub)
+3. **Consumed energy** — select your kWh consumption sensor (e.g. `sensor.power_consumption` from your AMS meter)
 4. Enable **Use an entity with current price**
 5. Select **Total price incl. taxes** (`sensor.totalpris_inkl_avgifter_*`)
 6. Click **Save**
 
 The dashboard now shows what your electricity actually costs — including grid tariffs, taxes, and subsidies.
 
-> **Don't have a kWh sensor?** You need an integration that reads your power meter. Common choices are [Tibber](https://www.home-assistant.io/integrations/tibber/) (with Pulse), a [P1 meter](https://www.home-assistant.io/integrations/dsmr/) connected to the HAN port, or [Elhub](https://github.com/custom-components/elhub) for hourly data.
+> **Don't have a kWh sensor?** You need something that reads your AMS meter via the HAN port, e.g. a [Tibber Pulse](https://www.home-assistant.io/integrations/tibber/) or another AMS reader.
 
 **Tip:** Want to see price components (spot price, grid tariff, taxes) separately? Use a custom dashboard card like ApexCharts with the sensors from this integration.
 

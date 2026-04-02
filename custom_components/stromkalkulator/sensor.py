@@ -97,6 +97,7 @@ async def async_setup_entry(
         MaanedligStromstotteSensor(coordinator, entry),
         MaanedligTotalSensor(coordinator, entry),
         MaanedligNorgesprisDifferanseSensor(coordinator, entry),
+        DagskostnadSensor(coordinator, entry),
         # Forrige måned sensors
         ForrigeMaanedForbrukDagSensor(coordinator, entry),
         ForrigeMaanedForbrukNattSensor(coordinator, entry),
@@ -1499,6 +1500,29 @@ class MaanedligNorgesprisDifferanseSensor(NettleieBaseSensor):
                 "sammenligner_med": "spotpris" if har_norgespris else "Norgespris",
                 "positiv_betyr": "du sparer med nåværende avtale",
             }
+        return None
+
+
+class DagskostnadSensor(MaanedligBaseSensor):
+    """Sensor for today's accumulated cost."""
+
+    _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
+    _attr_native_unit_of_measurement: str = "kr"
+    _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
+    _attr_icon: str = "mdi:calendar-today"
+    _attr_suggested_display_precision: int = 0
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        super().__init__(coordinator, entry, "dagskostnad", "dagskostnad")
+        self._attr_native_unit_of_measurement = "kr"
+        self._attr_state_class = SensorStateClass.TOTAL
+        self._attr_icon = "mdi:calendar-today"
+        self._attr_suggested_display_precision = 0
+
+    @property
+    def native_value(self) -> float | None:
+        if self.coordinator.data:
+            return cast("float | None", self.coordinator.data.get("daily_cost_kr"))
         return None
 
 

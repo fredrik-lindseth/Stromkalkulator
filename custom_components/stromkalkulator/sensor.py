@@ -1525,6 +1525,7 @@ class DagskostnadSensor(MaanedligBaseSensor):
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
     _attr_icon: str = "mdi:calendar-today"
     _attr_suggested_display_precision: int = 0
+    _attr_name: str = "Dagens kostnad"
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "dagskostnad", "dagskostnad")
@@ -1547,6 +1548,7 @@ class EstimertMaanedskostnadSensor(MaanedligBaseSensor):
     _attr_native_unit_of_measurement: str = "kr"
     _attr_icon: str = "mdi:crystal-ball"
     _attr_suggested_display_precision: int = 0
+    _attr_name: str = "Estimert månedskostnad"
     _avgiftssone: str
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:

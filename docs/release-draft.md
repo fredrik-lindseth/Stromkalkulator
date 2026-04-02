@@ -86,6 +86,6 @@ Din totalpris bruker fortsatt fast Norgespris — strømstøtte vises kun for sa
 - feat: attributt dag/natt-fordeling (%) på månedlig forbruk
 - feat: attributt vektet snittpris (kr/kWh) på månedlig total
 - feat: akkumuler daglig kostnad i coordinator
-- feat: disabled-by-default for diagnostikk- og nisje-sensorer
+- feat: deaktivert som standard for diagnostikk- og nisje-sensorer
 
 </details>

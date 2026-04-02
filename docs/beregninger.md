@@ -347,14 +347,14 @@ Norgespris er et strømprodukt fra nettselskapet med fast pris, som alternativ t
 
 ### Egenskaper
 - **Fast pris**: Uavhengig av spotpris
-- **Ingen strømstøtte**: Kan ikke kombineres med strømstøtte
+- **Ingen strømstøtte**: Norgespris-kunder mottar ikke strømstøtte, men integrasjonen beregner den alltid fra spotpris slik at sammenligning fungerer
 - **Velges hos nettselskapet**: Ikke alle nettselskaper tilbyr dette
 
 ### Konfigurering
 
 Aktiver "Jeg har Norgespris" i integrasjonens innstillinger. Integrasjonen vil:
-1. Bruke fast Norgespris i stedet for spotpris
-2. Sette strømstøtte til 0 (Norgespris og strømstøtte kombineres ikke)
+1. Bruke fast Norgespris i stedet for spotpris i din totalpris
+2. Vise strømstøtte beregnet fra spotpris (for sammenligning med spot+støtte)
 3. Automatisk velge riktig pris basert på avgiftssone
 
 ### Formler

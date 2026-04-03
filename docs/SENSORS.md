@@ -82,14 +82,14 @@ Sensorer for strømstøtte-beregning og totalpris inkl. alle avgifter.
 | Total strømpris etter støtte      | kr/kWh | Din reelle totalpris akkurat nå: spotpris + nettleie - strømstøtte                          |
 | Totalpris inkl. avgifter          | kr/kWh | **Anbefalt for Energy Dashboard** — din totale strømpris inkl. nettleie, avgifter og støtte |
 | Strømstøtte aktiv nå              | -      | "Ja" / "Nei" — om spotprisen akkurat nå er høy nok til at du får strømstøtte               |
-| Strømstøtte gjenstående kWh       | kWh    | Hvor mange kWh du har igjen før du treffer støtte-taket (5000 kWh/mnd)                      |
+| Strømstøtte gjenstående kWh       | kWh    | Hvor mange kWh du har igjen før du treffer støtte-taket. Avhenger av boligtype: bolig=5000 kWh/mnd, fritidsbolig=0 (ingen rett) |
 | *(valgfri)* Strømpris per kWh (etter støtte)  | kr/kWh | Spotpris + energiledd - strømstøtte, uten kapasitetsledd — variabel kWh-kostnad etter støtte |
 
 ---
 
 ## Device: Norgespris
 
-Sammenligning mellom din spotprisavtale og Norgespris (fast 50 øre/kWh).
+Sammenligning mellom din spotprisavtale og Norgespris (fast 50 øre/kWh). kWh-tak avhenger av boligtype: bolig=5000 kWh/mnd, fritidsbolig=1000 kWh/mnd. Over taket betaler du spotpris.
 
 | Sensor                              | Enhet  | Beskrivelse                                                                           |
 |-------------------------------------|--------|---------------------------------------------------------------------------------------|

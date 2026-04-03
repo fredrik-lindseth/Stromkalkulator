@@ -107,7 +107,7 @@ NORGESPRIS_EKS_MVA: Final[float] = 0.40  # 40 øre/kWh eks. mva
 NORGESPRIS_INKL_MVA_STANDARD: Final[float] = 0.50  # 50 øre inkl. 25% mva (Sør-Norge)
 NORGESPRIS_INKL_MVA_NORD: Final[float] = 0.40  # 40 øre (Nord-Norge/Tiltakssonen, mva-fritak)
 NORGESPRIS_MAX_KWH_BOLIG: Final[int] = 5000  # Maks 5000 kWh/mnd for bolig
-NORGESPRIS_MAX_KWH_FRITID: Final[int] = 1000  # Maks 1000 kWh/mnd for fritidsbolig (ikke støttet)
+NORGESPRIS_MAX_KWH_FRITID: Final[int] = 1000  # Maks 1000 kWh/mnd for fritidsbolig
 NORGESPRIS_KILDE: Final[str] = "https://www.regjeringen.no/no/tema/energi/strom/regjeringens-stromtiltak/id2900232/"
 
 # Config key for Norgespris

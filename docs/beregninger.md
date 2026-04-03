@@ -300,18 +300,19 @@ strømstøtte = max(0, (spotpris - 0.9625) * 0.90)
 ### Parametere
 - **Terskel**: 96,25 øre/kWh inkl. mva (0.9625 NOK/kWh) - 2026-sats
 - **Dekningsgrad**: 90%
-- **Maks forbruk**: 5000 kWh/mnd
+- **Maks forbruk**: 5000 kWh/mnd (bolig), 0 kWh/mnd (fritidsbolig)
 - **Basis**: Spotpris fra Nord Pool
 
+kWh-tak avhenger av boligtype: Bolig/Fritidsbolig fast bosted = 5000 kWh/mnd, Fritidsbolig = 0 kWh/mnd (ingen strømstøtte). Se [Forskrift om strømstønad](https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791).
+
 ### Begrensninger (ikke støttet i integrasjonen)
-- **Fritidsbolig**: 1000 kWh/mnd grense
 - **Næringsliv**: Egne stønadsatser
 - **Fjernvarme/nærvarme**: Egen støtteordning
 - **Borettslag med fellesmåling**: Støtte til borettslaget
 
-### 5000 kWh månedlig tak
+### Månedlig kWh-tak
 
-Strømstøtten gjelder kun de første 5000 kWh per måned per målepunkt. Integrasjonen sporer akkumulert månedlig forbruk og setter strømstøtte til 0 kr/kWh når taket er nådd.
+Strømstøtten gjelder kun opp til et månedlig kWh-tak per målepunkt. Taket avhenger av boligtype: Bolig/Fritidsbolig fast bosted = 5000 kWh/mnd, Fritidsbolig = 0 kWh/mnd (ingen strømstøtte). Integrasjonen sporer akkumulert månedlig forbruk og setter strømstøtte til 0 kr/kWh når taket er nådd.
 
 Sensoren `stromstotte_gjenstaaende` viser hvor mange kWh som gjenstår av taket. Attributtet `tak_naadd` på strømstøtte-sensoren viser om taket er nådd.
 
@@ -349,6 +350,7 @@ Norgespris er et strømprodukt fra nettselskapet med fast pris, som alternativ t
 - **Fast pris**: Uavhengig av spotpris
 - **Ingen strømstøtte**: Norgespris-kunder mottar ikke strømstøtte, men integrasjonen beregner den alltid fra spotpris slik at sammenligning fungerer
 - **Velges hos nettselskapet**: Ikke alle nettselskaper tilbyr dette
+- **kWh-tak**: Bolig/Fritidsbolig fast bosted = 5000 kWh/mnd, Fritidsbolig = 1000 kWh/mnd. Over taket betaler du spotpris resten av måneden.
 
 ### Konfigurering
 

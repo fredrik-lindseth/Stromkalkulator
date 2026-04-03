@@ -49,6 +49,16 @@ Copy `custom_components/stromkalkulator` to `/config/custom_components/`
 
 Select your grid company from the dropdown. Tax zone (VAT and consumption tax) is set automatically based on your grid company.
 
+### Property type
+
+| Property type | Electricity subsidy | Norgespris cap | Source |
+|---------------|---------------------|----------------|--------|
+| Residence (default) | 5000 kWh/month | 5000 kWh/month | [Regulation § 5](https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791) |
+| Holiday home | None | 1000 kWh/month | [Regulation § 3](https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791) |
+| Holiday home (permanent residence) | 5000 kWh/month | 5000 kWh/month | [Regulation § 11](https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791) |
+
+Above the Norgespris kWh cap, you pay spot price for the rest of the month. Holiday homes are not entitled to electricity subsidy unless you live there permanently (§ 11).
+
 ### Step 2: Select sensors
 
 You need two sensors:
@@ -177,7 +187,6 @@ This integration is designed for **residential homes with individual electricity
 - For most households this isn't an issue
 
 **Not supported (yet):**
-- Holiday homes (have 1000 kWh limit)
 - Commercial use (different subsidy rates)
 - Housing cooperatives with shared metering
 

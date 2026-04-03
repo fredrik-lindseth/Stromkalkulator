@@ -20,6 +20,7 @@ CONF_ENERGILEDD_DAG: Final[str] = "energiledd_dag"
 CONF_ENERGILEDD_NATT: Final[str] = "energiledd_natt"
 CONF_AVGIFTSSONE: Final[str] = "avgiftssone"
 CONF_KAPASITET_VARSEL_TERSKEL: Final[str] = "kapasitet_varsel_terskel"
+CONF_BOLIGTYPE: Final[str] = "boligtype"
 
 # Avgiftssoner for forbruksavgift og mva
 # - standard: Full forbruksavgift + mva (Sør-Norge: NO1, NO2, NO5)
@@ -28,6 +29,21 @@ CONF_KAPASITET_VARSEL_TERSKEL: Final[str] = "kapasitet_varsel_terskel"
 AVGIFTSSONE_STANDARD: Final[str] = "standard"
 AVGIFTSSONE_NORD_NORGE: Final[str] = "nord_norge"
 AVGIFTSSONE_TILTAKSSONE: Final[str] = "tiltakssone"
+
+# Boligtype — bestemmer kWh-tak for strømstøtte og Norgespris
+# Kilde: Forskrift om strømstønad (lovdata.no/dokument/SF/forskrift/2025-09-08-1791)
+# - Bolig (§ 5): 5000 kWh/mnd strømstøtte, 5000 kWh/mnd Norgespris
+# - Fritidsbolig (§ 3): Ingen strømstøtte, 1000 kWh/mnd Norgespris
+# - Fritidsbolig fast bosted (§ 11): Samme som bolig (5000 kWh/mnd begge)
+BOLIGTYPE_BOLIG: Final[str] = "bolig"
+BOLIGTYPE_FRITIDSBOLIG: Final[str] = "fritidsbolig"
+BOLIGTYPE_FRITIDSBOLIG_FAST: Final[str] = "fritidsbolig_fast"
+
+BOLIGTYPE_OPTIONS: Final[dict[str, str]] = {
+    BOLIGTYPE_BOLIG: "Bolig",
+    BOLIGTYPE_FRITIDSBOLIG: "Fritidsbolig",
+    BOLIGTYPE_FRITIDSBOLIG_FAST: "Fritidsbolig (fast bosted)",
+}
 
 AVGIFTSSONE_OPTIONS: Final[dict[str, str]] = {
     AVGIFTSSONE_STANDARD: "Sør-Norge — NO1, NO2, NO5 (full avgift + mva)",
@@ -80,7 +96,7 @@ STROMSTOTTE_KILDE: Final[str] = "https://lovdata.no/dokument/SF/forskrift/2025-0
 #
 # Grenser:
 # - Bolig: 5000 kWh/mnd (støttet)
-# - Fritidsbolig: 1000 kWh/mnd (IKKE støttet i denne integrasjonen)
+# - Fritidsbolig: 1000 kWh/mnd
 #
 # Regler:
 # - Norgespris er et alternativ til strømstøtte - kan IKKE kombineres
@@ -113,6 +129,32 @@ def get_norgespris_inkl_mva(avgiftssone: str) -> float:
     if avgiftssone in (AVGIFTSSONE_NORD_NORGE, AVGIFTSSONE_TILTAKSSONE):
         return NORGESPRIS_INKL_MVA_NORD
     return NORGESPRIS_INKL_MVA_STANDARD
+
+
+def get_norgespris_max_kwh(boligtype: str) -> int:
+    """Returnerer maks kWh/mnd for Norgespris basert på boligtype.
+
+    Bolig/Fritidsbolig fast bosted: 5000 kWh/mnd
+    Fritidsbolig: 1000 kWh/mnd
+
+    Kilde: regjeringen.no/no/tema/energi/strom/regjeringens-stromtiltak/
+    """
+    if boligtype == BOLIGTYPE_FRITIDSBOLIG:
+        return NORGESPRIS_MAX_KWH_FRITID
+    return NORGESPRIS_MAX_KWH_BOLIG
+
+
+def get_stromstotte_max_kwh(boligtype: str) -> int:
+    """Returnerer maks kWh/mnd for strømstøtte basert på boligtype.
+
+    Bolig/Fritidsbolig fast bosted: 5000 kWh/mnd (Forskrift § 5)
+    Fritidsbolig: 0 kWh/mnd — ingen rett på strømstøtte (Forskrift § 3)
+
+    Kilde: lovdata.no/dokument/SF/forskrift/2025-09-08-1791
+    """
+    if boligtype == BOLIGTYPE_FRITIDSBOLIG:
+        return 0
+    return STROMSTOTTE_MAX_KWH
 
 
 # Offentlige avgifter (NOK/kWh eks. mva, oppdateres årlig)

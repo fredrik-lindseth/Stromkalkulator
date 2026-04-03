@@ -13,7 +13,9 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     AVGIFTSSONE_STANDARD,
+    BOLIGTYPE_BOLIG,
     CONF_AVGIFTSSONE,
+    CONF_BOLIGTYPE,
     CONF_DSO,
     CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
     CONF_ENERGILEDD_DAG,
@@ -28,12 +30,13 @@ from .const import (
     ENOVA_AVGIFT,
     HELLIGDAGER_FASTE,
     STROMSTOTTE_LEVEL,
-    STROMSTOTTE_MAX_KWH,
     STROMSTOTTE_RATE,
     _bevegelige_helligdager,
     get_forbruksavgift,
     get_mva_sats,
     get_norgespris_inkl_mva,
+    get_norgespris_max_kwh,
+    get_stromstotte_max_kwh,
 )
 
 if TYPE_CHECKING:
@@ -95,6 +98,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
 
         # Get Norgespris setting from config
         self.har_norgespris = entry.data.get(CONF_HAR_NORGESPRIS, False)
+
+        # Get boligtype from config (default: bolig for backward compatibility)
+        self.boligtype = entry.data.get(CONF_BOLIGTYPE, BOLIGTYPE_BOLIG)
 
         # Get energiledd from config (allows override)
         try:
@@ -282,15 +288,16 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         # NB: Norgespris-kunder mottar ikke strømstøtte, men vi beregner den
         # alltid slik at sammenligning mellom Norgespris og spot+støtte fungerer.
         monthly_total_kwh = self._monthly_consumption["dag"] + self._monthly_consumption["natt"]
+        stromstotte_max = get_stromstotte_max_kwh(self.boligtype)
         stromstotte: float
-        if monthly_total_kwh >= STROMSTOTTE_MAX_KWH:
+        if stromstotte_max == 0 or monthly_total_kwh >= stromstotte_max:
             stromstotte = 0.0
         elif spot_price > STROMSTOTTE_LEVEL:
             stromstotte = (spot_price - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE
         else:
             stromstotte = 0.0
 
-        stromstotte_gjenstaaende = max(0.0, STROMSTOTTE_MAX_KWH - monthly_total_kwh)
+        stromstotte_gjenstaaende = max(0.0, stromstotte_max - monthly_total_kwh)
 
         # Spotpris etter strømstøtte
         spotpris_etter_stotte = spot_price - stromstotte
@@ -309,22 +316,38 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         norgespris_stromstotte = 0
 
         # Total price calculation depends on whether user has Norgespris
+        # Norgespris kWh-tak: Bolig=5000, Fritidsbolig=1000. Over taket betaler man spotpris.
+        norgespris_max = get_norgespris_max_kwh(self.boligtype)
+        norgespris_over_tak = monthly_total_kwh >= norgespris_max
+
         if self.har_norgespris:
-            # Bruker har Norgespris: bruk fast pris i stedet for spotpris
-            total_price = norgespris + energiledd + fastledd_per_kwh
-            total_price_uten_stotte = norgespris + energiledd + fastledd_per_kwh  # Samme som total_price
+            if norgespris_over_tak:
+                # Over Norgespris-taket: betaler spotpris (ingen Norgespris-rabatt)
+                total_price = spot_price + energiledd + fastledd_per_kwh
+                total_price_uten_stotte = spot_price + energiledd + fastledd_per_kwh
+            else:
+                # Under taket: fast Norgespris
+                total_price = norgespris + energiledd + fastledd_per_kwh
+                total_price_uten_stotte = norgespris + energiledd + fastledd_per_kwh
         else:
             # Standard: spotpris minus strømstøtte
             total_price = spot_price - stromstotte + energiledd + fastledd_per_kwh
             total_price_uten_stotte = spot_price + energiledd + fastledd_per_kwh
 
-        # Total pris med norgespris (for sammenligning)
-        total_pris_norgespris = norgespris + energiledd + fastledd_per_kwh
+        # Norgespris comparison: use Norgespris if under cap, else spotpris
+        if norgespris_over_tak:
+            total_pris_norgespris = spot_price + energiledd + fastledd_per_kwh
+        else:
+            total_pris_norgespris = norgespris + energiledd + fastledd_per_kwh
 
         # Strømpris per kWh (uten kapasitetsledd)
         if self.har_norgespris:
-            strompris_per_kwh = norgespris + energiledd
-            strompris_per_kwh_etter_stotte = norgespris + energiledd
+            if norgespris_over_tak:
+                strompris_per_kwh = spot_price + energiledd
+                strompris_per_kwh_etter_stotte = spot_price + energiledd
+            else:
+                strompris_per_kwh = norgespris + energiledd
+                strompris_per_kwh_etter_stotte = norgespris + energiledd
         else:
             strompris_per_kwh = spot_price + energiledd
             strompris_per_kwh_etter_stotte = spot_price - stromstotte + energiledd
@@ -440,7 +463,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             if self._previous_month_top_3
             else 0.0,
             "previous_month_name": self._previous_month_name,
-            "stromstotte_tak_naadd": monthly_total_kwh >= STROMSTOTTE_MAX_KWH,
+            "stromstotte_tak_naadd": stromstotte_max == 0 or monthly_total_kwh >= stromstotte_max,
+            "norgespris_over_tak": norgespris_over_tak,
+            "boligtype": self.boligtype,
             "stromstotte_gjenstaaende_kwh": round(stromstotte_gjenstaaende, 1),
             "margin_neste_trinn_kw": margin_neste_trinn,
             "neste_trinn_pris": neste_trinn_pris,

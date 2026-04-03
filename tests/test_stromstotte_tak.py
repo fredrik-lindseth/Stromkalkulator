@@ -18,9 +18,11 @@ from __future__ import annotations
 import pytest
 
 from custom_components.stromkalkulator.const import (
+    BOLIGTYPE_BOLIG,
     STROMSTOTTE_LEVEL,
     STROMSTOTTE_MAX_KWH,
     STROMSTOTTE_RATE,
+    get_stromstotte_max_kwh,
 )
 
 
@@ -182,3 +184,8 @@ def test_rate_is_90_percent() -> None:
 def test_cap_is_5000_kwh() -> None:
     """Verify monthly cap is 5000 kWh."""
     assert STROMSTOTTE_MAX_KWH == 5000
+
+
+def test_cap_matches_bolig_helper() -> None:
+    """Verify STROMSTOTTE_MAX_KWH matches get_stromstotte_max_kwh for bolig."""
+    assert get_stromstotte_max_kwh(BOLIGTYPE_BOLIG) == STROMSTOTTE_MAX_KWH

@@ -603,6 +603,7 @@ class StromstotteSensor(NettleieBaseSensor):
                 "terskel": STROMSTOTTE_LEVEL,
                 "dekningsgrad": "90%",
                 "tak_naadd": self.coordinator.data.get("stromstotte_tak_naadd", False),
+                "boligtype": self.coordinator.data.get("boligtype", "bolig"),
             }
         return None
 
@@ -751,7 +752,8 @@ class TotalPrisNorgesprisSensor(NettleieBaseSensor):
                 "norgespris_stromstotte": self.coordinator.data.get("norgespris_stromstotte"),
                 "energiledd": self.coordinator.data.get("energiledd"),
                 "kapasitetsledd_per_kwh": self.coordinator.data.get("kapasitetsledd_per_kwh"),
-                "note": "Norgespris er fast 50 øre/kWh fra Elhub",
+                "norgespris_over_tak": self.coordinator.data.get("norgespris_over_tak", False),
+                "boligtype": self.coordinator.data.get("boligtype", "bolig"),
             }
         return None
 

@@ -59,6 +59,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
     _dso_id: str
     avgiftssone: str
     har_norgespris: bool
+    boligtype: str
     energiledd_dag: float
     energiledd_natt: float
     kapasitetstrinn: list[tuple[float, int]]
@@ -283,7 +284,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
 
         # Calculate strømstøtte (always from spot price, for comparison)
         # Forskrift § 5: 90% av spotpris over 77 øre/kWh eks. mva (96,25 øre inkl. mva) i 2026
-        # Maks 5000 kWh/mnd per målepunkt (Forskrift § 5)
+        # kWh-tak avhenger av boligtype:
+        # - Bolig / Fritidsbolig fast bosted: 5000 kWh/mnd (Forskrift § 5)
+        # - Fritidsbolig: Ingen rett på strømstøtte (Forskrift § 3)
         # Kilde: https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791
         # NB: Norgespris-kunder mottar ikke strømstøtte, men vi beregner den
         # alltid slik at sammenligning mellom Norgespris og spot+støtte fungerer.

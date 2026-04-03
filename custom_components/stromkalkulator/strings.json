@@ -6,9 +6,11 @@
         "description": "Komplett oversikt over strømkostnader: nettleie, strømstøtte og Norgespris-sammenligning.\n\nVelg ditt nettselskap for å komme i gang. Avgiftssone settes automatisk.",
         "data": {
           "tso": "Nettselskap",
+          "boligtype": "Boligtype",
           "har_norgespris": "Jeg har Norgespris"
         },
         "data_description": {
+          "boligtype": "Bolig: Strømstøtte opptil 5000 kWh/mnd, Norgespris opptil 5000 kWh/mnd. Fritidsbolig: Ingen strømstøtte, Norgespris opptil 1000 kWh/mnd. Fritidsbolig (fast bosted): Samme som bolig (Forskrift § 11). Kilde: lovdata.no/dokument/SF/forskrift/2025-09-08-1791",
           "har_norgespris": "Aktiver hvis du har valgt Norgespris hos nettselskapet. Bruker fast pris (40-50 øre/kWh) i stedet for spotpris."
         }
       },
@@ -54,6 +56,7 @@
         "description": "Endre nettselskap, sensorer eller Norgespris-innstillinger.",
         "data": {
           "tso": "Nettselskap",
+          "boligtype": "Boligtype",
           "avgiftssone": "Avgiftssone",
           "har_norgespris": "Jeg har Norgespris",
           "power_sensor": "Effektmåler (W)",
@@ -64,6 +67,7 @@
           "kapasitet_varsel_terskel": "Kapasitetsvarsel-terskel (kW)"
         },
         "data_description": {
+          "boligtype": "Bolig: Strømstøtte opptil 5000 kWh/mnd, Norgespris opptil 5000 kWh/mnd. Fritidsbolig: Ingen strømstøtte, Norgespris opptil 1000 kWh/mnd. Fritidsbolig (fast bosted): Samme som bolig (Forskrift § 11). Kilde: lovdata.no/dokument/SF/forskrift/2025-09-08-1791",
           "avgiftssone": "Settes automatisk fra nettselskap. Overstyr kun hvis du vet du tilhører en annen sone.",
           "har_norgespris": "Aktiver hvis du har valgt Norgespris hos nettselskapet. Bruker fast pris (40-50 øre/kWh) i stedet for spotpris.",
           "kapasitet_varsel_terskel": "Varsle når margin til neste kapasitetstrinn er under denne verdien. Standard: 2.0 kW."

@@ -14,7 +14,10 @@ from .const import (
     AVGIFTSSONE_OPTIONS,
     AVGIFTSSONE_STANDARD,
     AVGIFTSSONE_TILTAKSSONE,
+    BOLIGTYPE_BOLIG,
+    BOLIGTYPE_OPTIONS,
     CONF_AVGIFTSSONE,
+    CONF_BOLIGTYPE,
     CONF_DSO,
     CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
     CONF_ENERGILEDD_DAG,
@@ -80,6 +83,15 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
                     vol.Required(CONF_DSO, default=DEFAULT_DSO): selector.SelectSelector(
                         selector.SelectSelectorConfig(
                             options=_dso_options(),
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                        ),
+                    ),
+                    vol.Required(CONF_BOLIGTYPE, default=BOLIGTYPE_BOLIG): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=[
+                                selector.SelectOptionDict(value=key, label=label)
+                                for key, label in BOLIGTYPE_OPTIONS.items()
+                            ],
                             mode=selector.SelectSelectorMode.DROPDOWN,
                         ),
                     ),
@@ -248,6 +260,18 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):  # type: ignore[misc]
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=_dso_options(),
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    ),
+                ),
+                vol.Required(
+                    CONF_BOLIGTYPE,
+                    default=current.get(CONF_BOLIGTYPE, BOLIGTYPE_BOLIG),
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            selector.SelectOptionDict(value=key, label=label)
+                            for key, label in BOLIGTYPE_OPTIONS.items()
+                        ],
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     ),
                 ),

@@ -1027,11 +1027,13 @@ class StromstotteKwhSensor(NettleieBaseSensor):
         if self.coordinator.data:
             spot_price = self.coordinator.data.get("spot_price", 0)
             stromstotte = self.coordinator.data.get("stromstotte", 0)
+            boligtype = self.coordinator.data.get("boligtype", "bolig")
             return {
                 "spotpris": spot_price,
                 "terskel": STROMSTOTTE_LEVEL,
                 "over_terskel": spot_price > STROMSTOTTE_LEVEL,
                 "stromstotte_per_kwh": stromstotte,
+                "boligtype": boligtype,
                 "note": f"Timer hvor spotpris > {STROMSTOTTE_LEVEL * 100:.2f} øre/kWh gir strømstøtte på fakturaen",
             }
         return None

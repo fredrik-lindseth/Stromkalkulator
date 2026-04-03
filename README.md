@@ -34,7 +34,7 @@ Integrasjonen gir deg sensorer som viser din **faktiske strømpris** - ikke bare
 2. Klikk **Download**
 3. Start Home Assistant på nytt
 
-*Alternativt: HACS > Integrations > Explore & Download Repositories > Søk etter "Strømkalkulator"*
+_Alternativt: HACS > Integrations > Explore & Download Repositories > Søk etter "Strømkalkulator"_
 
 ### Manuell
 
@@ -50,9 +50,20 @@ Kopier `custom_components/stromkalkulator` til `/config/custom_components/`
 
 Velg nettselskapet ditt fra nedtrekkslisten. Avgiftssone (mva og forbruksavgift) settes automatisk basert på nettselskapet.
 
+### Boligtype
+
+| Boligtype | Strømstøtte | Norgespris-tak | Kilde |
+|-----------|-------------|----------------|-------|
+| Bolig (standard) | 5000 kWh/mnd | 5000 kWh/mnd | [Forskrift § 5](https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791) |
+| Fritidsbolig | Ingen | 1000 kWh/mnd | [Forskrift § 3](https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791) |
+| Fritidsbolig (fast bosted) | 5000 kWh/mnd | 5000 kWh/mnd | [Forskrift § 11](https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791) |
+
+Over kWh-taket for Norgespris betaler du spotpris for resten av måneden. Fritidsboliger har ikke rett på strømstøtte med mindre du bor der fast (§ 11).
+
 ### Steg 2: Velg sensorer
 
 Du trenger to sensorer:
+
 - **Effektmåler (W)** - Sensor som viser nåværende strømforbruk i watt. Typisk fra AMS-leser via HAN-porten (f.eks. Tibber Pulse).
 - **Spotpris-sensor (NOK/kWh)** - Sensor med gjeldende spotpris. Vanligvis "Current price" fra [Nord Pool-integrasjonen](https://www.home-assistant.io/integrations/nordpool/).
 - **Strømleverandør-sensor** (valgfri) - Totalpris fra strømselskapet (f.eks. Tibber). Brukes til å vise hva du faktisk betaler.
@@ -63,11 +74,11 @@ Alle norske nettselskaper er støttet!
 
 Avgiftssonen bestemmer mva og forbruksavgift, og settes automatisk fra nettselskapet ditt. Du kan overstyre i innstillingene hvis nødvendig.
 
-| Avgiftssone  | Strømsoner   | Forbruksavgift | MVA  |
-|--------------|--------------|----------------|------|
-| Sør-Norge    | NO1, NO2, NO5 | 7,13 øre/kWh  | 25%  |
-| Nord-Norge   | NO3, NO4     | 7,13 øre/kWh  | 0%   |
-| Tiltakssonen | Finnmark/Nord-Troms | 0 øre   | 0%   |
+| Avgiftssone  | Strømsoner          | Forbruksavgift | MVA |
+| ------------ | ------------------- | -------------- | --- |
+| Sør-Norge    | NO1, NO2, NO5       | 7,13 øre/kWh   | 25% |
+| Nord-Norge   | NO3, NO4            | 7,13 øre/kWh   | 0%  |
+| Tiltakssonen | Finnmark/Nord-Troms | 0 øre          | 0%  |
 
 ## Devices og sensorer
 
@@ -109,10 +120,10 @@ Energy Dashboard trenger to ting: en **forbruksmåler** (kWh) og en **prissensor
 
 ### Hva kommer fra hvor?
 
-| Hva                  | Sensor                         | Kommer fra               |
-|----------------------|--------------------------------|--------------------------|
-| Forbruk (kWh)        | Din forbruksmåler              | Noe som leser fra HANporten, Tibber Pulse osv.  |
-| Pris (kr/kWh)        | **Totalpris inkl. avgifter**   | Strømkalkulator          |
+| Hva           | Sensor                       | Kommer fra                                     |
+| ------------- | ---------------------------- | ---------------------------------------------- |
+| Forbruk (kWh) | Din forbruksmåler            | Noe som leser fra HANporten, Tibber Pulse osv. |
+| Pris (kr/kWh) | **Totalpris inkl. avgifter** | Strømkalkulator                                |
 
 ### Oppsett steg for steg
 
@@ -134,6 +145,7 @@ Nå viser dashboardet hva strømmen faktisk koster deg — inkludert nettleie, a
 ### Spotpris (vanligste)
 
 Hvis du har vanlig spotprisavtale:
+
 - Strømstøtten (90% over 96,25 øre) trekkes automatisk fra
 - Sensoren "Strømstøtte" viser hvor mye du får i støtte
 
@@ -148,6 +160,7 @@ Har du valgt [Norgespris](https://www.regjeringen.no/no/tema/energi/strom/regjer
 ### Sammenligne avtalene
 
 Usikker på hva som lønner seg? Sensoren "Prisforskjell Norgespris" viser:
+
 - **Positiv verdi** = Du sparer med Norgespris
 - **Negativ verdi** = Spotpris er billigere akkurat nå
 
@@ -186,7 +199,7 @@ Se [SENSORS.md](docs/SENSORS.md) for komplett oversikt.
 Integrasjonen er laget for **privatboliger med eget strømabonnement**.
 
 **Ikke støttet (ennå):**
-- Fritidsbolig (har 1000 kWh grense for strømstøtte)
+
 - Næringsliv (andre stønadssatser)
 - Borettslag med fellesmåling
 
@@ -195,6 +208,7 @@ Integrasjonen er laget for **privatboliger med eget strømabonnement**.
 **Hvorfor viser sensoren "natt" midt på dagen?**
 
 "Natt"-tariffen gjelder ikke bare om natten. Den heter egentlig "natt/helg" og brukes på:
+
 - Netter (22:00-06:00) alle dager
 - Hele helger (lørdag og søndag, hele døgnet)
 - Helligdager (hele døgnet)
@@ -215,12 +229,12 @@ Nei. Strømstøtte utbetales kun når spotprisen er over 96,25 øre/kWh (2026). 
 
 ## Dokumentasjon
 
-| Dokument                                | Innhold                      |
-|-----------------------------------------|------------------------------|
-| [SENSORS.md](docs/SENSORS.md)           | Alle sensorer og attributter |
-| [beregninger.md](docs/beregninger.md)   | Formler og avgiftssoner      |
+| Dokument                                | Innhold                            |
+| --------------------------------------- | ---------------------------------- |
+| [SENSORS.md](docs/SENSORS.md)           | Alle sensorer og attributter       |
+| [beregninger.md](docs/beregninger.md)   | Formler og avgiftssoner            |
 | [CONTRIBUTING.md](docs/CONTRIBUTING.md) | Oppdatere priser / rapportere feil |
-| [TESTING.md](docs/TESTING.md)           | Validere beregninger         |
+| [TESTING.md](docs/TESTING.md)           | Validere beregninger               |
 
 ## Verifisering av releases
 

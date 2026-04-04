@@ -182,10 +182,6 @@ Prices are updated annually at the start of each year. Found an error or outdate
 
 This integration is designed for **residential homes with individual electricity subscriptions**.
 
-**Simplified model:**
-- Electricity subsidy is calculated on all consumption (in reality max 5000 kWh/month)
-- For most households this isn't an issue
-
 **Not supported (yet):**
 - Commercial use (different subsidy rates)
 - Housing cooperatives with shared metering

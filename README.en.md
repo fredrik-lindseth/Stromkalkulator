@@ -192,7 +192,7 @@ This integration is designed for **residential homes with individual electricity
 
 **Future ideas:**
 - Alert when capacity tier increases
-- Support for holiday homes and commercial use
+- Support for commercial use
 - Invoice import (PDF/CSV)
 
 ## Frequently asked questions

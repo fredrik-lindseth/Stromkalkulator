@@ -10,7 +10,7 @@
           "har_norgespris": "I have Norgespris"
         },
         "data_description": {
-          "boligtype": "Residence: Subsidy up to 5000 kWh/month, Norgespris up to 5000 kWh/month. Holiday home: No subsidy, Norgespris up to 1000 kWh/month. Holiday home (permanent residence): Same as residence (Regulation § 11). Source: lovdata.no/dokument/SF/forskrift/2025-09-08-1791",
+          "boligtype": "Residence: Subsidy up to 5000 kWh/month, Norgespris up to 5000 kWh/month. Holiday home: No subsidy, Norgespris up to 1000 kWh/month. Holiday home (permanent residence): Same as residence (Regulation § 11).",
           "har_norgespris": "Enable if you have opted for Norgespris from your grid company. Uses fixed price (40-50 øre/kWh) instead of spot price."
         }
       },
@@ -67,7 +67,7 @@
           "kapasitet_varsel_terskel": "Capacity warning threshold (kW)"
         },
         "data_description": {
-          "boligtype": "Residence: Subsidy up to 5000 kWh/month, Norgespris up to 5000 kWh/month. Holiday home: No subsidy, Norgespris up to 1000 kWh/month. Holiday home (permanent residence): Same as residence (Regulation § 11). Source: lovdata.no/dokument/SF/forskrift/2025-09-08-1791",
+          "boligtype": "Residence: Subsidy up to 5000 kWh/month, Norgespris up to 5000 kWh/month. Holiday home: No subsidy, Norgespris up to 1000 kWh/month. Holiday home (permanent residence): Same as residence (Regulation § 11).",
           "avgiftssone": "Set automatically from grid company. Override only if you know you belong to a different zone.",
           "har_norgespris": "Enable if you have opted for Norgespris from your grid company. Uses fixed price (40-50 øre/kWh) instead of spot price.",
           "kapasitet_varsel_terskel": "Warn when margin to next capacity tier is below this value. Default: 2.0 kW."

@@ -206,3 +206,80 @@ def test_reverse_energiledd_natt_eks_avgifter():
 
     faktura_eks_mva = BKK_ENERGILEDD_NATT_2026_ORE / (1 + MVA_SATS)
     assert eks_avgifter_ore == pytest.approx(faktura_eks_mva, abs=0.05)
+
+
+# --- End-to-end: MaanedligTotalSensor mot faktura ---
+
+
+def test_maanedlig_total_sensor_matcher_faktura(faktura_februar_2026):
+    """MaanedligTotalSensor med fakturadata skal gi korrekt nettleie-total.
+
+    Regresjonstest: energiledd_dag/natt fra dso.py inkluderer allerede
+    forbruksavgift og enova. Hvis sensoren legger til avgifter separat,
+    vil totalen bli ~170 kr for høy (dobbelttelling).
+    """
+    import sys
+    from unittest.mock import MagicMock
+
+    # Sett opp HA-mocks som test_monthly_sensors gjør
+    _sensor_mod = sys.modules["homeassistant.components.sensor"]
+    _sensor_mod.SensorDeviceClass = type("SensorDeviceClass", (), {
+        "MONETARY": "monetary",
+        "POWER": "power",
+        "ENERGY": "energy",
+    })
+    _sensor_mod.SensorEntity = type("SensorEntity", (), {})
+    _sensor_mod.SensorStateClass = type("SensorStateClass", (), {
+        "MEASUREMENT": "measurement",
+        "TOTAL": "total",
+        "TOTAL_INCREASING": "total_increasing",
+    })
+
+    _const_mod = sys.modules["homeassistant.const"]
+    _const_mod.EntityCategory = type("EntityCategory", (), {
+        "DIAGNOSTIC": "diagnostic",
+        "CONFIG": "config",
+    })
+
+    _entity_mod = sys.modules["homeassistant.helpers.entity"]
+    _entity_mod.EntityCategory = _const_mod.EntityCategory
+
+    _coord_mod = sys.modules["homeassistant.helpers.update_coordinator"]
+
+    class FakeCoordinatorEntity:
+        def __init__(self, coordinator):
+            self.coordinator = coordinator
+
+    _coord_mod.CoordinatorEntity = FakeCoordinatorEntity
+
+    from custom_components.stromkalkulator.dso import DSO_LIST
+    from custom_components.stromkalkulator.sensor import MaanedligTotalSensor
+
+    bkk = DSO_LIST["bkk"]
+    f = faktura_februar_2026
+
+    coord = MagicMock()
+    coord.data = {
+        "monthly_consumption_dag_kwh": f["forbruk_dag_kwh"],
+        "monthly_consumption_natt_kwh": f["forbruk_natt_kwh"],
+        "monthly_consumption_total_kwh": f["forbruk_total_kwh"],
+        "energiledd_dag": bkk["energiledd_dag"],
+        "energiledd_natt": bkk["energiledd_natt"],
+        "kapasitetsledd": f["forventet_kapasitet_kr"],
+        "stromstotte": 0.0,  # Norgespris-kunde, ingen strømstøtte
+    }
+
+    entry = MagicMock()
+    entry.entry_id = "test"
+    entry.data = {"tso": "bkk", "avgiftssone": "standard"}
+
+    sensor = MaanedligTotalSensor(coord, entry)
+
+    # Sensoren skal matche fakturaens nettleie-total (inkl. avgifter)
+    assert sensor.native_value == pytest.approx(
+        f["forventet_nettleie_kr"], rel=0.01
+    ), (
+        f"MaanedligTotalSensor={sensor.native_value}, "
+        f"faktura={f['forventet_nettleie_kr']}. "
+        f"Hvis sensoren er ~170 kr for høy, dobbelttelles avgifter."
+    )

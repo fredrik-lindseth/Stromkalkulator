@@ -129,9 +129,14 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         except (ValueError, TypeError):
             self.kapasitet_varsel_terskel = float(DEFAULT_KAPASITET_VARSEL_TERSKEL)
 
-        # Track max power for capacity calculation
-        # Format: {date_str: max_power_kw}
-        self._daily_max_power = {}
+        # Track max hourly average power for capacity calculation
+        # Format: {date_str: max_hourly_avg_kw}
+        # Nettselskapet bruker maks timesforbruk (kWh/time = snitt-kW per klokke-time),
+        # ikke instantan effekt. Vi akkumulerer energi per klokke-time og bruker den
+        # høyeste timen som dagens topp.
+        self._daily_max_power: dict[str, float] = {}
+        self._current_hour_energy: float = 0.0  # kWh akkumulert i inneværende klokke-time
+        self._current_hour: int = dt_util.now().hour  # 0-23
         self._current_month = dt_util.now().strftime("%Y-%m")
 
         # Track energy consumption for monthly utility meter
@@ -180,8 +185,17 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             # Archive Norgespris diff before reset
             self._previous_month_norgespris_diff = self._monthly_norgespris_diff
 
+            # Flush siste times akkumulator til daily_max_power før arkivering
+            if self._current_hour_energy > 0:
+                yesterday = (now.replace(hour=0, minute=0, second=0) - timedelta(seconds=1)).strftime("%Y-%m-%d")
+                old_max = self._daily_max_power.get(yesterday, 0)
+                if self._current_hour_energy > old_max:
+                    self._daily_max_power[yesterday] = round(self._current_hour_energy, 3)
+
             # Reset current month data
             self._daily_max_power = {}
+            self._current_hour_energy = 0.0
+            self._current_hour = now.hour
             self._monthly_consumption = {"dag": 0.0, "natt": 0.0}
             self._monthly_norgespris_diff = 0.0
             self._current_month = current_month_str
@@ -217,7 +231,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             consumption_updated = True
         self._last_update = now
 
-        # Update daily max
+        # Update daily max (basert på timessnitt, ikke instantan effekt)
         today_str = now.strftime("%Y-%m-%d")
 
         # Reset daily cost at date change
@@ -225,13 +239,28 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             self._daily_cost = 0.0
             self._current_date = today_str
 
-        old_max = self._daily_max_power.get(today_str, 0)
-        new_max = max(old_max, current_power_kw)
-        if new_max > old_max:
-            self._daily_max_power[today_str] = new_max
+        # Akkumuler energi i inneværende klokke-time
+        current_hour = now.hour
+        hourly_max_updated = False
+        if current_hour != self._current_hour:
+            # Timen har endret seg — den forrige timen er komplett.
+            # _current_hour_energy (kWh over 1 time) = gjennomsnittlig kW for den timen.
+            if self._current_hour_energy > 0:
+                prev_date = self._current_date if current_hour != 0 else (
+                    (now.replace(hour=0, minute=0, second=0) - timedelta(seconds=1)).strftime("%Y-%m-%d")
+                )
+                old_max = self._daily_max_power.get(prev_date, 0)
+                if self._current_hour_energy > old_max:
+                    self._daily_max_power[prev_date] = round(self._current_hour_energy, 3)
+                    hourly_max_updated = True
+            self._current_hour_energy = 0.0
+            self._current_hour = current_hour
+
+        # Legg til denne oppdateringens energi i timens akkumulator
+        self._current_hour_energy += energy_kwh
 
         # Save if anything changed
-        if new_max > old_max or consumption_updated:
+        if hourly_max_updated or consumption_updated:
             await self._save_stored_data()
 
         # Get top 3 days
@@ -364,7 +393,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         offentlige_avgifter = forbruksavgift_inkl_mva + enova_inkl_mva
 
         # Totalpris inkl. alle avgifter (for Energy Dashboard)
-        total_price_inkl_avgifter = total_price + offentlige_avgifter
+        # NB: energiledd fra dso.py inkluderer allerede forbruksavgift + enova,
+        # så total_price har avgiftene bakt inn. Ikke legg dem til på nytt.
+        total_price_inkl_avgifter = total_price
 
         # Kroner spart/tapt per kWh (sammenligning)
         # Positiv = du betaler mer enn alternativet
@@ -388,8 +419,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             self._monthly_norgespris_diff += diff_per_kwh * energy_kwh
 
         # Accumulate daily cost
+        # total_price inkluderer allerede energiledd (med avgifter) og strømstøtte-fradrag
         if energy_kwh > 0:
-            self._daily_cost += (total_price_inkl_avgifter - stromstotte) * energy_kwh
+            self._daily_cost += total_price * energy_kwh
 
         # Get electricity company price if configured
         # Caches last known price to survive brief API outages (price changes max once per hour)
@@ -581,6 +613,12 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
                 )
                 self._daily_cost = self._validate_float(data.get("daily_cost", 0.0))
                 self._current_date = data.get("current_date", dt_util.now().strftime("%Y-%m-%d"))
+                self._current_hour_energy = self._validate_float(
+                    data.get("current_hour_energy", 0.0)
+                )
+                stored_hour = data.get("current_hour")
+                if isinstance(stored_hour, int) and 0 <= stored_hour <= 23:
+                    self._current_hour = stored_hour
                 stored_month = data.get("current_month")
                 if stored_month is not None:
                     # Backward compat: old format stored month as integer
@@ -648,6 +686,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             "previous_month_norgespris_diff": self._previous_month_norgespris_diff,
             "daily_cost": self._daily_cost,
             "current_date": self._current_date,
+            "current_hour_energy": self._current_hour_energy,
+            "current_hour": self._current_hour,
         }
         try:
             await self._store.async_save(data)

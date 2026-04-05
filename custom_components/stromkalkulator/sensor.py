@@ -1414,7 +1414,12 @@ class MaanedligTotalSensor(MaanedligBaseSensor):
 
     @property
     def native_value(self) -> float | None:
-        """Calculate total monthly cost."""
+        """Calculate total monthly cost.
+
+        energiledd_dag/natt fra dso.py inkluderer allerede forbruksavgift og
+        Enova-avgift, så nettleie-beløpet er komplett. Avgifter legges IKKE
+        til separat — det ville dobbelttelle dem.
+        """
         if self.coordinator.data:
             dag_kwh = self.coordinator.data.get("monthly_consumption_dag_kwh", 0)
             natt_kwh = self.coordinator.data.get("monthly_consumption_natt_kwh", 0)
@@ -1424,24 +1429,17 @@ class MaanedligTotalSensor(MaanedligBaseSensor):
             kapasitet = self.coordinator.data.get("kapasitetsledd", 0)
             stromstotte = self.coordinator.data.get("stromstotte", 0)
 
-            month = dt_util.now().month
-            forbruksavgift = get_forbruksavgift(self._avgiftssone, month)
-            mva_sats = get_mva_sats(self._avgiftssone)
-
-            # Nettleie
+            # Nettleie (energiledd inkl. avgifter + kapasitetsledd)
             nettleie = (
                 (cast("float", dag_kwh) * cast("float", dag_pris))
                 + (cast("float", natt_kwh) * cast("float", natt_pris))
                 + cast("float", kapasitet)
             )
 
-            # Avgifter inkl. mva
-            avgifter = cast("float", total_kwh) * ((forbruksavgift + ENOVA_AVGIFT) * (1 + mva_sats))
-
             # Strømstøtte (fratrekk)
             stotte = cast("float", total_kwh) * cast("float", stromstotte)
 
-            return round(nettleie + avgifter - stotte, 2)
+            return round(nettleie - stotte, 2)
         return None
 
     @property
@@ -1456,18 +1454,12 @@ class MaanedligTotalSensor(MaanedligBaseSensor):
             kapasitet = self.coordinator.data.get("kapasitetsledd", 0)
             stromstotte = self.coordinator.data.get("stromstotte", 0)
 
-            month = dt_util.now().month
-            forbruksavgift = get_forbruksavgift(self._avgiftssone, month)
-            mva_sats = get_mva_sats(self._avgiftssone)
-
             nettleie = (dag_kwh * dag_pris) + (natt_kwh * natt_pris) + kapasitet
-            avgifter = total_kwh * ((forbruksavgift + ENOVA_AVGIFT) * (1 + mva_sats))
             stotte = total_kwh * stromstotte
-            total_kostnad = nettleie + avgifter - stotte
+            total_kostnad = nettleie - stotte
 
             return {
                 "nettleie_kr": round(nettleie, 2),
-                "avgifter_kr": round(avgifter, 2),
                 "stromstotte_kr": round(stotte, 2),
                 "forbruk_dag_kwh": round(dag_kwh, 1),
                 "forbruk_natt_kwh": round(natt_kwh, 1),
@@ -1581,14 +1573,10 @@ class EstimertMaanedskostnadSensor(MaanedligBaseSensor):
         kapasitet = self.coordinator.data.get("kapasitetsledd", 0)
         stromstotte = self.coordinator.data.get("stromstotte", 0)
 
-        month = now.month
-        forbruksavgift = get_forbruksavgift(self._avgiftssone, month)
-        mva_sats = get_mva_sats(self._avgiftssone)
-
+        # energiledd_dag/natt inkluderer allerede forbruksavgift + enova
         nettleie_variable = (dag_kwh * dag_pris) + (natt_kwh * natt_pris)
-        avgifter = total_kwh * ((forbruksavgift + ENOVA_AVGIFT) * (1 + mva_sats))
         stotte = total_kwh * stromstotte
-        variable_cost = nettleie_variable + avgifter - stotte
+        variable_cost = nettleie_variable - stotte
 
         if day_of_month == 0:
             return None

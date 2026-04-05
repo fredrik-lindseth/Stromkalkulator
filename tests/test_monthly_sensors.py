@@ -223,7 +223,11 @@ class TestMaanedligAvgifterSensor:
 
 
 class TestMaanedligTotalSensor:
-    """Beregner: nettleie + avgifter - strømstøtte."""
+    """Beregner: nettleie - strømstøtte.
+
+    energiledd_dag/natt fra dso.py inkluderer allerede forbruksavgift + enova,
+    så avgifter legges IKKE til separat (det ville vært dobbelttelling).
+    """
 
     @pytest.fixture
     def base_data(self):
@@ -238,8 +242,8 @@ class TestMaanedligTotalSensor:
         }
 
     @pytest.mark.parametrize("avgiftssone", ["standard", "nord_norge", "tiltakssone"])
-    def test_total_equals_nettleie_plus_avgifter_minus_stotte(self, base_data, avgiftssone):
-        """Verify decomposition: total = nettleie + avgifter - strømstøtte for all zones."""
+    def test_total_equals_nettleie_minus_stotte(self, base_data, avgiftssone):
+        """total = nettleie - strømstøtte (avgifter allerede i energiledd)."""
         base_data["stromstotte"] = 0.30
 
         coord = _make_coordinator(base_data)
@@ -247,14 +251,32 @@ class TestMaanedligTotalSensor:
 
         total_sensor = MaanedligTotalSensor(coord, entry)
         nettleie_sensor = MaanedligNettleieSensor(coord, entry)
-        avgifter_sensor = MaanedligAvgifterSensor(coord, entry)
 
         total_kwh = base_data["monthly_consumption_dag_kwh"] + base_data["monthly_consumption_natt_kwh"]
         stotte_kr = round(total_kwh * base_data["stromstotte"], 2)
 
-        # total ≈ nettleie + avgifter - strømstøtte
-        manual = round(nettleie_sensor.native_value + avgifter_sensor.native_value - stotte_kr, 2)
+        # total = nettleie - strømstøtte (IKKE + avgifter, de er allerede i energiledd)
+        manual = round(nettleie_sensor.native_value - stotte_kr, 2)
         assert abs(total_sensor.native_value - manual) < 0.02
+
+    def test_total_does_not_double_count_avgifter(self, base_data):
+        """Regresjonstest: total skal IKKE inkludere avgifter separat.
+
+        energiledd_dag=0.4613 = ren energiledd + forbruksavgift + enova.
+        Hvis avgifter legges til separat, blir totalen ~30 kr for høy (300 kWh).
+        """
+        coord = _make_coordinator(base_data)
+        entry = _make_entry("standard")
+
+        total_sensor = MaanedligTotalSensor(coord, entry)
+        nettleie_sensor = MaanedligNettleieSensor(coord, entry)
+        avgifter_sensor = MaanedligAvgifterSensor(coord, entry)
+
+        # Total skal være lik nettleie (ikke nettleie + avgifter)
+        assert total_sensor.native_value == nettleie_sensor.native_value
+        # Avgifter-sensoren er informasjonell — den viser hva som allerede er
+        # inkludert i nettleien, men legges ikke til i totalen
+        assert avgifter_sensor.native_value > 0
 
     def test_stromstotte_reduces_total(self, base_data):
         """When strømstøtte > 0, total should decrease."""
@@ -273,16 +295,17 @@ class TestMaanedligTotalSensor:
         assert sensor.native_value is None
 
     def test_extra_state_attributes(self, base_data):
-        """Attributes should contain nettleie, avgifter, strømstøtte breakdown."""
+        """Attributes should contain nettleie, strømstøtte breakdown."""
         base_data["stromstotte"] = 0.20
         sensor = MaanedligTotalSensor(
             _make_coordinator(base_data), _make_entry("standard")
         )
         attrs = sensor.extra_state_attributes
         assert "nettleie_kr" in attrs
-        assert "avgifter_kr" in attrs
         assert "stromstotte_kr" in attrs
         assert "forbruk_total_kwh" in attrs
+        # avgifter_kr skal IKKE være her — avgifter er allerede inkludert i nettleie
+        assert "avgifter_kr" not in attrs
 
     def test_vektet_snittpris_with_consumption(self, base_data):
         """vektet_snittpris_kr_per_kwh == native_value / total_kwh for known consumption."""
@@ -519,16 +542,12 @@ class TestEstimertMaanedskostnadSensor:
         assert value is not None
 
         # Calculate expected manually
-        from stromkalkulator.const import get_forbruksavgift, get_mva_sats
-
+        # energiledd_dag/natt inkluderer allerede avgifter — ikke legg dem til separat
         dag_kwh, natt_kwh = 150.0, 50.0
         total_kwh = dag_kwh + natt_kwh
-        forbruksavgift = get_forbruksavgift("standard", 4)
-        mva = get_mva_sats("standard")
         nettleie_variable = dag_kwh * 0.4613 + natt_kwh * 0.2329
-        avgifter = total_kwh * ((forbruksavgift + ENOVA_AVGIFT) * (1 + mva))
         stotte = total_kwh * 0.0
-        variable_cost = nettleie_variable + avgifter - stotte
+        variable_cost = nettleie_variable - stotte
         # 15 of 30 days -> project to 30 days
         estimated_variable = (variable_cost / 15) * 30
         expected = round(estimated_variable + 415, 0)

@@ -14,13 +14,17 @@ Nettleien består av to deler: kapasitetsledd og energiledd.
 
 ### Kapasitetsledd
 
-Kapasitetsleddet beregnes basert på de 3 høyeste strømforbrukstimene på 3 ulike dager.
+Kapasitetsleddet beregnes basert på de 3 høyeste timesforbrukene på 3 ulike dager.
+Nettselskapet bruker maks timesforbruk (kWh per klokke-time) fra Elhub, og vi
+gjør det samme: vi akkumulerer energi per klokke-time og bruker den høyeste
+fullførte timen som dagens topp.
 
 #### Beregningsmetode
-1. **Spor maksforbruk**: Hver dag lagres høyeste strømforbruk i kW
-2. **Velg topp 3**: De 3 dagene med høyest maksforbruk velges
-3. **Beregn gjennomsnitt**: Gjennomsnitt av de 3 dager
-4. **Finn trinn**: Basert på gjennomsnittet finnes riktig kapasitetstrinn
+1. **Akkumuler energi per klokke-time**: kWh forbrukt i hver time (f.eks. 12:00-13:00)
+2. **Spor timesmaks per dag**: Høyeste fullførte times-snitt (kWh/h = gjennomsnittlig kW) lagres per dag
+3. **Velg topp 3**: De 3 dagene med høyest timesmaks velges
+4. **Beregn gjennomsnitt**: Gjennomsnitt av de 3 dagene
+5. **Finn trinn**: Basert på gjennomsnittet finnes riktig kapasitetstrinn
 
 #### Eksempel (BKK)
 ```

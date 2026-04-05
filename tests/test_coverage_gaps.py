@@ -20,7 +20,7 @@ from __future__ import annotations
 import asyncio
 import importlib
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -608,8 +608,10 @@ class TestSaveOSErrorHandler:
         hass = _make_hass(power_w=5000, spot_price=1.20)
         coordinator = coord_module.NettleieCoordinator(hass, _make_entry())
 
-        # Should complete without crashing
-        result = _run_update(coord_module, coordinator)
+        # First update sets _last_update; second accumulates energy → triggers save
+        now = _real_datetime(2026, 4, 9, 12, 0)
+        _run_update(coord_module, coordinator, now=now)
+        result = _run_update(coord_module, coordinator, now=now + timedelta(minutes=1))
         assert result["spot_price"] == 1.20
         assert len(save_calls) > 0  # Save was attempted
 

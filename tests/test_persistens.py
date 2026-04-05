@@ -347,6 +347,8 @@ class TestSaveDataStructure:
             "previous_month_norgespris_diff",
             "daily_cost",
             "current_date",
+            "current_hour_energy",
+            "current_hour",
         }
         assert expected_keys == set(saved_data.keys())
 

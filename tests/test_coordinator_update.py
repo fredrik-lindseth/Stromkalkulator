@@ -351,7 +351,7 @@ class TestNorgespris:
         # = (norgespris + energiledd + fastledd) - (spot - støtte + energiledd + fastledd)
         # = norgespris - (spot - støtte)
         expected = round(result["norgespris"] - spot_etter, 4)
-        assert result["kroner_spart_per_kwh"] == expected
+        assert result["kroner_spart_per_kwh"] == pytest.approx(expected, abs=0.0002)
         # With spot=2.00 and norgespris=0.50, norgespris is cheaper → negative value
         assert result["kroner_spart_per_kwh"] < 0
 
@@ -660,37 +660,78 @@ class TestDailyCost:
 
 
 class TestDailyMaxPower:
-    """Daily max power tracking."""
+    """Daily max power tracking (hourly average, not instantaneous)."""
 
-    def test_updates_daily_max(self, coord_module):
+    def test_hourly_average_recorded_at_hour_boundary(self, coord_module):
+        """Max power uses hourly average kW, not instantaneous peak.
+
+        Simuler 10 kW i en hel time (60 oppdateringer à 1 min).
+        Ved timeskifte skal daily_max_power = 10 kWh/h = 10 kW snitt.
+        """
         hass = _make_hass(power_w=10000)  # 10 kW
         entry = _make_entry()
         coordinator = coord_module.NettleieCoordinator(hass, entry)
 
-        result = _run_update(coord_module, coordinator)
-        assert result["current_power_kw"] == 10.0
-        assert len(result["top_3_days"]) == 1
-        # The single day's max should be 10 kW
-        assert next(iter(result["top_3_days"].values())) == 10.0
+        # Simuler oppdateringer gjennom en time (12:00-12:59)
+        for minute in range(60):
+            now = _real_datetime(2026, 6, 15, 12, minute)
+            _run_update(coord_module, coordinator, now=now)
 
-    def test_keeps_highest_value_per_day(self, coord_module):
-        """Max power per day should only increase, never decrease."""
+        # Inneværende time er ikke fullført ennå — ingen daily max registrert
+        today = "2026-06-15"
+        assert coordinator._daily_max_power.get(today) is None
+
+        # Kryss timegrense → time 12 fullføres
+        now_next_hour = _real_datetime(2026, 6, 15, 13, 0)
+        result = _run_update(coord_module, coordinator, now=now_next_hour)
+
+        # 10 kW * (59/60) timer ≈ 9.83 kWh (≈ 9.83 kW snitt for timen)
+        assert coordinator._daily_max_power.get(today) is not None
+        assert coordinator._daily_max_power[today] > 9.0
+        assert len(result["top_3_days"]) == 1
+
+    def test_keeps_highest_hourly_average(self, coord_module):
+        """Høyeste times-snitt per dag skal beholdes."""
+        hass = _make_hass(power_w=6000)  # 6 kW
+        entry = _make_entry()
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+
+        today = "2026-06-15"
+
+        # Time 1: 6 kW i en time
+        for minute in range(60):
+            _run_update(coord_module, coordinator, now=_real_datetime(2026, 6, 15, 10, minute))
+
+        # Kryss timegrense for å fullføre time 10
+        _run_update(coord_module, coordinator, now=_real_datetime(2026, 6, 15, 11, 0))
+        max_after_hour1 = coordinator._daily_max_power.get(today, 0)
+        assert max_after_hour1 > 5.0  # ~6 kW snitt
+
+        # Time 2: 3 kW (lavere) - kjør gjennom en hel time
+        hass.states.get = MagicMock(
+            side_effect=lambda eid: _make_state(3000) if "power" in eid else _make_state(1.0)
+        )
+        for minute in range(60):
+            _run_update(coord_module, coordinator, now=_real_datetime(2026, 6, 15, 11, minute))
+        _run_update(coord_module, coordinator, now=_real_datetime(2026, 6, 15, 12, 0))
+
+        # Max skal fortsatt være ~6 kW fra time 1, ikke 3 kW fra time 2
+        assert coordinator._daily_max_power[today] == max_after_hour1
+
+    def test_no_daily_max_without_hour_boundary(self, coord_module):
+        """Uten timeskifte registreres ingen daily max (kun ufullstendig time)."""
         hass = _make_hass(power_w=10000)
         entry = _make_entry()
         coordinator = coord_module.NettleieCoordinator(hass, entry)
 
-        # First call: 10 kW
-        _run_update(coord_module, coordinator)
+        # Bare noen oppdateringer, ingen timeskifte
+        _run_update(coord_module, coordinator, now=_real_datetime(2026, 6, 15, 12, 0))
+        _run_update(coord_module, coordinator, now=_real_datetime(2026, 6, 15, 12, 1))
 
-        # Second call: lower power
-        hass.states.get = MagicMock(
-            side_effect=lambda eid: _make_state(3000) if "power" in eid else _make_state(1.0)
-        )
-        _run_update(coord_module, coordinator)
-
-        # Max should still be 10 kW (use the fixture's fixed date)
-        today = coord_module.dt_util.now.return_value.strftime("%Y-%m-%d")
-        assert coordinator._daily_max_power.get(today) == 10.0
+        # current_power_kw skal vises (instantan), men daily_max_power er tom
+        assert coordinator._daily_max_power.get("2026-06-15") is None
+        # Energien akkumuleres i _current_hour_energy
+        assert coordinator._current_hour_energy > 0
 
 
 class TestOffentligeAvgifter:
@@ -719,3 +760,90 @@ class TestOffentligeAvgifter:
         assert result["forbruksavgift_inkl_mva"] == 0.0
         # Enova with no mva
         assert result["enova_inkl_mva"] == round(0.01, 4)
+
+    def test_total_price_inkl_avgifter_equals_total_price(self, coord_module):
+        """total_price_inkl_avgifter == total_price (avgifter allerede i energiledd).
+
+        Regresjonstest: energiledd fra dso.py inkluderer forbruksavgift + enova.
+        Hvis total_price_inkl_avgifter legger til avgifter separat, er det dobbelttelling.
+        """
+        hass = _make_hass(power_w=5000, spot_price=1.20)
+        entry = _make_entry()
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+
+        result = _run_update(coord_module, coordinator)
+        assert result["total_price_inkl_avgifter"] == result["total_price"], (
+            f"total_price_inkl_avgifter={result['total_price_inkl_avgifter']} != "
+            f"total_price={result['total_price']}. "
+            "Avgifter er allerede i energiledd — ikke legg dem til på nytt."
+        )
+
+    def test_total_price_inkl_avgifter_norgespris(self, coord_module):
+        """Norgespris: total_price_inkl_avgifter == total_price."""
+        hass = _make_hass(power_w=5000, spot_price=1.20)
+        entry = _make_entry(har_norgespris=True)
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+
+        result = _run_update(coord_module, coordinator)
+        assert result["total_price_inkl_avgifter"] == result["total_price"]
+
+
+class TestDailyCostCorrectness:
+    """Verify daily_cost uses total_price without double-counting."""
+
+    def test_daily_cost_matches_total_price_times_energy(self, coord_module):
+        """daily_cost should equal total_price * energy_kwh (no double fees/støtte).
+
+        Regresjonstest: gammel kode brukte (total_price_inkl_avgifter - stromstotte)
+        som dobbelttelte avgifter og trakk fra strømstøtte to ganger.
+        """
+        now = _real_datetime(2026, 4, 9, 12, 0)  # Thursday noon
+        later = now + timedelta(minutes=1)
+
+        spot_price = 1.50
+        power_w = 6000  # 6 kW
+        hass = _make_hass(power_w=power_w, spot_price=spot_price)
+        entry = _make_entry()
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+
+        # First call: sets _last_update
+        _run_update(coord_module, coordinator, now=now)
+
+        # Second call: 1 minute later, accumulates cost
+        result = _run_update(coord_module, coordinator, now=later)
+
+        # energy_kwh = 6 kW * (1/60) hours = 0.1 kWh
+        energy_kwh = (power_w / 1000) * (1 / 60)
+        expected_cost = result["total_price"] * energy_kwh
+
+        # daily_cost_kr rundes til 2 desimaler, bruk abs-toleranse
+        assert result["daily_cost_kr"] == pytest.approx(expected_cost, abs=0.01), (
+            f"daily_cost={result['daily_cost_kr']}, expected={expected_cost}. "
+            "daily_cost skal bruke total_price direkte."
+        )
+
+    def test_daily_cost_norgespris_no_stromstotte_subtraction(self, coord_module):
+        """Norgespris-kunde: daily_cost skal IKKE trekke fra strømstøtte.
+
+        Regresjonstest: gammel kode trakk fra strømstøtte beregnet fra spot
+        for Norgespris-kunder som ikke mottar strømstøtte.
+        """
+        now = _real_datetime(2026, 4, 9, 12, 0)
+        later = now + timedelta(minutes=1)
+
+        spot_price = 2.00  # Over strømstøtte-terskel
+        hass = _make_hass(power_w=6000, spot_price=spot_price)
+        entry = _make_entry(har_norgespris=True)
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+
+        _run_update(coord_module, coordinator, now=now)
+        result = _run_update(coord_module, coordinator, now=later)
+
+        energy_kwh = (6000 / 1000) * (1 / 60)
+        expected_cost = result["total_price"] * energy_kwh
+
+        # daily_cost_kr rundes til 2 desimaler, bruk abs-toleranse
+        assert result["daily_cost_kr"] == pytest.approx(expected_cost, abs=0.01), (
+            "Norgespris daily_cost skal bruke total_price direkte, "
+            "ikke trekke fra strømstøtte de ikke mottar."
+        )

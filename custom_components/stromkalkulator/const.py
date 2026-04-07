@@ -21,6 +21,7 @@ CONF_ENERGILEDD_NATT: Final[str] = "energiledd_natt"
 CONF_AVGIFTSSONE: Final[str] = "avgiftssone"
 CONF_KAPASITET_VARSEL_TERSKEL: Final[str] = "kapasitet_varsel_terskel"
 CONF_BOLIGTYPE: Final[str] = "boligtype"
+CONF_EXPORT_POWER_SENSOR: Final[str] = "export_power_sensor"
 
 # Avgiftssoner for forbruksavgift og mva
 # - standard: Full forbruksavgift + mva (Sør-Norge: NO1, NO2, NO5)
@@ -295,6 +296,7 @@ DEVICE_NETTLEIE: Final[str] = "stromkalkulator"
 DEVICE_STROMSTOTTE: Final[str] = "stromstotte"
 DEVICE_NORGESPRIS: Final[str] = "norgespris"
 DEVICE_MAANEDLIG: Final[str] = "maanedlig"
+DEVICE_EKSPORT: Final[str] = "eksport"
 
 # Sensor types
 SENSOR_ENERGILEDD: Final[str] = "energiledd"

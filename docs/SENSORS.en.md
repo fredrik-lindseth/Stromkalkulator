@@ -80,7 +80,7 @@ Sensors for subsidy calculation and total price incl. all taxes.
 | Stromstotte                       | kr/kWh | Government subsidy per kWh when spot price exceeds 96.25 ore (you get 90% of the excess)       |
 | Spotpris etter stotte             | kr/kWh | What the spot price effectively costs you after the subsidy is deducted                        |
 | Total strompris etter stotte      | kr/kWh | Your actual total price right now: spot price + grid tariff - subsidy                          |
-| Totalpris inkl. avgifter          | kr/kWh | **Recommended for Energy Dashboard** — your total electricity price incl. grid, taxes & subsidy |
+| Totalpris inkl. avgifter          | kr/kWh | Can be used in Energy Dashboard — your total electricity price incl. grid, taxes & subsidy. Capacity charge is spread per kWh and [becomes inaccurate with varying consumption](../README.en.md#capacity-charge-in-energy-dashboard). |
 | Stromstotte aktiv na              | -      | "Yes" / "No" — whether the current spot price is high enough for you to receive subsidy         |
 | Stromstotte gjenstaaende kWh      | kWh    | How many kWh remain before you hit the subsidy cap (5000 kWh/month)                             |
 | *(optional)* Strompris per kWh (etter stotte)  | kr/kWh | Spot price + energy component - subsidy, without capacity fee — variable kWh cost after subsidy  |
@@ -207,6 +207,8 @@ Energy Dashboard needs two things: a **consumption meter** (kWh) and a **price s
 
 > **Note:** Stromkalkulator provides the price — the consumption meter (kWh) comes from your AMS reader (e.g. Tibber Pulse).
 
+> **Important:** The capacity charge (fixed kr/month) is spread as øre per kWh in this sensor. The Energy Dashboard multiplies price x kWh, so the capacity portion comes out wrong unless consumption matches the distribution key. For accurate monthly costs, use "Månedlig nettleie total". See [details](../README.en.md#capacity-charge-in-energy-dashboard).
+
 ### Comparing Norgespris
 
 Use **Prisforskjell (norgespris)** to see if Norgespris is worth it:
@@ -254,8 +256,9 @@ Use the "Previous month" sensors when the invoice arrives:
 
 ### Accuracy
 
-- **1-5% deviation from invoice is normal** (rounding, measurement error)
+- **1-5% deviation from invoice is normal** due to Riemann sum vs. the electricity meter's kWh counter
 - Electricity subsidy may deviate more (invoices use hourly prices)
 - Consumption is calculated from power, not from the electricity meter
+- **Capacity charge in Energy Dashboard can deviate much more** — the capacity charge is a fixed monthly amount, but is spread as kr/kWh in the total price sensor. See [explanation](../README.en.md#capacity-charge-in-energy-dashboard)
 
 See [beregninger.md](beregninger.md) for detailed formulas.

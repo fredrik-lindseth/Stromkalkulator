@@ -21,7 +21,7 @@ Integrasjonen gir deg sensorer som viser din **faktiske strømpris** - ikke bare
 
 - **Nettleie** - Energiledd (dag/natt) og kapasitetsledd fra ditt nettselskap
 - **Strømstøtte** - Automatisk beregning (90% over 96,25 øre/kWh)
-- **Totalpris** - Alt inkludert, klar for Energy Dashboard
+- **Totalpris** - Alt inkludert, kan brukes i Energy Dashboard (men se [begrensninger](#kapasitetsledd-i-energy-dashboard))
 - **Månedlig forbruk** - Sporer forbruk og kostnader per måned
 - **Faktura-sjekk** - Sammenlign med fakturaen når den kommer
 
@@ -136,6 +136,8 @@ Energy Dashboard trenger to ting: en **forbruksmåler** (kWh) og en **prissensor
 
 Nå viser dashboardet hva strømmen faktisk koster deg — inkludert nettleie, avgifter og strømstøtte.
 
+> **Viktig:** Totalpris-sensoren fordeler kapasitetsleddet (fast kr/mnd) som øre per kWh. Når Energy Dashboard ganger pris × kWh, blir kapasitetsleddet feil med mindre forbruket tilfeldigvis matcher fordelingsnøkkelen (dager_i_måned × 24 kWh). Ved høyere forbruk overestimerer dashboardet kapasitetsleddet — ved lavere forbruk underestimerer det. For nøyaktig månedskostnad, bruk «Månedlig nettleie total» som legger kapasitetsleddet til som fast beløp. Se [detaljer i FAQ](#kapasitetsledd-i-energy-dashboard).
+
 > **Har du ikke en kWh-sensor?** Du trenger noe som leser av strømmåleren din via HAN-porten, f.eks. en [Tibber Pulse](https://www.home-assistant.io/integrations/tibber/) eller en annen AMS-leser.
 
 **Tips:** Vil du se priskomponentene (spotpris, nettleie, avgifter) separat? Bruk et custom dashboard-kort som ApexCharts med sensorene fra denne integrasjonen.
@@ -225,7 +227,23 @@ Nei. Strømstøtte utbetales kun når spotprisen er over 96,25 øre/kWh (2026). 
 
 **Tallene stemmer ikke helt med fakturaen?**
 
-1-5% avvik er normalt. Integrasjonen beregner forbruk fra effektsensoren (Riemann-sum), mens fakturaen bruker strømmålerens kWh-teller. Se [beregninger.md](docs/beregninger.md#nøyaktighet) for detaljer.
+Noe avvik er normalt. Integrasjonen beregner forbruk fra effektsensoren (Riemann-sum), mens fakturaen bruker strømmålerens kWh-teller — det gir typisk 1-5% forskjell. Se [beregninger.md](docs/beregninger.md#nøyaktighet) for detaljer.
+
+<a id="kapasitetsledd-i-energy-dashboard"></a>
+**Hvorfor viser Energy Dashboard feil kapasitetsledd?**
+
+Totalpris-sensoren fordeler kapasitetsleddet (fast kr/mnd) over forventet kWh. Energy Dashboard ganger denne prisen med faktisk forbruk. Hvis du bruker mer eller mindre enn fordelingen forutsetter, blir kapasitetsleddet feil.
+
+Eksempel: Mars, kapasitetsledd 250 kr/mnd, fordelt på 744 kWh (31 dager × 24):
+- Du bruker 1553 kWh → Dashboard beregner (250/744) × 1553 = **522 kr** for kapasitetsledd
+- Fakturaen sier **250 kr**
+- Avvik: +272 kr bare på kapasitetsleddet
+
+Sensoren «Månedlig nettleie total» legger kapasitetsleddet til som et fast beløp og treffer fakturaen riktigere. Bruk den for å sammenligne med fakturaen — Energy Dashboard gir en grov oversikt, ikke et nøyaktig regnskap.
+
+**Hvorfor finnes ikke en bedre løsning?**
+
+Energy Dashboard krever en pris-per-kWh-sensor. Kapasitetsleddet er et fast månedlig beløp, ikke en kWh-pris. Det lar seg ikke fordele korrekt uten å vite totalforbruket for hele måneden — som vi ikke kjenner før måneden er over.
 
 ## Dokumentasjon
 

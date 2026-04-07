@@ -22,7 +22,7 @@ This integration provides sensors showing your **actual electricity cost** - not
 
 - **Grid tariffs** - Energy component (day/night rates) and capacity component from your grid company
 - **Electricity subsidy** - Automatic calculation (90% above 96.25 øre/kWh)
-- **Total price** - Everything included, ready for Energy Dashboard
+- **Total price** - Everything included, can be used in Energy Dashboard (but see [limitations](#capacity-charge-in-energy-dashboard))
 - **Monthly consumption** - Tracks usage and costs per month
 - **Invoice verification** - Compare with your invoice when it arrives
 
@@ -134,6 +134,8 @@ Energy Dashboard needs two things: a **consumption meter** (kWh) and a **price s
 
 The dashboard now shows what your electricity actually costs — including grid tariffs, taxes, and subsidies.
 
+> **Important:** The total price sensor spreads the capacity charge (a fixed monthly fee) as øre per kWh. When the Energy Dashboard multiplies price × kWh, the capacity charge portion comes out wrong unless your consumption happens to match the distribution key (days_in_month × 24 kWh). Higher consumption overestimates it, lower consumption underestimates it. For accurate monthly costs, use "Månedlig nettleie total" which adds the capacity charge as a flat amount. See [details in FAQ](#capacity-charge-in-energy-dashboard).
+
 > **Don't have a kWh sensor?** You need something that reads your AMS meter via the HAN port, e.g. a [Tibber Pulse](https://www.home-assistant.io/integrations/tibber/) or another AMS reader.
 
 **Tip:** Want to see price components (spot price, grid tariff, taxes) separately? Use a custom dashboard card like ApexCharts with the sensors from this integration.
@@ -212,7 +214,23 @@ No. The subsidy is only paid when the spot price exceeds 96.25 øre/kWh (2026). 
 
 **The numbers don't quite match my invoice?**
 
-1-5% deviation is normal. The integration calculates consumption from the power sensor (Riemann sum), while the invoice uses the electricity meter's kWh counter. See [beregninger.md](docs/beregninger.md#nøyaktighet) for details.
+Some deviation is normal. The integration calculates consumption from the power sensor (Riemann sum), while the invoice uses the electricity meter's kWh counter — that typically gives 1-5% difference. See [beregninger.md](docs/beregninger.md#accuracy) for details.
+
+<a id="capacity-charge-in-energy-dashboard"></a>
+**Why does the Energy Dashboard show wrong capacity charges?**
+
+The total price sensor spreads the capacity charge (fixed kr/month) across expected kWh. The Energy Dashboard multiplies this price by actual consumption. If you use more or less than the distribution assumes, the capacity charge comes out wrong.
+
+Example: March, capacity charge 250 kr/month, spread across 744 kWh (31 days x 24):
+- You use 1553 kWh → Dashboard computes (250/744) x 1553 = **522 kr** for capacity
+- Invoice says **250 kr**
+- Error: +272 kr on the capacity charge alone
+
+The "Månedlig nettleie total" sensor adds the capacity charge as a flat amount and matches the invoice more closely. Use that for invoice comparison — the Energy Dashboard gives a rough overview, not an exact accounting.
+
+**Why isn't there a better solution?**
+
+The Energy Dashboard requires a price-per-kWh sensor. The capacity charge is a fixed monthly amount, not a per-kWh price. It can't be distributed correctly without knowing total consumption for the entire month — which we don't know until the month is over.
 
 ## Documentation
 

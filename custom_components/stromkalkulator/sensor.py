@@ -1606,7 +1606,7 @@ class AkkumulertKostnadSensor(MaanedligBaseSensor):
     _attr_entity_registry_enabled_default: bool = False
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "kr"
-    _attr_state_class: SensorStateClass = SensorStateClass.TOTAL_INCREASING
+    _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
     _attr_icon: str = "mdi:cash-register"
     _attr_suggested_display_precision: int = 2
 
@@ -1614,7 +1614,7 @@ class AkkumulertKostnadSensor(MaanedligBaseSensor):
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "akkumulert_kostnad", "akkumulert_kostnad")
         self._attr_native_unit_of_measurement = "kr"
-        self._attr_state_class = SensorStateClass.TOTAL_INCREASING
+        self._attr_state_class = SensorStateClass.TOTAL
         self._attr_icon = "mdi:cash-register"
         self._attr_suggested_display_precision = 2
 

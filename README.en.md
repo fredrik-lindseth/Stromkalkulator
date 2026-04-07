@@ -25,6 +25,7 @@ This integration provides sensors showing your **actual electricity cost** - not
 - **Total price** - Everything included, can be used in Energy Dashboard (but see [limitations](#capacity-charge-in-energy-dashboard))
 - **Monthly consumption** - Tracks usage and costs per month
 - **Invoice verification** - Compare with your invoice when it arrives
+- **Solar export** - Track export and revenue for prosumers (disabled by default)
 
 ## Installation
 

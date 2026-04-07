@@ -80,7 +80,7 @@ Sensorer for strømstøtte-beregning og totalpris inkl. alle avgifter.
 | Strømstøtte                       | kr/kWh | Statens støtte per kWh når spotpris er over 96,25 øre (du får dekket 90% av overskytende)   |
 | Spotpris etter støtte             | kr/kWh | Hva spotprisen effektivt koster deg etter at strømstøtten er trukket fra                    |
 | Total strømpris etter støtte      | kr/kWh | Din reelle totalpris akkurat nå: spotpris + nettleie - strømstøtte                          |
-| Totalpris inkl. avgifter          | kr/kWh | **Anbefalt for Energy Dashboard** — din totale strømpris inkl. nettleie, avgifter og støtte |
+| Totalpris inkl. avgifter          | kr/kWh | Kan brukes i Energy Dashboard — din totale strømpris inkl. nettleie, avgifter og støtte. Kapasitetsleddet fordeles per kWh og [blir unøyaktig ved avvikende forbruk](../README.md#kapasitetsledd-i-energy-dashboard). |
 | Strømstøtte aktiv nå              | -      | "Ja" / "Nei" — om spotprisen akkurat nå er høy nok til at du får strømstøtte               |
 | Strømstøtte gjenstående kWh       | kWh    | Hvor mange kWh du har igjen før du treffer støtte-taket. Avhenger av boligtype: bolig=5000 kWh/mnd, fritidsbolig=0 (ingen rett) |
 | *(valgfri)* Strømpris per kWh (etter støtte)  | kr/kWh | Spotpris + energiledd - strømstøtte, uten kapasitetsledd — variabel kWh-kostnad etter støtte |
@@ -207,6 +207,8 @@ Energy Dashboard trenger to ting: en **forbruksmåler** (kWh) og en **prissensor
 
 > **Merk:** Strømkalkulator gir deg prisen — forbruksmåleren (kWh) kommer fra din AMS-leser (f.eks. Tibber Pulse).
 
+> **Viktig:** Kapasitetsleddet (fast kr/mnd) fordeles som øre per kWh i denne sensoren. Energy Dashboard ganger pris × kWh, så kapasitetsleddet blir feil med mindre forbruket matcher fordelingsnøkkelen. For nøyaktig månedskostnad, bruk «Månedlig nettleie total». Se [detaljer](../README.md#kapasitetsledd-i-energy-dashboard).
+
 ### Sammenligne Norgespris
 
 Bruk **Prisforskjell (norgespris)** for å se om Norgespris lønner seg:
@@ -254,8 +256,9 @@ Bruk "Forrige måned"-sensorene når fakturaen kommer:
 
 ### Nøyaktighet
 
-- **1-5% avvik fra faktura er normalt** (avrunding, målefeil)
+- **1-5% avvik fra faktura er normalt** på grunn av Riemann-sum vs. strømmålerens kWh-teller
 - Strømstøtte kan avvike mer (fakturaen bruker time-for-time priser)
 - Forbruk beregnes fra effekt, ikke fra strømmåler
+- **Kapasitetsledd i Energy Dashboard kan avvike mye mer** — kapasitetsleddet er et fast beløp per måned, men fordeles som kr/kWh i totalpris-sensoren. Se [forklaring](../README.md#kapasitetsledd-i-energy-dashboard)
 
 Se [beregninger.md](beregninger.md) for detaljerte formler.

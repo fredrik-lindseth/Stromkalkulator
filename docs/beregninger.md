@@ -249,8 +249,8 @@ strompris_per_kwh_etter_stotte = (spotpris - strømstøtte) + energiledd
 
 ### Inkludert alle avgifter (for Energy Dashboard)
 
-For å vise korrekt totalpris i Home Assistant Energy Dashboard, bruk sensoren
-`sensor.totalpris_inkl_avgifter`. Denne inkluderer alle komponenter:
+For å vise totalpris i Home Assistant Energy Dashboard, bruk sensoren
+`sensor.totalpris_inkl_avgifter`. Denne inkluderer alle komponenter, men kapasitetsleddet fordeles som kr/kWh og [blir unøyaktig ved avvikende forbruk](../README.md#kapasitetsledd-i-energy-dashboard):
 
 ```
 totalpris_inkl_avgifter = spotpris - strømstøtte + energiledd + kapasitetsledd_per_kwh 

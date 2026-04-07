@@ -212,6 +212,9 @@
       "dagskostnad": {
         "name": "Dagens kostnad"
       },
+      "akkumulert_kostnad": {
+        "name": "Akkumulert strømkostnad"
+      },
       "maanedlig_eksport_kwh": {
         "name": "Månedlig eksport"
       },

@@ -197,6 +197,12 @@
       "maanedlig_norgespris_diff": {
         "name": "Norgespris besparelse"
       },
+      "maanedlig_norgespris_kompensasjon": {
+        "name": "Norgespris-kompensasjon"
+      },
+      "forrige_maaned_norgespris_kompensasjon": {
+        "name": "Forrige måned Norgespris-kompensasjon"
+      },
       "estimert_maanedskostnad": {
         "name": "Estimert månedskostnad"
       },

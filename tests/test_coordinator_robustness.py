@@ -357,21 +357,21 @@ class TestValidateDailyMaxPower:
         return coord_module.NettleieCoordinator._validate_daily_max_power
 
     def test_valid_dict(self, validate):
-        data = {"2026-04-01": 10.0, "2026-04-02": 8.5}
+        data = {"2026-04-01": {"kw": 10.0, "hour": 8}, "2026-04-02": {"kw": 8.5, "hour": 16}}
         result = validate(data)
         assert result == data
 
     def test_dict_with_nan_values_skipped(self, validate):
-        data = {"2026-04-01": 10.0, "2026-04-02": float("nan")}
+        data = {"2026-04-01": {"kw": 10.0, "hour": 8}, "2026-04-02": float("nan")}
         result = validate(data)
         assert "2026-04-01" in result
         assert "2026-04-02" not in result
 
     def test_dict_with_inf_values_skipped(self, validate):
-        data = {"2026-04-01": float("inf"), "2026-04-02": 5.0}
+        data = {"2026-04-01": float("inf"), "2026-04-02": {"kw": 5.0, "hour": 10}}
         result = validate(data)
         assert "2026-04-01" not in result
-        assert result["2026-04-02"] == 5.0
+        assert result["2026-04-02"]["kw"] == 5.0
 
     def test_list_returns_empty(self, validate):
         """Wrong type (list) -> empty dict."""
@@ -381,9 +381,9 @@ class TestValidateDailyMaxPower:
         assert validate(None) == {}
 
     def test_string_values_converted(self, validate):
-        """String values that can be floats should be converted."""
+        """String values that can be floats should be migrated to dict format."""
         result = validate({"2026-04-01": "10.5"})
-        assert result["2026-04-01"] == 10.5
+        assert result["2026-04-01"] == {"kw": 10.5, "hour": None}
 
     def test_invalid_string_values_skipped(self, validate):
         result = validate({"2026-04-01": "not_a_number"})

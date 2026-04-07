@@ -64,15 +64,19 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
     energiledd_natt: float
     kapasitetstrinn: list[tuple[float, int]]
     kapasitet_varsel_terskel: float
-    _daily_max_power: dict[str, float]
+    _daily_max_power: dict[str, dict[str, Any]]
     _current_month: str  # "YYYY-MM" format for year-aware month tracking
     _monthly_consumption: dict[str, float]
     _last_update: datetime | None
     _previous_month_consumption: dict[str, float]
-    _previous_month_top_3: dict[str, float]
+    _previous_month_top_3: dict[str, dict[str, Any]]
     _previous_month_name: str | None
     _monthly_norgespris_diff: float
     _previous_month_norgespris_diff: float
+    _monthly_norgespris_compensation: float
+    _previous_month_norgespris_compensation: float
+    _previous_month_kapasitetsledd: int
+    _previous_month_kapasitetstrinn: str
     _store: Store[dict[str, Any]]
     _store_loaded: bool
 
@@ -130,11 +134,11 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             self.kapasitet_varsel_terskel = float(DEFAULT_KAPASITET_VARSEL_TERSKEL)
 
         # Track max hourly average power for capacity calculation
-        # Format: {date_str: max_hourly_avg_kw}
+        # Format: {date_str: {"kw": max_hourly_avg_kw, "hour": hour_of_day}}
         # Nettselskapet bruker maks timesforbruk (kWh/time = snitt-kW per klokke-time),
         # ikke instantan effekt. Vi akkumulerer energi per klokke-time og bruker den
         # høyeste timen som dagens topp.
-        self._daily_max_power: dict[str, float] = {}
+        self._daily_max_power: dict[str, dict[str, Any]] = {}
         self._current_hour_energy: float = 0.0  # kWh akkumulert i inneværende klokke-time
         self._current_hour: int = dt_util.now().hour  # 0-23
         self._current_month = dt_util.now().strftime("%Y-%m")
@@ -143,13 +147,17 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         # Format: {"dag": kwh, "natt": kwh}
         self._monthly_consumption = {"dag": 0.0, "natt": 0.0}
         self._monthly_norgespris_diff = 0.0
+        self._monthly_norgespris_compensation = 0.0
         self._last_update = None
 
         # Track previous month's data for invoice verification
         self._previous_month_consumption = {"dag": 0.0, "natt": 0.0}
-        self._previous_month_top_3 = {}
+        self._previous_month_top_3: dict[str, dict[str, Any]] = {}
         self._previous_month_name = None  # e.g., "januar 2026"
         self._previous_month_norgespris_diff = 0.0
+        self._previous_month_norgespris_compensation = 0.0
+        self._previous_month_kapasitetsledd = 0
+        self._previous_month_kapasitetstrinn = ""
 
         # Daily cost accumulation
         self._daily_cost = 0.0
@@ -177,20 +185,33 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         if current_month_str != self._current_month:
             # Save previous month's data before reset
             self._previous_month_consumption = self._monthly_consumption.copy()
-            self._previous_month_top_3 = self._get_top_3_days()
             # Format: "januar 2026" (Norwegian month name)
             prev_month_date = now.replace(day=1) - timedelta(days=1)
             self._previous_month_name = self._format_month_name(prev_month_date)
 
-            # Archive Norgespris diff before reset
+            # Archive Norgespris diff and compensation before reset
             self._previous_month_norgespris_diff = self._monthly_norgespris_diff
+            self._previous_month_norgespris_compensation = self._monthly_norgespris_compensation
 
             # Flush siste times akkumulator til daily_max_power før arkivering
             if self._current_hour_energy > 0:
                 yesterday = (now.replace(hour=0, minute=0, second=0) - timedelta(seconds=1)).strftime("%Y-%m-%d")
-                old_max = self._daily_max_power.get(yesterday, 0)
+                old_max = self._daily_max_power.get(yesterday, {}).get("kw", 0)
                 if self._current_hour_energy > old_max:
-                    self._daily_max_power[yesterday] = round(self._current_hour_energy, 3)
+                    self._daily_max_power[yesterday] = {"kw": round(self._current_hour_energy, 3), "hour": self._current_hour}
+
+            # Compute kapasitetsledd for previous month from top_3 before reset
+            prev_top_3 = self._get_top_3_days()
+            self._previous_month_top_3 = prev_top_3
+            if prev_top_3:
+                kw_values = [entry["kw"] for entry in prev_top_3.values()]
+                prev_avg = sum(kw_values) / len(kw_values)
+                prev_kap, _, prev_trinn = self._get_kapasitetsledd(prev_avg)
+                self._previous_month_kapasitetsledd = prev_kap
+                self._previous_month_kapasitetstrinn = prev_trinn
+            else:
+                self._previous_month_kapasitetsledd = 0
+                self._previous_month_kapasitetstrinn = ""
 
             # Reset current month data
             self._daily_max_power = {}
@@ -198,6 +219,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             self._current_hour = now.hour
             self._monthly_consumption = {"dag": 0.0, "natt": 0.0}
             self._monthly_norgespris_diff = 0.0
+            self._monthly_norgespris_compensation = 0.0
             self._current_month = current_month_str
             await self._save_stored_data()
 
@@ -242,6 +264,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         # Akkumuler energi i inneværende klokke-time
         current_hour = now.hour
         hourly_max_updated = False
+        previous_hour = self._current_hour
         if current_hour != self._current_hour:
             # Timen har endret seg — den forrige timen er komplett.
             # _current_hour_energy (kWh over 1 time) = gjennomsnittlig kW for den timen.
@@ -249,9 +272,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
                 prev_date = self._current_date if current_hour != 0 else (
                     (now.replace(hour=0, minute=0, second=0) - timedelta(seconds=1)).strftime("%Y-%m-%d")
                 )
-                old_max = self._daily_max_power.get(prev_date, 0)
+                old_max = self._daily_max_power.get(prev_date, {}).get("kw", 0)
                 if self._current_hour_energy > old_max:
-                    self._daily_max_power[prev_date] = round(self._current_hour_energy, 3)
+                    self._daily_max_power[prev_date] = {"kw": round(self._current_hour_energy, 3), "hour": previous_hour}
                     hourly_max_updated = True
             self._current_hour_energy = 0.0
             self._current_hour = current_hour
@@ -265,7 +288,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
 
         # Get top 3 days
         top_3 = self._get_top_3_days()
-        avg_power = sum(top_3.values()) / 3 if len(top_3) >= 3 else sum(top_3.values()) / max(len(top_3), 1)
+        top_3_kw_values = [entry["kw"] for entry in top_3.values()]
+        avg_power = sum(top_3_kw_values) / 3 if len(top_3) >= 3 else sum(top_3_kw_values) / max(len(top_3), 1)
 
         # Calculate capacity tier
         kapasitetsledd, trinn_nummer, trinn_intervall = self._get_kapasitetsledd(avg_power)
@@ -418,6 +442,11 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
                 diff_per_kwh = total_pris_norgespris - total_price
             self._monthly_norgespris_diff += diff_per_kwh * energy_kwh
 
+        # Accumulate Norgespris compensation: (norgespris_fast - spotpris) * kWh
+        # Beregnes alltid, uavhengig av har_norgespris (spot-kunder kan sammenligne)
+        if energy_kwh > 0:
+            self._monthly_norgespris_compensation += (norgespris - spot_price) * energy_kwh
+
         # Accumulate daily cost
         # total_price inkluderer allerede energiledd (med avgifter) og strømstøtte-fradrag
         if energy_kwh > 0:
@@ -493,11 +522,15 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             ),
             "previous_month_top_3": self._previous_month_top_3,
             "previous_month_avg_top_3_kw": round(
-                sum(self._previous_month_top_3.values()) / max(len(self._previous_month_top_3), 1), 2
+                sum(e["kw"] for e in self._previous_month_top_3.values())
+                / max(len(self._previous_month_top_3), 1),
+                2,
             )
             if self._previous_month_top_3
             else 0.0,
             "previous_month_name": self._previous_month_name,
+            "previous_month_kapasitetsledd": self._previous_month_kapasitetsledd,
+            "previous_month_kapasitetstrinn": self._previous_month_kapasitetstrinn,
             "stromstotte_tak_naadd": stromstotte_max == 0 or monthly_total_kwh >= stromstotte_max,
             "norgespris_over_tak": norgespris_over_tak,
             "boligtype": self.boligtype,
@@ -507,12 +540,14 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             "kapasitet_varsel": kapasitet_varsel,
             "monthly_norgespris_diff_kr": round(self._monthly_norgespris_diff, 2),
             "previous_month_norgespris_diff_kr": round(self._previous_month_norgespris_diff, 2),
+            "monthly_norgespris_compensation_kr": round(self._monthly_norgespris_compensation, 2),
+            "previous_month_norgespris_compensation_kr": round(self._previous_month_norgespris_compensation, 2),
             "daily_cost_kr": round(self._daily_cost, 2),
         }
 
-    def _get_top_3_days(self) -> dict[str, float]:
+    def _get_top_3_days(self) -> dict[str, dict[str, Any]]:
         """Get the top 3 days with highest power consumption."""
-        sorted_days = sorted(self._daily_max_power.items(), key=lambda x: x[1], reverse=True)
+        sorted_days = sorted(self._daily_max_power.items(), key=lambda x: x[1]["kw"], reverse=True)
         return dict(sorted_days[:3])
 
     def _get_kapasitetsledd(self, avg_power: float) -> tuple[int, int, str]:
@@ -611,6 +646,20 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
                 self._previous_month_norgespris_diff = self._validate_float(
                     data.get("previous_month_norgespris_diff", 0.0)
                 )
+                self._monthly_norgespris_compensation = self._validate_float(
+                    data.get("monthly_norgespris_compensation", 0.0)
+                )
+                self._previous_month_norgespris_compensation = self._validate_float(
+                    data.get("previous_month_norgespris_compensation", 0.0)
+                )
+                prev_kap = data.get("previous_month_kapasitetsledd", 0)
+                try:
+                    self._previous_month_kapasitetsledd = int(prev_kap)
+                except (ValueError, TypeError):
+                    self._previous_month_kapasitetsledd = 0
+                self._previous_month_kapasitetstrinn = str(
+                    data.get("previous_month_kapasitetstrinn", "")
+                )
                 self._daily_cost = self._validate_float(data.get("daily_cost", 0.0))
                 self._current_date = data.get("current_date", dt_util.now().strftime("%Y-%m-%d"))
                 self._current_hour_energy = self._validate_float(
@@ -643,18 +692,36 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         return val if math.isfinite(val) else 0.0
 
     @staticmethod
-    def _validate_daily_max_power(data: Any) -> dict[str, float]:
-        """Validate daily max power dict: all values must be finite floats."""
+    def _validate_daily_max_power(data: Any) -> dict[str, dict[str, Any]]:
+        """Validate daily max power dict, migrating old float format to new dict format."""
         if not isinstance(data, dict):
             return {}
-        result: dict[str, float] = {}
+        result: dict[str, dict[str, Any]] = {}
         for key, val in data.items():
-            try:
-                fval = float(val)
-            except (ValueError, TypeError):
-                continue
-            if math.isfinite(fval) and fval >= 0:
-                result[str(key)] = fval
+            if isinstance(val, dict):
+                # New format: {"kw": float, "hour": int|None}
+                try:
+                    fval = float(val.get("kw", 0))
+                except (ValueError, TypeError):
+                    continue
+                if math.isfinite(fval) and fval >= 0:
+                    hour = val.get("hour")
+                    if hour is not None:
+                        try:
+                            hour = int(hour)
+                            if not 0 <= hour <= 23:
+                                hour = None
+                        except (ValueError, TypeError):
+                            hour = None
+                    result[str(key)] = {"kw": fval, "hour": hour}
+            else:
+                # Old format: bare float — migrer til dict
+                try:
+                    fval = float(val)
+                except (ValueError, TypeError):
+                    continue
+                if math.isfinite(fval) and fval >= 0:
+                    result[str(key)] = {"kw": fval, "hour": None}
         return result
 
     @staticmethod
@@ -684,6 +751,10 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             "previous_month_name": self._previous_month_name,
             "monthly_norgespris_diff": self._monthly_norgespris_diff,
             "previous_month_norgespris_diff": self._previous_month_norgespris_diff,
+            "monthly_norgespris_compensation": self._monthly_norgespris_compensation,
+            "previous_month_norgespris_compensation": self._previous_month_norgespris_compensation,
+            "previous_month_kapasitetsledd": self._previous_month_kapasitetsledd,
+            "previous_month_kapasitetstrinn": self._previous_month_kapasitetstrinn,
             "daily_cost": self._daily_cost,
             "current_date": self._current_date,
             "current_hour_energy": self._current_hour_energy,

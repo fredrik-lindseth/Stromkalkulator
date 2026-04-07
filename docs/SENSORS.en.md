@@ -4,15 +4,16 @@ Complete overview of all sensors and devices in Stromkalkulator.
 
 ## Overview
 
-The integration creates **5 devices** with a total of **44 sensors**. Of these, **32 are active** by default — the rest are disabled and can be enabled as needed.
+The integration creates **6 devices** with a total of **51 sensors**. Of these, **34 are active** by default — the rest are disabled and can be enabled as needed.
 
 | Device             | Description                      | Active | Total |
 |--------------------|----------------------------------|--------|-------|
 | Grid tariff        | Energy component, capacity, taxes | 11    | 19    |
 | Electricity subsidy | Subsidy and total price          | 6     | 7     |
 | Norgespris         | Norgespris comparison            | 3     | 3     |
-| Monthly consumption | Consumption and costs this month | 7     | 10    |
-| Previous month     | Consumption and costs last month | 5     | 5     |
+| Monthly consumption | Consumption and costs this month | 8     | 11    |
+| Previous month     | Consumption and costs last month | 6     | 6     |
+| Export             | Solar export for prosumers       | 0     | 5     |
 
 ### Enabling more sensors
 
@@ -96,7 +97,6 @@ Comparison between your spot price contract and Norgespris (fixed 50 ore/kWh).
 | Total strompris (norgespris)        | kr/kWh | What you would pay per kWh with Norgespris: fixed 50 ore + grid tariff                          |
 | Prisforskjell (norgespris)          | kr/kWh | How much you save/lose per kWh compared to Norgespris (positive = you pay more)                  |
 | Norgespris aktiv na                 | -      | "Yes" / "No" — whether you have opted for Norgespris as your electricity contract               |
-| Maanedlig Norgespris-differanse     | kr     | Accumulated savings/loss in NOK this month compared to the alternative contract                   |
 
 **Price difference interpretation:**
 - **Positive value** = You pay more than Norgespris (Norgespris is cheaper)
@@ -125,6 +125,8 @@ Tracks consumption and costs for the current month. Resets automatically at mont
 | *(optional)* Maanedlig stromstotte     | kr   | Estimated subsidy earned this month (actual subsidy is calculated hourly)                              |
 | Maanedlig nettleie total  | kr   | The bottom line: grid tariff + taxes - subsidy — what you actually pay for the grid portion            |
 | Dagens kostnad            | kr   | What electricity has cost you today — accumulated cost since midnight                                  |
+| Maanedlig Norgespris-differanse | kr | Accumulated savings/loss in NOK this month compared to the alternative contract                   |
+| Norgespris-kompensasjon   | kr   | Accumulated compensation (norgespris - spot price) x kWh this month                                   |
 | Estimert maanedskostnad   | kr   | Forecast for what the whole month will cost, based on usage so far (gets more accurate each day)       |
 
 ### Attributes
@@ -167,6 +169,7 @@ Stores previous month's data for invoice verification. Updated automatically at 
 |---------------------------|------|----------------------------------------------------------------------------------------------|
 | Forrige maaned nettleie   | kr   | What you paid in grid tariff last month — use to compare with your invoice                    |
 | Forrige maaned toppforbruk | kW   | Average of the 3 highest power days last month — this determined your capacity tier           |
+| Forrige maaned Norgespris-kompensasjon | kr | Norgespris compensation for the previous month                                       |
 
 ### Attributes
 
@@ -184,6 +187,20 @@ All sensors have:
 - `topp_1_dato`, `topp_1_kw` - Highest day
 - `topp_2_dato`, `topp_2_kw` - Second highest day
 - `topp_3_dato`, `topp_3_kw` - Third highest day
+
+---
+
+## Device: Export (Eksport)
+
+Sensors for prosumers with solar panels. Tracks exported energy and revenue. All sensors are disabled by default and require configuring an export power sensor.
+
+| Sensor                           | Unit | Description                                                |
+|----------------------------------|------|------------------------------------------------------------|
+| *(optional)* Maanedlig eksport kWh        | kWh  | Exported energy this month                                 |
+| *(optional)* Maanedlig eksport inntekt    | kr   | Revenue from export (spot price x kWh)                      |
+| *(optional)* Maanedlig nettokostnad       | kr   | Consumption cost minus export revenue                      |
+| *(optional)* Forrige maaned eksport kWh   | kWh  | Exported energy last month                                 |
+| *(optional)* Forrige maaned eksport inntekt | kr | Export revenue last month                                  |
 
 ---
 

@@ -45,6 +45,9 @@ python -m pytest tests/ -v
 | `test_strompris_per_kwh.py`        | Strømpris per kWh uten kapasitetsledd        |
 | `test_margin_neste_trinn.py`       | Margin til neste kapasitetstrinn             |
 | `test_edge_cases.py`               | DST, helligdager 2031+, strømstøtte-presisjon |
+| `test_faktura_mars_2026.py`        | BKK-faktura mars 2026 (Norgespris)           |
+| `test_faktura_validering_nye_felter.py` | Nye validerings-felter (kompensasjon, klokkeslett, kapasitetsledd) |
+| `test_eksport.py`                  | Solcelle-eksport sensorer                    |
 
 ### Kjente begrensninger
 

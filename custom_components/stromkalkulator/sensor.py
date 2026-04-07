@@ -40,6 +40,7 @@ DEVICE_STROMSTOTTE = "stromstotte"
 DEVICE_NORGESPRIS = "norgespris"
 DEVICE_MAANEDLIG = "maanedlig"
 DEVICE_FORRIGE_MAANED = "forrige_maaned"
+DEVICE_EKSPORT = "eksport"
 
 # Silver requirement: limit parallel updates
 PARALLEL_UPDATES = 1
@@ -108,6 +109,12 @@ async def async_setup_entry(
         ForrigeMaanedNettleieSensor(coordinator, entry),
         ForrigeMaanedToppforbrukSensor(coordinator, entry),
         ForrigeMaanedNorgesprisKompensasjonSensor(coordinator, entry),
+        # Eksport (plusskunder med solceller)
+        MaanedligEksportKwhSensor(coordinator, entry),
+        MaanedligEksportInntektSensor(coordinator, entry),
+        MaanedligNettokostnadSensor(coordinator, entry),
+        ForrigeMaanedEksportKwhSensor(coordinator, entry),
+        ForrigeMaanedEksportInntektSensor(coordinator, entry),
     ]
 
     async_add_entities(entities)
@@ -147,6 +154,7 @@ class NettleieBaseSensor(CoordinatorEntity, SensorEntity):  # type: ignore[misc]
             DEVICE_NETTLEIE: f"Nettleie ({self._dso['name']})",
             DEVICE_STROMSTOTTE: "Strømstøtte",
             DEVICE_NORGESPRIS: "Norgespris",
+            DEVICE_EKSPORT: "Eksport (solceller)",
         }
         return {
             "identifiers": {(DOMAIN, f"{self._entry.entry_id}_{self._device_group}")},
@@ -1888,5 +1896,199 @@ class ForrigeMaanedNorgesprisKompensasjonSensor(ForrigeMaanedBaseSensor):
             return {
                 "maaned": self.coordinator.data.get("previous_month_name"),
                 "formel": "(norgespris - spotpris) * kWh, akkumulert per time",
+            }
+        return None
+
+
+# =============================================================================
+# EKSPORT (PLUSSKUNDER MED SOLCELLER) - Device: "Eksport"
+# =============================================================================
+
+
+class EksportBaseSensor(NettleieBaseSensor):
+    """Base class for export sensors."""
+
+    _device_group: str = DEVICE_EKSPORT
+    _attr_entity_registry_enabled_default: bool = False
+
+    @property
+    def device_info(self) -> dict[str, Any]:
+        """Return device info for Eksport device."""
+        return {
+            "identifiers": {(DOMAIN, f"{self._entry.entry_id}_{self._device_group}")},
+            "name": "Eksport (solceller)",
+            "manufacturer": "Fredrik Lindseth",
+            "model": "Strømkalkulator",
+        }
+
+    @property
+    def available(self) -> bool:
+        """Only available when export sensor is configured."""
+        if not self.coordinator.data:
+            return False
+        return self.coordinator.data.get("eksport_konfigurert", False)
+
+
+class MaanedligEksportKwhSensor(EksportBaseSensor):
+    """Sensor for monthly exported energy."""
+
+    _attr_device_class: SensorDeviceClass = SensorDeviceClass.ENERGY
+    _attr_native_unit_of_measurement: str = "kWh"
+    _attr_state_class: SensorStateClass = SensorStateClass.TOTAL_INCREASING
+    _attr_icon: str = "mdi:solar-power"
+    _attr_suggested_display_precision: int = 1
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "maanedlig_eksport_kwh", "maanedlig_eksport_kwh")
+        self._attr_native_unit_of_measurement = "kWh"
+        self._attr_state_class = SensorStateClass.TOTAL_INCREASING
+        self._attr_icon = "mdi:solar-power"
+        self._attr_suggested_display_precision = 1
+
+    @property
+    def native_value(self) -> float | None:
+        """Return monthly exported kWh."""
+        if self.coordinator.data:
+            return cast("float | None", self.coordinator.data.get("monthly_export_kwh"))
+        return None
+
+
+class MaanedligEksportInntektSensor(EksportBaseSensor):
+    """Sensor for monthly export revenue."""
+
+    _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
+    _attr_native_unit_of_measurement: str = "kr"
+    _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
+    _attr_icon: str = "mdi:cash-plus"
+    _attr_suggested_display_precision: int = 0
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "maanedlig_eksport_inntekt", "maanedlig_eksport_inntekt")
+        self._attr_native_unit_of_measurement = "kr"
+        self._attr_state_class = SensorStateClass.TOTAL
+        self._attr_icon = "mdi:cash-plus"
+        self._attr_suggested_display_precision = 0
+
+    @property
+    def native_value(self) -> float | None:
+        """Return monthly export revenue."""
+        if self.coordinator.data:
+            return cast("float | None", self.coordinator.data.get("monthly_export_revenue_kr"))
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return export details."""
+        if self.coordinator.data:
+            kwh = self.coordinator.data.get("monthly_export_kwh", 0)
+            revenue = self.coordinator.data.get("monthly_export_revenue_kr", 0)
+            return {
+                "eksport_kwh": kwh,
+                "snitt_spotpris": round(revenue / kwh, 4) if kwh > 0 else None,
+                "note": "Eksport betales til spotpris — ingen nettleie, avgifter eller stromstotte",
+            }
+        return None
+
+
+class MaanedligNettokostnadSensor(EksportBaseSensor):
+    """Sensor for net monthly cost (consumption - export revenue)."""
+
+    _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
+    _attr_native_unit_of_measurement: str = "kr"
+    _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
+    _attr_icon: str = "mdi:scale-balance"
+    _attr_suggested_display_precision: int = 0
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "maanedlig_nettokostnad", "maanedlig_nettokostnad")
+        self._attr_native_unit_of_measurement = "kr"
+        self._attr_state_class = SensorStateClass.TOTAL
+        self._attr_icon = "mdi:scale-balance"
+        self._attr_suggested_display_precision = 0
+
+    @property
+    def native_value(self) -> float | None:
+        """Return net cost (consumption cost minus export revenue)."""
+        if self.coordinator.data:
+            return cast("float | None", self.coordinator.data.get("monthly_net_cost_kr"))
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return cost breakdown."""
+        if self.coordinator.data:
+            return {
+                "forbrukskostnad_kr": self.coordinator.data.get("monthly_cost_kr"),
+                "eksportinntekt_kr": self.coordinator.data.get("monthly_export_revenue_kr"),
+            }
+        return None
+
+
+class ForrigeMaanedEksportKwhSensor(EksportBaseSensor):
+    """Sensor for previous month exported energy."""
+
+    _attr_device_class: SensorDeviceClass = SensorDeviceClass.ENERGY
+    _attr_native_unit_of_measurement: str = "kWh"
+    _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
+    _attr_icon: str = "mdi:solar-power"
+    _attr_suggested_display_precision: int = 1
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "forrige_maaned_eksport_kwh", "forrige_maaned_eksport_kwh")
+        self._attr_native_unit_of_measurement = "kWh"
+        self._attr_state_class = SensorStateClass.TOTAL
+        self._attr_icon = "mdi:solar-power"
+        self._attr_suggested_display_precision = 1
+
+    @property
+    def native_value(self) -> float | None:
+        """Return previous month exported kWh."""
+        if self.coordinator.data:
+            return cast("float | None", self.coordinator.data.get("previous_month_export_kwh"))
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return the month name."""
+        if self.coordinator.data:
+            return {"maaned": self.coordinator.data.get("previous_month_name")}
+        return None
+
+
+class ForrigeMaanedEksportInntektSensor(EksportBaseSensor):
+    """Sensor for previous month export revenue."""
+
+    _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
+    _attr_native_unit_of_measurement: str = "kr"
+    _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
+    _attr_icon: str = "mdi:cash-plus"
+    _attr_suggested_display_precision: int = 0
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "forrige_maaned_eksport_inntekt", "forrige_maaned_eksport_inntekt")
+        self._attr_native_unit_of_measurement = "kr"
+        self._attr_state_class = SensorStateClass.TOTAL
+        self._attr_icon = "mdi:cash-plus"
+        self._attr_suggested_display_precision = 0
+
+    @property
+    def native_value(self) -> float | None:
+        """Return previous month export revenue."""
+        if self.coordinator.data:
+            return cast("float | None", self.coordinator.data.get("previous_month_export_revenue_kr"))
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return the month name and net cost."""
+        if self.coordinator.data:
+            return {
+                "maaned": self.coordinator.data.get("previous_month_name"),
+                "nettokostnad_kr": self.coordinator.data.get("previous_month_net_cost_kr"),
             }
         return None

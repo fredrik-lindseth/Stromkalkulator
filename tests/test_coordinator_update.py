@@ -148,6 +148,11 @@ class TestBasicUpdate:
             "margin_neste_trinn_kw", "neste_trinn_pris", "kapasitet_varsel",
             "monthly_norgespris_diff_kr", "previous_month_norgespris_diff_kr",
             "daily_cost_kr",
+            "eksport_konfigurert",
+            "monthly_export_kwh", "monthly_export_revenue_kr",
+            "monthly_cost_kr", "monthly_net_cost_kr",
+            "previous_month_export_kwh", "previous_month_export_revenue_kr",
+            "previous_month_cost_kr", "previous_month_net_cost_kr",
         }
         assert expected_keys.issubset(set(result.keys())), (
             f"Mangler nøkler: {expected_keys - set(result.keys())}"

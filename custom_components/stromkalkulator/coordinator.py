@@ -20,6 +20,7 @@ from .const import (
     CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
     CONF_ENERGILEDD_DAG,
     CONF_ENERGILEDD_NATT,
+    CONF_EXPORT_POWER_SENSOR,
     CONF_HAR_NORGESPRIS,
     CONF_KAPASITET_VARSEL_TERSKEL,
     CONF_POWER_SENSOR,
@@ -55,6 +56,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
     power_sensor: str | None
     spot_price_sensor: str | None
     electricity_company_price_sensor: str | None
+    export_power_sensor: str | None
     dso: DSOEntry
     _dso_id: str
     avgiftssone: str
@@ -77,6 +79,12 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
     _previous_month_norgespris_compensation: float
     _previous_month_kapasitetsledd: int
     _previous_month_kapasitetstrinn: str
+    _monthly_export_kwh: float
+    _monthly_export_revenue: float
+    _monthly_cost: float
+    _previous_month_export_kwh: float
+    _previous_month_export_revenue: float
+    _previous_month_cost: float
     _store: Store[dict[str, Any]]
     _store_loaded: bool
 
@@ -92,6 +100,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         self.power_sensor = entry.data.get(CONF_POWER_SENSOR)
         self.spot_price_sensor = entry.data.get(CONF_SPOT_PRICE_SENSOR)
         self.electricity_company_price_sensor = entry.data.get(CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR)
+        self.export_power_sensor = entry.data.get(CONF_EXPORT_POWER_SENSOR)
 
         # Get DSO config
         dso_id = entry.data.get(CONF_DSO, "bkk")
@@ -159,6 +168,14 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         self._previous_month_kapasitetsledd = 0
         self._previous_month_kapasitetstrinn = ""
 
+        # Eksport-akkumulering (plusskunder med solceller)
+        self._monthly_export_kwh = 0.0
+        self._monthly_export_revenue = 0.0
+        self._monthly_cost = 0.0
+        self._previous_month_export_kwh = 0.0
+        self._previous_month_export_revenue = 0.0
+        self._previous_month_cost = 0.0
+
         # Daily cost accumulation
         self._daily_cost = 0.0
         self._current_date = dt_util.now().strftime("%Y-%m-%d")
@@ -193,6 +210,11 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             self._previous_month_norgespris_diff = self._monthly_norgespris_diff
             self._previous_month_norgespris_compensation = self._monthly_norgespris_compensation
 
+            # Archive export data before reset
+            self._previous_month_export_kwh = self._monthly_export_kwh
+            self._previous_month_export_revenue = self._monthly_export_revenue
+            self._previous_month_cost = self._monthly_cost
+
             # Flush siste times akkumulator til daily_max_power før arkivering
             if self._current_hour_energy > 0:
                 yesterday = (now.replace(hour=0, minute=0, second=0) - timedelta(seconds=1)).strftime("%Y-%m-%d")
@@ -220,6 +242,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             self._monthly_consumption = {"dag": 0.0, "natt": 0.0}
             self._monthly_norgespris_diff = 0.0
             self._monthly_norgespris_compensation = 0.0
+            self._monthly_export_kwh = 0.0
+            self._monthly_export_revenue = 0.0
+            self._monthly_cost = 0.0
             self._current_month = current_month_str
             await self._save_stored_data()
 
@@ -239,18 +264,46 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             current_power_w = 0
         current_power_kw = current_power_w / 1000
 
-        # Calculate energy consumption since last update (riemann sum)
-        energy_kwh = 0.0
-        consumption_updated = False
-        if self._last_update is not None and current_power_kw > 0:
+        # Beregn tid siden forrige oppdatering (felles for forbruk og eksport)
+        elapsed_hours = 0.0
+        if self._last_update is not None:
             elapsed_hours = (now - self._last_update).total_seconds() / 3600
             # Clamp to 0-6 minutes: reject negative (clock jump back) and spikes (clock jump forward)
             elapsed_hours = max(0.0, min(elapsed_hours, 0.1))
+
+        # Calculate energy consumption since last update (riemann sum)
+        energy_kwh = 0.0
+        consumption_updated = False
+        if elapsed_hours > 0 and current_power_kw > 0:
             energy_kwh = current_power_kw * elapsed_hours
             # Add to appropriate tariff bucket
             tariff = "dag" if self._is_day_rate(now) else "natt"
             self._monthly_consumption[tariff] += energy_kwh
             consumption_updated = True
+
+        # Eksport-akkumulering (plusskunder med solceller)
+        export_energy_kwh = 0.0
+        export_updated = False
+        if self.export_power_sensor and elapsed_hours > 0:
+            export_state = self.hass.states.get(self.export_power_sensor)
+            try:
+                export_power_w = (
+                    float(export_state.state)
+                    if export_state and export_state.state not in ("unknown", "unavailable")
+                    else 0
+                )
+            except (ValueError, TypeError):
+                export_power_w = 0
+            if not math.isfinite(export_power_w):
+                export_power_w = 0
+            if export_power_w > 500_000:
+                export_power_w = 0
+            export_power_kw = export_power_w / 1000
+            if export_power_kw > 0:
+                export_energy_kwh = export_power_kw * elapsed_hours
+                self._monthly_export_kwh += export_energy_kwh
+                export_updated = True
+
         self._last_update = now
 
         # Update daily max (basert på timessnitt, ikke instantan effekt)
@@ -283,7 +336,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         self._current_hour_energy += energy_kwh
 
         # Save if anything changed
-        if hourly_max_updated or consumption_updated:
+        if hourly_max_updated or consumption_updated or export_updated:
             await self._save_stored_data()
 
         # Get top 3 days
@@ -451,6 +504,11 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         # total_price inkluderer allerede energiledd (med avgifter) og strømstøtte-fradrag
         if energy_kwh > 0:
             self._daily_cost += total_price * energy_kwh
+            self._monthly_cost += total_price * energy_kwh
+
+        # Akkumuler eksportinntekt — kun spotpris, ingen avgifter
+        if export_energy_kwh > 0:
+            self._monthly_export_revenue += spot_price * export_energy_kwh
 
         # Get electricity company price if configured
         # Caches last known price to survive brief API outages (price changes max once per hour)
@@ -543,6 +601,18 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             "monthly_norgespris_compensation_kr": round(self._monthly_norgespris_compensation, 2),
             "previous_month_norgespris_compensation_kr": round(self._previous_month_norgespris_compensation, 2),
             "daily_cost_kr": round(self._daily_cost, 2),
+            # Eksport (plusskunder)
+            "eksport_konfigurert": self.export_power_sensor is not None,
+            "monthly_export_kwh": round(self._monthly_export_kwh, 3),
+            "monthly_export_revenue_kr": round(self._monthly_export_revenue, 2),
+            "monthly_cost_kr": round(self._monthly_cost, 2),
+            "monthly_net_cost_kr": round(self._monthly_cost - self._monthly_export_revenue, 2),
+            "previous_month_export_kwh": round(self._previous_month_export_kwh, 3),
+            "previous_month_export_revenue_kr": round(self._previous_month_export_revenue, 2),
+            "previous_month_cost_kr": round(self._previous_month_cost, 2),
+            "previous_month_net_cost_kr": round(
+                self._previous_month_cost - self._previous_month_export_revenue, 2
+            ),
         }
 
     def _get_top_3_days(self) -> dict[str, dict[str, Any]]:
@@ -661,6 +731,25 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
                     data.get("previous_month_kapasitetstrinn", "")
                 )
                 self._daily_cost = self._validate_float(data.get("daily_cost", 0.0))
+                # Eksport-data
+                self._monthly_export_kwh = self._validate_float(
+                    data.get("monthly_export_kwh", 0.0)
+                )
+                self._monthly_export_revenue = self._validate_float(
+                    data.get("monthly_export_revenue", 0.0)
+                )
+                self._monthly_cost = self._validate_float(
+                    data.get("monthly_cost", 0.0)
+                )
+                self._previous_month_export_kwh = self._validate_float(
+                    data.get("previous_month_export_kwh", 0.0)
+                )
+                self._previous_month_export_revenue = self._validate_float(
+                    data.get("previous_month_export_revenue", 0.0)
+                )
+                self._previous_month_cost = self._validate_float(
+                    data.get("previous_month_cost", 0.0)
+                )
                 self._current_date = data.get("current_date", dt_util.now().strftime("%Y-%m-%d"))
                 self._current_hour_energy = self._validate_float(
                     data.get("current_hour_energy", 0.0)
@@ -759,6 +848,12 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             "current_date": self._current_date,
             "current_hour_energy": self._current_hour_energy,
             "current_hour": self._current_hour,
+            "monthly_export_kwh": self._monthly_export_kwh,
+            "monthly_export_revenue": self._monthly_export_revenue,
+            "monthly_cost": self._monthly_cost,
+            "previous_month_export_kwh": self._previous_month_export_kwh,
+            "previous_month_export_revenue": self._previous_month_export_revenue,
+            "previous_month_cost": self._previous_month_cost,
         }
         try:
             await self._store.async_save(data)

@@ -20,12 +20,14 @@
         "data": {
           "power_sensor": "Power meter (W)",
           "spot_price_sensor": "Spot price sensor (NOK/kWh)",
-          "electricity_provider_price_sensor": "Electricity provider sensor (optional)"
+          "electricity_provider_price_sensor": "Electricity provider sensor (optional)",
+          "export_power_sensor": "Export power sensor (optional)"
         },
         "data_description": {
           "power_sensor": "Sensor showing current power consumption in watts, e.g. from HAN port, Tibber Pulse, or P1 meter.",
           "spot_price_sensor": "Sensor with current spot price in NOK/kWh. Usually 'Current price' from the Nord Pool integration.",
-          "electricity_provider_price_sensor": "Total price from your electricity provider (e.g. Tibber sensor). Used to show what you actually pay. Can be added later."
+          "electricity_provider_price_sensor": "Total price from your electricity provider (e.g. Tibber sensor). Used to show what you actually pay. Can be added later.",
+          "export_power_sensor": "Sensor showing exported power in watts (solar panels/prosumer). Used to calculate revenue from electricity sales."
         }
       },
       "pricing": {
@@ -62,6 +64,7 @@
           "power_sensor": "Power meter (W)",
           "spot_price_sensor": "Spot price sensor (NOK/kWh)",
           "electricity_provider_price_sensor": "Electricity provider sensor (optional)",
+          "export_power_sensor": "Export power sensor (optional)",
           "energiledd_dag": "Energy tariff day (NOK/kWh)",
           "energiledd_natt": "Energy tariff night/weekend (NOK/kWh)",
           "kapasitet_varsel_terskel": "Capacity warning threshold (kW)"
@@ -120,7 +123,12 @@
       "maanedlig_norgespris_kompensasjon": { "name": "Norgespris compensation" },
       "forrige_maaned_norgespris_kompensasjon": { "name": "Last month Norgespris compensation" },
       "estimert_maanedskostnad": { "name": "Estimated monthly cost" },
-      "dagskostnad": { "name": "Today's cost" }
+      "dagskostnad": { "name": "Today's cost" },
+      "maanedlig_eksport_kwh": { "name": "Monthly export" },
+      "maanedlig_eksport_inntekt": { "name": "Monthly export revenue" },
+      "maanedlig_nettokostnad": { "name": "Monthly net cost" },
+      "forrige_maaned_eksport_kwh": { "name": "Last month export" },
+      "forrige_maaned_eksport_inntekt": { "name": "Last month export revenue" }
     }
   },
   "issues": {

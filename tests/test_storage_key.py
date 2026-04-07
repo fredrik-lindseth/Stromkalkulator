@@ -152,8 +152,8 @@ def test_migration_from_dso_storage(mock_hass):
     coordinator = coord.NettleieCoordinator(mock_hass, entry)
     asyncio.run(coordinator._load_stored_data())
 
-    # Should have loaded data from DSO-based fallback
-    assert coordinator._daily_max_power == {now.strftime("%Y-%m-01"): 5.5}
+    # Should have loaded data from DSO-based fallback (migrated from float to dict)
+    assert coordinator._daily_max_power == {now.strftime("%Y-%m-01"): {"kw": 5.5, "hour": None}}
     assert coordinator._monthly_consumption == {"dag": 100.0, "natt": 50.0}
 
     # Should have saved to new entry_id-based store
@@ -223,9 +223,9 @@ def test_two_instances_same_dso_migration_no_data_sharing(mock_hass):
     coord1 = coord.NettleieCoordinator(mock_hass, entry1)
     asyncio.run(coord1._load_stored_data())
     assert coord1._daily_max_power == {
-        now.strftime("%Y-%m-01"): 5.5,
-        now.strftime("%Y-%m-02"): 7.2,
-        now.strftime("%Y-%m-03"): 6.1,
+        now.strftime("%Y-%m-01"): {"kw": 5.5, "hour": None},
+        now.strftime("%Y-%m-02"): {"kw": 7.2, "hour": None},
+        now.strftime("%Y-%m-03"): {"kw": 6.1, "hour": None},
     }
 
     # Second instance must NOT get the same data (old store was cleaned up)

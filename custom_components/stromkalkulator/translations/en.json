@@ -117,6 +117,8 @@
       "kapasitet_varsel": { "name": "Capacity warning" },
       "stromstotte_gjenstaaende": { "name": "Electricity subsidy remaining" },
       "maanedlig_norgespris_diff": { "name": "Norgespris savings" },
+      "maanedlig_norgespris_kompensasjon": { "name": "Norgespris compensation" },
+      "forrige_maaned_norgespris_kompensasjon": { "name": "Last month Norgespris compensation" },
       "estimert_maanedskostnad": { "name": "Estimated monthly cost" },
       "dagskostnad": { "name": "Today's cost" }
     }

@@ -352,14 +352,9 @@ class TestForrigeMaanedNettleieSensor:
             "previous_month_consumption_natt_kwh": 200.0,
             "energiledd_dag": 0.4613,
             "energiledd_natt": 0.2329,
-            "previous_month_top_3": {
-                "2026-03-01": 12.0,
-                "2026-03-10": 10.0,
-                "2026-03-20": 8.0,
-            },
+            "previous_month_kapasitetsledd": 415,
         }
         sensor = ForrigeMaanedNettleieSensor(_make_coordinator(data), _make_entry())
-        # avg = (12+10+8)/3 = 10.0 => trinn (10, 415)
         expected = round(300.0 * 0.4613 + 200.0 * 0.2329 + 415, 2)
         assert sensor.native_value == expected
 
@@ -370,7 +365,7 @@ class TestForrigeMaanedNettleieSensor:
             "previous_month_consumption_natt_kwh": 200.0,
             "energiledd_dag": 0.4613,
             "energiledd_natt": 0.2329,
-            "previous_month_top_3": {},
+            "previous_month_kapasitetsledd": 0,
         }
         sensor = ForrigeMaanedNettleieSensor(_make_coordinator(data), _make_entry())
         expected = round(300.0 * 0.4613 + 200.0 * 0.2329, 2)
@@ -383,14 +378,9 @@ class TestForrigeMaanedNettleieSensor:
             "previous_month_consumption_natt_kwh": 300.0,
             "energiledd_dag": 0.4613,
             "energiledd_natt": 0.2329,
-            "previous_month_top_3": {
-                "2026-03-01": 120.0,
-                "2026-03-10": 130.0,
-                "2026-03-20": 150.0,
-            },
+            "previous_month_kapasitetsledd": 6900,
         }
         sensor = ForrigeMaanedNettleieSensor(_make_coordinator(data), _make_entry())
-        # avg = (120+130+150)/3 ≈ 133.3 => exceeds 100 threshold => 6900
         expected = round(500.0 * 0.4613 + 300.0 * 0.2329 + 6900, 2)
         assert sensor.native_value == expected
 
@@ -401,14 +391,9 @@ class TestForrigeMaanedNettleieSensor:
             "previous_month_consumption_natt_kwh": 30.0,
             "energiledd_dag": 0.4613,
             "energiledd_natt": 0.2329,
-            "previous_month_top_3": {
-                "2026-03-01": 1.5,
-                "2026-03-10": 1.8,
-                "2026-03-20": 1.2,
-            },
+            "previous_month_kapasitetsledd": 155,
         }
         sensor = ForrigeMaanedNettleieSensor(_make_coordinator(data), _make_entry())
-        # avg = (1.5+1.8+1.2)/3 = 1.5 => <= 2 threshold => 155
         expected = round(50.0 * 0.4613 + 30.0 * 0.2329 + 155, 2)
         assert sensor.native_value == expected
 
@@ -429,14 +414,13 @@ class TestForrigeMaanedNettleieSensor:
         ],
     )
     def test_kapasitetsledd_for_avg_tiers(self, avg_power, expected_kapasitet):
-        """Verify _get_kapasitetsledd_for_avg selects correct tier."""
-        # Use a single entry in top_3 so avg = that value
+        """Sensor uses pre-computed kapasitetsledd from coordinator data."""
         data = {
             "previous_month_consumption_dag_kwh": 0.0,
             "previous_month_consumption_natt_kwh": 0.0,
             "energiledd_dag": 0.0,
             "energiledd_natt": 0.0,
-            "previous_month_top_3": {"2026-03-01": avg_power},
+            "previous_month_kapasitetsledd": expected_kapasitet,
         }
         sensor = ForrigeMaanedNettleieSensor(_make_coordinator(data), _make_entry())
         assert sensor.native_value == float(expected_kapasitet)

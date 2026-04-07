@@ -34,11 +34,11 @@ Forrige måneds data bevares komplett: forbruk splittet på dag/natt, topp 3 eff
 
 Strømkalkulator skiller tydelig mellom to ting:
 
-**Marginalkostnad** — hva koster én ekstra kWh akkurat nå? Totalpris-sensoren svarer på dette, inkludert en andel av kapasitetsleddet fordelt per kWh. Nyttig for sanntidsbeslutninger og Energy Dashboard, men summen over en måned treffer ikke fakturaen fordi kapasitetsledd er et fast beløp som ikke skalerer med forbruk.
+**Marginalkostnad** - hva koster én ekstra kWh akkurat nå? Totalpris-sensoren svarer på dette, inkludert en andel av kapasitetsleddet fordelt per kWh. Nyttig for sanntidsbeslutninger: «skal jeg lade elbilen nå eller vente?»
 
-**Faktisk månedskostnad** — hva kommer fakturaen til å vise? Månedlig total-sensoren svarer på dette, med kapasitetsledd som flat sum. Treffer fakturaen innenfor noen få kroner.
+**Faktisk månedskostnad** - hva kommer fakturaen til å vise? Akkumulert strømkostnad-sensoren svarer på dette. Strømpris og energiledd akkumuleres per kWh, mens kapasitetsleddet tikker lineært over tid uavhengig av forbruk. Månedstotalen treffer fakturaen uavhengig av hvor mye strøm du bruker. Sensoren kan brukes direkte i Energy Dashboard via «Use an entity tracking total costs», slik at dashboardet viser korrekte kroner. Månedlig nettleie total gir samme svar som en flat sum for faktura-verifisering.
 
-Begge er riktige svar på forskjellige spørsmål. Strømkalkulator kommuniserer tydelig hvilken sensor som svarer på hva.
+Begge er riktige svar på forskjellige spørsmål. Strømkalkulator tilbyr begge, og dokumenterer hvilken som passer til hva.
 
 ## Norgespris-sammenligning
 

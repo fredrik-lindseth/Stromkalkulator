@@ -48,6 +48,7 @@ python -m pytest tests/ -v
 | `test_faktura_mars_2026.py`        | BKK-faktura mars 2026 (Norgespris)           |
 | `test_faktura_validering_nye_felter.py` | Nye validerings-felter (kompensasjon, klokkeslett, kapasitetsledd) |
 | `test_eksport.py`                  | Solcelle-eksport sensorer                    |
+| `test_akkumulert_kostnad.py`      | Akkumulert kostnad (stat_cost) for Energy Dashboard |
 
 ### Kjente begrensninger
 

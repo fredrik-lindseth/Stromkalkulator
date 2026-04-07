@@ -458,9 +458,9 @@ class TestSensorClass:
         s = self._make_sensor()
         assert s._attr_entity_registry_enabled_default is False
 
-    def test_state_class_total_increasing(self):
+    def test_state_class_total(self):
         s = self._make_sensor()
-        assert s._attr_state_class == "total_increasing"
+        assert s._attr_state_class == "total"
 
     def test_none_when_no_data(self):
         s = self._make_sensor()

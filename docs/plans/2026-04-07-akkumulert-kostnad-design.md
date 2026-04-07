@@ -33,7 +33,7 @@ Kapasitetsledd akkumuleres lineært gjennom hele måneden, uavhengig av forbruk 
 
 - Navn: `Akkumulert strømkostnad`
 - Device group: `DEVICE_MAANEDLIG`
-- State class: `TOTAL_INCREASING`
+- State class: `TOTAL` (HA tillater ikke TOTAL_INCREASING med MONETARY)
 - Device class: `MONETARY`
 - Enhet: `kr`
 - Enabled by default: Nei (proffløsning for de som vil ha korrekt Energy Dashboard)

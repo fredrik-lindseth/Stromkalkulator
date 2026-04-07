@@ -5,9 +5,12 @@ Dette er anonymiserte fakturaer fra BKK (Bergen) brukt for å validere integrasj
 ## Fakturaer
 
 ### 2026 (Norgespris, 2026-satser)
+
+- [Mars 2026](BKK_Faktura_mars_2026.md) — verifiseringsrapport med full gjennomgang
 - [Februar 2026](BKK_Faktura_februar_2026.md) — verifiseringsrapport med full gjennomgang
 
 ### 2025 (spotpris + stromstotte, 2025-satser)
+
 - [Oktober 2025](BKK_Faktura_oktober_2025.md)
 - [November 2025](BKK_Faktura_november_2025.md)
 - [Desember 2025](BKK_Faktura_desember_2025.md)
@@ -15,8 +18,9 @@ Dette er anonymiserte fakturaer fra BKK (Bergen) brukt for å validere integrasj
 ## Sammendrag
 
 ### Oktober 2025
+
 | Linje                | Forbruk      | Pris           | Sum           |
-|----------------------|--------------|----------------|---------------|
+| -------------------- | ------------ | -------------- | ------------- |
 | Energiledd dag       | 707.09 kWh   | 35.963 øre/kWh | 254.29 kr     |
 | Energiledd natt/helg | 536.117 kWh  | 23.738 øre/kWh | 127.26 kr     |
 | Midlert. strømstønad | 115.661 kWh  | -6.188 øre/kWh | -7.16 kr      |
@@ -26,8 +30,9 @@ Dette er anonymiserte fakturaer fra BKK (Bergen) brukt for å validere integrasj
 | **Sum**              |              |                | **999.65 kr** |
 
 ### November 2025 (Faktura november_2025)
+
 | Linje                | Forbruk      | Pris            | Sum           |
-|----------------------|--------------|-----------------|---------------|
+| -------------------- | ------------ | --------------- | ------------- |
 | Energiledd dag       | 709.157 kWh  | 35.963 øre/kWh  | 255.03 kr     |
 | Energiledd natt/helg | 765.349 kWh  | 23.738 øre/kWh  | 181.68 kr     |
 | Midlert. strømstønad | 933.128 kWh  | -43.381 øre/kWh | -404.80 kr    |
@@ -37,8 +42,9 @@ Dette er anonymiserte fakturaer fra BKK (Bergen) brukt for å validere integrasj
 | **Sum**              |              |                 | **696.28 kr** |
 
 ### Desember 2025 (Faktura desember_2025)
+
 | Linje                | Forbruk      | Pris            | Sum            |
-|----------------------|--------------|-----------------|----------------|
+| -------------------- | ------------ | --------------- | -------------- |
 | Energiledd dag       | 667.422 kWh  | 35.963 øre/kWh  | 240.03 kr      |
 | Energiledd natt/helg | 887.299 kWh  | 23.738 øre/kWh  | 210.63 kr      |
 | Midlert. strømstønad | 1107.173 kWh | -11.054 øre/kWh | -122.39 kr     |
@@ -50,6 +56,7 @@ Dette er anonymiserte fakturaer fra BKK (Bergen) brukt for å validere integrasj
 ## Viktige observasjoner
 
 ### Priser fra fakturaen (2025)
+
 - **Energiledd dag**: 35.963 øre/kWh (eks. avgifter)
 - **Energiledd natt/helg**: 23.738 øre/kWh (eks. avgifter)
 - **Forbruksavgift**: 15.662 øre/kWh (2025 vintersats for Sør-Norge)
@@ -57,7 +64,9 @@ Dette er anonymiserte fakturaer fra BKK (Bergen) brukt for å validere integrasj
 - **Kapasitet 5-10 kW**: 415 kr/mnd
 
 ### Strømstøtte
+
 Strømstønaden beregnes for timer hvor spotpris er over terskel:
+
 - **Terskel 2025**: 70 øre/kWh (91.25 øre inkl. mva)
 - **Dekningsgrad**: 90%
 - kWh i kolonnen viser forbruk i timer OVER terskelen
@@ -72,7 +81,7 @@ For å sammenligne med fakturaen trenger du å akkumulere kWh per kategori per m
 utility_meter:
   # Energiledd dag (kWh forbrukt på dagtid)
   energiledd_dag_maaned:
-    source: sensor.strom_forbruk_kwh  # Din kWh-sensor
+    source: sensor.strom_forbruk_kwh # Din kWh-sensor
     cycle: monthly
     tariffs:
       - dag
@@ -122,7 +131,7 @@ automation:
 Etter oppdatering har du disse sensorene for fakturasammenligning:
 
 | Sensor                                     | Beskrivelse               | Enhet   |
-|--------------------------------------------|---------------------------|---------|
+| ------------------------------------------ | ------------------------- | ------- |
 | `sensor.stromkalkulator_energiledd_dag`    | Energiledd dag-sats       | NOK/kWh |
 | `sensor.stromkalkulator_energiledd_natt`   | Energiledd natt-sats      | NOK/kWh |
 | `sensor.stromkalkulator_forbruksavgift`    | Forbruksavgift            | NOK/kWh |
@@ -134,6 +143,7 @@ Etter oppdatering har du disse sensorene for fakturasammenligning:
 ### Attributter for fakturasammenligning
 
 Hver sensor har attributter som viser pris eks. mva for enklere sammenligning med fakturaen:
+
 - `eks_mva` / `eks_avgifter_mva`: Pris uten mva/avgifter
 - `inkl_mva`: Pris med mva
 - `ore_per_kwh_eks_mva`: Pris i øre (som på fakturaen)

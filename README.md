@@ -21,7 +21,7 @@ Integrasjonen gir deg sensorer som viser din **faktiske strømpris** - ikke bare
 
 - **Nettleie** - Energiledd (dag/natt) og kapasitetsledd fra ditt nettselskap
 - **Strømstøtte** - Automatisk beregning (90% over 96,25 øre/kWh)
-- **Totalpris** - Alt inkludert, kan brukes i Energy Dashboard (men se [begrensninger](#kapasitetsledd-i-energy-dashboard))
+- **Totalpris** - Alt inkludert, kan brukes i Energy Dashboard
 - **Månedlig forbruk** - Sporer forbruk og kostnader per måned
 - **Faktura-sjekk** - Sammenlign med fakturaen når den kommer
 - **Solceller** - Spor eksport og inntekt for plusskunder (deaktivert som standard)
@@ -117,27 +117,38 @@ Lagrer forrige måneds data for enkel faktura-verifisering.
 
 ## Bruk med Energy Dashboard
 
-Energy Dashboard trenger to ting: en **forbruksmåler** (kWh) og en **prissensor** (kr/kWh). Strømkalkulator gir deg prissensoren — forbruksmåleren kommer fra din strømmåler-integrasjon.
+Energy Dashboard trenger to ting: en **forbruksmåler** (kWh) og en **kostnadskilde**. Strømkalkulator gir deg to alternativer for kostnadsdelen. Forbruksmåleren kommer fra din strømmåler-integrasjon.
 
-### Hva kommer fra hvor?
+### Alternativ 1: Prissensor (kr/kWh)
+
+Bruk **Totalpris inkl. avgifter** som prissensor. Enklest å sette opp. Kapasitetsleddet fordeles som kr/kWh, så månedstotalen for den delen blir unøyaktig.
 
 | Hva           | Sensor                       | Kommer fra                                     |
 | ------------- | ---------------------------- | ---------------------------------------------- |
 | Forbruk (kWh) | Din forbruksmåler            | Noe som leser fra HANporten, Tibber Pulse osv. |
 | Pris (kr/kWh) | **Totalpris inkl. avgifter** | Strømkalkulator                                |
 
-### Oppsett steg for steg
-
-1. Gå til **Settings > Dashboards > Energy**
+1. **Settings > Dashboards > Energy**
 2. Under **Electricity grid**, klikk **Add consumption**
-3. **Consumed energy** — velg din kWh-forbrukssensor (f.eks. `sensor.power_consumption` fra AMSleseren din)
+3. **Consumed energy** - velg din kWh-forbrukssensor
 4. Slå på **Use an entity with current price**
 5. Velg **Totalpris inkl. avgifter** (`sensor.totalpris_inkl_avgifter_*`)
-6. Klikk **Save**
 
-Nå viser dashboardet hva strømmen faktisk koster deg — inkludert nettleie, avgifter og strømstøtte.
+### Alternativ 2: Akkumulert kostnad (anbefalt)
 
-> **Viktig:** Totalpris-sensoren fordeler kapasitetsleddet (fast kr/mnd) som øre per kWh. Når Energy Dashboard ganger pris × kWh, blir kapasitetsleddet feil med mindre forbruket tilfeldigvis matcher fordelingsnøkkelen (dager_i_måned × 24 kWh). Ved høyere forbruk overestimerer dashboardet kapasitetsleddet — ved lavere forbruk underestimerer det. For nøyaktig månedskostnad, bruk «Månedlig nettleie total» som legger kapasitetsleddet til som fast beløp. Se [detaljer i FAQ](#kapasitetsledd-i-energy-dashboard).
+Bruk **Akkumulert strømkostnad** for korrekte månedstotaler. Kapasitetsleddet fordeles lineært over tid i stedet for per kWh, slik at månedstotalen matcher fakturaen uavhengig av forbruk. Sensoren er deaktivert som standard.
+
+| Hva             | Sensor                           | Kommer fra                                     |
+| --------------- | -------------------------------- | ---------------------------------------------- |
+| Forbruk (kWh)   | Din forbruksmåler                | Noe som leser fra HANporten, Tibber Pulse osv. |
+| Kostnad (kr)    | **Akkumulert strømkostnad**      | Strømkalkulator                                |
+
+1. Aktiver sensoren: **Settings > Devices > Månedlig forbruk > Entities > Akkumulert strømkostnad**
+2. **Settings > Dashboards > Energy**
+3. Under **Electricity grid**, klikk **Add consumption**
+4. **Consumed energy** - velg din kWh-forbrukssensor
+5. Slå på **Use an entity tracking total costs**
+6. Velg **Akkumulert strømkostnad** (`sensor.akkumulert_stromkostnad_*`)
 
 > **Har du ikke en kWh-sensor?** Du trenger noe som leser av strømmåleren din via HAN-porten, f.eks. en [Tibber Pulse](https://www.home-assistant.io/integrations/tibber/) eller en annen AMS-leser.
 
@@ -233,18 +244,16 @@ Noe avvik er normalt. Integrasjonen beregner forbruk fra effektsensoren (Riemann
 <a id="kapasitetsledd-i-energy-dashboard"></a>
 **Hvorfor viser Energy Dashboard feil kapasitetsledd?**
 
-Totalpris-sensoren fordeler kapasitetsleddet (fast kr/mnd) over forventet kWh. Energy Dashboard ganger denne prisen med faktisk forbruk. Hvis du bruker mer eller mindre enn fordelingen forutsetter, blir kapasitetsleddet feil.
+Dette gjelder kun hvis du bruker **Totalpris inkl. avgifter** (prissensor-metoden). Totalpris-sensoren fordeler kapasitetsleddet (fast kr/mnd) over forventet kWh. Energy Dashboard ganger denne prisen med faktisk forbruk. Hvis du bruker mer eller mindre enn fordelingen forutsetter, blir kapasitetsleddet feil.
 
 Eksempel: Mars, kapasitetsledd 250 kr/mnd, fordelt på 744 kWh (31 dager × 24):
 - Du bruker 1553 kWh → Dashboard beregner (250/744) × 1553 = **522 kr** for kapasitetsledd
 - Fakturaen sier **250 kr**
 - Avvik: +272 kr bare på kapasitetsleddet
 
-Sensoren «Månedlig nettleie total» legger kapasitetsleddet til som et fast beløp og treffer fakturaen riktigere. Bruk den for å sammenligne med fakturaen — Energy Dashboard gir en grov oversikt, ikke et nøyaktig regnskap.
+**Løsning:** Bruk **Akkumulert strømkostnad** i stedet. Denne sensoren fordeler kapasitetsleddet lineært over tid, ikke per kWh, og gir korrekte månedstotaler uavhengig av forbruk. Se [oppsett](#alternativ-2-akkumulert-kostnad-anbefalt).
 
-**Hvorfor finnes ikke en bedre løsning?**
-
-Energy Dashboard krever en pris-per-kWh-sensor. Kapasitetsleddet er et fast månedlig beløp, ikke en kWh-pris. Det lar seg ikke fordele korrekt uten å vite totalforbruket for hele måneden — som vi ikke kjenner før måneden er over.
+Sensoren «Månedlig nettleie total» er også nyttig for faktura-verifisering, men kan ikke brukes direkte i Energy Dashboard.
 
 ## Dokumentasjon
 

@@ -4,14 +4,14 @@ Komplett oversikt over alle sensorer og devices i Strømkalkulator.
 
 ## Oversikt
 
-Integrasjonen oppretter **6 devices** med totalt **51 sensorer**. Av disse er **34 aktive** som standard — resten er deaktivert og kan slås på ved behov.
+Integrasjonen oppretter **6 devices** med totalt **52 sensorer**. Av disse er **34 aktive** som standard, resten er deaktivert og kan slås på ved behov.
 
 | Device           | Beskrivelse                        | Aktive | Totalt |
 |------------------|------------------------------------|--------|--------|
 | Nettleie         | Energiledd, kapasitet, avgifter    | 11     | 19     |
 | Strømstøtte      | Strømstøtte og totalpris           | 6      | 7      |
 | Norgespris       | Norgespris-sammenligning           | 3      | 3      |
-| Månedlig forbruk | Forbruk og kostnader denne måneden | 8      | 11     |
+| Månedlig forbruk | Forbruk og kostnader denne måneden | 8      | 12     |
 | Forrige måned    | Forbruk og kostnader forrige måned | 6      | 6      |
 | Eksport          | Solcelle-eksport for plusskunder   | 0      | 5      |
 
@@ -81,7 +81,7 @@ Sensorer for strømstøtte-beregning og totalpris inkl. alle avgifter.
 | Strømstøtte                       | kr/kWh | Statens støtte per kWh når spotpris er over 96,25 øre (du får dekket 90% av overskytende)   |
 | Spotpris etter støtte             | kr/kWh | Hva spotprisen effektivt koster deg etter at strømstøtten er trukket fra                    |
 | Total strømpris etter støtte      | kr/kWh | Din reelle totalpris akkurat nå: spotpris + nettleie - strømstøtte                          |
-| Totalpris inkl. avgifter          | kr/kWh | Kan brukes i Energy Dashboard — din totale strømpris inkl. nettleie, avgifter og støtte. Kapasitetsleddet fordeles per kWh og [blir unøyaktig ved avvikende forbruk](../README.md#kapasitetsledd-i-energy-dashboard). |
+| Totalpris inkl. avgifter          | kr/kWh | Kan brukes i Energy Dashboard som prissensor. Kapasitetsleddet fordeles per kWh, noe som gir unøyaktige månedstotaler. For korrekte totaler, bruk [Akkumulert strømkostnad](#energy-dashboard). |
 | Strømstøtte aktiv nå              | -      | "Ja" / "Nei" — om spotprisen akkurat nå er høy nok til at du får strømstøtte               |
 | Strømstøtte gjenstående kWh       | kWh    | Hvor mange kWh du har igjen før du treffer støtte-taket. Avhenger av boligtype: bolig=5000 kWh/mnd, fritidsbolig=0 (ingen rett) |
 | *(valgfri)* Strømpris per kWh (etter støtte)  | kr/kWh | Spotpris + energiledd - strømstøtte, uten kapasitetsledd — variabel kWh-kostnad etter støtte |
@@ -125,6 +125,7 @@ Sporer forbruk og kostnader for inneværende måned. Nullstilles automatisk ved 
 | *(valgfri)* Månedlig strømstøtte      | kr    | Estimert strømstøtte du har tjent inn denne måneden (faktisk støtte beregnes time-for-time)        |
 | Månedlig nettleie total   | kr    | Bunnlinjen: nettleie + avgifter - strømstøtte — det du faktisk betaler for nettdelen               |
 | Dagens kostnad            | kr    | Hva strømmen har kostet deg i dag — akkumulert kostnad siden midnatt                               |
+| *(valgfri)* Akkumulert strømkostnad | kr | Akkumulert total strømkostnad denne måneden, for Energy Dashboard med korrekt kapasitetsledd. Se [Energy Dashboard](#energy-dashboard). |
 | Månedlig Norgespris-differanse | kr | Akkumulert besparelse/tap i kroner denne måneden sammenlignet med alternativ avtale     |
 | Norgespris-kompensasjon   | kr    | Akkumulert kompensasjon (norgespris - spotpris) × kWh denne måneden                                |
 | Estimert månedskostnad    | kr    | Prognose for hva hele måneden vil koste, basert på forbruket hittil (oppdateres daglig mer presist) |
@@ -136,6 +137,12 @@ Sporer forbruk og kostnader for inneværende måned. Nullstilles automatisk ved 
 - `natt_kwh` - Forbruk på natt/helg-tariff
 - `dag_pct` - Prosentandel av forbruket som er på dagtariff
 - `natt_pct` - Prosentandel av forbruket som er på natt/helg-tariff
+
+**Akkumulert strømkostnad** har:
+- `strompris_kr` - Akkumulert strømpris (spot eller Norgespris, etter støtte)
+- `energiledd_kr` - Akkumulert energiledd-kostnad
+- `kapasitetsledd_kr` - Akkumulert kapasitetsledd (tidsbasert, ikke kWh-basert)
+- `total_kwh` - Totalt forbruk denne måneden
 
 **Månedlig nettleie** har:
 - `energiledd_dag_kr` - Kostnad for dagforbruk
@@ -208,23 +215,37 @@ Sensorer for plusskunder med solceller. Sporer eksportert energi og inntekt. All
 
 ### Energy Dashboard
 
-Energy Dashboard trenger to ting: en **forbruksmåler** (kWh) og en **prissensor** (kr/kWh).
+Energy Dashboard trenger to ting: en **forbruksmåler** (kWh) og en **kostnadskilde**. Strømkalkulator gir deg to alternativer for kostnadsdelen:
+
+#### Alternativ 1: Prissensor (kr/kWh)
+
+Bruk **Totalpris inkl. avgifter** som prissensor. Enklest å sette opp, men månedstotalen for kapasitetsleddet blir unøyaktig fordi et fast beløp (kr/mnd) fordeles per kWh.
 
 | Felt i Energy Dashboard       | Hva du velger                    | Kilde              |
 |-------------------------------|----------------------------------|---------------------|
 | **Consumed energy**           | Din kWh-forbrukssensor           | AMS-leser via HAN-port |
 | **Use an entity with current price** | **Totalpris inkl. avgifter** | Strømkalkulator     |
 
-**Steg for steg:**
-1. **Settings > Dashboards > Energy**
-2. Under **Electricity grid**, klikk **Add consumption**
-3. **Consumed energy** — velg din kWh-sensor (f.eks. fra Tibber Pulse eller AMS-leser)
-4. Slå på **Use an entity with current price**
-5. Velg **Totalpris inkl. avgifter** (`sensor.totalpris_inkl_avgifter_*`)
+#### Alternativ 2: Akkumulert kostnad (anbefalt)
+
+Bruk **Akkumulert strømkostnad** for korrekte månedstotaler. Denne sensoren akkumulerer kostnad der kapasitetsleddet fordeles lineært over tid, ikke per kWh. Månedstotalen matcher fakturaen uavhengig av forbruksmengde.
+
+Sensoren er deaktivert som standard. Aktiver den under **Settings > Devices > Månedlig forbruk > Entities**.
+
+| Felt i Energy Dashboard       | Hva du velger                        | Kilde              |
+|-------------------------------|--------------------------------------|---------------------|
+| **Consumed energy**           | Din kWh-forbrukssensor               | AMS-leser via HAN-port |
+| **Use an entity tracking total costs** | **Akkumulert strømkostnad** | Strømkalkulator     |
+
+**Steg for steg (alternativ 2):**
+1. Aktiver sensoren: **Settings > Devices > Månedlig forbruk > Entities > Akkumulert strømkostnad**
+2. **Settings > Dashboards > Energy**
+3. Under **Electricity grid**, klikk **Add consumption**
+4. **Consumed energy** - velg din kWh-sensor (f.eks. fra Tibber Pulse eller AMS-leser)
+5. Slå på **Use an entity tracking total costs**
+6. Velg **Akkumulert strømkostnad** (`sensor.akkumulert_stromkostnad_*`)
 
 > **Merk:** Strømkalkulator gir deg prisen — forbruksmåleren (kWh) kommer fra din AMS-leser (f.eks. Tibber Pulse).
-
-> **Viktig:** Kapasitetsleddet (fast kr/mnd) fordeles som øre per kWh i denne sensoren. Energy Dashboard ganger pris × kWh, så kapasitetsleddet blir feil med mindre forbruket matcher fordelingsnøkkelen. For nøyaktig månedskostnad, bruk «Månedlig nettleie total». Se [detaljer](../README.md#kapasitetsledd-i-energy-dashboard).
 
 ### Sammenligne Norgespris
 
@@ -276,6 +297,6 @@ Bruk "Forrige måned"-sensorene når fakturaen kommer:
 - **1-5% avvik fra faktura er normalt** på grunn av Riemann-sum vs. strømmålerens kWh-teller
 - Strømstøtte kan avvike mer (fakturaen bruker time-for-time priser)
 - Forbruk beregnes fra effekt, ikke fra strømmåler
-- **Kapasitetsledd i Energy Dashboard kan avvike mye mer** — kapasitetsleddet er et fast beløp per måned, men fordeles som kr/kWh i totalpris-sensoren. Se [forklaring](../README.md#kapasitetsledd-i-energy-dashboard)
+- **Kapasitetsledd i Energy Dashboard kan avvike mye mer** med prissensoren (Totalpris inkl. avgifter), fordi kapasitetsleddet er et fast beløp per måned som fordeles som kr/kWh. Bruk «Akkumulert strømkostnad» for korrekte månedstotaler. Se [forklaring](../README.md#kapasitetsledd-i-energy-dashboard)
 
 Se [beregninger.md](beregninger.md) for detaljerte formler.

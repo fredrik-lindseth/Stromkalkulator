@@ -22,7 +22,7 @@ This integration provides sensors showing your **actual electricity cost** - not
 
 - **Grid tariffs** - Energy component (day/night rates) and capacity component from your grid company
 - **Electricity subsidy** - Automatic calculation (90% above 96.25 øre/kWh)
-- **Total price** - Everything included, can be used in Energy Dashboard (but see [limitations](#capacity-charge-in-energy-dashboard))
+- **Total price** - Everything included, can be used in Energy Dashboard
 - **Monthly consumption** - Tracks usage and costs per month
 - **Invoice verification** - Compare with your invoice when it arrives
 - **Solar export** - Track export and revenue for prosumers (disabled by default)
@@ -115,27 +115,38 @@ Stores previous month's data for easy invoice verification.
 
 ## Using with Energy Dashboard
 
-Energy Dashboard needs two things: a **consumption meter** (kWh) and a **price sensor** (NOK/kWh). Strømkalkulator provides the price sensor — the consumption meter comes from your power meter integration.
+Energy Dashboard needs two things: a **consumption meter** (kWh) and a **cost source**. Stromkalkulator provides two options for cost -- the consumption meter comes from your power meter integration.
 
-### What comes from where?
+### Option 1: Price sensor (NOK/kWh)
+
+Use **Totalpris inkl. avgifter** as a price sensor. Simplest to set up. The capacity charge is spread as kr/kWh, so the monthly total for that portion will be inaccurate.
 
 | What                 | Sensor                         | Source                   |
 |----------------------|--------------------------------|--------------------------|
 | Consumption (kWh)    | Your consumption meter         | AMS meter via HAN port (e.g. Tibber Pulse)  |
-| Price (NOK/kWh)      | **Total price incl. taxes**    | Strømkalkulator          |
+| Price (NOK/kWh)      | **Total price incl. taxes**    | Stromkalkulator          |
 
-### Step-by-step setup
-
-1. Go to **Settings > Dashboards > Energy**
+1. **Settings > Dashboards > Energy**
 2. Under **Electricity grid**, click **Add consumption**
-3. **Consumed energy** — select your kWh consumption sensor (e.g. `sensor.power_consumption` from your AMS meter)
+3. **Consumed energy** -- select your kWh consumption sensor
 4. Enable **Use an entity with current price**
-5. Select **Total price incl. taxes** (`sensor.totalpris_inkl_avgifter_*`)
-6. Click **Save**
+5. Select **Totalpris inkl. avgifter** (`sensor.totalpris_inkl_avgifter_*`)
 
-The dashboard now shows what your electricity actually costs — including grid tariffs, taxes, and subsidies.
+### Option 2: Accumulated cost (recommended)
 
-> **Important:** The total price sensor spreads the capacity charge (a fixed monthly fee) as øre per kWh. When the Energy Dashboard multiplies price × kWh, the capacity charge portion comes out wrong unless your consumption happens to match the distribution key (days_in_month × 24 kWh). Higher consumption overestimates it, lower consumption underestimates it. For accurate monthly costs, use "Månedlig nettleie total" which adds the capacity charge as a flat amount. See [details in FAQ](#capacity-charge-in-energy-dashboard).
+Use **Akkumulert stromkostnad** for correct monthly totals. The capacity charge is distributed linearly over time instead of per kWh, so the monthly total matches the invoice regardless of consumption. The sensor is disabled by default.
+
+| What                 | Sensor                            | Source                   |
+|----------------------|-----------------------------------|--------------------------|
+| Consumption (kWh)    | Your consumption meter            | AMS meter via HAN port (e.g. Tibber Pulse)  |
+| Cost (NOK)           | **Akkumulert stromkostnad**       | Stromkalkulator          |
+
+1. Enable the sensor: **Settings > Devices > Monthly consumption > Entities > Akkumulert stromkostnad**
+2. **Settings > Dashboards > Energy**
+3. Under **Electricity grid**, click **Add consumption**
+4. **Consumed energy** -- select your kWh consumption sensor
+5. Enable **Use an entity tracking total costs**
+6. Select **Akkumulert stromkostnad** (`sensor.akkumulert_stromkostnad_*`)
 
 > **Don't have a kWh sensor?** You need something that reads your AMS meter via the HAN port, e.g. a [Tibber Pulse](https://www.home-assistant.io/integrations/tibber/) or another AMS reader.
 
@@ -189,11 +200,6 @@ This integration is designed for **residential homes with individual electricity
 - Commercial use (different subsidy rates)
 - Housing cooperatives with shared metering
 
-**Future ideas:**
-- Alert when capacity tier increases
-- Support for commercial use
-- Invoice import (PDF/CSV)
-
 ## Frequently asked questions
 
 **Why does the sensor show "natt" (night) in the middle of the day?**
@@ -220,18 +226,16 @@ Some deviation is normal. The integration calculates consumption from the power 
 <a id="capacity-charge-in-energy-dashboard"></a>
 **Why does the Energy Dashboard show wrong capacity charges?**
 
-The total price sensor spreads the capacity charge (fixed kr/month) across expected kWh. The Energy Dashboard multiplies this price by actual consumption. If you use more or less than the distribution assumes, the capacity charge comes out wrong.
+This only applies if you use **Totalpris inkl. avgifter** (the price sensor method). The total price sensor spreads the capacity charge (fixed kr/month) across expected kWh. The Energy Dashboard multiplies this price by actual consumption. If you use more or less than the distribution assumes, the capacity charge comes out wrong.
 
 Example: March, capacity charge 250 kr/month, spread across 744 kWh (31 days x 24):
-- You use 1553 kWh → Dashboard computes (250/744) x 1553 = **522 kr** for capacity
+- You use 1553 kWh -> Dashboard computes (250/744) x 1553 = **522 kr** for capacity
 - Invoice says **250 kr**
 - Error: +272 kr on the capacity charge alone
 
-The "Månedlig nettleie total" sensor adds the capacity charge as a flat amount and matches the invoice more closely. Use that for invoice comparison — the Energy Dashboard gives a rough overview, not an exact accounting.
+**Solution:** Use **Akkumulert stromkostnad** instead. This sensor distributes the capacity charge linearly over time, not per kWh, giving correct monthly totals regardless of consumption. See [setup](#option-2-accumulated-cost-recommended).
 
-**Why isn't there a better solution?**
-
-The Energy Dashboard requires a price-per-kWh sensor. The capacity charge is a fixed monthly amount, not a per-kWh price. It can't be distributed correctly without knowing total consumption for the entire month — which we don't know until the month is over.
+The "Maanedlig nettleie total" sensor is also useful for invoice verification, but cannot be used directly in Energy Dashboard.
 
 ## Documentation
 

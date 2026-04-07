@@ -4,14 +4,14 @@ Complete overview of all sensors and devices in Stromkalkulator.
 
 ## Overview
 
-The integration creates **6 devices** with a total of **51 sensors**. Of these, **34 are active** by default — the rest are disabled and can be enabled as needed.
+The integration creates **6 devices** with a total of **52 sensors**. Of these, **34 are active** by default, the rest are disabled and can be enabled as needed.
 
 | Device             | Description                      | Active | Total |
 |--------------------|----------------------------------|--------|-------|
 | Grid tariff        | Energy component, capacity, taxes | 11    | 19    |
 | Electricity subsidy | Subsidy and total price          | 6     | 7     |
 | Norgespris         | Norgespris comparison            | 3     | 3     |
-| Monthly consumption | Consumption and costs this month | 8     | 11    |
+| Monthly consumption | Consumption and costs this month | 8     | 12    |
 | Previous month     | Consumption and costs last month | 6     | 6     |
 | Export             | Solar export for prosumers       | 0     | 5     |
 
@@ -81,7 +81,7 @@ Sensors for subsidy calculation and total price incl. all taxes.
 | Stromstotte                       | kr/kWh | Government subsidy per kWh when spot price exceeds 96.25 ore (you get 90% of the excess)       |
 | Spotpris etter stotte             | kr/kWh | What the spot price effectively costs you after the subsidy is deducted                        |
 | Total strompris etter stotte      | kr/kWh | Your actual total price right now: spot price + grid tariff - subsidy                          |
-| Totalpris inkl. avgifter          | kr/kWh | Can be used in Energy Dashboard — your total electricity price incl. grid, taxes & subsidy. Capacity charge is spread per kWh and [becomes inaccurate with varying consumption](../README.en.md#capacity-charge-in-energy-dashboard). |
+| Totalpris inkl. avgifter          | kr/kWh | Can be used in Energy Dashboard as a price sensor. Capacity charge is spread per kWh, giving inaccurate monthly totals. For correct totals, use [Akkumulert stromkostnad](#energy-dashboard). |
 | Stromstotte aktiv na              | -      | "Yes" / "No" — whether the current spot price is high enough for you to receive subsidy         |
 | Stromstotte gjenstaaende kWh      | kWh    | How many kWh remain before you hit the subsidy cap (5000 kWh/month)                             |
 | *(optional)* Strompris per kWh (etter stotte)  | kr/kWh | Spot price + energy component - subsidy, without capacity fee — variable kWh cost after subsidy  |
@@ -125,6 +125,7 @@ Tracks consumption and costs for the current month. Resets automatically at mont
 | *(optional)* Maanedlig stromstotte     | kr   | Estimated subsidy earned this month (actual subsidy is calculated hourly)                              |
 | Maanedlig nettleie total  | kr   | The bottom line: grid tariff + taxes - subsidy — what you actually pay for the grid portion            |
 | Dagens kostnad            | kr   | What electricity has cost you today — accumulated cost since midnight                                  |
+| *(optional)* Akkumulert stromkostnad | kr | Accumulated total electricity cost this month, for Energy Dashboard with correct capacity charges. See [Energy Dashboard](#energy-dashboard). |
 | Maanedlig Norgespris-differanse | kr | Accumulated savings/loss in NOK this month compared to the alternative contract                   |
 | Norgespris-kompensasjon   | kr   | Accumulated compensation (norgespris - spot price) x kWh this month                                   |
 | Estimert maanedskostnad   | kr   | Forecast for what the whole month will cost, based on usage so far (gets more accurate each day)       |
@@ -136,6 +137,12 @@ Tracks consumption and costs for the current month. Resets automatically at mont
 - `natt_kwh` - Consumption on night/weekend tariff
 - `dag_pct` - Percentage of consumption on day tariff
 - `natt_pct` - Percentage of consumption on night/weekend tariff
+
+**Akkumulert stromkostnad** has:
+- `strompris_kr` - Accumulated electricity price (spot or Norgespris, after subsidy)
+- `energiledd_kr` - Accumulated energy component cost
+- `kapasitetsledd_kr` - Accumulated capacity charge (time-based, not per-kWh)
+- `total_kwh` - Total consumption this month
 
 **Maanedlig nettleie** has:
 - `energiledd_dag_kr` - Cost for day consumption
@@ -208,23 +215,37 @@ Sensors for prosumers with solar panels. Tracks exported energy and revenue. All
 
 ### Energy Dashboard
 
-Energy Dashboard needs two things: a **consumption meter** (kWh) and a **price sensor** (NOK/kWh).
+Energy Dashboard needs two things: a **consumption meter** (kWh) and a **cost source**. Stromkalkulator provides two options for the cost:
+
+#### Option 1: Price sensor (NOK/kWh)
+
+Use **Totalpris inkl. avgifter** as a price sensor. Simplest to set up, but the monthly total for the capacity charge will be inaccurate because a fixed amount (kr/month) is spread per kWh.
 
 | Energy Dashboard field        | What to select                   | Source              |
 |-------------------------------|----------------------------------|---------------------|
 | **Consumed energy**           | Your kWh consumption sensor      | AMS meter via HAN port |
 | **Use an entity with current price** | **Totalpris inkl. avgifter** | Stromkalkulator     |
 
-**Step by step:**
-1. **Settings > Dashboards > Energy**
-2. Under **Electricity grid**, click **Add consumption**
-3. **Consumed energy** — select your kWh sensor (e.g. from Tibber Pulse or AMS reader)
-4. Enable **Use an entity with current price**
-5. Select **Totalpris inkl. avgifter** (`sensor.totalpris_inkl_avgifter_*`)
+#### Option 2: Accumulated cost (recommended)
+
+Use **Akkumulert stromkostnad** for correct monthly totals. This sensor accumulates cost with the capacity charge distributed linearly over time, not per kWh. The monthly total matches the invoice regardless of consumption volume.
+
+The sensor is disabled by default. Enable it under **Settings > Devices > Monthly consumption > Entities**.
+
+| Energy Dashboard field        | What to select                         | Source              |
+|-------------------------------|----------------------------------------|---------------------|
+| **Consumed energy**           | Your kWh consumption sensor            | AMS meter via HAN port |
+| **Use an entity tracking total costs** | **Akkumulert stromkostnad** | Stromkalkulator     |
+
+**Step by step (option 2):**
+1. Enable the sensor: **Settings > Devices > Monthly consumption > Entities > Akkumulert stromkostnad**
+2. **Settings > Dashboards > Energy**
+3. Under **Electricity grid**, click **Add consumption**
+4. **Consumed energy** - select your kWh sensor (e.g. from Tibber Pulse or AMS reader)
+5. Enable **Use an entity tracking total costs**
+6. Select **Akkumulert stromkostnad** (`sensor.akkumulert_stromkostnad_*`)
 
 > **Note:** Stromkalkulator provides the price — the consumption meter (kWh) comes from your AMS reader (e.g. Tibber Pulse).
-
-> **Important:** The capacity charge (fixed kr/month) is spread as øre per kWh in this sensor. The Energy Dashboard multiplies price x kWh, so the capacity portion comes out wrong unless consumption matches the distribution key. For accurate monthly costs, use "Månedlig nettleie total". See [details](../README.en.md#capacity-charge-in-energy-dashboard).
 
 ### Comparing Norgespris
 
@@ -276,6 +297,6 @@ Use the "Previous month" sensors when the invoice arrives:
 - **1-5% deviation from invoice is normal** due to Riemann sum vs. the electricity meter's kWh counter
 - Electricity subsidy may deviate more (invoices use hourly prices)
 - Consumption is calculated from power, not from the electricity meter
-- **Capacity charge in Energy Dashboard can deviate much more** — the capacity charge is a fixed monthly amount, but is spread as kr/kWh in the total price sensor. See [explanation](../README.en.md#capacity-charge-in-energy-dashboard)
+- **Capacity charge in Energy Dashboard can deviate much more** when using the price-per-kWh sensor. Use "Akkumulert stromkostnad" for correct monthly totals. See [explanation](../README.en.md#capacity-charge-in-energy-dashboard)
 
 See [beregninger.md](beregninger.md) for detailed formulas.

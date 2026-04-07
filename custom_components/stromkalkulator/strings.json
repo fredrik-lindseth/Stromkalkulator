@@ -20,12 +20,14 @@
         "data": {
           "power_sensor": "Effektmåler (W)",
           "spot_price_sensor": "Spotpris-sensor (NOK/kWh)",
-          "electricity_provider_price_sensor": "Strømleverandør-sensor (valgfri)"
+          "electricity_provider_price_sensor": "Strømleverandør-sensor (valgfri)",
+          "export_power_sensor": "Eksport-effektmåler (valgfri)"
         },
         "data_description": {
           "power_sensor": "Sensor som viser nåværende strømforbruk i watt, f.eks. fra HAN-port, Tibber Pulse eller P1-måler.",
           "spot_price_sensor": "Sensor med gjeldende spotpris i NOK/kWh. Vanligvis «Current price» fra Nord Pool-integrasjonen.",
-          "electricity_provider_price_sensor": "Totalpris fra strømselskapet (f.eks. Tibber-sensor). Brukes til å vise hva du faktisk betaler. Kan legges til senere."
+          "electricity_provider_price_sensor": "Totalpris fra strømselskapet (f.eks. Tibber-sensor). Brukes til å vise hva du faktisk betaler. Kan legges til senere.",
+          "export_power_sensor": "Sensor som viser eksportert effekt i watt (solceller/plusskunde). Brukes til å beregne inntekt fra salg av strøm."
         }
       },
       "pricing": {
@@ -62,6 +64,7 @@
           "power_sensor": "Effektmåler (W)",
           "spot_price_sensor": "Spotpris-sensor (NOK/kWh)",
           "electricity_provider_price_sensor": "Strømleverandør-sensor (valgfri)",
+          "export_power_sensor": "Eksport-effektmåler (valgfri)",
           "energiledd_dag": "Energiledd dag (NOK/kWh)",
           "energiledd_natt": "Energiledd natt/helg (NOK/kWh)",
           "kapasitet_varsel_terskel": "Kapasitetsvarsel-terskel (kW)"
@@ -202,6 +205,21 @@
       },
       "dagskostnad": {
         "name": "Dagens kostnad"
+      },
+      "maanedlig_eksport_kwh": {
+        "name": "Månedlig eksport"
+      },
+      "maanedlig_eksport_inntekt": {
+        "name": "Månedlig eksportinntekt"
+      },
+      "maanedlig_nettokostnad": {
+        "name": "Månedlig nettokostnad"
+      },
+      "forrige_maaned_eksport_kwh": {
+        "name": "Forrige måned eksport"
+      },
+      "forrige_maaned_eksport_inntekt": {
+        "name": "Forrige måned eksportinntekt"
       }
     }
   },

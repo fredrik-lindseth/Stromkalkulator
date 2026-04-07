@@ -22,6 +22,7 @@ from .const import (
     CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
     CONF_ENERGILEDD_DAG,
     CONF_ENERGILEDD_NATT,
+    CONF_EXPORT_POWER_SENSOR,
     CONF_HAR_NORGESPRIS,
     CONF_KAPASITET_VARSEL_TERSKEL,
     CONF_POWER_SENSOR,
@@ -165,6 +166,12 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
                         selector.EntitySelectorConfig(
                             domain="sensor",
                             device_class="monetary",
+                        ),
+                    ),
+                    vol.Optional(CONF_EXPORT_POWER_SENSOR): selector.EntitySelector(
+                        selector.EntitySelectorConfig(
+                            domain="sensor",
+                            device_class="power",
                         ),
                     ),
                 }
@@ -313,6 +320,15 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):  # type: ignore[misc]
                     selector.EntitySelectorConfig(
                         domain="sensor",
                         device_class="monetary",
+                    ),
+                ),
+                vol.Optional(
+                    CONF_EXPORT_POWER_SENSOR,
+                    description={"suggested_value": current.get(CONF_EXPORT_POWER_SENSOR)},
+                ): selector.EntitySelector(
+                    selector.EntitySelectorConfig(
+                        domain="sensor",
+                        device_class="power",
                     ),
                 ),
                 vol.Required(

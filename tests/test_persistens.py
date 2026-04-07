@@ -349,6 +349,12 @@ class TestSaveDataStructure:
             "current_date",
             "current_hour_energy",
             "current_hour",
+            "monthly_export_kwh",
+            "monthly_export_revenue",
+            "monthly_cost",
+            "previous_month_export_kwh",
+            "previous_month_export_revenue",
+            "previous_month_cost",
         }
         assert expected_keys == set(saved_data.keys())
 

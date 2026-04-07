@@ -839,7 +839,7 @@ class TestValidatorsNegativeValues:
         validate = coord_module.NettleieCoordinator._validate_daily_max_power
         result = validate({"2026-04-01": -5.0, "2026-04-02": 3.0})
         assert "2026-04-01" not in result
-        assert result["2026-04-02"] == 3.0
+        assert result["2026-04-02"] == {"kw": 3.0, "hour": None}
 
     def test_validate_consumption_clamps_negative_to_zero(self, coord_module):
         validate = coord_module.NettleieCoordinator._validate_consumption

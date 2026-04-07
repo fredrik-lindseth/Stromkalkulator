@@ -98,6 +98,7 @@ async def async_setup_entry(
         MaanedligStromstotteSensor(coordinator, entry),
         MaanedligTotalSensor(coordinator, entry),
         MaanedligNorgesprisDifferanseSensor(coordinator, entry),
+        MaanedligNorgesprisKompensasjonSensor(coordinator, entry),
         DagskostnadSensor(coordinator, entry),
         EstimertMaanedskostnadSensor(coordinator, entry),
         # Forrige måned sensors
@@ -106,6 +107,7 @@ async def async_setup_entry(
         ForrigeMaanedForbrukTotalSensor(coordinator, entry),
         ForrigeMaanedNettleieSensor(coordinator, entry),
         ForrigeMaanedToppforbrukSensor(coordinator, entry),
+        ForrigeMaanedNorgesprisKompensasjonSensor(coordinator, entry),
     ]
 
     async_add_entities(entities)
@@ -222,9 +224,10 @@ class KapasitetstrinnSensor(NettleieBaseSensor):
                 "current_power_kw": self.coordinator.data.get("current_power_kw"),
                 "dso": self.coordinator.data.get("dso"),
             }
-            for i, (date, power) in enumerate(top_3.items(), 1):
+            for i, (date, entry) in enumerate(top_3.items(), 1):
                 attrs[f"maks_{i}_dato"] = date
-                attrs[f"maks_{i}_kw"] = round(power, 2)
+                attrs[f"maks_{i}_kw"] = round(entry["kw"], 2)
+                attrs[f"maks_{i}_time"] = entry.get("hour")
             return attrs
         return None
 
@@ -351,8 +354,8 @@ class MaksForbrukSensor(NettleieBaseSensor):
         if self.coordinator.data:
             top_3 = self.coordinator.data.get("top_3_days", {})
             if len(top_3) >= self._rank:
-                values = list(top_3.values())
-                return round(cast("float", values[self._rank - 1]), 2)
+                entries = list(top_3.values())
+                return round(cast("float", entries[self._rank - 1]["kw"]), 2)
         return None
 
     @property
@@ -362,7 +365,11 @@ class MaksForbrukSensor(NettleieBaseSensor):
             top_3 = self.coordinator.data.get("top_3_days", {})
             if len(top_3) >= self._rank:
                 dates = list(top_3.keys())
-                return {"dato": dates[self._rank - 1]}
+                entries = list(top_3.values())
+                return {
+                    "dato": dates[self._rank - 1],
+                    "time": entries[self._rank - 1].get("hour"),
+                }
         return None
 
 
@@ -715,7 +722,7 @@ class TotalPrisInklAvgifterSensor(NettleieBaseSensor):
                 "forbruksavgift_inkl_mva": self.coordinator.data.get("forbruksavgift_inkl_mva"),
                 "enova_inkl_mva": self.coordinator.data.get("enova_inkl_mva"),
                 "offentlige_avgifter": self.coordinator.data.get("offentlige_avgifter"),
-                "bruk": "Bruk denne sensoren i Energy Dashboard for korrekt totalpris",
+                "bruk": "Marginalkostnad per kWh for Energy Dashboard. Månedlig sum avviker fra faktura pga. kapasitetsledd-fordeling.",
             }
         return None
 
@@ -1513,6 +1520,49 @@ class MaanedligNorgesprisDifferanseSensor(NettleieBaseSensor):
         return None
 
 
+class MaanedligNorgesprisKompensasjonSensor(NettleieBaseSensor):
+    """Sensor for accumulated monthly Norgespris compensation (norgespris - spot) * kWh."""
+
+    _device_group: str = DEVICE_MAANEDLIG
+    _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
+    _attr_native_unit_of_measurement: str = "kr"
+    _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
+    _attr_icon: str = "mdi:cash-sync"
+    _attr_suggested_display_precision: int = 0
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        super().__init__(coordinator, entry, "maanedlig_norgespris_kompensasjon", "maanedlig_norgespris_kompensasjon")
+        self._attr_native_unit_of_measurement = "kr"
+        self._attr_state_class = SensorStateClass.TOTAL
+        self._attr_icon = "mdi:cash-sync"
+        self._attr_suggested_display_precision = 0
+
+    @property
+    def device_info(self) -> dict[str, Any]:
+        """Return device info for Maanedlig device."""
+        return {
+            "identifiers": {(DOMAIN, f"{self._entry.entry_id}_{self._device_group}")},
+            "name": "Månedlig forbruk",
+            "manufacturer": "Fredrik Lindseth",
+            "model": "Strømkalkulator",
+        }
+
+    @property
+    def native_value(self) -> float | None:
+        if self.coordinator.data:
+            return cast("float | None", self.coordinator.data.get("monthly_norgespris_compensation_kr"))
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        if self.coordinator.data:
+            return {
+                "formel": "(norgespris - spotpris) * kWh, akkumulert per time",
+                "negativ_betyr": "spot dyrere enn norgespris",
+            }
+        return None
+
+
 class DagskostnadSensor(MaanedligBaseSensor):
     """Sensor for today's accumulated cost."""
 
@@ -1731,14 +1781,7 @@ class ForrigeMaanedNettleieSensor(ForrigeMaanedBaseSensor):
             natt_kwh = self.coordinator.data.get("previous_month_consumption_natt_kwh", 0)
             dag_pris = self.coordinator.data.get("energiledd_dag", 0)
             natt_pris = self.coordinator.data.get("energiledd_natt", 0)
-
-            # Get kapasitetsledd from previous month's top 3
-            top_3 = self.coordinator.data.get("previous_month_top_3", {})
-            if top_3:
-                avg_power = sum(top_3.values()) / len(top_3)
-                kapasitet = self._get_kapasitetsledd_for_avg(avg_power)
-            else:
-                kapasitet = 0
+            kapasitet = self.coordinator.data.get("previous_month_kapasitetsledd", 0)
 
             return round(
                 (cast("float", dag_kwh) * cast("float", dag_pris))
@@ -1748,14 +1791,6 @@ class ForrigeMaanedNettleieSensor(ForrigeMaanedBaseSensor):
             )
         return None
 
-    def _get_kapasitetsledd_for_avg(self, avg_power: float) -> int:
-        """Get kapasitetsledd based on average power."""
-        kapasitetstrinn = self.coordinator.kapasitetstrinn
-        for threshold, price in kapasitetstrinn:
-            if avg_power <= threshold:
-                return cast("int", price)
-        return cast("int", kapasitetstrinn[-1][1]) if kapasitetstrinn else 0
-
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return cost breakdown."""
@@ -1764,21 +1799,16 @@ class ForrigeMaanedNettleieSensor(ForrigeMaanedBaseSensor):
             natt_kwh = self.coordinator.data.get("previous_month_consumption_natt_kwh", 0)
             dag_pris = self.coordinator.data.get("energiledd_dag", 0)
             natt_pris = self.coordinator.data.get("energiledd_natt", 0)
-
-            top_3 = self.coordinator.data.get("previous_month_top_3", {})
-            if top_3:
-                avg_power = sum(top_3.values()) / len(top_3)
-                kapasitet = self._get_kapasitetsledd_for_avg(avg_power)
-            else:
-                avg_power = 0
-                kapasitet = 0
+            kapasitet = self.coordinator.data.get("previous_month_kapasitetsledd", 0)
+            kapasitetstrinn = self.coordinator.data.get("previous_month_kapasitetstrinn", "")
 
             return {
                 "maaned": self.coordinator.data.get("previous_month_name"),
                 "energiledd_dag_kr": round(dag_kwh * dag_pris, 2),
                 "energiledd_natt_kr": round(natt_kwh * natt_pris, 2),
                 "kapasitetsledd_kr": kapasitet,
-                "snitt_topp_3_kw": round(avg_power, 2),
+                "kapasitetstrinn": kapasitetstrinn,
+                "snitt_topp_3_kw": self.coordinator.data.get("previous_month_avg_top_3_kw", 0.0),
                 "norgespris_differanse_kr": self.coordinator.data.get(
                     "previous_month_norgespris_diff_kr", 0.0
                 ),
@@ -1816,8 +1846,47 @@ class ForrigeMaanedToppforbrukSensor(ForrigeMaanedBaseSensor):
         if self.coordinator.data:
             top_3 = self.coordinator.data.get("previous_month_top_3", {})
             attrs: dict[str, Any] = {"maaned": self.coordinator.data.get("previous_month_name")}
-            for i, (date, kw) in enumerate(sorted(top_3.items(), key=lambda x: x[1], reverse=True), 1):
+            sorted_entries = sorted(top_3.items(), key=lambda x: x[1]["kw"], reverse=True)
+            for i, (date, entry) in enumerate(sorted_entries, 1):
                 attrs[f"topp_{i}_dato"] = date
-                attrs[f"topp_{i}_kw"] = round(kw, 2)
+                attrs[f"topp_{i}_kw"] = round(entry["kw"], 2)
+                attrs[f"topp_{i}_time"] = entry.get("hour")
             return attrs
+        return None
+
+
+class ForrigeMaanedNorgesprisKompensasjonSensor(ForrigeMaanedBaseSensor):
+    """Sensor for previous month Norgespris compensation."""
+
+    _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
+    _attr_native_unit_of_measurement: str = "kr"
+    _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
+    _attr_icon: str = "mdi:cash-sync"
+    _attr_suggested_display_precision: int = 0
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(
+            coordinator, entry, "forrige_maaned_norgespris_kompensasjon", "forrige_maaned_norgespris_kompensasjon"
+        )
+        self._attr_native_unit_of_measurement = "kr"
+        self._attr_state_class = SensorStateClass.TOTAL
+        self._attr_icon = "mdi:cash-sync"
+        self._attr_suggested_display_precision = 0
+
+    @property
+    def native_value(self) -> float | None:
+        """Return previous month Norgespris compensation."""
+        if self.coordinator.data:
+            return cast("float | None", self.coordinator.data.get("previous_month_norgespris_compensation_kr"))
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return the month name."""
+        if self.coordinator.data:
+            return {
+                "maaned": self.coordinator.data.get("previous_month_name"),
+                "formel": "(norgespris - spotpris) * kWh, akkumulert per time",
+            }
         return None

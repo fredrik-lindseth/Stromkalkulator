@@ -247,10 +247,9 @@ strompris_per_kwh = spotpris + energiledd
 strompris_per_kwh_etter_stotte = (spotpris - strømstøtte) + energiledd
 ```
 
-### Inkludert alle avgifter (for Energy Dashboard)
+### Inkludert alle avgifter (prissensor for Energy Dashboard)
 
-For å vise totalpris i Home Assistant Energy Dashboard, bruk sensoren
-`sensor.totalpris_inkl_avgifter`. Denne inkluderer alle komponenter, men kapasitetsleddet fordeles som kr/kWh og [blir unøyaktig ved avvikende forbruk](../README.md#kapasitetsledd-i-energy-dashboard):
+Sensoren `sensor.totalpris_inkl_avgifter` inkluderer alle komponenter, men kapasitetsleddet fordeles som kr/kWh og [blir unøyaktig ved avvikende forbruk](../README.md#kapasitetsledd-i-energy-dashboard):
 
 ```
 totalpris_inkl_avgifter = spotpris - strømstøtte + energiledd + kapasitetsledd_per_kwh 
@@ -266,6 +265,21 @@ totalpris_inkl_avgifter = spotpris - strømstøtte + energiledd + kapasitetsledd
 | Kapasitetsledd per kWh | Fastledd fordelt på forventet forbruk        |
 | Forbruksavgift         | 7,13 øre/kWh + mva (avhenger av avgiftssone) |
 | Enova-avgift           | 1,00 øre/kWh + mva (avhenger av avgiftssone) |
+
+### Akkumulert strømkostnad (anbefalt for Energy Dashboard)
+
+Sensoren `sensor.akkumulert_stromkostnad` akkumulerer kostnad med kapasitetsledd fordelt lineært over tid. Brukes som «Use an entity tracking total costs» i Energy Dashboard for korrekte månedstotaler.
+
+```
+# Per oppdatering (hvert minutt):
+strom_kostnad += energy_kwh * (spotpris - stromstotte)   # eller norgespris
+energiledd_kostnad += energy_kwh * energiledd
+kapasitetsledd_kostnad += elapsed_seconds * (kapasitetsledd / seconds_in_month)
+
+akkumulert_kostnad = strom_kostnad + energiledd_kostnad + kapasitetsledd_kostnad
+```
+
+Kapasitetsleddet tikker lineært uavhengig av forbruk. Om du bruker 500 kWh eller 2000 kWh i måneden, blir kapasitetsledd-bidraget det samme: det faste beløpet fra kapasitetstrinn-tabellen.
 
 **Energy Dashboard oppsett:** Se [SENSORS.md](SENSORS.md#energy-dashboard).
 

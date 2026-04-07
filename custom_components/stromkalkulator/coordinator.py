@@ -85,6 +85,10 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
     _previous_month_export_kwh: float
     _previous_month_export_revenue: float
     _previous_month_cost: float
+    _monthly_accumulated_cost: float
+    _monthly_accumulated_cost_strom: float
+    _monthly_accumulated_cost_energiledd: float
+    _monthly_accumulated_cost_kapasitetsledd: float
     _store: Store[dict[str, Any]]
     _store_loaded: bool
 
@@ -176,6 +180,12 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         self._previous_month_export_revenue = 0.0
         self._previous_month_cost = 0.0
 
+        # Akkumulert kostnad for Energy Dashboard (stat_cost)
+        self._monthly_accumulated_cost = 0.0
+        self._monthly_accumulated_cost_strom = 0.0
+        self._monthly_accumulated_cost_energiledd = 0.0
+        self._monthly_accumulated_cost_kapasitetsledd = 0.0
+
         # Daily cost accumulation
         self._daily_cost = 0.0
         self._current_date = dt_util.now().strftime("%Y-%m-%d")
@@ -245,6 +255,10 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             self._monthly_export_kwh = 0.0
             self._monthly_export_revenue = 0.0
             self._monthly_cost = 0.0
+            self._monthly_accumulated_cost = 0.0
+            self._monthly_accumulated_cost_strom = 0.0
+            self._monthly_accumulated_cost_energiledd = 0.0
+            self._monthly_accumulated_cost_kapasitetsledd = 0.0
             self._current_month = current_month_str
             await self._save_stored_data()
 
@@ -506,6 +520,32 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             self._daily_cost += total_price * energy_kwh
             self._monthly_cost += total_price * energy_kwh
 
+        # Akkumuler kostnad for Energy Dashboard (stat_cost)
+        # Strømpris + energiledd akkumuleres per kWh, kapasitetsledd tidsbasert
+        elapsed_seconds = elapsed_hours * 3600
+        if energy_kwh > 0:
+            if self.har_norgespris and not norgespris_over_tak:
+                strom_pris = norgespris
+            else:
+                strom_pris = spot_price - stromstotte
+            self._monthly_accumulated_cost_strom += energy_kwh * strom_pris
+            self._monthly_accumulated_cost_energiledd += energy_kwh * energiledd
+
+        if elapsed_seconds > 0:
+            seconds_in_month = days_in_month * 24 * 3600
+            delta_kap = elapsed_seconds * (kapasitetsledd / seconds_in_month)
+            self._monthly_accumulated_cost_kapasitetsledd += delta_kap
+
+        self._monthly_accumulated_cost = (
+            self._monthly_accumulated_cost_strom
+            + self._monthly_accumulated_cost_energiledd
+            + self._monthly_accumulated_cost_kapasitetsledd
+        )
+
+        # Lagre akkumulert kostnad (kapasitetsledd oker hver oppdatering)
+        if elapsed_seconds > 0:
+            await self._save_stored_data()
+
         # Akkumuler eksportinntekt — kun spotpris, ingen avgifter
         if export_energy_kwh > 0:
             self._monthly_export_revenue += spot_price * export_energy_kwh
@@ -601,6 +641,11 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             "monthly_norgespris_compensation_kr": round(self._monthly_norgespris_compensation, 2),
             "previous_month_norgespris_compensation_kr": round(self._previous_month_norgespris_compensation, 2),
             "daily_cost_kr": round(self._daily_cost, 2),
+            # Akkumulert kostnad for Energy Dashboard (stat_cost)
+            "monthly_accumulated_cost_kr": round(self._monthly_accumulated_cost, 4),
+            "monthly_accumulated_cost_strom_kr": round(self._monthly_accumulated_cost_strom, 4),
+            "monthly_accumulated_cost_energiledd_kr": round(self._monthly_accumulated_cost_energiledd, 4),
+            "monthly_accumulated_cost_kapasitetsledd_kr": round(self._monthly_accumulated_cost_kapasitetsledd, 4),
             # Eksport (plusskunder)
             "eksport_konfigurert": self.export_power_sensor is not None,
             "monthly_export_kwh": round(self._monthly_export_kwh, 3),
@@ -741,6 +786,18 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
                 self._monthly_cost = self._validate_float(
                     data.get("monthly_cost", 0.0)
                 )
+                self._monthly_accumulated_cost = self._validate_float(
+                    data.get("monthly_accumulated_cost", 0.0)
+                )
+                self._monthly_accumulated_cost_strom = self._validate_float(
+                    data.get("monthly_accumulated_cost_strom", 0.0)
+                )
+                self._monthly_accumulated_cost_energiledd = self._validate_float(
+                    data.get("monthly_accumulated_cost_energiledd", 0.0)
+                )
+                self._monthly_accumulated_cost_kapasitetsledd = self._validate_float(
+                    data.get("monthly_accumulated_cost_kapasitetsledd", 0.0)
+                )
                 self._previous_month_export_kwh = self._validate_float(
                     data.get("previous_month_export_kwh", 0.0)
                 )
@@ -851,6 +908,10 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             "monthly_export_kwh": self._monthly_export_kwh,
             "monthly_export_revenue": self._monthly_export_revenue,
             "monthly_cost": self._monthly_cost,
+            "monthly_accumulated_cost": self._monthly_accumulated_cost,
+            "monthly_accumulated_cost_strom": self._monthly_accumulated_cost_strom,
+            "monthly_accumulated_cost_energiledd": self._monthly_accumulated_cost_energiledd,
+            "monthly_accumulated_cost_kapasitetsledd": self._monthly_accumulated_cost_kapasitetsledd,
             "previous_month_export_kwh": self._previous_month_export_kwh,
             "previous_month_export_revenue": self._previous_month_export_revenue,
             "previous_month_cost": self._previous_month_cost,

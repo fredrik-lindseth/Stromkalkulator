@@ -16,7 +16,7 @@ Strømpris per kWh viser den variable kWh-prisen (spotpris + energiledd) uten es
 
 ## Kapasitetstrinn
 
-Tre dager med høyest effektforbruk bestemmer månedens kapasitetsledd. Strømkalkulator viser hvilke tre dager det er, med dato og effekt. Nåværende trinn, månedskostnad, og hvor mange kW som gjenstår før neste trinn. Varsel når forbruket nærmer seg en trinngrense.
+Tre dager med høyest effektforbruk bestemmer månedens kapasitetsledd. Strømkalkulator viser hvilke tre dager det er, med dato, klokkeslett og effekt. Nåværende trinn, månedskostnad, og hvor mange kW som gjenstår før neste trinn. Varsel når forbruket nærmer seg en trinngrense.
 
 ## Dagen og måneden, i kroner
 
@@ -26,13 +26,31 @@ Dagens kostnad akkumulerer gjennom døgnet. Estimert månedskostnad projiserer b
 
 ## Fakturasjekk
 
-Ved månedsslutt har Strømkalkulator beregnet nettleien: dag- og nattforbruk splittet og priset, kapasitetsledd fra faktiske topper, avgifter krone for krone. Brukeren kan sammenligne med fakturaen manuelt.
+Når nettleiefakturaen kommer, reproduserer Strømkalkulator hver linje: energiledd dag og natt, kapasitetsledd med riktig trinn, forbruksavgift, Enova-avgift, mva — alt separat og summert. Norgespris-kompensasjonen akkumuleres time for time gjennom måneden, slik at brukeren kan sammenligne direkte med BKKs (eller et annet nettselskaps) beregning.
 
-Forrige måneds data bevares med komplett nedbrytning. Typisk avvik fra faktura er 1-5% (avrunding, målefeil).
+Forrige måneds data bevares komplett: forbruk splittet på dag/natt, topp 3 effektdager med klokkeslett, kapasitetstrinn og -pris, og Norgespris-kompensasjon i kroner. Typisk avvik er noen få kroner, fordi integrasjonen bruker Riemann-sum fra effektsensoren mens måleren teller kWh direkte.
+
+## To sannheter om pris
+
+Strømkalkulator skiller tydelig mellom to ting:
+
+**Marginalkostnad** — hva koster én ekstra kWh akkurat nå? Totalpris-sensoren svarer på dette, inkludert en andel av kapasitetsleddet fordelt per kWh. Nyttig for sanntidsbeslutninger og Energy Dashboard, men summen over en måned treffer ikke fakturaen fordi kapasitetsledd er et fast beløp som ikke skalerer med forbruk.
+
+**Faktisk månedskostnad** — hva kommer fakturaen til å vise? Månedlig total-sensoren svarer på dette, med kapasitetsledd som flat sum. Treffer fakturaen innenfor noen få kroner.
+
+Begge er riktige svar på forskjellige spørsmål. Strømkalkulator kommuniserer tydelig hvilken sensor som svarer på hva.
 
 ## Norgespris-sammenligning
 
 Løpende sammenligning mellom spotpris-avtale og Norgespris (40 øre/kWh fast). Akkumulert gjennom måneden, inkludert strømstøtte-terskelen, avgiftssone og volumtak. Viser om du ville spart eller tapt på å bytte.
+
+Norgespris-kompensasjonen — det faktiske kronebeløpet nettselskapet krediterer time for time — spores separat. Når fakturaen kommer, kan brukeren sammenligne direkte med Norgespris-linjen.
+
+## Solceller og eksport
+
+Plusskunder selger overskuddsstrøm til spotpris. Strømkalkulator sporer eksportert energi og beregner inntekten. Nettokostnad — kjøp minus salg — gir et komplett bilde av strømregningen.
+
+For kunder som valgte bort Norgespris for å selge til høyere sommerpris, viser sammenligningssensoren om regnestykket faktisk går opp: Norgespris gir billigere kjøp men påvirker ikke salgsinntekten. Strømkalkulator holder tellingen.
 
 ## Nettselskaper
 
@@ -70,8 +88,8 @@ All beregning skjer lokalt. Strømkalkulator gjør ingen egne API-kall og sender
 
 ## Verifiserbarhet
 
-Hver sats og terskelverdi er dokumentert med offisiell kilde (Lovdata, Stortingets avgiftsvedtak, nettselskapenes prislister). En fullstendig testsuite verifiserer formlene, inkludert reelle fakturaer som testdata.
+Hver sats og terskelverdi er dokumentert med offisiell kilde (Lovdata, Stortingets avgiftsvedtak, nettselskapenes prislister). En fullstendig testsuite verifiserer formlene, inkludert reelle fakturaer som testdata. Når noe ikke stemmer perfekt — som kapasitetsledd i Energy Dashboard — dokumenteres begrensningen åpent.
 
 ---
 
-_Strømkalkulator gir norske strømkunder en komplett og oppdatert oversikt over hva strømmen koster — synlig mens forbruket skjer, ikke når fakturaen kommer._
+_Strømkalkulator gir norske strømkunder en komplett og oppdatert oversikt over hva strømmen koster — synlig mens forbruket skjer, verifiserbart når fakturaen kommer._

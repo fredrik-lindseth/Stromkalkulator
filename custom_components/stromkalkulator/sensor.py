@@ -101,6 +101,7 @@ async def async_setup_entry(
         MaanedligNorgesprisDifferanseSensor(coordinator, entry),
         MaanedligNorgesprisKompensasjonSensor(coordinator, entry),
         DagskostnadSensor(coordinator, entry),
+        AkkumulertKostnadSensor(coordinator, entry),
         EstimertMaanedskostnadSensor(coordinator, entry),
         # Forrige måned sensors
         ForrigeMaanedForbrukDagSensor(coordinator, entry),
@@ -1591,6 +1592,50 @@ class DagskostnadSensor(MaanedligBaseSensor):
     def native_value(self) -> float | None:
         if self.coordinator.data:
             return cast("float | None", self.coordinator.data.get("daily_cost_kr"))
+        return None
+
+
+class AkkumulertKostnadSensor(MaanedligBaseSensor):
+    """Akkumulert kostnad for Energy Dashboard (stat_cost).
+
+    Akkumulerer strompris, energiledd og kapasitetsledd separat.
+    Kapasitetsledd fordeles lineaert over maneden (tidsbasert),
+    slik at manedstotalen matcher fakturaen uavhengig av forbruk.
+    """
+
+    _attr_entity_registry_enabled_default: bool = False
+    _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
+    _attr_native_unit_of_measurement: str = "kr"
+    _attr_state_class: SensorStateClass = SensorStateClass.TOTAL_INCREASING
+    _attr_icon: str = "mdi:cash-register"
+    _attr_suggested_display_precision: int = 2
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "akkumulert_kostnad", "akkumulert_kostnad")
+        self._attr_native_unit_of_measurement = "kr"
+        self._attr_state_class = SensorStateClass.TOTAL_INCREASING
+        self._attr_icon = "mdi:cash-register"
+        self._attr_suggested_display_precision = 2
+
+    @property
+    def native_value(self) -> float | None:
+        """Return accumulated monthly cost."""
+        if self.coordinator.data:
+            return cast("float | None", self.coordinator.data.get("monthly_accumulated_cost_kr"))
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return cost breakdown."""
+        if self.coordinator.data:
+            return {
+                "strompris_kr": self.coordinator.data.get("monthly_accumulated_cost_strom_kr"),
+                "energiledd_kr": self.coordinator.data.get("monthly_accumulated_cost_energiledd_kr"),
+                "kapasitetsledd_kr": self.coordinator.data.get("monthly_accumulated_cost_kapasitetsledd_kr"),
+                "total_kwh": self.coordinator.data.get("monthly_consumption_total_kwh"),
+                "bruk": "Velg som 'Use an entity tracking total costs' i Energy Dashboard",
+            }
         return None
 
 

@@ -124,6 +124,7 @@
       "forrige_maaned_norgespris_kompensasjon": { "name": "Forrige måned Norgespris-kompensasjon" },
       "estimert_maanedskostnad": { "name": "Estimert månedskostnad" },
       "dagskostnad": { "name": "Dagens kostnad" },
+      "akkumulert_kostnad": { "name": "Akkumulert strømkostnad" },
       "maanedlig_eksport_kwh": { "name": "Månedlig eksport" },
       "maanedlig_eksport_inntekt": { "name": "Månedlig eksportinntekt" },
       "maanedlig_nettokostnad": { "name": "Månedlig nettokostnad" },

@@ -24,6 +24,7 @@ Integrasjonen gir deg sensorer som viser din **faktiske strømpris** - ikke bare
 - **Totalpris** - Alt inkludert, kan brukes i Energy Dashboard (men se [begrensninger](#kapasitetsledd-i-energy-dashboard))
 - **Månedlig forbruk** - Sporer forbruk og kostnader per måned
 - **Faktura-sjekk** - Sammenlign med fakturaen når den kommer
+- **Solceller** - Spor eksport og inntekt for plusskunder (deaktivert som standard)
 
 ## Installasjon
 

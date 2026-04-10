@@ -2,7 +2,7 @@
 
 Dokumenterer kode som **bevisst** ikke er dekket av tester, og hvorfor. Oppdateres ved test-review.
 
-Sist oppdatert: 2026-04-02
+Sist oppdatert: 2026-04-10
 
 ## Krever Home Assistant testinfrastruktur
 
@@ -52,18 +52,37 @@ Prioritet: Lav. Statiske tester + coordinator-tester dekker all beregningslogikk
 Følgende endringer ble gjort under test-review:
 
 ### Slettet (redundant)
-- `test_forrige_maaned.py` — 95% redundant med test_monthly_sensors.py, test_kapasitetstrinn.py
-- `test_quality_r3.py` — 50%+ duplisert med test_coverage_gaps.py, unike tester flyttet dit
-- `test_stromstotte.py` — slått sammen med test_stromstotte_tak.py
+- `test_forrige_maaned.py` -- 95% redundant med test_monthly_sensors.py, test_kapasitetstrinn.py
+- `test_quality_r3.py` -- 50%+ duplisert med test_coverage_gaps.py, unike tester flyttet dit
+- `test_stromstotte.py` -- slatt sammen med test_stromstotte_tak.py
 
 ### Fjernet fra filer
 - Tautologier i test_property.py (test_tariff_always_boolean, test_norgespris_independent_of_spot, etc.)
-- Øre-til-NOK-konverteringstester i test_avgifter.py
+- Ore-til-NOK-konverteringstester i test_avgifter.py
 - Dataclass-strukturtester i test_dso_migration.py
 - Passthrough native_value-tester i test_sensor_classes.py
 - Redundante beregningsduplikater i test_offentlige_avgifter_sensor.py
 - `_expected_total()` helper i test_monthly_sensors.py (dupliserte sensorlogikk)
 
 ### Lagt til
-- `test_edge_cases.py` — DST, helligdager 2031+, strømstøtte-grensepresisjon
+- `test_edge_cases.py` -- DST, helligdager 2031+, stromstotte-grensepresisjon
 - Konstantvalidering (threshold, rate, cap) i test_stromstotte_tak.py
+
+## Konsolideringslogg (2026-04-10)
+
+### Slettet (redundant)
+- `test_avgifter.py` -- testet lokale reimplementeringer, ikke produksjonskoden. Dekket av test_passthrough_sensors.py og test_property.py
+- `test_offentlige_avgifter_sensor.py` -- redundant med test_passthrough_sensors.py og test_avgifter.py
+- `test_faktura_validering.py` -- 2025-satser, erstattet av test_faktura_februar_2026.py/mars_2026.py
+- `test_margin_neste_trinn.py` -- konsolidert inn i test_kapasitetstrinn.py
+
+### Fjernet fra filer
+- test_property.py: 8 exhaustive tier-2 tester (redundant med test_dso_data_validation.py og test_passthrough_sensors.py)
+- test_config_flow.py: TestCoordinatorFloatProtection (fragil regex-sjekk, dekket av coordinator_robustness)
+- test_edge_cases.py: TestStromstotteThresholdPrecision (flyttet til test_stromstotte_tak.py)
+
+### Lagt til
+- test_eksport.py: eksport-sensor feilhandtering (ValueError, inf, >500kW clamp)
+- test_persistens.py: _validate_daily_max_power edge cases, korrupt storage
+- test_coordinator_update.py: kapasitetsvarsel for hoyeste trinn
+- test_stromstotte_tak.py: floating-point grensepresisjon

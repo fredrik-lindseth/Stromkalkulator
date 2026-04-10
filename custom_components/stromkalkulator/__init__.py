@@ -28,11 +28,6 @@ type StromkalkulatorConfigEntry = ConfigEntry[NettleieCoordinator]
 _MIGRATION_INDEX: dict[str, DSOFusjon] = {m.gammel: m for m in DSO_MIGRATIONS}
 
 
-def _build_migration_index() -> dict[str, DSOFusjon]:
-    """Return the migration index (for testing)."""
-    return _MIGRATION_INDEX
-
-
 def _check_dso_migration(dso_id: str) -> DSOFusjon | None:
     """Check if a DSO key needs migration. Returns DSOFusjon or None."""
     return _MIGRATION_INDEX.get(dso_id)

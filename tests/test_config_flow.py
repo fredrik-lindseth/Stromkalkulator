@@ -326,30 +326,24 @@ class TestConfigFlowErrorKeys:
 
 
 class TestCoordinatorFloatProtection:
-    """Every float(state) in coordinator.py must be wrapped in try/except."""
+    """Every float(state) in coordinator sensor-reading helpers must be wrapped in try/except."""
 
     def test_all_float_state_conversions_are_protected(self):
-        """float(.*state) calls in _async_update_data must have except ValueError."""
+        """float(.*state) calls in sensor-reading helpers must have except ValueError."""
         source = (COMPONENTS_DIR / "coordinator.py").read_text()
 
-        # Find the _async_update_data method
-        match = re.search(
-            r"async def _async_update_data\(self\).*?(?=\n    async def |\n    def |\nclass |\Z)",
-            source,
-            re.DOTALL,
-        )
-        assert match, "Could not find _async_update_data method"
-        method_source = match.group(0)
+        # Sensor reading is now in _read_sensor_float and _read_price_sensor helpers
+        for method_name in ("_read_sensor_float", "_read_price_sensor"):
+            pattern = rf"def {method_name}\(.*?(?=\n    def |\n    async def |\nclass |\Z)"
+            match = re.search(pattern, source, re.DOTALL)
+            assert match, f"Could not find {method_name} method"
+            method_source = match.group(0)
 
-        # Find all float() calls on sensor state
-        float_calls = re.findall(r"float\([^)]*state[^)]*\)", method_source)
-        assert float_calls, "Should find float() calls on sensor state"
+            float_calls = re.findall(r"float\([^)]*state[^)]*\)", method_source)
+            assert float_calls, f"Should find float() calls on sensor state in {method_name}"
 
-        # Each float() on state must be inside a try block or have a fallback
-        # Check that "except (ValueError" or "except ValueError" exists in the method
-        has_protection = "except (ValueError" in method_source or "except ValueError" in method_source
-        assert has_protection, (
-            f"Found {len(float_calls)} float(state) calls in _async_update_data "
-            f"but no ValueError handler. All float conversions on sensor state "
-            f"must be protected against non-numeric values like 'Ja', 'on', 'NOK'."
-        )
+            has_protection = "except (ValueError" in method_source or "except ValueError" in method_source
+            assert has_protection, (
+                f"Found {len(float_calls)} float(state) calls in {method_name} "
+                f"but no ValueError handler."
+            )

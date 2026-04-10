@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
 from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.components.sensor import (
@@ -11,6 +10,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.const import EntityCategory
+from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
@@ -18,13 +18,19 @@ from .const import (
     AVGIFTSSONE_STANDARD,
     CONF_AVGIFTSSONE,
     CONF_DSO,
+    DEFAULT_DSO,
+    DEFAULT_NAME,
     DOMAIN,
     DSO_LIST,
     ENOVA_AVGIFT,
+    MANUFACTURER,
     STROMSTOTTE_LEVEL,
+    STROMSTOTTE_RATE,
     get_forbruksavgift,
     get_mva_sats,
+    get_norgespris_inkl_mva,
 )
+from .coordinator import days_in_month
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -144,12 +150,11 @@ class NettleieBaseSensor(CoordinatorEntity, SensorEntity):  # type: ignore[misc]
         self._attr_translation_key = translation_key
         self._entry = entry
 
-        # Get DSO name for device info
-        dso_id = entry.data.get(CONF_DSO, "bkk")
-        self._dso = DSO_LIST.get(dso_id, DSO_LIST["bkk"])
+        dso_id = entry.data.get(CONF_DSO, DEFAULT_DSO)
+        self._dso = DSO_LIST.get(dso_id, DSO_LIST[DEFAULT_DSO])
 
     @property
-    def device_info(self) -> dict[str, Any]:
+    def device_info(self) -> DeviceInfo:
         """Return device info."""
         device_names: dict[str, str] = {
             DEVICE_NETTLEIE: f"Nettleie ({self._dso['name']})",
@@ -157,12 +162,21 @@ class NettleieBaseSensor(CoordinatorEntity, SensorEntity):  # type: ignore[misc]
             DEVICE_NORGESPRIS: "Norgespris",
             DEVICE_EKSPORT: "Eksport (solceller)",
         }
-        return {
-            "identifiers": {(DOMAIN, f"{self._entry.entry_id}_{self._device_group}")},
-            "name": device_names.get(self._device_group, f"Nettleie ({self._dso['name']})"),
-            "manufacturer": "Fredrik Lindseth",
-            "model": "Strømkalkulator",
-        }
+        return DeviceInfo(
+            identifiers={(DOMAIN, f"{self._entry.entry_id}_{self._device_group}")},
+            name=device_names.get(self._device_group, f"Nettleie ({self._dso['name']})"),
+            manufacturer=MANUFACTURER,
+            model=DEFAULT_NAME,
+        )
+
+    def _get_forbruksavgift(self) -> float:
+        avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
+        month = dt_util.now().month
+        return get_forbruksavgift(avgiftssone, month)
+
+    def _get_mva_sats(self) -> float:
+        avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
+        return get_mva_sats(avgiftssone)
 
 
 class EnergileddSensor(NettleieBaseSensor):
@@ -176,9 +190,6 @@ class EnergileddSensor(NettleieBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "energiledd", "energiledd")
-        self._attr_native_unit_of_measurement = "NOK/kWh"
-        self._attr_icon = "mdi:currency-usd"
-        self._attr_suggested_display_precision = 2
 
     @property
     def native_value(self) -> float | None:
@@ -211,8 +222,6 @@ class KapasitetstrinnSensor(NettleieBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "kapasitetstrinn", "kapasitetstrinn")
-        self._attr_native_unit_of_measurement = "kr/mnd"
-        self._attr_icon = "mdi:transmission-tower"
 
     @property
     def native_value(self) -> float | int | None:
@@ -253,10 +262,6 @@ class MarginNesteTrinnSensor(NettleieBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "margin_neste_trinn", "margin_neste_trinn")
-        self._attr_native_unit_of_measurement = "kW"
-        self._attr_state_class = SensorStateClass.MEASUREMENT
-        self._attr_icon = "mdi:arrow-up-bold"
-        self._attr_suggested_display_precision = 1
 
     @property
     def native_value(self) -> float | None:
@@ -284,7 +289,6 @@ class KapasitetVarselSensor(NettleieBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "kapasitet_varsel", "kapasitet_varsel")
-        self._attr_icon = "mdi:alert"
 
     @property
     def native_value(self) -> str | None:
@@ -315,9 +319,6 @@ class TotalPriceSensor(NettleieBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "total_price", "total_price")
-        self._attr_native_unit_of_measurement = "NOK/kWh"
-        self._attr_icon = "mdi:cash"
-        self._attr_suggested_display_precision = 2
 
     @property
     def native_value(self) -> float | None:
@@ -353,9 +354,6 @@ class MaksForbrukSensor(NettleieBaseSensor):
         """Initialize the sensor."""
         super().__init__(coordinator, entry, f"maks_forbruk_{rank}", "maks_forbruk")
         self._rank = rank
-        self._attr_native_unit_of_measurement = "kW"
-        self._attr_state_class = SensorStateClass.MEASUREMENT
-        self._attr_icon = "mdi:lightning-bolt"
 
     @property
     def native_value(self) -> float | None:
@@ -394,9 +392,6 @@ class GjsForbrukSensor(NettleieBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "gjennomsnitt_forbruk", "gjs_forbruk")
-        self._attr_native_unit_of_measurement = "kW"
-        self._attr_state_class = SensorStateClass.MEASUREMENT
-        self._attr_icon = "mdi:chart-line"
 
     @property
     def native_value(self) -> float | None:
@@ -428,7 +423,6 @@ class TrinnNummerSensor(NettleieBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "trinn_nummer", "trinn_nummer")
-        self._attr_icon = "mdi:numeric"
 
     @property
     def native_value(self) -> int | None:
@@ -448,7 +442,6 @@ class TrinnIntervallSensor(NettleieBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "trinn_intervall", "trinn_intervall")
-        self._attr_icon = "mdi:arrow-expand-horizontal"
 
     @property
     def native_value(self) -> str | None:
@@ -471,20 +464,6 @@ class OffentligeAvgifterSensor(NettleieBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "offentlige_avgifter", "offentlige_avgifter")
-        self._attr_native_unit_of_measurement = "NOK/kWh"
-        self._attr_icon = "mdi:bank"
-        self._attr_suggested_display_precision = 2
-
-    def _get_forbruksavgift(self) -> float:
-        """Get forbruksavgift based on avgiftssone and current month."""
-        avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
-        month = dt_util.now().month
-        return get_forbruksavgift(avgiftssone, month)
-
-    def _get_mva_sats(self) -> float:
-        """Get MVA rate based on avgiftssone."""
-        avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
-        return get_mva_sats(avgiftssone)
 
     @property
     def native_value(self) -> float:
@@ -500,14 +479,11 @@ class OffentligeAvgifterSensor(NettleieBaseSensor):
         forbruksavgift = self._get_forbruksavgift()
         mva_sats = self._get_mva_sats()
         avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
-        month = dt_util.now().month
-        sesong = "vinter" if month <= 3 else "sommer"
 
         forbruksavgift_inkl_mva = round(forbruksavgift * (1 + mva_sats), 4)
         enova_inkl_mva = round(ENOVA_AVGIFT * (1 + mva_sats), 4)
         return {
             "avgiftssone": avgiftssone,
-            "sesong": sesong,
             "forbruksavgift_eks_mva": forbruksavgift,
             "forbruksavgift_inkl_mva": forbruksavgift_inkl_mva,
             "enova_avgift_eks_mva": ENOVA_AVGIFT,
@@ -529,9 +505,6 @@ class ElectricityCompanyTotalSensor(NettleieBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "electricity_company_total", "electricity_company_total")
-        self._attr_native_unit_of_measurement = "NOK/kWh"
-        self._attr_icon = "mdi:cash-plus"
-        self._attr_suggested_display_precision = 2
 
     @property
     def native_value(self) -> float | None:
@@ -565,9 +538,6 @@ class StromprisPerKwhSensor(NettleieBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "strompris_per_kwh", "strompris_per_kwh")
-        self._attr_native_unit_of_measurement = "NOK/kWh"
-        self._attr_icon = "mdi:flash"
-        self._attr_suggested_display_precision = 2
 
     @property
     def native_value(self) -> float | None:
@@ -599,9 +569,6 @@ class StromstotteSensor(NettleieBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "stromstotte", "stromstotte")
-        self._attr_native_unit_of_measurement = "NOK/kWh"
-        self._attr_icon = "mdi:cash-refund"
-        self._attr_suggested_display_precision = 2
 
     @property
     def native_value(self) -> float | None:
@@ -617,7 +584,7 @@ class StromstotteSensor(NettleieBaseSensor):
             return {
                 "spotpris": self.coordinator.data.get("spot_price"),
                 "terskel": STROMSTOTTE_LEVEL,
-                "dekningsgrad": "90%",
+                "dekningsgrad": f"{int(STROMSTOTTE_RATE * 100)}%",
                 "tak_naadd": self.coordinator.data.get("stromstotte_tak_naadd", False),
                 "boligtype": self.coordinator.data.get("boligtype", "bolig"),
             }
@@ -636,9 +603,6 @@ class SpotprisEtterStotteSensor(NettleieBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "spotpris_etter_stotte", "spotpris_etter_stotte")
-        self._attr_native_unit_of_measurement = "NOK/kWh"
-        self._attr_icon = "mdi:currency-usd-off"
-        self._attr_suggested_display_precision = 2
 
     @property
     def native_value(self) -> float | None:
@@ -670,9 +634,6 @@ class TotalPrisEtterStotteSensor(NettleieBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "total_pris_etter_stotte", "total_pris_etter_stotte")
-        self._attr_native_unit_of_measurement = "NOK/kWh"
-        self._attr_icon = "mdi:cash-check"
-        self._attr_suggested_display_precision = 2
 
     @property
     def native_value(self) -> float | None:
@@ -707,9 +668,6 @@ class TotalPrisInklAvgifterSensor(NettleieBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "total_pris_inkl_avgifter", "total_pris_inkl_avgifter")
-        self._attr_native_unit_of_measurement = "NOK/kWh"
-        self._attr_icon = "mdi:receipt-text-check"
-        self._attr_suggested_display_precision = 2
 
     @property
     def native_value(self) -> float | None:
@@ -748,9 +706,6 @@ class TotalPrisNorgesprisSensor(NettleieBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "total_pris_norgespris", "total_pris_norgespris")
-        self._attr_native_unit_of_measurement = "NOK/kWh"
-        self._attr_icon = "mdi:map-marker"
-        self._attr_suggested_display_precision = 2
 
     @property
     def native_value(self) -> float | None:
@@ -786,9 +741,6 @@ class PrisforskjellNorgesprisSensor(NettleieBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "prisforskjell_norgespris", "prisforskjell_norgespris")
-        self._attr_native_unit_of_measurement = "NOK/kWh"
-        self._attr_icon = "mdi:cash-minus"
-        self._attr_suggested_display_precision = 2
 
     @property
     def native_value(self) -> float | None:
@@ -802,15 +754,12 @@ class PrisforskjellNorgesprisSensor(NettleieBaseSensor):
         """Return extra attributes."""
         if self.coordinator.data:
             norgespris = self.coordinator.data.get("norgespris")
-            norgespris_stromstotte = self.coordinator.data.get("norgespris_stromstotte")
-            norgespris_etter_stotte: float | None = None
-            if norgespris is not None and norgespris_stromstotte is not None:
-                norgespris_etter_stotte = norgespris - norgespris_stromstotte
+            norgespris_etter_stotte = norgespris
             return {
                 "din_pris_etter_stotte": self.coordinator.data.get("spotpris_etter_stotte"),
                 "norgespris_etter_stotte": norgespris_etter_stotte,
                 "differens_per_kwh": self.coordinator.data.get("kroner_spart_per_kwh"),
-                "note": "Norgespris er fast 50 øre/kWh fra Elhub",
+                "note": f"Norgespris er fast {get_norgespris_inkl_mva(self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)) * 100:.0f} øre/kWh",
             }
         return None
 
@@ -825,7 +774,6 @@ class NorgesprisAktivSensor(NettleieBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "norgespris_aktiv", "norgespris_aktiv")
-        self._attr_icon = "mdi:check-circle"
 
     @property
     def native_value(self) -> str | None:
@@ -854,9 +802,6 @@ class EnergileddDagSensor(NettleieBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "energiledd_dag", "energiledd_dag")
-        self._attr_native_unit_of_measurement = "NOK/kWh"
-        self._attr_icon = "mdi:weather-sunny"
-        self._attr_suggested_display_precision = 2
 
     @property
     def native_value(self) -> float | None:
@@ -896,9 +841,6 @@ class EnergileddNattSensor(NettleieBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "energiledd_natt", "energiledd_natt")
-        self._attr_native_unit_of_measurement = "NOK/kWh"
-        self._attr_icon = "mdi:weather-night"
-        self._attr_suggested_display_precision = 2
 
     @property
     def native_value(self) -> float | None:
@@ -938,20 +880,6 @@ class ForbruksavgiftSensor(NettleieBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "forbruksavgift", "forbruksavgift")
-        self._attr_native_unit_of_measurement = "NOK/kWh"
-        self._attr_icon = "mdi:lightning-bolt"
-        self._attr_suggested_display_precision = 2
-
-    def _get_forbruksavgift(self) -> float:
-        """Get forbruksavgift based on avgiftssone."""
-        avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
-        month = dt_util.now().month
-        return get_forbruksavgift(avgiftssone, month)
-
-    def _get_mva_sats(self) -> float:
-        """Get MVA rate based on avgiftssone."""
-        avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
-        return get_mva_sats(avgiftssone)
 
     @property
     def native_value(self) -> float:
@@ -989,14 +917,6 @@ class EnovaavgiftSensor(NettleieBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "enovaavgift", "enovaavgift")
-        self._attr_native_unit_of_measurement = "NOK/kWh"
-        self._attr_icon = "mdi:leaf"
-        self._attr_suggested_display_precision = 2
-
-    def _get_mva_sats(self) -> float:
-        """Get MVA rate based on avgiftssone."""
-        avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
-        return get_mva_sats(avgiftssone)
 
     @property
     def native_value(self) -> float:
@@ -1029,7 +949,6 @@ class StromstotteKwhSensor(NettleieBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "stromstotte_aktiv", "stromstotte_kwh")
-        self._attr_icon = "mdi:cash-check"
 
     @property
     def native_value(self) -> str | None:
@@ -1068,9 +987,6 @@ class StromstotteGjenstaaendeSensor(NettleieBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "stromstotte_gjenstaaende", "stromstotte_gjenstaaende")
-        self._attr_native_unit_of_measurement = "kWh"
-        self._attr_state_class = SensorStateClass.MEASUREMENT
-        self._attr_icon = "mdi:gauge"
 
     @property
     def native_value(self) -> float | None:
@@ -1093,9 +1009,6 @@ class StromprisPerKwhEtterStotteSensor(NettleieBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "strompris_per_kwh_etter_stotte", "strompris_per_kwh_etter_stotte")
-        self._attr_native_unit_of_measurement = "NOK/kWh"
-        self._attr_icon = "mdi:flash-outline"
-        self._attr_suggested_display_precision = 2
 
     @property
     def native_value(self) -> float | None:
@@ -1124,7 +1037,6 @@ class TariffSensor(NettleieBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "tariff", "tariff")
-        self._attr_icon = "mdi:clock-outline"
 
     @property
     def native_value(self) -> str | None:
@@ -1158,14 +1070,14 @@ class MaanedligBaseSensor(NettleieBaseSensor):
     _device_group: str = DEVICE_MAANEDLIG
 
     @property
-    def device_info(self) -> dict[str, Any]:
+    def device_info(self) -> DeviceInfo:
         """Return device info for Månedlig device."""
-        return {
-            "identifiers": {(DOMAIN, f"{self._entry.entry_id}_{self._device_group}")},
-            "name": "Månedlig forbruk",
-            "manufacturer": "Fredrik Lindseth",
-            "model": "Strømkalkulator",
-        }
+        return DeviceInfo(
+            identifiers={(DOMAIN, f"{self._entry.entry_id}_{self._device_group}")},
+            name="Månedlig forbruk",
+            manufacturer=MANUFACTURER,
+            model=DEFAULT_NAME,
+        )
 
 
 class MaanedligForbrukDagSensor(MaanedligBaseSensor):
@@ -1180,10 +1092,6 @@ class MaanedligForbrukDagSensor(MaanedligBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "maanedlig_forbruk_dag", "maanedlig_forbruk_dag")
-        self._attr_native_unit_of_measurement = "kWh"
-        self._attr_state_class = SensorStateClass.TOTAL_INCREASING
-        self._attr_icon = "mdi:weather-sunny"
-        self._attr_suggested_display_precision = 1
 
     @property
     def native_value(self) -> float | None:
@@ -1205,10 +1113,6 @@ class MaanedligForbrukNattSensor(MaanedligBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "maanedlig_forbruk_natt", "maanedlig_forbruk_natt")
-        self._attr_native_unit_of_measurement = "kWh"
-        self._attr_state_class = SensorStateClass.TOTAL_INCREASING
-        self._attr_icon = "mdi:weather-night"
-        self._attr_suggested_display_precision = 1
 
     @property
     def native_value(self) -> float | None:
@@ -1230,10 +1134,6 @@ class MaanedligForbrukTotalSensor(MaanedligBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "maanedlig_forbruk_total", "maanedlig_forbruk_total")
-        self._attr_native_unit_of_measurement = "kWh"
-        self._attr_state_class = SensorStateClass.TOTAL_INCREASING
-        self._attr_icon = "mdi:lightning-bolt"
-        self._attr_suggested_display_precision = 1
 
     @property
     def native_value(self) -> float | None:
@@ -1271,10 +1171,6 @@ class MaanedligNettleieSensor(MaanedligBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "maanedlig_nettleie", "maanedlig_nettleie")
-        self._attr_native_unit_of_measurement = "kr"
-        self._attr_state_class = SensorStateClass.TOTAL
-        self._attr_icon = "mdi:transmission-tower"
-        self._attr_suggested_display_precision = 0
 
     @property
     def native_value(self) -> float | None:
@@ -1324,10 +1220,6 @@ class MaanedligAvgifterSensor(MaanedligBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "maanedlig_avgifter", "maanedlig_avgifter")
-        self._attr_native_unit_of_measurement = "kr"
-        self._attr_state_class = SensorStateClass.TOTAL
-        self._attr_icon = "mdi:bank"
-        self._attr_suggested_display_precision = 0
         self._avgiftssone = entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
 
     @property
@@ -1383,10 +1275,6 @@ class MaanedligStromstotteSensor(MaanedligBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "maanedlig_stromstotte", "maanedlig_stromstotte")
-        self._attr_native_unit_of_measurement = "kr"
-        self._attr_state_class = SensorStateClass.TOTAL
-        self._attr_icon = "mdi:cash-plus"
-        self._attr_suggested_display_precision = 0
 
     @property
     def native_value(self) -> float | None:
@@ -1422,10 +1310,6 @@ class MaanedligTotalSensor(MaanedligBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "maanedlig_total", "maanedlig_total")
-        self._attr_native_unit_of_measurement = "kr"
-        self._attr_state_class = SensorStateClass.TOTAL
-        self._attr_icon = "mdi:receipt-text"
-        self._attr_suggested_display_precision = 0
         self._avgiftssone = entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
 
     @property
@@ -1485,10 +1369,9 @@ class MaanedligTotalSensor(MaanedligBaseSensor):
         return None
 
 
-class MaanedligNorgesprisDifferanseSensor(NettleieBaseSensor):
+class MaanedligNorgesprisDifferanseSensor(MaanedligBaseSensor):
     """Sensor for accumulated monthly Norgespris savings/loss."""
 
-    _device_group: str = DEVICE_MAANEDLIG
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "kr"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
@@ -1497,20 +1380,6 @@ class MaanedligNorgesprisDifferanseSensor(NettleieBaseSensor):
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "maanedlig_norgespris_diff", "maanedlig_norgespris_diff")
-        self._attr_native_unit_of_measurement = "kr"
-        self._attr_state_class = SensorStateClass.TOTAL
-        self._attr_icon = "mdi:scale-balance"
-        self._attr_suggested_display_precision = 0
-
-    @property
-    def device_info(self) -> dict[str, Any]:
-        """Return device info for Månedlig device."""
-        return {
-            "identifiers": {(DOMAIN, f"{self._entry.entry_id}_{self._device_group}")},
-            "name": "Månedlig forbruk",
-            "manufacturer": "Fredrik Lindseth",
-            "model": "Strømkalkulator",
-        }
 
     @property
     def native_value(self) -> float | None:
@@ -1529,10 +1398,9 @@ class MaanedligNorgesprisDifferanseSensor(NettleieBaseSensor):
         return None
 
 
-class MaanedligNorgesprisKompensasjonSensor(NettleieBaseSensor):
+class MaanedligNorgesprisKompensasjonSensor(MaanedligBaseSensor):
     """Sensor for accumulated monthly Norgespris compensation (norgespris - spot) * kWh."""
 
-    _device_group: str = DEVICE_MAANEDLIG
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "kr"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
@@ -1541,20 +1409,6 @@ class MaanedligNorgesprisKompensasjonSensor(NettleieBaseSensor):
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "maanedlig_norgespris_kompensasjon", "maanedlig_norgespris_kompensasjon")
-        self._attr_native_unit_of_measurement = "kr"
-        self._attr_state_class = SensorStateClass.TOTAL
-        self._attr_icon = "mdi:cash-sync"
-        self._attr_suggested_display_precision = 0
-
-    @property
-    def device_info(self) -> dict[str, Any]:
-        """Return device info for Maanedlig device."""
-        return {
-            "identifiers": {(DOMAIN, f"{self._entry.entry_id}_{self._device_group}")},
-            "name": "Månedlig forbruk",
-            "manufacturer": "Fredrik Lindseth",
-            "model": "Strømkalkulator",
-        }
 
     @property
     def native_value(self) -> float | None:
@@ -1583,10 +1437,6 @@ class DagskostnadSensor(MaanedligBaseSensor):
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "daily_cost", "dagskostnad")
-        self._attr_native_unit_of_measurement = "kr"
-        self._attr_state_class = SensorStateClass.TOTAL
-        self._attr_icon = "mdi:calendar-today"
-        self._attr_suggested_display_precision = 0
 
     @property
     def native_value(self) -> float | None:
@@ -1613,10 +1463,6 @@ class AkkumulertKostnadSensor(MaanedligBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "akkumulert_kostnad", "akkumulert_kostnad")
-        self._attr_native_unit_of_measurement = "kr"
-        self._attr_state_class = SensorStateClass.TOTAL
-        self._attr_icon = "mdi:cash-register"
-        self._attr_suggested_display_precision = 2
 
     @property
     def native_value(self) -> float | None:
@@ -1650,9 +1496,6 @@ class EstimertMaanedskostnadSensor(MaanedligBaseSensor):
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "estimated_monthly_cost", "estimert_maanedskostnad")
-        self._attr_native_unit_of_measurement = "kr"
-        self._attr_icon = "mdi:crystal-ball"
-        self._attr_suggested_display_precision = 0
         self._avgiftssone = entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
 
     @property
@@ -1662,11 +1505,7 @@ class EstimertMaanedskostnadSensor(MaanedligBaseSensor):
 
         now = dt_util.now()
         day_of_month = now.day
-        # Calculate days in current month
-        if now.month == 12:
-            days_in_month = 31
-        else:
-            days_in_month = (now.replace(month=now.month + 1, day=1) - timedelta(days=1)).day
+        dim = days_in_month(now)
 
         dag_kwh = self.coordinator.data.get("monthly_consumption_dag_kwh", 0)
         natt_kwh = self.coordinator.data.get("monthly_consumption_natt_kwh", 0)
@@ -1681,10 +1520,7 @@ class EstimertMaanedskostnadSensor(MaanedligBaseSensor):
         stotte = total_kwh * stromstotte
         variable_cost = nettleie_variable - stotte
 
-        if day_of_month == 0:
-            return None
-
-        estimated_variable = (variable_cost / day_of_month) * days_in_month
+        estimated_variable = (variable_cost / day_of_month) * dim
         return round(estimated_variable + kapasitet, 0)
 
 
@@ -1699,14 +1535,14 @@ class ForrigeMaanedBaseSensor(NettleieBaseSensor):
     _device_group: str = DEVICE_FORRIGE_MAANED
 
     @property
-    def device_info(self) -> dict[str, Any]:
+    def device_info(self) -> DeviceInfo:
         """Return device info for Forrige måned device."""
-        return {
-            "identifiers": {(DOMAIN, f"{self._entry.entry_id}_{self._device_group}")},
-            "name": "Forrige måned",
-            "manufacturer": "Fredrik Lindseth",
-            "model": "Strømkalkulator",
-        }
+        return DeviceInfo(
+            identifiers={(DOMAIN, f"{self._entry.entry_id}_{self._device_group}")},
+            name="Forrige måned",
+            manufacturer=MANUFACTURER,
+            model=DEFAULT_NAME,
+        )
 
 
 class ForrigeMaanedForbrukDagSensor(ForrigeMaanedBaseSensor):
@@ -1721,10 +1557,6 @@ class ForrigeMaanedForbrukDagSensor(ForrigeMaanedBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "forrige_maaned_forbruk_dag", "forrige_maaned_forbruk_dag")
-        self._attr_native_unit_of_measurement = "kWh"
-        self._attr_state_class = SensorStateClass.TOTAL
-        self._attr_icon = "mdi:weather-sunny"
-        self._attr_suggested_display_precision = 1
 
     @property
     def native_value(self) -> float | None:
@@ -1753,10 +1585,6 @@ class ForrigeMaanedForbrukNattSensor(ForrigeMaanedBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "forrige_maaned_forbruk_natt", "forrige_maaned_forbruk_natt")
-        self._attr_native_unit_of_measurement = "kWh"
-        self._attr_state_class = SensorStateClass.TOTAL
-        self._attr_icon = "mdi:weather-night"
-        self._attr_suggested_display_precision = 1
 
     @property
     def native_value(self) -> float | None:
@@ -1785,10 +1613,6 @@ class ForrigeMaanedForbrukTotalSensor(ForrigeMaanedBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "forrige_maaned_forbruk_total", "forrige_maaned_forbruk_total")
-        self._attr_native_unit_of_measurement = "kWh"
-        self._attr_state_class = SensorStateClass.TOTAL
-        self._attr_icon = "mdi:lightning-bolt"
-        self._attr_suggested_display_precision = 1
 
     @property
     def native_value(self) -> float | None:
@@ -1821,10 +1645,6 @@ class ForrigeMaanedNettleieSensor(ForrigeMaanedBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "forrige_maaned_nettleie", "forrige_maaned_nettleie")
-        self._attr_native_unit_of_measurement = "kr"
-        self._attr_state_class = SensorStateClass.TOTAL
-        self._attr_icon = "mdi:transmission-tower"
-        self._attr_suggested_display_precision = 0
 
     @property
     def native_value(self) -> float | None:
@@ -1832,8 +1652,8 @@ class ForrigeMaanedNettleieSensor(ForrigeMaanedBaseSensor):
         if self.coordinator.data:
             dag_kwh = self.coordinator.data.get("previous_month_consumption_dag_kwh", 0)
             natt_kwh = self.coordinator.data.get("previous_month_consumption_natt_kwh", 0)
-            dag_pris = self.coordinator.data.get("energiledd_dag", 0)
-            natt_pris = self.coordinator.data.get("energiledd_natt", 0)
+            dag_pris = self.coordinator.data.get("previous_month_energiledd_dag", 0)
+            natt_pris = self.coordinator.data.get("previous_month_energiledd_natt", 0)
             kapasitet = self.coordinator.data.get("previous_month_kapasitetsledd", 0)
 
             return round(
@@ -1850,8 +1670,8 @@ class ForrigeMaanedNettleieSensor(ForrigeMaanedBaseSensor):
         if self.coordinator.data:
             dag_kwh = self.coordinator.data.get("previous_month_consumption_dag_kwh", 0)
             natt_kwh = self.coordinator.data.get("previous_month_consumption_natt_kwh", 0)
-            dag_pris = self.coordinator.data.get("energiledd_dag", 0)
-            natt_pris = self.coordinator.data.get("energiledd_natt", 0)
+            dag_pris = self.coordinator.data.get("previous_month_energiledd_dag", 0)
+            natt_pris = self.coordinator.data.get("previous_month_energiledd_natt", 0)
             kapasitet = self.coordinator.data.get("previous_month_kapasitetsledd", 0)
             kapasitetstrinn = self.coordinator.data.get("previous_month_kapasitetstrinn", "")
 
@@ -1881,10 +1701,6 @@ class ForrigeMaanedToppforbrukSensor(ForrigeMaanedBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "forrige_maaned_toppforbruk", "forrige_maaned_toppforbruk")
-        self._attr_native_unit_of_measurement = "kW"
-        self._attr_state_class = SensorStateClass.MEASUREMENT
-        self._attr_icon = "mdi:arrow-up-bold"
-        self._attr_suggested_display_precision = 2
 
     @property
     def native_value(self) -> float | None:
@@ -1922,10 +1738,6 @@ class ForrigeMaanedNorgesprisKompensasjonSensor(ForrigeMaanedBaseSensor):
         super().__init__(
             coordinator, entry, "forrige_maaned_norgespris_kompensasjon", "forrige_maaned_norgespris_kompensasjon"
         )
-        self._attr_native_unit_of_measurement = "kr"
-        self._attr_state_class = SensorStateClass.TOTAL
-        self._attr_icon = "mdi:cash-sync"
-        self._attr_suggested_display_precision = 0
 
     @property
     def native_value(self) -> float | None:
@@ -1957,14 +1769,14 @@ class EksportBaseSensor(NettleieBaseSensor):
     _attr_entity_registry_enabled_default: bool = False
 
     @property
-    def device_info(self) -> dict[str, Any]:
+    def device_info(self) -> DeviceInfo:
         """Return device info for Eksport device."""
-        return {
-            "identifiers": {(DOMAIN, f"{self._entry.entry_id}_{self._device_group}")},
-            "name": "Eksport (solceller)",
-            "manufacturer": "Fredrik Lindseth",
-            "model": "Strømkalkulator",
-        }
+        return DeviceInfo(
+            identifiers={(DOMAIN, f"{self._entry.entry_id}_{self._device_group}")},
+            name="Eksport (solceller)",
+            manufacturer=MANUFACTURER,
+            model=DEFAULT_NAME,
+        )
 
     @property
     def available(self) -> bool:
@@ -1986,10 +1798,6 @@ class MaanedligEksportKwhSensor(EksportBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "maanedlig_eksport_kwh", "maanedlig_eksport_kwh")
-        self._attr_native_unit_of_measurement = "kWh"
-        self._attr_state_class = SensorStateClass.TOTAL_INCREASING
-        self._attr_icon = "mdi:solar-power"
-        self._attr_suggested_display_precision = 1
 
     @property
     def native_value(self) -> float | None:
@@ -2011,10 +1819,6 @@ class MaanedligEksportInntektSensor(EksportBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "maanedlig_eksport_inntekt", "maanedlig_eksport_inntekt")
-        self._attr_native_unit_of_measurement = "kr"
-        self._attr_state_class = SensorStateClass.TOTAL
-        self._attr_icon = "mdi:cash-plus"
-        self._attr_suggested_display_precision = 0
 
     @property
     def native_value(self) -> float | None:
@@ -2049,10 +1853,6 @@ class MaanedligNettokostnadSensor(EksportBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "maanedlig_nettokostnad", "maanedlig_nettokostnad")
-        self._attr_native_unit_of_measurement = "kr"
-        self._attr_state_class = SensorStateClass.TOTAL
-        self._attr_icon = "mdi:scale-balance"
-        self._attr_suggested_display_precision = 0
 
     @property
     def native_value(self) -> float | None:
@@ -2084,10 +1884,6 @@ class ForrigeMaanedEksportKwhSensor(EksportBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "forrige_maaned_eksport_kwh", "forrige_maaned_eksport_kwh")
-        self._attr_native_unit_of_measurement = "kWh"
-        self._attr_state_class = SensorStateClass.TOTAL
-        self._attr_icon = "mdi:solar-power"
-        self._attr_suggested_display_precision = 1
 
     @property
     def native_value(self) -> float | None:
@@ -2116,10 +1912,6 @@ class ForrigeMaanedEksportInntektSensor(EksportBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "forrige_maaned_eksport_inntekt", "forrige_maaned_eksport_inntekt")
-        self._attr_native_unit_of_measurement = "kr"
-        self._attr_state_class = SensorStateClass.TOTAL
-        self._attr_icon = "mdi:cash-plus"
-        self._attr_suggested_display_precision = 0
 
     @property
     def native_value(self) -> float | None:

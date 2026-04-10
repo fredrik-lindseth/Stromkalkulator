@@ -379,7 +379,7 @@ class TestCorruptStorageHandler:
 
         # Validation methods should handle bad types gracefully
         assert isinstance(coordinator._daily_max_power, dict)
-        assert isinstance(coordinator._monthly_consumption, dict)
+        assert isinstance(coordinator._monthly_consumption, coord_module.ConsumptionData)
 
 
 # ===========================================================================
@@ -800,7 +800,7 @@ class TestStromstotteTakBoundary:
         hass = _make_hass(spot_price=2.00)
         entry = _make_entry()
         coordinator = coord_module.NettleieCoordinator(hass, entry)
-        coordinator._monthly_consumption = {"dag": 3000.0, "natt": 1999.9}
+        coordinator._monthly_consumption = coord_module.ConsumptionData(dag=3000.0, natt=1999.9)
 
         result = _run_update(coord_module, coordinator)
         assert result["stromstotte"] > 0
@@ -810,7 +810,7 @@ class TestStromstotteTakBoundary:
         hass = _make_hass(spot_price=2.00)
         entry = _make_entry()
         coordinator = coord_module.NettleieCoordinator(hass, entry)
-        coordinator._monthly_consumption = {"dag": 3000.0, "natt": 2000.0}
+        coordinator._monthly_consumption = coord_module.ConsumptionData(dag=3000.0, natt=2000.0)
 
         result = _run_update(coord_module, coordinator)
         assert result["stromstotte"] == 0.0
@@ -820,7 +820,7 @@ class TestStromstotteTakBoundary:
         hass = _make_hass(spot_price=2.00)
         entry = _make_entry()
         coordinator = coord_module.NettleieCoordinator(hass, entry)
-        coordinator._monthly_consumption = {"dag": 3000.0, "natt": 2001.0}
+        coordinator._monthly_consumption = coord_module.ConsumptionData(dag=3000.0, natt=2001.0)
 
         result = _run_update(coord_module, coordinator)
         assert result["stromstotte"] == 0.0
@@ -839,10 +839,10 @@ class TestValidatorsNegativeValues:
         validate = coord_module.NettleieCoordinator._validate_daily_max_power
         result = validate({"2026-04-01": -5.0, "2026-04-02": 3.0})
         assert "2026-04-01" not in result
-        assert result["2026-04-02"] == {"kw": 3.0, "hour": None}
+        assert result["2026-04-02"] == coord_module.DailyMaxEntry(kw=3.0)
 
     def test_validate_consumption_clamps_negative_to_zero(self, coord_module):
         validate = coord_module.NettleieCoordinator._validate_consumption
         result = validate({"dag": -100.0, "natt": 50.0})
-        assert result["dag"] == 0.0
-        assert result["natt"] == 50.0
+        assert result.dag == 0.0
+        assert result.natt == 50.0

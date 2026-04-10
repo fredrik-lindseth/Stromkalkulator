@@ -356,10 +356,13 @@ class TestValidateDailyMaxPower:
     def validate(self, coord_module):
         return coord_module.NettleieCoordinator._validate_daily_max_power
 
-    def test_valid_dict(self, validate):
+    def test_valid_dict(self, validate, coord_module):
         data = {"2026-04-01": {"kw": 10.0, "hour": 8}, "2026-04-02": {"kw": 8.5, "hour": 16}}
         result = validate(data)
-        assert result == data
+        assert result == {
+            "2026-04-01": coord_module.DailyMaxEntry(kw=10.0, hour=8),
+            "2026-04-02": coord_module.DailyMaxEntry(kw=8.5, hour=16),
+        }
 
     def test_dict_with_nan_values_skipped(self, validate):
         data = {"2026-04-01": {"kw": 10.0, "hour": 8}, "2026-04-02": float("nan")}
@@ -371,7 +374,7 @@ class TestValidateDailyMaxPower:
         data = {"2026-04-01": float("inf"), "2026-04-02": {"kw": 5.0, "hour": 10}}
         result = validate(data)
         assert "2026-04-01" not in result
-        assert result["2026-04-02"]["kw"] == 5.0
+        assert result["2026-04-02"].kw == 5.0
 
     def test_list_returns_empty(self, validate):
         """Wrong type (list) -> empty dict."""
@@ -380,10 +383,10 @@ class TestValidateDailyMaxPower:
     def test_none_returns_empty(self, validate):
         assert validate(None) == {}
 
-    def test_string_values_converted(self, validate):
+    def test_string_values_converted(self, validate, coord_module):
         """String values that can be floats should be migrated to dict format."""
         result = validate({"2026-04-01": "10.5"})
-        assert result["2026-04-01"] == {"kw": 10.5, "hour": None}
+        assert result["2026-04-01"] == coord_module.DailyMaxEntry(kw=10.5)
 
     def test_invalid_string_values_skipped(self, validate):
         result = validate({"2026-04-01": "not_a_number"})
@@ -400,46 +403,46 @@ class TestValidateConsumption:
     def validate(self, coord_module):
         return coord_module.NettleieCoordinator._validate_consumption
 
-    def test_valid_dict(self, validate):
+    def test_valid_dict(self, validate, coord_module):
         data = {"dag": 100.0, "natt": 50.0}
         result = validate(data)
-        assert result == data
+        assert result == coord_module.ConsumptionData(dag=100.0, natt=50.0)
 
-    def test_missing_keys_default_to_zero(self, validate):
+    def test_missing_keys_default_to_zero(self, validate, coord_module):
         """Dict without dag/natt should default both to 0."""
         result = validate({"other": 42})
-        assert result == {"dag": 0.0, "natt": 0.0}
+        assert result == coord_module.ConsumptionData()
 
-    def test_not_dict_returns_defaults(self, validate):
+    def test_not_dict_returns_defaults(self, validate, coord_module):
         result = validate("not_a_dict")
-        assert result == {"dag": 0.0, "natt": 0.0}
+        assert result == coord_module.ConsumptionData()
 
-    def test_none_returns_defaults(self, validate):
+    def test_none_returns_defaults(self, validate, coord_module):
         result = validate(None)
-        assert result == {"dag": 0.0, "natt": 0.0}
+        assert result == coord_module.ConsumptionData()
 
     def test_nan_values_replaced_with_zero(self, validate):
         result = validate({"dag": float("nan"), "natt": 50.0})
-        assert result["dag"] == 0.0
-        assert result["natt"] == 50.0
+        assert result.dag == 0.0
+        assert result.natt == 50.0
 
     def test_inf_values_replaced_with_zero(self, validate):
         result = validate({"dag": float("inf"), "natt": float("-inf")})
-        assert result["dag"] == 0.0
-        assert result["natt"] == 0.0
+        assert result.dag == 0.0
+        assert result.natt == 0.0
 
     def test_string_number_converted(self, validate):
         result = validate({"dag": "100.5", "natt": "50.0"})
-        assert result["dag"] == 100.5
-        assert result["natt"] == 50.0
+        assert result.dag == 100.5
+        assert result.natt == 50.0
 
     def test_invalid_string_replaced(self, validate):
         result = validate({"dag": "abc", "natt": 50.0})
-        assert result["dag"] == 0.0
-        assert result["natt"] == 50.0
+        assert result.dag == 0.0
+        assert result.natt == 50.0
 
     def test_partial_keys(self, validate):
         """Only dag present -> natt defaults to 0."""
         result = validate({"dag": 100.0})
-        assert result["dag"] == 100.0
-        assert result["natt"] == 0.0
+        assert result.dag == 100.0
+        assert result.natt == 0.0

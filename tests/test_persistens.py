@@ -83,15 +83,15 @@ class TestSaveLoadCycle:
 
         # Set some state
         coordinator._daily_max_power = {
-            "2026-04-01": {"kw": 8.5, "hour": 10},
-            "2026-04-02": {"kw": 12.0, "hour": 16},
+            "2026-04-01": coord.DailyMaxEntry(kw=8.5, hour=10),
+            "2026-04-02": coord.DailyMaxEntry(kw=12.0, hour=16),
         }
-        coordinator._monthly_consumption = {"dag": 200.0, "natt": 100.0}
+        coordinator._monthly_consumption = coord.ConsumptionData(dag=200.0, natt=100.0)
         coordinator._monthly_norgespris_diff = 15.5
-        coordinator._previous_month_consumption = {"dag": 300.0, "natt": 150.0}
+        coordinator._previous_month_consumption = coord.ConsumptionData(dag=300.0, natt=150.0)
         coordinator._previous_month_top_3 = {
-            "2026-03-01": {"kw": 10.0, "hour": 8},
-            "2026-03-10": {"kw": 9.0, "hour": 18},
+            "2026-03-01": coord.DailyMaxEntry(kw=10.0, hour=8),
+            "2026-03-10": coord.DailyMaxEntry(kw=9.0, hour=18),
         }
         coordinator._previous_month_name = "mars 2026"
 
@@ -125,15 +125,15 @@ class TestSaveLoadCycle:
         asyncio.run(coordinator2._load_stored_data())
 
         assert coordinator2._daily_max_power == {
-            "2026-04-01": {"kw": 8.5, "hour": 10},
-            "2026-04-02": {"kw": 12.0, "hour": 16},
+            "2026-04-01": coord.DailyMaxEntry(kw=8.5, hour=10),
+            "2026-04-02": coord.DailyMaxEntry(kw=12.0, hour=16),
         }
-        assert coordinator2._monthly_consumption == {"dag": 200.0, "natt": 100.0}
+        assert coordinator2._monthly_consumption == coord.ConsumptionData(dag=200.0, natt=100.0)
         assert coordinator2._monthly_norgespris_diff == 15.5
-        assert coordinator2._previous_month_consumption == {"dag": 300.0, "natt": 150.0}
+        assert coordinator2._previous_month_consumption == coord.ConsumptionData(dag=300.0, natt=150.0)
         assert coordinator2._previous_month_top_3 == {
-            "2026-03-01": {"kw": 10.0, "hour": 8},
-            "2026-03-10": {"kw": 9.0, "hour": 18},
+            "2026-03-01": coord.DailyMaxEntry(kw=10.0, hour=8),
+            "2026-03-10": coord.DailyMaxEntry(kw=9.0, hour=18),
         }
         assert coordinator2._previous_month_name == "mars 2026"
 
@@ -156,7 +156,7 @@ class TestSaveLoadCycle:
         asyncio.run(coordinator._load_stored_data())
 
         assert coordinator._daily_max_power == {}
-        assert coordinator._monthly_consumption == {"dag": 0.0, "natt": 0.0}
+        assert coordinator._monthly_consumption == coord.ConsumptionData()
         assert coordinator._previous_month_top_3 == {}
 
 
@@ -198,7 +198,7 @@ class TestMigrationFromDSOStorage:
         asyncio.run(coordinator._load_stored_data())
 
         # Data should be loaded from old store (migrated from float to dict format)
-        assert coordinator._daily_max_power == {"2026-04-01": {"kw": 5.0, "hour": None}}
+        assert coordinator._daily_max_power == {"2026-04-01": coord.DailyMaxEntry(kw=5.0)}
 
         # New store should be saved to
         entry_store = stores["stromkalkulator_entry_new"]
@@ -244,7 +244,7 @@ class TestMigrationFromDSOStorage:
         asyncio.run(coordinator._load_stored_data())
 
         # Should have loaded from entry store, not DSO store (migrated format)
-        assert coordinator._daily_max_power == {"2026-04-01": {"kw": 9.0, "hour": None}}
+        assert coordinator._daily_max_power == {"2026-04-01": coord.DailyMaxEntry(kw=9.0)}
         assert not old_store_accessed
 
 
@@ -289,11 +289,11 @@ class TestMonthMismatchReset:
         # _current_month should be set to stored value (triggers transition in _async_update_data)
         assert coordinator._current_month == old_month_str
         # Data is loaded as-is (migrated from float to dict); transition happens in _async_update_data
-        assert coordinator._daily_max_power == {"old-date": {"kw": 15.0, "hour": None}}
+        assert coordinator._daily_max_power == {"old-date": coord.DailyMaxEntry(kw=15.0)}
 
         # Previous month data should be preserved (migrated format)
-        assert coordinator._previous_month_consumption == {"dag": 250.0, "natt": 150.0}
-        assert coordinator._previous_month_top_3 == {"2025-11-01": {"kw": 8.0, "hour": None}}
+        assert coordinator._previous_month_consumption == coord.ConsumptionData(dag=250.0, natt=150.0)
+        assert coordinator._previous_month_top_3 == {"2025-11-01": coord.DailyMaxEntry(kw=8.0)}
         assert coordinator._previous_month_name == "november 2025"
 
     def test_stored_month_matches_preserves_data(self):
@@ -324,8 +324,8 @@ class TestMonthMismatchReset:
         coordinator = coord.NettleieCoordinator(hass, entry)
         asyncio.run(coordinator._load_stored_data())
 
-        assert coordinator._daily_max_power == {"2026-04-01": {"kw": 7.0, "hour": None}}
-        assert coordinator._monthly_consumption == {"dag": 100.0, "natt": 50.0}
+        assert coordinator._daily_max_power == {"2026-04-01": coord.DailyMaxEntry(kw=7.0)}
+        assert coordinator._monthly_consumption == coord.ConsumptionData(dag=100.0, natt=50.0)
 
 
 class TestSaveDataStructure:
@@ -367,6 +367,8 @@ class TestSaveDataStructure:
             "previous_month_norgespris_compensation",
             "previous_month_kapasitetsledd",
             "previous_month_kapasitetstrinn",
+            "previous_month_energiledd_dag",
+            "previous_month_energiledd_natt",
             "daily_cost",
             "current_date",
             "current_hour_energy",
@@ -466,6 +468,6 @@ class TestLoadMissingFields:
         coordinator = coord.NettleieCoordinator(hass, entry)
         asyncio.run(coordinator._load_stored_data())
 
-        assert coordinator._previous_month_consumption == {"dag": 0.0, "natt": 0.0}
+        assert coordinator._previous_month_consumption == coord.ConsumptionData()
         assert coordinator._previous_month_top_3 == {}
         assert coordinator._previous_month_name is None

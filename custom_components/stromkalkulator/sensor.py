@@ -18,6 +18,12 @@ from .const import (
     AVGIFTSSONE_STANDARD,
     CONF_AVGIFTSSONE,
     CONF_DSO,
+    DEVICE_EKSPORT,
+    DEVICE_FORRIGE_MAANED,
+    DEVICE_MAANEDLIG,
+    DEVICE_NETTLEIE,
+    DEVICE_NORGESPRIS,
+    DEVICE_STROMSTOTTE,
     DOMAIN,
     DSO_LIST,
     ENOVA_AVGIFT,
@@ -33,14 +39,6 @@ if TYPE_CHECKING:
 
     from .coordinator import NettleieCoordinator
     from .dso import DSOEntry
-
-# Device group constants
-DEVICE_NETTLEIE = "stromkalkulator"
-DEVICE_STROMSTOTTE = "stromstotte"
-DEVICE_NORGESPRIS = "norgespris"
-DEVICE_MAANEDLIG = "maanedlig"
-DEVICE_FORRIGE_MAANED = "forrige_maaned"
-DEVICE_EKSPORT = "eksport"
 
 # Silver requirement: limit parallel updates
 PARALLEL_UPDATES = 1

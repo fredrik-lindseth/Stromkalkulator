@@ -25,3 +25,4 @@ beads-prompt.md
 .claude/
 .hypothesis/
 .worktrees/
+.coverage

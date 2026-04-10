@@ -297,6 +297,7 @@ DEVICE_STROMSTOTTE: Final[str] = "stromstotte"
 DEVICE_NORGESPRIS: Final[str] = "norgespris"
 DEVICE_MAANEDLIG: Final[str] = "maanedlig"
 DEVICE_EKSPORT: Final[str] = "eksport"
+DEVICE_FORRIGE_MAANED: Final[str] = "forrige_maaned"
 
 # Sensor types
 SENSOR_ENERGILEDD: Final[str] = "energiledd"

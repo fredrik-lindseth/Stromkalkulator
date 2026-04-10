@@ -499,7 +499,7 @@ class TestValidateDailyMaxPower:
         result = coordinator._validate_daily_max_power({
             "2026-04-01": {"hour": 14},
         })
-        assert result == {"2026-04-01": {"kw": 0.0, "hour": 14}}
+        assert result == {"2026-04-01": coord.DailyMaxEntry(kw=0.0, hour=14)}
 
     def test_dict_format_non_numeric_kw_skipped(self):
         """Dict with non-numeric 'kw' should be skipped."""
@@ -521,7 +521,7 @@ class TestValidateDailyMaxPower:
         result = coordinator._validate_daily_max_power({
             "2026-04-01": {"kw": 5.0, "hour": 25},
         })
-        assert result["2026-04-01"]["hour"] is None
+        assert result["2026-04-01"].hour is None
 
     def test_dict_format_non_numeric_hour_set_to_none(self):
         """Non-numeric hour should be set to None."""
@@ -532,7 +532,7 @@ class TestValidateDailyMaxPower:
         result = coordinator._validate_daily_max_power({
             "2026-04-01": {"kw": 5.0, "hour": "abc"},
         })
-        assert result["2026-04-01"]["hour"] is None
+        assert result["2026-04-01"].hour is None
 
     def test_dict_format_negative_kw_skipped(self):
         """Negative kw should be skipped."""
@@ -556,8 +556,8 @@ class TestValidateDailyMaxPower:
             "2026-04-02": 3.5,
         })
         assert result == {
-            "2026-04-01": {"kw": 5.0, "hour": None},
-            "2026-04-02": {"kw": 3.5, "hour": None},
+            "2026-04-01": coord.DailyMaxEntry(kw=5.0, hour=None),
+            "2026-04-02": coord.DailyMaxEntry(kw=3.5, hour=None),
         }
 
 
@@ -614,4 +614,4 @@ class TestCorruptStorageData:
 
         # Should have defaults, not crash
         assert coordinator._daily_max_power == {}
-        assert coordinator._monthly_consumption == {"dag": 0.0, "natt": 0.0}
+        assert coordinator._monthly_consumption == coord.ConsumptionData()

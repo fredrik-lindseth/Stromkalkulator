@@ -91,46 +91,67 @@ def _patch_coordinator_base():
     _coord_mod.DataUpdateCoordinator = original
 
 
-class TestReadPowerW:
-    """Tests for _read_power_w helper."""
+class TestReadSensorFloat:
+    """Tests for _read_sensor_float helper."""
 
-    def _make_state(self, value):
+    def _make_coordinator(self, cls, sensor_value):
+        """Create a coordinator instance with a mocked hass that returns sensor_value."""
+        hass = MagicMock()
+        entry = MagicMock()
+        entry.data = {"tso": "bkk", "power_sensor": "sensor.power", "spot_price_sensor": "sensor.spot"}
+        entry.entry_id = "test_entry"
         state = MagicMock()
-        state.state = value
-        return state
+        state.state = sensor_value
+        hass.states.get = MagicMock(return_value=state)
+        coord = cls(hass, entry)
+        return coord
+
+    def _make_coordinator_none(self, cls):
+        """Create a coordinator where hass.states.get returns None."""
+        hass = MagicMock()
+        entry = MagicMock()
+        entry.data = {"tso": "bkk", "power_sensor": "sensor.power", "spot_price_sensor": "sensor.spot"}
+        entry.entry_id = "test_entry"
+        hass.states.get = MagicMock(return_value=None)
+        coord = cls(hass, entry)
+        return coord
 
     def test_normal_value(self, _patch_coordinator_base):
-        result = _patch_coordinator_base._read_power_w(self._make_state("5000"))
-        assert result == 5000.0
+        coord = self._make_coordinator(_patch_coordinator_base, "5000")
+        assert coord._read_sensor_float("sensor.power") == 5000.0
 
     def test_unavailable(self, _patch_coordinator_base):
-        result = _patch_coordinator_base._read_power_w(self._make_state("unavailable"))
-        assert result == 0.0
+        coord = self._make_coordinator(_patch_coordinator_base, "unavailable")
+        assert coord._read_sensor_float("sensor.power") == 0.0
 
     def test_unknown(self, _patch_coordinator_base):
-        result = _patch_coordinator_base._read_power_w(self._make_state("unknown"))
-        assert result == 0.0
+        coord = self._make_coordinator(_patch_coordinator_base, "unknown")
+        assert coord._read_sensor_float("sensor.power") == 0.0
 
     def test_none_state(self, _patch_coordinator_base):
-        result = _patch_coordinator_base._read_power_w(None)
-        assert result == 0.0
+        coord = self._make_coordinator_none(_patch_coordinator_base)
+        assert coord._read_sensor_float("sensor.power") == 0.0
 
     def test_non_numeric(self, _patch_coordinator_base):
-        result = _patch_coordinator_base._read_power_w(self._make_state("abc"))
-        assert result == 0.0
+        coord = self._make_coordinator(_patch_coordinator_base, "abc")
+        assert coord._read_sensor_float("sensor.power") == 0.0
 
     def test_nan(self, _patch_coordinator_base):
-        result = _patch_coordinator_base._read_power_w(self._make_state("nan"))
-        assert result == 0.0
+        coord = self._make_coordinator(_patch_coordinator_base, "nan")
+        assert coord._read_sensor_float("sensor.power") == 0.0
 
     def test_inf(self, _patch_coordinator_base):
-        result = _patch_coordinator_base._read_power_w(self._make_state("inf"))
-        assert result == 0.0
+        coord = self._make_coordinator(_patch_coordinator_base, "inf")
+        assert coord._read_sensor_float("sensor.power") == 0.0
 
     def test_over_500kw_clamped(self, _patch_coordinator_base):
-        result = _patch_coordinator_base._read_power_w(self._make_state("600000"))
-        assert result == 0.0
+        coord = self._make_coordinator(_patch_coordinator_base, "600000")
+        assert coord._read_sensor_float("sensor.power") == 0.0
 
     def test_negative(self, _patch_coordinator_base):
-        result = _patch_coordinator_base._read_power_w(self._make_state("-100"))
-        assert result == -100.0
+        coord = self._make_coordinator(_patch_coordinator_base, "-100")
+        assert coord._read_sensor_float("sensor.power") == -100.0
+
+    def test_no_entity_id(self, _patch_coordinator_base):
+        coord = self._make_coordinator(_patch_coordinator_base, "5000")
+        assert coord._read_sensor_float(None) == 0.0

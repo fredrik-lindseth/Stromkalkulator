@@ -79,11 +79,9 @@ DEFAULT_KAPASITET_VARSEL_TERSKEL: Final[float] = 2.0
 # Maks 5000 kWh/mnd per målepunkt (Forskrift § 5).
 #
 # Verdiene under er inkl. mva (spotpris fra Nord Pool er inkl. mva)
-STROMSTOTTE_TERSKEL_EKS_MVA: Final[float] = 0.77  # 77 øre/kWh eks. mva (2026)
-STROMSTOTTE_LEVEL: Final[float] = 0.9625  # 77 * 1.25 = 96,25 øre inkl. mva (2026)
+STROMSTOTTE_LEVEL: Final[float] = 0.9625  # 77 øre * 1.25 = 96,25 øre inkl. mva (2026)
 STROMSTOTTE_RATE: Final[float] = 0.90  # 90% kompensasjon over terskel
 STROMSTOTTE_MAX_KWH: Final[int] = 5000  # Maks 5000 kWh/mnd per målepunkt
-STROMSTOTTE_KILDE: Final[str] = "https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791"
 
 # === NORGESPRIS ===
 # Kilde: Regjeringens strømtiltak
@@ -109,8 +107,6 @@ NORGESPRIS_INKL_MVA_STANDARD: Final[float] = 0.50  # 50 øre inkl. 25% mva (Sør
 NORGESPRIS_INKL_MVA_NORD: Final[float] = 0.40  # 40 øre (Nord-Norge/Tiltakssonen, mva-fritak)
 NORGESPRIS_MAX_KWH_BOLIG: Final[int] = 5000  # Maks 5000 kWh/mnd for bolig
 NORGESPRIS_MAX_KWH_FRITID: Final[int] = 1000  # Maks 1000 kWh/mnd for fritidsbolig
-NORGESPRIS_KILDE: Final[str] = "https://www.regjeringen.no/no/tema/energi/strom/regjeringens-stromtiltak/id2900232/"
-
 # Config key for Norgespris
 CONF_HAR_NORGESPRIS: Final[str] = "har_norgespris"
 
@@ -178,8 +174,6 @@ def get_stromstotte_max_kwh(boligtype: str) -> int:
 
 # 2026: Flat sats hele året, ingen sesongvariasjon
 FORBRUKSAVGIFT_ALMINNELIG: Final[float] = 0.0713  # 7,13 øre/kWh eks. mva (husholdninger)
-FORBRUKSAVGIFT_REDUSERT: Final[float] = 0.0060  # 0,60 øre/kWh eks. mva (næring i tiltakssonen)
-
 ENOVA_AVGIFT: Final[float] = 0.01  # 1,0 øre/kWh eks. mva (fast, alle regioner inkl. tiltakssonen)
 MVA_SATS: Final[float] = 0.25  # 25% mva
 
@@ -291,17 +285,16 @@ HELLIGDAGER_BEVEGELIGE: Final[list[str]] = (
     + _bevegelige_helligdager(2030)
 )
 
-# Device groups
-DEVICE_NETTLEIE: Final[str] = "stromkalkulator"
-DEVICE_STROMSTOTTE: Final[str] = "stromstotte"
-DEVICE_NORGESPRIS: Final[str] = "norgespris"
-DEVICE_MAANEDLIG: Final[str] = "maanedlig"
-DEVICE_EKSPORT: Final[str] = "eksport"
+# Coordinator tuning
+UPDATE_INTERVAL_MINUTES: Final[int] = 1
+MAX_POWER_CLAMP_W: Final[int] = 500_000  # 500 kW - reject obviously bad readings
+MAX_ELAPSED_HOURS: Final[float] = 0.1  # 6 min - reject clock jumps in Riemann sum
 
-# Sensor types
-SENSOR_ENERGILEDD: Final[str] = "energiledd"
-SENSOR_KAPASITETSTRINN: Final[str] = "kapasitetstrinn"
-SENSOR_TOTAL_PRICE: Final[str] = "total_price"
+# Dag/natt-tariff (nettleie energiledd)
+DAY_RATE_START_HOUR: Final[int] = 6
+DAY_RATE_END_HOUR: Final[int] = 22
+WEEKEND_WEEKDAY_START: Final[int] = 5  # lørdag = 5
 
 # Defaults
 DEFAULT_NAME: Final[str] = "Strømkalkulator"
+MANUFACTURER: Final[str] = "Fredrik Lindseth"

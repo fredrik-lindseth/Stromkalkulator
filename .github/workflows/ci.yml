@@ -20,7 +20,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pytest pytest-asyncio pytest-cov hypothesis vulture ruff mypy
+          pip install pytest pytest-cov hypothesis vulture ruff mypy
 
       - name: Run linter (ruff)
         run: |
@@ -78,7 +78,7 @@ jobs:
 
       - name: Check for dead code with Vulture
         run: |
-          vulture custom_components/stromkalkulator/ --min-confidence 80 || true
+          vulture custom_components/stromkalkulator/ vulture_whitelist.py --min-confidence 80 || true
           echo "ℹ️ Vulture check complete (warnings only)"
 
       - name: Check version consistency

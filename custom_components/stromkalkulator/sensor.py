@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
 from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.components.sensor import (
@@ -11,6 +10,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.const import EntityCategory
+from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
@@ -18,19 +18,19 @@ from .const import (
     AVGIFTSSONE_STANDARD,
     CONF_AVGIFTSSONE,
     CONF_DSO,
-    DEVICE_EKSPORT,
-    DEVICE_FORRIGE_MAANED,
-    DEVICE_MAANEDLIG,
-    DEVICE_NETTLEIE,
-    DEVICE_NORGESPRIS,
-    DEVICE_STROMSTOTTE,
+    DEFAULT_DSO,
+    DEFAULT_NAME,
     DOMAIN,
     DSO_LIST,
     ENOVA_AVGIFT,
+    MANUFACTURER,
     STROMSTOTTE_LEVEL,
+    STROMSTOTTE_RATE,
     get_forbruksavgift,
     get_mva_sats,
+    get_norgespris_inkl_mva,
 )
+from .coordinator import days_in_month
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -68,7 +68,7 @@ async def async_setup_entry(
         MaksForbrukSensor(coordinator, entry, 1),
         MaksForbrukSensor(coordinator, entry, 2),
         MaksForbrukSensor(coordinator, entry, 3),
-        GjsForbrukSensor(coordinator, entry),
+        GjennomsnittForbrukSensor(coordinator, entry),
         TrinnNummerSensor(coordinator, entry),
         TrinnIntervallSensor(coordinator, entry),
         KapasitetstrinnSensor(coordinator, entry),
@@ -92,7 +92,7 @@ async def async_setup_entry(
         SpotprisEtterStotteSensor(coordinator, entry),
         TotalPrisEtterStotteSensor(coordinator, entry),
         TotalPrisInklAvgifterSensor(coordinator, entry),
-        StromstotteKwhSensor(coordinator, entry),
+        StromstotteAktivSensor(coordinator, entry),
         StromstotteGjenstaaendeSensor(coordinator, entry),
         StromprisPerKwhEtterStotteSensor(coordinator, entry),
         # Norgespris
@@ -153,12 +153,11 @@ class NettleieBaseSensor(CoordinatorEntity, SensorEntity):  # type: ignore[misc]
         self._attr_translation_key = translation_key
         self._entry = entry
 
-        # Get DSO name for device info
-        dso_id = entry.data.get(CONF_DSO, "bkk")
-        self._dso = DSO_LIST.get(dso_id, DSO_LIST["bkk"])
+        dso_id = entry.data.get(CONF_DSO, DEFAULT_DSO)
+        self._dso = DSO_LIST.get(dso_id, DSO_LIST[DEFAULT_DSO])
 
     @property
-    def device_info(self) -> dict[str, Any]:
+    def device_info(self) -> DeviceInfo:
         """Return device info."""
         device_names: dict[str, str] = {
             DEVICE_NETTLEIE: f"Nettleie ({self._dso['name']})",
@@ -166,12 +165,21 @@ class NettleieBaseSensor(CoordinatorEntity, SensorEntity):  # type: ignore[misc]
             DEVICE_NORGESPRIS: "Norgespris",
             DEVICE_EKSPORT: "Eksport (solceller)",
         }
-        return {
-            "identifiers": {(DOMAIN, f"{self._entry.entry_id}_{self._device_group}")},
-            "name": device_names.get(self._device_group, f"Nettleie ({self._dso['name']})"),
-            "manufacturer": "Fredrik Lindseth",
-            "model": "Strømkalkulator",
-        }
+        return DeviceInfo(
+            identifiers={(DOMAIN, f"{self._entry.entry_id}_{self._device_group}")},
+            name=device_names.get(self._device_group, f"Nettleie ({self._dso['name']})"),
+            manufacturer=MANUFACTURER,
+            model=DEFAULT_NAME,
+        )
+
+    def _get_forbruksavgift(self) -> float:
+        avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
+        month = dt_util.now().month
+        return get_forbruksavgift(avgiftssone, month)
+
+    def _get_mva_sats(self) -> float:
+        avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
+        return get_mva_sats(avgiftssone)
 
     def _get_forbruksavgift(self) -> float:
         """Get forbruksavgift based on avgiftssone and current month."""
@@ -401,7 +409,7 @@ class MaksForbrukSensor(NettleieBaseSensor):
         return None
 
 
-class GjsForbrukSensor(NettleieBaseSensor):
+class GjennomsnittForbrukSensor(NettleieBaseSensor):
     """Sensor for average of top 3 power consumption days."""
 
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.POWER
@@ -500,14 +508,11 @@ class OffentligeAvgifterSensor(NettleieBaseSensor):
         forbruksavgift = self._get_forbruksavgift()
         mva_sats = self._get_mva_sats()
         avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
-        month = dt_util.now().month
-        sesong = "vinter" if month <= 3 else "sommer"
 
         forbruksavgift_inkl_mva = round(forbruksavgift * (1 + mva_sats), 4)
         enova_inkl_mva = round(ENOVA_AVGIFT * (1 + mva_sats), 4)
         return {
             "avgiftssone": avgiftssone,
-            "sesong": sesong,
             "forbruksavgift_eks_mva": forbruksavgift,
             "forbruksavgift_inkl_mva": forbruksavgift_inkl_mva,
             "enova_avgift_eks_mva": ENOVA_AVGIFT,
@@ -608,7 +613,7 @@ class StromstotteSensor(NettleieBaseSensor):
             return {
                 "spotpris": self.coordinator.data.get("spot_price"),
                 "terskel": STROMSTOTTE_LEVEL,
-                "dekningsgrad": "90%",
+                "dekningsgrad": f"{int(STROMSTOTTE_RATE * 100)}%",
                 "tak_naadd": self.coordinator.data.get("stromstotte_tak_naadd", False),
                 "boligtype": self.coordinator.data.get("boligtype", "bolig"),
             }
@@ -778,15 +783,12 @@ class PrisforskjellNorgesprisSensor(NettleieBaseSensor):
         """Return extra attributes."""
         if self.coordinator.data:
             norgespris = self.coordinator.data.get("norgespris")
-            norgespris_stromstotte = self.coordinator.data.get("norgespris_stromstotte")
-            norgespris_etter_stotte: float | None = None
-            if norgespris is not None and norgespris_stromstotte is not None:
-                norgespris_etter_stotte = norgespris - norgespris_stromstotte
+            norgespris_etter_stotte = norgespris
             return {
                 "din_pris_etter_stotte": self.coordinator.data.get("spotpris_etter_stotte"),
                 "norgespris_etter_stotte": norgespris_etter_stotte,
                 "differens_per_kwh": self.coordinator.data.get("kroner_spart_per_kwh"),
-                "note": "Norgespris er fast 50 øre/kWh fra Elhub",
+                "note": f"Norgespris er fast {get_norgespris_inkl_mva(self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)) * 100:.0f} øre/kWh",
             }
         return None
 
@@ -942,8 +944,8 @@ class EnovaavgiftSensor(NettleieBaseSensor):
         }
 
 
-class StromstotteKwhSensor(NettleieBaseSensor):
-    """Sensor for strømstøtte-berettiget forbruk (kWh over terskel)."""
+class StromstotteAktivSensor(NettleieBaseSensor):
+    """Sensor for om strømstøtte er aktiv (spotpris over terskel)."""
 
     _device_group: str = DEVICE_STROMSTOTTE
     _attr_entity_category: EntityCategory = EntityCategory.DIAGNOSTIC
@@ -1073,14 +1075,14 @@ class MaanedligBaseSensor(NettleieBaseSensor):
     _device_group: str = DEVICE_MAANEDLIG
 
     @property
-    def device_info(self) -> dict[str, Any]:
+    def device_info(self) -> DeviceInfo:
         """Return device info for Månedlig device."""
-        return {
-            "identifiers": {(DOMAIN, f"{self._entry.entry_id}_{self._device_group}")},
-            "name": "Månedlig forbruk",
-            "manufacturer": "Fredrik Lindseth",
-            "model": "Strømkalkulator",
-        }
+        return DeviceInfo(
+            identifiers={(DOMAIN, f"{self._entry.entry_id}_{self._device_group}")},
+            name="Månedlig forbruk",
+            manufacturer=MANUFACTURER,
+            model=DEFAULT_NAME,
+        )
 
 
 class MaanedligForbrukDagSensor(MaanedligBaseSensor):
@@ -1500,11 +1502,7 @@ class EstimertMaanedskostnadSensor(MaanedligBaseSensor):
 
         now = dt_util.now()
         day_of_month = now.day
-        # Calculate days in current month
-        if now.month == 12:
-            days_in_month = 31
-        else:
-            days_in_month = (now.replace(month=now.month + 1, day=1) - timedelta(days=1)).day
+        dim = days_in_month(now)
 
         dag_kwh = self.coordinator.data.get("monthly_consumption_dag_kwh", 0)
         natt_kwh = self.coordinator.data.get("monthly_consumption_natt_kwh", 0)
@@ -1519,10 +1517,7 @@ class EstimertMaanedskostnadSensor(MaanedligBaseSensor):
         stotte = total_kwh * stromstotte
         variable_cost = nettleie_variable - stotte
 
-        if day_of_month == 0:
-            return None
-
-        estimated_variable = (variable_cost / day_of_month) * days_in_month
+        estimated_variable = (variable_cost / day_of_month) * dim
         return round(estimated_variable + kapasitet, 0)
 
 
@@ -1537,14 +1532,14 @@ class ForrigeMaanedBaseSensor(NettleieBaseSensor):
     _device_group: str = DEVICE_FORRIGE_MAANED
 
     @property
-    def device_info(self) -> dict[str, Any]:
+    def device_info(self) -> DeviceInfo:
         """Return device info for Forrige måned device."""
-        return {
-            "identifiers": {(DOMAIN, f"{self._entry.entry_id}_{self._device_group}")},
-            "name": "Forrige måned",
-            "manufacturer": "Fredrik Lindseth",
-            "model": "Strømkalkulator",
-        }
+        return DeviceInfo(
+            identifiers={(DOMAIN, f"{self._entry.entry_id}_{self._device_group}")},
+            name="Forrige måned",
+            manufacturer=MANUFACTURER,
+            model=DEFAULT_NAME,
+        )
 
 
 class ForrigeMaanedForbrukDagSensor(ForrigeMaanedBaseSensor):
@@ -1652,12 +1647,17 @@ class ForrigeMaanedNettleieSensor(ForrigeMaanedBaseSensor):
     def native_value(self) -> float | None:
         """Calculate previous month grid rent cost."""
         if self.coordinator.data:
-            return _beregn_nettleie(
-                self.coordinator.data.get("previous_month_consumption_dag_kwh", 0),
-                self.coordinator.data.get("previous_month_consumption_natt_kwh", 0),
-                self.coordinator.data.get("energiledd_dag", 0),
-                self.coordinator.data.get("energiledd_natt", 0),
-                self.coordinator.data.get("previous_month_kapasitetsledd", 0),
+            dag_kwh = self.coordinator.data.get("previous_month_consumption_dag_kwh", 0)
+            natt_kwh = self.coordinator.data.get("previous_month_consumption_natt_kwh", 0)
+            dag_pris = self.coordinator.data.get("previous_month_energiledd_dag", 0)
+            natt_pris = self.coordinator.data.get("previous_month_energiledd_natt", 0)
+            kapasitet = self.coordinator.data.get("previous_month_kapasitetsledd", 0)
+
+            return round(
+                (cast("float", dag_kwh) * cast("float", dag_pris))
+                + (cast("float", natt_kwh) * cast("float", natt_pris))
+                + cast("float", kapasitet),
+                2,
             )
         return None
 
@@ -1667,8 +1667,8 @@ class ForrigeMaanedNettleieSensor(ForrigeMaanedBaseSensor):
         if self.coordinator.data:
             dag_kwh = self.coordinator.data.get("previous_month_consumption_dag_kwh", 0)
             natt_kwh = self.coordinator.data.get("previous_month_consumption_natt_kwh", 0)
-            dag_pris = self.coordinator.data.get("energiledd_dag", 0)
-            natt_pris = self.coordinator.data.get("energiledd_natt", 0)
+            dag_pris = self.coordinator.data.get("previous_month_energiledd_dag", 0)
+            natt_pris = self.coordinator.data.get("previous_month_energiledd_natt", 0)
             kapasitet = self.coordinator.data.get("previous_month_kapasitetsledd", 0)
             kapasitetstrinn = self.coordinator.data.get("previous_month_kapasitetstrinn", "")
 
@@ -1766,14 +1766,14 @@ class EksportBaseSensor(NettleieBaseSensor):
     _attr_entity_registry_enabled_default: bool = False
 
     @property
-    def device_info(self) -> dict[str, Any]:
+    def device_info(self) -> DeviceInfo:
         """Return device info for Eksport device."""
-        return {
-            "identifiers": {(DOMAIN, f"{self._entry.entry_id}_{self._device_group}")},
-            "name": "Eksport (solceller)",
-            "manufacturer": "Fredrik Lindseth",
-            "model": "Strømkalkulator",
-        }
+        return DeviceInfo(
+            identifiers={(DOMAIN, f"{self._entry.entry_id}_{self._device_group}")},
+            name="Eksport (solceller)",
+            manufacturer=MANUFACTURER,
+            model=DEFAULT_NAME,
+        )
 
     @property
     def available(self) -> bool:

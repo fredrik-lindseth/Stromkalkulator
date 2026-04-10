@@ -130,7 +130,7 @@ class TestBasicUpdate:
             "energiledd", "energiledd_dag", "energiledd_natt",
             "kapasitetsledd", "kapasitetstrinn_nummer", "kapasitetstrinn_intervall",
             "kapasitetsledd_per_kwh", "spot_price", "stromstotte",
-            "spotpris_etter_stotte", "norgespris", "norgespris_stromstotte",
+            "spotpris_etter_stotte", "norgespris",
             "total_pris_norgespris", "kroner_spart_per_kwh",
             "total_price", "total_price_uten_stotte", "total_price_inkl_avgifter",
             "strompris_per_kwh", "strompris_per_kwh_etter_stotte",
@@ -144,7 +144,10 @@ class TestBasicUpdate:
             "previous_month_consumption_total_kwh",
             "previous_month_top_3", "previous_month_avg_top_3_kw",
             "previous_month_name",
-            "stromstotte_tak_naadd", "stromstotte_gjenstaaende_kwh",
+            "previous_month_kapasitetsledd", "previous_month_kapasitetstrinn",
+            "previous_month_energiledd_dag", "previous_month_energiledd_natt",
+            "stromstotte_tak_naadd", "norgespris_over_tak", "boligtype",
+            "stromstotte_gjenstaaende_kwh",
             "margin_neste_trinn_kw", "neste_trinn_pris", "kapasitet_varsel",
             "monthly_norgespris_diff_kr", "previous_month_norgespris_diff_kr",
             "daily_cost_kr",
@@ -302,7 +305,7 @@ class TestStromstotte:
         entry = _make_entry()
         coordinator = coord_module.NettleieCoordinator(hass, entry)
         # Simulate having consumed >= 5000 kWh already
-        coordinator._monthly_consumption = {"dag": 3000.0, "natt": 2500.0}
+        coordinator._monthly_consumption = coord_module.ConsumptionData(dag=3000.0, natt=2500.0)
 
         result = _run_update(coord_module, coordinator)
         assert result["stromstotte"] == 0.0
@@ -555,11 +558,11 @@ class TestMonthTransition:
         entry = _make_entry()
         coordinator = coord_module.NettleieCoordinator(hass, entry)
         coordinator._current_month = "2026-03"  # March
-        coordinator._monthly_consumption = {"dag": 500.0, "natt": 300.0}
+        coordinator._monthly_consumption = coord_module.ConsumptionData(dag=500.0, natt=300.0)
         coordinator._daily_max_power = {
-            "2026-03-01": {"kw": 8.0, "hour": 10},
-            "2026-03-15": {"kw": 10.0, "hour": 16},
-            "2026-03-20": {"kw": 9.0, "hour": 8},
+            "2026-03-01": coord_module.DailyMaxEntry(kw=8.0, hour=10),
+            "2026-03-15": coord_module.DailyMaxEntry(kw=10.0, hour=16),
+            "2026-03-20": coord_module.DailyMaxEntry(kw=9.0, hour=8),
         }
         coordinator._monthly_norgespris_diff = 42.5
 
@@ -585,10 +588,10 @@ class TestMonthTransition:
         coordinator = coord_module.NettleieCoordinator(hass, entry)
         coordinator._current_month = "2026-03"
         coordinator._daily_max_power = {
-            "2026-03-01": {"kw": 8.0, "hour": 10},
-            "2026-03-10": {"kw": 12.0, "hour": 16},
-            "2026-03-15": {"kw": 10.0, "hour": 8},
-            "2026-03-20": {"kw": 6.0, "hour": 20},
+            "2026-03-01": coord_module.DailyMaxEntry(kw=8.0, hour=10),
+            "2026-03-10": coord_module.DailyMaxEntry(kw=12.0, hour=16),
+            "2026-03-15": coord_module.DailyMaxEntry(kw=10.0, hour=8),
+            "2026-03-20": coord_module.DailyMaxEntry(kw=6.0, hour=20),
         }
 
         result = _run_update(coord_module, coordinator, now=april_1)
@@ -596,14 +599,14 @@ class TestMonthTransition:
         # Top 3 should be the 3 highest
         top_3 = result["previous_month_top_3"]
         assert len(top_3) == 3
-        assert max(e["kw"] for e in top_3.values()) == 12.0
+        assert max(e.kw for e in top_3.values()) == 12.0
 
     def test_no_reset_within_same_month(self, coord_module):
         """Update within the same month should not reset anything."""
         hass = _make_hass(power_w=5000)
         entry = _make_entry()
         coordinator = coord_module.NettleieCoordinator(hass, entry)
-        coordinator._monthly_consumption = {"dag": 100.0, "natt": 50.0}
+        coordinator._monthly_consumption = coord_module.ConsumptionData(dag=100.0, natt=50.0)
 
         result = _run_update(coord_module, coordinator)
         # Consumption should not be reset, values >= what we set
@@ -696,7 +699,7 @@ class TestDailyMaxPower:
 
         # 10 kW * (59/60) timer ≈ 9.83 kWh (≈ 9.83 kW snitt for timen)
         assert coordinator._daily_max_power.get(today) is not None
-        assert coordinator._daily_max_power[today]["kw"] > 9.0
+        assert coordinator._daily_max_power[today].kw > 9.0
         assert len(result["top_3_days"]) == 1
 
     def test_keeps_highest_hourly_average(self, coord_module):
@@ -715,7 +718,7 @@ class TestDailyMaxPower:
         _run_update(coord_module, coordinator, now=_real_datetime(2026, 6, 15, 11, 0))
         entry_after_hour1 = coordinator._daily_max_power.get(today)
         assert entry_after_hour1 is not None
-        assert entry_after_hour1["kw"] > 5.0  # ~6 kW snitt
+        assert entry_after_hour1.kw > 5.0  # ~6 kW snitt
 
         # Time 2: 3 kW (lavere) - kjør gjennom en hel time
         hass.states.get = MagicMock(
@@ -726,7 +729,7 @@ class TestDailyMaxPower:
         _run_update(coord_module, coordinator, now=_real_datetime(2026, 6, 15, 12, 0))
 
         # Max skal fortsatt være ~6 kW fra time 1, ikke 3 kW fra time 2
-        assert coordinator._daily_max_power[today]["kw"] == entry_after_hour1["kw"]
+        assert coordinator._daily_max_power[today].kw == entry_after_hour1.kw
 
     def test_no_daily_max_without_hour_boundary(self, coord_module):
         """Uten timeskifte registreres ingen daily max (kun ufullstendig time)."""

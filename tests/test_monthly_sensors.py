@@ -350,8 +350,8 @@ class TestForrigeMaanedNettleieSensor:
         data = {
             "previous_month_consumption_dag_kwh": 300.0,
             "previous_month_consumption_natt_kwh": 200.0,
-            "energiledd_dag": 0.4613,
-            "energiledd_natt": 0.2329,
+            "previous_month_energiledd_dag": 0.4613,
+            "previous_month_energiledd_natt": 0.2329,
             "previous_month_kapasitetsledd": 415,
         }
         sensor = ForrigeMaanedNettleieSensor(_make_coordinator(data), _make_entry())
@@ -363,8 +363,8 @@ class TestForrigeMaanedNettleieSensor:
         data = {
             "previous_month_consumption_dag_kwh": 300.0,
             "previous_month_consumption_natt_kwh": 200.0,
-            "energiledd_dag": 0.4613,
-            "energiledd_natt": 0.2329,
+            "previous_month_energiledd_dag": 0.4613,
+            "previous_month_energiledd_natt": 0.2329,
             "previous_month_kapasitetsledd": 0,
         }
         sensor = ForrigeMaanedNettleieSensor(_make_coordinator(data), _make_entry())
@@ -376,8 +376,8 @@ class TestForrigeMaanedNettleieSensor:
         data = {
             "previous_month_consumption_dag_kwh": 500.0,
             "previous_month_consumption_natt_kwh": 300.0,
-            "energiledd_dag": 0.4613,
-            "energiledd_natt": 0.2329,
+            "previous_month_energiledd_dag": 0.4613,
+            "previous_month_energiledd_natt": 0.2329,
             "previous_month_kapasitetsledd": 6900,
         }
         sensor = ForrigeMaanedNettleieSensor(_make_coordinator(data), _make_entry())
@@ -389,8 +389,8 @@ class TestForrigeMaanedNettleieSensor:
         data = {
             "previous_month_consumption_dag_kwh": 50.0,
             "previous_month_consumption_natt_kwh": 30.0,
-            "energiledd_dag": 0.4613,
-            "energiledd_natt": 0.2329,
+            "previous_month_energiledd_dag": 0.4613,
+            "previous_month_energiledd_natt": 0.2329,
             "previous_month_kapasitetsledd": 155,
         }
         sensor = ForrigeMaanedNettleieSensor(_make_coordinator(data), _make_entry())
@@ -418,8 +418,8 @@ class TestForrigeMaanedNettleieSensor:
         data = {
             "previous_month_consumption_dag_kwh": 0.0,
             "previous_month_consumption_natt_kwh": 0.0,
-            "energiledd_dag": 0.0,
-            "energiledd_natt": 0.0,
+            "previous_month_energiledd_dag": 0.0,
+            "previous_month_energiledd_natt": 0.0,
             "previous_month_kapasitetsledd": expected_kapasitet,
         }
         sensor = ForrigeMaanedNettleieSensor(_make_coordinator(data), _make_entry())

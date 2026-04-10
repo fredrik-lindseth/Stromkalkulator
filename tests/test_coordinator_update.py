@@ -882,9 +882,9 @@ class TestKapasitetVarselHighestTier:
 
         # Manually set high daily max to force highest tier
         coordinator._daily_max_power = {
-            "2026-06-01": {"kw": 150.0, "hour": 12},
-            "2026-06-02": {"kw": 140.0, "hour": 14},
-            "2026-06-03": {"kw": 130.0, "hour": 10},
+            "2026-06-01": coord_module.DailyMaxEntry(kw=150.0, hour=12),
+            "2026-06-02": coord_module.DailyMaxEntry(kw=140.0, hour=14),
+            "2026-06-03": coord_module.DailyMaxEntry(kw=130.0, hour=10),
         }
 
         later = now + timedelta(minutes=5)

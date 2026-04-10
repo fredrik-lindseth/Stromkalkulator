@@ -309,7 +309,7 @@ class TestNorgespricing:
         c = coord_module.NettleieCoordinator(hass, entry)
 
         # Sett forbruk over Norgespris-taket (5000 kWh for bolig)
-        c._monthly_consumption = {"dag": 4000.0, "natt": 1001.0}
+        c._monthly_consumption = coord_module.ConsumptionData(dag=4000.0, natt=1001.0)
 
         t0 = _real_datetime(2026, 6, 15, 12, 0)
         _run_update(coord_module, c, t0)

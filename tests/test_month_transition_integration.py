@@ -13,6 +13,8 @@ from typing import Any
 
 import pytest
 
+from custom_components.stromkalkulator.coordinator import ConsumptionData
+
 
 class MockStore:
     """Mock for Home Assistant's Store class."""
@@ -40,10 +42,10 @@ class CoordinatorSimulator:
         # Current month tracking
         self._current_month: int = datetime.now().month
         self._daily_max_power: dict[str, float] = {}
-        self._monthly_consumption: dict[str, float] = {"dag": 0.0, "natt": 0.0}
+        self._monthly_consumption = ConsumptionData()
 
         # Previous month storage
-        self._previous_month_consumption: dict[str, float] = {"dag": 0.0, "natt": 0.0}
+        self._previous_month_consumption = ConsumptionData()
         self._previous_month_top_3: dict[str, float] = {}
         self._previous_month_name: str | None = None
 
@@ -114,7 +116,7 @@ class CoordinatorSimulator:
 
             # Reset current month data
             self._daily_max_power = {}
-            self._monthly_consumption = {"dag": 0.0, "natt": 0.0}
+            self._monthly_consumption = ConsumptionData()
             self._current_month = now.month
             self._save_stored_data()
 
@@ -126,7 +128,8 @@ class CoordinatorSimulator:
 
         # Add consumption (simulate 1 minute interval)
         tariff = "dag" if self._is_day_rate(now) else "natt"
-        self._monthly_consumption[tariff] += power_kw * (1 / 60)  # 1 minute in hours
+        current = getattr(self._monthly_consumption, tariff)
+        setattr(self._monthly_consumption, tariff, current + power_kw * (1 / 60))
 
         self._save_stored_data()
 
@@ -136,17 +139,13 @@ class CoordinatorSimulator:
 
         return {
             "current_month": self._current_month,
-            "monthly_consumption_dag_kwh": round(self._monthly_consumption["dag"], 3),
-            "monthly_consumption_natt_kwh": round(self._monthly_consumption["natt"], 3),
-            "monthly_consumption_total_kwh": round(
-                self._monthly_consumption["dag"] + self._monthly_consumption["natt"], 3
-            ),
+            "monthly_consumption_dag_kwh": round(self._monthly_consumption.dag, 3),
+            "monthly_consumption_natt_kwh": round(self._monthly_consumption.natt, 3),
+            "monthly_consumption_total_kwh": round(self._monthly_consumption.total, 3),
             "top_3_days": top_3,
-            "previous_month_consumption_dag_kwh": round(self._previous_month_consumption["dag"], 3),
-            "previous_month_consumption_natt_kwh": round(self._previous_month_consumption["natt"], 3),
-            "previous_month_consumption_total_kwh": round(
-                self._previous_month_consumption["dag"] + self._previous_month_consumption["natt"], 3
-            ),
+            "previous_month_consumption_dag_kwh": round(self._previous_month_consumption.dag, 3),
+            "previous_month_consumption_natt_kwh": round(self._previous_month_consumption.natt, 3),
+            "previous_month_consumption_total_kwh": round(self._previous_month_consumption.total, 3),
             "previous_month_top_3": prev_top_3,
             "previous_month_avg_top_3_kw": round(sum(prev_top_3.values()) / max(len(prev_top_3), 1), 2)
             if prev_top_3
@@ -159,8 +158,14 @@ class CoordinatorSimulator:
         data = self._store.async_load()
         if data:
             self._daily_max_power = data.get("daily_max_power", {})
-            self._monthly_consumption = data.get("monthly_consumption", {"dag": 0.0, "natt": 0.0})
-            self._previous_month_consumption = data.get("previous_month_consumption", {"dag": 0.0, "natt": 0.0})
+            mc = data.get("monthly_consumption", {})
+            self._monthly_consumption = ConsumptionData(
+                dag=mc.get("dag", 0.0), natt=mc.get("natt", 0.0)
+            ) if isinstance(mc, dict) else ConsumptionData()
+            pmc = data.get("previous_month_consumption", {})
+            self._previous_month_consumption = ConsumptionData(
+                dag=pmc.get("dag", 0.0), natt=pmc.get("natt", 0.0)
+            ) if isinstance(pmc, dict) else ConsumptionData()
             self._previous_month_top_3 = data.get("previous_month_top_3", {})
             self._previous_month_name = data.get("previous_month_name")
             stored_month = data.get("current_month")
@@ -171,9 +176,12 @@ class CoordinatorSimulator:
         """Save data to store."""
         data = {
             "daily_max_power": self._daily_max_power,
-            "monthly_consumption": self._monthly_consumption,
+            "monthly_consumption": {"dag": self._monthly_consumption.dag, "natt": self._monthly_consumption.natt},
             "current_month": self._current_month,
-            "previous_month_consumption": self._previous_month_consumption,
+            "previous_month_consumption": {
+                "dag": self._previous_month_consumption.dag,
+                "natt": self._previous_month_consumption.natt,
+            },
             "previous_month_top_3": self._previous_month_top_3,
             "previous_month_name": self._previous_month_name,
         }
@@ -223,8 +231,8 @@ class TestMonthTransitionIntegration:
         assert data_feb["previous_month_name"] == "januar 2026"
 
         # Verify previous month data was saved
-        assert data_feb["previous_month_consumption_dag_kwh"] == round(jan_consumption["dag"], 3)
-        assert data_feb["previous_month_consumption_natt_kwh"] == round(jan_consumption["natt"], 3)
+        assert data_feb["previous_month_consumption_dag_kwh"] == round(jan_consumption.dag, 3)
+        assert data_feb["previous_month_consumption_natt_kwh"] == round(jan_consumption.natt, 3)
         assert data_feb["previous_month_top_3"] == jan_top_3
 
         # Verify current month was reset
@@ -248,7 +256,7 @@ class TestMonthTransitionIntegration:
             coordinator._daily_max_power[date_str] = power
 
         # Add some consumption
-        coordinator._monthly_consumption = {"dag": 150.5, "natt": 80.3}
+        coordinator._monthly_consumption = ConsumptionData(dag=150.5, natt=80.3)
 
         # Trigger transition
         coordinator.simulate_update(datetime(2026, 2, 1, 0, 1), 2.0)
@@ -272,7 +280,7 @@ class TestMonthTransitionIntegration:
             "2025-12-15": 4.5,
             "2025-12-20": 4.0,
         }
-        coordinator._monthly_consumption = {"dag": 200.0, "natt": 100.0}
+        coordinator._monthly_consumption = ConsumptionData(dag=200.0, natt=100.0)
 
         # Trigger year boundary transition
         data = coordinator.simulate_update(datetime(2026, 1, 1, 0, 1), 2.0)
@@ -288,7 +296,7 @@ class TestMonthTransitionIntegration:
 
         # Set up January data
         coordinator1._daily_max_power = {"2026-01-15": 5.0, "2026-01-20": 4.5, "2026-01-25": 4.0}
-        coordinator1._monthly_consumption = {"dag": 100.0, "natt": 50.0}
+        coordinator1._monthly_consumption = ConsumptionData(dag=100.0, natt=50.0)
 
         # Trigger transition to February
         coordinator1.simulate_update(datetime(2026, 2, 1, 0, 1), 2.0)
@@ -318,14 +326,14 @@ class TestMonthTransitionIntegration:
             "2026-01-12": 3.2,  # Top 2
             "2026-01-20": 3.0,  # Top 3
         }
-        coordinator._monthly_consumption = {"dag": 150.0, "natt": 80.0}
+        coordinator._monthly_consumption = ConsumptionData(dag=150.0, natt=80.0)
 
         # Transition
         coordinator.simulate_update(datetime(2026, 2, 1, 0, 1), 2.0)
 
         # Calculate nettleie from previous month
-        dag_kwh = coordinator._previous_month_consumption["dag"]
-        natt_kwh = coordinator._previous_month_consumption["natt"]
+        dag_kwh = coordinator._previous_month_consumption.dag
+        natt_kwh = coordinator._previous_month_consumption.natt
         top_3 = coordinator._previous_month_top_3
 
         # Energiledd
@@ -373,7 +381,7 @@ class TestMonthTransitionEdgeCases:
         """Test multiple updates in the same minute don't cause issues."""
         coordinator = CoordinatorSimulator()
         coordinator._current_month = 1
-        coordinator._monthly_consumption = {"dag": 100.0, "natt": 50.0}
+        coordinator._monthly_consumption = ConsumptionData(dag=100.0, natt=50.0)
 
         # Multiple updates at transition time
         dt = datetime(2026, 2, 1, 0, 1)
@@ -392,20 +400,20 @@ class TestMonthTransitionEdgeCases:
 
         # January -> February
         coordinator._current_month = 1
-        coordinator._monthly_consumption = {"dag": 100.0, "natt": 50.0}
+        coordinator._monthly_consumption = ConsumptionData(dag=100.0, natt=50.0)
         coordinator.simulate_update(datetime(2026, 2, 1, 0, 1), 2.0)
 
         assert coordinator._previous_month_name == "januar 2026"
 
         # Add February consumption
-        coordinator._monthly_consumption = {"dag": 120.0, "natt": 60.0}
+        coordinator._monthly_consumption = ConsumptionData(dag=120.0, natt=60.0)
 
         # February -> March
         coordinator.simulate_update(datetime(2026, 3, 1, 0, 1), 2.0)
 
         # January data should be gone, replaced by February
         assert coordinator._previous_month_name == "februar 2026"
-        assert coordinator._previous_month_consumption["dag"] == 120.0
+        assert coordinator._previous_month_consumption.dag == 120.0
 
 
 if __name__ == "__main__":

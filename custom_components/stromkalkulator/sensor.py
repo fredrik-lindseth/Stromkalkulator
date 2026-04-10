@@ -44,6 +44,17 @@ if TYPE_CHECKING:
 PARALLEL_UPDATES = 1
 
 
+def _beregn_nettleie(
+    dag_kwh: float,
+    natt_kwh: float,
+    dag_pris: float,
+    natt_pris: float,
+    kapasitetsledd: float = 0,
+) -> float:
+    """Beregn nettleie: energiledd (dag + natt) + kapasitetsledd."""
+    return round((dag_kwh * dag_pris) + (natt_kwh * natt_pris) + kapasitetsledd, 2)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -1278,16 +1289,12 @@ class MaanedligNettleieSensor(MaanedligBaseSensor):
     def native_value(self) -> float | None:
         """Calculate monthly grid rent cost."""
         if self.coordinator.data:
-            dag_kwh = self.coordinator.data.get("monthly_consumption_dag_kwh", 0)
-            natt_kwh = self.coordinator.data.get("monthly_consumption_natt_kwh", 0)
-            dag_pris = self.coordinator.data.get("energiledd_dag", 0)
-            natt_pris = self.coordinator.data.get("energiledd_natt", 0)
-            kapasitet = self.coordinator.data.get("kapasitetsledd", 0)
-            return round(
-                (cast("float", dag_kwh) * cast("float", dag_pris))
-                + (cast("float", natt_kwh) * cast("float", natt_pris))
-                + cast("float", kapasitet),
-                2,
+            return _beregn_nettleie(
+                self.coordinator.data.get("monthly_consumption_dag_kwh", 0),
+                self.coordinator.data.get("monthly_consumption_natt_kwh", 0),
+                self.coordinator.data.get("energiledd_dag", 0),
+                self.coordinator.data.get("energiledd_natt", 0),
+                self.coordinator.data.get("kapasitetsledd", 0),
             )
         return None
 
@@ -1444,11 +1451,7 @@ class MaanedligTotalSensor(MaanedligBaseSensor):
             stromstotte = self.coordinator.data.get("stromstotte", 0)
 
             # Nettleie (energiledd inkl. avgifter + kapasitetsledd)
-            nettleie = (
-                (cast("float", dag_kwh) * cast("float", dag_pris))
-                + (cast("float", natt_kwh) * cast("float", natt_pris))
-                + cast("float", kapasitet)
-            )
+            nettleie = _beregn_nettleie(dag_kwh, natt_kwh, dag_pris, natt_pris, kapasitet)
 
             # Strømstøtte (fratrekk)
             stotte = cast("float", total_kwh) * cast("float", stromstotte)
@@ -1468,7 +1471,7 @@ class MaanedligTotalSensor(MaanedligBaseSensor):
             kapasitet = self.coordinator.data.get("kapasitetsledd", 0)
             stromstotte = self.coordinator.data.get("stromstotte", 0)
 
-            nettleie = (dag_kwh * dag_pris) + (natt_kwh * natt_pris) + kapasitet
+            nettleie = _beregn_nettleie(dag_kwh, natt_kwh, dag_pris, natt_pris, kapasitet)
             stotte = total_kwh * stromstotte
             total_kostnad = nettleie - stotte
 
@@ -1675,7 +1678,7 @@ class EstimertMaanedskostnadSensor(MaanedligBaseSensor):
         stromstotte = self.coordinator.data.get("stromstotte", 0)
 
         # energiledd_dag/natt inkluderer allerede forbruksavgift + enova
-        nettleie_variable = (dag_kwh * dag_pris) + (natt_kwh * natt_pris)
+        nettleie_variable = _beregn_nettleie(dag_kwh, natt_kwh, dag_pris, natt_pris)
         stotte = total_kwh * stromstotte
         variable_cost = nettleie_variable - stotte
 
@@ -1828,17 +1831,12 @@ class ForrigeMaanedNettleieSensor(ForrigeMaanedBaseSensor):
     def native_value(self) -> float | None:
         """Calculate previous month grid rent cost."""
         if self.coordinator.data:
-            dag_kwh = self.coordinator.data.get("previous_month_consumption_dag_kwh", 0)
-            natt_kwh = self.coordinator.data.get("previous_month_consumption_natt_kwh", 0)
-            dag_pris = self.coordinator.data.get("energiledd_dag", 0)
-            natt_pris = self.coordinator.data.get("energiledd_natt", 0)
-            kapasitet = self.coordinator.data.get("previous_month_kapasitetsledd", 0)
-
-            return round(
-                (cast("float", dag_kwh) * cast("float", dag_pris))
-                + (cast("float", natt_kwh) * cast("float", natt_pris))
-                + cast("float", kapasitet),
-                2,
+            return _beregn_nettleie(
+                self.coordinator.data.get("previous_month_consumption_dag_kwh", 0),
+                self.coordinator.data.get("previous_month_consumption_natt_kwh", 0),
+                self.coordinator.data.get("energiledd_dag", 0),
+                self.coordinator.data.get("energiledd_natt", 0),
+                self.coordinator.data.get("previous_month_kapasitetsledd", 0),
             )
         return None
 

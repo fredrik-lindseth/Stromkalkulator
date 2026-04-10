@@ -161,7 +161,7 @@ class TestDSOMigrationInSetup:
     def test_migrated_dso_creates_repair_issue(self, init_module):
         """DSO migration should create a repair issue."""
         hass = _make_hass()
-        entry = _make_entry(dso_id="norgesnett")
+        entry = _make_entry(dso_id="skiakernett")
 
         # Patch ir on the init_module (the module uses `ir.async_create_issue`)
         mock_ir = MagicMock()

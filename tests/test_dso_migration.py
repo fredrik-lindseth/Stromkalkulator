@@ -45,12 +45,12 @@ def test_migrate_storage_file_renames(tmp_path):
     # Create a fake old storage file
     storage_dir = tmp_path / ".storage"
     storage_dir.mkdir()
-    old_file = storage_dir / "stromkalkulator_norgesnett"
+    old_file = storage_dir / "stromkalkulator_old_dso"
     old_file.write_text('{"data": "test"}')
 
-    _migrate_storage_file(str(storage_dir), "norgesnett", "glitre")
+    _migrate_storage_file(str(storage_dir), "old_dso", "new_dso")
 
-    new_file = storage_dir / "stromkalkulator_glitre"
+    new_file = storage_dir / "stromkalkulator_new_dso"
     assert new_file.exists()
     assert not old_file.exists()
     assert new_file.read_text() == '{"data": "test"}'
@@ -64,7 +64,7 @@ def test_migrate_storage_file_no_old_file(tmp_path):
     storage_dir.mkdir()
 
     # Should not raise
-    _migrate_storage_file(str(storage_dir), "norgesnett", "glitre")
+    _migrate_storage_file(str(storage_dir), "old_dso", "new_dso")
 
 
 def test_migrate_storage_file_target_exists(tmp_path):
@@ -73,12 +73,12 @@ def test_migrate_storage_file_target_exists(tmp_path):
 
     storage_dir = tmp_path / ".storage"
     storage_dir.mkdir()
-    old_file = storage_dir / "stromkalkulator_norgesnett"
+    old_file = storage_dir / "stromkalkulator_old_dso"
     old_file.write_text('{"data": "old"}')
-    new_file = storage_dir / "stromkalkulator_glitre"
+    new_file = storage_dir / "stromkalkulator_new_dso"
     new_file.write_text('{"data": "existing"}')
 
-    _migrate_storage_file(str(storage_dir), "norgesnett", "glitre")
+    _migrate_storage_file(str(storage_dir), "old_dso", "new_dso")
 
     # Existing file should not be overwritten
     assert new_file.read_text() == '{"data": "existing"}'

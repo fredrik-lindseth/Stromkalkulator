@@ -264,18 +264,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
 
         # Get current power consumption
         power_state = self.hass.states.get(self.power_sensor)
-        try:
-            current_power_w = (
-                float(power_state.state) if power_state and power_state.state not in ("unknown", "unavailable") else 0
-            )
-        except (ValueError, TypeError):
-            current_power_w = 0
-        if not math.isfinite(current_power_w):
-            current_power_w = 0
-        # Clamp to reasonable residential range (0-500 kW = 500,000 W)
-        if current_power_w > 500_000:
-            _LOGGER.warning("Power reading %s W exceeds 500 kW, clamping", current_power_w)
-            current_power_w = 0
+        current_power_w = self._read_power_w(power_state)
         current_power_kw = current_power_w / 1000
 
         # Beregn tid siden forrige oppdatering (felles for forbruk og eksport)
@@ -300,18 +289,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         export_updated = False
         if self.export_power_sensor and elapsed_hours > 0:
             export_state = self.hass.states.get(self.export_power_sensor)
-            try:
-                export_power_w = (
-                    float(export_state.state)
-                    if export_state and export_state.state not in ("unknown", "unavailable")
-                    else 0
-                )
-            except (ValueError, TypeError):
-                export_power_w = 0
-            if not math.isfinite(export_power_w):
-                export_power_w = 0
-            if export_power_w > 500_000:
-                export_power_w = 0
+            export_power_w = self._read_power_w(export_state)
             export_power_kw = export_power_w / 1000
             if export_power_kw > 0:
                 export_energy_kwh = export_power_kw * elapsed_hours
@@ -836,6 +814,26 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         except (ValueError, TypeError):
             return 0.0
         return val if math.isfinite(val) else 0.0
+
+    @staticmethod
+    def _read_power_w(state: Any) -> float:
+        """Read power sensor state and return validated watts.
+
+        Returns 0.0 for unavailable/unknown/invalid/non-finite values.
+        Clamps readings above 500 kW to 0 (sensor error).
+        """
+        if state is None or state.state in ("unknown", "unavailable"):
+            return 0.0
+        try:
+            value = float(state.state)
+        except (ValueError, TypeError):
+            return 0.0
+        if not math.isfinite(value):
+            return 0.0
+        if value > 500_000:
+            _LOGGER.warning("Power reading %s W exceeds 500 kW, clamping", value)
+            return 0.0
+        return value
 
     @staticmethod
     def _validate_daily_max_power(data: Any) -> dict[str, dict[str, Any]]:

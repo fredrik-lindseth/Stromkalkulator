@@ -8,6 +8,7 @@ coordinator.data. Also tests extra_state_attributes where applicable.
 from __future__ import annotations
 
 import sys
+from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
@@ -112,9 +113,9 @@ SAMPLE_DATA = {
     "current_power_kw": 7.50,
     "avg_top_3_kw": 8.33,
     "top_3_days": {
-        "2026-04-01": {"kw": 10.0, "hour": 16},
-        "2026-04-02": {"kw": 8.0, "hour": 8},
-        "2026-04-03": {"kw": 7.0, "hour": 20},
+        "2026-04-01": SimpleNamespace(kw=10.0, hour=16),
+        "2026-04-02": SimpleNamespace(kw=8.0, hour=8),
+        "2026-04-03": SimpleNamespace(kw=7.0, hour=20),
     },
     "is_day_rate": True,
     "dso": "BKK",
@@ -127,9 +128,9 @@ SAMPLE_DATA = {
     "previous_month_consumption_natt_kwh": 200.0,
     "previous_month_consumption_total_kwh": 500.0,
     "previous_month_top_3": {
-        "2026-03-01": {"kw": 12.0, "hour": 16},
-        "2026-03-10": {"kw": 10.0, "hour": 8},
-        "2026-03-20": {"kw": 8.0, "hour": 20},
+        "2026-03-01": SimpleNamespace(kw=12.0, hour=16),
+        "2026-03-10": SimpleNamespace(kw=10.0, hour=8),
+        "2026-03-20": SimpleNamespace(kw=8.0, hour=20),
     },
     "previous_month_avg_top_3_kw": 10.0,
     "previous_month_name": "mars 2026",

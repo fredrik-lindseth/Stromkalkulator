@@ -281,8 +281,8 @@ class KapasitetstrinnSensor(NettleieBaseSensor):
             }
             for i, (date, entry) in enumerate(top_3.items(), 1):
                 attrs[f"maks_{i}_dato"] = date
-                attrs[f"maks_{i}_kw"] = round(entry["kw"], 2)
-                attrs[f"maks_{i}_time"] = entry.get("hour")
+                attrs[f"maks_{i}_kw"] = round(entry.kw, 2)
+                attrs[f"maks_{i}_time"] = entry.hour
             return attrs
         return None
 
@@ -399,7 +399,7 @@ class MaksForbrukSensor(NettleieBaseSensor):
             top_3 = self.coordinator.data.get("top_3_days", {})
             if len(top_3) >= self._rank:
                 entries = list(top_3.values())
-                return round(cast("float", entries[self._rank - 1]["kw"]), 2)
+                return round(cast("float", entries[self._rank - 1].kw), 2)
         return None
 
     @property
@@ -412,7 +412,7 @@ class MaksForbrukSensor(NettleieBaseSensor):
                 entries = list(top_3.values())
                 return {
                     "dato": dates[self._rank - 1],
-                    "time": entries[self._rank - 1].get("hour"),
+                    "time": entries[self._rank - 1].hour,
                 }
         return None
 
@@ -1720,11 +1720,11 @@ class ForrigeMaanedToppforbrukSensor(ForrigeMaanedBaseSensor):
         if self.coordinator.data:
             top_3 = self.coordinator.data.get("previous_month_top_3", {})
             attrs: dict[str, Any] = {"maaned": self.coordinator.data.get("previous_month_name")}
-            sorted_entries = sorted(top_3.items(), key=lambda x: x[1]["kw"], reverse=True)
+            sorted_entries = sorted(top_3.items(), key=lambda x: x[1].kw, reverse=True)
             for i, (date, entry) in enumerate(sorted_entries, 1):
                 attrs[f"topp_{i}_dato"] = date
-                attrs[f"topp_{i}_kw"] = round(entry["kw"], 2)
-                attrs[f"topp_{i}_time"] = entry.get("hour")
+                attrs[f"topp_{i}_kw"] = round(entry.kw, 2)
+                attrs[f"topp_{i}_time"] = entry.hour
             return attrs
         return None
 

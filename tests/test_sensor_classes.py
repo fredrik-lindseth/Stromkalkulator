@@ -72,8 +72,8 @@ from stromkalkulator.sensor import (  # noqa: E402
     SpotprisEtterStotteSensor,
     StromprisPerKwhEtterStotteSensor,
     StromprisPerKwhSensor,
+    StromstotteAktivSensor,
     StromstotteGjenstaaendeSensor,
-    StromstotteKwhSensor,
     StromstotteSensor,
     TariffSensor,
     TotalPriceSensor,
@@ -188,7 +188,7 @@ class TestSensorNoneWhenNoData:
         StromprisPerKwhSensor,
         StromprisPerKwhEtterStotteSensor,
         StromstotteGjenstaaendeSensor,
-        StromstotteKwhSensor,
+        StromstotteAktivSensor,
         KapasitetVarselSensor,
         ElectricityCompanyTotalSensor,
     ])

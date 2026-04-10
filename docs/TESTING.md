@@ -18,37 +18,34 @@ python -m pytest tests/ -v
 
 | Testfil                              | Beskrivelse                                  |
 |--------------------------------------|----------------------------------------------|
-| `test_stromstotte_tak.py`          | Strømstøtte-beregning + 5000 kWh-tak         |
-| `test_avgifter.py`                  | Forbruksavgift, Enova-avgift og MVA per sone |
+| `test_stromstotte_tak.py`          | Strømstøtte-beregning, 5000 kWh-tak, floating-point grensepresisjon |
 | `test_energiledd.py`                | Dag/natt-tariff inkl. helligdager            |
-| `test_kapasitetstrinn.py`           | Kapasitetstrinn og topp-3-beregning          |
+| `test_kapasitetstrinn.py`           | Kapasitetstrinn, topp-3, margin til neste trinn, varsel |
 | `test_norgespris.py`                | Norgespris-beregning og sammenligning        |
 | `test_norgespris_akkumulert.py`    | Akkumulert Norgespris-besparelse             |
-| `test_faktura_validering.py`        | Faktura-verifisering mot beregninger         |
 | `test_faktura_februar_2026.py`     | BKK-faktura feb 2026 (Norgespris)           |
+| `test_faktura_mars_2026.py`        | BKK-faktura mars 2026 (Norgespris)           |
+| `test_faktura_validering_nye_felter.py` | Nye validerings-felter (kompensasjon, klokkeslett, kapasitetsledd) |
 | `test_month_transition_integration.py` | Integrasjonstest for månedsskifte         |
 | `test_dso_migration.py`             | DSO-migrering ved nettselskap-fusjoner       |
 | `test_dso_data_validation.py`      | Validering av alle DSO-oppføringer           |
-| `test_property.py`                  | Property-baserte tester (Hypothesis)         |
+| `test_property.py`                  | Property-baserte tester og differential-tester (Hypothesis) |
 | `test_storage_key.py`               | Lagringsnøkkel-isolasjon mellom instanser    |
 | `test_config_flow.py`               | Config flow struktur-validering              |
 | `test_init_setup.py`                | Setup/unload/DSO-migrering                   |
 | `test_diagnostics.py`               | Diagnostics-output struktur                  |
 | `test_sensor_classes.py`            | Sensor None-håndtering, attributter, units   |
-| `test_persistens.py`                | Lagring: save/load-syklus, migrering         |
-| `test_coordinator_update.py`        | End-to-end coordinator update                |
+| `test_persistens.py`                | Lagring: save/load-syklus, migrering, korrupsjon |
+| `test_coordinator_update.py`        | End-to-end coordinator update, kapasitetsvarsel |
 | `test_coordinator_robustness.py`    | Spotpris-caching, clamping, validering       |
-| `test_monthly_sensors.py`           | Månedlige sensorer (nettleie, avgifter)      |
-| `test_offentlige_avgifter_sensor.py`| OffentligeAvgifterSensor attributter         |
+| `test_monthly_sensors.py`           | Månedlige sensorer, estimert kostnad         |
 | `test_passthrough_sensors.py`       | Passthrough-sensorer (dag/natt, avgifter)    |
 | `test_coverage_gaps.py`            | Bugfiks-dekning: UpdateFailed, clamp, OSError, cache |
 | `test_strompris_per_kwh.py`        | Strømpris per kWh uten kapasitetsledd        |
-| `test_margin_neste_trinn.py`       | Margin til neste kapasitetstrinn             |
-| `test_edge_cases.py`               | DST, helligdager 2031+, strømstøtte-presisjon |
-| `test_faktura_mars_2026.py`        | BKK-faktura mars 2026 (Norgespris)           |
-| `test_faktura_validering_nye_felter.py` | Nye validerings-felter (kompensasjon, klokkeslett, kapasitetsledd) |
-| `test_eksport.py`                  | Solcelle-eksport sensorer                    |
+| `test_edge_cases.py`               | DST, helligdager 2031+                       |
+| `test_eksport.py`                  | Solcelle-eksport, feilhåndtering             |
 | `test_akkumulert_kostnad.py`      | Akkumulert kostnad (stat_cost) for Energy Dashboard |
+| `test_boligtype.py`                | Boligtype-avhengige tak og beregninger       |
 
 ### Kjente begrensninger
 
@@ -60,12 +57,11 @@ Dette betyr at noen ting ikke kan testes med dagens infrastruktur:
 | Config flow multi-step (user → sensors → pricing) | Trenger HA FlowHandler-infrastruktur |
 | Options flow → reload → reberegning | Trenger HA config entry lifecycle |
 | End-to-end setup → coordinator → sensor | Trenger HA platform setup |
-| `CoordinatorSimulator` bruker int-måned (vs YYYY-MM) | Supplementær — ekte coordinator testes i `test_coordinator_update.py` |
-| Regex-parsing av kildekode i `test_config_flow.py` | Fragilt men funksjonelt, fanger ekte HA-bugs |
-| Testdata bruker kun BKK kapasitetstrinn | Diminishing returns — property-tester dekker alle DSOer |
+| `CoordinatorSimulator` bruker int-måned (vs YYYY-MM) | Supplementær -- ekte coordinator testes i `test_coordinator_update.py` |
+| Testdata bruker kun BKK kapasitetstrinn | Diminishing returns -- property-tester dekker alle DSOer |
 | Bevegelige helligdager 2031+ ikke i cache | Dokumentert i test_edge_cases.py |
 
-Vurdert 2026-04-02 via `/test-lead` (konsolidering + rydding + nye tester).
+Vurdert 2026-04-10 via `/test-lead` (rydding: slettet 4 redundante filer, konsolidert margin-tester, nye edge case-tester).
 
 ## Live-tester i Home Assistant
 

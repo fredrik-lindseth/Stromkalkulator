@@ -11,28 +11,16 @@ multiple strategies to catch bugs that any single approach would miss.
 
 from __future__ import annotations
 
-import calendar
 from datetime import datetime, timedelta
 
-import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from custom_components.stromkalkulator.const import (
-    AVGIFTSSONE_NORD_NORGE,
-    AVGIFTSSONE_STANDARD,
-    AVGIFTSSONE_TILTAKSSONE,
-    FORBRUKSAVGIFT_ALMINNELIG,
     HELLIGDAGER_BEVEGELIGE,
     HELLIGDAGER_FASTE,
-    MVA_SATS,
-    NORGESPRIS_INKL_MVA_NORD,
-    NORGESPRIS_INKL_MVA_STANDARD,
     STROMSTOTTE_LEVEL,
     STROMSTOTTE_RATE,
-    get_forbruksavgift,
-    get_mva_sats,
-    get_norgespris_inkl_mva,
 )
 from custom_components.stromkalkulator.dso import DSO_LIST
 from tests.test_energiledd import is_day_rate
@@ -269,15 +257,6 @@ def test_stromstotte_effective_price_never_below_threshold(price: float) -> None
         assert effective == price  # no change
 
 
-# -- Avgifter ------------------------------------------------------------------
-
-
-@given(month=st.integers(min_value=1, max_value=12))
-def test_tiltakssone_always_zero_forbruksavgift(month: int) -> None:
-    """Tiltakssone has 0 forbruksavgift for every month."""
-    assert get_forbruksavgift(AVGIFTSSONE_TILTAKSSONE, month) == 0.0
-
-
 # -- Total price consistency ---------------------------------------------------
 
 
@@ -366,77 +345,8 @@ def test_exhaustive_every_boundary_of_every_kapasitetstrinn() -> None:
                 )
 
 
-def test_exhaustive_all_dso_kapasitetstrinn_monotonic() -> None:
-    """Every DSO's kapasitetstrinn must be monotonically non-decreasing."""
-    for dso_id, dso in DSO_LIST.items():
-        if not dso["supported"]:
-            continue
-        trinn = dso["kapasitetstrinn"]
-        if trinn and isinstance(trinn[0], dict):
-            continue
-
-        prev_price = 0
-        for threshold, price in trinn:
-            assert price >= prev_price, (
-                f"{dso_id}: price decreased from {prev_price} to {price} at {threshold} kW"
-            )
-            prev_price = price
-
-
-def test_exhaustive_all_dso_have_catch_all_tier() -> None:
-    """Every DSO must have a final tier with inf threshold (catch-all)."""
-    for dso_id, dso in DSO_LIST.items():
-        if not dso["supported"]:
-            continue
-        trinn = dso["kapasitetstrinn"]
-        if trinn and isinstance(trinn[0], dict):
-            continue
-        last_threshold = trinn[-1][0]
-        assert last_threshold == float("inf"), (
-            f"{dso_id}: last tier threshold is {last_threshold}, not inf"
-        )
-
-
-def test_exhaustive_all_dso_energiledd_dag_gte_natt() -> None:
-    """Day rate must be >= night rate for all supported DSOs."""
-    for dso_id, dso in DSO_LIST.items():
-        if not dso["supported"]:
-            continue
-        assert dso["energiledd_dag"] >= dso["energiledd_natt"], (
-            f"{dso_id}: dag ({dso['energiledd_dag']}) < natt ({dso['energiledd_natt']})"
-        )
-
-
-def test_exhaustive_forbruksavgift_all_months_all_soner() -> None:
-    """Verify forbruksavgift for all 12 months x 3 avgiftssoner."""
-    for month in range(1, 13):
-        std = get_forbruksavgift(AVGIFTSSONE_STANDARD, month)
-        nord = get_forbruksavgift(AVGIFTSSONE_NORD_NORGE, month)
-        tiltak = get_forbruksavgift(AVGIFTSSONE_TILTAKSSONE, month)
-
-        assert std == FORBRUKSAVGIFT_ALMINNELIG, f"month {month}: standard wrong"
-        assert nord == FORBRUKSAVGIFT_ALMINNELIG, f"month {month}: nord wrong"
-        assert tiltak == 0.0, f"month {month}: tiltakssone should be 0"
-
-
-def test_exhaustive_mva_all_soner() -> None:
-    """MVA rates must be consistent across avgiftssoner."""
-    assert get_mva_sats(AVGIFTSSONE_STANDARD) == MVA_SATS
-    assert get_mva_sats(AVGIFTSSONE_NORD_NORGE) == 0.0
-    assert get_mva_sats(AVGIFTSSONE_TILTAKSSONE) == 0.0
-
-
-def test_exhaustive_norgespris_all_soner() -> None:
-    """Norgespris must be consistent across avgiftssoner."""
-    assert get_norgespris_inkl_mva(AVGIFTSSONE_STANDARD) == NORGESPRIS_INKL_MVA_STANDARD
-    assert get_norgespris_inkl_mva(AVGIFTSSONE_NORD_NORGE) == NORGESPRIS_INKL_MVA_NORD
-    assert get_norgespris_inkl_mva(AVGIFTSSONE_TILTAKSSONE) == NORGESPRIS_INKL_MVA_NORD
-    # Nord-Norge pays less than standard
-    assert NORGESPRIS_INKL_MVA_NORD <= NORGESPRIS_INKL_MVA_STANDARD
-
-
 # =============================================================================
-# TIER 3: Differential tests — two independent implementations must agree
+# TIER 3: Differential tests -- two independent implementations must agree
 # =============================================================================
 
 
@@ -534,46 +444,3 @@ def test_differential_avg_top3_two_implementations(values: list[float]) -> None:
     )
 
 
-# =============================================================================
-# TIER 2 bonus: Exhaustive cross-component tests
-# =============================================================================
-
-
-def test_exhaustive_fastledd_per_kwh_all_months_all_tiers() -> None:
-    """Verify fastledd per kWh for all months x all tiers gives sane values."""
-    for month in range(1, 13):
-        days = calendar.monthrange(2026, month)[1]
-        for _threshold, price in BKK_KAPASITETSTRINN:
-            fastledd_per_kwh = (price / days) / 24
-            # Should be a small positive number (< 10 NOK/kWh even for highest tier)
-            assert 0 < fastledd_per_kwh < 15, (
-                f"month {month}, price {price}: fastledd_per_kwh={fastledd_per_kwh}"
-            )
-            # Longer months should give lower per-kWh cost
-            if month in (1, 3, 5, 7, 8, 10, 12):  # 31-day months
-                fastledd_31 = (price / 31) / 24
-                fastledd_28 = (price / 28) / 24
-                assert fastledd_31 < fastledd_28
-
-
-@pytest.mark.parametrize("dso_id", [k for k, v in DSO_LIST.items() if v["supported"]])
-def test_exhaustive_total_price_sane_for_each_dso(dso_id: str) -> None:
-    """For each DSO, compute total price at various spot prices and verify sanity."""
-    dso = DSO_LIST[dso_id]
-    trinn = dso["kapasitetstrinn"]
-    if trinn and isinstance(trinn[0], dict):
-        pytest.skip(f"{dso_id} uses dict-format kapasitetstrinn")
-
-    energiledd_dag = dso["energiledd_dag"]
-    # Use lowest kapasitetstrinn for baseline
-    kapasitetsledd = trinn[0][1]
-
-    for spot in [0.0, 0.5, STROMSTOTTE_LEVEL, 1.0, 2.0, 5.0]:
-        stotte = calculate_stromstotte(spot)
-        fastledd = (kapasitetsledd / 30) / 24
-        total = (spot - stotte) + energiledd_dag + fastledd
-        # Total should never be negative for non-negative spot
-        assert total >= -1e-10, f"{dso_id}: negative total {total} at spot={spot}"
-        # Total without støtte should always be >= total with støtte
-        total_uten = spot + energiledd_dag + fastledd
-        assert total_uten >= total - 1e-10

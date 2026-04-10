@@ -189,3 +189,34 @@ def test_cap_is_5000_kwh() -> None:
 def test_cap_matches_bolig_helper() -> None:
     """Verify STROMSTOTTE_MAX_KWH matches get_stromstotte_max_kwh for bolig."""
     assert get_stromstotte_max_kwh(BOLIGTYPE_BOLIG) == STROMSTOTTE_MAX_KWH
+
+
+# =============================================================================
+# Floating-point grensepresisjon
+# =============================================================================
+
+
+def test_epsilon_above_threshold() -> None:
+    """Spot = threshold + tiny epsilon gir positiv stotte."""
+    epsilon = 1e-10
+    result = calculate_stromstotte(STROMSTOTTE_LEVEL + epsilon, 0)
+    assert result > 0
+
+
+def test_epsilon_below_threshold() -> None:
+    """Spot = threshold - tiny epsilon gir ingen stotte."""
+    epsilon = 1e-10
+    result = calculate_stromstotte(STROMSTOTTE_LEVEL - epsilon, 0)
+    assert result == 0.0
+
+
+def test_floating_point_addition_at_threshold() -> None:
+    """0.50 + 0.4625 = 0.9625 eksakt i binary, skal gi 0."""
+    assembled = 0.50 + 0.4625
+    result = calculate_stromstotte(assembled, 0)
+    assert result == 0.0
+
+
+def test_negative_spot_no_support() -> None:
+    """Negativ spotpris gir ingen stotte."""
+    assert calculate_stromstotte(-1.0, 0) == 0.0

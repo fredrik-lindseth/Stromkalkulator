@@ -469,3 +469,147 @@ class TestLoadMissingFields:
         assert coordinator._previous_month_consumption == {"dag": 0.0, "natt": 0.0}
         assert coordinator._previous_month_top_3 == {}
         assert coordinator._previous_month_name is None
+
+
+# =============================================================================
+# Storage-korrupsjon og _validate_daily_max_power edge cases
+# =============================================================================
+
+
+class TestValidateDailyMaxPower:
+    """Test _validate_daily_max_power with malformed data."""
+
+    def test_non_dict_input_returns_empty(self):
+        coord = _reload_coord()
+        hass = MagicMock()
+        entry = _make_entry()
+        coordinator = coord.NettleieCoordinator(hass, entry)
+        assert coordinator._validate_daily_max_power("not a dict") == {}
+        assert coordinator._validate_daily_max_power(None) == {}
+        assert coordinator._validate_daily_max_power(42) == {}
+
+    def test_dict_format_missing_kw_key(self):
+        """Dict without 'kw' key should default kw to 0."""
+        coord = _reload_coord()
+        hass = MagicMock()
+        entry = _make_entry()
+        coordinator = coord.NettleieCoordinator(hass, entry)
+        result = coordinator._validate_daily_max_power({
+            "2026-04-01": {"hour": 14},
+        })
+        assert result == {"2026-04-01": {"kw": 0.0, "hour": 14}}
+
+    def test_dict_format_non_numeric_kw_skipped(self):
+        """Dict with non-numeric 'kw' should be skipped."""
+        coord = _reload_coord()
+        hass = MagicMock()
+        entry = _make_entry()
+        coordinator = coord.NettleieCoordinator(hass, entry)
+        result = coordinator._validate_daily_max_power({
+            "2026-04-01": {"kw": "abc", "hour": 14},
+        })
+        assert result == {}
+
+    def test_dict_format_invalid_hour_set_to_none(self):
+        """Hour outside 0-23 should be set to None."""
+        coord = _reload_coord()
+        hass = MagicMock()
+        entry = _make_entry()
+        coordinator = coord.NettleieCoordinator(hass, entry)
+        result = coordinator._validate_daily_max_power({
+            "2026-04-01": {"kw": 5.0, "hour": 25},
+        })
+        assert result["2026-04-01"]["hour"] is None
+
+    def test_dict_format_non_numeric_hour_set_to_none(self):
+        """Non-numeric hour should be set to None."""
+        coord = _reload_coord()
+        hass = MagicMock()
+        entry = _make_entry()
+        coordinator = coord.NettleieCoordinator(hass, entry)
+        result = coordinator._validate_daily_max_power({
+            "2026-04-01": {"kw": 5.0, "hour": "abc"},
+        })
+        assert result["2026-04-01"]["hour"] is None
+
+    def test_dict_format_negative_kw_skipped(self):
+        """Negative kw should be skipped."""
+        coord = _reload_coord()
+        hass = MagicMock()
+        entry = _make_entry()
+        coordinator = coord.NettleieCoordinator(hass, entry)
+        result = coordinator._validate_daily_max_power({
+            "2026-04-01": {"kw": -3.0, "hour": 10},
+        })
+        assert result == {}
+
+    def test_old_float_format_migrated(self):
+        """Old bare-float format should be migrated to dict format."""
+        coord = _reload_coord()
+        hass = MagicMock()
+        entry = _make_entry()
+        coordinator = coord.NettleieCoordinator(hass, entry)
+        result = coordinator._validate_daily_max_power({
+            "2026-04-01": 5.0,
+            "2026-04-02": 3.5,
+        })
+        assert result == {
+            "2026-04-01": {"kw": 5.0, "hour": None},
+            "2026-04-02": {"kw": 3.5, "hour": None},
+        }
+
+
+class TestCorruptStorageData:
+    """Test _load_stored_data with corrupt data."""
+
+    def test_corrupt_kapasitetsledd_string_defaults_to_zero(self):
+        """Non-numeric kapasitetsledd in storage should default to 0."""
+        coord = _reload_coord()
+
+        stored = {
+            "daily_max_power": {},
+            "monthly_consumption": {"dag": 0.0, "natt": 0.0},
+            "current_month": "2026-06",
+            "previous_month_kapasitetsledd": "not_a_number",
+        }
+
+        def make_store(hass, version, key):
+            store = MagicMock()
+            store.async_load = AsyncMock(return_value=stored)
+            store.async_save = AsyncMock()
+            store.async_remove = AsyncMock()
+            return store
+
+        coord.Store = MagicMock(side_effect=make_store)
+
+        hass = MagicMock()
+        entry = _make_entry()
+        coordinator = coord.NettleieCoordinator(hass, entry)
+        asyncio.run(coordinator._load_stored_data())
+
+        assert coordinator._previous_month_kapasitetsledd == 0
+
+    def test_totally_corrupt_storage_uses_defaults(self):
+        """Storage data that raises on access should fall back to defaults."""
+        coord = _reload_coord()
+
+        # A list instead of dict will cause AttributeError on .get()
+        stored = [1, 2, 3]
+
+        def make_store(hass, version, key):
+            store = MagicMock()
+            store.async_load = AsyncMock(return_value=stored)
+            store.async_save = AsyncMock()
+            store.async_remove = AsyncMock()
+            return store
+
+        coord.Store = MagicMock(side_effect=make_store)
+
+        hass = MagicMock()
+        entry = _make_entry()
+        coordinator = coord.NettleieCoordinator(hass, entry)
+        asyncio.run(coordinator._load_stored_data())
+
+        # Should have defaults, not crash
+        assert coordinator._daily_max_power == {}
+        assert coordinator._monthly_consumption == {"dag": 0.0, "natt": 0.0}

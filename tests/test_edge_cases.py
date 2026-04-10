@@ -3,7 +3,6 @@
 Covers:
 - Daylight saving time (DST) transitions
 - Holiday calculations beyond 2030
-- Strømstøtte at exact threshold boundary
 - is_day_rate at DST clock change boundaries
 """
 
@@ -16,8 +15,6 @@ import pytest
 
 from custom_components.stromkalkulator.const import (
     HELLIGDAGER_BEVEGELIGE,
-    STROMSTOTTE_LEVEL,
-    STROMSTOTTE_RATE,
     _bevegelige_helligdager,
     _easter,
 )
@@ -168,55 +165,3 @@ class TestHolidaysBeyond2030:
         assert is_day_rate(kr_himmelfart) is True  # Known limitation
 
 
-# =============================================================================
-# Strømstøtte grense-presisjon
-# =============================================================================
-
-
-class TestStromstotteThresholdPrecision:
-    """Test strømstøtte at exact threshold boundary with floating point precision."""
-
-    def _calculate(self, spot_price: float) -> float:
-        """Same formula as coordinator.py."""
-        if spot_price > STROMSTOTTE_LEVEL:
-            return (spot_price - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE
-        return 0.0
-
-    def test_exactly_at_threshold(self):
-        """Spot == STROMSTOTTE_LEVEL → no support."""
-        assert self._calculate(STROMSTOTTE_LEVEL) == 0.0
-
-    def test_one_ore_above_threshold(self):
-        """Spot = threshold + 0.01 (1 øre) → small support."""
-        result = self._calculate(STROMSTOTTE_LEVEL + 0.01)
-        assert result == pytest.approx(0.01 * STROMSTOTTE_RATE)
-
-    def test_epsilon_above_threshold(self):
-        """Spot = threshold + tiny epsilon → tiny support (not zero)."""
-        epsilon = 1e-10
-        result = self._calculate(STROMSTOTTE_LEVEL + epsilon)
-        assert result > 0
-
-    def test_epsilon_below_threshold(self):
-        """Spot = threshold - tiny epsilon → no support."""
-        epsilon = 1e-10
-        result = self._calculate(STROMSTOTTE_LEVEL - epsilon)
-        assert result == 0.0
-
-    def test_floating_point_addition_edge(self):
-        """Test with a price that might have floating point issues.
-
-        0.9625 is exact in binary (= 385/400), so threshold comparisons
-        should be stable. This test verifies that.
-        """
-        # 0.50 + 0.4625 should exactly equal 0.9625
-        assembled = 0.50 + 0.4625
-        assert self._calculate(assembled) == 0.0
-
-    def test_negative_price(self):
-        """Negative spot price → no support."""
-        assert self._calculate(-1.0) == 0.0
-
-    def test_zero_price(self):
-        """Zero spot price → no support."""
-        assert self._calculate(0.0) == 0.0

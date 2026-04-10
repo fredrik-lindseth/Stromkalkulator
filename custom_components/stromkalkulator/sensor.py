@@ -65,7 +65,7 @@ async def async_setup_entry(
         MaksForbrukSensor(coordinator, entry, 1),
         MaksForbrukSensor(coordinator, entry, 2),
         MaksForbrukSensor(coordinator, entry, 3),
-        GjsForbrukSensor(coordinator, entry),
+        GjennomsnittForbrukSensor(coordinator, entry),
         TrinnNummerSensor(coordinator, entry),
         TrinnIntervallSensor(coordinator, entry),
         KapasitetstrinnSensor(coordinator, entry),
@@ -89,7 +89,7 @@ async def async_setup_entry(
         SpotprisEtterStotteSensor(coordinator, entry),
         TotalPrisEtterStotteSensor(coordinator, entry),
         TotalPrisInklAvgifterSensor(coordinator, entry),
-        StromstotteKwhSensor(coordinator, entry),
+        StromstotteAktivSensor(coordinator, entry),
         StromstotteGjenstaaendeSensor(coordinator, entry),
         StromprisPerKwhEtterStotteSensor(coordinator, entry),
         # Norgespris
@@ -380,7 +380,7 @@ class MaksForbrukSensor(NettleieBaseSensor):
         return None
 
 
-class GjsForbrukSensor(NettleieBaseSensor):
+class GjennomsnittForbrukSensor(NettleieBaseSensor):
     """Sensor for average of top 3 power consumption days."""
 
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.POWER
@@ -939,8 +939,8 @@ class EnovaavgiftSensor(NettleieBaseSensor):
         }
 
 
-class StromstotteKwhSensor(NettleieBaseSensor):
-    """Sensor for strømstøtte-berettiget forbruk (kWh over terskel)."""
+class StromstotteAktivSensor(NettleieBaseSensor):
+    """Sensor for om strømstøtte er aktiv (spotpris over terskel)."""
 
     _device_group: str = DEVICE_STROMSTOTTE
     _attr_entity_category: EntityCategory = EntityCategory.DIAGNOSTIC

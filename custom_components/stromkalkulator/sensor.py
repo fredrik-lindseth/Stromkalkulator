@@ -1470,10 +1470,9 @@ class MaanedligTotalSensor(MaanedligBaseSensor):
         return None
 
 
-class MaanedligNorgesprisDifferanseSensor(NettleieBaseSensor):
+class MaanedligNorgesprisDifferanseSensor(MaanedligBaseSensor):
     """Sensor for accumulated monthly Norgespris savings/loss."""
 
-    _device_group: str = DEVICE_MAANEDLIG
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "kr"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
@@ -1486,16 +1485,6 @@ class MaanedligNorgesprisDifferanseSensor(NettleieBaseSensor):
         self._attr_state_class = SensorStateClass.TOTAL
         self._attr_icon = "mdi:scale-balance"
         self._attr_suggested_display_precision = 0
-
-    @property
-    def device_info(self) -> dict[str, Any]:
-        """Return device info for Månedlig device."""
-        return {
-            "identifiers": {(DOMAIN, f"{self._entry.entry_id}_{self._device_group}")},
-            "name": "Månedlig forbruk",
-            "manufacturer": "Fredrik Lindseth",
-            "model": "Strømkalkulator",
-        }
 
     @property
     def native_value(self) -> float | None:
@@ -1514,10 +1503,9 @@ class MaanedligNorgesprisDifferanseSensor(NettleieBaseSensor):
         return None
 
 
-class MaanedligNorgesprisKompensasjonSensor(NettleieBaseSensor):
+class MaanedligNorgesprisKompensasjonSensor(MaanedligBaseSensor):
     """Sensor for accumulated monthly Norgespris compensation (norgespris - spot) * kWh."""
 
-    _device_group: str = DEVICE_MAANEDLIG
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "kr"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
@@ -1530,16 +1518,6 @@ class MaanedligNorgesprisKompensasjonSensor(NettleieBaseSensor):
         self._attr_state_class = SensorStateClass.TOTAL
         self._attr_icon = "mdi:cash-sync"
         self._attr_suggested_display_precision = 0
-
-    @property
-    def device_info(self) -> dict[str, Any]:
-        """Return device info for Maanedlig device."""
-        return {
-            "identifiers": {(DOMAIN, f"{self._entry.entry_id}_{self._device_group}")},
-            "name": "Månedlig forbruk",
-            "manufacturer": "Fredrik Lindseth",
-            "model": "Strømkalkulator",
-        }
 
     @property
     def native_value(self) -> float | None:

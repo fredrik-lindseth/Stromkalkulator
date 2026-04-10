@@ -48,7 +48,6 @@ class DSOFusjon:
 
 DSO_MIGRATIONS: Final[list[DSOFusjon]] = [
     DSOFusjon(gammel="skiakernett", ny="vevig"),
-    DSOFusjon(gammel="norgesnett", ny="glitre"),
 ]
 
 
@@ -121,6 +120,28 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
             (75, 2890),
             (100, 3850),
             (float("inf"), 6250),
+        ],
+    },
+    "norgesnett": {
+        "name": "Norgesnett (Glitre Nett)",
+        "prisomrade": "NO1",
+        "supported": True,
+        # Norgesnett er en del av Glitre Nett, men kunder faktureres etter egne tariffer.
+        # Kilde: https://norgesnett.no/nettleie-privat/
+        "energiledd_dag": 0.3549,  # 35,49 øre/kWh inkl. avgifter (2026, dag 06-22)
+        "energiledd_natt": 0.2677,  # 26,77 øre/kWh inkl. avgifter (2026, natt 22-06)
+        "url": "https://norgesnett.no/nettleie-privat/",
+        "kapasitetstrinn": [
+            (2, 118),  # 0-1,99 kW: 117,89 kr/mnd
+            (5, 196),  # 2-4,99 kW: 196,49 kr/mnd
+            (10, 323),  # 5-9,99 kW: 323,12 kr/mnd
+            (15, 575),  # 10-14,99 kW: 574,63 kr/mnd
+            (20, 763),  # 15-19,99 kW: 763,25 kr/mnd
+            (25, 947),  # 20-24,99 kW: 946,65 kr/mnd
+            (50, 1467),  # 25-49,99 kW: 1467,13 kr/mnd
+            (75, 2297),  # 50-74,99 kW: 2296,76 kr/mnd
+            (100, 3126),  # 75-99,99 kW: 3126,38 kr/mnd
+            (float("inf"), 5067),  # >100 kW: 5066,84 kr/mnd
         ],
     },
     "tensio_tn": {

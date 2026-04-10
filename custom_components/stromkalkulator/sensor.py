@@ -184,6 +184,21 @@ class NettleieBaseSensor(CoordinatorEntity, SensorEntity):  # type: ignore[misc]
         avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
         return get_mva_sats(avgiftssone)
 
+    def _energiledd_eks_avgifter_attributes(self, data_key: str) -> dict[str, Any] | None:
+        """Return energiledd attributes with eks-avgifter breakdown for invoice comparison."""
+        if not self.coordinator.data:
+            return None
+        avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
+        mva_sats = get_mva_sats(avgiftssone)
+        energiledd = self.coordinator.data.get(data_key, 0)
+        forbruksavgift = get_forbruksavgift(avgiftssone, dt_util.now().month)
+        energiledd_eks_avgifter = energiledd / (1 + mva_sats) - forbruksavgift - ENOVA_AVGIFT
+        return {
+            "inkl_avgifter_mva": energiledd,
+            "eks_avgifter_mva": round(energiledd_eks_avgifter, 4),
+            "note": "Fakturaen viser pris eks. avgifter. Sammenlign med eks_avgifter_mva.",
+        }
+
 
 class EnergileddSensor(NettleieBaseSensor):
     """Sensor for energiledd."""
@@ -877,19 +892,7 @@ class EnergileddDagSensor(NettleieBaseSensor):
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return extra attributes."""
-        if self.coordinator.data:
-            avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
-            mva_sats = get_mva_sats(avgiftssone)
-            energiledd_dag = self.coordinator.data.get("energiledd_dag", 0)
-            # Beregn pris eks. avgifter for fakturasammenligning
-            forbruksavgift = get_forbruksavgift(avgiftssone, dt_util.now().month)
-            energiledd_eks_avgifter = energiledd_dag / (1 + mva_sats) - forbruksavgift - ENOVA_AVGIFT
-            return {
-                "inkl_avgifter_mva": energiledd_dag,
-                "eks_avgifter_mva": round(energiledd_eks_avgifter, 4),
-                "note": "Fakturaen viser pris eks. avgifter. Sammenlign med eks_avgifter_mva.",
-            }
-        return None
+        return self._energiledd_eks_avgifter_attributes("energiledd_dag")
 
 
 class EnergileddNattSensor(NettleieBaseSensor):
@@ -919,19 +922,7 @@ class EnergileddNattSensor(NettleieBaseSensor):
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return extra attributes."""
-        if self.coordinator.data:
-            avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
-            mva_sats = get_mva_sats(avgiftssone)
-            energiledd_natt = self.coordinator.data.get("energiledd_natt", 0)
-            # Beregn pris eks. avgifter for fakturasammenligning
-            forbruksavgift = get_forbruksavgift(avgiftssone, dt_util.now().month)
-            energiledd_eks_avgifter = energiledd_natt / (1 + mva_sats) - forbruksavgift - ENOVA_AVGIFT
-            return {
-                "inkl_avgifter_mva": energiledd_natt,
-                "eks_avgifter_mva": round(energiledd_eks_avgifter, 4),
-                "note": "Fakturaen viser pris eks. avgifter. Sammenlign med eks_avgifter_mva.",
-            }
-        return None
+        return self._energiledd_eks_avgifter_attributes("energiledd_natt")
 
 
 class ForbruksavgiftSensor(NettleieBaseSensor):

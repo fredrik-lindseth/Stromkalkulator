@@ -857,3 +857,36 @@ class TestDailyCostCorrectness:
             "Norgespris daily_cost skal bruke total_price direkte, "
             "ikke trekke fra strømstøtte de ikke mottar."
         )
+
+
+# =============================================================================
+# Kapasitetsvarsel: høyeste trinn
+# =============================================================================
+
+
+class TestKapasitetVarselHighestTier:
+    """When in the highest tier, varsel should be False (no next tier to warn about)."""
+
+    def test_highest_tier_no_warning(self, coord_module):
+        """At 150 kW (well into highest BKK tier), varsel should be False."""
+        hass = _make_hass(power_w=150_000, spot_price=1.20)
+        entry = _make_entry()
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+
+        # Need two updates: first sets _last_update, second accumulates
+        now = _real_datetime(2026, 6, 15, 12, 0)
+        _run_update(coord_module, coordinator, now=now)
+
+        # Manually set high daily max to force highest tier
+        coordinator._daily_max_power = {
+            "2026-06-01": {"kw": 150.0, "hour": 12},
+            "2026-06-02": {"kw": 140.0, "hour": 14},
+            "2026-06-03": {"kw": 130.0, "hour": 10},
+        }
+
+        later = now + timedelta(minutes=5)
+        result = _run_update(coord_module, coordinator, now=later)
+
+        assert result["kapasitetstrinn_nummer"] == 10
+        assert result["kapasitet_varsel"] is False
+        assert result["margin_neste_trinn_kw"] == 0.0

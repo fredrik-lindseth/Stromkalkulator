@@ -52,6 +52,10 @@ Hoveddevicen med nettleie-priser, kapasitetstrinn og offentlige avgifter. Device
 | Margin til neste trinn       | kW     | Hvor mye mer strøm du kan bruke før du rykker opp til neste (dyrere) kapasitetstrinn   |
 | Kapasitetsvarsel             | -      | Slår seg "on" når du er nær neste kapasitetstrinn — bruk til varsling/automatisering   |
 
+**Toppforbruk #1-3** har attributter:
+- `dato` - Datoen for toppforbruket (f.eks. "2026-04-05")
+- `time` - Timen da toppen inntraff (0-23, f.eks. 17 betyr kl. 17:00-18:00)
+
 ### Strømpris
 
 | Sensor                        | Enhet  | Beskrivelse                                                                                      |
@@ -247,6 +251,69 @@ Sensoren er deaktivert som standard. Aktiver den under **Settings > Devices > M�
 
 > **Merk:** Strømkalkulator gir deg prisen — forbruksmåleren (kWh) kommer fra din AMS-leser (f.eks. Tibber Pulse).
 
+### Toppforbruk og kapasitetstrinn
+
+Sensorene **Toppforbruk #1-3** viser de tre dagene med høyest strømforbruk denne måneden. Snittet av disse bestemmer kapasitetstrinnet. Dato og klokkeslett for hver topp ligger i attributtene `dato` og `time`.
+
+Finn dine entity-ID-er under **Developer Tools > States** og søk etter "toppforbruk". Entity-ID-ene varierer avhengig av nettselskap og instans (f.eks. `sensor.toppforbruk_1` eller `sensor.nettleie_elvia_toppforbruk`).
+
+#### Entities-kort
+
+Viser topp-3 med dato som sekundærinformasjon. Bytt ut entity-ID-ene med dine egne:
+
+```yaml
+type: entities
+title: Topp-3 effektdager
+entities:
+  - entity: sensor.toppforbruk_1           # Bytt med din entity-ID
+    secondary_info: attribute
+    attribute: dato
+  - entity: sensor.toppforbruk_2
+    secondary_info: attribute
+    attribute: dato
+  - entity: sensor.toppforbruk_3
+    secondary_info: attribute
+    attribute: dato
+  - entity: sensor.snitt_toppforbruk
+  - entity: sensor.kapasitetstrinn
+```
+
+#### Markdown-kort med tabell
+
+Viser kW, dato og klokkeslett i en kompakt tabell:
+
+```yaml
+type: markdown
+title: Toppforbruk denne måneden
+content: |
+  | # | kW | Dato | Kl. |
+  |---|---:|------|-----|
+  {% set s1 = 'sensor.toppforbruk_1' %}
+  {% set s2 = 'sensor.toppforbruk_2' %}
+  {% set s3 = 'sensor.toppforbruk_3' %}
+  | 1 | {{ states(s1) }} | {{ state_attr(s1, 'dato') }} | {{ state_attr(s1, 'time') }}:00 |
+  | 2 | {{ states(s2) }} | {{ state_attr(s2, 'dato') }} | {{ state_attr(s2, 'time') }}:00 |
+  | 3 | {{ states(s3) }} | {{ state_attr(s3, 'dato') }} | {{ state_attr(s3, 'time') }}:00 |
+
+  **Snitt:** {{ states('sensor.snitt_toppforbruk') }} kW
+```
+
+#### Automasjon: varsle ved nærhet til neste trinn
+
+```yaml
+automation:
+  - trigger:
+      - platform: numeric_state
+        entity_id: sensor.nettleie_bkk_margin_til_neste_trinn  # Bytt med din entity-ID
+        below: 1.0
+    action:
+      - service: notify.mobile_app
+        data:
+          message: >
+            Du er {{ states('sensor.nettleie_bkk_margin_til_neste_trinn') }} kW
+            fra neste kapasitetstrinn.
+```
+
 ### Sammenligne Norgespris
 
 Bruk **Prisforskjell (norgespris)** for å se om Norgespris lønner seg:
@@ -291,6 +358,101 @@ Bruk "Forrige måned"-sensorene når fakturaen kommer:
 
 - All data lagres til disk og overlever restart
 - Lagringsformat: `/config/.storage/stromkalkulator_<entry_id>` (unik per instans)
+
+### Manuelt redigere lagrede data
+
+Integrasjonen lagrer all akkumulert data i en JSON-fil per instans. Du kan redigere denne filen direkte for å korrigere feil data uten å miste alt.
+
+#### Finn lagringsfilen
+
+1. Finn din `entry_id`: **Settings > Devices & Services > Strømkalkulator** og klikk på instansen. Entry-ID-en vises i URL-en (f.eks. `config/integrations/integration/stromkalkulator#...`)
+2. Filen ligger i `/config/.storage/stromkalkulator_<entry_id>`
+
+Alternativt, list alle lagringsfiler:
+
+```bash
+ls /config/.storage/stromkalkulator_*
+```
+
+#### Stopp HA, rediger, start HA
+
+Stopp Home Assistant for du redigerer, ellers overskrives endringene dine.
+
+```bash
+ha core stop
+# rediger filen
+ha core start
+```
+
+#### Eksempler
+
+**Nullstille toppforbruk (begynne på nytt denne måneden):**
+
+Sett `daily_max_power` til tom dict. Toppforbruk bygges opp igjen fra scratch.
+
+```json
+{
+  "daily_max_power": {},
+  ...
+}
+```
+
+**Korrigere en enkelt toppforbruksdag:**
+
+Endre kW-verdien for en spesifikk dato. `hour` er timen (0-23) da toppen inntraff.
+
+```json
+{
+  "daily_max_power": {
+    "2026-04-03": {"kw": 4.2, "hour": 17},
+    "2026-04-08": {"kw": 3.8, "hour": 7},
+    "2026-04-12": {"kw": 5.1, "hour": 18}
+  },
+  ...
+}
+```
+
+**Fjerne en feilaktig toppdag:**
+
+Slett bare den aktuelle datoen fra `daily_max_power`. Resten beholdes.
+
+**Nullstille månedlig forbruk:**
+
+```json
+{
+  "monthly_consumption": {"dag": 0.0, "natt": 0.0},
+  ...
+}
+```
+
+**Korrigere forrige måneds kapasitetstrinn:**
+
+Hvis forrige måned viser feil trinn (f.eks. etter delt data mellom instanser):
+
+```json
+{
+  "previous_month_kapasitetsledd": 250,
+  "previous_month_kapasitetstrinn": "2-5 kW",
+  ...
+}
+```
+
+#### Komplett feltbeskrivelse
+
+| Felt | Type | Beskrivelse |
+|------|------|-------------|
+| `daily_max_power` | dict | Toppforbruk per dag: `{"YYYY-MM-DD": {"kw": float, "hour": int}}` |
+| `monthly_consumption` | dict | Forbruk denne måneden: `{"dag": float, "natt": float}` (kWh) |
+| `current_month` | string | Nåværende måned: `"YYYY-MM"` |
+| `daily_cost` | float | Dagens akkumulerte kostnad (kr) |
+| `monthly_accumulated_cost` | float | Akkumulert totalkostnad denne måneden (kr) |
+| `previous_month_consumption` | dict | Forbruk forrige måned: `{"dag": float, "natt": float}` (kWh) |
+| `previous_month_top_3` | dict | Topp-3 forrige måned (samme format som `daily_max_power`) |
+| `previous_month_kapasitetsledd` | int | Kapasitetsledd forrige måned (kr/mnd) |
+| `previous_month_kapasitetstrinn` | string | Trinn-intervall forrige måned (f.eks. `"5-10 kW"`) |
+| `monthly_export_kwh` | float | Eksportert energi denne måneden (kWh) |
+| `monthly_export_revenue` | float | Eksportinntekt denne måneden (kr) |
+| `monthly_cost` | float | Total forbrukskostnad denne måneden (kr) |
 
 ### Nøyaktighet
 

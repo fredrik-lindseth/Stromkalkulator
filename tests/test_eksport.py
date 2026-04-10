@@ -425,3 +425,80 @@ class TestExportStorage:
         assert result["previous_month_export_kwh"] == 30.0
         assert result["previous_month_export_revenue_kr"] == 36.0
         assert result["previous_month_cost_kr"] == 180.0
+
+
+# =============================================================================
+# Eksport-sensor feilhåndtering
+# =============================================================================
+
+
+class TestExportSensorErrorHandling:
+    """Test that bad export sensor values are handled gracefully."""
+
+    def test_export_sensor_non_numeric_value(self, coord_module):
+        """ValueError from non-numeric export sensor state should not crash."""
+        hass = MagicMock()
+
+        def get_state(entity_id):
+            if entity_id == "sensor.power":
+                return _make_state(5000)
+            if entity_id == "sensor.spot_price":
+                return _make_state(1.20)
+            if entity_id == "sensor.export_power":
+                return _make_state("not_a_number")
+            return None
+
+        hass.states.get = MagicMock(side_effect=get_state)
+        entry = _make_entry(export_power_sensor="sensor.export_power")
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+
+        # First update sets _last_update
+        _run_update(coord_module, coordinator)
+        # Second update has elapsed_hours > 0, hitting the export code path
+        now = _real_datetime(2026, 6, 15, 12, 5)
+        result = _run_update(coord_module, coordinator, now=now)
+        assert result["monthly_export_kwh"] == 0.0
+
+    def test_export_sensor_infinity_value(self, coord_module):
+        """Infinity export reading should be treated as 0."""
+        hass = MagicMock()
+
+        def get_state(entity_id):
+            if entity_id == "sensor.power":
+                return _make_state(5000)
+            if entity_id == "sensor.spot_price":
+                return _make_state(1.20)
+            if entity_id == "sensor.export_power":
+                return _make_state("inf")
+            return None
+
+        hass.states.get = MagicMock(side_effect=get_state)
+        entry = _make_entry(export_power_sensor="sensor.export_power")
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+
+        _run_update(coord_module, coordinator)
+        now = _real_datetime(2026, 6, 15, 12, 5)
+        result = _run_update(coord_module, coordinator, now=now)
+        assert result["monthly_export_kwh"] == 0.0
+
+    def test_export_sensor_over_500kw_clamped(self, coord_module):
+        """Export reading > 500 kW (500,000 W) should be clamped to 0."""
+        hass = MagicMock()
+
+        def get_state(entity_id):
+            if entity_id == "sensor.power":
+                return _make_state(5000)
+            if entity_id == "sensor.spot_price":
+                return _make_state(1.20)
+            if entity_id == "sensor.export_power":
+                return _make_state(600_000)
+            return None
+
+        hass.states.get = MagicMock(side_effect=get_state)
+        entry = _make_entry(export_power_sensor="sensor.export_power")
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+
+        _run_update(coord_module, coordinator)
+        now = _real_datetime(2026, 6, 15, 12, 5)
+        result = _run_update(coord_module, coordinator, now=now)
+        assert result["monthly_export_kwh"] == 0.0

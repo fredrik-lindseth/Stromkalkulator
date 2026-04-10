@@ -173,6 +173,17 @@ class NettleieBaseSensor(CoordinatorEntity, SensorEntity):  # type: ignore[misc]
             "model": "Strømkalkulator",
         }
 
+    def _get_forbruksavgift(self) -> float:
+        """Get forbruksavgift based on avgiftssone and current month."""
+        avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
+        month = dt_util.now().month
+        return get_forbruksavgift(avgiftssone, month)
+
+    def _get_mva_sats(self) -> float:
+        """Get MVA rate based on avgiftssone."""
+        avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
+        return get_mva_sats(avgiftssone)
+
 
 class EnergileddSensor(NettleieBaseSensor):
     """Sensor for energiledd."""
@@ -483,17 +494,6 @@ class OffentligeAvgifterSensor(NettleieBaseSensor):
         self._attr_native_unit_of_measurement = "NOK/kWh"
         self._attr_icon = "mdi:bank"
         self._attr_suggested_display_precision = 2
-
-    def _get_forbruksavgift(self) -> float:
-        """Get forbruksavgift based on avgiftssone and current month."""
-        avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
-        month = dt_util.now().month
-        return get_forbruksavgift(avgiftssone, month)
-
-    def _get_mva_sats(self) -> float:
-        """Get MVA rate based on avgiftssone."""
-        avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
-        return get_mva_sats(avgiftssone)
 
     @property
     def native_value(self) -> float:
@@ -951,17 +951,6 @@ class ForbruksavgiftSensor(NettleieBaseSensor):
         self._attr_icon = "mdi:lightning-bolt"
         self._attr_suggested_display_precision = 2
 
-    def _get_forbruksavgift(self) -> float:
-        """Get forbruksavgift based on avgiftssone."""
-        avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
-        month = dt_util.now().month
-        return get_forbruksavgift(avgiftssone, month)
-
-    def _get_mva_sats(self) -> float:
-        """Get MVA rate based on avgiftssone."""
-        avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
-        return get_mva_sats(avgiftssone)
-
     @property
     def native_value(self) -> float:
         """Return forbruksavgift inkl. mva."""
@@ -1001,11 +990,6 @@ class EnovaavgiftSensor(NettleieBaseSensor):
         self._attr_native_unit_of_measurement = "NOK/kWh"
         self._attr_icon = "mdi:leaf"
         self._attr_suggested_display_precision = 2
-
-    def _get_mva_sats(self) -> float:
-        """Get MVA rate based on avgiftssone."""
-        avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
-        return get_mva_sats(avgiftssone)
 
     @property
     def native_value(self) -> float:

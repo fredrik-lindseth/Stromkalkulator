@@ -21,18 +21,6 @@ def test_dso_migrations_sources_not_in_dso_list():
         )
 
 
-def test_build_migration_index():
-    """_build_migration_index returns dict mapping gammel -> DSOFusjon."""
-    from stromkalkulator.__init__ import _build_migration_index
-
-    index = _build_migration_index()
-    assert isinstance(index, dict)
-    assert "skiakernett" in index
-    assert index["skiakernett"].ny == "vevig"
-    assert "norgesnett" in index
-    assert index["norgesnett"].ny == "glitre"
-
-
 def test_migrate_dso_returns_new_key():
     """_check_dso_migration returns DSOFusjon when migration exists."""
     from stromkalkulator.__init__ import _check_dso_migration

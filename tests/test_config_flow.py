@@ -320,3 +320,30 @@ class TestConfigFlowErrorKeys:
         )
 
 
+# ---------------------------------------------------------------------------
+# 7. Coordinator float() calls are all protected
+# ---------------------------------------------------------------------------
+
+
+class TestCoordinatorFloatProtection:
+    """Every float(state) in coordinator sensor-reading helpers must be wrapped in try/except."""
+
+    def test_all_float_state_conversions_are_protected(self):
+        """float(.*state) calls in sensor-reading helpers must have except ValueError."""
+        source = (COMPONENTS_DIR / "coordinator.py").read_text()
+
+        # Sensor reading is now in _read_sensor_float and _read_price_sensor helpers
+        for method_name in ("_read_sensor_float", "_read_price_sensor"):
+            pattern = rf"def {method_name}\(.*?(?=\n    def |\n    async def |\nclass |\Z)"
+            match = re.search(pattern, source, re.DOTALL)
+            assert match, f"Could not find {method_name} method"
+            method_source = match.group(0)
+
+            float_calls = re.findall(r"float\([^)]*state[^)]*\)", method_source)
+            assert float_calls, f"Should find float() calls on sensor state in {method_name}"
+
+            has_protection = "except (ValueError" in method_source or "except ValueError" in method_source
+            assert has_protection, (
+                f"Found {len(float_calls)} float(state) calls in {method_name} "
+                f"but no ValueError handler."
+            )

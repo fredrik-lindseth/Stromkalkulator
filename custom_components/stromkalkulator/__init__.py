@@ -10,7 +10,7 @@ from homeassistant import data_entry_flow
 from homeassistant.const import Platform
 from homeassistant.helpers import issue_registry as ir
 
-from .const import CONF_DSO, DOMAIN
+from .const import CONF_DSO, DEFAULT_DSO, DOMAIN
 from .coordinator import NettleieCoordinator
 from .dso import DSO_LIST, DSO_MIGRATIONS, DSOFusjon
 
@@ -56,8 +56,12 @@ def _migrate_storage_file_sync(storage_dir: str, old_dso: str, new_dso: str) -> 
         )
         return
 
-    old_path.rename(new_path)
-    _LOGGER.info("Migrated storage file: %s → %s", old_path.name, new_path.name)
+    try:
+        old_path.rename(new_path)
+    except OSError as err:
+        _LOGGER.warning("Failed to migrate storage file %s: %s", old_path.name, err)
+        return
+    _LOGGER.info("Migrated storage file: %s -> %s", old_path.name, new_path.name)
 
 
 async def _migrate_storage_file(
@@ -70,11 +74,14 @@ async def _migrate_storage_file(
 async def async_setup_entry(hass: HomeAssistant, entry: StromkalkulatorConfigEntry) -> bool:
     """Set up Nettleie from a config entry."""
     # Check for DSO migration (merger)
-    dso_id = entry.data.get(CONF_DSO, "bkk")
+    dso_id = entry.data.get(CONF_DSO, DEFAULT_DSO)
     migration = _check_dso_migration(dso_id)
 
     if migration is not None:
-        new_dso = DSO_LIST[migration.ny]
+        new_dso = DSO_LIST.get(migration.ny)
+        if new_dso is None:
+            _LOGGER.error("DSO migration target %s not found in DSO_LIST", migration.ny)
+            return False
         new_name = new_dso["name"]
 
         _LOGGER.info(

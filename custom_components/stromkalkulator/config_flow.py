@@ -159,13 +159,11 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
                     vol.Required(CONF_SPOT_PRICE_SENSOR): selector.EntitySelector(
                         selector.EntitySelectorConfig(
                             domain="sensor",
-                            device_class="monetary",
                         ),
                     ),
                     vol.Optional(CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR): selector.EntitySelector(
                         selector.EntitySelectorConfig(
                             domain="sensor",
-                            device_class="monetary",
                         ),
                     ),
                     vol.Optional(CONF_EXPORT_POWER_SENSOR): selector.EntitySelector(
@@ -310,7 +308,6 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):  # type: ignore[misc]
                 ): selector.EntitySelector(
                     selector.EntitySelectorConfig(
                         domain="sensor",
-                        device_class="monetary",
                     ),
                 ),
                 vol.Optional(
@@ -319,7 +316,6 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):  # type: ignore[misc]
                 ): selector.EntitySelector(
                     selector.EntitySelectorConfig(
                         domain="sensor",
-                        device_class="monetary",
                     ),
                 ),
                 vol.Optional(

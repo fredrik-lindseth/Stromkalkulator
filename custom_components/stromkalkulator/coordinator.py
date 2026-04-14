@@ -149,6 +149,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         dso_id = entry.data.get(CONF_DSO, DEFAULT_DSO)
         self.dso = DSO_LIST.get(dso_id, DSO_LIST[DEFAULT_DSO])
         self._dso_id = dso_id
+        self._helg_som_natt = self.dso.get("helg_som_natt", True)
 
         # Get avgiftssone from config
         self.avgiftssone = entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
@@ -735,15 +736,18 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
 
     def _is_day_rate(self, now: datetime) -> bool:
         """Check if current time is day rate."""
+        is_night = now.hour < DAY_RATE_START_HOUR or now.hour >= DAY_RATE_END_HOUR
+
+        if not self._helg_som_natt:
+            return not is_night
+
         date_mm_dd = now.strftime("%m-%d")
         date_yyyy_mm_dd = now.strftime("%Y-%m-%d")
 
         is_fixed_holiday = date_mm_dd in HELLIGDAGER_FASTE
-        # Compute moving holidays dynamically for the current year
         bevegelige = _bevegelige_helligdager(now.year)
         is_moving_holiday = date_yyyy_mm_dd in bevegelige
         is_weekend = now.weekday() >= WEEKEND_WEEKDAY_START
-        is_night = now.hour < DAY_RATE_START_HOUR or now.hour >= DAY_RATE_END_HOUR
 
         return not (is_fixed_holiday or is_moving_holiday or is_weekend or is_night)
 

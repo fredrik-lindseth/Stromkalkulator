@@ -36,6 +36,7 @@ class DSOEntry(TypedDict):
     url: str
     kapasitetstrinn: list[KapasitetstrinnTuple | KapasitetstrinnDict]
     tiltakssone: NotRequired[bool]
+    helg_som_natt: NotRequired[bool]  # Default True. False = kun klokkeslett styrer dag/natt.
 
 
 @dataclass(frozen=True)
@@ -109,6 +110,7 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "energiledd_dag": 0.4091,  # 40,91 øre/kWh inkl. avgifter (fra 1. jan 2026)
         "energiledd_natt": 0.2591,  # 25,91 øre/kWh inkl. avgifter (fra 1. jan 2026)
         "url": "https://www.glitrenett.no/kunde/nettleie-og-priser/nettleiepriser-privatkunde",
+        "helg_som_natt": False,
         "kapasitetstrinn": [
             (2, 160),
             (5, 205),
@@ -152,6 +154,7 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "energiledd_dag": 0.4254,  # 42,54 øre/kWh inkl. avgifter (2026, dag 06-21)
         "energiledd_natt": 0.2642,  # 26,42 øre/kWh inkl. avgifter (2026, natt 21-06)
         "url": "https://www.tensio.no/no/kunde/nettleie/nettleiepriser-for-privat",
+        "helg_som_natt": False,
         "kapasitetstrinn": [
             (2, 134),  # 1608/12
             (5, 270),  # 3240/12
@@ -178,6 +181,7 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "energiledd_dag": 0.3604,  # 36,04 øre/kWh inkl. avgifter (2026, dag 06-21)
         "energiledd_natt": 0.2292,  # 22,92 øre/kWh inkl. avgifter (2026, natt 21-06)
         "url": "https://www.tensio.no/no/kunde/nettleie/nettleiepriser-for-privat",
+        "helg_som_natt": False,
         "kapasitetstrinn": [
             (2, 122),  # 1464/12
             (5, 218),  # 2616/12

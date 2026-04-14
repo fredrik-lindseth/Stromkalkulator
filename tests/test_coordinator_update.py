@@ -893,3 +893,52 @@ class TestKapasitetVarselHighestTier:
         assert result["kapasitetstrinn_nummer"] == 10
         assert result["kapasitet_varsel"] is False
         assert result["margin_neste_trinn_kw"] == 0.0
+
+
+class TestHelgSomNatt:
+    """Weekend/holiday tariff behavior per DSO."""
+
+    def test_weekend_uses_night_rate_by_default(self, coord_module):
+        """Default behavior: Saturday midday uses night rate."""
+        saturday_noon = _real_datetime(2026, 4, 11, 12, 0)
+        hass = _make_hass()
+        entry = _make_entry(dso_id="bkk")
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+        result = _run_update(coord_module, coordinator, now=saturday_noon)
+        assert result["is_day_rate"] is False
+
+    def test_weekend_uses_day_rate_when_helg_som_natt_false(self, coord_module):
+        """Glitre Nett: Saturday midday during 06-22 uses day rate."""
+        saturday_noon = _real_datetime(2026, 4, 11, 12, 0)
+        hass = _make_hass()
+        entry = _make_entry(dso_id="glitre")
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+        result = _run_update(coord_module, coordinator, now=saturday_noon)
+        assert result["is_day_rate"] is True
+
+    def test_weekend_night_still_uses_night_rate_when_helg_som_natt_false(self, coord_module):
+        """Glitre: Saturday at 23:00 still uses night rate (time-based)."""
+        saturday_night = _real_datetime(2026, 4, 11, 23, 0)
+        hass = _make_hass()
+        entry = _make_entry(dso_id="glitre")
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+        result = _run_update(coord_module, coordinator, now=saturday_night)
+        assert result["is_day_rate"] is False
+
+    def test_holiday_uses_day_rate_when_helg_som_natt_false(self, coord_module):
+        """Glitre: Christmas Day at noon uses day rate (no holiday override)."""
+        christmas_noon = _real_datetime(2026, 12, 25, 12, 0)
+        hass = _make_hass()
+        entry = _make_entry(dso_id="glitre")
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+        result = _run_update(coord_module, coordinator, now=christmas_noon)
+        assert result["is_day_rate"] is True
+
+    def test_holiday_uses_night_rate_by_default(self, coord_module):
+        """BKK: Christmas Day at noon uses night rate."""
+        christmas_noon = _real_datetime(2026, 12, 25, 12, 0)
+        hass = _make_hass()
+        entry = _make_entry(dso_id="bkk")
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+        result = _run_update(coord_module, coordinator, now=christmas_noon)
+        assert result["is_day_rate"] is False

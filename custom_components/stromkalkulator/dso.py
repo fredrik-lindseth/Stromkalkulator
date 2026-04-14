@@ -151,8 +151,8 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "prisomrade": "NO3",
         "supported": True,
         # Tidligere NTE Nett - Nord-Trøndelag
-        "energiledd_dag": 0.4254,  # 42,54 øre/kWh inkl. avgifter (2026, dag 06-21)
-        "energiledd_natt": 0.2642,  # 26,42 øre/kWh inkl. avgifter (2026, natt 21-06)
+        "energiledd_dag": 0.4254,  # 42,54 øre/kWh inkl. avgifter (2026, dag 06-22)
+        "energiledd_natt": 0.2642,  # 26,42 øre/kWh inkl. avgifter (2026, natt 22-06)
         "url": "https://www.tensio.no/no/kunde/nettleie/nettleiepriser-for-privat",
         "helg_som_natt": False,
         "kapasitetstrinn": [
@@ -178,8 +178,8 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "prisomrade": "NO3",
         "supported": True,
         # Tidligere Trønderenergi Nett - Sør-Trøndelag
-        "energiledd_dag": 0.3604,  # 36,04 øre/kWh inkl. avgifter (2026, dag 06-21)
-        "energiledd_natt": 0.2292,  # 22,92 øre/kWh inkl. avgifter (2026, natt 21-06)
+        "energiledd_dag": 0.3604,  # 36,04 øre/kWh inkl. avgifter (2026, dag 06-22)
+        "energiledd_natt": 0.2292,  # 22,92 øre/kWh inkl. avgifter (2026, natt 22-06)
         "url": "https://www.tensio.no/no/kunde/nettleie/nettleiepriser-for-privat",
         "helg_som_natt": False,
         "kapasitetstrinn": [
@@ -223,7 +223,7 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "supported": True,
         "energiledd_dag": 0.32,  # 32 øre/kWh inkl. mva (2026)
         "energiledd_natt": 0.17,  # 17 øre/kWh inkl. mva (2026)
-        "url": "https://www.l-nett.no/nettleie/nettleiepriser-privat",
+        "url": "https://www.l-nett.no/nettleie/priser-og-vilkar-privat/",
         "kapasitetstrinn": [
             (2, 150),  # 0-2 kW: 150 kr/mnd
             (5, 250),  # 2-5 kW: 250 kr/mnd
@@ -413,8 +413,8 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "prisomrade": "NO3",
         "supported": True,
         # Har ulike sommer/vinter-priser, bruker vinterpriser (høyest)
-        # Vinter dag: 15,88 øre + 9,16 (elavgift) + 1,0 (Enova) = 26,04 øre/kWh
-        # Vinter natt: 3,38 øre + 9,16 + 1,0 = 13,54 øre/kWh
+        # Vinter dag: 15,88 øre + 8,91 (elavgift) + 1,25 (Enova) = 26,04 øre/kWh
+        # Vinter natt: 3,38 øre + 8,91 + 1,25 = 13,54 øre/kWh
         "energiledd_dag": 0.2604,  # 26,04 øre/kWh inkl. avgifter (2026, vinter dag)
         "energiledd_natt": 0.1354,  # 13,54 øre/kWh inkl. avgifter (2026, vinter natt)
         "url": "https://nettselskapet.as/strompris",
@@ -538,7 +538,7 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "supported": True,
         # Priser eks. avgifter: dag 26,3, natt 21,3 øre/kWh
         # + forbruksavgift 8,91 + Enova 1,25 = dag 36,46, natt 31,46 øre/kWh eks. mva
-        # + 25% mva = dag 45,58, natt 39,33 øre/kWh inkl. mva
+        # + 25% mva = dag 43,04, natt 36,79 øre/kWh inkl. mva
         "energiledd_dag": 0.4304,  # 43,04 øre/kWh inkl. avgifter og mva (2025)
         "energiledd_natt": 0.3679,  # 36,79 øre/kWh inkl. avgifter og mva (2025)
         "url": "https://bindalkraftlag.no/tariffer",
@@ -845,7 +845,7 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         # + 25% mva = dag 35,20, natt 22,70 øre/kWh inkl. mva
         "energiledd_dag": 0.3266,  # 32,66 øre/kWh inkl. avgifter og mva (2026)
         "energiledd_natt": 0.2016,  # 20,16 øre/kWh inkl. avgifter og mva (2026)
-        "url": "https://ke-nett.no/Nettleiepriser/",
+        "url": "https://ke-nett.no/priser-og-vilkar/nettleiepriser/",
         "kapasitetstrinn": [
             (2, 200),
             (5, 300),
@@ -1095,8 +1095,8 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "prisomrade": "NO1",
         "supported": True,
         # Priser eks. avgifter: dag 25,67, natt 16,07 øre/kWh
-        # + forbruksavgift 8,91 + Enova 1,25 = dag 35,83, natt 26,23 øre/kWh eks. mva
-        # + 25% mva = dag 44,79, natt 32,79 øre/kWh inkl. mva
+        # + forbruksavgift 7,13 + Enova 1,0 = dag 33,80, natt 24,20 øre/kWh eks. mva
+        # + 25% mva = dag 42,25, natt 30,25 øre/kWh inkl. mva
         "energiledd_dag": 0.4225,  # 42,25 øre/kWh inkl. avgifter og mva (2026)
         "energiledd_natt": 0.3025,  # 30,25 øre/kWh inkl. avgifter og mva (2026)
         "url": "https://r-nett.no/overforingspriser/",
@@ -1120,7 +1120,8 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         # Nå del av Elvia - bruker Elvia-priser fra sept 2025
         "energiledd_dag": 0.3640,  # 36,40 øre/kWh inkl. avgifter (2026)
         "energiledd_natt": 0.2640,  # 26,40 øre/kWh inkl. avgifter (2026)
-        "url": "https://rakkestadenergi.no/nettleiepriser",
+        # Rakkestad Energi er na del av Elvia
+        "url": "https://www.elvia.no/nettleie/alt-om-nettleiepriser/nettleie-pris/",
         "kapasitetstrinn": [
             (2, 125),
             (5, 190),
@@ -1448,8 +1449,8 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "supported": True,
         # Priser fra kraftsystemet 2026: dag 38,66, natt 30,66 øre/kWh inkl. avgifter og mva
         # (tidligere Røros E-verk Nett)
-        "energiledd_dag": 0.3866,  # 38,66 øre/kWh inkl. avgifter (2026, dag 06-21)
-        "energiledd_natt": 0.3066,  # 30,66 øre/kWh inkl. avgifter (2026, natt 21-06)
+        "energiledd_dag": 0.3866,  # 38,66 øre/kWh inkl. avgifter (2026, dag 06-22)
+        "energiledd_natt": 0.3066,  # 30,66 øre/kWh inkl. avgifter (2026, natt 22-06)
         "url": "https://viermie.no/nettleiepriser/priser-for-kunder-med-forbruk-under-100-000-kwh-ar/",
         "kapasitetstrinn": [
             (5, 355),  # 4260/12
@@ -1470,8 +1471,8 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "supported": True,
         # Tiltakssonen - ingen mva, ingen forbruksavgift
         # Priser fra kraftsystemet: dag 29+1(enova)=30, natt 13+1=14 øre/kWh
-        "energiledd_dag": 0.3000,  # 30,00 øre/kWh inkl. Enova (2025)
-        "energiledd_natt": 0.1400,  # 14,00 øre/kWh inkl. Enova (2025)
+        "energiledd_dag": 0.3000,  # 30,00 øre/kWh inkl. Enova (2026)
+        "energiledd_natt": 0.1400,  # 14,00 øre/kWh inkl. Enova (2026)
         "url": "https://www.vissi.no/priser-og-vilkar/nettleie-privat/",
         "kapasitetstrinn": [
             (5, 350),  # 4200/12

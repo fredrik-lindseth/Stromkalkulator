@@ -241,6 +241,43 @@ class TestSpotprisCaching:
 # ===========================================================================
 
 
+class TestSpotprisCacheTTL:
+    """Spot price cache expires after 2 hours."""
+
+    def test_cache_expires_after_2_hours(self, coord_module):
+        """Cached spot price should not be used after 2 hours."""
+        hass = _make_hass(spot_price=1.50)
+        coordinator = coord_module.NettleieCoordinator(hass, _make_entry())
+
+        # First update: populate cache
+        t0 = _real_datetime(2026, 4, 9, 10, 0)
+        _run_update(coord_module, coordinator, now=t0)
+        assert coordinator._last_spot_price == 1.50
+
+        # Make spot sensor unavailable
+        unavail = MagicMock()
+        unavail.state = "unavailable"
+
+        def get_state_unavail(eid):
+            if "power" in eid:
+                return _make_state(5000)
+            if "spot" in eid:
+                return unavail
+            return None
+
+        hass.states.get = MagicMock(side_effect=get_state_unavail)
+
+        # 1 hour later: cache should still work
+        t1 = _real_datetime(2026, 4, 9, 11, 0)
+        result1 = _run_update(coord_module, coordinator, now=t1)
+        assert result1["spot_price"] == 1.50
+
+        # 3 hours later: cache should have expired, fallback to 0.0
+        t2 = _real_datetime(2026, 4, 9, 13, 1)
+        result2 = _run_update(coord_module, coordinator, now=t2)
+        assert result2["spot_price"] == 0.0
+
+
 class TestElapsedTimeClamping:
     """elapsed_hours = max(0.0, min(elapsed_hours, 0.1))"""
 

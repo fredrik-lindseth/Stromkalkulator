@@ -21,16 +21,11 @@ from custom_components.stromkalkulator.const import (
 
 
 def is_day_rate(dt: datetime) -> bool:
-    """Check if current time is day rate.
+    """Check if current time is day rate (standard behavior: helg_som_natt=True).
 
-    Day rate: Weekdays 06:00-22:00 (not holidays)
-    Night rate: 22:00-06:00, weekends, and holidays
-
-    Args:
-        dt: datetime to check
-
-    Returns:
-        True if day rate, False if night rate
+    This test helper implements the default day-rate logic where weekends
+    and holidays use night rate. DSOs with helg_som_natt=False are tested
+    via the coordinator in test_coordinator_update.py::TestHelgSomNatt.
     """
     date_mm_dd = dt.strftime("%m-%d")
     date_yyyy_mm_dd = dt.strftime("%Y-%m-%d")

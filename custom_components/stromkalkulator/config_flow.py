@@ -13,7 +13,6 @@ from homeassistant.helpers import selector
 from .const import (
     AVGIFTSSONE_OPTIONS,
     AVGIFTSSONE_STANDARD,
-    AVGIFTSSONE_TILTAKSSONE,
     BOLIGTYPE_BOLIG,
     BOLIGTYPE_OPTIONS,
     CONF_AVGIFTSSONE,
@@ -34,7 +33,7 @@ from .const import (
     DEFAULT_NAME,
     DOMAIN,
     DSO_LIST,
-    get_default_avgiftssone,
+    resolve_avgiftssone,
 )
 
 if TYPE_CHECKING:
@@ -136,10 +135,7 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
 
                 # Auto-detect avgiftssone from DSO
                 dso: DSOEntry = DSO_LIST[self._data[CONF_DSO]]
-                if dso.get("tiltakssone"):
-                    self._data[CONF_AVGIFTSSONE] = AVGIFTSSONE_TILTAKSSONE
-                else:
-                    self._data[CONF_AVGIFTSSONE] = get_default_avgiftssone(dso["prisomrade"])
+                self._data[CONF_AVGIFTSSONE] = resolve_avgiftssone(dso)
 
                 self._data[CONF_ENERGILEDD_DAG] = dso["energiledd_dag"]
                 self._data[CONF_ENERGILEDD_NATT] = dso["energiledd_natt"]

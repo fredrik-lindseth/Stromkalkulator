@@ -86,6 +86,9 @@ def days_in_month(now: datetime) -> int:
     return (next_month - now.replace(day=1)).days
 
 
+_SPOT_CACHE_MAX_AGE = timedelta(hours=2)
+
+
 class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignore[misc]
     """Coordinator for Nettleie data."""
 
@@ -230,9 +233,10 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         self._daily_cost = 0.0
         self._current_date = dt_util.now().strftime("%Y-%m-%d")
 
-        # Cache last known prices (survives brief sensor outages)
+        # Cache last known prices (survives brief sensor outages, max 2 timer)
         self._last_electricity_company_price: float | None = None
         self._last_spot_price: float | None = None
+        self._last_spot_price_time: datetime | None = None
 
         # Persistent storage - keyed by entry_id for multi-instance isolation
         self._store = Store(hass, 1, f"{DOMAIN}_{entry.entry_id}")
@@ -274,43 +278,65 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
 
     async def _handle_month_rollover(self, now: datetime) -> None:
         """Archive previous month's data and reset accumulators."""
-        self._previous_month_consumption = self._monthly_consumption.copy()
         prev_month_date = now.replace(day=1) - timedelta(days=1)
-        self._previous_month_name = self._format_month_name(prev_month_date)
+        expected_prev = prev_month_date.strftime("%Y-%m")
 
-        self._previous_month_norgespris_diff = self._monthly_norgespris_diff
-        self._previous_month_norgespris_compensation = self._monthly_norgespris_compensation
+        # Multi-måned gap: hvis lagret måned er eldre enn forrige måned
+        # (f.eks. HA var nede i flere måneder), er dataen foreldet.
+        # Nullstill forrige-måned i stedet for å arkivere gammel data med feil label.
+        is_multi_month_gap = self._current_month < expected_prev
 
-        self._previous_month_export_kwh = self._monthly_export_kwh
-        self._previous_month_export_revenue = self._monthly_export_revenue
-        self._previous_month_cost = self._monthly_cost
+        if is_multi_month_gap:
+            _LOGGER.warning(
+                "Multi-måned gap: lagret måned %s, forventet %s. Nullstiller forrige-måned-data.",
+                self._current_month,
+                expected_prev,
+            )
+            self._previous_month_consumption = ConsumptionData()
+            self._previous_month_name = None
+            self._previous_month_norgespris_diff = 0.0
+            self._previous_month_norgespris_compensation = 0.0
+            self._previous_month_export_kwh = 0.0
+            self._previous_month_export_revenue = 0.0
+            self._previous_month_cost = 0.0
+            self._previous_month_top_3 = {}
+            self._previous_month_kapasitetsledd = 0
+            self._previous_month_kapasitetstrinn = ""
+        else:
+            self._previous_month_consumption = self._monthly_consumption.copy()
+            self._previous_month_name = self._format_month_name(prev_month_date)
+            self._previous_month_norgespris_diff = self._monthly_norgespris_diff
+            self._previous_month_norgespris_compensation = self._monthly_norgespris_compensation
+            self._previous_month_export_kwh = self._monthly_export_kwh
+            self._previous_month_export_revenue = self._monthly_export_revenue
+            self._previous_month_cost = self._monthly_cost
+
+            # Flush siste times akkumulator til daily_max_power før arkivering
+            if self._current_hour_energy > 0:
+                yesterday = (now.replace(hour=0, minute=0, second=0) - timedelta(seconds=1)).strftime("%Y-%m-%d")
+                old_entry = self._daily_max_power.get(yesterday)
+                old_max = old_entry.kw if old_entry else 0
+                if self._current_hour_energy > old_max:
+                    self._daily_max_power[yesterday] = DailyMaxEntry(
+                        kw=round(self._current_hour_energy, 3), hour=self._current_hour
+                    )
+
+            # Compute kapasitetsledd for previous month from top_3 before reset
+            prev_top_3 = self._get_top_3_days()
+            self._previous_month_top_3 = prev_top_3
+            if prev_top_3:
+                kw_values = [entry.kw for entry in prev_top_3.values()]
+                prev_avg = sum(kw_values) / len(kw_values)
+                prev_kap, _, prev_trinn = self._get_kapasitetsledd(prev_avg)
+                self._previous_month_kapasitetsledd = prev_kap
+                self._previous_month_kapasitetstrinn = prev_trinn
+            else:
+                self._previous_month_kapasitetsledd = 0
+                self._previous_month_kapasitetstrinn = ""
 
         # Archive energiledd rates for accurate previous-month calculations
         self._previous_month_energiledd_dag = self.energiledd_dag
         self._previous_month_energiledd_natt = self.energiledd_natt
-
-        # Flush siste times akkumulator til daily_max_power før arkivering
-        if self._current_hour_energy > 0:
-            yesterday = (now.replace(hour=0, minute=0, second=0) - timedelta(seconds=1)).strftime("%Y-%m-%d")
-            old_entry = self._daily_max_power.get(yesterday)
-            old_max = old_entry.kw if old_entry else 0
-            if self._current_hour_energy > old_max:
-                self._daily_max_power[yesterday] = DailyMaxEntry(
-                    kw=round(self._current_hour_energy, 3), hour=self._current_hour
-                )
-
-        # Compute kapasitetsledd for previous month from top_3 before reset
-        prev_top_3 = self._get_top_3_days()
-        self._previous_month_top_3 = prev_top_3
-        if prev_top_3:
-            kw_values = [entry.kw for entry in prev_top_3.values()]
-            prev_avg = sum(kw_values) / len(kw_values)
-            prev_kap, _, prev_trinn = self._get_kapasitetsledd(prev_avg)
-            self._previous_month_kapasitetsledd = prev_kap
-            self._previous_month_kapasitetstrinn = prev_trinn
-        else:
-            self._previous_month_kapasitetsledd = 0
-            self._previous_month_kapasitetstrinn = ""
 
         # Reset current month data
         self._daily_max_power = {}
@@ -361,11 +387,6 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         if spot_state is None:
             raise UpdateFailed(f"Spot price sensor entity not found: {self.spot_price_sensor}")
 
-        # Reset at new month
-        current_month_str = now.strftime("%Y-%m")
-        if current_month_str != self._current_month:
-            await self._handle_month_rollover(now)
-
         # Read sensor values
         current_power_w = self._read_sensor_float(self.power_sensor)
         current_power_kw = current_power_w / 1000
@@ -376,7 +397,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             elapsed_hours = (now - self._last_update).total_seconds() / 3600
             elapsed_hours = max(0.0, min(elapsed_hours, MAX_ELAPSED_HOURS))
 
-        # Calculate energy consumption since last update (riemann sum)
+        # Akkumuler energi FØRST, slik at siste syklus havner i riktig måned
         energy_kwh = 0.0
         dirty = False
         if elapsed_hours > 0 and current_power_kw > 0:
@@ -458,12 +479,17 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         # Calculate energiledd
         energiledd = self._get_energiledd(now)
 
-        # Get spot price (cache last known value to survive brief sensor outages)
+        # Get spot price (cache last known value, max 2 timer for kostnadakkumulering)
         raw_spot = self._read_price_sensor(self.spot_price_sensor)
         if raw_spot is not None:
             spot_price = raw_spot
             self._last_spot_price = spot_price
-        elif self._last_spot_price is not None:
+            self._last_spot_price_time = now
+        elif (
+            self._last_spot_price is not None
+            and self._last_spot_price_time is not None
+            and (now - self._last_spot_price_time) < _SPOT_CACHE_MAX_AGE
+        ):
             spot_price = self._last_spot_price
         else:
             spot_price = 0.0
@@ -527,12 +553,13 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         # NB: energiledd fra dso.py inkluderer allerede forbruksavgift + enova
         total_price_inkl_avgifter = total_price
 
-        # Kroner spart/tapt per kWh (sammenligning)
+        # Kroner spart per kWh: positiv = du sparer med nåværende avtale
+        # Samme fortegn som _monthly_norgespris_diff (alternativ - din pris)
         if self.har_norgespris:
             spot_total_etter_stotte = spot_price - stromstotte + energiledd + fastledd_per_kwh
-            kroner_spart_per_kwh = total_price - spot_total_etter_stotte
+            kroner_spart_per_kwh = spot_total_etter_stotte - total_price
         else:
-            kroner_spart_per_kwh = total_price - total_pris_norgespris
+            kroner_spart_per_kwh = total_pris_norgespris - total_price
 
         # Accumulate monthly comparisons and costs
         if energy_kwh > 0:
@@ -550,6 +577,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         if energy_kwh > 0:
             if self.har_norgespris and not norgespris_over_tak:
                 strom_pris = norgespris
+            elif self.har_norgespris:
+                # Over kWh-tak: tilbake til spot, men uten strømstøtte
+                strom_pris = spot_price
             else:
                 strom_pris = spot_price - stromstotte
             self._monthly_accumulated_cost_strom += energy_kwh * strom_pris
@@ -570,6 +600,12 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         # Akkumuler eksportinntekt
         if export_energy_kwh > 0:
             self._monthly_export_revenue += spot_price * export_energy_kwh
+
+        # Månedsskifte: arkiver ETTER at all energi og kostnad er akkumulert,
+        # slik at siste syklus havner i riktig måned.
+        current_month_str = now.strftime("%Y-%m")
+        if current_month_str != self._current_month:
+            await self._handle_month_rollover(now)
 
         # Get electricity company price if configured
         electricity_company_price = None

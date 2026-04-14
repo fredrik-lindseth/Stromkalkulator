@@ -238,22 +238,19 @@ class TestMonthReset:
         assert c._monthly_accumulated_cost_strom > 0
         assert c._monthly_accumulated_cost_kapasitetsledd > 0
 
-        # Kryss manedsskiftet til juli
+        # Kryss månedsskiftet til juli
         t2 = _real_datetime(2026, 7, 1, 0, 1)
         _run_update(coord_module, c, t2)
 
-        # Manedsskiftet nullstiller. Deretter akkumuleres for elapsed fra t1 til t2.
-        # t1=23:59, t2=00:01 -> 2 min = 120 sekunder (under 360s clamp).
-        days_in_july = 31
-        seconds_in_july = days_in_july * 24 * 3600
-        elapsed = 120  # 2 minutter
-        kapasitetsledd = c.kapasitetstrinn[0][1]
-        expected_kap = elapsed * (kapasitetsledd / seconds_in_july)
+        # Akkumulering skjer FØR rollover: siste syklus (t1->t2) havner i juni.
+        # Etter rollover er juli-akkumulatorene nullstilt.
+        assert c._monthly_accumulated_cost_kapasitetsledd == 0.0
+        assert c._monthly_accumulated_cost_strom == 0.0
 
-        # Akkumulatorene inneholder kun den ene oppdateringen etter reset
-        assert c._monthly_accumulated_cost_kapasitetsledd == pytest.approx(expected_kap, abs=1e-6)
-        # Strom og energiledd inneholder bare den ene oppdateringen (ikke forrige maned)
-        assert c._monthly_accumulated_cost_strom < 0.5
+        # Neste oppdatering i juli starter fra scratch
+        t3 = t2 + timedelta(minutes=1)
+        _run_update(coord_module, c, t3)
+        assert c._monthly_accumulated_cost_kapasitetsledd > 0
 
 
 class TestNorgespricing:

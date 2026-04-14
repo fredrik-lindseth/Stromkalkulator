@@ -351,17 +351,14 @@ class TestNorgespris:
         coordinator = coord_module.NettleieCoordinator(hass, entry)
 
         result = _run_update(coord_module, coordinator)
-        # norgespris_total - spot_total_etter_stotte
-        # With spot=2.00, strømstøtte is significant, so norgespris should be cheaper
+        # kroner_spart = spot_total_etter_stotte - norgespris_total
+        # Positiv = du sparer med nåværende avtale (Norgespris)
         stromstotte = (2.00 - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE
         spot_etter = 2.00 - stromstotte
-        # kroner_spart = norgespris_total - spot_total_etter_stotte
-        # = (norgespris + energiledd + fastledd) - (spot - støtte + energiledd + fastledd)
-        # = norgespris - (spot - støtte)
-        expected = round(result["norgespris"] - spot_etter, 4)
+        expected = round(spot_etter - result["norgespris"], 4)
         assert result["kroner_spart_per_kwh"] == pytest.approx(expected, abs=0.0002)
-        # With spot=2.00 and norgespris=0.50, norgespris is cheaper → negative value
-        assert result["kroner_spart_per_kwh"] < 0
+        # With spot=2.00 and norgespris=0.50, Norgespris is cheaper = positive (you save)
+        assert result["kroner_spart_per_kwh"] > 0
 
     def test_norgespris_nord_norge_avgiftssone(self, coord_module):
         """Nord-Norge gets lower norgespris (mva-fritak)."""

@@ -181,15 +181,6 @@ class NettleieBaseSensor(CoordinatorEntity, SensorEntity):  # type: ignore[misc]
         )
 
     def _get_forbruksavgift(self) -> float:
-        avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
-        month = dt_util.now().month
-        return get_forbruksavgift(avgiftssone, month)
-
-    def _get_mva_sats(self) -> float:
-        avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
-        return get_mva_sats(avgiftssone)
-
-    def _get_forbruksavgift(self) -> float:
         """Get forbruksavgift based on avgiftssone and current month."""
         avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
         month = dt_util.now().month

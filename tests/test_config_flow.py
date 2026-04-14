@@ -347,3 +347,51 @@ class TestCoordinatorFloatProtection:
                 f"Found {len(float_calls)} float(state) calls in {method_name} "
                 f"but no ValueError handler."
             )
+
+
+# ---------------------------------------------------------------------------
+# 8. Config flow avgiftssone auto-detection (incident 003)
+# ---------------------------------------------------------------------------
+
+
+class TestAvgiftssoneAutoDetection:
+    """Config flow auto-detection must use DSO avgiftssone field and correct NO3 mapping."""
+
+    def test_no3_defaults_to_standard(self):
+        """NO3 DSOs without avgiftssone override get standard (not nord_norge)."""
+        from stromkalkulator.const import resolve_avgiftssone
+        from stromkalkulator.dso import DSO_LIST
+
+        for dso_id in ("tensio_tn", "tensio_ts", "mellom", "elinett", "vevig"):
+            dso = DSO_LIST[dso_id]
+            assert dso["prisomrade"] == "NO3"
+            assert resolve_avgiftssone(dso) == "standard", f"{dso_id} should be standard"
+
+    def test_no4_defaults_to_nord_norge(self):
+        """NO4 DSOs without tiltakssone get nord_norge."""
+        from stromkalkulator.const import resolve_avgiftssone
+        from stromkalkulator.dso import DSO_LIST
+
+        for dso_id in ("noranett", "linea", "elmea", "vestall", "stram"):
+            dso = DSO_LIST[dso_id]
+            assert dso["prisomrade"] == "NO4"
+            assert resolve_avgiftssone(dso) == "nord_norge", f"{dso_id} should be nord_norge"
+
+    def test_bindal_overrides_to_nord_norge(self):
+        """Bindal Kraftnett is NO3 but in Nordland, should get nord_norge via DSO field."""
+        from stromkalkulator.const import resolve_avgiftssone
+        from stromkalkulator.dso import DSO_LIST
+
+        dso = DSO_LIST["bindal_kraftnett"]
+        assert dso["prisomrade"] == "NO3"
+        assert resolve_avgiftssone(dso) == "nord_norge"
+
+    def test_tiltakssone_dsos(self):
+        """DSOs with tiltakssone flag get tiltakssone avgiftssone."""
+        from stromkalkulator.const import resolve_avgiftssone
+        from stromkalkulator.dso import DSO_LIST
+
+        for dso_id in ("barents_nett", "lucerna", "vissi", "area_nett"):
+            dso = DSO_LIST[dso_id]
+            assert dso.get("tiltakssone") is True, f"{dso_id} should have tiltakssone=True"
+            assert resolve_avgiftssone(dso) == "tiltakssone", f"{dso_id} should be tiltakssone"

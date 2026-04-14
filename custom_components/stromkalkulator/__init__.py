@@ -10,7 +10,14 @@ from homeassistant import data_entry_flow
 from homeassistant.const import Platform
 from homeassistant.helpers import issue_registry as ir
 
-from .const import CONF_DSO, DEFAULT_DSO, DOMAIN
+from .const import (
+    AVGIFTSSONE_NORD_NORGE,
+    AVGIFTSSONE_STANDARD,
+    CONF_AVGIFTSSONE,
+    CONF_DSO,
+    DEFAULT_DSO,
+    DOMAIN,
+)
 from .coordinator import NettleieCoordinator
 from .dso import DSO_LIST, DSO_MIGRATIONS, DSOFusjon
 
@@ -112,6 +119,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: StromkalkulatorConfigEnt
                 "new_name": new_name,
             },
         )
+
+    # Migrer avgiftssone for NO3-DSO-er (incident 003)
+    # NO3 ble feil mappet til nord_norge (mva-fritak), men de fleste NO3-selskap
+    # er i Trøndelag/Møre og Romsdal som betaler 25% mva.
+    current_avgiftssone = entry.data.get(CONF_AVGIFTSSONE)
+    if current_avgiftssone == AVGIFTSSONE_NORD_NORGE:
+        resolved_dso_id = entry.data.get(CONF_DSO, DEFAULT_DSO)
+        current_dso = DSO_LIST.get(resolved_dso_id)
+        if current_dso and current_dso["prisomrade"] == "NO3":
+            dso_avgiftssone = current_dso.get("avgiftssone")
+            if dso_avgiftssone != AVGIFTSSONE_NORD_NORGE:
+                new_data = {**entry.data, CONF_AVGIFTSSONE: AVGIFTSSONE_STANDARD}
+                hass.config_entries.async_update_entry(entry, data=new_data)
+                _LOGGER.info(
+                    "Migrerte avgiftssone for %s fra nord_norge til standard (NO3, mva-pliktig)",
+                    current_dso["name"],
+                )
 
     coordinator: NettleieCoordinator = NettleieCoordinator(hass, entry)
     await coordinator.async_config_entry_first_refresh()

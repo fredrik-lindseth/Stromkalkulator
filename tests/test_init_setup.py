@@ -174,3 +174,55 @@ class TestDSOMigrationInSetup:
             asyncio.run(init_module.async_setup_entry(hass, entry))
 
         mock_ir.async_create_issue.assert_called_once()
+
+
+class TestAvgiftssoneMigration:
+    """Avgiftssone migration for NO3 DSOs (incident 003).
+
+    NO3 was incorrectly mapped to nord_norge (mva-fritak).
+    Most NO3 DSOs are in Trøndelag/Møre og Romsdal with 25% mva.
+    Migration should change their avgiftssone to standard.
+    """
+
+    def test_no3_dso_migrated_to_standard(self, init_module):
+        """NO3 DSO with nord_norge avgiftssone should be migrated to standard."""
+        hass = _make_hass()
+        entry = _make_entry(dso_id="tensio_tn")
+        entry.data["avgiftssone"] = "nord_norge"
+
+        asyncio.run(init_module.async_setup_entry(hass, entry))
+
+        hass.config_entries.async_update_entry.assert_called_once()
+        call_args = hass.config_entries.async_update_entry.call_args
+        new_data = call_args[1].get("data") or call_args[0][1]
+        assert new_data["avgiftssone"] == "standard"
+
+    def test_no4_dso_not_migrated(self, init_module):
+        """NO4 DSO with nord_norge should NOT be migrated."""
+        hass = _make_hass()
+        entry = _make_entry(dso_id="noranett")
+        entry.data["avgiftssone"] = "nord_norge"
+
+        asyncio.run(init_module.async_setup_entry(hass, entry))
+
+        hass.config_entries.async_update_entry.assert_not_called()
+
+    def test_bindal_not_migrated(self, init_module):
+        """Bindal Kraftnett (NO3, Nordland) has explicit avgiftssone override, should NOT be migrated."""
+        hass = _make_hass()
+        entry = _make_entry(dso_id="bindal_kraftnett")
+        entry.data["avgiftssone"] = "nord_norge"
+
+        asyncio.run(init_module.async_setup_entry(hass, entry))
+
+        hass.config_entries.async_update_entry.assert_not_called()
+
+    def test_no3_standard_not_migrated(self, init_module):
+        """NO3 DSO already on standard should not be touched."""
+        hass = _make_hass()
+        entry = _make_entry(dso_id="tensio_ts")
+        entry.data["avgiftssone"] = "standard"
+
+        asyncio.run(init_module.async_setup_entry(hass, entry))
+
+        hass.config_entries.async_update_entry.assert_not_called()

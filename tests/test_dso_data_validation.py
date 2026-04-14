@@ -7,7 +7,12 @@ properly sorted kapasitetstrinn, and avgifts-consistent pricing.
 from __future__ import annotations
 
 import pytest
-from stromkalkulator.const import ENOVA_AVGIFT, FORBRUKSAVGIFT_ALMINNELIG, MVA_SATS
+from stromkalkulator.const import (
+    ENOVA_AVGIFT,
+    FORBRUKSAVGIFT_ALMINNELIG,
+    MVA_SATS,
+    resolve_avgiftssone,
+)
 from stromkalkulator.dso import DSO_LIST, DSOEntry
 
 VALID_PRISOMRADER = {"NO1", "NO2", "NO3", "NO4", "NO5"}
@@ -48,6 +53,19 @@ class TestDSOPrisomrade:
         assert data["prisomrade"] in VALID_PRISOMRADER, (
             f"{dso_id}: ugyldig prisomrade '{data['prisomrade']}', forventet {VALID_PRISOMRADER}"
         )
+
+
+class TestDSOAvgiftssone:
+    """avgiftssone field (if present) must be a valid value."""
+
+    VALID_AVGIFTSSONER: frozenset[str] = frozenset({"standard", "nord_norge", "tiltakssone"})
+
+    def test_avgiftssone_is_valid_string(self, dso_entry):
+        dso_id, data = dso_entry
+        if "avgiftssone" in data:
+            assert data["avgiftssone"] in self.VALID_AVGIFTSSONER, (
+                f"{dso_id}: ugyldig avgiftssone '{data['avgiftssone']}'"
+            )
 
 
 class TestDSOEnergiledd:
@@ -175,14 +193,6 @@ class TestDSOAvgiftskonsistens:
     - Manglende tiltakssone-flagg (forbruksavgift inkludert for fritak-omrade)
     """
 
-    def _get_avgiftssone(self, dso_id: str, data: DSOEntry) -> str:
-        """Derive avgiftssone from DSO data, same logic as config_flow."""
-        if data.get("tiltakssone"):
-            return "tiltakssone"
-        if data["prisomrade"] in ("NO3", "NO4"):
-            return "nord_norge"
-        return "standard"
-
     def _extract_base_nettleie(self, energiledd: float, avgiftssone: str) -> float:
         """Reverse-calculate base nettleie from total energiledd."""
         if avgiftssone == "tiltakssone":
@@ -202,7 +212,7 @@ class TestDSOAvgiftskonsistens:
         if dso_id == "custom":
             pytest.skip("custom DSO har brukervalgte priser")
 
-        sone = self._get_avgiftssone(dso_id, data)
+        sone = resolve_avgiftssone(data)
         for label, price in [("dag", data["energiledd_dag"]), ("natt", data["energiledd_natt"])]:
             base = self._extract_base_nettleie(price, sone)
             assert base > -0.001, (
@@ -226,7 +236,7 @@ class TestDSOAvgiftskonsistens:
         if dag == natt:
             pytest.skip("flat sats -- ingen dag/natt-forskjell")
 
-        sone = self._get_avgiftssone(dso_id, data)
+        sone = resolve_avgiftssone(data)
         base_dag = self._extract_base_nettleie(dag, sone)
         base_natt = self._extract_base_nettleie(natt, sone)
         diff_total = dag - natt

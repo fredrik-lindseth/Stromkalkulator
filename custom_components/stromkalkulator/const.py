@@ -24,7 +24,8 @@ CONF_BOLIGTYPE: Final[str] = "boligtype"
 CONF_EXPORT_POWER_SENSOR: Final[str] = "export_power_sensor"
 
 # Avgiftssoner for forbruksavgift og mva
-# - standard: Full forbruksavgift + mva (Sør-Norge: NO1, NO2, NO5)
+# Kilde: merverdiavgiftsloven § 6-6 (mva-fritak for Nordland, Troms, Finnmark)
+# - standard: Full forbruksavgift + 25% mva (NO1, NO2, NO5, og NO3 utenom Nordland)
 # - nord_norge: Samme forbruksavgift som standard (fra 2026) + mva-fritak (Nordland, Troms utenom tiltakssonen)
 # - tiltakssone: Forbruksavgift-fritak + mva-fritak (Finnmark + 7 kommuner i Nord-Troms)
 AVGIFTSSONE_STANDARD: Final[str] = "standard"
@@ -47,8 +48,8 @@ BOLIGTYPE_OPTIONS: Final[dict[str, str]] = {
 }
 
 AVGIFTSSONE_OPTIONS: Final[dict[str, str]] = {
-    AVGIFTSSONE_STANDARD: "Sør-Norge — NO1, NO2, NO5 (full avgift + mva)",
-    AVGIFTSSONE_NORD_NORGE: "Nord-Norge — NO3, NO4 (redusert avgift, mva-fritak)",
+    AVGIFTSSONE_STANDARD: "Standard — full avgift + 25% mva",
+    AVGIFTSSONE_NORD_NORGE: "Nord-Norge — Nordland, Troms (mva-fritak)",
     AVGIFTSSONE_TILTAKSSONE: "Tiltakssonen — Finnmark/Nord-Troms (avgiftsfritak, mva-fritak)",
 }
 
@@ -218,15 +219,33 @@ def get_mva_sats(avgiftssone: str) -> float:
 def get_default_avgiftssone(prisomrade: str) -> str:
     """Get default avgiftssone based on price area.
 
+    Mva-fritak gjelder Nordland, Troms og Finnmark (mval. § 6-6).
+    NO4 dekker disse fylkene og defaults til nord_norge.
+    NO3 dekker primært Trøndelag og Møre og Romsdal (med mva),
+    og defaults derfor til standard. Unntak (f.eks. Bindal i Nordland)
+    styres via avgiftssone-felt i DSOEntry.
+
     Args:
         prisomrade: Price area (NO1-NO5)
 
     Returns:
         Default avgiftssone for the price area
     """
-    if prisomrade in ("NO3", "NO4"):
+    if prisomrade == "NO4":
         return AVGIFTSSONE_NORD_NORGE
     return AVGIFTSSONE_STANDARD
+
+
+def resolve_avgiftssone(dso: dict) -> str:
+    """Resolve avgiftssone for a DSO entry.
+
+    Priority: tiltakssone flag > explicit avgiftssone field > default from prisomrade.
+    """
+    if dso.get("tiltakssone"):
+        return AVGIFTSSONE_TILTAKSSONE
+    if "avgiftssone" in dso:
+        return dso["avgiftssone"]
+    return get_default_avgiftssone(dso["prisomrade"])
 
 
 # Helligdager

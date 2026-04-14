@@ -447,11 +447,11 @@ class TestGetDefaultAvgiftssone:
         [
             ("NO1", "standard"),
             ("NO2", "standard"),
-            ("NO3", "nord_norge"),
+            ("NO3", "standard"),  # NO3 = Trøndelag/Møre og Romsdal, HAR mva
             ("NO4", "nord_norge"),
             ("NO5", "standard"),
         ],
-        ids=["NO1_sor", "NO2_sor", "NO3_nord", "NO4_nord", "NO5_sor"],
+        ids=["NO1_sor", "NO2_sor", "NO3_standard", "NO4_nord", "NO5_sor"],
     )
     def test_price_area_to_avgiftssone(self, prisomrade, expected):
         from stromkalkulator.const import get_default_avgiftssone

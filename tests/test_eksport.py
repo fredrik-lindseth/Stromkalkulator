@@ -300,13 +300,14 @@ class TestMonthTransitionExport:
         june_export_revenue = june_result["monthly_export_revenue_kr"]
         june_cost = june_result["monthly_cost_kr"]
 
-        # Transition to July
+        # Transition to July: siste syklus (t1->t2) akkumuleres i juni FØR rollover
         t2 = _real_datetime(2026, 7, 1, 0, 1)
         july_result = _run_update(coord_module, coordinator, now=t2)
 
-        assert july_result["previous_month_export_kwh"] == june_export_kwh
-        assert july_result["previous_month_export_revenue_kr"] == june_export_revenue
-        assert july_result["previous_month_cost_kr"] == june_cost
+        # previous_month inneholder juni inkl. siste syklus
+        assert july_result["previous_month_export_kwh"] > june_export_kwh
+        assert july_result["previous_month_export_revenue_kr"] > june_export_revenue
+        assert july_result["previous_month_cost_kr"] > june_cost
 
     def test_resets_current_month_export(self, coord_module):
         """Current month export should reset after month transition.
@@ -338,11 +339,11 @@ class TestMonthTransitionExport:
         t5 = _real_datetime(2026, 7, 1, 0, 0)
         july_result = _run_update(coord_module, coordinator, now=t5)
 
-        # The reset happened. Verify previous month got June data.
-        assert july_result["previous_month_export_kwh"] == june_export
-        # Current month has only a tiny bit from this single update
-        # (1 min * 3 kW = 0.05 kWh), much less than June's 4 updates
-        assert july_result["monthly_export_kwh"] < june_export
+        # Siste syklus (t4->t5) akkumuleres i juni FØR rollover.
+        # previous_month inneholder juni inkl. siste syklus.
+        assert july_result["previous_month_export_kwh"] > june_export
+        # Etter rollover er juli nullstilt
+        assert july_result["monthly_export_kwh"] == 0.0
 
 
 class TestExportStorage:

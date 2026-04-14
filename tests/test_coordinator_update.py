@@ -407,6 +407,26 @@ class TestNorgespris:
         )
 
 
+class TestKronerSpartSignConvention:
+    """kroner_spart_per_kwh sign: positive = you save with current plan."""
+
+    def test_spot_user_saves_when_spot_is_cheap(self, coord_module):
+        """Spot user with cheap spot: Norgespris would cost more, positive kroner_spart."""
+        hass = _make_hass(spot_price=0.30)  # Below Norgespris (0.50)
+        coordinator = coord_module.NettleieCoordinator(hass, _make_entry())
+        result = _run_update(coord_module, coordinator)
+        # Norgespris (0.50) > spot (0.30), so spot user saves: positive
+        assert result["kroner_spart_per_kwh"] > 0
+
+    def test_spot_user_loses_when_spot_is_expensive(self, coord_module):
+        """Spot user with expensive spot: Norgespris would be cheaper, negative kroner_spart."""
+        hass = _make_hass(spot_price=2.00)
+        coordinator = coord_module.NettleieCoordinator(hass, _make_entry())
+        result = _run_update(coord_module, coordinator)
+        # Even after stromstotte, spot user pays more than Norgespris: negative
+        assert result["kroner_spart_per_kwh"] < 0
+
+
 class TestStromprisPerKwh:
     """strompris_per_kwh calculations."""
 
@@ -597,6 +617,48 @@ class TestMonthTransition:
         top_3 = result["previous_month_top_3"]
         assert len(top_3) == 3
         assert max(e.kw for e in top_3.values()) == 12.0
+
+    def test_last_cycle_energy_goes_to_old_month(self, coord_module):
+        """Energy accumulated in the boundary cycle should go to the old month."""
+        hass = _make_hass(power_w=6000, spot_price=1.50)
+        entry = _make_entry()
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+        coordinator._current_month = "2026-06"
+
+        # Build up June data
+        june_30_2358 = _real_datetime(2026, 6, 30, 23, 58)
+        _run_update(coord_module, coordinator, now=june_30_2358)
+
+        june_30_2359 = june_30_2358 + timedelta(minutes=1)
+        result_june = _run_update(coord_module, coordinator, now=june_30_2359)
+        june_consumption = result_june["monthly_consumption_total_kwh"]
+        june_cost = result_june["monthly_cost_kr"]
+
+        # Cross to July: this cycle's energy should go to June before rollover
+        july_1_0001 = _real_datetime(2026, 7, 1, 0, 1)
+        result_july = _run_update(coord_module, coordinator, now=july_1_0001)
+
+        # Previous month should include the boundary cycle
+        assert result_july["previous_month_consumption_total_kwh"] > june_consumption
+        assert result_july["previous_month_cost_kr"] > june_cost
+        # Current month (July) should be empty after rollover
+        assert result_july["monthly_consumption_total_kwh"] == 0.0
+
+    def test_multi_month_gap_clears_previous_month(self, coord_module):
+        """If HA was down for months, previous_month should be cleared, not mislabeled."""
+        hass = _make_hass(power_w=5000)
+        entry = _make_entry()
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+        # Simulate: stored month is January, current time is April
+        coordinator._current_month = "2026-01"
+        coordinator._monthly_consumption = coord_module.ConsumptionData(dag=500.0, natt=300.0)
+
+        april_1 = _real_datetime(2026, 4, 1, 0, 1)
+        result = _run_update(coord_module, coordinator, now=april_1)
+
+        # Previous month should be cleared (not January's data labeled as March)
+        assert result["previous_month_name"] is None
+        assert result["previous_month_consumption_total_kwh"] == 0.0
 
     def test_no_reset_within_same_month(self, coord_module):
         """Update within the same month should not reset anything."""

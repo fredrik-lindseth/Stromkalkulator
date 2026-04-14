@@ -103,13 +103,11 @@ from stromkalkulator.sensor import (  # noqa: E402
     KapasitetstrinnSensor,
     MaksForbrukSensor,
     MarginNesteTrinnSensor,
-    MaanedligTotalSensor,
     SpotprisEtterStotteSensor,
     StromstotteSensor,
     TariffSensor,
     TotalPriceSensor,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -202,7 +200,7 @@ class TestCoordinatorSensorContract:
 
     def test_kapasitetstrinn_reads_top_3(self, coord_module):
         """KapasitetstrinnSensor extra_state_attributes reads top_3_days."""
-        coordinator, entry, data = _build_coordinator_with_data(coord_module)
+        coordinator, entry, _data = _build_coordinator_with_data(coord_module)
 
         sensor = KapasitetstrinnSensor(coordinator, entry)
         value = sensor.native_value
@@ -234,7 +232,7 @@ class TestCoordinatorSensorContract:
 
     def test_basic_sensors_dont_crash(self, coord_module):
         """All common sensors can read from real coordinator output."""
-        coordinator, entry, data = _build_coordinator_with_data(coord_module)
+        coordinator, entry, _data = _build_coordinator_with_data(coord_module)
 
         sensors = [
             TotalPriceSensor(coordinator, entry),

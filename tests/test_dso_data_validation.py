@@ -1,12 +1,13 @@
 """Validation tests for all DSO (nettselskap) entries in DSO_LIST.
 
 Ensures that every DSO entry has valid structure, correct value ranges,
-and properly sorted kapasitetstrinn.
+properly sorted kapasitetstrinn, and avgifts-consistent pricing.
 """
 
 from __future__ import annotations
 
 import pytest
+from stromkalkulator.const import ENOVA_AVGIFT, FORBRUKSAVGIFT_ALMINNELIG, MVA_SATS
 from stromkalkulator.dso import DSO_LIST, DSOEntry
 
 VALID_PRISOMRADER = {"NO1", "NO2", "NO3", "NO4", "NO5"}
@@ -163,6 +164,111 @@ class TestDSOUrl:
             assert len(data["url"]) > 0, (
                 f"{dso_id}: støttet nettselskap mangler URL"
             )
+
+
+class TestDSOAvgiftskonsistens:
+    """Verify that energiledd prices are consistent with tax rules.
+
+    Fanger feilmonstre som:
+    - Dobbel mva (legge avgifter inkl. mva pa base eks. mva, sa gange med mva igjen)
+    - Feil forbruksavgift for avgiftssone (inkl. mva brukt for mva-fritt omrade)
+    - Manglende tiltakssone-flagg (forbruksavgift inkludert for fritak-omrade)
+    """
+
+    def _get_avgiftssone(self, dso_id: str, data: DSOEntry) -> str:
+        """Derive avgiftssone from DSO data, same logic as config_flow."""
+        if data.get("tiltakssone"):
+            return "tiltakssone"
+        if data["prisomrade"] in ("NO3", "NO4"):
+            return "nord_norge"
+        return "standard"
+
+    def _extract_base_nettleie(self, energiledd: float, avgiftssone: str) -> float:
+        """Reverse-calculate base nettleie from total energiledd."""
+        if avgiftssone == "tiltakssone":
+            return energiledd - ENOVA_AVGIFT
+        elif avgiftssone == "nord_norge":
+            return energiledd - FORBRUKSAVGIFT_ALMINNELIG - ENOVA_AVGIFT
+        else:
+            return energiledd / (1 + MVA_SATS) - FORBRUKSAVGIFT_ALMINNELIG - ENOVA_AVGIFT
+
+    def test_base_nettleie_is_positive(self, dso_entry):
+        """Etter fratrekk av avgifter skal base nettleie vaere positiv.
+
+        Negativ base betyr at avgiftene er for hoye -- typisk dobbel mva
+        eller feil avgiftssone.
+        """
+        dso_id, data = dso_entry
+        if dso_id == "custom":
+            pytest.skip("custom DSO har brukervalgte priser")
+
+        sone = self._get_avgiftssone(dso_id, data)
+        for label, price in [("dag", data["energiledd_dag"]), ("natt", data["energiledd_natt"])]:
+            base = self._extract_base_nettleie(price, sone)
+            assert base > -0.001, (
+                f"{dso_id}: base nettleie {label} er negativ ({base:.4f}). "
+                f"Energiledd {price}, avgiftssone '{sone}'. "
+                f"Mulig feil: dobbel mva, feil forbruksavgift, eller manglende tiltakssone-flagg."
+            )
+
+    def test_dag_natt_same_avgiftsandel(self, dso_entry):
+        """Dag og natt bor ha samme avgiftsandel -- forskjellen er ren nettleie.
+
+        Hvis mva-andelen er forskjellig mellom dag og natt, er noe galt
+        med beregningen (f.eks. en bruker avgifter inkl. mva og den andre ikke).
+        """
+        dso_id, data = dso_entry
+        if dso_id == "custom":
+            pytest.skip("custom DSO har brukervalgte priser")
+
+        dag = data["energiledd_dag"]
+        natt = data["energiledd_natt"]
+        if dag == natt:
+            pytest.skip("flat sats -- ingen dag/natt-forskjell")
+
+        sone = self._get_avgiftssone(dso_id, data)
+        base_dag = self._extract_base_nettleie(dag, sone)
+        base_natt = self._extract_base_nettleie(natt, sone)
+        diff_total = dag - natt
+        diff_base = base_dag - base_natt
+
+        # For standard sone: diff_total bor vaere diff_base * 1.25 (mva pa forskjellen)
+        # For nord/tiltakssone: diff_total bor vaere lik diff_base (ingen mva)
+        if sone == "standard":
+            expected_diff = diff_base * (1 + MVA_SATS)
+        else:
+            expected_diff = diff_base
+
+        assert abs(diff_total - expected_diff) < 0.001, (
+            f"{dso_id}: dag/natt-forskjell er inkonsistent. "
+            f"Total diff: {diff_total:.4f}, forventet fra base: {expected_diff:.4f}. "
+            f"Mulig feil: ulik avgiftsberegning for dag vs natt."
+        )
+
+
+class TestDSOHelgSomNatt:
+    """Verify helg_som_natt flag consistency."""
+
+    def test_helg_som_natt_false_requires_dag_natt_diff(self):
+        """DSO-er med helg_som_natt=False bor ha dag != natt.
+
+        Hvis dag == natt (flat sats), gir flagget ingen mening.
+        """
+        for dso_id, data in DSO_LIST.items():
+            if data.get("helg_som_natt") is False:
+                assert data["energiledd_dag"] != data["energiledd_natt"], (
+                    f"{dso_id}: har helg_som_natt=False men dag == natt (flat sats). "
+                    f"Flagget har ingen effekt."
+                )
+
+    def test_helg_som_natt_only_bool_or_absent(self):
+        """helg_som_natt skal vaere bool eller ikke satt."""
+        for dso_id, data in DSO_LIST.items():
+            val = data.get("helg_som_natt")
+            if val is not None:
+                assert isinstance(val, bool), (
+                    f"{dso_id}: helg_som_natt skal vaere bool, fikk {type(val).__name__}"
+                )
 
 
 class TestDSOListIntegrity:

@@ -2,6 +2,33 @@
 
 Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fikset
+
+- **Spotpris-mva-håndtering** (incident 004): koden antok at spotpris-sensoren leverte priser inkl. mva, men HA-core nordpool-integrasjonen leverer eks. mva. Resultatet var 25 % feil i strømstøtte-trigger, totalpris og Norgespris-besparelse for Sør-Norge-brukere på spotprisavtaler. Nettleie-beregninger var ikke påvirket.
+- **Avrundingsavvik mot ekte fakturaer**: DSO-energiledd lagres nå som rene eks-mva-priser. Inkl-mva-verdien beregnes i kode, slik at vi unngår presisjonstap fra display-avrundede summeringer. BKK-faktura: avvik fra 0,004 til 0,001 øre/kWh.
+
+### Lagt til
+
+- Konfigurasjons-felt `spotpris_inkl_mva` (default `False`) som lar brukere med spesielle spotpris-sensorer (egendefinerte template-sensorer, eldre custom_components/nordpool med VAT=true) overstyre normaliseringen.
+- Faktura-verifisering som tillit-mekanisme (`docs/fakturaer/VERIFISER_DIN_FAKTURA.md`): brukere kan bekrefte at integrasjonen regner riktig for sitt nettselskap. Issue-mal for innsending. README har "Verifisert mot ekte fakturaer"-tabell.
+- BKK april 2026-rapport.
+
+### Endret
+
+- DSO-struktur: `energiledd_dag` og `energiledd_natt` er erstattet med `energiledd_dag_eks_mva` og `energiledd_natt_eks_mva`. Verdiene er rene nettleiepriser, eks. forbruksavgift, Enova og MVA.
+- Config-versjon bumpet til 3 med automatisk migrering:
+  - `v1 → v2`: konverterer lagrede inkl-mva-overrides til eks-mva
+  - `v2 → v3`: setter `spotpris_inkl_mva = True` for eksisterende konfig (preserves behavior). Repair-issue oppmuntrer til å sjekke og slå AV om man bruker HA-core nordpool.
+
+### Vedlikehold
+
+- Destillert dokumentasjon: kondensert AGENTS, README, CONTRIBUTING, DEVELOPMENT, TESTING, SENSORS, incident-rapporter. ~6400 linjer fjernet, ~1200 lagt til (netto ~5200 linjer kuttet).
+- Slettet 5 redundante testfiler som testet lokale re-implementasjoner i stedet for produksjonen (~1100 linjer). Suite gikk fra 1972 til 1912 tester uten reduksjon i dekning.
+- 9 nye tester i `test_spotpris_mva.py` for normaliserings-stien.
+- Slettet utdaterte planer og fakta-filer.
+
 ## [0.55.0]
 
 ### Lagt til

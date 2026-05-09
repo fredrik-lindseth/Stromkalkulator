@@ -13,18 +13,18 @@
   <a href="SECURITY.md"><img src="https://slsa.dev/images/gh-badge-level1.svg" alt="SLSA 1"></a>
 </p>
 
-Home Assistant-integrasjon som beregner **faktisk strømpris** i Norge, inkludert nettleie, avgifter og strømstøtte.
+Home Assistant-integrasjon som beregner faktisk strømpris i Norge, inkludert nettleie, avgifter og strømstøtte.
 
 ## Hva du får
 
-Integrasjonen gir sensorer som viser den faktiske strømprisen, ikke bare spotprisen:
+Sensorer som viser hva strømmen faktisk koster, ikke bare spotprisen:
 
-- **Nettleie**: Energiledd (dag/natt) og kapasitetsledd fra ditt nettselskap
-- **Strømstøtte**: Automatisk (90% over 96,25 øre/kWh)
-- **Totalpris**: Alt inkludert, kan brukes i Energy Dashboard
-- **Månedlig forbruk**: Forbruk og kostnader per måned
-- **Faktura-sjekk**: Sammenlign med fakturaen når den kommer
-- **Solceller**: Eksport og inntekt for plusskunder (deaktivert som standard)
+- Nettleie: energiledd (dag/natt) og kapasitetsledd fra ditt nettselskap
+- Strømstøtte: automatisk (90 % over 96,25 øre/kWh)
+- Totalpris: alt inkludert, kan brukes i Energy Dashboard
+- Månedlig forbruk og kostnad
+- Faktura-sjekk mot forrige måned
+- Solcelle-eksport (deaktivert som standard)
 
 ## Verifisert mot ekte fakturaer
 
@@ -32,7 +32,7 @@ Integrasjonen gir sensorer som viser den faktiske strømprisen, ikke bare spotpr
 | ----------- | ---------- | ------------------- | ------------------ |
 | BKK         | NO5        | 6                   | april 2026         |
 
-Hver rapport matcher integrasjonens beregninger linje for linje mot en ekte faktura. Se [docs/fakturaer/REFERANSE.md](docs/fakturaer/REFERANSE.md). Bruker du et annet nettselskap? [Bekreft at det stemmer for deg også](docs/fakturaer/VERIFISER_DIN_FAKTURA.md).
+Hver rapport matcher integrasjonens beregninger linje for linje mot en ekte faktura. Se [docs/fakturaer/REFERANSE.md](docs/fakturaer/REFERANSE.md). Bruker du et annet nettselskap, [send inn din faktura](docs/fakturaer/VERIFISER_DIN_FAKTURA.md) så bekrefter vi det.
 
 ## Installasjon
 
@@ -71,13 +71,11 @@ Over kWh-taket for Norgespris betaler du spotpris for resten av måneden. Fritid
 
 ### Steg 2: Velg sensorer
 
-Du trenger to sensorer:
+- Effektmåler (W): nåværende forbruk i watt, typisk fra AMS-leser via HAN-port (f.eks. Tibber Pulse).
+- Spotpris-sensor (NOK/kWh): vanligvis "Current price" fra [Nord Pool-integrasjonen](https://www.home-assistant.io/integrations/nordpool/). Den leverer eks. mva, som er det integrasjonen forventer. Har du en sensor som allerede inkluderer mva, kryss av "Spotpris-sensor leverer priser inkl. mva".
+- Strømleverandør-sensor (valgfri): totalpris fra strømselskapet (f.eks. Tibber), for å se hva du faktisk betaler.
 
-- **Effektmåler (W)**: Nåværende strømforbruk i watt. Typisk fra AMS-leser via HAN-porten (f.eks. Tibber Pulse).
-- **Spotpris-sensor (NOK/kWh)**: Gjeldende spotpris. Vanligvis "Current price" fra [Nord Pool-integrasjonen](https://www.home-assistant.io/integrations/nordpool/).
-- **Strømleverandør-sensor** (valgfri): Totalpris fra strømselskapet (f.eks. Tibber). Brukes til å vise hva du faktisk betaler.
-
-Alle norske nettselskaper er støttet!
+Alle norske nettselskap er støttet.
 
 ### Avgiftssoner
 
@@ -95,31 +93,31 @@ Integrasjonen oppretter fem devices med sensorer:
 
 ### Nettleie
 
-Sanntids priser og beregninger for nettleie, strømstøtte og totalpris.
+Priser og beregninger for nettleie, strømstøtte og totalpris.
 
 ![Nettleie](images/nettleie.png)
 
 ### Strømstøtte
 
-Viser hvor mye du får i strømstøtte (90% over 96,25 øre/kWh).
+Hvor mye du får i strømstøtte (90 % over 96,25 øre/kWh).
 
 ![Strømstøtte](images/strømstøtte.png)
 
 ### Norgespris
 
-Sammenligner din spotprisavtale med Norgespris - så du kan se hva som lønner seg.
+Sammenligner spotprisavtalen din med Norgespris.
 
 ![Norgespris](images/norgespris.png)
 
 ### Månedlig forbruk
 
-Sporer forbruk og kostnader for inneværende måned, fordelt på dag- og natt/helg-tariff.
+Forbruk og kostnader for inneværende måned, fordelt på dag og natt/helg.
 
 ![Månedlig forbruk](images/månedlig_forbruk.png)
 
 ### Forrige måned
 
-Lagrer forrige måneds data for enkel faktura-verifisering.
+Forrige måneds data for faktura-verifisering.
 
 ![Forrige måned](images/forrige_måned.png)
 
@@ -153,57 +151,51 @@ Vil du se priskomponentene (spotpris, nettleie, avgifter) separat? Bruk et custo
 
 ## Strømavtaler
 
-### Spotpris (vanligste)
+### Spotpris
 
-- Strømstøtten (90% over 96,25 øre) trekkes automatisk fra
-- Sensoren "Strømstøtte" viser hvor mye du får
+Strømstøtten (90 % over 96,25 øre) trekkes automatisk fra. Sensoren "Strømstøtte" viser beløpet.
 
 ### Norgespris
 
-Har du valgt [Norgespris](https://www.regjeringen.no/no/tema/energi/strom/regjeringens-stromtiltak/) hos nettselskapet?
+Har du [Norgespris](https://www.regjeringen.no/no/tema/energi/strom/regjeringens-stromtiltak/) hos nettselskapet:
 
 1. Kryss av "Jeg har Norgespris" i oppsett
-2. Fast pris: 50 øre (Sør-Norge) eller 40 øre (Nord-Norge)
-3. Ingen strømstøtte (Norgespris erstatter spotpris og støtte)
+2. Fast pris er 50 øre i Sør-Norge eller 40 øre i Nord-Norge
+3. Du får ingen strømstøtte (Norgespris erstatter spotpris og støtte)
 
 ### Sammenligne avtalene
 
-Usikker på hva som lønner seg? Sensoren "Prisforskjell Norgespris" viser:
-
-- **Positiv verdi** = Du sparer med Norgespris
-- **Negativ verdi** = Spotpris er billigere akkurat nå
+Sensoren "Prisforskjell Norgespris" viser om Norgespris eller spotpris er billigst akkurat nå. Positiv verdi betyr at du sparer med Norgespris.
 
 ## Sjekke mot faktura
 
-Når nettleie-fakturaen kommer, kan du enkelt sjekke at tallene stemmer:
+Når nettleie-fakturaen kommer:
 
-1. Gå til **Settings > Devices & Services > Strømkalkulator**
+1. Gå til Settings > Devices & Services > Strømkalkulator
 2. Klikk på "Forrige måned"-devicen
 3. Sammenlign verdiene med fakturaen
 
-**Tips:** Klikk på en sensor for å se detaljer som topp-3 effektdager og kostnader fordelt på dag/natt.
+Klikk på en sensor for detaljer som topp-3 effektdager og kostnader fordelt på dag/natt.
 
 ![Nettleie diagnostikk](images/nettleie_diagnostic.png)
 
-## Støttede nettselskaper
+## Støttede nettselskap
 
-Alle norske nettselskaper er støttet. Prisene oppdateres årlig ved nyttår. Finner du feil eller utdaterte priser? [Opprett en PR](docs/CONTRIBUTING.md) eller et issue.
+Alle norske nettselskap er støttet. Prisene oppdateres årlig ved nyttår. Finner du feil, [lag en PR](docs/CONTRIBUTING.md) eller åpne et issue.
 
-## Fusjon av nettselskaper
+## Fusjon av nettselskap
 
-Integrasjonen håndterer fusjoner automatisk. Hvis nettselskapet ditt har fusjonert, oppdateres konfigurasjonen ved neste oppstart. Forbruksdata og historikk bevares. Du får en melding under **Settings > Repairs**.
+Integrasjonen håndterer fusjoner automatisk. Konfigurasjonen oppdateres ved neste oppstart, forbruksdata og historikk bevares. Du får en melding under Settings > Repairs.
 
 ## Sensorer
 
-34 aktive sensorer fordelt på 6 devices. Diagnostikk-sensorer er deaktivert som standard og kan slås på under **Settings > Devices > Entities**. Å deaktivere en sensor påvirker ikke beregningene, all logikk kjører uansett.
+34 aktive sensorer fordelt på 6 devices. Diagnostikk-sensorer er deaktivert som standard og kan slås på under Settings > Devices > Entities. Å deaktivere en sensor påvirker ikke beregningene.
 
 Se [SENSORS.md](docs/SENSORS.md) for komplett oversikt.
 
 ## Begrensninger
 
-Integrasjonen er laget for **privatboliger med eget strømabonnement**.
-
-**Ikke støttet (ennå):**
+Laget for privatbolig med eget strømabonnement. Ikke støttet:
 
 - Næringsliv (andre stønadssatser)
 - Borettslag med fellesmåling

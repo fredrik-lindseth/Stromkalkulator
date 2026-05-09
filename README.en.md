@@ -14,18 +14,18 @@
 
 **[Norsk versjon / Norwegian version](README.md)**
 
-Home Assistant integration that calculates the **actual electricity price** in Norway, including grid tariffs, taxes, and government subsidies.
+Home Assistant integration that calculates the actual electricity price in Norway, including grid tariffs, taxes, and government subsidies.
 
-## What You Get
+## What you get
 
-Sensors showing your actual electricity cost, not just the spot price:
+Sensors showing what electricity actually costs, not just the spot price:
 
-- **Grid tariffs**: Energy component (day/night) and capacity component
-- **Electricity subsidy**: Automatic (90% above 96.25 ore/kWh)
-- **Total price**: Everything included, usable in Energy Dashboard
-- **Monthly consumption**: Usage and costs per month
-- **Invoice verification**: Compare with invoice when it arrives
-- **Solar export**: Export and revenue for prosumers (disabled by default)
+- Grid tariffs: energy component (day/night) and capacity component
+- Electricity subsidy: automatic (90 % above 96.25 øre/kWh)
+- Total price: everything included, usable in Energy Dashboard
+- Monthly consumption and cost
+- Invoice verification against the previous month
+- Solar export (disabled by default)
 
 ## Installation
 
@@ -62,12 +62,11 @@ Above the Norgespris kWh cap, you pay spot price for the rest of the month. Holi
 
 ### Step 2: Select sensors
 
-You need two sensors:
-- **Power meter (W)**: Current power consumption in watts. Typically from an AMS reader via the HAN port (e.g. Tibber Pulse).
-- **Spot price sensor (NOK/kWh)**: Current spot price. Usually "Current price" from the [Nord Pool integration](https://www.home-assistant.io/integrations/nordpool/).
-- **Electricity provider sensor** (optional): Total price from your provider (e.g. Tibber). Shows what you actually pay.
+- Power meter (W): current consumption in watts, typically from an AMS reader via the HAN port (e.g. Tibber Pulse).
+- Spot price sensor (NOK/kWh): usually "Current price" from the [Nord Pool integration](https://www.home-assistant.io/integrations/nordpool/). It delivers prices excluding VAT, which is what the integration expects. If your sensor already includes VAT, tick "Spot price sensor delivers prices incl. VAT".
+- Electricity provider sensor (optional): total price from your provider (e.g. Tibber), to compare with what you actually pay.
 
-All Norwegian grid companies are supported!
+All Norwegian grid companies are supported.
 
 ### Tax zones
 
@@ -83,33 +82,33 @@ The tax zone determines VAT and consumption tax, and is set automatically from y
 
 The integration creates five devices with sensors:
 
-### Grid Tariff (Nettleie)
+### Grid tariff (Nettleie)
 
-Real-time prices and calculations for grid tariffs, electricity subsidy, and total price.
+Prices and calculations for grid tariffs, electricity subsidy, and total price.
 
 ![Grid tariff](images/nettleie.png)
 
-### Electricity Subsidy (Strømstøtte)
+### Electricity subsidy (Strømstøtte)
 
-Shows how much you receive in electricity subsidy (90% above 96.25 øre/kWh).
+How much you receive in electricity subsidy (90 % above 96.25 øre/kWh).
 
 ![Electricity subsidy](images/strømstøtte.png)
 
-### Norway Price (Norgespris)
+### Norway price (Norgespris)
 
-Compares your spot price contract with Norgespris - so you can see what's more economical.
+Compares your spot price contract with Norgespris.
 
 ![Norgespris](images/norgespris.png)
 
-### Monthly Consumption (Månedlig forbruk)
+### Monthly consumption (Månedlig forbruk)
 
-Tracks consumption and costs for the current month, split by day and night/weekend tariff.
+Consumption and cost for the current month, split by day and night/weekend tariff.
 
 ![Monthly consumption](images/månedlig_forbruk.png)
 
-### Previous Month (Forrige måned)
+### Previous month (Forrige måned)
 
-Stores previous month's data for easy invoice verification.
+Previous month's data for invoice verification.
 
 ![Previous month](images/forrige_måned.png)
 
@@ -152,48 +151,44 @@ Use **Akkumulert stromkostnad** for correct monthly totals. The capacity charge 
 
 **Tip:** Want to see price components (spot price, grid tariff, taxes) separately? Use a custom dashboard card like ApexCharts with the sensors from this integration.
 
-## Electricity Plans
+## Electricity plans
 
-### Spot Price (most common)
+### Spot price
 
-- Electricity subsidy (90% above 96.25 ore) is automatically deducted
-- "Electricity Subsidy" sensor shows how much you receive
+Electricity subsidy (90 % above 96.25 øre) is deducted automatically. The "Electricity subsidy" sensor shows the amount.
 
-### Norway Price (Norgespris)
+### Norgespris
 
-Have you chosen [Norgespris](https://www.regjeringen.no/no/tema/energi/strom/regjeringens-stromtiltak/) from your grid company?
+If you have [Norgespris](https://www.regjeringen.no/no/tema/energi/strom/regjeringens-stromtiltak/) with your grid company:
 
-1. Check "I have Norgespris" during setup
-2. Fixed price: 50 ore (Southern Norway) or 40 ore (Northern Norway)
+1. Tick "I have Norgespris" during setup
+2. Fixed price is 50 øre in Southern Norway or 40 øre in Northern Norway
 3. No subsidy (Norgespris replaces spot price and subsidy)
 
-### Comparing Plans
+### Comparing plans
 
-Not sure what's best for you? The "Price Difference Norgespris" sensor shows:
-- **Positive value** = You save with Norgespris
-- **Negative value** = Spot price is cheaper right now
+The "Price difference Norgespris" sensor shows whether Norgespris or spot price is cheaper right now. Positive value means you save with Norgespris.
 
-## Verifying Against Invoice
+## Verifying against invoice
 
-When your grid tariff invoice arrives, you can easily verify the numbers:
+When the grid tariff invoice arrives:
 
-1. Go to **Settings > Devices & Services > Strømkalkulator**
-2. Click on the "Previous Month" device
+1. Go to Settings > Devices & Services > Strømkalkulator
+2. Click on the "Previous month" device
 3. Compare the values with your invoice
 
-**Tip:** Click on a sensor to see details like top-3 power days and costs split by day/night.
+Click on a sensor for details like top-3 power days and costs split by day/night.
 
 ![Grid tariff diagnostics](images/nettleie_diagnostic.png)
 
-## Supported Grid Companies
+## Supported grid companies
 
-All Norwegian grid companies are supported. Prices are updated annually. Found an error or outdated prices? [Create a PR](docs/CONTRIBUTING.md) or open an issue.
+All Norwegian grid companies are supported. Prices are updated annually. Found an error, [create a PR](docs/CONTRIBUTING.md) or open an issue.
 
 ## Limitations
 
-This integration is designed for **residential homes with individual electricity subscriptions**.
+Designed for residential homes with individual electricity subscriptions. Not supported:
 
-**Not supported (yet):**
 - Commercial use (different subsidy rates)
 - Housing cooperatives with shared metering
 
@@ -214,7 +209,7 @@ Spot price is just the electricity. Total price also includes grid tariff (energ
 
 **Electricity subsidy shows 0. Is that wrong?**
 
-No. Subsidy applies only when spot price exceeds 96.25 ore/kWh (2026). Below the threshold, subsidy is 0.
+No. Subsidy applies only when spot price exceeds 96.25 øre/kWh (2026). Below the threshold, subsidy is 0.
 
 **The numbers don't quite match my invoice?**
 

@@ -2,6 +2,20 @@
 
 Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.1]
+
+### Lagt til
+
+- Knapp på "Forrige måned"-enheten som genererer en ferdig fakturaverifiserings-rapport som persistent_notification. Brukeren kopierer rapporten rett inn i et issue, ingen tabeller å fylle ut manuelt. Issue-mal forenklet tilsvarende.
+
+### Fikset
+
+- Migrering av `spotpris_inkl_mva` snudd: setter nå `False` (riktig for HA-core nordpool) for alle eksisterende konfig. Tidligere migrering satt `True` og krevde at brukeren leste repair-issue og slo AV. Det betydde at brukere som ikke leste repair-issue beholdt incident 004-buggen aktiv.
+- Repair-issue trigges kun for Sør-Norge der mva-håndteringen utgjør en forskjell, og er nå informativ heller enn påkrevd handling.
+- Fjernet URL fra `strings.json` (Hassfest-validering).
+- Korrigerte feilaktige `sensor.stromkalkulator_X`-referanser i issue-mal og dokumentasjon. Sensorene heter `sensor.energiledd_dag` osv.
+- Absolutte URL-er i issue-maler (relative virket ikke fra issue-konteksten).
+
 ## [1.12.0]
 
 ### Fikset

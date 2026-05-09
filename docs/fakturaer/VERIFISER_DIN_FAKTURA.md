@@ -24,23 +24,25 @@ Logg inn på "Mine sider" hos nettselskapet ditt og finn en månedsfaktura. Du t
 
 ### 2. Sjekk satsene mot `dso.py`
 
-Åpne [`custom_components/stromkalkulator/dso.py`](../../custom_components/stromkalkulator/dso.py) og finn ditt nettselskap. Verdiene `energiledd_dag` og `energiledd_natt` er **inkl. forbruksavgift, enova og MVA**.
+Åpne [`custom_components/stromkalkulator/dso.py`](../../custom_components/stromkalkulator/dso.py) og finn ditt nettselskap. Verdiene `energiledd_dag_eks_mva` og `energiledd_natt_eks_mva` er **ren energiledd**, uten forbruksavgift, Enova eller mva. Coordinator legger på avgiftene basert på avgiftssone.
 
 For å sammenligne med fakturaen din:
 
 ```
-dso.py-verdi (NOK/kWh inkl. alt) = energiledd-faktura + forbruksavgift-faktura + enova-faktura
+sluttpris (inkl. alt, øre/kWh) = (energiledd_eks_mva + 0.0713 + 0.01) * 1.25 * 100
 ```
 
-**Eksempel (BKK 2026):**
+**Eksempel (BKK 2026, Sør-Norge):**
 
 ```
-dso.py energiledd_dag = 0.4613 NOK/kWh
-                     ≈ 35.963 (energiledd dag) + 8.913 (forbruksavgift) + 1.250 (enova) øre/kWh
-                     = 46.126 øre/kWh ✓
+energiledd_dag_eks_mva = 0.2877 NOK/kWh = 28.77 øre
++ forbruksavgift 7.13 + Enova 1.0 = 36.90 øre eks. mva
+* 1.25 (mva)                       = 46.12 øre/kWh inkl. alt
 ```
 
-Hvis fakturaen viser priser **eks mva**, multipliser med 1.25 først (Sør-Norge), eller bruk `eks_mva`-attributtet på sensorene direkte.
+For Nord-Norge: hopp over `* 1.25` (mva-fritak). For tiltakssone: hopp over forbruksavgift også (kun Enova).
+
+Hvis fakturaen viser pris eks. mva, kan du sammenligne direkte mot `eks_mva`-attributtet på sensorene.
 
 ### 3. Sammenlign linje for linje
 
@@ -80,6 +82,16 @@ Kompensasjonsraten varierer per måned basert på spotpris. Du kan utlede gjenno
 ```
 spotpris-snitt (øre/kWh inkl. mva) = 50 + |kompensasjon-rate i øre|
 ```
+
+### 6. Sjekk det fakturaen IKKE viser
+
+Selve nettleie-fakturaen viser ikke kraftpris (det går via strømleverandøren), så den fanger ikke feil i spotpris-håndtering, strømstøtte eller Norgespris-besparelse. Disse må sjekkes separat ved å sammenligne integrasjonens egne sensorer mot tilsvarende tall fra nettselskapet eller strømleverandøren.
+
+**For Norgespris-kunder:** logg inn på "Mine sider" hos nettselskapet og finn "spart med Norgespris hittil i [måned]". Sammenlign med `sensor.stromkalkulator_norgespris_diff_maaned` (eller tilsvarende). Avvik over 10 % tyder på en bug i mva-håndtering eller spotpris-input. Se [incident 004](../incidents/004-spotpris-mva-feilbehandling.md) for hva slags feil dette har avdekket før.
+
+**For spot-kunder:** sammenlign `sensor.stromkalkulator_total_pris_inkl_avgifter` mot snittprisen strømleverandøren rapporterer (f.eks. Tibber). Forventet avvik er små rundinger.
+
+**For plusskunder:** verifiser at `monthly_export_revenue_kr` matcher det strømleverandøren utbetaler. Kraftleverandører betaler typisk spotpris eks. mva.
 
 ## Hva vi trenger fra deg
 

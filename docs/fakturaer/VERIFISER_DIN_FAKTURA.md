@@ -62,14 +62,16 @@ Avrundingsavvik på 0.01–0.05 kr per linje er normalt og forventet.
 
 Etter en hel måned bør disse sensorene matche fakturaen:
 
-| Sensor                                          | Sammenlign mot                  |
-| ----------------------------------------------- | ------------------------------- |
-| `sensor.stromkalkulator_energiledd_dag`         | Pris på "Energiledd dag"        |
-| `sensor.stromkalkulator_energiledd_natt`        | Pris på "Energiledd natt/helg"  |
-| `sensor.stromkalkulator_forbruksavgift`         | Pris på "Forbruksavgift"        |
-| `sensor.stromkalkulator_enovaavgift`            | Pris på "Enovaavgift"           |
-| `sensor.stromkalkulator_kapasitetstrinn`        | Linje "Kapasitet X-Y kW"        |
-| `sensor.stromkalkulator_kapasitetstrinn_nummer` | Hvilket trinn (1, 2, 3, …)      |
+| Sensor                          | Sammenlign mot                  |
+| ------------------------------- | ------------------------------- |
+| `sensor.energiledd_dag`         | Pris på "Energiledd dag"        |
+| `sensor.energiledd_natt_helg`   | Pris på "Energiledd natt/helg"  |
+| `sensor.forbruksavgift`         | Pris på "Forbruksavgift"        |
+| `sensor.enovaavgift`            | Pris på "Enovaavgift"           |
+| `sensor.kapasitetstrinn`        | Linje "Kapasitet X-Y kW"        |
+| `sensor.kapasitetstrinn_nummer` | Hvilket trinn (1, 2, 3, …)      |
+
+Sensor-navn kan ha suffix (`_2`, `_3` osv.) hvis du har flere instanser av integrasjonen.
 
 Hver sensor har attributtene `eks_mva`, `inkl_mva` og `ore_per_kwh_eks_mva` for direkte fakturasammenligning.
 
@@ -87,9 +89,9 @@ spotpris-snitt (øre/kWh inkl. mva) = 50 + |kompensasjon-rate i øre|
 
 Selve nettleie-fakturaen viser ikke kraftpris (det går via strømleverandøren), så den fanger ikke feil i spotpris-håndtering, strømstøtte eller Norgespris-besparelse. Disse må sjekkes separat ved å sammenligne integrasjonens egne sensorer mot tilsvarende tall fra nettselskapet eller strømleverandøren.
 
-**For Norgespris-kunder:** logg inn på "Mine sider" hos nettselskapet og finn "spart med Norgespris hittil i [måned]". Sammenlign med `sensor.stromkalkulator_norgespris_diff_maaned` (eller tilsvarende). Avvik over 10 % tyder på en bug i mva-håndtering eller spotpris-input. Se [incident 004](../incidents/004-spotpris-mva-feilbehandling.md) for hva slags feil dette har avdekket før.
+**For Norgespris-kunder:** logg inn på "Mine sider" hos nettselskapet og finn "spart med Norgespris hittil i [måned]". Sammenlign med `sensor.manedlig_forbruk_norgespris_besparelse`. Avvik over 10 % tyder på en bug i mva-håndtering eller spotpris-input. Se [incident 004](../incidents/004-spotpris-mva-feilbehandling.md) for hva slags feil dette har avdekket før.
 
-**For spot-kunder:** sammenlign `sensor.stromkalkulator_total_pris_inkl_avgifter` mot snittprisen strømleverandøren rapporterer (f.eks. Tibber). Forventet avvik er små rundinger.
+**For spot-kunder:** sammenlign `sensor.totalpris_inkl_avgifter` mot snittprisen strømleverandøren rapporterer (f.eks. Tibber). Forventet avvik er små rundinger.
 
 **For plusskunder:** verifiser at `monthly_export_revenue_kr` matcher det strømleverandøren utbetaler. Kraftleverandører betaler typisk spotpris eks. mva.
 

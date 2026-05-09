@@ -22,6 +22,7 @@ CONF_AVGIFTSSONE: Final[str] = "avgiftssone"
 CONF_KAPASITET_VARSEL_TERSKEL: Final[str] = "kapasitet_varsel_terskel"
 CONF_BOLIGTYPE: Final[str] = "boligtype"
 CONF_EXPORT_POWER_SENSOR: Final[str] = "export_power_sensor"
+CONF_SPOTPRIS_INKL_MVA: Final[str] = "spotpris_inkl_mva"
 
 # Avgiftssoner for forbruksavgift og mva
 # Kilde: merverdiavgiftsloven § 6-6 (mva-fritak for Nordland, Troms, Finnmark)
@@ -54,9 +55,9 @@ AVGIFTSSONE_OPTIONS: Final[dict[str, str]] = {
 }
 
 
-# Default values (BKK)
-DEFAULT_ENERGILEDD_DAG: Final[float] = 0.4613
-DEFAULT_ENERGILEDD_NATT: Final[float] = 0.2329
+# Default values (BKK) — eks. mva og eks. forbruksavgift/Enova
+DEFAULT_ENERGILEDD_DAG: Final[float] = 0.28770  # 35,963 øre/kWh inkl. mva → eks-mva
+DEFAULT_ENERGILEDD_NATT: Final[float] = 0.10500  # 13,125 øre/kWh inkl. mva → eks-mva
 DEFAULT_DSO: Final[str] = "bkk"
 DEFAULT_KAPASITET_VARSEL_TERSKEL: Final[float] = 2.0
 
@@ -79,7 +80,9 @@ DEFAULT_KAPASITET_VARSEL_TERSKEL: Final[float] = 2.0
 # Ordningen gjelder til 31. desember 2029 (Forskrift § 2).
 # Maks 5000 kWh/mnd per målepunkt (Forskrift § 5).
 #
-# Verdiene under er inkl. mva (spotpris fra Nord Pool er inkl. mva)
+# STROMSTOTTE_LEVEL er inkl. mva. Spotpris-sensoren konverteres til samme enhet i
+# coordinator (se CONF_SPOTPRIS_INKL_MVA og incident 004). Default-antagelsen er
+# at spotpris-sensoren leverer eks. mva (HA-core nordpool-integrasjon).
 STROMSTOTTE_LEVEL: Final[float] = 0.9625  # 77 øre * 1.25 = 96,25 øre inkl. mva (2026)
 STROMSTOTTE_RATE: Final[float] = 0.90  # 90% kompensasjon over terskel
 STROMSTOTTE_MAX_KWH: Final[int] = 5000  # Maks 5000 kWh/mnd per målepunkt
@@ -214,6 +217,29 @@ def get_mva_sats(avgiftssone: str) -> float:
     if avgiftssone in (AVGIFTSSONE_NORD_NORGE, AVGIFTSSONE_TILTAKSSONE):
         return 0.0
     return MVA_SATS
+
+
+def compute_energiledd_inkl_mva(
+    energiledd_eks_mva: float, avgiftssone: str, month: int = 1
+) -> float:
+    """Compute energiledd inkl. forbruksavgift, Enova og mva fra eks-mva-base.
+
+    Tariffen lagret per DSO er ren nettleie (uten avgifter, uten mva). Faktiske
+    fakturapriser bygges her ved å legge på forbruksavgift, Enova og mva
+    iht. avgiftssonen. Eksakte mellomregninger gir mindre avrundingsfeil mot
+    fakturaen enn å lagre display-avrundede inkl-priser.
+
+    Args:
+        energiledd_eks_mva: Ren energiledd i NOK/kWh, eks. mva og eks. avgifter
+        avgiftssone: 'standard', 'nord_norge' eller 'tiltakssone'
+        month: Måned (1-12). Beholdt for fremtidig sesongvariasjon.
+
+    Returns:
+        Energiledd i NOK/kWh inkl. forbruksavgift, Enova og mva
+    """
+    forbruksavgift = get_forbruksavgift(avgiftssone, month)
+    mva_sats = get_mva_sats(avgiftssone)
+    return (energiledd_eks_mva + forbruksavgift + ENOVA_AVGIFT) * (1 + mva_sats)
 
 
 def get_default_avgiftssone(prisomrade: str) -> str:

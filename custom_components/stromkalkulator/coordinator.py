@@ -26,6 +26,7 @@ from .const import (
     CONF_KAPASITET_VARSEL_TERSKEL,
     CONF_POWER_SENSOR,
     CONF_SPOT_PRICE_SENSOR,
+    CONF_SPOTPRIS_INKL_MVA,
     DAY_RATE_END_HOUR,
     DAY_RATE_START_HOUR,
     DEFAULT_DSO,
@@ -41,6 +42,7 @@ from .const import (
     UPDATE_INTERVAL_MINUTES,
     WEEKEND_WEEKDAY_START,
     _bevegelige_helligdager,
+    compute_energiledd_inkl_mva,
     get_forbruksavgift,
     get_mva_sats,
     get_norgespris_inkl_mva,
@@ -102,7 +104,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
     avgiftssone: str
     har_norgespris: bool
     boligtype: str
-    energiledd_dag: float
+    energiledd_dag_eks_mva: float
+    energiledd_natt_eks_mva: float
+    energiledd_dag: float  # inkl. forbruksavgift, Enova og mva
     energiledd_natt: float
     kapasitetstrinn: list[tuple[float, int]]
     kapasitet_varsel_terskel: float
@@ -163,15 +167,33 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         # Get boligtype from config (default: bolig for backward compatibility)
         self.boligtype = entry.data.get(CONF_BOLIGTYPE, BOLIGTYPE_BOLIG)
 
-        # Get energiledd from config (allows override)
+        # Spotpris-sensor leverer eks. mva som default (HA-core nordpool).
+        # Eldre konfig ble migrert til True i v3 for å bevare oppførsel.
+        self.spotpris_inkl_mva = entry.data.get(CONF_SPOTPRIS_INKL_MVA, False)
+
+        # Energiledd lagres i DSO som ren nettleie eks. mva og avgifter.
+        # Bruker kan overstyre via config (CONF_ENERGILEDD_*) — også eks. mva.
+        # Vi beregner inkl-mva-verdier her én gang basert på avgiftssone slik
+        # at sensorene kan bruke de ferdige verdiene direkte.
         try:
-            self.energiledd_dag = float(entry.data.get(CONF_ENERGILEDD_DAG, self.dso["energiledd_dag"]))
+            self.energiledd_dag_eks_mva = float(
+                entry.data.get(CONF_ENERGILEDD_DAG, self.dso["energiledd_dag_eks_mva"])
+            )
         except (ValueError, TypeError):
-            self.energiledd_dag = float(self.dso["energiledd_dag"])
+            self.energiledd_dag_eks_mva = float(self.dso["energiledd_dag_eks_mva"])
         try:
-            self.energiledd_natt = float(entry.data.get(CONF_ENERGILEDD_NATT, self.dso["energiledd_natt"]))
+            self.energiledd_natt_eks_mva = float(
+                entry.data.get(CONF_ENERGILEDD_NATT, self.dso["energiledd_natt_eks_mva"])
+            )
         except (ValueError, TypeError):
-            self.energiledd_natt = float(self.dso["energiledd_natt"])
+            self.energiledd_natt_eks_mva = float(self.dso["energiledd_natt_eks_mva"])
+
+        self.energiledd_dag = compute_energiledd_inkl_mva(
+            self.energiledd_dag_eks_mva, self.avgiftssone
+        )
+        self.energiledd_natt = compute_energiledd_inkl_mva(
+            self.energiledd_natt_eks_mva, self.avgiftssone
+        )
 
         # Get kapasitetstrinn from DSO
         # Normalize: some DSOs (e.g. Barents Nett) use dict format {"min", "max", "pris"}
@@ -482,17 +504,24 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         # Get spot price (cache last known value, max 2 timer for kostnadakkumulering)
         raw_spot = self._read_price_sensor(self.spot_price_sensor)
         if raw_spot is not None:
-            spot_price = raw_spot
-            self._last_spot_price = spot_price
+            spot_price_raw = raw_spot
+            self._last_spot_price = spot_price_raw
             self._last_spot_price_time = now
         elif (
             self._last_spot_price is not None
             and self._last_spot_price_time is not None
             and (now - self._last_spot_price_time) < _SPOT_CACHE_MAX_AGE
         ):
-            spot_price = self._last_spot_price
+            spot_price_raw = self._last_spot_price
         else:
-            spot_price = 0.0
+            spot_price_raw = 0.0
+
+        # Normaliser til inkl. mva. Resten av kjeden behandler spot_price som inkl. mva,
+        # samme enhet som STROMSTOTTE_LEVEL og NORGESPRIS_INKL_MVA. Se incident 004.
+        if self.spotpris_inkl_mva:
+            spot_price = spot_price_raw
+        else:
+            spot_price = spot_price_raw * (1 + get_mva_sats(self.avgiftssone))
 
         # Calculate strømstøtte
         monthly_total_kwh = self._monthly_consumption.total

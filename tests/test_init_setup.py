@@ -75,6 +75,7 @@ def _make_entry(entry_id="test_entry", dso_id="bkk"):
         "tso": dso_id,
         "power_sensor": "sensor.power",
         "spot_price_sensor": "sensor.spot_price",
+        "spotpris_inkl_mva": True,
     }
     entry.runtime_data = None
     return entry

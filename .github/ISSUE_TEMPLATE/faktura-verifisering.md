@@ -22,18 +22,18 @@ labels: verifisering
 
 Fyll inn én rad per linje på fakturaen. La «Vår beregning» stå tom, den fyller vi inn.
 
-| Priselement          | Forbruk (kWh)  | Pris (øre/kWh) | Faktura (kr) | Vår beregning (kr) |
-| -------------------- | -------------- | -------------- | ------------ | ------------------ |
-| Energiledd dag       |                |                |              |                    |
-| Energiledd natt/helg |                |                |              |                    |
-| Forbruksavgift       |                |                |              |                    |
-| Enovaavgift          |                |                |              |                    |
-| Kapasitet X-Y kW     | (antall dager) | (kr/mnd)       |              |                    |
-| Strømstøtte (hvis)   |                |                |              |                    |
-| Norgespris (hvis)    |                |                |              |                    |
-| **Sum**              |                |                |              |                    |
+| Priselement                    | Forbruk (kWh) | Pris (øre/kWh) | Faktura (kr) | Vår beregning (kr) |
+| ------------------------------ | ------------- | -------------- | ------------ | ------------------ |
+| Energiledd dag                 |               |                |              |                    |
+| Energiledd natt/helg           |               |                |              |                    |
+| Forbruksavgift                 |               |                |              |                    |
+| Enovaavgift                    |               |                |              |                    |
+| Kapasitet X-Y kW (kr/mnd)      |               |                |              |                    |
+| Strømstøtte (spot-kunde)       |               |                |              |                    |
+| Norgespris-kompensasjon        |               |                |              |                    |
+| **Sum**                        |               |                |              |                    |
 
-Spesifiser om prisene på fakturaen din er **eks** eller **inkl** MVA.
+Spesifiser om prisene på fakturaen din er **eks** eller **inkl** mva.
 
 ## Kapasitetstrinn (hvis tilgjengelig)
 
@@ -42,13 +42,19 @@ Spesifiser om prisene på fakturaen din er **eks** eller **inkl** MVA.
 
 ## Sensorverdier fra integrasjonen (valgfritt, men styrker attesten)
 
-| Sensor                                   | Sensorverdi | Faktura |
-| ---------------------------------------- | ----------- | ------- |
-| `sensor.stromkalkulator_energiledd_dag`  |             |         |
-| `sensor.stromkalkulator_energiledd_natt` |             |         |
-| `sensor.stromkalkulator_forbruksavgift`  |             |         |
-| `sensor.stromkalkulator_enovaavgift`     |             |         |
-| `sensor.stromkalkulator_kapasitetstrinn` |             |         |
+Sensor-navn kan ha suffix hvis du har flere instanser (f.eks. `sensor.energiledd_dag_2`).
+
+| Sensor                          | Sensorverdi | Faktura |
+| ------------------------------- | ----------- | ------- |
+| `sensor.energiledd_dag`         |             |         |
+| `sensor.energiledd_natt_helg`   |             |         |
+| `sensor.forbruksavgift`         |             |         |
+| `sensor.enovaavgift`            |             |         |
+| `sensor.kapasitetstrinn`        |             |         |
+
+### Sensorer for spotpris-stien (utenfor selve nettleien)
+
+For Norgespris-kunder: sammenlign `sensor.manedlig_forbruk_norgespris_besparelse` mot "spart med Norgespris hittil"-tallet på "Mine sider" hos nettselskapet. Avvik over 10 % tyder på en bug. Se [incident 004](https://github.com/fredrik-lindseth/Stromkalkulator/blob/main/docs/incidents/004-spotpris-mva-feilbehandling.md).
 
 ## Kreditt
 

@@ -20,7 +20,7 @@ labels: verifisering
 
 ## Fakturadata
 
-Fyll inn én rad per linje på fakturaen. La «Vår beregning» stå tom — den fyller vi inn.
+Fyll inn én rad per linje på fakturaen. La «Vår beregning» stå tom, den fyller vi inn.
 
 | Priselement          | Forbruk (kWh)  | Pris (øre/kWh) | Faktura (kr) | Vår beregning (kr) |
 | -------------------- | -------------- | -------------- | ------------ | ------------------ |

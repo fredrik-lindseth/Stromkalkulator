@@ -1,14 +1,14 @@
 # Verifiser at integrasjonen regner riktig for ditt nettselskap
 
-**Det viktigste utfallet av en verifisering er at det stemmer.** Hver gang en bruker bekrefter at fakturaen matcher integrasjonens beregninger, er det en attest på at dette regner riktig. Ikke bare for deg — for alle som bruker integrasjonen for samme nettselskap.
+**Det viktigste utfallet av en verifisering er at det stemmer.** Hver gang en bruker bekrefter at fakturaen matcher integrasjonens beregninger, er det en attest på at dette regner riktig. Ikke bare for deg, for alle som bruker integrasjonen for samme nettselskap.
 
 Foreløpig er kun BKK (NO5) verifisert mot ekte fakturaer. Resten av landet stoler på satser fra nettselskapenes prislister, men har ikke hatt en faktisk faktura å sammenligne mot. Hjelp oss endre det.
 
 ## Hva du oppnår ved å verifisere
 
-- **Bekreftelse for ditt nettselskap** — andre brukere ser at noen har stress-testet beregningene mot en ekte faktura
-- **Synlig kreditt** — ditt nettselskap legges til i [REFERANSE.md](REFERANSE.md) med periode og dato (du krediteres med fornavn eller alias hvis du vil)
-- **Skikkelig feilretting hvis noe avviker** — sjeldent, men da vet vi nøyaktig hva som må fikses
+- **Bekreftelse for ditt nettselskap**, andre brukere ser at noen har stress-testet beregningene mot en ekte faktura
+- **Synlig kreditt**, ditt nettselskap legges til i [REFERANSE.md](REFERANSE.md) med periode og dato (du krediteres med fornavn eller alias hvis du vil)
+- **Skikkelig feilretting hvis noe avviker**, sjeldent, men da vet vi nøyaktig hva som må fikses
 
 ## Sånn gjør du det
 
@@ -19,7 +19,7 @@ Logg inn på "Mine sider" hos nettselskapet ditt og finn en månedsfaktura. Du t
 - Energiledd (dag og natt/helg, eventuelt flat)
 - Forbruksavgift
 - Enovaavgift
-- Kapasitetsledd (eller "fastledd" — varierer mellom selskap)
+- Kapasitetsledd (eller "fastledd", varierer mellom selskap)
 - Eventuelt strømstøtte eller Norgespris-kompensasjon
 
 ### 2. Sjekk satsene mot `dso.py`
@@ -85,7 +85,7 @@ spotpris-snitt (øre/kWh inkl. mva) = 50 + |kompensasjon-rate i øre|
 
 ### Hvis det stemmer (mest sannsynlig utfall)
 
-Send inn en kort bekreftelse — den blir en attest. Du trenger:
+Send inn en kort bekreftelse, den blir en attest. Du trenger:
 
 - **Nettselskap** og **prisområde** (NO1–NO5)
 - **Periode** (måned/år)
@@ -124,14 +124,14 @@ Hvis du er komfortabel med Markdown og git: kopier en eksisterende rapport (f.ek
    - Avvik på øre-nivå (avrunding): vi noterer det i rapporten og lukker
    - Avvik på krone-nivå: vi finner feilen i `dso.py` eller `const.py`, fikser den, og krediterer deg for funnet
 
-Begge utfall er verdifulle — men match er det vanlige, og det er det som bygger tillit til integrasjonen over tid.
+Begge utfall er verdifulle, men match er det vanlige, og det er det som bygger tillit til integrasjonen over tid.
 
 ## Vanlige avvik og hva de betyr
 
 | Avvik                               | Sannsynlig årsak                                                          |
 | ----------------------------------- | ------------------------------------------------------------------------- |
-| Energiledd avviker i sats           | `dso.py`-verdier er utdatert — send inn for å få fikset                   |
-| Energiledd avviker i forbruk        | Tariff-bytte (dag/natt) skjer feil — kan være helligdager eller `helg_som_natt` |
+| Energiledd avviker i sats           | `dso.py`-verdier er utdatert, send inn for å få fikset                   |
+| Energiledd avviker i forbruk        | Tariff-bytte (dag/natt) skjer feil, kan være helligdager eller `helg_som_natt` |
 | Forbruksavgift avviker              | Avgiftssone er feil konfigurert (Nord-Norge vs Sør-Norge)                 |
 | Kapasitetsledd avviker              | Trinn-grenser er feil i `dso.py`, eller ditt forbruksmønster brytes ned annerledes |
 | Strømstøtte avviker (2025-fakturaer)| Terskel eller dekningsgrad har endret seg                                 |

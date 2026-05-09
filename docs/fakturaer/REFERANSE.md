@@ -14,9 +14,9 @@ Vil du legge til ditt nettselskap? Se [VERIFISER_DIN_FAKTURA.md](VERIFISER_DIN_F
 
 ### 2026 (Norgespris, 2026-satser)
 
-- [April 2026](BKK_Faktura_april_2026.md) — verifiseringsrapport med full gjennomgang
-- [Mars 2026](BKK_Faktura_mars_2026.md) — verifiseringsrapport med full gjennomgang
-- [Februar 2026](BKK_Faktura_februar_2026.md) — verifiseringsrapport med full gjennomgang
+- [April 2026](BKK_Faktura_april_2026.md), verifiseringsrapport med full gjennomgang
+- [Mars 2026](BKK_Faktura_mars_2026.md), verifiseringsrapport med full gjennomgang
+- [Februar 2026](BKK_Faktura_februar_2026.md), verifiseringsrapport med full gjennomgang
 
 ### 2025 (spotpris + stromstotte, 2025-satser)
 

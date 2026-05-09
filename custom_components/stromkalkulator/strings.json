@@ -253,8 +253,8 @@
       }
     },
     "spotpris_mva_check": {
-      "title": "Sjekk spotpris-sensorens mva-håndtering",
-      "description": "Strømkalkulator behandler nå spotpris-sensoren som eks. mva som standard, fordi HA-core nordpool-integrasjonen leverer priser eks. mva. Din eksisterende konfigurasjon ble satt til «inkl. mva» for å bevare gjeldende oppførsel. Hvis du bruker den offisielle Nord Pool-integrasjonen, åpne Strømkalkulator-integrasjonens innstillinger (Settings > Devices & Services > Strømkalkulator > Configure) og slå AV «Spotpris-sensor leverer priser inkl. mva» for korrekt strømstøtte og totalpris."
+      "title": "Spotpris-håndtering oppdatert",
+      "description": "Strømkalkulator behandler nå spotpris-sensoren som eks. mva (riktig for HA-core Nord Pool-integrasjonen). Tidligere antok koden inkl. mva, noe som ga 25 % feil i strømstøtte og totalpris i Sør-Norge. De fleste brukere trenger ikke gjøre noe.\n\nDu trenger KUN å handle hvis spotpris-sensoren din allerede leverer priser inkl. mva. Det gjelder hvis du har en egendefinert template-sensor som legger på 25 %, eller bruker den eldre custom_components/nordpool med VAT=true. I så fall: åpne Strømkalkulator-innstillinger (Settings > Devices & Services > Strømkalkulator > Configure) og slå PÅ «Spotpris-sensor leverer priser inkl. mva»."
     }
   }
 }

@@ -87,6 +87,11 @@
     }
   },
   "entity": {
+    "button": {
+      "lag_fakturarapport": {
+        "name": "Lag fakturaverifiserings-rapport"
+      }
+    },
     "sensor": {
       "energiledd": {
         "name": "Energiledd"

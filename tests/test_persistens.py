@@ -8,44 +8,10 @@ from __future__ import annotations
 
 import asyncio
 import importlib
-import sys
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock
 
-import pytest
-
-
-@pytest.fixture(autouse=True)
-def _patch_update_coordinator():
-    """Replace mocked DataUpdateCoordinator with a real base class."""
-
-    class FakeDataUpdateCoordinator:
-        def __init_subclass__(cls, **kwargs):
-            pass
-
-        def __class_getitem__(cls, item):
-            return cls
-
-        def __init__(self, hass, logger, *, name, update_interval):
-            self.hass = hass
-
-    mod = sys.modules["homeassistant.helpers.update_coordinator"]
-    original = getattr(mod, "DataUpdateCoordinator", None)
-    mod.DataUpdateCoordinator = FakeDataUpdateCoordinator
-    yield
-    mod.DataUpdateCoordinator = original
-
-
-def _make_entry(entry_id="entry_test", dso_id="bkk"):
-    entry = MagicMock()
-    entry.entry_id = entry_id
-    entry.data = {
-        "tso": dso_id,
-        "power_sensor": "sensor.power",
-        "spot_price_sensor": "sensor.spot_price",
-        "spotpris_inkl_mva": True,
-    }
-    return entry
+from tests.conftest import _make_entry
 
 
 def _reload_coord():
@@ -475,91 +441,8 @@ class TestLoadMissingFields:
 
 
 # =============================================================================
-# Storage-korrupsjon og _validate_daily_max_power edge cases
+# Storage-korrupsjon (validator-tester ligger i test_coordinator_robustness.py)
 # =============================================================================
-
-
-class TestValidateDailyMaxPower:
-    """Test _validate_daily_max_power with malformed data."""
-
-    def test_non_dict_input_returns_empty(self):
-        coord = _reload_coord()
-        hass = MagicMock()
-        entry = _make_entry()
-        coordinator = coord.NettleieCoordinator(hass, entry)
-        assert coordinator._validate_daily_max_power("not a dict") == {}
-        assert coordinator._validate_daily_max_power(None) == {}
-        assert coordinator._validate_daily_max_power(42) == {}
-
-    def test_dict_format_missing_kw_key(self):
-        """Dict without 'kw' key should default kw to 0."""
-        coord = _reload_coord()
-        hass = MagicMock()
-        entry = _make_entry()
-        coordinator = coord.NettleieCoordinator(hass, entry)
-        result = coordinator._validate_daily_max_power({
-            "2026-04-01": {"hour": 14},
-        })
-        assert result == {"2026-04-01": coord.DailyMaxEntry(kw=0.0, hour=14)}
-
-    def test_dict_format_non_numeric_kw_skipped(self):
-        """Dict with non-numeric 'kw' should be skipped."""
-        coord = _reload_coord()
-        hass = MagicMock()
-        entry = _make_entry()
-        coordinator = coord.NettleieCoordinator(hass, entry)
-        result = coordinator._validate_daily_max_power({
-            "2026-04-01": {"kw": "abc", "hour": 14},
-        })
-        assert result == {}
-
-    def test_dict_format_invalid_hour_set_to_none(self):
-        """Hour outside 0-23 should be set to None."""
-        coord = _reload_coord()
-        hass = MagicMock()
-        entry = _make_entry()
-        coordinator = coord.NettleieCoordinator(hass, entry)
-        result = coordinator._validate_daily_max_power({
-            "2026-04-01": {"kw": 5.0, "hour": 25},
-        })
-        assert result["2026-04-01"].hour is None
-
-    def test_dict_format_non_numeric_hour_set_to_none(self):
-        """Non-numeric hour should be set to None."""
-        coord = _reload_coord()
-        hass = MagicMock()
-        entry = _make_entry()
-        coordinator = coord.NettleieCoordinator(hass, entry)
-        result = coordinator._validate_daily_max_power({
-            "2026-04-01": {"kw": 5.0, "hour": "abc"},
-        })
-        assert result["2026-04-01"].hour is None
-
-    def test_dict_format_negative_kw_skipped(self):
-        """Negative kw should be skipped."""
-        coord = _reload_coord()
-        hass = MagicMock()
-        entry = _make_entry()
-        coordinator = coord.NettleieCoordinator(hass, entry)
-        result = coordinator._validate_daily_max_power({
-            "2026-04-01": {"kw": -3.0, "hour": 10},
-        })
-        assert result == {}
-
-    def test_old_float_format_migrated(self):
-        """Old bare-float format should be migrated to dict format."""
-        coord = _reload_coord()
-        hass = MagicMock()
-        entry = _make_entry()
-        coordinator = coord.NettleieCoordinator(hass, entry)
-        result = coordinator._validate_daily_max_power({
-            "2026-04-01": 5.0,
-            "2026-04-02": 3.5,
-        })
-        assert result == {
-            "2026-04-01": coord.DailyMaxEntry(kw=5.0, hour=None),
-            "2026-04-02": coord.DailyMaxEntry(kw=3.5, hour=None),
-        }
 
 
 class TestCorruptStorageData:
@@ -616,3 +499,30 @@ class TestCorruptStorageData:
         # Should have defaults, not crash
         assert coordinator._daily_max_power == {}
         assert coordinator._monthly_consumption == coord.ConsumptionData()
+
+    def test_wrong_typed_values_per_key_use_defaults(self):
+        """Dict with wrong-typed values per key should fall back to defaults."""
+        coord = _reload_coord()
+
+        stored = {
+            "daily_max_power": "not_a_dict",  # Should be dict
+            "monthly_consumption": 42,  # Should be dict
+            "current_month": ["wrong"],  # Should be str or int
+        }
+
+        def make_store(hass, version, key):
+            store = MagicMock()
+            store.async_load = AsyncMock(return_value=stored)
+            store.async_save = AsyncMock()
+            store.async_remove = AsyncMock()
+            return store
+
+        coord.Store = MagicMock(side_effect=make_store)
+
+        hass = MagicMock()
+        entry = _make_entry()
+        coordinator = coord.NettleieCoordinator(hass, entry)
+        asyncio.run(coordinator._load_stored_data())
+
+        assert isinstance(coordinator._daily_max_power, dict)
+        assert isinstance(coordinator._monthly_consumption, coord.ConsumptionData)

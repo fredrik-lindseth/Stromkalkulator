@@ -9,20 +9,9 @@
 
 from __future__ import annotations
 
-import math
-
 import pytest
 
 from custom_components.stromkalkulator.const import get_norgespris_inkl_mva
-
-# =============================================================================
-# Helper: extract kw from the new dict format
-# =============================================================================
-
-def _extract_kw(daily_max: dict) -> dict[str, float]:
-    """Extract kw values from the new dict format for easier assertions."""
-    return {k: v["kw"] for k, v in daily_max.items()}
-
 
 # =============================================================================
 # Change 1: Norgespris compensation accumulation
@@ -252,133 +241,6 @@ class TestDailyMaxPowerWithHour:
         assert daily_max[date]["hour"] == 16
 
 
-# =============================================================================
-# Migration: old float format -> new dict format
-# =============================================================================
-
-
-class TestMigrationOldFormat:
-    """Test _validate_daily_max_power handles both formats."""
-
-    @staticmethod
-    def _validate_daily_max_power(data):
-        """Mirror the coordinator's _validate_daily_max_power method."""
-        if not isinstance(data, dict):
-            return {}
-        result = {}
-        for key, val in data.items():
-            if isinstance(val, dict):
-                try:
-                    fval = float(val.get("kw", 0))
-                except (ValueError, TypeError):
-                    continue
-                if math.isfinite(fval) and fval >= 0:
-                    hour = val.get("hour")
-                    if hour is not None:
-                        try:
-                            hour = int(hour)
-                            if not 0 <= hour <= 23:
-                                hour = None
-                        except (ValueError, TypeError):
-                            hour = None
-                    result[str(key)] = {"kw": fval, "hour": hour}
-            else:
-                try:
-                    fval = float(val)
-                except (ValueError, TypeError):
-                    continue
-                if math.isfinite(fval) and fval >= 0:
-                    result[str(key)] = {"kw": fval, "hour": None}
-        return result
-
-    def test_migrate_old_float_format(self) -> None:
-        """Old float values should become {"kw": float, "hour": None}."""
-        old_data = {
-            "2026-03-05": 3.5,
-            "2026-03-10": 7.2,
-            "2026-03-15": 5.1,
-        }
-        result = self._validate_daily_max_power(old_data)
-        assert result["2026-03-05"] == {"kw": 3.5, "hour": None}
-        assert result["2026-03-10"] == {"kw": 7.2, "hour": None}
-        assert result["2026-03-15"] == {"kw": 5.1, "hour": None}
-
-    def test_new_dict_format_passes_through(self) -> None:
-        """New format data should pass through unchanged."""
-        new_data = {
-            "2026-03-05": {"kw": 3.5, "hour": 10},
-            "2026-03-10": {"kw": 7.2, "hour": 16},
-        }
-        result = self._validate_daily_max_power(new_data)
-        assert result["2026-03-05"] == {"kw": 3.5, "hour": 10}
-        assert result["2026-03-10"] == {"kw": 7.2, "hour": 16}
-
-    def test_mixed_format_migration(self) -> None:
-        """Mix of old and new format should both be handled."""
-        mixed = {
-            "2026-03-05": 3.5,
-            "2026-03-10": {"kw": 7.2, "hour": 16},
-        }
-        result = self._validate_daily_max_power(mixed)
-        assert result["2026-03-05"] == {"kw": 3.5, "hour": None}
-        assert result["2026-03-10"] == {"kw": 7.2, "hour": 16}
-
-    def test_invalid_float_skipped(self) -> None:
-        """Non-numeric values should be skipped."""
-        data = {
-            "2026-03-05": "not_a_number",
-            "2026-03-10": 5.0,
-        }
-        result = self._validate_daily_max_power(data)
-        assert "2026-03-05" not in result
-        assert result["2026-03-10"] == {"kw": 5.0, "hour": None}
-
-    def test_negative_kw_skipped(self) -> None:
-        """Negative kW values should be skipped."""
-        data = {"2026-03-05": -1.0}
-        result = self._validate_daily_max_power(data)
-        assert "2026-03-05" not in result
-
-    def test_inf_kw_skipped(self) -> None:
-        """Infinite kW values should be skipped."""
-        data = {"2026-03-05": float("inf")}
-        result = self._validate_daily_max_power(data)
-        assert "2026-03-05" not in result
-
-    def test_invalid_hour_becomes_none(self) -> None:
-        """Out-of-range hour should become None."""
-        data = {"2026-03-05": {"kw": 3.5, "hour": 25}}
-        result = self._validate_daily_max_power(data)
-        assert result["2026-03-05"]["hour"] is None
-
-    def test_hour_none_preserved(self) -> None:
-        """Explicitly null hour should stay None."""
-        data = {"2026-03-05": {"kw": 3.5, "hour": None}}
-        result = self._validate_daily_max_power(data)
-        assert result["2026-03-05"]["hour"] is None
-
-    def test_empty_dict_returns_empty(self) -> None:
-        result = self._validate_daily_max_power({})
-        assert result == {}
-
-    def test_non_dict_returns_empty(self) -> None:
-        result = self._validate_daily_max_power("not_a_dict")
-        assert result == {}
-
-    def test_top_3_from_migrated_data(self) -> None:
-        """Top 3 should work with migrated data (hour=None)."""
-        data = {
-            "2026-03-05": 3.5,
-            "2026-03-10": 7.2,
-            "2026-03-15": 5.1,
-            "2026-03-20": 2.0,
-        }
-        validated = self._validate_daily_max_power(data)
-        sorted_days = sorted(validated.items(), key=lambda x: x[1]["kw"], reverse=True)
-        top_3 = dict(sorted_days[:3])
-
-        assert len(top_3) == 3
-        dates = list(top_3.keys())
-        assert dates[0] == "2026-03-10"
-        assert top_3["2026-03-10"]["kw"] == 7.2
-        assert top_3["2026-03-10"]["hour"] is None
+# Migration-tester for _validate_daily_max_power ligger i
+# test_coordinator_robustness.py::TestValidateDailyMaxPower (kanonisk versjon
+# som tester den faktiske coordinator-metoden, ikke en lokal kopi).

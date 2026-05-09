@@ -84,6 +84,7 @@ def _make_entry(
         "tso": dso_id,
         "power_sensor": "sensor.power",
         "spot_price_sensor": "sensor.spot_price",
+        "spotpris_inkl_mva": True,
         "har_norgespris": har_norgespris,
         "avgiftssone": avgiftssone,
     }
@@ -213,7 +214,8 @@ class TestDayNightRate:
         result = _run_update(coord_module, coordinator, now=day_noon)
 
         assert result["is_day_rate"] is True
-        assert result["energiledd"] == coordinator.energiledd_dag
+        # result["energiledd"] er rundet til 4 desimaler i _build_data_dict
+        assert result["energiledd"] == pytest.approx(coordinator.energiledd_dag, abs=1e-4)
 
     def test_weekend_uses_night_rate(self, coord_module):
         """Saturday should always use night rate."""
@@ -225,7 +227,7 @@ class TestDayNightRate:
         result = _run_update(coord_module, coordinator, now=saturday_noon)
 
         assert result["is_day_rate"] is False
-        assert result["energiledd"] == coordinator.energiledd_natt
+        assert result["energiledd"] == pytest.approx(coordinator.energiledd_natt, abs=1e-4)
 
     def test_late_night_uses_night_rate(self, coord_module):
         """Weekday at 23:00 should use night rate."""
@@ -452,7 +454,13 @@ class TestStromprisPerKwh:
 
         result = _run_update(coord_module, coordinator, now=day_noon)
 
-        expected = round(2.00 - result["stromstotte"] + coordinator.energiledd_dag, 4)
+        # NB: result["stromstotte"] er rundet til 4 desimaler. Coordinator bruker
+        # uavrundet verdi internt, så vi reproduserer den nøyaktige beregningen
+        # for å unngå banker's-rounding-mismatch på 4. desimal.
+        from custom_components.stromkalkulator.const import STROMSTOTTE_LEVEL, STROMSTOTTE_RATE
+
+        unrounded_stotte = (2.00 - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE
+        expected = round(2.00 - unrounded_stotte + coordinator.energiledd_dag, 4)
         assert result["strompris_per_kwh_etter_stotte"] == expected
 
     def test_strompris_per_kwh_norgespris(self, coord_module):

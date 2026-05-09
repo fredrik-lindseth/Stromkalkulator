@@ -23,8 +23,10 @@ def mock_coordinator():
     coordinator = MagicMock()
     coordinator._dso_id = "bkk"
     coordinator.dso = {"name": "BKK"}
-    coordinator.energiledd_dag = 0.4613
-    coordinator.energiledd_natt = 0.2329
+    coordinator.energiledd_dag_eks_mva = 0.28770
+    coordinator.energiledd_natt_eks_mva = 0.10500
+    coordinator.energiledd_dag = 0.46125
+    coordinator.energiledd_natt = 0.23275
     coordinator.kapasitetstrinn = [
         (2, 155), (5, 250), (10, 415), (15, 600), (20, 770),
         (25, 940), (50, 1800), (75, 2650), (100, 3500), (float("inf"), 6900),
@@ -87,8 +89,10 @@ class TestDiagnosticsStructure:
         assert "dso_info" in result
         assert result["dso_info"]["id"] == "bkk"
         assert result["dso_info"]["name"] == "BKK"
-        assert result["dso_info"]["energiledd_dag"] == 0.4613
-        assert result["dso_info"]["energiledd_natt"] == 0.2329
+        assert result["dso_info"]["energiledd_dag_eks_mva"] == 0.28770
+        assert result["dso_info"]["energiledd_natt_eks_mva"] == 0.10500
+        assert result["dso_info"]["energiledd_dag_inkl_mva"] == 0.46125
+        assert result["dso_info"]["energiledd_natt_inkl_mva"] == 0.23275
         assert result["dso_info"]["kapasitetstrinn_count"] == 10
 
     def test_has_coordinator_data(self, mock_hass, mock_entry):

@@ -80,6 +80,7 @@ def _make_entry(
         "tso": dso_id,
         "power_sensor": "sensor.power",
         "spot_price_sensor": "sensor.spot_price",
+        "spotpris_inkl_mva": True,
         "har_norgespris": har_norgespris,
         "avgiftssone": avgiftssone,
     }

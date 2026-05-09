@@ -16,6 +16,7 @@ venv/
 # Lokale filer (personlig data)
 Fakturaer/
 .beads/
+.beads-old-backup/
 beads-prompt.md
 .anonymize_config.json
 
@@ -26,3 +27,8 @@ beads-prompt.md
 .hypothesis/
 .worktrees/
 .coverage
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key

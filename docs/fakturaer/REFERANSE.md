@@ -111,7 +111,7 @@ template:
         unit_of_measurement: "kr"
         state: >
           {{ (states('sensor.energiledd_dag_maaned_dag') | float(0)) 
-             * (states('sensor.stromkalkulator_energiledd_dag') | float(0)) }}
+             * (states('sensor.energiledd_dag') | float(0)) }}
 ```
 
 ### Automatisering for tariff-bytte
@@ -121,14 +121,14 @@ automation:
   - alias: "Sett energiledd tariff"
     trigger:
       - platform: state
-        entity_id: sensor.stromkalkulator_energiledd
+        entity_id: sensor.energiledd
     action:
       - service: utility_meter.select_tariff
         target:
           entity_id: utility_meter.energiledd_dag_maaned
         data:
           tariff: >
-            {% if state_attr('sensor.stromkalkulator_energiledd', 'is_day_rate') %}
+            {% if state_attr('sensor.energiledd', 'is_day_rate') %}
               dag
             {% else %}
               natt
@@ -139,15 +139,17 @@ automation:
 
 Etter oppdatering har du disse sensorene for fakturasammenligning:
 
-| Sensor                                     | Beskrivelse               | Enhet   |
-| ------------------------------------------ | ------------------------- | ------- |
-| `sensor.stromkalkulator_energiledd_dag`    | Energiledd dag-sats       | NOK/kWh |
-| `sensor.stromkalkulator_energiledd_natt`   | Energiledd natt-sats      | NOK/kWh |
-| `sensor.stromkalkulator_forbruksavgift`    | Forbruksavgift            | NOK/kWh |
-| `sensor.stromkalkulator_enovaavgift`       | Enovaavgift               | NOK/kWh |
-| `sensor.stromkalkulator_kapasitetstrinn`   | Kapasitetsledd            | kr/mnd  |
-| `sensor.stromkalkulator_stromstotte`       | Strømstøtte per kWh       | NOK/kWh |
-| `sensor.stromkalkulator_stromstotte_aktiv` | Ja/Nei om støtte er aktiv | -       |
+| Sensor                          | Beskrivelse               | Enhet   |
+| ------------------------------- | ------------------------- | ------- |
+| `sensor.energiledd_dag`         | Energiledd dag-sats       | NOK/kWh |
+| `sensor.energiledd_natt_helg`   | Energiledd natt-sats      | NOK/kWh |
+| `sensor.forbruksavgift`         | Forbruksavgift            | NOK/kWh |
+| `sensor.enovaavgift`            | Enovaavgift               | NOK/kWh |
+| `sensor.kapasitetstrinn`        | Kapasitetsledd            | kr/mnd  |
+| `sensor.stromstotte`            | Strømstøtte per kWh       | NOK/kWh |
+| `sensor.stromstotte_aktiv`      | Ja/Nei om støtte er aktiv | -       |
+
+Sensor-navn kan ha suffix (`_2`, `_3` osv.) hvis du har flere instanser av integrasjonen.
 
 ### Attributter for fakturasammenligning
 

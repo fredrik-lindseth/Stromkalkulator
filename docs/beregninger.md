@@ -2,6 +2,22 @@
 
 Alle formler integrasjonen bruker. Avgiftsoppslag og sensoroversikt: [domain-rules.md](domain-rules.md), [SENSORS.md](SENSORS.md).
 
+## Mva-konvensjon
+
+Alle tall i formlene under er **inkl. mva** (i Sør-Norge), samme enhet som `STROMSTOTTE_LEVEL` og `NORGESPRIS_INKL_MVA_STANDARD`.
+
+Spotpris fra HA-core nordpool-integrasjonen leveres eks. mva. Coordinator normaliserer til inkl. mva ved oppstart av hver beregningssyklus:
+
+```python
+mva_sats = get_mva_sats(avgiftssone)  # 0.25 i Sør-Norge, 0.0 nord/tiltakssone
+if spotpris_inkl_mva:  # konfig-flagg, default False
+    spot_price = sensor_value
+else:
+    spot_price = sensor_value * (1 + mva_sats)
+```
+
+For eksportinntekt (plusskunder) brukes `spot_price_eks_mva` siden privat selger ikke har utgående mva. Se [incident 004](incidents/004-spotpris-mva-feilbehandling.md).
+
 ## Nettleie
 
 Nettleie = kapasitetsledd + energiledd.
@@ -37,7 +53,7 @@ DSO-spesifikt unntak: Glitre Nett, Tensio TN/TS har `helg_som_natt: False` (kun 
 
 ## Offentlige avgifter (2026)
 
-Energileddet fra DSO-en inkluderer disse allerede. Vises separat på sensoren "Offentlige avgifter".
+DSO-en lagrer ren energiledd. Coordinator legger på forbruksavgift, Enova og mva basert på sone. Vises separat på sensoren "Offentlige avgifter".
 
 | Sone         | Forbruksavgift | Enova    | Sum eks. mva | MVA | Sum inkl. mva |
 | ------------ | -------------- | -------- | ------------ | --- | ------------- |
@@ -217,15 +233,26 @@ Ved månedsskifte kopieres `_monthly_consumption` og topp-3 til "forrige måned"
 
 Kapasitetsledd og kapasitetstrinn beregnes ved månedsskifte og persisteres, slik at forrige måneds nettleie er stabil.
 
-## Norgespris-kompensasjon
+## Eksportinntekt (plusskunder)
 
-BKK og andre nettselskap krediterer time for time: `(norgespris_fast - spotpris) × kWh`. Vi akkumulerer det samme:
+Når brukeren har konfigurert eksport-effektsensor, akkumuleres inntekt fra solcellesalg. Privat selger har ikke utgående mva, så strømleverandøren betaler spotpris **eks. mva**:
 
 ```python
-_monthly_norgespris_compensation += (NORGESPRIS_INKL_MVA - spotpris) * energy_kwh
+if export_energy_kwh > 0 and spot_price_valid:
+    _monthly_export_revenue += spot_price_eks_mva * export_energy_kwh
 ```
 
-Beregnes for alle (også spot-kunder), så sammenligning fungerer begge veier.
+`monthly_net_cost_kr = monthly_cost_kr - monthly_export_revenue_kr`. I Nord-Norge og tiltakssonen er `spot_price_eks_mva == spot_price` (mva = 0).
+
+## Norgespris-kompensasjon
+
+BKK og andre nettselskap krediterer time for time: `(norgespris_fast - spotpris) × kWh`. Vi akkumulerer det samme. Begge er inkl. mva i Sør-Norge:
+
+```python
+_monthly_norgespris_compensation += (NORGESPRIS_INKL_MVA - spot_price) * energy_kwh
+```
+
+Beregnes for alle (også spot-kunder), så sammenligning fungerer begge veier. Hopper over akkumulering hvis spotpris-sensor er ugyldig (mer enn 2 timer uten data), for å unngå falsk besparelse.
 
 ## Nøyaktighet
 

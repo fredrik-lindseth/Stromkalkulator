@@ -5,7 +5,7 @@ Følger malen i [RELEASE_NOTES.md](RELEASE_NOTES.md).
 ## Bugfixes
 
 - **Spotpris-mva-håndtering**: HA-core nordpool leverer priser eks. mva, men koden antok inkl. mva. Resultat: 25 % feil i strømstøtte-trigger, totalpris og Norgespris-besparelse for Sør-Norge-brukere på spotprisavtaler. Se [incident 004](docs/incidents/004-spotpris-mva-feilbehandling.md). Migreres automatisk: eksisterende konfig får `spotpris_inkl_mva = True` (bevarer oppførsel). Repair-issue varsler om å slå AV for HA-core nordpool.
-- **Avrundingsavvik mot ekte fakturaer**: DSO-energiledd lagres nå som rene eks-mva-priser, inkl-mva-verdien beregnes i kode. BKK-faktura: avvik fra 0,004 til 0,001 øre/kWh.
+- **Avrundingsavvik mot ekte fakturaer**: DSO-energiledd lagres nå som rene eks-mva-priser, inkl-mva-verdien beregnes i kode.
 
 ## Forbedringer
 
@@ -16,13 +16,10 @@ Følger malen i [RELEASE_NOTES.md](RELEASE_NOTES.md).
 
 ## Vedlikehold
 
-- DSO-struktur omskrevet til eks-mva (`energiledd_dag_eks_mva`, `energiledd_natt_eks_mva`)
+- DSO-struktur omskrevet til eks-mva
 - Config v1→v3 migrering med automatisk konvertering
-- Destillert dokumentasjon, ~5200 linjer netto fjernet
-- Slettet 5 redundante testfiler, konsolidert faktura-/validering-tester, conftest-helpers ut av duplikater. ~2100 linjer netto borte fra tests/
-- 9 nye tester for spotpris-mva-normalisering
-- Mindre kode-rydding (ubrukt month-param, duplikat besparelses-beregning)
-- 1893 tester passerer, lint rent
+- Destillert dokumentasjon
+- Konsolidert tester (faktura, valideringer, helpers)
 
 ## Verifisering
 
@@ -33,8 +30,6 @@ Følger malen i [RELEASE_NOTES.md](RELEASE_NOTES.md).
 
 - refactor(dso): eks-mva-priser + fix spotpris mva-håndtering
 - docs: destiller dokumentasjon og legg til fakturaverifisering
-- docs: fjern em-dashes fra fakturaverifikasjons-filer
-- test: fjern 5 redundante testfiler
-- refactor: kode-destillering fra agent 3-review
+- refactor: kode-destillering
 - test: konsolidér faktura-tester, valideringer og conftest
 </details>

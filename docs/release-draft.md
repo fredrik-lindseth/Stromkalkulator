@@ -1,6 +1,6 @@
-# Release-utkast
+# Release-utkast v1.12.0
 
-Utkast til release-notater. Versjonsnummer settes når Fredrik er klar til å publisere. Følger malen i [RELEASE_NOTES.md](RELEASE_NOTES.md).
+Følger malen i [RELEASE_NOTES.md](RELEASE_NOTES.md).
 
 ## Bugfixes
 
@@ -19,8 +19,10 @@ Utkast til release-notater. Versjonsnummer settes når Fredrik er klar til å pu
 - DSO-struktur omskrevet til eks-mva (`energiledd_dag_eks_mva`, `energiledd_natt_eks_mva`)
 - Config v1→v3 migrering med automatisk konvertering
 - Destillert dokumentasjon, ~5200 linjer netto fjernet
-- Slettet 5 redundante testfiler (~1100 linjer), 9 nye tester for spotpris-mva
-- 1912 tester passerer, lint rent
+- Slettet 5 redundante testfiler, konsolidert faktura-/validering-tester, conftest-helpers ut av duplikater. ~2100 linjer netto borte fra tests/
+- 9 nye tester for spotpris-mva-normalisering
+- Mindre kode-rydding (ubrukt month-param, duplikat besparelses-beregning)
+- 1893 tester passerer, lint rent
 
 ## Verifisering
 
@@ -33,4 +35,6 @@ Utkast til release-notater. Versjonsnummer settes når Fredrik er klar til å pu
 - docs: destiller dokumentasjon og legg til fakturaverifisering
 - docs: fjern em-dashes fra fakturaverifikasjons-filer
 - test: fjern 5 redundante testfiler
+- refactor: kode-destillering fra agent 3-review
+- test: konsolidér faktura-tester, valideringer og conftest
 </details>

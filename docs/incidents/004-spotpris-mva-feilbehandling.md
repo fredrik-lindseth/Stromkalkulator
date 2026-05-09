@@ -1,0 +1,110 @@
+# Incident 004: Spotpris fra Nord Pool behandlet som inkl. mva
+
+**Dato:** 9. mai 2026
+**Status:** under utbedring
+**Berørte versjoner:** alle utgivelser før denne fikser
+
+## Symptomer
+
+Bruker oppdaget at integrasjonens "spart med Norgespris hittil i mai" (168 kr) avvek kraftig fra BKK sitt tilsvarende tall (319 kr) på samme periode.
+
+Sammenligning på BKK-instansens egne data 1.–9. mai 2026:
+
+| Måling                              | Verdi              |
+| ----------------------------------- | ------------------ |
+| Forbruk (vår sensor)                | 352,75 kWh         |
+| Forbruk (Tibber/Elhub)              | 316,55 kWh         |
+| `monthly_norgespris_diff` (vår)     | +168,22 kr         |
+| `monthly_norgespris_compensation`   | -244,82 kr         |
+| BKK "spart med Norgespris hittil"   | +319,29 kr         |
+
+Vektet snitt-spot utledet fra `monthly_norgespris_compensation`: 119,4 øre/kWh. Vektet snitt-spot utledet fra BKK: 150,9 øre/kWh.
+
+Forholdstallet er nøyaktig 1,25.
+
+## Rotårsak
+
+Den offisielle Nord Pool-integrasjonen i Home Assistant (`domain: nordpool`) leverer kraftpriser **eks. mva**. Strømkalkulator antar i hele beregningskjeden at spotpris-sensoren leverer priser **inkl. mva**.
+
+`const.py` linje 82:
+
+```python
+# Verdiene under er inkl. mva (spotpris fra Nord Pool er inkl. mva)
+STROMSTOTTE_LEVEL: Final[float] = 0.9625  # 77 øre * 1.25 = 96,25 øre inkl. mva (2026)
+```
+
+Kommentaren er feil. Den ble skrevet da custom_components/nordpool var dominerende og ofte konfigurert med `VAT: true`. Den nye HA-core nordpool-integrasjonen har ingen mva-konfig og leverer alltid eks. mva.
+
+## Konsekvenser
+
+Alle Sør-Norge-brukere med spotprisavtale får feil i fire sensorer:
+
+1. **Strømstøtte trigges 25 % for sent.** Vi sammenligner spotpris eks. mva mot terskel 96,25 øre inkl. mva (= 77 øre eks. mva). Strømstøtten settes inn ved 96,25 øre eks. mva = 120 øre inkl. mva i stedet for korrekt 96,25 øre inkl. mva.
+2. **Totalpris-sensoren undervurderer kraftpris** med 25 % for kraftdelen.
+3. **Akkumulert kostnad i Energy Dashboard** undervurderer faktiske kraftkostnader.
+4. **Norgespris-sammenligning** viser for lav besparelse (vist 47 % lavere enn faktisk i caset over).
+
+Bug-en ble ikke fanget av faktura-verifiseringen fordi fakturaene viser nettleie, ikke kraftpris. Nettleie-beregningene er korrekte.
+
+Nord-Norge-brukere er ikke påvirket: avgiftssonen har 0 % mva, så `spot * (1 + 0)` = `spot`.
+
+Tiltakssone-brukere er ikke påvirket av samme grunn.
+
+## Berørte beregninger
+
+I `coordinator.py`:
+
+- Linje 519-526: `total_price` (alle if/else-grener bruker `spot_price` direkte)
+- Linje 559-562: `kroner_spart_per_kwh`
+- Linje 567-571: `monthly_norgespris_diff`, `monthly_norgespris_compensation`
+- Linje 582-585: `_monthly_accumulated_cost_strom`
+
+Alle disse må behandle `spot_price` som eks. mva og legge på korrekt mva-rate basert på avgiftssone før sammenligning eller summering.
+
+## Foreslått løsning
+
+### 1. Konfigurasjons-felt `spotpris_inkl_mva`
+
+Legg til en boolean i config-flow med `default = False` (riktig for nordpool-domain). Brukere som har en sensor som allerede inkluderer mva (egendefinert template, eldre custom_components/nordpool med `VAT: true`) krysser av.
+
+### 2. Beregning i `coordinator.py`
+
+```python
+mva_sats = get_mva_sats(self.avgiftssone)
+if self.spotpris_inkl_mva:
+    spot_price_inkl_mva = spot_price
+else:
+    spot_price_inkl_mva = spot_price * (1 + mva_sats)
+```
+
+Bruk `spot_price_inkl_mva` overalt der `spot_price` brukes i sammenligninger eller kostnader.
+
+### 3. Migrering for eksisterende brukere
+
+Ved migrering settes `spotpris_inkl_mva = True` for eksisterende konfig-entries (preserves current behavior). Repair-issue informerer brukeren:
+
+> Strømkalkulator har endret hvordan den behandler spotpris og mva. Sensoren din var antatt å levere priser **inkl. mva**. Hvis du bruker den offisielle Nord Pool-integrasjonen, leverer den **eks. mva** og innstillingen bør endres for korrekt strømstøtte og totalpris.
+
+### 4. Tester
+
+- Test at `spot_price_inkl_mva` beregnes riktig for begge bool-verdier i alle tre avgiftssoner
+- Faktura-test for en spotpris-måned (september 2025 eller tidligere) for å verifisere mot ekte tall
+- Migrering-test som verifiserer at eksisterende konfig får `spotpris_inkl_mva = True`
+
+### 5. Dokumentasjon
+
+- Oppdater `const.py:82`-kommentar
+- Oppdater README med hva som er riktig for ulike integrasjoner
+- Slett feilaktig påstand i `domain-rules.md` hvis den finnes der
+
+## Lærdom
+
+1. **Eksterne sensor-konvensjoner er ikke statiske.** Da koden ble skrevet var custom_components/nordpool med `VAT: true` vanlig. Den offisielle integrasjonen i HA-core endret default uten at vi merket. Antagelser om eksterne sensorer må verifiseres med jevne mellomrom.
+2. **Faktura-verifisering dekker bare nettleie.** Vår tillit til at "alt regner riktig" var basert på BKK-faktura-match. Fakturaene viser ikke kraftpris (det går via strømleverandøren), så kraftpris-feil var usynlig i denne testen.
+3. **Avvik på 25 % er signaleffekt, ikke avrundingsstøy.** Når et tall avviker med eksakt mva-rate, er sannsynligheten høy for en mva-håndtering-feil et sted i kjeden.
+
+## Kilder
+
+- [Home Assistant Nord Pool integration docs](https://www.home-assistant.io/integrations/nordpool/) — bekrefter at integrasjonen leverer priser eks. mva
+- BKK fakturaoversikt og "spart med Norgespris" sammenlikningstall, mai 2026
+- `coordinator.py:_async_update_data`, hvor `spot_price` brukes uten mva-konvertering

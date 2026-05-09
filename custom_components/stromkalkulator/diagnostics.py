@@ -42,8 +42,8 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
                 "dso": entry.data.get(CONF_DSO),
                 "avgiftssone": entry.data.get(CONF_AVGIFTSSONE),
                 "har_norgespris": entry.data.get(CONF_HAR_NORGESPRIS),
-                "energiledd_dag_override": entry.data.get(CONF_ENERGILEDD_DAG),
-                "energiledd_natt_override": entry.data.get(CONF_ENERGILEDD_NATT),
+                "energiledd_dag_eks_mva_override": entry.data.get(CONF_ENERGILEDD_DAG),
+                "energiledd_natt_eks_mva_override": entry.data.get(CONF_ENERGILEDD_NATT),
             },
         },
         "sensor_entity_ids": {
@@ -54,8 +54,10 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
         "dso_info": {
             "id": coordinator._dso_id,
             "name": coordinator.dso.get("name"),
-            "energiledd_dag": coordinator.energiledd_dag,
-            "energiledd_natt": coordinator.energiledd_natt,
+            "energiledd_dag_eks_mva": coordinator.energiledd_dag_eks_mva,
+            "energiledd_natt_eks_mva": coordinator.energiledd_natt_eks_mva,
+            "energiledd_dag_inkl_mva": coordinator.energiledd_dag,
+            "energiledd_natt_inkl_mva": coordinator.energiledd_natt,
             "kapasitetstrinn_count": len(coordinator.kapasitetstrinn),
         },
         "coordinator_data": coordinator.data if coordinator.data else {},

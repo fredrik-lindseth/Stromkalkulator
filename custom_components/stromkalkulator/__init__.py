@@ -15,8 +15,15 @@ from .const import (
     AVGIFTSSONE_STANDARD,
     CONF_AVGIFTSSONE,
     CONF_DSO,
+    CONF_ENERGILEDD_DAG,
+    CONF_ENERGILEDD_NATT,
+    CONF_SPOTPRIS_INKL_MVA,
     DEFAULT_DSO,
     DOMAIN,
+    ENOVA_AVGIFT,
+    get_forbruksavgift,
+    get_mva_sats,
+    resolve_avgiftssone,
 )
 from .coordinator import NettleieCoordinator
 from .dso import DSO_LIST, DSO_MIGRATIONS, DSOFusjon
@@ -76,6 +83,74 @@ async def _migrate_storage_file(
 ) -> None:
     """Migrate storage file in executor to avoid blocking the event loop."""
     await hass.async_add_executor_job(_migrate_storage_file_sync, storage_dir, old_dso, new_dso)
+
+
+async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Migrate config entries to current schema.
+
+    v1 -> v2: Energiledd-overrides lagret som inkl-mva-verdier konverteres til
+    eks-mva. Reverserer formelen `inkl = (eks + forbruksavgift + Enova) * (1+mva)`
+    basert på avgiftssonen som er lagret på entry-en.
+
+    v2 -> v3: Setter `spotpris_inkl_mva = True` for å bevare gjeldende oppførsel
+    (kode antok inkl. mva fra spotpris-sensor). Nye konfigurasjoner får default
+    False (riktig for HA-core nordpool). Se incident 004.
+    """
+    if entry.version >= 3:
+        return True
+
+    if entry.version == 1:
+        new_data = {**entry.data}
+        sone = entry.data.get(CONF_AVGIFTSSONE) or resolve_avgiftssone(
+            DSO_LIST.get(entry.data.get(CONF_DSO, DEFAULT_DSO), {})
+        )
+        # Forbruksavgift har ikke sesongvariasjon i 2026; måned-arg er ubrukt.
+        forbruksavgift = get_forbruksavgift(sone, 1)
+        mva_sats = get_mva_sats(sone)
+
+        def inkl_to_eks(value: object) -> float | None:
+            try:
+                v = float(value)  # type: ignore[arg-type]
+            except (TypeError, ValueError):
+                return None
+            return v / (1 + mva_sats) - forbruksavgift - ENOVA_AVGIFT
+
+        for key in (CONF_ENERGILEDD_DAG, CONF_ENERGILEDD_NATT):
+            raw = entry.data.get(key)
+            if raw is None:
+                continue
+            converted = inkl_to_eks(raw)
+            if converted is None or converted <= 0:
+                # Sannsynlig feil/korrupt verdi; la coordinator falle tilbake
+                # til DSO-default ved å fjerne overstyringen.
+                new_data.pop(key, None)
+                continue
+            new_data[key] = round(converted, 5)
+
+        hass.config_entries.async_update_entry(entry, data=new_data, version=2)
+        _LOGGER.info(
+            "Migrerte config entry %s fra v1 til v2 (energiledd inkl→eks mva, avgiftssone=%s)",
+            entry.entry_id,
+            sone,
+        )
+
+    if entry.version == 2:
+        new_data = {**entry.data, CONF_SPOTPRIS_INKL_MVA: True}
+        hass.config_entries.async_update_entry(entry, data=new_data, version=3)
+        ir.async_create_issue(
+            hass,
+            DOMAIN,
+            f"spotpris_mva_check_{entry.entry_id}",
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="spotpris_mva_check",
+        )
+        _LOGGER.info(
+            "Migrerte config entry %s fra v2 til v3 (spotpris_inkl_mva=True for eksisterende)",
+            entry.entry_id,
+        )
+
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: StromkalkulatorConfigEntry) -> bool:

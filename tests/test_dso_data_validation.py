@@ -16,7 +16,14 @@ from stromkalkulator.const import (
 from stromkalkulator.dso import DSO_LIST, DSOEntry
 
 VALID_PRISOMRADER = {"NO1", "NO2", "NO3", "NO4", "NO5"}
-REQUIRED_FIELDS = {"name", "prisomrade", "energiledd_dag", "energiledd_natt", "kapasitetstrinn", "url"}
+REQUIRED_FIELDS = {
+    "name",
+    "prisomrade",
+    "energiledd_dag_eks_mva",
+    "energiledd_natt_eks_mva",
+    "kapasitetstrinn",
+    "url",
+}
 
 
 @pytest.fixture(params=list(DSO_LIST.keys()), ids=list(DSO_LIST.keys()))
@@ -69,31 +76,36 @@ class TestDSOAvgiftssone:
 
 
 class TestDSOEnergiledd:
-    """energiledd_dag and energiledd_natt must be positive numbers."""
+    """energiledd_*_eks_mva must be positive numbers."""
 
     def test_energiledd_dag_is_positive(self, dso_entry):
         dso_id, data = dso_entry
-        assert isinstance(data["energiledd_dag"], (int, float)), (
-            f"{dso_id}: energiledd_dag er ikke et tall"
+        val = data["energiledd_dag_eks_mva"]
+        assert isinstance(val, (int, float)), (
+            f"{dso_id}: energiledd_dag_eks_mva er ikke et tall"
         )
-        assert data["energiledd_dag"] > 0, (
-            f"{dso_id}: energiledd_dag skal være positiv, fikk {data['energiledd_dag']}"
+        assert val > 0, (
+            f"{dso_id}: energiledd_dag_eks_mva skal være positiv, fikk {val}"
         )
 
     def test_energiledd_natt_is_positive(self, dso_entry):
         dso_id, data = dso_entry
-        assert isinstance(data["energiledd_natt"], (int, float)), (
-            f"{dso_id}: energiledd_natt er ikke et tall"
+        val = data["energiledd_natt_eks_mva"]
+        assert isinstance(val, (int, float)), (
+            f"{dso_id}: energiledd_natt_eks_mva er ikke et tall"
         )
-        assert data["energiledd_natt"] > 0, (
-            f"{dso_id}: energiledd_natt skal være positiv, fikk {data['energiledd_natt']}"
+        assert val > 0, (
+            f"{dso_id}: energiledd_natt_eks_mva skal være positiv, fikk {val}"
         )
 
     def test_dag_greater_than_or_equal_to_natt(self, dso_entry):
         """Day rate should normally be >= night rate."""
         dso_id, data = dso_entry
-        assert data["energiledd_dag"] >= data["energiledd_natt"], (
-            f"{dso_id}: energiledd_dag ({data['energiledd_dag']}) er lavere enn energiledd_natt ({data['energiledd_natt']})"
+        dag = data["energiledd_dag_eks_mva"]
+        natt = data["energiledd_natt_eks_mva"]
+        assert dag >= natt, (
+            f"{dso_id}: energiledd_dag_eks_mva ({dag}) er lavere enn "
+            f"energiledd_natt_eks_mva ({natt})"
         )
 
 
@@ -185,75 +197,77 @@ class TestDSOUrl:
 
 
 class TestDSOAvgiftskonsistens:
-    """Verify that energiledd prices are consistent with tax rules.
+    """Sanity-sjekk av energiledd_*_eks_mva-verdier.
 
-    Fanger feilmonstre som:
-    - Dobbel mva (legge avgifter inkl. mva pa base eks. mva, sa gange med mva igjen)
-    - Feil forbruksavgift for avgiftssone (inkl. mva brukt for mva-fritt omrade)
-    - Manglende tiltakssone-flagg (forbruksavgift inkludert for fritak-omrade)
+    Etter refactor lagrer vi ren nettleie eks. mva og avgifter direkte. Da er
+    avgiftskonsistens en triviell sjekk (verdiene er positive og rimelige), og
+    inkl-mva-pris bygges deterministisk i coordinator.
     """
 
-    def _extract_base_nettleie(self, energiledd: float, avgiftssone: str) -> float:
-        """Reverse-calculate base nettleie from total energiledd."""
-        if avgiftssone == "tiltakssone":
-            return energiledd - ENOVA_AVGIFT
-        elif avgiftssone == "nord_norge":
-            return energiledd - FORBRUKSAVGIFT_ALMINNELIG - ENOVA_AVGIFT
-        else:
-            return energiledd / (1 + MVA_SATS) - FORBRUKSAVGIFT_ALMINNELIG - ENOVA_AVGIFT
+    def test_eks_mva_within_reasonable_range(self, dso_entry):
+        """eks_mva-verdier skal være positive og under en rimelig grense.
 
-    def test_base_nettleie_is_positive(self, dso_entry):
-        """Etter fratrekk av avgifter skal base nettleie vaere positiv.
-
-        Negativ base betyr at avgiftene er for hoye -- typisk dobbel mva
-        eller feil avgiftssone.
+        Norske husholdningsenergiledd ligger typisk i området 0.001-0.6 NOK/kWh
+        eks. mva. Verdier utenfor området tyder på at gammel inkl-mva-verdi har
+        sneket seg inn i den nye strukturen.
         """
         dso_id, data = dso_entry
         if dso_id == "custom":
             pytest.skip("custom DSO har brukervalgte priser")
 
-        sone = resolve_avgiftssone(data)
-        for label, price in [("dag", data["energiledd_dag"]), ("natt", data["energiledd_natt"])]:
-            base = self._extract_base_nettleie(price, sone)
-            assert base > -0.001, (
-                f"{dso_id}: base nettleie {label} er negativ ({base:.4f}). "
-                f"Energiledd {price}, avgiftssone '{sone}'. "
-                f"Mulig feil: dobbel mva, feil forbruksavgift, eller manglende tiltakssone-flagg."
+        for label in ("energiledd_dag_eks_mva", "energiledd_natt_eks_mva"):
+            val = data[label]
+            assert val > 0, f"{dso_id}: {label} må være positiv, fikk {val}"
+            assert val < 0.65, (
+                f"{dso_id}: {label}={val} virker for høyt for ren nettleie. "
+                f"Mulig feil: inkl-mva-verdi ikke konvertert til eks-mva."
             )
 
-    def test_dag_natt_same_avgiftsandel(self, dso_entry):
-        """Dag og natt bor ha samme avgiftsandel -- forskjellen er ren nettleie.
+    def test_dag_natt_diff_makes_sense(self, dso_entry):
+        """Hvis dag og natt er forskjellig, skal forskjellen ha rimelig størrelse."""
+        dso_id, data = dso_entry
+        if dso_id == "custom":
+            pytest.skip("custom DSO har brukervalgte priser")
 
-        Hvis mva-andelen er forskjellig mellom dag og natt, er noe galt
-        med beregningen (f.eks. en bruker avgifter inkl. mva og den andre ikke).
+        dag = data["energiledd_dag_eks_mva"]
+        natt = data["energiledd_natt_eks_mva"]
+        if dag == natt:
+            pytest.skip("flat sats")
+
+        # Differansen skal være positiv og rimelig (under 30 øre/kWh).
+        diff = dag - natt
+        assert diff > 0, f"{dso_id}: dag-natt-diff må være positiv, fikk {diff}"
+        assert diff < 0.30, (
+            f"{dso_id}: dag-natt-forskjell {diff} virker urimelig stor for "
+            f"eks-mva-verdier."
+        )
+
+    def test_inkl_mva_matches_legacy_formula(self, dso_entry):
+        """Inkl-mva-verdien (utledet fra eks-mva via coordinator-formelen) skal
+        fortsatt ligge i et rimelig område for norske nettselskap.
         """
         dso_id, data = dso_entry
         if dso_id == "custom":
             pytest.skip("custom DSO har brukervalgte priser")
 
-        dag = data["energiledd_dag"]
-        natt = data["energiledd_natt"]
-        if dag == natt:
-            pytest.skip("flat sats -- ingen dag/natt-forskjell")
-
         sone = resolve_avgiftssone(data)
-        base_dag = self._extract_base_nettleie(dag, sone)
-        base_natt = self._extract_base_nettleie(natt, sone)
-        diff_total = dag - natt
-        diff_base = base_dag - base_natt
-
-        # For standard sone: diff_total bor vaere diff_base * 1.25 (mva pa forskjellen)
-        # For nord/tiltakssone: diff_total bor vaere lik diff_base (ingen mva)
-        if sone == "standard":
-            expected_diff = diff_base * (1 + MVA_SATS)
+        if sone == "tiltakssone":
+            mva = 0.0
+            forbruksavgift = 0.0
+        elif sone == "nord_norge":
+            mva = 0.0
+            forbruksavgift = FORBRUKSAVGIFT_ALMINNELIG
         else:
-            expected_diff = diff_base
+            mva = MVA_SATS
+            forbruksavgift = FORBRUKSAVGIFT_ALMINNELIG
 
-        assert abs(diff_total - expected_diff) < 0.001, (
-            f"{dso_id}: dag/natt-forskjell er inkonsistent. "
-            f"Total diff: {diff_total:.4f}, forventet fra base: {expected_diff:.4f}. "
-            f"Mulig feil: ulik avgiftsberegning for dag vs natt."
-        )
+        for label in ("energiledd_dag_eks_mva", "energiledd_natt_eks_mva"):
+            inkl = (data[label] + forbruksavgift + ENOVA_AVGIFT) * (1 + mva)
+            # Norske husholdningsledd ligger typisk 0.05-0.65 NOK/kWh inkl. mva
+            assert 0.04 < inkl < 0.70, (
+                f"{dso_id}: utledet inkl-mva ({inkl:.4f}) for {label} ({data[label]}) "
+                f"i sone {sone} ligger utenfor rimelig område."
+            )
 
 
 class TestDSOHelgSomNatt:
@@ -266,7 +280,7 @@ class TestDSOHelgSomNatt:
         """
         for dso_id, data in DSO_LIST.items():
             if data.get("helg_som_natt") is False:
-                assert data["energiledd_dag"] != data["energiledd_natt"], (
+                assert data["energiledd_dag_eks_mva"] != data["energiledd_natt_eks_mva"], (
                     f"{dso_id}: har helg_som_natt=False men dag == natt (flat sats). "
                     f"Flagget har ingen effekt."
                 )

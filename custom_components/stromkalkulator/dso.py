@@ -219,7 +219,7 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "Lede",
         "prisomrade": "NO2",
         "supported": True,
-        # Kraftsystemet 2026: flat sats 40,64 ore/kWh inkl. alle avgifter
+        # Kilde: kraftsystemet 2026. Flat sats - ingen dag/natt-forskjell.
         "energiledd_dag_eks_mva": 0.24382,  # 24,38 øre/kWh ren energiledd (2026)
         "energiledd_natt_eks_mva": 0.24382,  # Flat sats - ingen dag/natt-forskjell
         "url": "https://www.lede.no/nettleie/nettleiepriser",
@@ -1467,10 +1467,9 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "Elvenett",
         "prisomrade": "NO1",
         "supported": True,
-        # Priser inkl. avgifter og mva: dag 35,16, natt 23,91 øre/kWh
-        # NB: Natt er 22-05, ikke 22-06
-        "energiledd_dag_eks_mva": 0.19998,  # 35,16 øre/kWh inkl. avgifter (2025)
-        "energiledd_natt_eks_mva": 0.10998,  # 23,91 øre/kWh inkl. avgifter (2025)
+        # NB: Natt er 22-05, ikke 22-06.
+        "energiledd_dag_eks_mva": 0.19998,  # 20,00 øre/kWh ren energiledd (2025)
+        "energiledd_natt_eks_mva": 0.10998,  # 11,00 øre/kWh ren energiledd (2025)
         "url": "https://www.elvenett.no/priser-og-avtaler/",
         "kapasitetstrinn": [
             (2, 194),  # 2325/12
@@ -1489,9 +1488,8 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "Etna Nett",
         "prisomrade": "NO1",
         "supported": True,
-        # Priser inkl. avgifter og mva: dag 40,85, natt 32,15 øre/kWh
-        "energiledd_dag_eks_mva": 0.2455,  # 40,85 øre/kWh inkl. avgifter (2025)
-        "energiledd_natt_eks_mva": 0.1759,  # 32,15 øre/kWh inkl. avgifter (2025)
+        "energiledd_dag_eks_mva": 0.2455,  # 24,55 øre/kWh ren energiledd (2025)
+        "energiledd_natt_eks_mva": 0.1759,  # 17,59 øre/kWh ren energiledd (2025)
         "url": "https://etna.no/om-nettleie",
         "kapasitetstrinn": [
             (2, 319),  # 3829/12
@@ -1506,9 +1504,8 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "Tinfos",
         "prisomrade": "NO2",
         "supported": True,
-        # Flat sats: 33,91 øre/kWh inkl. avgifter og mva
-        # Ingen dag/natt-differensiering
-        "energiledd_dag_eks_mva": 0.18998,  # 33,91 øre/kWh inkl. avgifter (2024)
+        # Flat sats - ingen dag/natt-differensiering.
+        "energiledd_dag_eks_mva": 0.18998,  # 19,00 øre/kWh ren energiledd (2024)
         "energiledd_natt_eks_mva": 0.18998,  # Flat sats - ingen dag/natt-differensiering
         "url": "https://www.tinfos.no/tinfos-nett/",
         "kapasitetstrinn": [
@@ -1525,10 +1522,9 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "Sør Aurdal Energi",
         "prisomrade": "NO1",
         "supported": True,
-        # Har sesongpriser - bruker vinterpriser (høyest)
-        # Vinter: 42,06 øre/kWh, Sommer: 37,06 øre/kWh (inkl. avgifter og mva)
-        # Flat sats - ingen dag/natt-differensiering
-        "energiledd_dag_eks_mva": 0.25518,  # 42,06 øre/kWh inkl. avgifter (vinter)
+        # Har sesongpriser - bruker vinterpriser (høyest).
+        # Flat sats - ingen dag/natt-differensiering.
+        "energiledd_dag_eks_mva": 0.25518,  # 25,52 øre/kWh ren energiledd (vinter)
         "energiledd_natt_eks_mva": 0.25518,  # Flat sats - ingen dag/natt-differensiering
         "url": "https://sae.no/tariffer",
         "kapasitetstrinn": [

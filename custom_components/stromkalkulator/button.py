@@ -119,13 +119,7 @@ class FakturaRapportButton(CoordinatorEntity, ButtonEntity):  # type: ignore[mis
         avtale = "Norgespris" if har_norgespris else "Spotpris + strømstøtte"
         spot_handling = "inkl. mva" if spotpris_inkl_mva else "eks. mva"
 
-        return f"""**Fakturaverifisering for {prev_name}**
-
-Kopier alt under linja og lim inn i et nytt issue:
-
----
-
-## Oppsett
+        report_body = f"""## Oppsett
 
 - **Nettselskap:** {self._dso['name']}
 - **Prisområde:** {self._dso['prisomrade']}
@@ -180,3 +174,14 @@ Hvordan vil du krediteres? (fornavn / alias / handle / anonymt)
 ---
 
 Personvern: ikke ta med navn, adresse, kundenummer, fakturanummer eller KID."""
+
+        # Pakk rapporten i en kodeblokk slik at copy-paste fra HA-UI gir
+        # rå markdown og ikke renderet HTML. Dobbel-fence (~~~) brukes
+        # for å unngå konflikt med ev. ``` i rapport-innholdet.
+        return (
+            f"**Fakturaverifisering for {prev_name}**\n\n"
+            "Marker alt i feltet under, kopier, og lim inn i et nytt issue.\n\n"
+            "~~~markdown\n"
+            f"{report_body}\n"
+            "~~~\n"
+        )

@@ -604,6 +604,24 @@ class TestMonthTransition:
         assert result["monthly_consumption_natt_kwh"] == 0.0
         assert result["monthly_norgespris_diff_kr"] == 0.0
 
+    def test_year_boundary_transition(self, coord_module):
+        """Desember til januar skal oppføre seg som vanlig månedsskifte."""
+        jan_1 = _real_datetime(2026, 1, 1, 0, 1)
+
+        hass = _make_hass(power_w=5000)
+        entry = _make_entry()
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+        coordinator._current_month = "2025-12"
+        coordinator._monthly_consumption = coord_module.ConsumptionData(dag=200.0, natt=100.0)
+
+        result = _run_update(coord_module, coordinator, now=jan_1)
+
+        assert result["previous_month_name"] == "desember 2025"
+        assert result["previous_month_consumption_dag_kwh"] == 200.0
+        assert result["previous_month_consumption_natt_kwh"] == 100.0
+        assert result["monthly_consumption_dag_kwh"] == 0.0
+        assert result["monthly_consumption_natt_kwh"] == 0.0
+
     def test_month_change_saves_top_3(self, coord_module):
         """Month change should preserve previous month top 3."""
         april_1 = _real_datetime(2026, 4, 1, 0, 1)

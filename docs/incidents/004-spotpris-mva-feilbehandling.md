@@ -81,9 +81,11 @@ Bruk `spot_price_inkl_mva` overalt der `spot_price` brukes i sammenligninger ell
 
 ### 3. Migrering for eksisterende brukere
 
-Ved migrering settes `spotpris_inkl_mva = True` for eksisterende konfig-entries (preserves current behavior). Repair-issue informerer brukeren:
+Ved migrering settes `spotpris_inkl_mva = False` for alle eksisterende konfig-entries. Det er riktig for HA-core nordpool (som er det ~alle brukere har). Repair-issue trigges kun for Sør-Norge (der mva-håndteringen utgjør en forskjell) og informerer:
 
-> Strømkalkulator har endret hvordan den behandler spotpris og mva. Sensoren din var antatt å levere priser **inkl. mva**. Hvis du bruker den offisielle Nord Pool-integrasjonen, leverer den **eks. mva**, og du må endre Strømkalkulator-innstillingen «Spotpris-sensor leverer priser inkl. mva» til AV for korrekt strømstøtte og totalpris.
+> Strømkalkulator behandler nå spotpris-sensoren som eks. mva (riktig for HA-core nordpool). De fleste trenger ikke gjøre noe. Du trenger kun å handle hvis sensoren din allerede leverer inkl. mva (custom template eller eldre custom_components/nordpool med VAT=true). Da må du slå PÅ feltet i innstillingene.
+
+Vurdert alternativ: sette `True` (preserves behavior) og be brukere slå AV. Forkastet fordi det betyr at brukere som ikke leser repair-issue beholder bug-en.
 
 ### 4. Tester
 

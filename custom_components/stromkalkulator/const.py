@@ -182,25 +182,10 @@ ENOVA_AVGIFT: Final[float] = 0.01  # 1,0 øre/kWh eks. mva (fast, alle regioner 
 MVA_SATS: Final[float] = 0.25  # 25% mva
 
 
-def get_forbruksavgift(avgiftssone: str, month: int) -> float:
-    """Get forbruksavgift based on avgiftssone.
-
-    Fra 2026 er det flat sats hele året (ingen sesongvariasjon).
-    Month-parameteren beholdes for bakoverkompatibilitet.
-
-    Args:
-        avgiftssone: One of 'standard', 'nord_norge', 'tiltakssone'
-        month: Month number (1-12) - ikke lenger brukt fra 2026
-
-    Returns:
-        Forbruksavgift in NOK/kWh (eks. mva)
-    """
-    # Tiltakssonen har fritak for forbruksavgift (husholdninger)
+def get_forbruksavgift(avgiftssone: str) -> float:
+    """Forbruksavgift i NOK/kWh eks. mva. Tiltakssonen har fritak."""
     if avgiftssone == AVGIFTSSONE_TILTAKSSONE:
         return 0.0
-
-    # Fra 2026: Samme sats for alle husholdninger (standard og nord_norge)
-    # Alminnelig sats: 7,13 øre/kWh hele året
     return FORBRUKSAVGIFT_ALMINNELIG
 
 
@@ -219,25 +204,13 @@ def get_mva_sats(avgiftssone: str) -> float:
     return MVA_SATS
 
 
-def compute_energiledd_inkl_mva(
-    energiledd_eks_mva: float, avgiftssone: str, month: int = 1
-) -> float:
-    """Compute energiledd inkl. forbruksavgift, Enova og mva fra eks-mva-base.
+def compute_energiledd_inkl_mva(energiledd_eks_mva: float, avgiftssone: str) -> float:
+    """Energiledd inkl. forbruksavgift, Enova og mva fra eks-mva-base.
 
-    Tariffen lagret per DSO er ren nettleie (uten avgifter, uten mva). Faktiske
-    fakturapriser bygges her ved å legge på forbruksavgift, Enova og mva
-    iht. avgiftssonen. Eksakte mellomregninger gir mindre avrundingsfeil mot
-    fakturaen enn å lagre display-avrundede inkl-priser.
-
-    Args:
-        energiledd_eks_mva: Ren energiledd i NOK/kWh, eks. mva og eks. avgifter
-        avgiftssone: 'standard', 'nord_norge' eller 'tiltakssone'
-        month: Måned (1-12). Beholdt for fremtidig sesongvariasjon.
-
-    Returns:
-        Energiledd i NOK/kWh inkl. forbruksavgift, Enova og mva
+    DSO-tariffer lagres som ren nettleie. Vi legger på avgifter og mva her for å
+    få inkl-mva-pris uten avrunding fra display-summering.
     """
-    forbruksavgift = get_forbruksavgift(avgiftssone, month)
+    forbruksavgift = get_forbruksavgift(avgiftssone)
     mva_sats = get_mva_sats(avgiftssone)
     return (energiledd_eks_mva + forbruksavgift + ENOVA_AVGIFT) * (1 + mva_sats)
 

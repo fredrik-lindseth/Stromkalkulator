@@ -38,13 +38,7 @@ PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 type StromkalkulatorConfigEntry = ConfigEntry[NettleieCoordinator]
 
-# Build migration lookup once at import time
 _MIGRATION_INDEX: dict[str, DSOFusjon] = {m.gammel: m for m in DSO_MIGRATIONS}
-
-
-def _check_dso_migration(dso_id: str) -> DSOFusjon | None:
-    """Check if a DSO key needs migration. Returns DSOFusjon or None."""
-    return _MIGRATION_INDEX.get(dso_id)
 
 
 def _migrate_storage_file_sync(storage_dir: str, old_dso: str, new_dso: str) -> None:
@@ -104,8 +98,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         sone = entry.data.get(CONF_AVGIFTSSONE) or resolve_avgiftssone(
             DSO_LIST.get(entry.data.get(CONF_DSO, DEFAULT_DSO), {})
         )
-        # Forbruksavgift har ikke sesongvariasjon i 2026; måned-arg er ubrukt.
-        forbruksavgift = get_forbruksavgift(sone, 1)
+        forbruksavgift = get_forbruksavgift(sone)
         mva_sats = get_mva_sats(sone)
 
         def inkl_to_eks(value: object) -> float | None:
@@ -157,7 +150,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: StromkalkulatorConfigEnt
     """Set up Nettleie from a config entry."""
     # Check for DSO migration (merger)
     dso_id = entry.data.get(CONF_DSO, DEFAULT_DSO)
-    migration = _check_dso_migration(dso_id)
+    migration = _MIGRATION_INDEX.get(dso_id)
 
     if migration is not None:
         new_dso = DSO_LIST.get(migration.ny)

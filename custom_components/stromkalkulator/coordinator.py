@@ -574,7 +574,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
 
         # Offentlige avgifter (for Energy Dashboard)
         mva_sats = get_mva_sats(self.avgiftssone)
-        forbruksavgift = get_forbruksavgift(self.avgiftssone, now.month)
+        forbruksavgift = get_forbruksavgift(self.avgiftssone)
         forbruksavgift_inkl_mva = forbruksavgift * (1 + mva_sats)
         enova_inkl_mva = ENOVA_AVGIFT * (1 + mva_sats)
         offentlige_avgifter = forbruksavgift_inkl_mva + enova_inkl_mva
@@ -585,18 +585,13 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         # Kroner spart per kWh: positiv = du sparer med nåværende avtale
         # Samme fortegn som _monthly_norgespris_diff (alternativ - din pris)
         if self.har_norgespris:
-            spot_total_etter_stotte = spot_price - stromstotte + energiledd + fastledd_per_kwh
-            kroner_spart_per_kwh = spot_total_etter_stotte - total_price
+            alternativ_pris = spot_price - stromstotte + energiledd + fastledd_per_kwh
         else:
-            kroner_spart_per_kwh = total_pris_norgespris - total_price
+            alternativ_pris = total_pris_norgespris
+        kroner_spart_per_kwh = alternativ_pris - total_price
 
-        # Accumulate monthly comparisons and costs
         if energy_kwh > 0:
-            if self.har_norgespris:
-                diff_per_kwh = spot_total_etter_stotte - total_price
-            else:
-                diff_per_kwh = total_pris_norgespris - total_price
-            self._monthly_norgespris_diff += diff_per_kwh * energy_kwh
+            self._monthly_norgespris_diff += kroner_spart_per_kwh * energy_kwh
             self._monthly_norgespris_compensation += (norgespris - spot_price) * energy_kwh
             self._daily_cost += total_price * energy_kwh
             self._monthly_cost += total_price * energy_kwh

@@ -7,6 +7,8 @@ Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), [Sem
 ### Fikset
 
 - **Spotpris-mva-håndtering** (incident 004): koden antok at spotpris-sensoren leverte priser inkl. mva, men HA-core nordpool-integrasjonen leverer eks. mva. Resultatet var 25 % feil i strømstøtte-trigger, totalpris og Norgespris-besparelse for Sør-Norge-brukere på spotprisavtaler. Nettleie-beregninger var ikke påvirket.
+- **Eksportinntekt for plusskunder**: brukte spotpris inkl. mva. Plusskunder får betalt eks. mva av strømleverandøren, så Sør-Norge-eksport ble overrapportert med 25 %. Bruker nå spot_price_eks_mva.
+- **Falsk Norgespris-besparelse ved manglende spot-data**: når spotpris-sensor var nede over 2 timer, akkumulerte koden 50 øre/kWh i fiktiv besparelse. Akkumuleringen hopper nå over når spot er ugyldig.
 - **Avrundingsavvik mot ekte fakturaer**: DSO-energiledd lagres nå som rene eks-mva-priser. Inkl-mva-verdien beregnes i kode, slik at vi unngår presisjonstap fra display-avrundede summeringer. BKK-faktura: avvik fra 0,004 til 0,001 øre/kWh.
 
 ### Lagt til

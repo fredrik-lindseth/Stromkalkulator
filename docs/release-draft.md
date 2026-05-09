@@ -5,6 +5,8 @@ Følger malen i [RELEASE_NOTES.md](RELEASE_NOTES.md).
 ## Bugfixes
 
 - **Spotpris-mva-håndtering**: HA-core nordpool leverer priser eks. mva, men koden antok inkl. mva. Resultat: 25 % feil i strømstøtte-trigger, totalpris og Norgespris-besparelse for Sør-Norge-brukere på spotprisavtaler. Se [incident 004](docs/incidents/004-spotpris-mva-feilbehandling.md). Migreres automatisk: eksisterende konfig får `spotpris_inkl_mva = True` (bevarer oppførsel). Repair-issue varsler om å slå AV for HA-core nordpool.
+- **Eksportinntekt for plusskunder** brukte spotpris inkl. mva. Plusskunder får betalt eks. mva, så Sør-Norge-eksport ble overrapportert med 25 %.
+- **Falsk Norgespris-besparelse** ble akkumulert når spotpris-sensor var nede over 2 timer. Hopper nå over akkumulering ved ugyldig spot.
 - **Avrundingsavvik mot ekte fakturaer**: DSO-energiledd lagres nå som rene eks-mva-priser, inkl-mva-verdien beregnes i kode.
 
 ## Forbedringer

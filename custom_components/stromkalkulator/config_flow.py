@@ -26,6 +26,7 @@ from .const import (
     CONF_KAPASITET_VARSEL_TERSKEL,
     CONF_POWER_SENSOR,
     CONF_SPOT_PRICE_SENSOR,
+    CONF_SPOTPRIS_INKL_MVA,
     DEFAULT_DSO,
     DEFAULT_ENERGILEDD_DAG,
     DEFAULT_ENERGILEDD_NATT,
@@ -62,7 +63,10 @@ def _dso_options() -> list[selector.SelectOptionDict]:
 class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,misc]
     """Handle a config flow for Nettleie."""
 
-    VERSION: int = 1
+    # VERSION 3: spotpris_inkl_mva-felt lagt til. Default False (eks. mva, riktig
+    # for HA-core nordpool). Eksisterende konfig migreres til True for å bevare
+    # gjeldende oppførsel. Se incident 004.
+    VERSION: int = 3
 
     def __init__(self) -> None:
         """Initialize the config flow."""
@@ -137,8 +141,9 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
                 dso: DSOEntry = DSO_LIST[self._data[CONF_DSO]]
                 self._data[CONF_AVGIFTSSONE] = resolve_avgiftssone(dso)
 
-                self._data[CONF_ENERGILEDD_DAG] = dso["energiledd_dag"]
-                self._data[CONF_ENERGILEDD_NATT] = dso["energiledd_natt"]
+                # Lagre eks-mva-verdier; brukeren kan overstyre dem via Options.
+                self._data[CONF_ENERGILEDD_DAG] = dso["energiledd_dag_eks_mva"]
+                self._data[CONF_ENERGILEDD_NATT] = dso["energiledd_natt_eks_mva"]
 
                 return await self._create_entry()
 
@@ -157,6 +162,7 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
                             domain="sensor",
                         ),
                     ),
+                    vol.Optional(CONF_SPOTPRIS_INKL_MVA, default=False): selector.BooleanSelector(),
                     vol.Optional(CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR): selector.EntitySelector(
                         selector.EntitySelectorConfig(
                             domain="sensor",
@@ -306,6 +312,10 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):  # type: ignore[misc]
                         domain="sensor",
                     ),
                 ),
+                vol.Optional(
+                    CONF_SPOTPRIS_INKL_MVA,
+                    default=current.get(CONF_SPOTPRIS_INKL_MVA, False),
+                ): selector.BooleanSelector(),
                 vol.Optional(
                     CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
                     description={"suggested_value": current.get(CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR)},

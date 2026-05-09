@@ -98,7 +98,7 @@ class TestReadSensorFloat:
         """Create a coordinator instance with a mocked hass that returns sensor_value."""
         hass = MagicMock()
         entry = MagicMock()
-        entry.data = {"tso": "bkk", "power_sensor": "sensor.power", "spot_price_sensor": "sensor.spot"}
+        entry.data = {"tso": "bkk", "power_sensor": "sensor.power", "spot_price_sensor": "sensor.spot", "spotpris_inkl_mva": True}
         entry.entry_id = "test_entry"
         state = MagicMock()
         state.state = sensor_value
@@ -110,7 +110,7 @@ class TestReadSensorFloat:
         """Create a coordinator where hass.states.get returns None."""
         hass = MagicMock()
         entry = MagicMock()
-        entry.data = {"tso": "bkk", "power_sensor": "sensor.power", "spot_price_sensor": "sensor.spot"}
+        entry.data = {"tso": "bkk", "power_sensor": "sensor.power", "spot_price_sensor": "sensor.spot", "spotpris_inkl_mva": True}
         entry.entry_id = "test_entry"
         hass.states.get = MagicMock(return_value=None)
         coord = cls(hass, entry)

@@ -20,26 +20,30 @@
         "data": {
           "power_sensor": "Effektmåler (W)",
           "spot_price_sensor": "Spotpris-sensor (NOK/kWh)",
+          "spotpris_inkl_mva": "Spotpris-sensor leverer priser inkl. mva",
           "electricity_provider_price_sensor": "Strømleverandør-sensor (valgfri)",
           "export_power_sensor": "Eksport-effektmåler (valgfri)"
         },
         "data_description": {
           "power_sensor": "Sensor som viser nåværende strømforbruk i watt, f.eks. fra HAN-port, Tibber Pulse eller P1-måler.",
           "spot_price_sensor": "Sensor med gjeldende spotpris i NOK/kWh. Vanligvis «Current price» fra Nord Pool-integrasjonen.",
+          "spotpris_inkl_mva": "La stå av for HA-core nordpool-integrasjon (leverer eks. mva). Slå på hvis sensoren din allerede inkluderer mva (f.eks. eldre custom_components/nordpool med VAT=true, eller egendefinert template-sensor).",
           "electricity_provider_price_sensor": "Totalpris fra strømselskapet (f.eks. Tibber-sensor). Brukes til å vise hva du faktisk betaler. Kan legges til senere.",
           "export_power_sensor": "Sensor som viser eksportert effekt i watt (solceller/plusskunde). Brukes til å beregne inntekt fra salg av strøm."
         }
       },
       "pricing": {
         "title": "Egendefinerte priser",
-        "description": "Velg avgiftssone og angi energiledd-priser i NOK/kWh (inkl. avgifter).",
+        "description": "Velg avgiftssone og angi energiledd-priser i NOK/kWh eks. mva og eks. forbruksavgift/Enova. Integrasjonen legger på avgifter og mva basert på avgiftssone.",
         "data": {
           "avgiftssone": "Avgiftssone",
-          "energiledd_dag": "Energiledd dag (NOK/kWh)",
-          "energiledd_natt": "Energiledd natt/helg (NOK/kWh)"
+          "energiledd_dag": "Energiledd dag (NOK/kWh, eks. mva og avgifter)",
+          "energiledd_natt": "Energiledd natt/helg (NOK/kWh, eks. mva og avgifter)"
         },
         "data_description": {
-          "avgiftssone": "Bestemmer mva og forbruksavgift. De fleste i Sør-Norge (NO1, NO2, NO5) velger «Sør-Norge». Nord-Norge (NO3, NO4) har mva-fritak."
+          "avgiftssone": "Bestemmer mva og forbruksavgift. De fleste i Sør-Norge (NO1, NO2, NO5) velger «Sør-Norge». Nord-Norge (NO3, NO4) har mva-fritak.",
+          "energiledd_dag": "Ren nettleie for dag. Finn beløpet «energiledd» eller «overføring» på prislisten din, før forbruksavgift, Enova og mva.",
+          "energiledd_natt": "Ren nettleie for natt/helg. Hvis nettselskapet bruker flat sats, sett samme verdi som dag."
         }
       }
     },
@@ -63,16 +67,20 @@
           "har_norgespris": "Jeg har Norgespris",
           "power_sensor": "Effektmåler (W)",
           "spot_price_sensor": "Spotpris-sensor (NOK/kWh)",
+          "spotpris_inkl_mva": "Spotpris-sensor leverer priser inkl. mva",
           "electricity_provider_price_sensor": "Strømleverandør-sensor (valgfri)",
           "export_power_sensor": "Eksport-effektmåler (valgfri)",
-          "energiledd_dag": "Energiledd dag (NOK/kWh)",
-          "energiledd_natt": "Energiledd natt/helg (NOK/kWh)",
+          "energiledd_dag": "Energiledd dag (NOK/kWh, eks. mva og avgifter)",
+          "energiledd_natt": "Energiledd natt/helg (NOK/kWh, eks. mva og avgifter)",
           "kapasitet_varsel_terskel": "Kapasitetsvarsel-terskel (kW)"
         },
         "data_description": {
           "boligtype": "Bolig: Strømstøtte opptil 5000 kWh/mnd, Norgespris opptil 5000 kWh/mnd. Fritidsbolig: Ingen strømstøtte, Norgespris opptil 1000 kWh/mnd. Fritidsbolig (fast bosted): Samme som bolig (Forskrift § 11).",
           "avgiftssone": "Settes automatisk fra nettselskap. Overstyr kun hvis du vet du tilhører en annen sone.",
           "har_norgespris": "Aktiver hvis du har valgt Norgespris hos nettselskapet. Bruker fast pris (40-50 øre/kWh) i stedet for spotpris.",
+          "spotpris_inkl_mva": "La stå av for HA-core nordpool-integrasjon (leverer eks. mva). Slå på hvis sensoren din allerede inkluderer mva.",
+          "energiledd_dag": "Ren nettleie eks. mva og avgifter. Integrasjonen legger på forbruksavgift, Enova og mva basert på avgiftssone.",
+          "energiledd_natt": "Ren nettleie eks. mva og avgifter. Sett samme verdi som dag for flat sats.",
           "kapasitet_varsel_terskel": "Varsle når margin til neste kapasitetstrinn er under denne verdien. Standard: 2.0 kW."
         }
       }
@@ -243,6 +251,10 @@
           }
         }
       }
+    },
+    "spotpris_mva_check": {
+      "title": "Sjekk spotpris-sensorens mva-håndtering",
+      "description": "Strømkalkulator behandler nå spotpris-sensoren som eks. mva som standard, fordi HA-core nordpool-integrasjonen leverer priser eks. mva. Din eksisterende konfigurasjon ble satt til «inkl. mva» for å bevare gjeldende oppførsel. Hvis du bruker den offisielle Nord Pool-integrasjonen, åpne integrasjonens innstillinger og slå AV «Spotpris-sensor leverer priser inkl. mva» for korrekt strømstøtte og totalpris. Se [incident 004](https://github.com/fredrik-lindseth/Stromkalkulator/blob/main/docs/incidents/004-spotpris-mva-feilbehandling.md)."
     }
   }
 }

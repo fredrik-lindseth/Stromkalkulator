@@ -52,7 +52,7 @@ Spesifiser om prisene på fakturaen din er **eks** eller **inkl** MVA.
 
 ## Kreditt
 
-Hvordan vil du krediteres i [REFERANSE.md](../../docs/fakturaer/REFERANSE.md)?
+Hvordan vil du krediteres i [REFERANSE.md](https://github.com/fredrik-lindseth/Stromkalkulator/blob/main/docs/fakturaer/REFERANSE.md)?
 
 - Fornavn / alias / GitHub-handle:
 - Eller anonymt: [ ]
@@ -65,4 +65,4 @@ Hvordan vil du krediteres i [REFERANSE.md](../../docs/fakturaer/REFERANSE.md)?
 
 **Personvern:** Ikke ta med navn, adresse, kundenummer, fakturanummer, KID eller kontonummer.
 
-Se [VERIFISER_DIN_FAKTURA.md](../../docs/fakturaer/VERIFISER_DIN_FAKTURA.md) for kontekst.
+Se [VERIFISER_DIN_FAKTURA.md](https://github.com/fredrik-lindseth/Stromkalkulator/blob/main/docs/fakturaer/VERIFISER_DIN_FAKTURA.md) for kontekst.

@@ -18,112 +18,15 @@ were committed but corresponding tests were missing:
 from __future__ import annotations
 
 import asyncio
-import importlib
 import sys
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from tests.conftest import _make_entry, _make_hass, _make_state, _run_update
+
 _real_datetime = datetime
-
-
-# ---------------------------------------------------------------------------
-# Coordinator test infrastructure (same pattern as test_coordinator_update.py)
-# ---------------------------------------------------------------------------
-
-
-@pytest.fixture(autouse=True)
-def _patch_update_coordinator():
-    """Replace mocked DataUpdateCoordinator with a real base class."""
-
-    class FakeDataUpdateCoordinator:
-        def __init_subclass__(cls, **kwargs):
-            pass
-
-        def __class_getitem__(cls, item):
-            return cls
-
-        def __init__(self, hass, logger, *, name, update_interval):
-            self.hass = hass
-
-    mod = sys.modules["homeassistant.helpers.update_coordinator"]
-    original = getattr(mod, "DataUpdateCoordinator", None)
-    mod.DataUpdateCoordinator = FakeDataUpdateCoordinator
-    # Also ensure UpdateFailed is available
-    if not hasattr(mod, "UpdateFailed") or not isinstance(mod.UpdateFailed, type):
-        class UpdateFailed(Exception):
-            pass
-        mod.UpdateFailed = UpdateFailed
-    yield
-    mod.DataUpdateCoordinator = original
-
-
-@pytest.fixture
-def coord_module():
-    """Reload coordinator module and patch Store + dt_util."""
-    import stromkalkulator.coordinator as coord
-
-    importlib.reload(coord)
-
-    coord.dt_util = MagicMock()
-    coord.dt_util.now.return_value = _real_datetime(2026, 4, 9, 12, 0)
-
-    def make_store(hass, version, key):
-        store = MagicMock()
-        store.async_load = AsyncMock(return_value=None)
-        store.async_save = AsyncMock()
-        store.async_remove = AsyncMock()
-        return store
-
-    coord.Store = MagicMock(side_effect=make_store)
-    return coord
-
-
-def _make_state(value):
-    state = MagicMock()
-    state.state = str(value)
-    return state
-
-
-def _make_entry(
-    entry_id="test_entry",
-    dso_id="bkk",
-    avgiftssone="standard",
-    extra_data=None,
-):
-    entry = MagicMock()
-    entry.entry_id = entry_id
-    entry.data = {
-        "tso": dso_id,
-        "power_sensor": "sensor.power",
-        "spot_price_sensor": "sensor.spot_price",
-        "spotpris_inkl_mva": True,
-        "avgiftssone": avgiftssone,
-    }
-    if extra_data:
-        entry.data.update(extra_data)
-    return entry
-
-
-def _make_hass(power_w=5000, spot_price=1.20):
-    hass = MagicMock()
-
-    def get_state(entity_id):
-        if entity_id == "sensor.power":
-            return _make_state(power_w)
-        if entity_id == "sensor.spot_price":
-            return _make_state(spot_price)
-        return None
-
-    hass.states.get = MagicMock(side_effect=get_state)
-    return hass
-
-
-def _run_update(coord_module, coordinator, now=None):
-    if now is not None:
-        coord_module.dt_util.now.return_value = now
-    return asyncio.run(coordinator._async_update_data())
 
 
 # ===========================================================================
@@ -347,40 +250,8 @@ class TestIntegerMonthBackwardCompat:
         assert len(coordinator._current_month) == 7  # "YYYY-MM"
 
 
-# ===========================================================================
-# 5. Corrupt storage exception handler (cb8e9ec)
-# ===========================================================================
-
-
-class TestCorruptStorageHandler:
-    """Corrupt storage data should fall back to defaults, not crash."""
-
-    def test_completely_corrupt_data_uses_defaults(self, coord_module):
-        """Storage with wrong types should not crash."""
-        stored_data = {
-            "daily_max_power": "not_a_dict",  # Should be dict
-            "monthly_consumption": 42,  # Should be dict
-            "current_month": ["wrong"],  # Should be str or int
-        }
-
-        def make_store(hass, version, key):
-            store = MagicMock()
-            store.async_load = AsyncMock(return_value=stored_data)
-            store.async_save = AsyncMock()
-            store.async_remove = AsyncMock()
-            return store
-
-        coord_module.Store = MagicMock(side_effect=make_store)
-
-        hass = MagicMock()
-        coordinator = coord_module.NettleieCoordinator(hass, _make_entry())
-
-        # Should not raise
-        asyncio.run(coordinator._load_stored_data())
-
-        # Validation methods should handle bad types gracefully
-        assert isinstance(coordinator._daily_max_power, dict)
-        assert isinstance(coordinator._monthly_consumption, coord_module.ConsumptionData)
+# Korrupt-storage-tester ligger i test_persistens.py::TestCorruptStorageData
+# (kanonisk plassering).
 
 
 # ===========================================================================
@@ -838,22 +709,6 @@ class TestStromstotteTakBoundary:
         assert result["stromstotte_tak_naadd"] is True
 
 
-# ===========================================================================
-# Negative verdier i validators (from test_quality_r3)
-# ===========================================================================
-
-
-class TestValidatorsNegativeValues:
-    """coordinator.py negative verdier filtreres/clampes."""
-
-    def test_validate_daily_max_power_skips_negative(self, coord_module):
-        validate = coord_module.NettleieCoordinator._validate_daily_max_power
-        result = validate({"2026-04-01": -5.0, "2026-04-02": 3.0})
-        assert "2026-04-01" not in result
-        assert result["2026-04-02"] == coord_module.DailyMaxEntry(kw=3.0)
-
-    def test_validate_consumption_clamps_negative_to_zero(self, coord_module):
-        validate = coord_module.NettleieCoordinator._validate_consumption
-        result = validate({"dag": -100.0, "natt": 50.0})
-        assert result.dag == 0.0
-        assert result.natt == 50.0
+# Negative-verdi-tester for validators ligger i
+# test_coordinator_robustness.py::TestValidateDailyMaxPower og
+# ::TestValidateConsumption (kanonisk plassering).

@@ -9,56 +9,12 @@ verdien som den er.
 from __future__ import annotations
 
 import asyncio
-import importlib
-import sys
-from datetime import datetime as _real_datetime
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 
-
-@pytest.fixture(autouse=True)
-def _patch_update_coordinator():
-    class FakeDataUpdateCoordinator:
-        def __init_subclass__(cls, **kwargs):
-            pass
-
-        def __class_getitem__(cls, item):
-            return cls
-
-        def __init__(self, hass, logger, *, name, update_interval):
-            self.hass = hass
-
-    mod = sys.modules["homeassistant.helpers.update_coordinator"]
-    original = getattr(mod, "DataUpdateCoordinator", None)
-    mod.DataUpdateCoordinator = FakeDataUpdateCoordinator
-    yield
-    mod.DataUpdateCoordinator = original
-
-
-@pytest.fixture
-def coord_module():
-    import stromkalkulator.coordinator as coord
-
-    importlib.reload(coord)
-    coord.dt_util = MagicMock()
-    coord.dt_util.now.return_value = _real_datetime(2026, 6, 15, 12, 0)
-
-    def make_store(hass, version, key):
-        store = MagicMock()
-        store.async_load = AsyncMock(return_value=None)
-        store.async_save = AsyncMock()
-        store.async_remove = AsyncMock()
-        return store
-
-    coord.Store = MagicMock(side_effect=make_store)
-    return coord
-
-
-def _make_state(value):
-    state = MagicMock()
-    state.state = str(value)
-    return state
+from tests.conftest import _make_entry as _base_make_entry
+from tests.conftest import _make_hass as _base_make_hass
 
 
 def _make_entry(
@@ -66,34 +22,23 @@ def _make_entry(
     avgiftssone: str = "standard",
     har_norgespris: bool = False,
 ):
-    entry = MagicMock()
-    entry.entry_id = "test_entry"
-    entry.data = {
-        "tso": "bkk",
-        "power_sensor": "sensor.power",
-        "spot_price_sensor": "sensor.spot_price",
-        "spotpris_inkl_mva": spotpris_inkl_mva,
-        "har_norgespris": har_norgespris,
-        "avgiftssone": avgiftssone,
-    }
-    return entry
+    """Bruker delt _make_entry-fabrikk med spotpris_inkl_mva som første-felt-fokus."""
+    return _base_make_entry(
+        entry_id="test_entry",
+        dso_id="bkk",
+        spotpris_inkl_mva=spotpris_inkl_mva,
+        avgiftssone=avgiftssone,
+        har_norgespris=har_norgespris,
+    )
 
 
 def _make_hass(spot_price: float):
-    hass = MagicMock()
-
-    def get_state(entity_id):
-        if entity_id == "sensor.power":
-            return _make_state(0)
-        if entity_id == "sensor.spot_price":
-            return _make_state(spot_price)
-        return None
-
-    hass.states.get = MagicMock(side_effect=get_state)
-    return hass
+    """Lokal wrapper: power=0 og angitt spot_price (via delt fabrikk)."""
+    return _base_make_hass(power_w=0, spot_price=spot_price)
 
 
 def _run_update(coord):
+    """Lokal forenklet variant uten now-override (kun denne filen bruker den)."""
     return asyncio.run(coord._async_update_data())
 
 

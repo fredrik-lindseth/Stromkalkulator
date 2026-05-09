@@ -9,57 +9,12 @@ coordinator.data independently.
 from __future__ import annotations
 
 import asyncio
-import importlib
 import sys
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock
 
-import pytest
+from tests.conftest import _make_entry, _make_hass
 
 _real_datetime = datetime
-
-
-# ---------------------------------------------------------------------------
-# Coordinator infrastructure (same as test_coordinator_update.py)
-# ---------------------------------------------------------------------------
-
-
-@pytest.fixture(autouse=True)
-def _patch_update_coordinator():
-    class FakeDataUpdateCoordinator:
-        def __init_subclass__(cls, **kwargs):
-            pass
-
-        def __class_getitem__(cls, item):
-            return cls
-
-        def __init__(self, hass, logger, *, name, update_interval):
-            self.hass = hass
-
-    mod = sys.modules["homeassistant.helpers.update_coordinator"]
-    original = getattr(mod, "DataUpdateCoordinator", None)
-    mod.DataUpdateCoordinator = FakeDataUpdateCoordinator
-    yield
-    mod.DataUpdateCoordinator = original
-
-
-@pytest.fixture
-def coord_module():
-    import stromkalkulator.coordinator as coord
-
-    importlib.reload(coord)
-    coord.dt_util = MagicMock()
-    coord.dt_util.now.return_value = _real_datetime(2026, 6, 15, 12, 0)
-
-    def make_store(hass, version, key):
-        store = MagicMock()
-        store.async_load = AsyncMock(return_value=None)
-        store.async_save = AsyncMock()
-        store.async_remove = AsyncMock()
-        return store
-
-    coord.Store = MagicMock(side_effect=make_store)
-    return coord
 
 
 # ---------------------------------------------------------------------------
@@ -108,44 +63,6 @@ from stromkalkulator.sensor import (  # noqa: E402
     TariffSensor,
     TotalPriceSensor,
 )
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
-def _make_state(value):
-    state = MagicMock()
-    state.state = str(value)
-    return state
-
-
-def _make_hass(power_w=5000, spot_price=1.20):
-    hass = MagicMock()
-
-    def get_state(entity_id):
-        if entity_id == "sensor.power":
-            return _make_state(power_w)
-        if entity_id == "sensor.spot_price":
-            return _make_state(spot_price)
-        return None
-
-    hass.states.get = MagicMock(side_effect=get_state)
-    return hass
-
-
-def _make_entry(entry_id="test_entry", dso_id="bkk", har_norgespris=False):
-    entry = MagicMock()
-    entry.entry_id = entry_id
-    entry.data = {
-        "tso": dso_id,
-        "power_sensor": "sensor.power",
-        "spot_price_sensor": "sensor.spot_price",
-        "spotpris_inkl_mva": True,
-        "har_norgespris": har_norgespris,
-        "avgiftssone": "standard",
-    }
-    return entry
 
 
 def _build_coordinator_with_data(coord_module):

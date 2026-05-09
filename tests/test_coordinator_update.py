@@ -8,113 +8,15 @@ and month transitions.
 
 from __future__ import annotations
 
-import asyncio
-import importlib
-import sys
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 
+from tests.conftest import _make_entry, _make_hass, _make_state, _run_update
+
 # Keep a reference to the real datetime class before any patching
 _real_datetime = datetime
-
-
-@pytest.fixture(autouse=True)
-def _patch_update_coordinator():
-    """Replace mocked DataUpdateCoordinator with a real base class."""
-
-    class FakeDataUpdateCoordinator:
-        def __init_subclass__(cls, **kwargs):
-            pass
-
-        def __class_getitem__(cls, item):
-            return cls
-
-        def __init__(self, hass, logger, *, name, update_interval):
-            self.hass = hass
-
-    mod = sys.modules["homeassistant.helpers.update_coordinator"]
-    original = getattr(mod, "DataUpdateCoordinator", None)
-    mod.DataUpdateCoordinator = FakeDataUpdateCoordinator
-    yield
-    mod.DataUpdateCoordinator = original
-
-
-@pytest.fixture
-def coord_module():
-    """Reload coordinator module and patch Store + dt_util."""
-    import stromkalkulator.coordinator as coord
-
-    importlib.reload(coord)
-
-    # Patch dt_util.now to return a real datetime
-    coord.dt_util = MagicMock()
-    coord.dt_util.now.return_value = _real_datetime(2026, 6, 15, 12, 0)
-
-    def make_store(hass, version, key):
-        store = MagicMock()
-        store.async_load = AsyncMock(return_value=None)
-        store.async_save = AsyncMock()
-        store.async_remove = AsyncMock()
-        return store
-
-    coord.Store = MagicMock(side_effect=make_store)
-    return coord
-
-
-def _make_state(value):
-    """Create a mock HA state object."""
-    state = MagicMock()
-    state.state = str(value)
-    return state
-
-
-def _make_entry(
-    entry_id="test_entry",
-    dso_id="bkk",
-    har_norgespris=False,
-    avgiftssone="standard",
-    electricity_company_price_sensor=None,
-):
-    """Create a mock config entry."""
-    entry = MagicMock()
-    entry.entry_id = entry_id
-    entry.data = {
-        "tso": dso_id,
-        "power_sensor": "sensor.power",
-        "spot_price_sensor": "sensor.spot_price",
-        "spotpris_inkl_mva": True,
-        "har_norgespris": har_norgespris,
-        "avgiftssone": avgiftssone,
-    }
-    if electricity_company_price_sensor:
-        entry.data["electricity_provider_price_sensor"] = electricity_company_price_sensor
-    return entry
-
-
-def _make_hass(power_w=5000, spot_price=1.20, electricity_company_price=None):
-    """Create a mock HA instance with sensor states."""
-    hass = MagicMock()
-
-    def get_state(entity_id):
-        if entity_id == "sensor.power":
-            return _make_state(power_w)
-        if entity_id == "sensor.spot_price":
-            return _make_state(spot_price)
-        if entity_id == "sensor.elco_price" and electricity_company_price is not None:
-            return _make_state(electricity_company_price)
-        return None
-
-    hass.states.get = MagicMock(side_effect=get_state)
-    return hass
-
-
-def _run_update(coord_module, coordinator, now=None):
-    """Run _async_update_data with optional time override."""
-    if now is not None:
-        coord_module.dt_util.now.return_value = now
-    return asyncio.run(coordinator._async_update_data())
 
 
 class TestBasicUpdate:

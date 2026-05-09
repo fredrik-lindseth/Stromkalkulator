@@ -6,111 +6,14 @@ and the three static validation methods.
 
 from __future__ import annotations
 
-import asyncio
-import importlib
-import sys
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 
+from tests.conftest import _make_entry, _make_hass, _make_state, _run_update
+
 _real_datetime = datetime
-
-
-# ---------------------------------------------------------------------------
-# Coordinator test infrastructure (same pattern as test_coordinator_update.py)
-# ---------------------------------------------------------------------------
-
-
-@pytest.fixture(autouse=True)
-def _patch_update_coordinator():
-    """Replace mocked DataUpdateCoordinator with a real base class."""
-
-    class FakeDataUpdateCoordinator:
-        def __init_subclass__(cls, **kwargs):
-            pass
-
-        def __class_getitem__(cls, item):
-            return cls
-
-        def __init__(self, hass, logger, *, name, update_interval):
-            self.hass = hass
-
-    mod = sys.modules["homeassistant.helpers.update_coordinator"]
-    original = getattr(mod, "DataUpdateCoordinator", None)
-    mod.DataUpdateCoordinator = FakeDataUpdateCoordinator
-    # Ensure UpdateFailed is a real exception class (not a MagicMock)
-    original_uf = getattr(mod, "UpdateFailed", None)
-    if not isinstance(original_uf, type) or not issubclass(original_uf, BaseException):
-        class UpdateFailed(Exception):
-            pass
-        mod.UpdateFailed = UpdateFailed
-    yield
-    mod.DataUpdateCoordinator = original
-
-
-@pytest.fixture
-def coord_module():
-    """Reload coordinator module and patch Store + dt_util."""
-    import stromkalkulator.coordinator as coord
-
-    importlib.reload(coord)
-
-    coord.dt_util = MagicMock()
-    coord.dt_util.now.return_value = _real_datetime(2026, 6, 15, 12, 0)
-
-    def make_store(hass, version, key):
-        store = MagicMock()
-        store.async_load = AsyncMock(return_value=None)
-        store.async_save = AsyncMock()
-        store.async_remove = AsyncMock()
-        return store
-
-    coord.Store = MagicMock(side_effect=make_store)
-    return coord
-
-
-def _make_state(value):
-    state = MagicMock()
-    state.state = str(value)
-    return state
-
-
-def _make_entry(
-    entry_id="test_entry",
-    dso_id="bkk",
-    avgiftssone="standard",
-):
-    entry = MagicMock()
-    entry.entry_id = entry_id
-    entry.data = {
-        "tso": dso_id,
-        "power_sensor": "sensor.power",
-        "spot_price_sensor": "sensor.spot_price",
-        "spotpris_inkl_mva": True,
-        "avgiftssone": avgiftssone,
-    }
-    return entry
-
-
-def _make_hass(power_w=5000, spot_price=1.20):
-    hass = MagicMock()
-
-    def get_state(entity_id):
-        if entity_id == "sensor.power":
-            return _make_state(power_w)
-        if entity_id == "sensor.spot_price":
-            return _make_state(spot_price)
-        return None
-
-    hass.states.get = MagicMock(side_effect=get_state)
-    return hass
-
-
-def _run_update(coord_module, coordinator, now=None):
-    if now is not None:
-        coord_module.dt_util.now.return_value = now
-    return asyncio.run(coordinator._async_update_data())
 
 
 # ===========================================================================
@@ -433,6 +336,53 @@ class TestValidateDailyMaxPower:
     def test_empty_dict(self, validate):
         assert validate({}) == {}
 
+    def test_string_input_returns_empty(self, validate):
+        """Non-dict (string) -> empty dict."""
+        assert validate("not a dict") == {}
+
+    def test_int_input_returns_empty(self, validate):
+        """Non-dict (int) -> empty dict."""
+        assert validate(42) == {}
+
+    def test_dict_format_missing_kw_key(self, validate, coord_module):
+        """Dict without 'kw' key should default kw to 0."""
+        result = validate({"2026-04-01": {"hour": 14}})
+        assert result == {"2026-04-01": coord_module.DailyMaxEntry(kw=0.0, hour=14)}
+
+    def test_dict_format_non_numeric_kw_skipped(self, validate):
+        """Dict with non-numeric 'kw' should be skipped."""
+        result = validate({"2026-04-01": {"kw": "abc", "hour": 14}})
+        assert result == {}
+
+    def test_dict_format_invalid_hour_set_to_none(self, validate):
+        """Hour outside 0-23 should be set to None."""
+        result = validate({"2026-04-01": {"kw": 5.0, "hour": 25}})
+        assert result["2026-04-01"].hour is None
+
+    def test_dict_format_non_numeric_hour_set_to_none(self, validate):
+        """Non-numeric hour should be set to None."""
+        result = validate({"2026-04-01": {"kw": 5.0, "hour": "abc"}})
+        assert result["2026-04-01"].hour is None
+
+    def test_dict_format_negative_kw_skipped(self, validate):
+        """Negative kw in dict format should be skipped."""
+        result = validate({"2026-04-01": {"kw": -3.0, "hour": 10}})
+        assert result == {}
+
+    def test_old_float_format_migrated(self, validate, coord_module):
+        """Old bare-float format (not string) should be migrated to dict format."""
+        result = validate({"2026-04-01": 5.0, "2026-04-02": 3.5})
+        assert result == {
+            "2026-04-01": coord_module.DailyMaxEntry(kw=5.0, hour=None),
+            "2026-04-02": coord_module.DailyMaxEntry(kw=3.5, hour=None),
+        }
+
+    def test_negative_bare_float_skipped(self, validate, coord_module):
+        """Negative bare-float values should be skipped, positive kept."""
+        result = validate({"2026-04-01": -5.0, "2026-04-02": 3.0})
+        assert "2026-04-01" not in result
+        assert result["2026-04-02"] == coord_module.DailyMaxEntry(kw=3.0)
+
 
 class TestValidateConsumption:
     """NettleieCoordinator._validate_consumption()"""
@@ -484,3 +434,9 @@ class TestValidateConsumption:
         result = validate({"dag": 100.0})
         assert result.dag == 100.0
         assert result.natt == 0.0
+
+    def test_negative_values_clamped_to_zero(self, validate):
+        """Negative values should be clamped to 0, positive kept."""
+        result = validate({"dag": -100.0, "natt": 50.0})
+        assert result.dag == 0.0
+        assert result.natt == 50.0

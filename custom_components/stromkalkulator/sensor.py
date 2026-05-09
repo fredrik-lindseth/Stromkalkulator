@@ -181,10 +181,8 @@ class NettleieBaseSensor(CoordinatorEntity, SensorEntity):  # type: ignore[misc]
         )
 
     def _get_forbruksavgift(self) -> float:
-        """Get forbruksavgift based on avgiftssone and current month."""
         avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
-        month = dt_util.now().month
-        return get_forbruksavgift(avgiftssone, month)
+        return get_forbruksavgift(avgiftssone)
 
     def _get_mva_sats(self) -> float:
         """Get MVA rate based on avgiftssone."""
@@ -198,7 +196,7 @@ class NettleieBaseSensor(CoordinatorEntity, SensorEntity):  # type: ignore[misc]
         avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
         mva_sats = get_mva_sats(avgiftssone)
         energiledd = self.coordinator.data.get(data_key, 0)
-        forbruksavgift = get_forbruksavgift(avgiftssone, dt_util.now().month)
+        forbruksavgift = get_forbruksavgift(avgiftssone)
         energiledd_eks_avgifter = energiledd / (1 + mva_sats) - forbruksavgift - ENOVA_AVGIFT
         return {
             "inkl_avgifter_mva": energiledd,
@@ -1227,8 +1225,7 @@ class MaanedligAvgifterSensor(MaanedligBaseSensor):
         """Calculate monthly public fees."""
         if self.coordinator.data:
             total_kwh = self.coordinator.data.get("monthly_consumption_total_kwh", 0)
-            month = dt_util.now().month
-            forbruksavgift = get_forbruksavgift(self._avgiftssone, month)
+            forbruksavgift = get_forbruksavgift(self._avgiftssone)
             mva_sats = get_mva_sats(self._avgiftssone)
 
             # Avgifter inkl. mva
@@ -1243,8 +1240,7 @@ class MaanedligAvgifterSensor(MaanedligBaseSensor):
         """Return fee breakdown."""
         if self.coordinator.data:
             total_kwh = self.coordinator.data.get("monthly_consumption_total_kwh", 0)
-            month = dt_util.now().month
-            forbruksavgift = get_forbruksavgift(self._avgiftssone, month)
+            forbruksavgift = get_forbruksavgift(self._avgiftssone)
             mva_sats = get_mva_sats(self._avgiftssone)
 
             forbruksavgift_inkl = forbruksavgift * (1 + mva_sats)

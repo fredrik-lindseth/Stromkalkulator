@@ -498,10 +498,10 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "prisomrade": "NO4",
         "tiltakssone": True,  # Dekker kun Finnmark-kommuner (Nordkapp, Måsøy, Porsanger, Karasjok, Gamvik, Lebesby)
         "supported": True,
-        # Tiltakssone: fritak for forbruksavgift og mva, kun Enova 1,0 øre/kWh
-        # Base: dag 29,89 + Enova 1,0 = 30,89, natt 26,89 + 1,0 = 27,89
-        "energiledd_dag_eks_mva": 0.2989,  # 30,89 øre/kWh inkl. Enova (2026, tiltakssone)
-        "energiledd_natt_eks_mva": 0.2689,  # 27,89 øre/kWh inkl. Enova (2026, tiltakssone)
+        # Tiltakssone: fritak for forbruksavgift og mva, kun Enova 1,0 øre/kWh.
+        # Coordinator legger på Enova: dag 29,89 + 1,0 = 30,89 øre, natt 26,89 + 1,0 = 27,89 øre.
+        "energiledd_dag_eks_mva": 0.2989,  # 29,89 øre/kWh ren energiledd (2026, tiltakssone)
+        "energiledd_natt_eks_mva": 0.2689,  # 26,89 øre/kWh ren energiledd (2026, tiltakssone)
         "url": "https://www.area.no",
         "kapasitetstrinn": [
             (2, 250),
@@ -538,8 +538,8 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "prisomrade": "NO4",
         "tiltakssone": True,  # Finnmark - fritatt for mva og forbruksavgift
         "supported": True,
-        # Tiltakssone: nettleie 11,32 + Enova 1,0 = 12,32 (ingen forbruksavgift, ingen mva)
-        "energiledd_dag_eks_mva": 0.1132,  # 12,32 øre/kWh inkl. avgifter (2026)
+        # Tiltakssone: ren energiledd 11,32 øre + Enova 1,0 = 12,32 øre/kWh sluttpris.
+        "energiledd_dag_eks_mva": 0.1132,  # 11,32 øre/kWh ren energiledd (2026, tiltakssone)
         "energiledd_natt_eks_mva": 0.1132,  # Flat sats hele døgnet (2026)
         "url": "https://www.barents-nett.no/kundeservice/nett-og-nettleie/",
         "kapasitetstrinn": [  # 2026-priser
@@ -921,10 +921,10 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "prisomrade": "NO4",
         "tiltakssone": True,  # Hammerfest (Finnmark) - fritak for mva og forbruksavgift
         "supported": True,
-        # Tiltakssone: dag 19,32 + Enova 1,0 = 20,32 (ingen forbruksavgift, ingen mva)
-        # Natt 13,32 + 1,0 = 14,32
-        "energiledd_dag_eks_mva": 0.1932,  # 20,32 øre/kWh inkl. avgifter (2026, NO4)
-        "energiledd_natt_eks_mva": 0.1332,  # 14,32 øre/kWh inkl. avgifter (2026, NO4)
+        # Tiltakssone: ingen forbruksavgift, ingen mva, kun Enova 1,0 øre/kWh.
+        # Coordinator legger på Enova: dag 19,32 + 1,0 = 20,32 øre, natt 13,32 + 1,0 = 14,32 øre.
+        "energiledd_dag_eks_mva": 0.1932,  # 19,32 øre/kWh ren energiledd (2026, tiltakssone)
+        "energiledd_natt_eks_mva": 0.1332,  # 13,32 øre/kWh ren energiledd (2026, tiltakssone)
         "url": "https://www.lucerna.no/priser",
         "kapasitetstrinn": [
             (2, 259),
@@ -1491,10 +1491,10 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "prisomrade": "NO4",
         "tiltakssone": True,  # Finnmark og Nord-Troms - fritak for mva og forbruksavgift
         "supported": True,
-        # Tiltakssonen - ingen mva, ingen forbruksavgift
-        # Priser fra kraftsystemet: dag 29+1(enova)=30, natt 13+1=14 øre/kWh
-        "energiledd_dag_eks_mva": 0.29,  # 30,00 øre/kWh inkl. Enova (2026)
-        "energiledd_natt_eks_mva": 0.13,  # 14,00 øre/kWh inkl. Enova (2026)
+        # Tiltakssonen - ingen mva, ingen forbruksavgift, kun Enova 1,0 øre/kWh.
+        # Coordinator legger på Enova: dag 29 + 1 = 30 øre, natt 13 + 1 = 14 øre.
+        "energiledd_dag_eks_mva": 0.29,  # 29,00 øre/kWh ren energiledd (2026, tiltakssone)
+        "energiledd_natt_eks_mva": 0.13,  # 13,00 øre/kWh ren energiledd (2026, tiltakssone)
         "url": "https://www.vissi.no/priser-og-vilkar/nettleie-privat/",
         "kapasitetstrinn": [
             (5, 350),  # 4200/12

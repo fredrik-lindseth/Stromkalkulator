@@ -102,6 +102,37 @@ class TestSpotprisCaching:
         result = _run_update(coord_module, coordinator)
         assert result["spot_price"] == 0
 
+    def test_invalid_spot_does_not_accumulate_phantom_savings(self, coord_module):
+        """Når spot er ugyldig (cache utløpt) skal vi ikke akkumulere falsk
+        Norgespris-besparelse eller eksportinntekt. Accountant-funn #8."""
+        unavailable_state = MagicMock()
+        unavailable_state.state = "unavailable"
+        hass = MagicMock()
+
+        def get_state(eid):
+            if "power" in eid:
+                return _make_state(5000)
+            if "spot" in eid:
+                return unavailable_state
+            if "export" in eid:
+                return _make_state(3000)
+            return None
+
+        hass.states.get = MagicMock(side_effect=get_state)
+        entry = _make_entry(har_norgespris=True, export_power_sensor="sensor.export_power")
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+
+        # To kall for å akkumulere energi
+        t0 = _real_datetime(2026, 6, 15, 12, 0)
+        t1 = t0 + timedelta(minutes=1)
+        _run_update(coord_module, coordinator, now=t0)
+        result = _run_update(coord_module, coordinator, now=t1)
+
+        # Selv med Norgespris skal vi ikke akkumulere besparelse mot 0.0-spot
+        assert result["monthly_norgespris_diff_kr"] == 0.0
+        # Eksportinntekt skal ikke akkumuleres uten gyldig spot
+        assert result["monthly_export_revenue_kr"] == 0.0
+
     def test_none_sensor_without_cache_raises(self, coord_module):
         """Sensor not found at all (returns None) -> UpdateFailed."""
         hass = MagicMock()

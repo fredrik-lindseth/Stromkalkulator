@@ -82,11 +82,20 @@ class TestExportAccumulation:
         export_kwh_2 = result2["monthly_export_kwh"]
         assert export_kwh_2 > export_kwh_1
 
-    def test_export_revenue_uses_spot_price(self, coord_module):
-        """Revenue = spot_price x exported_kwh, no fees."""
-        spot_price = 1.50
-        export_w = 6000  # 6 kW
-        hass = _make_hass(power_w=5000, spot_price=spot_price, export_power_w=export_w)
+    def test_export_revenue_uses_spot_price_eks_mva(self, coord_module):
+        """Plusskunder får betalt spotpris eks. mva, ikke inkl. mva.
+
+        Privatperson som selger kraft tilbake til strømleverandøren får
+        kraft-prisen uten mva (privat har ikke utgående mva). Se incident 004
+        og accountant-funn #1: før denne fixen ble eksportinntekt overrapportert
+        med 25 % i Sør-Norge.
+        """
+        spot_price_inkl_mva = 1.50
+        export_w = 6000
+        hass = _make_hass(
+            power_w=5000, spot_price=spot_price_inkl_mva, export_power_w=export_w
+        )
+        # Test-fixture har spotpris_inkl_mva=True (1.50 brukes direkte som inkl-mva-pris)
         entry = _make_entry(export_power_sensor="sensor.export_power")
         coordinator = coord_module.NettleieCoordinator(hass, entry)
 
@@ -96,10 +105,56 @@ class TestExportAccumulation:
         _run_update(coord_module, coordinator, now=t0)
         result = _run_update(coord_module, coordinator, now=t1)
 
-        # 6 kW * (1/60) h = 0.1 kWh. Revenue = 1.50 * 0.1 = 0.15 kr
+        # 6 kW * (1/60) h = 0.1 kWh
+        # Eks. mva: 1.50 / 1.25 = 1.20 NOK/kWh
+        # Revenue: 1.20 * 0.1 = 0.12 kr
         expected_kwh = 6.0 * (1 / 60)
-        expected_revenue = spot_price * expected_kwh
+        expected_revenue = (spot_price_inkl_mva / 1.25) * expected_kwh
         assert abs(result["monthly_export_kwh"] - expected_kwh) < 0.001
+        assert abs(result["monthly_export_revenue_kr"] - expected_revenue) < 0.01
+
+    def test_export_revenue_eks_mva_for_eks_mva_sensor(self, coord_module):
+        """For eks-mva-sensor brukes verdien direkte uten konvertering."""
+        spot_price_eks_mva = 1.20
+        export_w = 6000
+        hass = _make_hass(
+            power_w=5000, spot_price=spot_price_eks_mva, export_power_w=export_w
+        )
+        # Spotpris-sensor leverer eks. mva (HA-core nordpool)
+        entry = _make_entry(
+            export_power_sensor="sensor.export_power", spotpris_inkl_mva=False
+        )
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+
+        t0 = _real_datetime(2026, 6, 15, 12, 0)
+        t1 = t0 + timedelta(minutes=1)
+
+        _run_update(coord_module, coordinator, now=t0)
+        result = _run_update(coord_module, coordinator, now=t1)
+
+        expected_revenue = spot_price_eks_mva * 6.0 * (1 / 60)
+        assert abs(result["monthly_export_revenue_kr"] - expected_revenue) < 0.01
+
+    def test_export_revenue_no_mva_in_nord_norge(self, coord_module):
+        """Nord-Norge har 0 % mva, eks=inkl, ingen konvertering."""
+        spot_price = 1.20
+        export_w = 6000
+        hass = _make_hass(
+            power_w=5000, spot_price=spot_price, export_power_w=export_w
+        )
+        entry = _make_entry(
+            export_power_sensor="sensor.export_power", avgiftssone="nord_norge"
+        )
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+
+        t0 = _real_datetime(2026, 6, 15, 12, 0)
+        t1 = t0 + timedelta(minutes=1)
+
+        _run_update(coord_module, coordinator, now=t0)
+        result = _run_update(coord_module, coordinator, now=t1)
+
+        # Mva = 0, eks = inkl, ingen konvertering
+        expected_revenue = spot_price * 6.0 * (1 / 60)
         assert abs(result["monthly_export_revenue_kr"] - expected_revenue) < 0.01
 
     def test_no_export_when_zero_power(self, coord_module):

@@ -507,21 +507,29 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             spot_price_raw = raw_spot
             self._last_spot_price = spot_price_raw
             self._last_spot_price_time = now
+            spot_price_valid = True
         elif (
             self._last_spot_price is not None
             and self._last_spot_price_time is not None
             and (now - self._last_spot_price_time) < _SPOT_CACHE_MAX_AGE
         ):
             spot_price_raw = self._last_spot_price
+            spot_price_valid = True
         else:
             spot_price_raw = 0.0
+            spot_price_valid = False
 
         # Normaliser til inkl. mva. Resten av kjeden behandler spot_price som inkl. mva,
         # samme enhet som STROMSTOTTE_LEVEL og NORGESPRIS_INKL_MVA. Se incident 004.
+        mva_sats_for_spot = get_mva_sats(self.avgiftssone)
         if self.spotpris_inkl_mva:
             spot_price = spot_price_raw
+            spot_price_eks_mva = (
+                spot_price_raw / (1 + mva_sats_for_spot) if mva_sats_for_spot > 0 else spot_price_raw
+            )
         else:
-            spot_price = spot_price_raw * (1 + get_mva_sats(self.avgiftssone))
+            spot_price_eks_mva = spot_price_raw
+            spot_price = spot_price_raw * (1 + mva_sats_for_spot)
 
         # Calculate strømstøtte
         monthly_total_kwh = self._monthly_consumption.total
@@ -590,7 +598,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             alternativ_pris = total_pris_norgespris
         kroner_spart_per_kwh = alternativ_pris - total_price
 
-        if energy_kwh > 0:
+        if energy_kwh > 0 and spot_price_valid:
             self._monthly_norgespris_diff += kroner_spart_per_kwh * energy_kwh
             self._monthly_norgespris_compensation += (norgespris - spot_price) * energy_kwh
             self._daily_cost += total_price * energy_kwh
@@ -599,15 +607,17 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         # Akkumuler kostnad for Energy Dashboard (stat_cost)
         elapsed_seconds = elapsed_hours * 3600
         if energy_kwh > 0:
-            if self.har_norgespris and not norgespris_over_tak:
-                strom_pris = norgespris
-            elif self.har_norgespris:
-                # Over kWh-tak: tilbake til spot, men uten strømstøtte
-                strom_pris = spot_price
-            else:
-                strom_pris = spot_price - stromstotte
-            self._monthly_accumulated_cost_strom += energy_kwh * strom_pris
+            # Energiledd er kjent uavhengig av spotpris
             self._monthly_accumulated_cost_energiledd += energy_kwh * energiledd
+            # Strømdelen er kjent for Norgespris under tak; ellers krever den valid spot
+            if self.har_norgespris and not norgespris_over_tak:
+                self._monthly_accumulated_cost_strom += energy_kwh * norgespris
+            elif spot_price_valid:
+                if self.har_norgespris:
+                    strom_pris = spot_price
+                else:
+                    strom_pris = spot_price - stromstotte
+                self._monthly_accumulated_cost_strom += energy_kwh * strom_pris
 
         if elapsed_seconds > 0:
             seconds_in_month = dim * 24 * 3600
@@ -621,9 +631,10 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             + self._monthly_accumulated_cost_kapasitetsledd
         )
 
-        # Akkumuler eksportinntekt
-        if export_energy_kwh > 0:
-            self._monthly_export_revenue += spot_price * export_energy_kwh
+        # Eksportinntekt: kraftleverandører betaler plusskunder spotpris eks. mva
+        # (mva er ikke aktuelt på salg fra privatperson). Se accountant-funn #1.
+        if export_energy_kwh > 0 and spot_price_valid:
+            self._monthly_export_revenue += spot_price_eks_mva * export_energy_kwh
 
         # Månedsskifte: arkiver ETTER at all energi og kostnad er akkumulert,
         # slik at siste syklus havner i riktig måned.

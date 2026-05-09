@@ -14,18 +14,18 @@
 
 **[Norsk versjon / Norwegian version](README.md)**
 
-Home Assistant integration that calculates the **actual electricity price** in Norway - including grid tariffs, taxes, and government subsidies.
+Home Assistant integration that calculates the **actual electricity price** in Norway, including grid tariffs, taxes, and government subsidies.
 
 ## What You Get
 
-This integration provides sensors showing your **actual electricity cost** - not just the spot price. It calculates:
+Sensors showing your actual electricity cost, not just the spot price:
 
-- **Grid tariffs** - Energy component (day/night rates) and capacity component from your grid company
-- **Electricity subsidy** - Automatic calculation (90% above 96.25 øre/kWh)
-- **Total price** - Everything included, can be used in Energy Dashboard
-- **Monthly consumption** - Tracks usage and costs per month
-- **Invoice verification** - Compare with your invoice when it arrives
-- **Solar export** - Track export and revenue for prosumers (disabled by default)
+- **Grid tariffs**: Energy component (day/night) and capacity component
+- **Electricity subsidy**: Automatic (90% above 96.25 ore/kWh)
+- **Total price**: Everything included, usable in Energy Dashboard
+- **Monthly consumption**: Usage and costs per month
+- **Invoice verification**: Compare with invoice when it arrives
+- **Solar export**: Export and revenue for prosumers (disabled by default)
 
 ## Installation
 
@@ -63,9 +63,9 @@ Above the Norgespris kWh cap, you pay spot price for the rest of the month. Holi
 ### Step 2: Select sensors
 
 You need two sensors:
-- **Power meter (W)** - Sensor showing current power consumption in watts. Typically from an AMS reader via the HAN port (e.g. Tibber Pulse).
-- **Spot price sensor (NOK/kWh)** - Sensor with current spot price. Usually "Current price" from the [Nord Pool integration](https://www.home-assistant.io/integrations/nordpool/).
-- **Electricity provider sensor** (optional) - Total price from your provider (e.g. Tibber). Used to show what you actually pay.
+- **Power meter (W)**: Current power consumption in watts. Typically from an AMS reader via the HAN port (e.g. Tibber Pulse).
+- **Spot price sensor (NOK/kWh)**: Current spot price. Usually "Current price" from the [Nord Pool integration](https://www.home-assistant.io/integrations/nordpool/).
+- **Electricity provider sensor** (optional): Total price from your provider (e.g. Tibber). Shows what you actually pay.
 
 All Norwegian grid companies are supported!
 
@@ -115,7 +115,7 @@ Stores previous month's data for easy invoice verification.
 
 ## Using with Energy Dashboard
 
-Energy Dashboard needs two things: a **consumption meter** (kWh) and a **cost source**. Stromkalkulator provides two options for cost -- the consumption meter comes from your power meter integration.
+Energy Dashboard needs a **consumption meter** (kWh) and a **cost source**. Stromkalkulator provides two options for cost. The consumption meter comes from your power meter integration.
 
 ### Option 1: Price sensor (NOK/kWh)
 
@@ -128,7 +128,7 @@ Use **Totalpris inkl. avgifter** as a price sensor. Simplest to set up. The capa
 
 1. **Settings > Dashboards > Energy**
 2. Under **Electricity grid**, click **Add consumption**
-3. **Consumed energy** -- select your kWh consumption sensor
+3. **Consumed energy**: select your kWh consumption sensor
 4. Enable **Use an entity with current price**
 5. Select **Totalpris inkl. avgifter** (`sensor.totalpris_inkl_avgifter_*`)
 
@@ -144,7 +144,7 @@ Use **Akkumulert stromkostnad** for correct monthly totals. The capacity charge 
 1. Enable the sensor: **Settings > Devices > Monthly consumption > Entities > Akkumulert stromkostnad**
 2. **Settings > Dashboards > Energy**
 3. Under **Electricity grid**, click **Add consumption**
-4. **Consumed energy** -- select your kWh consumption sensor
+4. **Consumed energy**: select your kWh consumption sensor
 5. Enable **Use an entity tracking total costs**
 6. Select **Akkumulert stromkostnad** (`sensor.akkumulert_stromkostnad_*`)
 
@@ -156,17 +156,16 @@ Use **Akkumulert stromkostnad** for correct monthly totals. The capacity charge 
 
 ### Spot Price (most common)
 
-If you have a regular spot price contract:
-- The electricity subsidy (90% above 96.25 øre) is automatically deducted
-- The "Electricity Subsidy" sensor shows how much you receive
+- Electricity subsidy (90% above 96.25 ore) is automatically deducted
+- "Electricity Subsidy" sensor shows how much you receive
 
 ### Norway Price (Norgespris)
 
 Have you chosen [Norgespris](https://www.regjeringen.no/no/tema/energi/strom/regjeringens-stromtiltak/) from your grid company?
 
 1. Check "I have Norgespris" during setup
-2. Fixed price is used: 50 øre (Southern Norway) or 40 øre (Northern Norway)
-3. No subsidy - Norgespris replaces spot price and subsidy
+2. Fixed price: 50 ore (Southern Norway) or 40 ore (Northern Norway)
+3. No subsidy (Norgespris replaces spot price and subsidy)
 
 ### Comparing Plans
 
@@ -188,9 +187,7 @@ When your grid tariff invoice arrives, you can easily verify the numbers:
 
 ## Supported Grid Companies
 
-**All Norwegian grid companies are supported!** 🎉
-
-Prices are updated annually at the start of each year. Found an error or outdated prices? [Create a PR](docs/CONTRIBUTING.md) or open an issue!
+All Norwegian grid companies are supported. Prices are updated annually. Found an error or outdated prices? [Create a PR](docs/CONTRIBUTING.md) or open an issue.
 
 ## Limitations
 
@@ -204,38 +201,38 @@ This integration is designed for **residential homes with individual electricity
 
 **Why does the sensor show "natt" (night) in the middle of the day?**
 
-The "natt" (night) tariff isn't just for nighttime. It's actually "natt/helg" (night/weekend) and applies during:
-- Nights (22:00-06:00) every day
-- All weekends (Saturday and Sunday, all day)
+The "natt" tariff is actually "natt/helg" (night/weekend):
+- Nights (22:00-06:00)
+- Weekends (Sat-Sun, all day)
 - Public holidays (all day)
 
-So on a Saturday at 14:00, "natt" tariff is correct — you're paying the lower rate.
+So on a Saturday at 14:00, "natt" tariff is correct.
 
 **Why is "Totalpris inkl. avgifter" higher than the spot price?**
 
-The spot price is just the electricity. Total price also includes grid tariff (energy + capacity component), consumption tax, Enova levy, and VAT. For most people, grid tariff and taxes make up 30-50% of the total price.
+Spot price is just the electricity. Total price also includes grid tariff (energy + capacity), consumption tax, Enova levy, and VAT. Grid tariff and taxes typically make up 30-50% of the total.
 
-**Electricity subsidy shows 0 — is that wrong?**
+**Electricity subsidy shows 0. Is that wrong?**
 
-No. The subsidy is only paid when the spot price exceeds 96.25 øre/kWh (2026). When the price is lower, the subsidy is 0.
+No. Subsidy applies only when spot price exceeds 96.25 ore/kWh (2026). Below the threshold, subsidy is 0.
 
 **The numbers don't quite match my invoice?**
 
-Some deviation is normal. The integration calculates consumption from the power sensor (Riemann sum), while the invoice uses the electricity meter's kWh counter — that typically gives 1-5% difference. See [beregninger.md](docs/beregninger.md#accuracy) for details.
+Some deviation is normal. The integration uses Riemann sum from the power sensor; the invoice uses the meter directly. Typically 1-5% difference. See [beregninger.md](docs/beregninger.md#accuracy).
 
 <a id="capacity-charge-in-energy-dashboard"></a>
 **Why does the Energy Dashboard show wrong capacity charges?**
 
-This only applies if you use **Totalpris inkl. avgifter** (the price sensor method). The total price sensor spreads the capacity charge (fixed kr/month) across expected kWh. The Energy Dashboard multiplies this price by actual consumption. If you use more or less than the distribution assumes, the capacity charge comes out wrong.
+Only applies with **Totalpris inkl. avgifter** (the price sensor method). The sensor spreads the capacity charge (fixed kr/month) across expected kWh. The Energy Dashboard multiplies this by actual consumption. Use more or less than the distribution assumes, and the capacity charge comes out wrong.
 
-Example: March, capacity charge 250 kr/month, spread across 744 kWh (31 days x 24):
-- You use 1553 kWh -> Dashboard computes (250/744) x 1553 = **522 kr** for capacity
+Example: March, capacity 250 kr/month, spread across 744 kWh (31 days x 24):
+- You use 1553 kWh, Dashboard computes (250/744) x 1553 = **522 kr** for capacity
 - Invoice says **250 kr**
-- Error: +272 kr on the capacity charge alone
+- Error: +272 kr on capacity alone
 
-**Solution:** Use **Akkumulert stromkostnad** instead. This sensor distributes the capacity charge linearly over time, not per kWh, giving correct monthly totals regardless of consumption. See [setup](#option-2-accumulated-cost-recommended).
+**Solution:** Use **Akkumulert stromkostnad** instead. Capacity charge is distributed linearly over time, not per kWh. See [setup](#option-2-accumulated-cost-recommended).
 
-The "Maanedlig nettleie total" sensor is also useful for invoice verification, but cannot be used directly in Energy Dashboard.
+"Maanedlig nettleie total" is also useful for invoice verification, but cannot be used directly in Energy Dashboard.
 
 ## Documentation
 

@@ -1,32 +1,33 @@
-# Hvordan skrive release notes
+# Release notes-stil
 
 ## Regler
 
-- Ikke forklar hva prosjektet er. Brukerne har allerede installert det.
-- Bruk punktlister, ikke avsnitt med bold-tittel + beskrivelse.
-- Hold det kort og skannbart. Ingen vegger med tekst.
-- Ikke bruk `# v1.3.0` som heading. Tittel settes på selve releasen.
-- Unngå AI-slop: overdreven bruk av tankestreker, adjektiver, og "we're excited to announce".
-- Krediter brukere som rapporterer bugs med `@brukernavn` og issue-referanse.
+- Ikke forklar hva prosjektet er, brukerne har allerede installert det
+- Bruk punktlister, ikke avsnitt med bold-tittel + beskrivelse
+- Hold det kort og skannbart
+- Ikke bruk `# v1.3.0` som heading, tittel settes på selve releasen
+- Ingen AI-slop ("we're excited to announce", overdreven adjektivbruk)
+- Ingen em-dashes, bruk komma eller punktum
+- Krediter brukere som rapporterer bugs: `@brukernavn` + issue-referanse
 
-## Struktur
+## Mal
 
 ```markdown
 ## Bugfixes
 
-- **Kort beskrivelse** — teknisk detalj på en linje
+- **Kort beskrivelse**: teknisk detalj på én linje
 
 ## Forbedringer
 
-- Punktliste med endringer
+- Punktliste
 
 ## Vedlikehold
 
-- Refaktoreringer, tester, docs-endringer
+- Refaktorering, tester, docs
 
 ## Verifisering
 
-**SHA256:** `abc123...` — [hvordan verifisere](SECURITY.md)
+**SHA256:** `abc123...` ([hvordan verifisere](SECURITY.md))
 
 <details>
 <summary>Alle commits</summary>
@@ -36,18 +37,20 @@
 </details>
 ```
 
-## Viktig om verifisering
+## Verifisering
 
-Release-workflowen genererer SHA256 automatisk. SHA256-linjen **MÅ** være med. Lenk til SECURITY.md for detaljer, ikke forklar attestation i selve releasen.
+SHA256 genereres automatisk av release-workflowen. Linjen MÅ være med. Lenk til SECURITY.md, ikke forklar attestation i releasen.
 
-Hvis du bruker `gh release edit --notes` overskriver du hele body-en — hent eksisterende body først med `gh release view vX.Y.Z --json body -q .body`.
+`gh release edit --notes` overskriver hele body-en. Hent eksisterende først:
 
-## Commits i detaljer
+```bash
+gh release view vX.Y.Z --json body -q .body
+```
 
-- Legg feat/fix-commits i `<details>`-fold på bunnen
-- Dropp docs/test/chore fra listen med mindre de er relevante
-- Inkluder bare de viktigste
+## Commits
 
-## Eksempel
+- Feat/fix-commits i `<details>`-fold på bunnen
+- Dropp docs/test/chore med mindre relevant
+- Bare de viktigste
 
-Se [v1.3.0](https://github.com/fredrik-lindseth/Stromkalkulator/releases/tag/v1.3.0).
+Se [v1.3.0](https://github.com/fredrik-lindseth/Stromkalkulator/releases/tag/v1.3.0) for eksempel.

@@ -1,11 +1,20 @@
-# Fakturasammenligning - Referansedata fra BKK
+# Verifiserte fakturaer
 
-Dette er anonymiserte fakturaer fra BKK (Bergen) brukt for å validere integrasjonens beregninger.
+Hver rapport her er en attest på at integrasjonen regner riktig for et gitt nettselskap, periode og avtaletype. Tallene er hentet fra ekte fakturaer og sammenlignet linje for linje mot integrasjonens beregninger.
+
+## Verifiserte nettselskap
+
+| Nettselskap | Prisområde | Avgiftssone | Antall verifiserte måneder | Siste verifisering | Avtale                         |
+| ----------- | ---------- | ----------- | -------------------------- | ------------------ | ------------------------------ |
+| BKK         | NO5        | Standard    | 6                          | april 2026         | Spotpris (2025), Norgespris (2026) |
+
+Vil du legge til ditt nettselskap? Se [VERIFISER_DIN_FAKTURA.md](VERIFISER_DIN_FAKTURA.md).
 
 ## Fakturaer
 
 ### 2026 (Norgespris, 2026-satser)
 
+- [April 2026](BKK_Faktura_april_2026.md) — verifiseringsrapport med full gjennomgang
 - [Mars 2026](BKK_Faktura_mars_2026.md) — verifiseringsrapport med full gjennomgang
 - [Februar 2026](BKK_Faktura_februar_2026.md) — verifiseringsrapport med full gjennomgang
 

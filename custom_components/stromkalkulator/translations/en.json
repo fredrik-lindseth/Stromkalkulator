@@ -145,8 +145,8 @@
       }
     },
     "spotpris_mva_check": {
-      "title": "Check your spot price sensor's VAT handling",
-      "description": "Stromkalkulator now treats the spot price sensor as excluding VAT by default, since the HA-core Nord Pool integration delivers prices excluding VAT. Your existing configuration was set to 'including VAT' to preserve current behavior. If you use the official Nord Pool integration, open the Strømkalkulator integration settings (Settings > Devices & Services > Strømkalkulator > Configure) and turn OFF 'Spot price sensor delivers prices including VAT' for correct subsidy and total price."
+      "title": "Spot price handling updated",
+      "description": "Stromkalkulator now treats the spot price sensor as excluding VAT (correct for the HA-core Nord Pool integration). The code previously assumed including VAT, which caused 25 % errors in electricity subsidy and total price in Southern Norway. Most users don't need to do anything.\n\nYou ONLY need to act if your spot price sensor already delivers prices including VAT. That applies if you have a custom template sensor that adds 25 %, or use the older custom_components/nordpool with VAT=true. In that case: open Strømkalkulator settings (Settings > Devices & Services > Strømkalkulator > Configure) and turn ON 'Spot price sensor delivers prices including VAT'."
     }
   }
 }

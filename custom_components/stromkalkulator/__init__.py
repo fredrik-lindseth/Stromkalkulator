@@ -128,19 +128,28 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
 
     if entry.version == 2:
-        new_data = {**entry.data, CONF_SPOTPRIS_INKL_MVA: True}
+        # Auto-fix incident 004: HA-core nordpool leverer eks. mva. Sett False
+        # for alle eksisterende konfig (riktig for ~alle brukere). Repair-issue
+        # informerer om endringen i tilfelle brukeren har en custom-sensor som
+        # inkluderer mva (egendefinert template, eldre custom_components/nordpool
+        # med VAT=true). Trigges kun for Sør-Norge der mva-håndteringen utgjør
+        # en forskjell.
+        new_data = {**entry.data, CONF_SPOTPRIS_INKL_MVA: False}
         hass.config_entries.async_update_entry(entry, data=new_data, version=3)
-        ir.async_create_issue(
-            hass,
-            DOMAIN,
-            f"spotpris_mva_check_{entry.entry_id}",
-            is_fixable=False,
-            severity=ir.IssueSeverity.WARNING,
-            translation_key="spotpris_mva_check",
-        )
+        sone = entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
+        if sone == AVGIFTSSONE_STANDARD:
+            ir.async_create_issue(
+                hass,
+                DOMAIN,
+                f"spotpris_mva_check_{entry.entry_id}",
+                is_fixable=False,
+                severity=ir.IssueSeverity.WARNING,
+                translation_key="spotpris_mva_check",
+            )
         _LOGGER.info(
-            "Migrerte config entry %s fra v2 til v3 (spotpris_inkl_mva=True for eksisterende)",
+            "Migrerte config entry %s fra v2 til v3 (spotpris_inkl_mva=False, sone=%s)",
             entry.entry_id,
+            sone,
         )
 
     return True

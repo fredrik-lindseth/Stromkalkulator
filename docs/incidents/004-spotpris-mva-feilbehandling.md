@@ -1,8 +1,8 @@
 # Incident 004: Spotpris fra Nord Pool behandlet som inkl. mva
 
 **Dato:** 9. mai 2026
-**Status:** under utbedring
-**Berørte versjoner:** alle utgivelser før denne fikser
+**Status:** løst i v1.12.0
+**Berørte versjoner:** v1.11.0 og tidligere (kraftpris-stien); nettleie var ikke berørt
 
 ## Symptomer
 
@@ -103,8 +103,18 @@ Ved migrering settes `spotpris_inkl_mva = True` for eksisterende konfig-entries 
 2. **Faktura-verifisering dekker bare nettleie.** Vår tillit til at "alt regner riktig" var basert på BKK-faktura-match. Fakturaene viser ikke kraftpris (det går via strømleverandøren), så kraftpris-feil var usynlig i denne testen.
 3. **Avvik på 25 % er signaleffekt, ikke avrundingsstøy.** Når et tall avviker med eksakt mva-rate, er sannsynligheten høy for en mva-håndtering-feil et sted i kjeden.
 
+## Etterspill
+
+Etter at hovedfixen ble implementert, kjørte vi en accountant-review for å fange relaterte mva-feil. Tre nye saker ble fikset i samme runde:
+
+1. **Eksportinntekt brukte spotpris inkl. mva.** Når `spot_price` ble normalisert til inkl. mva, gjorde det at `_monthly_export_revenue += spot_price * export_kwh` ble overrapportert med 25 % i Sør-Norge. Plusskunder får betalt eks. mva av strømleverandøren (privat har ikke utgående mva). Fix: ny variabel `spot_price_eks_mva` brukes for eksportinntekt. Tre nye tester dekker eks-mva-sensor, inkl-mva-sensor og Nord-Norge.
+
+2. **Falsk Norgespris-besparelse ved manglende spot-data.** Når spotpris-sensor var nede over 2 timer, falt `spot_price_raw` til 0.0 og koden akkumulerte `(norgespris - 0.0) × kwh = 50 øre/kWh` i fiktiv besparelse hver minutt sensoren var nede. Fix: ny `spot_price_valid`-flagg hopper over alle spot-avhengige akkumuleringer. Energiledd og Norgespris-under-tak akkumuleres uavhengig (de trenger ikke spot).
+
+3. **Misvisende kommentarer i `dso.py`.** Verdiene `energiledd_dag_eks_mva` og `energiledd_natt_eks_mva` er ren energiledd, men kommentarene oppga sluttprisen etter at coordinator har lagt på avgifter og mva. Eksempel: `0.2099 # 36,40 øre/kWh inkl. avgifter` der 0.2099 i øre er 20.99, ikke 36.40. Dette har bidratt til å forvirre menneskelige reviewere og er antatt en medvirkende årsak til incidents 002 og 003. Kommentarene er ryddet til å beskrive ren energiledd.
+
 ## Kilder
 
-- [Home Assistant Nord Pool integration docs](https://www.home-assistant.io/integrations/nordpool/) — bekrefter at integrasjonen leverer priser eks. mva
+- [Home Assistant Nord Pool integration docs](https://www.home-assistant.io/integrations/nordpool/) bekrefter at integrasjonen leverer priser eks. mva
 - BKK fakturaoversikt og "spart med Norgespris" sammenlikningstall, mai 2026
 - `coordinator.py:_async_update_data`, hvor `spot_price` brukes uten mva-konvertering

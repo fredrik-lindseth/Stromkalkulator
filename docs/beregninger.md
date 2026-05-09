@@ -112,6 +112,8 @@ Energi akkumulert i selve overgangs-syklusen havner i forrige måned.
 
 1-5 % avvik fra faktura er normalt: integrasjonen bruker Riemann-sum fra effektsensor, fakturaen leser måleren direkte. Nettleie er typisk svært tett (innenfor 0,02 kr per linje for BKK), kraftpris kan avvike mer fordi vi ikke har time-for-time spotpris med samme oppløsning som Elhub.
 
+Nettleie-fakturaen verifiserer kun nettleie-stien (energiledd, kapasitetsledd, avgifter). Spotpris, strømstøtte, Norgespris-besparelse og eksportinntekt fanges ikke der, og må sjekkes mot nettselskapets eller strømleverandørens egne tall. Se [VERIFISER_DIN_FAKTURA.md](fakturaer/VERIFISER_DIN_FAKTURA.md) for sjekkpunkter utenfor fakturaen. Manglende slik sjekk lot [incident 004](incidents/004-spotpris-mva-feilbehandling.md) gå usett i flere måneder.
+
 Verifiserte fakturaer: [REFERANSE.md](fakturaer/REFERANSE.md).
 
 ## Datakilder

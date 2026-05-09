@@ -8,34 +8,11 @@ from __future__ import annotations
 
 import asyncio
 import importlib
-import sys
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-
-@pytest.fixture(autouse=True)
-def _patch_update_coordinator():
-    """Replace mocked DataUpdateCoordinator with a real base class."""
-
-    class FakeDataUpdateCoordinator:
-        def __init_subclass__(cls, **kwargs):
-            pass
-
-        def __class_getitem__(cls, item):
-            return cls
-
-        def __init__(self, hass, logger, *, name, update_interval):
-            self.hass = hass
-
-        async def async_config_entry_first_refresh(self):
-            pass
-
-    mod = sys.modules["homeassistant.helpers.update_coordinator"]
-    original = getattr(mod, "DataUpdateCoordinator", None)
-    mod.DataUpdateCoordinator = FakeDataUpdateCoordinator
-    yield
-    mod.DataUpdateCoordinator = original
+from tests.conftest import _make_entry
 
 
 @pytest.fixture
@@ -60,25 +37,17 @@ def init_module():
 
 
 def _make_hass():
+    """HA-mock spesialtilpasset for setup/unload-tester (config_entries-API).
+
+    Beholder denne lokalt fordi den trenger andre attributter enn den vanlige
+    states.get-mockingen i conftest._make_hass.
+    """
     hass = MagicMock()
     hass.config_entries.async_forward_entry_setups = AsyncMock()
     hass.config_entries.async_unload_platforms = AsyncMock(return_value=True)
     hass.config_entries.async_update_entry = MagicMock()
     hass.config.path = MagicMock(return_value="/tmp/.storage")
     return hass
-
-
-def _make_entry(entry_id="test_entry", dso_id="bkk"):
-    entry = MagicMock()
-    entry.entry_id = entry_id
-    entry.data = {
-        "tso": dso_id,
-        "power_sensor": "sensor.power",
-        "spot_price_sensor": "sensor.spot_price",
-        "spotpris_inkl_mva": True,
-    }
-    entry.runtime_data = None
-    return entry
 
 
 class TestAsyncSetupEntry:

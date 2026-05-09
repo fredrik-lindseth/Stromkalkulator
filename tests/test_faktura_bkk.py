@@ -1,11 +1,10 @@
 """
-Test mot BKK-faktura februar 2026.
+Test mot BKK-fakturaer (Norgespris-kunde, 2026).
 
-Fakturaperiode: 01.02.2026 - 01.03.2026 (28 dager)
-Norgespris-kunde (fast 50 øre/kWh inkl. mva)
-Fakturanr: 063926706
-
-Verifiserer at våre beregninger matcher den faktiske fakturaen.
+Verifiserer at våre beregninger matcher faktiske fakturaer.
+Parametrisert over flere måneder, slik at hver beregning kjøres mot
+hver måned. Tester som kun verifiserer 2026-satser (ikke avhengig av
+forbruk/periode) kjøres som ikke-parametriserte enkelttester.
 """
 
 import pytest
@@ -18,62 +17,102 @@ from custom_components.stromkalkulator.const import (
     compute_energiledd_inkl_mva,
 )
 
-# BKK 2026-priser fra fakturaen (inkl. mva, eks. offentlige avgifter)
+# BKK 2026-priser fra fakturaene (inkl. mva, eks. offentlige avgifter).
+# Disse er måneds-uavhengige for hele 2026.
 BKK_ENERGILEDD_DAG_2026_ORE = 35.963  # øre/kWh inkl. mva
 BKK_ENERGILEDD_NATT_2026_ORE = 13.125  # øre/kWh inkl. mva
 BKK_FORBRUKSAVGIFT_2026_ORE = 8.913  # øre/kWh inkl. mva
 BKK_ENOVAAVGIFT_2026_ORE = 1.25  # øre/kWh inkl. mva
-BKK_KAPASITET_5_10_KW = 415  # kr/mnd
 
 
-@pytest.fixture
-def faktura_februar_2026():
-    """BKK faktura 063926706 — Februar 2026.
+# --- Faktura-fixtures ---
 
-    Norgespris-kunde. Tilgode 812.78 kr.
-    Maks effekt: 5.909, 5.733, 5.477 kW → kapasitet 5-10 kW.
-    """
-    return {
-        "periode_dager": 28,
-        "forbruk_dag_kwh": 893.615,
-        "forbruk_natt_kwh": 780.171,
-        "forbruk_total_kwh": 1673.786,
-        "maks_effekt": [5.909, 5.733, 5.477],
-        "norgespris_snitt_kr_per_kwh": -1.0883,
-        "forventet_energiledd_dag_kr": 321.36,
-        "forventet_energiledd_natt_kr": 102.40,
-        "forventet_norgespris_kr": -1821.64,
-        "forventet_kapasitet_kr": 415.00,
-        "forventet_forbruksavgift_kr": 149.17,
-        "forventet_enovaavgift_kr": 20.93,
-        "forventet_nettleie_kr": 1008.86,
-        "forventet_total_kr": -812.78,
-        "forventet_mva_kr": 201.77,
-    }
+
+FAKTURA_FEBRUAR_2026 = {
+    "navn": "februar_2026",
+    "fakturanr": "063926706",
+    "periode_dager": 28,
+    "forbruk_dag_kwh": 893.615,
+    "forbruk_natt_kwh": 780.171,
+    "forbruk_total_kwh": 1673.786,
+    "maks_effekt": [5.909, 5.733, 5.477],
+    "maks_effekt_snitt": 5.706,
+    "kapasitetstrinn_indeks": 2,  # Trinn 3: 5-10 kW
+    "kapasitetstrinn_grense": (10, 415),
+    "kapasitetstrinn_min_kw": 5.0,
+    "kapasitetstrinn_maks_kw": 10.0,
+    "norgespris_snitt_kr_per_kwh": -1.0883,
+    "forventet_energiledd_dag_kr": 321.36,
+    "forventet_energiledd_natt_kr": 102.40,
+    "forventet_norgespris_kr": -1821.64,
+    "forventet_kapasitet_kr": 415.00,
+    "forventet_forbruksavgift_kr": 149.17,
+    "forventet_enovaavgift_kr": 20.93,
+    "forventet_nettleie_kr": 1008.86,
+    "forventet_total_kr": -812.78,
+    "forventet_mva_kr": 201.77,
+    "dobbelttelling_avvik_kr": 170,
+}
+
+
+FAKTURA_MARS_2026 = {
+    "navn": "mars_2026",
+    "fakturanr": "064202476",
+    "periode_dager": 31,
+    "forbruk_dag_kwh": 831.768,
+    "forbruk_natt_kwh": 721.449,
+    "forbruk_total_kwh": 1553.217,
+    "maks_effekt": [4.798, 4.557, 4.534],
+    "maks_effekt_snitt": 4.630,
+    "kapasitetstrinn_indeks": 1,  # Trinn 2: 2-5 kW
+    "kapasitetstrinn_grense": (5, 250),
+    "kapasitetstrinn_min_kw": 2.0,
+    "kapasitetstrinn_maks_kw": 5.0,
+    "norgespris_snitt_kr_per_kwh": -0.99837,
+    "forventet_energiledd_dag_kr": 299.13,
+    "forventet_energiledd_natt_kr": 94.69,
+    "forventet_norgespris_kr": -1550.68,
+    "forventet_kapasitet_kr": 250.00,
+    "forventet_forbruksavgift_kr": 138.43,
+    "forventet_enovaavgift_kr": 19.41,
+    "forventet_nettleie_kr": 801.66,
+    "forventet_total_kr": -749.02,
+    "forventet_mva_kr": 160.33,
+    "dobbelttelling_avvik_kr": 160,
+}
+
+
+@pytest.fixture(
+    params=[FAKTURA_FEBRUAR_2026, FAKTURA_MARS_2026],
+    ids=["februar_2026", "mars_2026"],
+)
+def faktura(request):
+    """BKK-faktura for én måned. Norgespris-kunde."""
+    return request.param
 
 
 # --- Energiledd ---
 
 
-def test_energiledd_dag(faktura_februar_2026):
-    """Energiledd dag: 893.615 kWh * 35.963 øre/kWh = 321.36 kr."""
-    beregnet = faktura_februar_2026["forbruk_dag_kwh"] * BKK_ENERGILEDD_DAG_2026_ORE / 100
-    assert beregnet == pytest.approx(faktura_februar_2026["forventet_energiledd_dag_kr"], abs=0.10)
+def test_energiledd_dag(faktura):
+    """Energiledd dag = forbruk_dag * 35.963 øre/kWh."""
+    beregnet = faktura["forbruk_dag_kwh"] * BKK_ENERGILEDD_DAG_2026_ORE / 100
+    assert beregnet == pytest.approx(faktura["forventet_energiledd_dag_kr"], abs=0.10)
 
 
-def test_energiledd_natt(faktura_februar_2026):
-    """Energiledd natt: 780.171 kWh * 13.125 øre/kWh = 102.40 kr."""
-    beregnet = faktura_februar_2026["forbruk_natt_kwh"] * BKK_ENERGILEDD_NATT_2026_ORE / 100
-    assert beregnet == pytest.approx(faktura_februar_2026["forventet_energiledd_natt_kr"], abs=0.10)
+def test_energiledd_natt(faktura):
+    """Energiledd natt = forbruk_natt * 13.125 øre/kWh."""
+    beregnet = faktura["forbruk_natt_kwh"] * BKK_ENERGILEDD_NATT_2026_ORE / 100
+    assert beregnet == pytest.approx(faktura["forventet_energiledd_natt_kr"], abs=0.10)
 
 
 # --- Avgifter ---
 
 
-def test_forbruksavgift(faktura_februar_2026):
-    """Forbruksavgift: 1673.786 kWh * 8.913 øre/kWh = 149.17 kr."""
-    beregnet = faktura_februar_2026["forbruk_total_kwh"] * BKK_FORBRUKSAVGIFT_2026_ORE / 100
-    assert beregnet == pytest.approx(faktura_februar_2026["forventet_forbruksavgift_kr"], abs=0.10)
+def test_forbruksavgift(faktura):
+    """Forbruksavgift = forbruk_total * 8.913 øre/kWh."""
+    beregnet = faktura["forbruk_total_kwh"] * BKK_FORBRUKSAVGIFT_2026_ORE / 100
+    assert beregnet == pytest.approx(faktura["forventet_forbruksavgift_kr"], abs=0.10)
 
 
 def test_forbruksavgift_matcher_const():
@@ -82,10 +121,10 @@ def test_forbruksavgift_matcher_const():
     assert beregnet_inkl_mva == pytest.approx(BKK_FORBRUKSAVGIFT_2026_ORE, abs=0.01)
 
 
-def test_enovaavgift(faktura_februar_2026):
-    """Enovaavgift: 1673.786 kWh * 1.25 øre/kWh = 20.93 kr."""
-    beregnet = faktura_februar_2026["forbruk_total_kwh"] * BKK_ENOVAAVGIFT_2026_ORE / 100
-    assert beregnet == pytest.approx(faktura_februar_2026["forventet_enovaavgift_kr"], abs=0.10)
+def test_enovaavgift(faktura):
+    """Enovaavgift = forbruk_total * 1.25 øre/kWh."""
+    beregnet = faktura["forbruk_total_kwh"] * BKK_ENOVAAVGIFT_2026_ORE / 100
+    assert beregnet == pytest.approx(faktura["forventet_enovaavgift_kr"], abs=0.10)
 
 
 def test_enovaavgift_matcher_const():
@@ -97,31 +136,30 @@ def test_enovaavgift_matcher_const():
 # --- Kapasitet ---
 
 
-def test_kapasitetstrinn(faktura_februar_2026):
-    """Kapasitet 5-10 kW = 415 kr/mnd."""
+def test_kapasitetstrinn(faktura):
+    """Kapasitetstrinn fra dso.py matcher fakturaens beløp."""
     from custom_components.stromkalkulator.dso import DSO_LIST
 
     bkk = DSO_LIST["bkk"]
-    # Trinn 3: 5-10 kW
-    assert bkk["kapasitetstrinn"][2] == (10, 415)
-    assert faktura_februar_2026["forventet_kapasitet_kr"] == 415
+    assert bkk["kapasitetstrinn"][faktura["kapasitetstrinn_indeks"]] == faktura["kapasitetstrinn_grense"]
+    assert faktura["forventet_kapasitet_kr"] == faktura["kapasitetstrinn_grense"][1]
 
 
-def test_maks_effekt_gir_riktig_trinn(faktura_februar_2026):
-    """Snitt av topp 3 (5.909, 5.733, 5.477) = 5.706 kW → trinn 3 (5-10 kW)."""
-    topper = faktura_februar_2026["maks_effekt"]
+def test_maks_effekt_gir_riktig_trinn(faktura):
+    """Snitt av topp 3 maks-effekt skal lande i forventet kapasitetstrinn."""
+    topper = faktura["maks_effekt"]
     snitt = sum(topper) / len(topper)
-    assert snitt == pytest.approx(5.706, abs=0.01)
-    assert 5.0 < snitt <= 10.0  # trinn 3: 5-10 kW
+    assert snitt == pytest.approx(faktura["maks_effekt_snitt"], abs=0.01)
+    assert faktura["kapasitetstrinn_min_kw"] < snitt <= faktura["kapasitetstrinn_maks_kw"]
 
 
 # --- Norgespris ---
 
 
-def test_norgespris_kompensasjon(faktura_februar_2026):
-    """Norgespris: 1673.786 kWh * -1.0883 kr/kWh = -1821.64 kr."""
-    beregnet = faktura_februar_2026["forbruk_total_kwh"] * faktura_februar_2026["norgespris_snitt_kr_per_kwh"]
-    assert beregnet == pytest.approx(faktura_februar_2026["forventet_norgespris_kr"], abs=0.10)
+def test_norgespris_kompensasjon(faktura):
+    """Norgespris = forbruk_total * snittpris_kr_per_kwh (negativt = tilgode)."""
+    beregnet = faktura["forbruk_total_kwh"] * faktura["norgespris_snitt_kr_per_kwh"]
+    assert beregnet == pytest.approx(faktura["forventet_norgespris_kr"], abs=0.10)
 
 
 def test_norgespris_fastpris_matcher_const():
@@ -132,9 +170,9 @@ def test_norgespris_fastpris_matcher_const():
 # --- Nettleie total ---
 
 
-def test_nettleie_total(faktura_februar_2026):
-    """Nettleie = energiledd dag + natt + kapasitet + forbruksavgift + enova = 1008.86 kr."""
-    f = faktura_februar_2026
+def test_nettleie_total(faktura):
+    """Nettleie = energiledd dag + natt + kapasitet + forbruksavgift + enova."""
+    f = faktura
     beregnet = (
         f["forbruk_dag_kwh"] * BKK_ENERGILEDD_DAG_2026_ORE / 100
         + f["forbruk_natt_kwh"] * BKK_ENERGILEDD_NATT_2026_ORE / 100
@@ -145,17 +183,17 @@ def test_nettleie_total(faktura_februar_2026):
     assert beregnet == pytest.approx(f["forventet_nettleie_kr"], rel=0.01)
 
 
-def test_total_inkl_norgespris(faktura_februar_2026):
-    """Total = nettleie + norgespris = 1008.86 + (-1821.64) = -812.78 kr."""
-    total = faktura_februar_2026["forventet_nettleie_kr"] + faktura_februar_2026["forventet_norgespris_kr"]
-    assert total == pytest.approx(faktura_februar_2026["forventet_total_kr"], abs=0.01)
+def test_total_inkl_norgespris(faktura):
+    """Total = nettleie + norgespris."""
+    total = faktura["forventet_nettleie_kr"] + faktura["forventet_norgespris_kr"]
+    assert total == pytest.approx(faktura["forventet_total_kr"], abs=0.01)
 
 
-def test_mva_beregning(faktura_februar_2026):
-    """MVA = nettleie eks. mva * 25%. Nettleie inkl. mva = 1008.86, herav MVA 201.77."""
-    nettleie_inkl = faktura_februar_2026["forventet_nettleie_kr"]
+def test_mva_beregning(faktura):
+    """MVA = nettleie inkl. mva, herav 25%."""
+    nettleie_inkl = faktura["forventet_nettleie_kr"]
     mva = nettleie_inkl - nettleie_inkl / (1 + MVA_SATS)
-    assert mva == pytest.approx(faktura_februar_2026["forventet_mva_kr"], abs=0.10)
+    assert mva == pytest.approx(faktura["forventet_mva_kr"], abs=0.10)
 
 
 # --- Integrasjon: dso.py matcher fakturaen ---
@@ -190,7 +228,7 @@ def test_compute_energiledd_dag_inkl_matcher_faktura():
     bkk = DSO_LIST["bkk"]
     inkl = compute_energiledd_inkl_mva(bkk["energiledd_dag_eks_mva"], "standard")
     forventet_kr = (BKK_ENERGILEDD_DAG_2026_ORE + BKK_FORBRUKSAVGIFT_2026_ORE + BKK_ENOVAAVGIFT_2026_ORE) / 100
-    # < 0,01 kr/kWh avvik (~0,1 øre) — vesentlig bedre enn 0.5% gammel struktur
+    # < 0,01 kr/kWh avvik (~0,1 øre), vesentlig bedre enn 0.5% gammel struktur
     assert inkl == pytest.approx(forventet_kr, abs=0.0001)
 
 
@@ -229,12 +267,12 @@ def test_reverse_energiledd_natt_eks_avgifter():
 # --- End-to-end: MaanedligTotalSensor mot faktura ---
 
 
-def test_maanedlig_total_sensor_matcher_faktura(faktura_februar_2026):
+def test_maanedlig_total_sensor_matcher_faktura(faktura):
     """MaanedligTotalSensor med fakturadata skal gi korrekt nettleie-total.
 
     Regresjonstest: energiledd_dag/natt fra dso.py inkluderer allerede
     forbruksavgift og enova. Hvis sensoren legger til avgifter separat,
-    vil totalen bli ~170 kr for høy (dobbelttelling).
+    vil totalen bli ~160-170 kr for høy (dobbelttelling).
     """
     import sys
     from unittest.mock import MagicMock
@@ -274,7 +312,7 @@ def test_maanedlig_total_sensor_matcher_faktura(faktura_februar_2026):
     from custom_components.stromkalkulator.sensor import MaanedligTotalSensor
 
     bkk = DSO_LIST["bkk"]
-    f = faktura_februar_2026
+    f = faktura
 
     # Coordinator beregner inkl-mva-verdier fra eks-mva-base ved oppstart.
     energiledd_dag = compute_energiledd_inkl_mva(bkk["energiledd_dag_eks_mva"], "standard")
@@ -303,5 +341,5 @@ def test_maanedlig_total_sensor_matcher_faktura(faktura_februar_2026):
     ), (
         f"MaanedligTotalSensor={sensor.native_value}, "
         f"faktura={f['forventet_nettleie_kr']}. "
-        f"Hvis sensoren er ~170 kr for høy, dobbelttelles avgifter."
+        f"Hvis sensoren er ~{f['dobbelttelling_avvik_kr']} kr for høy, dobbelttelles avgifter."
     )

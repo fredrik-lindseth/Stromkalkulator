@@ -8,31 +8,21 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from tests.conftest import _make_entry as _conftest_make_entry
 
-@pytest.fixture(autouse=True)
-def _patch_update_coordinator():
-    """Replace the mocked DataUpdateCoordinator with a real base class.
 
-    conftest.py mocks homeassistant.helpers.update_coordinator as a MagicMock.
-    Subclassing a MagicMock doesn't invoke the real __init__, so we need a
-    minimal real class for NettleieCoordinator to inherit from.
+def _make_entry(entry_id: str, dso_id: str = "bkk") -> MagicMock:
+    """Lokal variant: bruker entry_id-spesifikt power_sensor for å skille instanser.
+
+    Beholdes lokalt fordi den setter power_sensor til en entry_id-skopet streng,
+    noe ingen andre tester trenger.
     """
-
-    class FakeDataUpdateCoordinator:
-        def __init_subclass__(cls, **kwargs):
-            pass
-
-        def __class_getitem__(cls, item):
-            return cls
-
-        def __init__(self, hass, logger, *, name, update_interval):
-            self.hass = hass
-
-    mod = sys.modules["homeassistant.helpers.update_coordinator"]
-    original = getattr(mod, "DataUpdateCoordinator", None)
-    mod.DataUpdateCoordinator = FakeDataUpdateCoordinator
-    yield
-    mod.DataUpdateCoordinator = original
+    entry = _conftest_make_entry(
+        entry_id=entry_id,
+        dso_id=dso_id,
+        power_sensor=f"sensor.power_{entry_id}",
+    )
+    return entry
 
 
 @pytest.fixture
@@ -57,17 +47,6 @@ def mock_hass():
     """Minimal hass mock."""
     hass = MagicMock()
     return hass
-
-
-def _make_entry(entry_id: str, dso_id: str = "bkk") -> MagicMock:
-    """Create a mock config entry."""
-    entry = MagicMock()
-    entry.entry_id = entry_id
-    entry.data = {
-        "tso": dso_id,
-        "power_sensor": f"sensor.power_{entry_id}",
-    }
-    return entry
 
 
 def test_storage_key_uses_entry_id(mock_store, mock_hass):

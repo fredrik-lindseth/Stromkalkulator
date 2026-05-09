@@ -22,6 +22,7 @@ Følger malen i [RELEASE_NOTES.md](RELEASE_NOTES.md).
 - Config v1→v3 migrering med automatisk konvertering
 - Destillert dokumentasjon
 - Konsolidert tester (faktura, valideringer, helpers)
+- Ryddet misvisende DSO-kommentarer som oppga sluttpris i stedet for ren energiledd
 
 ## Verifisering
 

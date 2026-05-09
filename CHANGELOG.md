@@ -29,6 +29,7 @@ Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), [Sem
 - Destillert dokumentasjon: AGENTS, README, CONTRIBUTING, DEVELOPMENT, TESTING, SENSORS, incidents.
 - Konsolidert faktura-tester til parametrisert `test_faktura_bkk.py`, valideringer samlet ett sted, test-helpers flyttet til `tests/conftest.py`.
 - Mindre kode-rydding: ubrukt `month`-parameter fjernet fra `get_forbruksavgift` og `compute_energiledd_inkl_mva`.
+- Ryddet misvisende kommentarer i `dso.py`: kommentarene oppga tidligere sluttprisen (etter avgifter og mva) i stedet for ren energiledd, noe som forvirret reviewere og bidro til incidents 002, 003 og 004.
 - Slettet utdaterte planer og fakta-filer.
 
 ## [0.55.0]

@@ -1,196 +1,120 @@
-# Testing av Strømkalkulator
+# Testing
 
-Denne guiden beskriver hvordan du verifiserer at integrasjonen fungerer korrekt.
-
-## Unit-tester (lokalt)
-
-Kjør alle tester med pytest:
+## Unit-tester
 
 ```bash
-# Med pipx (anbefalt hvis du ikke har venv)
 pipx run pytest tests/ -v
-
-# Med pip i venv
-python -m pytest tests/ -v
 ```
 
-### Hva som testes
+Eller i venv: `python -m pytest tests/ -v`.
 
-| Testfil                              | Beskrivelse                                  |
-|--------------------------------------|----------------------------------------------|
-| `test_stromstotte_tak.py`          | Strømstøtte-beregning, 5000 kWh-tak, floating-point grensepresisjon |
-| `test_energiledd.py`                | Dag/natt-tariff inkl. helligdager            |
-| `test_kapasitetstrinn.py`           | Kapasitetstrinn, topp-3, margin til neste trinn, varsel |
-| `test_norgespris.py`                | Norgespris-beregning og sammenligning        |
-| `test_norgespris_akkumulert.py`    | Akkumulert Norgespris-besparelse             |
-| `test_faktura_februar_2026.py`     | BKK-faktura feb 2026 (Norgespris)           |
-| `test_faktura_mars_2026.py`        | BKK-faktura mars 2026 (Norgespris)           |
-| `test_faktura_validering_nye_felter.py` | Nye validerings-felter (kompensasjon, klokkeslett, kapasitetsledd) |
-| `test_month_transition_integration.py` | Integrasjonstest for månedsskifte         |
-| `test_dso_migration.py`             | DSO-migrering ved nettselskap-fusjoner       |
-| `test_dso_data_validation.py`      | Validering av alle DSO-oppføringer           |
-| `test_property.py`                  | Property-baserte tester og differential-tester (Hypothesis) |
-| `test_storage_key.py`               | Lagringsnøkkel-isolasjon mellom instanser    |
-| `test_config_flow.py`               | Config flow struktur-validering              |
-| `test_init_setup.py`                | Setup/unload/DSO-migrering                   |
-| `test_diagnostics.py`               | Diagnostics-output struktur                  |
-| `test_sensor_classes.py`            | Sensor None-håndtering, attributter, units   |
-| `test_persistens.py`                | Lagring: save/load-syklus, migrering, korrupsjon |
-| `test_coordinator_update.py`        | End-to-end coordinator update, kapasitetsvarsel |
-| `test_coordinator_robustness.py`    | Spotpris-caching, clamping, validering       |
-| `test_monthly_sensors.py`           | Månedlige sensorer, estimert kostnad         |
-| `test_passthrough_sensors.py`       | Passthrough-sensorer (dag/natt, avgifter)    |
-| `test_coverage_gaps.py`            | Bugfiks-dekning: UpdateFailed, clamp, OSError, cache |
-| `test_strompris_per_kwh.py`        | Strømpris per kWh uten kapasitetsledd        |
-| `test_edge_cases.py`               | DST, helligdager 2031+                       |
-| `test_eksport.py`                  | Solcelle-eksport, feilhåndtering             |
-| `test_akkumulert_kostnad.py`      | Akkumulert kostnad (stat_cost) for Energy Dashboard |
-| `test_boligtype.py`                | Boligtype-avhengige tak og beregninger       |
+### Hva som dekkes
 
-### Kjente begrensninger
+| Område                              | Testfil                                                      |
+| ----------------------------------- | ------------------------------------------------------------ |
+| Strømstøtte (formel, tak)           | `test_stromstotte_tak.py`                                    |
+| Dag/natt-tariff og helligdager      | `test_energiledd.py`                                         |
+| Kapasitetstrinn, topp-3, varsel     | `test_kapasitetstrinn.py`                                    |
+| Norgespris og akkumulert besparelse | `test_norgespris.py`, `test_norgespris_akkumulert.py`        |
+| Faktura-verifisering 2026           | `test_faktura_februar_2026.py`, `test_faktura_mars_2026.py`  |
+| Validering av nye fakturafelter     | `test_faktura_validering_nye_felter.py`                      |
+| Månedsskifte                        | `test_month_transition_integration.py`                       |
+| DSO-migrering ved fusjoner          | `test_dso_migration.py`                                      |
+| DSO-data validering                 | `test_dso_data_validation.py`                                |
+| Property-baserte tester             | `test_property.py`                                           |
+| Lagringsnøkkel-isolasjon            | `test_storage_key.py`                                        |
+| Config flow struktur                | `test_config_flow.py`                                        |
+| Setup/unload                        | `test_init_setup.py`                                         |
+| Diagnostics                         | `test_diagnostics.py`                                        |
+| Sensor None-håndtering, units       | `test_sensor_classes.py`                                     |
+| Lagring (save/load, korrupsjon)     | `test_persistens.py`                                         |
+| Coordinator end-to-end              | `test_coordinator_update.py`                                 |
+| Robustness (cache, clamping)        | `test_coordinator_robustness.py`                             |
+| Månedlige sensorer, estimat         | `test_monthly_sensors.py`                                    |
+| Passthrough-sensorer                | `test_passthrough_sensors.py`                                |
+| Bugfiks-dekning                     | `test_coverage_gaps.py`                                      |
+| Strømpris per kWh                   | `test_strompris_per_kwh.py`                                  |
+| DST, helligdager 2031+              | `test_edge_cases.py`                                         |
+| Solcelle-eksport                    | `test_eksport.py`                                            |
+| Akkumulert kostnad                  | `test_akkumulert_kostnad.py`                                 |
+| Boligtype-avhengige tak             | `test_boligtype.py`                                          |
 
-Testsuiten kjører uten Home Assistant installert (alle HA-moduler er mocket).
-Dette betyr at noen ting ikke kan testes med dagens infrastruktur:
+### Begrensninger
 
-| Område | Begrunnelse |
-|--------|------------|
-| Config flow multi-step (user → sensors → pricing) | Trenger HA FlowHandler-infrastruktur |
-| Options flow → reload → reberegning | Trenger HA config entry lifecycle |
-| End-to-end setup → coordinator → sensor | Trenger HA platform setup |
-| `CoordinatorSimulator` bruker int-måned (vs YYYY-MM) | Supplementær -- ekte coordinator testes i `test_coordinator_update.py` |
-| Testdata bruker kun BKK kapasitetstrinn | Diminishing returns -- property-tester dekker alle DSOer |
-| Bevegelige helligdager 2031+ ikke i cache | Dokumentert i test_edge_cases.py |
-
-Vurdert 2026-04-10 via `/test-lead` (rydding: slettet 4 redundante filer, konsolidert margin-tester, nye edge case-tester).
+Kjører uten Home Assistant installert (HA mockes i `conftest.py`). Krever `pytest-homeassistant-custom-component` for: config flow multi-step, options flow med reload, end-to-end setup, repair flow. Lav prioritet, statiske tester + coordinator-tester dekker beregningslogikken.
 
 ## Live-tester i Home Assistant
 
-Test-pakken gir sanntids-validering direkte i HA.
+`packages/stromkalkulator_test.yaml` gir test-sensorer som kjører i HA.
 
-### Oppsett
-
-1. **Kopier test-pakken til HA:**
-   ```bash
-   ssh ha-local "cat > /config/packages/stromkalkulator_test.yaml" < packages/stromkalkulator_test.yaml
-   ```
-
-2. **Sørg for at packages er aktivert** i `/config/configuration.yaml`:
-   ```yaml
-   homeassistant:
-     packages: !include_dir_named packages
-   ```
-
-3. **Restart Home Assistant:**
-   ```bash
-   ssh ha-local "ha core restart"
-   ```
-
-4. **Sjekk testene** i Developer Tools → States:
-   - Filtrer på `test_` for å se alle test-sensorer
-   - `sensor.test_alle_tester_ok` viser samlet status
-
-### Test-sensorer
-
-| Sensor                                 | Beskrivelse                            |
-|----------------------------------------|----------------------------------------|
-| `sensor.test_stromstotte_beregning`    | Validerer strømstøtte-formelen         |
-| `sensor.test_spotpris_etter_stotte`    | Validerer spotpris - strømstøtte       |
-| `sensor.test_tariff_korrekt`           | Validerer dag/natt/helg-tariff         |
-| `sensor.test_energiledd_korrekt`       | Validerer energiledd-valg              |
-| `sensor.test_total_pris_etter_stotte`  | Validerer totalpris                    |
-| `sensor.test_forbruksavgift`           | Validerer forbruksavgift (7,13 øre)    |
-| `sensor.test_enova_avgift`             | Validerer Enova-avgift (1,0 øre)       |
-| `sensor.test_norgespris_sammenligning` | Validerer prisforskjell mot Norgespris |
-| `sensor.test_kapasitetstrinn`          | Validerer kapasitetstrinn              |
-| `sensor.test_alle_tester_ok`           | Samlet status (X/8 OK)                 |
-
-### Tolkning av resultater
-
-- **OK** - Beregningen er korrekt
-- **FEIL** - Beregningen avviker fra forventet
-- **MANGLER DATA** - Sensor mangler (kapasitetstrinn)
-
-Ved FEIL, sjekk attributtene på sensoren:
-- `forventet` - Hva testen forventer
-- `faktisk` - Hva sensoren rapporterer
-- `differanse` - Avvik mellom forventet og faktisk
-
-## Manuell validering
-
-### 1. Strømstøtte
-
-**Formel (2026):** `max(0, (spotpris - 0.9625) × 0.90)`
-
-| Spotpris | Strømstøtte | Sjekk                      |
-|----------|-------------|----------------------------|
-| 0.50 kr  | 0.00 kr     | Under terskel              |
-| 0.96 kr  | 0.00 kr     | Under terskel              |
-| 1.00 kr  | 0.03 kr     | (1.00-0.9625)×0.9 = 0.0338 |
-| 1.50 kr  | 0.48 kr     | (1.50-0.9625)×0.9 = 0.4838 |
-| 2.00 kr  | 0.93 kr     | (2.00-0.9625)×0.9 = 0.9338 |
-
-### 2. Tariff (dag/natt)
-
-| Tidspunkt           | Forventet tariff |
-|---------------------|------------------|
-| Man-Fre 06:00-22:00 | dag              |
-| Man-Fre 22:00-06:00 | natt             |
-| Lør-Søn hele døgnet | natt             |
-| Helligdager         | natt             |
-
-### 3. Energiledd
-
-Sjekk at:
-- `sensor.energiledd` = `sensor.energiledd_dag` når tariff er "dag"
-- `sensor.energiledd` = `sensor.energiledd_natt` når tariff er "natt"
-
-### 4. Kapasitetstrinn (BKK)
-
-| Gjennomsnitt topp-3 | Forventet trinn | Pris       |
-|---------------------|-----------------|------------|
-| 0-2 kW              | 1               | 155 kr/mnd |
-| 2-5 kW              | 2               | 250 kr/mnd |
-| 5-10 kW             | 3               | 415 kr/mnd |
-| 10-15 kW            | 4               | 600 kr/mnd |
-
-### 5. Norgespris-sammenligning
-
-**Formel:** 
-```
-prisforskjell = total_pris_etter_stotte - total_pris_norgespris
+```bash
+ssh ha-local "cat > /config/packages/stromkalkulator_test.yaml" < packages/stromkalkulator_test.yaml
+ssh ha-local "ha core restart"
 ```
 
-- **Positiv verdi** → Du betaler mer enn Norgespris
-- **Negativ verdi** → Du betaler mindre enn Norgespris
+Pass på at packages er aktivert i `configuration.yaml`:
 
-### 6. Offentlige avgifter (2026)
+```yaml
+homeassistant:
+  packages: !include_dir_named packages
+```
 
-| Avgift         | Forventet                           |
-|----------------|-------------------------------------|
-| Forbruksavgift | 0.0891 kr/kWh (7,13 øre × 1.25 mva) |
-| Enova-avgift   | 0.0125 kr/kWh (1,0 øre × 1.25 mva)  |
+I Developer Tools > States, filtrer på `test_`. `sensor.test_alle_tester_ok` viser samlet status. Resultater: `OK`, `FEIL` eller `MANGLER DATA`. Ved FEIL, sjekk attributtene `forventet`, `faktisk`, `differanse`.
+
+| Sensor                                 | Sjekker                      |
+| -------------------------------------- | ---------------------------- |
+| `sensor.test_stromstotte_beregning`    | strømstøtte-formelen         |
+| `sensor.test_spotpris_etter_stotte`    | spotpris - strømstøtte       |
+| `sensor.test_tariff_korrekt`           | dag/natt/helg-tariff         |
+| `sensor.test_energiledd_korrekt`       | energiledd-valg              |
+| `sensor.test_total_pris_etter_stotte`  | totalpris                    |
+| `sensor.test_forbruksavgift`           | forbruksavgift (7,13 øre)    |
+| `sensor.test_enova_avgift`             | Enova-avgift (1,0 øre)       |
+| `sensor.test_norgespris_sammenligning` | prisforskjell mot Norgespris |
+| `sensor.test_kapasitetstrinn`          | kapasitetstrinn              |
+| `sensor.test_alle_tester_ok`           | samlet status (X/8 OK)       |
+
+## Manuell sjekk
+
+Strømstøtte (2026): `max(0, (spotpris - 0.9625) * 0.90)`.
+
+| Spotpris | Strømstøtte |
+| -------- | ----------- |
+| 0.50 kr  | 0.00 kr     |
+| 0.96 kr  | 0.00 kr     |
+| 1.00 kr  | 0.03 kr     |
+| 1.50 kr  | 0.48 kr     |
+| 2.00 kr  | 0.93 kr     |
+
+Tariff:
+
+| Tidspunkt           | Tariff |
+| ------------------- | ------ |
+| Man-fre 06:00-22:00 | dag    |
+| Man-fre 22:00-06:00 | natt   |
+| Lør-søn alle timer  | natt   |
+| Helligdager         | natt   |
+
+Kapasitetstrinn (BKK):
+
+| Snitt topp-3 | Trinn | Pris       |
+| ------------ | ----- | ---------- |
+| 0-2 kW       | 1     | 155 kr/mnd |
+| 2-5 kW       | 2     | 250 kr/mnd |
+| 5-10 kW      | 3     | 415 kr/mnd |
+| 10-15 kW     | 4     | 600 kr/mnd |
+
+Avgifter (2026):
+
+| Avgift         | Forventet                            |
+| -------------- | ------------------------------------ |
+| Forbruksavgift | 0.0891 kr/kWh (7,13 øre × 1.25 mva)  |
+| Enova-avgift   | 0.0125 kr/kWh (1,0 øre × 1.25 mva)   |
 
 ## Feilsøking
 
-### Test viser FEIL
+Sensor viser FEIL: sjekk attributtene for differansen, sjekk logger, verifiser kilde-sensorer (Nord Pool, strømmåler).
 
-1. **Sjekk attributter** på test-sensoren for å se differansen
-2. **Sjekk logger:**
-   ```bash
-   ssh ha-local "ha core logs" | grep -i stromkalkulator
-   ```
-3. **Verifiser kilde-sensorer** (Nord Pool, strømmåler)
+Sensor viser unavailable: verifiser at integrasjonen er lastet (`ssh ha-local "ha core logs" | grep -i "Setting up stromkalkulator"`), sjekk at kilde-sensorer finnes.
 
-### Sensorer viser "unavailable"
-
-1. **Sjekk at integrasjonen er lastet:**
-   ```bash
-   ssh ha-local "ha core logs" | grep -i "Setting up stromkalkulator"
-   ```
-2. **Sjekk at kilde-sensorer finnes** (strømmåler, spotpris)
-
-### Kapasitetstrinn er feil
-
-- Sjekk "Snitt toppforbruk"-sensoren - viser gjennomsnittet av topp 3
-- Data lagres per måned og nullstilles ved månedsskift
-- Ved ny installasjon tar det tid å bygge opp data
+Kapasitetstrinn er feil: "Snitt toppforbruk" viser snittet av topp-3. Data lagres per måned, nullstilles ved månedsskifte. Ny installasjon trenger tid på å bygge data.

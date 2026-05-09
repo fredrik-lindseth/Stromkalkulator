@@ -1,718 +1,240 @@
-# Beregninger i Nettleie
+# Beregninger
 
-Dokumentasjon av hvordan alle beregninger utføres i Nettleie-integrasjonen.
-
-Integrasjonen beregner:
-- **Nettleie** - Kapasitetsledd og energiledd fra ditt nettselskap
-- **Strømstøtte** - Automatisk beregning av statlig strømstøtte
-- **Norgespris** - Sammenligning med Elhubs fastprisprodukt
-- **Offentlige avgifter** - Forbruksavgift, Enova-avgift og mva
+Alle formler integrasjonen bruker. Avgiftsoppslag og sensoroversikt: [domain-rules.md](domain-rules.md), [SENSORS.md](SENSORS.md).
 
 ## Nettleie
 
-Nettleien består av to deler: kapasitetsledd og energiledd.
+Nettleie = kapasitetsledd + energiledd.
 
 ### Kapasitetsledd
 
-Kapasitetsleddet beregnes basert på de 3 høyeste timesforbrukene på 3 ulike dager.
-Nettselskapet bruker maks timesforbruk (kWh per klokke-time) fra Elhub, og vi
-gjør det samme: vi akkumulerer energi per klokke-time og bruker den høyeste
-fullførte timen som dagens topp.
+Snittet av maks timesforbruk på de tre dagene med høyest forbruk i måneden bestemmer trinn. Vi akkumulerer kWh per klokketime og tar høyeste fullførte time som dagens topp (samme metode som Elhub).
 
-#### Beregningsmetode
-1. **Akkumuler energi per klokke-time**: kWh forbrukt i hver time (f.eks. 12:00-13:00)
-2. **Spor timesmaks per dag**: Høyeste fullførte times-snitt (kWh/h = gjennomsnittlig kW) lagres per dag
-3. **Velg topp 3**: De 3 dagene med høyest timesmaks velges
-4. **Beregn gjennomsnitt**: Gjennomsnitt av de 3 dagene
-5. **Finn trinn**: Basert på gjennomsnittet finnes riktig kapasitetstrinn
-
-#### Eksempel (BKK)
 ```
-Dag 1: 4.2 kW
-Dag 2: 3.8 kW  
-Dag 3: 5.1 kW
-Gjennomsnitt: 4.37 kW
-Kapasitetstrinn: 2-5 kW → 250 kr/mnd
+1. Akkumuler kWh per klokketime
+2. Spor høyeste fullførte time per dag
+3. Velg topp-3 dager
+4. Snitt = sum / 3
+5. Slå opp riktig trinn fra DSO-tabellen
 ```
 
-#### Kapasitetstrinn (BKK 2026)
-| Trinn | Intervall | Pris        |
-|-------|-----------|-------------|
-| 1     | 0-2 kW    | 155 kr/mnd  |
-| 2     | 2-5 kW    | 250 kr/mnd  |
-| 3     | 5-10 kW   | 415 kr/mnd  |
-| 4     | 10-15 kW  | 600 kr/mnd  |
-| 5     | 15-20 kW  | 770 kr/mnd  |
-| 6     | 20-25 kW  | 940 kr/mnd  |
-| 7     | 25-50 kW  | 1800 kr/mnd |
-| 8     | 50-75 kW  | 2650 kr/mnd |
-| 9     | 75-100 kW | 3500 kr/mnd |
-| 10    | >100 kW   | 6900 kr/mnd |
+Eksempel BKK: dager med 4.2, 3.8, 5.1 kW gir snitt 4.37 kW, trinn 2-5 kW = 250 kr/mnd.
 
-#### Fastledd per kWh
-
-Kapasitetsleddet omregnes til per kWh:
+Kapasitetsledd fordelt per kWh (brukt i Totalpris-sensoren):
 
 ```
 fastledd_per_kwh = (kapasitetsledd / dager_i_måned) / 24
 ```
 
-**Eksempel:**
-```
-Kapasitetsledd: 400 kr/mnd
-Dager i måned: 30
-fastledd_per_kwh = (400 / 30) / 24 = 0.56 kr/kWh
-```
-
 ### Energiledd
 
-Energileddet varierer basert på tidspunkt:
+- **Dag**: Man-fre 06:00-22:00 (ikke helligdager)
+- **Natt/helg**: 22:00-06:00, helger, helligdager
 
-- **Dag**: Mandag-fredag 06:00-22:00 (ikke helligdager)
-- **Natt/Helg**: 22:00-06:00, helger og helligdager
+Bevegelige helligdager (påske, pinse, Kristi himmelfartsdag) beregnes fra påskeformelen. Faste: 1. januar, 1. mai, 17. mai, 25.-26. desember.
 
-## Offentlige avgifter
+DSO-spesifikt unntak: Glitre Nett, Tensio TN/TS har `helg_som_natt: False` (kun klokkeslett styrer dag/natt, helg/helligdag bryr seg ikke).
 
-Energileddet fra nettselskapet inkluderer følgende offentlige avgifter:
+## Offentlige avgifter (2026)
 
-### Enova-avgift
-- **Sats**: 1,0 øre/kWh eks. mva (fast)
-- Går til Enova SF for energieffektivisering
-- Gjelder hele landet
+Energileddet fra DSO-en inkluderer disse allerede. Vises separat på sensoren "Offentlige avgifter".
 
-### Forbruksavgift (elavgift)
+| Sone         | Forbruksavgift | Enova    | Sum eks. mva | MVA | Sum inkl. mva |
+| ------------ | -------------- | -------- | ------------ | --- | ------------- |
+| Standard     | 7,13 øre       | 1,00 øre | 8,13 øre     | 25% | 10,16 øre/kWh |
+| Nord-Norge   | 7,13 øre       | 1,00 øre | 8,13 øre     | 0%  | 8,13 øre/kWh  |
+| Tiltakssonen | 0 øre          | 1,00 øre | 1,00 øre     | 0%  | 1,00 øre/kWh  |
 
-Fra 2026 er forbruksavgiften forenklet med flat sats hele året (ingen sesongvariasjon).
-
-#### Satser for 2026 (husholdninger)
-
-| Område                    | Sats         | Merknad                                        |
-|---------------------------|--------------|------------------------------------------------|
-| Sør-Norge (NO1, NO2, NO5) | 7,13 øre/kWh | Alminnelig sats                                |
-| Nord-Norge (NO3, NO4)     | 7,13 øre/kWh | Alminnelig sats (samme som Sør-Norge fra 2026) |
-| Tiltakssonen              | 0 øre/kWh    | Fritak for husholdninger                       |
-
-#### Hva er nytt fra 2026?
-
-Før 2026 var det:
-- **Sesongvariasjon**: Høyere sats om vinteren (jan-mar), lavere om sommeren (apr-des)
-- **Geografisk forskjell**: Nord-Norge hadde redusert sats sammenlignet med Sør-Norge
-
-Fra 2026:
-- **Flat sats hele året**: 7,13 øre/kWh (ingen sesongvariasjon)
-- **Lik sats for alle husholdninger**: Ingen forskjell mellom Sør-Norge og Nord-Norge
-- **Tiltakssonen beholder fritak**: Husholdninger i Finnmark og Nord-Troms har fortsatt fritak
-
-#### Historiske satser (for referanse)
-
-| År   | Sør-Norge (vinter) | Sør-Norge (sommer) | Nord-Norge |
-|------|--------------------|--------------------|------------|
-| 2025 | 15,41 øre          | 9,91 øre           | 9,16 øre   |
-| 2026 | 7,13 øre           | 7,13 øre           | 7,13 øre   |
-
-**Kilde:** [Skatteetaten - Avgift på elektrisk kraft](https://www.skatteetaten.no/bedrift-og-organisasjon/avgifter/saravgifter/om/elektrisk-kraft/)
-
-**For oppdaterte satser:** [Skatteetaten - Satser elektrisk kraft](https://www.skatteetaten.no/satser/elektrisk-kraft/)
-
-### Merverdiavgift (mva)
-
-MVA-satsen varierer basert på geografisk område:
-
-| Område               | MVA-sats    |
-|----------------------|-------------|
-| Sør-Norge (standard) | 25%         |
-| Nord-Norge           | 0% (fritak) |
-| Tiltakssonen         | 0% (fritak) |
-
-## Avgiftssoner
-
-Integrasjonen støtter tre avgiftssoner som påvirker beregning av forbruksavgift og MVA.
-
-**Merk:** Fra 2026 er forbruksavgiften lik for Standard og Nord-Norge (7,13 øre/kWh). Forskjellen mellom sonene er nå primært MVA-fritak.
-
-### Standard (Sør-Norge)
-
-Gjelder prisområdene NO1, NO2 og NO5.
-
-- **Forbruksavgift**: 7,13 øre/kWh eks. mva (2026)
-- **MVA**: 25%
-
-### Nord-Norge
-
-Gjelder prisområdene NO3 og NO4, unntatt kommuner i tiltakssonen.
-
-- **Forbruksavgift**: 7,13 øre/kWh eks. mva (2026, samme som Sør-Norge)
-- **MVA**: 0% (fritak)
-
-Merverdiavgiftsfritaket for Nord-Norge ble innført i 2024 og gjelder:
-- Nordland fylke
-- Troms fylke (unntatt tiltakssonen)
-
-### Tiltakssonen
-
-Tiltakssonen har fritak for både forbruksavgift og MVA på elektrisk kraft.
-
-- **Forbruksavgift**: 0 øre/kWh (fritak)
-- **MVA**: 0% (fritak)
-
-#### Kommuner i tiltakssonen
-
-Tiltakssonen omfatter hele Finnmark fylke, samt følgende kommuner i Nord-Troms:
-
-| Kommune       | Fylke    |
-|---------------|----------|
-| Hele Finnmark | Finnmark |
-| Kåfjord       | Troms    |
-| Skjervøy      | Troms    |
-| Nordreisa     | Troms    |
-| Kvænangen     | Troms    |
-| Karlsøy       | Troms    |
-| Lyngen        | Troms    |
-| Storfjord     | Troms    |
-
-**Kilde:** [Regjeringen - Tiltakssonen](https://www.regjeringen.no/no/tema/kommuner-og-regioner/regional--og-distriktspolitikk/Tiltakssonen-for-Finnmark-og-Nord-Troms/id2362289/)
-
-### Eksempel: Totale avgifter per sone (2026)
-
-Fra 2026 er det flat sats hele året (ingen sesongforskjell).
-
-| Avgiftssone  | Forbruksavgift | Enova    | Sum eks. mva | MVA | **Sum inkl. mva** |
-|--------------|----------------|----------|--------------|-----|-------------------|
-| Standard     | 7,13 øre       | 1,00 øre | 8,13 øre     | 25% | **10,16 øre/kWh** |
-| Nord-Norge   | 7,13 øre       | 1,00 øre | 8,13 øre     | 0%  | **8,13 øre/kWh**  |
-| Tiltakssonen | 0 øre          | 1,00 øre | 1,00 øre     | 0%  | **1,00 øre/kWh**  |
-
-**Merk:** Forskjellen mellom Standard og Nord-Norge er nå kun MVA (2,03 øre/kWh).
-
-### Formel (2026)
+Fra 2026: flat sats for forbruksavgift hele året, lik for Standard og Nord-Norge. Forskjellen er kun MVA.
 
 ```python
-# Satser 2026
-FORBRUKSAVGIFT_ALMINNELIG = 0.0713  # 7,13 øre/kWh (husholdninger)
-ENOVA_AVGIFT = 0.01                  # 1,00 øre/kWh
-
-def get_forbruksavgift(avgiftssone: str, month: int) -> float:
-    """Returnerer forbruksavgift i NOK/kWh.
-    
-    Fra 2026: Flat sats hele året (month-parameter ikke lenger brukt).
-    """
+def get_forbruksavgift(avgiftssone: str) -> float:
     if avgiftssone == "tiltakssone":
-        return 0.0  # Fritak for husholdninger
-    # Standard og Nord-Norge har samme sats fra 2026
-    return 0.0713  # 7,13 øre/kWh
+        return 0.0
+    return 0.0713
 
 def get_mva_sats(avgiftssone: str) -> float:
-    """Returnerer MVA-sats (0.0 eller 0.25)."""
-    if avgiftssone in ("nord_norge", "tiltakssone"):
-        return 0.0  # MVA-fritak
-    return 0.25     # 25% MVA
+    return 0.0 if avgiftssone in ("nord_norge", "tiltakssone") else 0.25
 ```
 
-**Merk:** Disse avgiftene er allerede inkludert i energiledd-prisene fra nettselskapene. Sensoren "Offentlige avgifter" viser dem separat for informasjonsformål.
-
-#### Helligdager
-
-Følgende dager regnes som natt/helg-rate (lavere pris):
-
-**Faste helligdager:**
-- 1. januar (Nyttårsdag)
-- 1. mai (Arbeidernes dag)
-- 17. mai (Grunnlovsdag)
-- 25. desember (1. juledag)
-- 26. desember (2. juledag)
-
-**Bevegelige helligdager (beregnes automatisk fra påskeformelen):**
-- Skjærtorsdag, Langfredag, 1. og 2. påskedag
-- Kristi himmelfartsdag
-- 1. og 2. pinsedag
-
-## Total strømpris
-
-### Uten strømstøtte
-```
-total_pris = spotpris + energiledd + fastledd_per_kwh
-```
-
-### Med strømstøtte
-```
-total_pris_etter_stotte = (spotpris - strømstøtte) + energiledd + fastledd_per_kwh
-```
-
-### Uten kapasitetsledd
-
-Viser den faktiske variable kWh-prisen uten estimert kapasitetsledd.
-
-```
-strompris_per_kwh = spotpris + energiledd
-strompris_per_kwh_etter_stotte = (spotpris - strømstøtte) + energiledd
-```
-
-### Inkludert alle avgifter (prissensor for Energy Dashboard)
-
-Sensoren `sensor.totalpris_inkl_avgifter` inkluderer alle komponenter, men kapasitetsleddet fordeles som kr/kWh og [blir unøyaktig ved avvikende forbruk](../README.md#kapasitetsledd-i-energy-dashboard):
-
-```
-totalpris_inkl_avgifter = spotpris - strømstøtte + energiledd + kapasitetsledd_per_kwh 
-                         + forbruksavgift_inkl_mva + enova_inkl_mva
-```
-
-**Komponenter:**
-| Komponent              | Beskrivelse                                  |
-|------------------------|----------------------------------------------|
-| Spotpris               | Strømpris fra Nord Pool                      |
-| Strømstøtte            | 90% av spotpris over 96,25 øre (2026)        |
-| Energiledd             | Dag/natt-tariff fra nettselskapet            |
-| Kapasitetsledd per kWh | Fastledd fordelt på forventet forbruk        |
-| Forbruksavgift         | 7,13 øre/kWh + mva (avhenger av avgiftssone) |
-| Enova-avgift           | 1,00 øre/kWh + mva (avhenger av avgiftssone) |
-
-### Akkumulert strømkostnad (anbefalt for Energy Dashboard)
-
-Sensoren `sensor.akkumulert_stromkostnad` akkumulerer kostnad med kapasitetsledd fordelt lineært over tid. Brukes som «Use an entity tracking total costs» i Energy Dashboard for korrekte månedstotaler.
-
-```
-# Per oppdatering (hvert minutt):
-strom_kostnad += energy_kwh * (spotpris - stromstotte)   # eller norgespris
-energiledd_kostnad += energy_kwh * energiledd
-kapasitetsledd_kostnad += elapsed_seconds * (kapasitetsledd / seconds_in_month)
-
-akkumulert_kostnad = strom_kostnad + energiledd_kostnad + kapasitetsledd_kostnad
-```
-
-Kapasitetsleddet tikker lineært uavhengig av forbruk. Om du bruker 500 kWh eller 2000 kWh i måneden, blir kapasitetsledd-bidraget det samme: det faste beløpet fra kapasitetstrinn-tabellen.
-
-**Energy Dashboard oppsett:** Se [SENSORS.md](SENSORS.md#energy-dashboard).
-
-## Strømselskap-pris
-
-Hvis du har konfigurert en pris-sensor fra strømselskapet (f.eks. Tibber), beregnes totalpris slik:
-
-```
-electricity_company_total = strømselskap_pris + energiledd + fastledd_per_kwh
-```
-
-**Merk:** Strømselskap-prisen inkluderer ofte spotpris + påslag + evt. mva. Denne sensoren legger til nettleie (energiledd + kapasitetsledd) på toppen.
+Kilde: [Skatteetaten](https://www.skatteetaten.no/satser/elektrisk-kraft/).
 
 ## Strømstøtte
-
-Strømstøtten dekker 90% av spotpris over terskelen for husholdninger (maks 5000 kWh/mnd).
-
-**Kilder:**
-- [Regjeringens strømtiltak](https://www.regjeringen.no/no/tema/energi/strom/regjeringens-stromtiltak/id2900232/)
-- [Forskrift om strømstønad § 5](https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791)
-
-### Historikk terskelverdi
-
-| År   | Eks. mva | Inkl. mva (×1.25) |
-|------|----------|-------------------|
-| 2024 | 73 øre   | 91,25 øre         |
-| 2025 | 75 øre   | 93,75 øre         |
-| 2026 | 77 øre   | 96,25 øre         |
-
-### Formel
 
 ```
 strømstøtte = max(0, (spotpris - 0.9625) * 0.90)
 ```
 
-### Parametere
-- **Terskel**: 96,25 øre/kWh inkl. mva (0.9625 NOK/kWh) - 2026-sats
-- **Dekningsgrad**: 90%
-- **Maks forbruk**: 5000 kWh/mnd (bolig), 0 kWh/mnd (fritidsbolig)
-- **Basis**: Spotpris fra Nord Pool
+Terskel 96,25 øre/kWh inkl. mva (2026, 77 øre eks. mva). Dekningsgrad 90%. Basert på spotpris fra Nord Pool, time for time.
 
-kWh-tak avhenger av boligtype: Bolig/Fritidsbolig fast bosted = 5000 kWh/mnd, Fritidsbolig = 0 kWh/mnd (ingen strømstøtte). Se [Forskrift om strømstønad](https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791).
+kWh-tak avhengig av boligtype:
 
-### Begrensninger (ikke støttet i integrasjonen)
-- **Næringsliv**: Egne stønadsatser
-- **Fjernvarme/nærvarme**: Egen støtteordning
-- **Borettslag med fellesmåling**: Støtte til borettslaget
+| Boligtype                  | Strømstøtte-tak |
+| -------------------------- | --------------- |
+| Bolig                      | 5000 kWh/mnd    |
+| Fritidsbolig               | 0 (ingen rett)  |
+| Fritidsbolig (fast bosted) | 5000 kWh/mnd    |
 
-### Månedlig kWh-tak
+Over taket settes støtten til 0 resten av måneden. `stromstotte_gjenstaaende` viser hvor mye som er igjen.
 
-Strømstøtten gjelder kun opp til et månedlig kWh-tak per målepunkt. Taket avhenger av boligtype: Bolig/Fritidsbolig fast bosted = 5000 kWh/mnd, Fritidsbolig = 0 kWh/mnd (ingen strømstøtte). Integrasjonen sporer akkumulert månedlig forbruk og setter strømstøtte til 0 kr/kWh når taket er nådd.
+Kilde: [Forskrift om strømstønad](https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791).
 
-Sensoren `stromstotte_gjenstaaende` viser hvor mange kWh som gjenstår av taket. Attributtet `tak_naadd` på strømstøtte-sensoren viser om taket er nådd.
-
-**Praktisk betydning:**
-- De fleste husholdninger bruker under 5000 kWh/mnd (snitt ~1000-1500 kWh)
-- Ved høyt forbruk (f.eks. elbillading, varmepumpe) kan du overskride grensen
-- Integrasjonen kutter strømstøtte automatisk når taket nås
-
-### Eksempler (2026-satser)
+### Eksempler
 
 | Spotpris   | Strømstøtte | Pris etter støtte |
-|------------|-------------|-------------------|
+| ---------- | ----------- | ----------------- |
 | 0.50 NOK   | 0.00 NOK    | 0.50 NOK          |
 | 0.9625 NOK | 0.00 NOK    | 0.9625 NOK        |
 | 1.00 NOK   | 0.03 NOK    | 0.97 NOK          |
 | 1.50 NOK   | 0.48 NOK    | 1.02 NOK          |
 | 2.00 NOK   | 0.93 NOK    | 1.07 NOK          |
 
+Næring, fjernvarme og borettslag med fellesmåling støttes ikke.
+
 ## Norgespris
 
-Norgespris er et strømprodukt fra nettselskapet med fast pris, som alternativ til spotpris.
+Fast pris fra nettselskapet, alternativ til spotpris. Kilde: [Regjeringens strømtiltak](https://www.regjeringen.no/no/tema/energi/strom/regjeringens-stromtiltak/id2900232/).
 
-**Kilde:** [Regjeringens strømtiltak](https://www.regjeringen.no/no/tema/energi/strom/regjeringens-stromtiltak/id2900232/)
+| Område                  | Pris inkl. mva | MVA       |
+| ----------------------- | -------------- | --------- |
+| Sør-Norge               | 50 øre/kWh     | 25%       |
+| Nord-Norge/Tiltakssonen | 40 øre/kWh     | 0%        |
 
-### Priser (inkl. mva)
+Basispris eks. mva er 40 øre/kWh. Norgespris-kunder får ikke strømstøtte.
 
-| Område                  | Pris inkl. mva | Merverdiavgift  |
-|-------------------------|----------------|-----------------|
-| Sør-Norge               | 50 øre/kWh     | 25% mva         |
-| Nord-Norge/Tiltakssonen | 40 øre/kWh     | 0% mva (fritak) |
-
-**Merk:** Basispris eks. mva er 40 øre/kWh. Sør-Norge betaler 50 øre pga. 25% mva.
-
-### Egenskaper
-- **Fast pris**: Uavhengig av spotpris
-- **Ingen strømstøtte**: Norgespris-kunder mottar ikke strømstøtte, men integrasjonen beregner den alltid fra spotpris slik at sammenligning fungerer
-- **Velges hos nettselskapet**: Ikke alle nettselskaper tilbyr dette
-- **kWh-tak**: Bolig/Fritidsbolig fast bosted = 5000 kWh/mnd, Fritidsbolig = 1000 kWh/mnd. Over taket betaler du spotpris resten av måneden.
-
-### Konfigurering
-
-Aktiver "Jeg har Norgespris" i integrasjonens innstillinger. Integrasjonen vil:
-1. Bruke fast Norgespris i stedet for spotpris i din totalpris
-2. Vise strømstøtte beregnet fra spotpris (for sammenligning med spot+støtte)
-3. Automatisk velge riktig pris basert på avgiftssone
-
-### Formler
+kWh-tak per måned: Bolig/Fast bosted = 5000, Fritidsbolig = 1000. Over taket betaler du spotpris resten av måneden.
 
 ```python
-# Priser (inkl. mva)
-NORGESPRIS_SOR = 0.50   # 50 øre/kWh (Sør-Norge med 25% mva)
-NORGESPRIS_NORD = 0.40  # 40 øre/kWh (Nord-Norge/Tiltakssonen, mva-fritak)
-
 def get_norgespris(avgiftssone: str) -> float:
-    """Returnerer Norgespris basert på avgiftssone."""
-    if avgiftssone in ("nord_norge", "tiltakssone"):
-        return 0.40  # Nord-Norge har mva-fritak
-    return 0.50  # Sør-Norge inkl. 25% mva
-
-total_pris_norgespris = norgespris + energiledd + fastledd_per_kwh
+    return 0.40 if avgiftssone in ("nord_norge", "tiltakssone") else 0.50
 ```
 
-### Sammenligning: Spotpris vs Norgespris
-
-Sensoren `sensor.prisforskjell_norgespris` viser forskjellen:
+## Total strømpris
 
 ```
-prisforskjell = total_pris_etter_stotte - total_pris_norgespris
+# Uten støtte
+totalpris = spotpris + energiledd + fastledd_per_kwh
+
+# Med støtte
+totalpris_etter_stotte = (spotpris - strømstøtte) + energiledd + fastledd_per_kwh
+
+# Uten kapasitetsledd (variabel kWh-pris)
+strompris_per_kwh = spotpris + energiledd
+strompris_per_kwh_etter_stotte = (spotpris - strømstøtte) + energiledd
 ```
 
-**Tolkning:**
-- **Positiv verdi**: Du betaler mer med spotpris (Norgespris er billigere)
-- **Negativ verdi**: Du betaler mindre med spotpris (din avtale er billigere)
+### Totalpris inkl. avgifter (Energy Dashboard prissensor)
 
-### Eksempel (Sør-Norge)
-
-**Forutsetninger:**
-- Din spotpris: 1.20 NOK/kWh
-- Energiledd: 0.4613 NOK/kWh
-- Fastledd: 0.56 NOK/kWh
-
-**Beregninger:**
-1. **Din strømstøtte**: (1.20 - 0.9625) × 0.90 = 0.21 NOK/kWh
-2. **Din totalpris etter støtte**: (1.20 - 0.21) + 0.4613 + 0.56 = 2.01 NOK/kWh
-3. **Totalpris med Norgespris**: 0.50 + 0.4613 + 0.56 = 1.52 NOK/kWh
-4. **Prisforskjell**: 2.01 - 1.52 = 0.49 NOK/kWh (Norgespris er billigere)
-
-## Komplett eksempel
-
-**Forutsetninger:**
-- Spotpris: 1.20 NOK/kWh
-- Energiledd (dag): 0.4613 NOK/kWh
-- Kapasitetsledd: 400 kr/mnd
-- Dager i måned: 30
-- Avgiftssone: Standard (Sør-Norge)
-
-**Beregninger:**
-1. **Fastledd per kWh**: (400 / 30) / 24 = 0.56 NOK/kWh
-2. **Strømstøtte**: (1.20 - 0.9625) × 0.90 = 0.21 NOK/kWh
-3. **Totalpris uten støtte**: 1.20 + 0.4613 + 0.56 = 2.22 NOK/kWh
-4. **Totalpris med støtte**: (1.20 - 0.21) + 0.4613 + 0.56 = 2.01 NOK/kWh
-
-**Offentlige avgifter (inkludert i energileddet, 2026-satser):**
-- Forbruksavgift: 7,13 øre/kWh eks. mva
-- Enova-avgift: 1,00 øre/kWh eks. mva
-- Sum eks. mva: 8,13 øre/kWh
-- MVA (25%): 2,03 øre/kWh
-- **Sum inkl. mva: 10,16 øre/kWh**
-
-## Sammenligning av avgiftssoner (2026)
-
-Dette eksempelet viser hvordan samme strømforbruk gir ulik totalpris avhengig av avgiftssone.
-
-**Felles forutsetninger:**
-- Spotpris: 1.50 NOK/kWh
-- Energiledd (dag): 0.45 NOK/kWh (eks. avgifter for sammenligning)
-- Kapasitetsledd: 400 kr/mnd → 0.56 NOK/kWh
-- Forbruk: 1000 kWh
-
-### Steg 1: Beregn strømstøtte (lik for alle)
+`sensor.totalpris_inkl_avgifter` er prissensor for Energy Dashboard. Kapasitetsleddet fordeles per kWh, så månedstotalen blir [unøyaktig ved avvikende forbruk](../README.md#kapasitetsledd-i-energy-dashboard).
 
 ```
-Strømstøtte = (1.50 - 0.9625) × 0.90 = 0.48 NOK/kWh
-Spotpris etter støtte = 1.50 - 0.48 = 1.02 NOK/kWh
+totalpris_inkl_avgifter = spotpris - støtte + energiledd + kapasitetsledd_per_kwh
+                        + forbruksavgift_inkl_mva + enova_inkl_mva
 ```
 
-### Steg 2: Beregn avgifter per sone (2026-satser)
+### Akkumulert strømkostnad (anbefalt for Energy Dashboard)
 
-| Komponent               | Standard      | Nord-Norge   | Tiltakssonen |
-|-------------------------|---------------|--------------|--------------|
-| Forbruksavgift eks. mva | 7,13 øre      | 7,13 øre     | 0 øre        |
-| Enova-avgift eks. mva   | 1,00 øre      | 1,00 øre     | 1,00 øre     |
-| Sum eks. mva            | 8,13 øre      | 8,13 øre     | 1,00 øre     |
-| MVA-sats                | 25%           | 0%           | 0%           |
-| **Avgifter inkl. mva**  | **10,16 øre** | **8,13 øre** | **1,00 øre** |
+`sensor.akkumulert_stromkostnad` akkumulerer kostnad med kapasitetsledd fordelt lineært over tid. Brukes som "Use an entity tracking total costs".
 
-### Steg 3: Beregn totalpris per kWh
+```
+# Per oppdatering (hvert minutt):
+strom_kostnad += energy_kwh * (spotpris - støtte)   # eller norgespris
+energiledd_kostnad += energy_kwh * energiledd
+kapasitetsledd_kostnad += elapsed_seconds * (kapasitetsledd / seconds_in_month)
 
-| Komponent                     | Standard    | Nord-Norge  | Tiltakssonen |
-|-------------------------------|-------------|-------------|--------------|
-| Spotpris etter støtte         | 1.02 kr     | 1.02 kr     | 1.02 kr      |
-| Energiledd                    | 0.45 kr     | 0.45 kr     | 0.45 kr      |
-| Kapasitetsledd per kWh        | 0.56 kr     | 0.56 kr     | 0.56 kr      |
-| Avgifter (inkl. i energiledd) | 0.1016 kr   | 0.0813 kr   | 0.0100 kr    |
-| **Totalpris per kWh**         | **2.03 kr** | **2.01 kr** | **2.03 kr**  |
+akkumulert_kostnad = strom_kostnad + energiledd_kostnad + kapasitetsledd_kostnad
+```
 
-**Merk:** Energileddet fra nettselskapet inkluderer allerede avgiftene, så de varierer mellom nettselskaper i ulike soner. Tabellen over viser komponentene separat for å illustrere forskjellen.
+Kapasitetsleddet tikker uavhengig av forbruk, så månedstotalen treffer fakturaen.
 
-### Steg 4: Beregn månedskostnad (1000 kWh)
+## Strømselskap-pris
 
-For å se den reelle besparelsen må vi se på hva nettselskapene faktisk tar i energiledd. Her er et realistisk eksempel med 2026-satser:
+Hvis konfigurert (f.eks. Tibber):
 
-| Avgiftssone               | Energiledd (reelt) | Totalpris/kWh | Månedskostnad (1000 kWh) |
-|---------------------------|--------------------|---------------|--------------------------|
-| Standard (BKK)            | 0.4613 kr          | 1.80 kr       | **1 800 kr**             |
-| Nord-Norge (Arva)         | 0.3119 kr          | 1.65 kr       | **1 650 kr**             |
-| Tiltakssonen (hypotetisk) | 0.20 kr            | 1.54 kr       | **1 540 kr**             |
+```
+electricity_company_total = strømselskap_pris + energiledd + fastledd_per_kwh
+```
 
-**Besparelse sammenlignet med Standard:**
-- Nord-Norge: 150 kr/mnd (1 800 kr/år) - primært pga. MVA-fritak
-- Tiltakssonen: 260 kr/mnd (3 120 kr/år) - pga. fritak for både forbruksavgift og MVA
+Strømselskap-prisen inkluderer typisk spotpris + påslag + evt. mva.
 
-### Forklaring av forskjellen (2026)
+## Komplett eksempel (Sør-Norge)
 
-Fra 2026 er forbruksavgiften lik for Standard og Nord-Norge. Forskjellen skyldes nå primært:
+Spotpris 1.20, energiledd dag 0.4613, kapasitetsledd 400 kr/mnd, 30 dager.
 
-1. **MVA-fritak**
-   - Standard: 25% MVA på alle komponenter
-   - Nord-Norge: 0% MVA (fritak fra 2024)
-   - Tiltakssonen: 0% MVA (fritak)
-
-2. **Forbruksavgift**
-   - Standard og Nord-Norge: 7,13 øre/kWh (lik sats fra 2026)
-   - Tiltakssonen: 0 øre/kWh (fritak for husholdninger)
-
-3. **Praktisk effekt**
-   - Nord-Norge sparer ca. 2 øre/kWh sammenlignet med Standard (kun MVA-forskjell)
-   - Tiltakssonen sparer ca. 9 øre/kWh sammenlignet med Standard
-
-## Datakilder
-
-### Nødvendige sensorer
-1. **Strømforbruk**: Sanntids sensor i Watt (W)
-2. **Spotpris**: Nord Pool "Current price" i NOK/kWh
-3. **Strømselskap (valgfri)**: Total pris fra strømselskap
-
-### Oppdateringsfrekvens
-- Alle beregninger oppdateres hvert minutt
-- Maksforbruk lagres per dag og nulles ved månedsskifte
-
-## Persistens
-
-- Maksforbruk-data lagres til disk for å overleve restart
-- Data nulles automatisk ved ny måned
-- Lagret format: `{dag: maks_forbruk_kw}`
-
-## Noter
-
-- Alle priser er i NOK/kWh
-- Strømforbruk konverteres fra W til kW (/1000)
-- Beregningene følger norske regler for strømstøtte (2026: 90% over 96,25 øre/kWh)
-- Kapasitetstrinn varierer mellom nettselskaper
-- Norgespris: 50 øre/kWh (Sør-Norge) eller 40 øre/kWh (Nord-Norge), ingen strømstøtte
+```
+fastledd_per_kwh = (400 / 30) / 24 = 0.56 NOK/kWh
+strømstøtte = (1.20 - 0.9625) * 0.90 = 0.21 NOK/kWh
+totalpris uten støtte = 1.20 + 0.4613 + 0.56 = 2.22 NOK/kWh
+totalpris med støtte = 0.99 + 0.4613 + 0.56 = 2.01 NOK/kWh
+```
 
 ## Dagens kostnad
 
-Akkumulerer total strømkostnad gjennom dagen, nullstilles ved midnatt.
+Akkumuleres gjennom dagen, nullstilles ved midnatt:
 
 ```python
-# Ved hver oppdatering (hvert minutt), når energy_kwh > 0:
-daily_cost += (total_price_inkl_avgifter - stromstotte) * energy_kwh
-
-# Ved datobytte:
-if today != current_date:
-    daily_cost = 0.0
+daily_cost += (total_price_inkl_avgifter - støtte) * energy_kwh
 ```
-
-Verdien persisteres til disk og overlever restart.
 
 ## Estimert månedskostnad
 
-Projiserer totalkostnad for inneværende måned basert på forbrukstempo hittil.
+Projiserer fra forbruket hittil. Kapasitetsledd er fast og legges til uten projisering:
 
 ```python
-# Variable kostnader (energiledd × kWh + avgifter - støtte) projiseres
-variable_cost = nettleie_variable + avgifter - stotte
-estimated_variable = (variable_cost / day_of_month) * days_in_month
-
-# Kapasitetsledd er fast per måned, legges til uten projisering
-estimert_total = estimated_variable + kapasitetsledd
+estimert_total = (variable_kostnad / day_of_month) * days_in_month + kapasitetsledd
 ```
 
-Estimatet blir mer presist utover i måneden — dag 1 er usikkert, dag 25 er ganske nøyaktig.
+Mer presist utover i måneden.
 
-## Månedlig forbruk og kostnad
+## Månedlig forbruk
 
-Integrasjonen sporer månedlig forbruk og beregner kostnader automatisk via device "Månedlig forbruk".
-
-### Sensorer
-
-| Sensor                           | Beskrivelse                                  | Enhet |
-|----------------------------------|----------------------------------------------|-------|
-| `sensor.manedlig_forbruk_dag`    | Forbruk på dagtariff (06:00-22:00 hverdager) | kWh   |
-| `sensor.manedlig_forbruk_natt`   | Forbruk på natt-/helgtariff                  | kWh   |
-| `sensor.manedlig_forbruk_total`  | Totalt forbruk denne måneden                 | kWh   |
-| `sensor.manedlig_nettleie`       | Nettleie-kostnad (energiledd + kapasitet)    | kr    |
-| `sensor.manedlig_avgifter`       | Forbruksavgift + Enova-avgift                | kr    |
-| `sensor.manedlig_stromstotte`    | Estimert strømstøtte                         | kr    |
-| `sensor.manedlig_nettleie_total` | Total nettleie inkl. avgifter minus støtte   | kr    |
-
-### Beregningsmetode
-
-Forbruket beregnes med Riemann-sum basert på effekt-sensoren:
+Riemann-sum fra effektsensoren:
 
 ```python
-# Ved hver oppdatering (hvert minutt)
 elapsed_hours = (now - last_update).total_seconds() / 3600
 energy_kwh = current_power_kw * elapsed_hours
 
-# Legg til i riktig tariff-bøtte
 if is_day_rate:
     monthly_consumption["dag"] += energy_kwh
 else:
     monthly_consumption["natt"] += energy_kwh
 ```
 
-### Månedlig nullstilling
+Nullstilles automatisk ved månedsskifte.
 
-All forbruksdata nullstilles automatisk ved månedsskifte:
-- Forbruk dag/natt resettes til 0
-- Kapasitetstrinn-data beholdes (topp 3-dager)
-
-### Kostnadsberegning
+### Månedlig kostnad
 
 ```python
-# Nettleie
-nettleie_dag = forbruk_dag * energiledd_dag
-nettleie_natt = forbruk_natt * energiledd_natt
-nettleie_total = nettleie_dag + nettleie_natt + kapasitetsledd
-
-# Avgifter (inkl. mva basert på avgiftssone)
+nettleie_total = forbruk_dag * energiledd_dag + forbruk_natt * energiledd_natt + kapasitetsledd
 avgifter = total_forbruk * (forbruksavgift_inkl_mva + enova_inkl_mva)
-
-# Strømstøtte (estimat basert på gjennomsnittlig støtte-sats)
 stromstotte = total_forbruk * gjennomsnitt_stromstotte_per_kwh
-
-# Total nettleie etter støtte
 total = nettleie_total + avgifter - stromstotte
 ```
 
-### Begrensninger
+## Forrige måned
 
-- **Strømstøtte er estimat**: Sensoren bruker gjeldende strømstøtte-sats, ikke historisk akkumulert støtte
-- **Riemann-sum**: Forbruket beregnes fra effekt, ikke fra strømmåler (kan ha små avvik)
-- **Maks 5000 kWh**: Strømstøtte kuttes automatisk når månedlig forbruk overstiger 5000 kWh
+Ved månedsskifte kopieres `_monthly_consumption` og topp-3 til "forrige måned"-variabler, og nåværende måned nullstilles. Lagres til disk.
 
-### Alternativ: Utility Meter
+Kapasitetsledd og kapasitetstrinn beregnes ved månedsskifte og persisteres, slik at forrige måneds nettleie er stabil.
 
-For mer nøyaktig sporing kan du bruke `packages/stromkalkulator_utility.yaml` som setter opp Home Assistant utility_meter med automatisk tariff-bytte basert på `sensor.tariff`.
+## Norgespris-kompensasjon
 
-## Forrige måned (faktura-verifisering)
-
-Integrasjonen lagrer automatisk forrige måneds data ved månedsskifte for enkel faktura-verifisering.
-
-### Sensorer
-
-| Sensor                                | Beskrivelse                               | Enhet |
-|---------------------------------------|-------------------------------------------|-------|
-| `sensor.forrige_maaned_forbruk_dag`   | Forbruk på dagtariff forrige måned        | kWh   |
-| `sensor.forrige_maaned_forbruk_natt`  | Forbruk på natt-/helgtariff forrige måned | kWh   |
-| `sensor.forrige_maaned_forbruk_total` | Totalt forbruk forrige måned              | kWh   |
-| `sensor.forrige_maaned_nettleie`      | Nettleie-kostnad (energiledd + kapasitet) | kr    |
-| `sensor.forrige_maaned_toppforbruk`   | Gjennomsnitt av topp-3 effektdager        | kW    |
-
-### Attributter
-
-Alle sensorer har attributtet `måned` som viser hvilken måned dataene gjelder (f.eks. "januar 2026").
-
-**ForrigeMaanedNettleieSensor** har ekstra attributter:
-- `energiledd_dag_kr`: Kostnad for dag-forbruk
-- `energiledd_natt_kr`: Kostnad for natt-forbruk
-- `kapasitetsledd_kr`: Kapasitetsledd basert på forrige måneds topp-3
-- `snitt_topp_3_kw`: Gjennomsnitt av topp-3 effektdager
-
-**ForrigeMaanedToppforbrukSensor** har ekstra attributter:
-- `topp_1_dato`, `topp_1_kw`: Dato og effekt for høyeste dag
-- `topp_2_dato`, `topp_2_kw`: Dato og effekt for nest høyeste dag
-- `topp_3_dato`, `topp_3_kw`: Dato og effekt for tredje høyeste dag
-
-### Hvordan det fungerer
-
-Ved månedsskifte (f.eks. 1. februar kl 00:01):
-
-1. **Lagring**: Nåværende måneds forbruk og topp-3 kopieres til "forrige måned"-variabler
-2. **Nullstilling**: Nåværende måned nullstilles og starter på nytt
-3. **Persistens**: All data lagres til disk og overlever restart
+BKK og andre nettselskap krediterer time for time: `(norgespris_fast - spotpris) × kWh`. Vi akkumulerer det samme:
 
 ```python
-# Ved månedsskifte
-if now.month != self._current_month:
-    # Lagre forrige måneds data
-    self._previous_month_consumption = self._monthly_consumption.copy()
-    self._previous_month_top_3 = self._get_top_3_days()
-    self._previous_month_name = "januar 2026"  # Norsk månedsnavn
-    
-    # Nullstill for ny måned
-    self._monthly_consumption = {"dag": 0.0, "natt": 0.0}
-    self._daily_max_power = {}
+_monthly_norgespris_compensation += (NORGESPRIS_INKL_MVA - spotpris) * energy_kwh
 ```
 
-### Nettleie-beregning for forrige måned
+Beregnes for alle (også spot-kunder), så sammenligning fungerer begge veier.
 
-Nettleien beregnes fra lagret data:
+## Nøyaktighet
 
-```python
-# Energiledd
-energiledd_dag = forbruk_dag * energiledd_dag_pris
-energiledd_natt = forbruk_natt * energiledd_natt_pris
+1-5% avvik fra faktura er normalt: integrasjonen bruker Riemann-sum fra effektsensor, fakturaen bruker måleren direkte. Strømstøtte kan avvike mer (faktura bruker time-for-time). Se [REFERANSE.md](fakturaer/REFERANSE.md) for verifiserte fakturaer.
 
-# Kapasitetsledd (fra lagret topp-3)
-avg_top_3 = sum(previous_month_top_3.values()) / 3
-kapasitetsledd = finn_kapasitetstrinn(avg_top_3)
+## Datakilder
 
-# Total nettleie
-nettleie = energiledd_dag + energiledd_natt + kapasitetsledd
-```
+- Effektsensor (W): typisk fra AMS-leser via HAN
+- Spotpris (NOK/kWh): Nord Pool "Current price"
+- Strømselskap-sensor (valgfri): totalpris fra leverandør
 
-### Begrensninger
-
-- **Data kun tilgjengelig etter første månedsskifte**: Før første månedsskifte er sensorene tomme (0 eller None)
-- **Kun én måned lagres**: Bare siste fullførte måned er tilgjengelig (ikke historikk)
-- **Priser fra nåværende konfigurasjon**: Nettleie beregnes med gjeldende energiledd-priser, ikke historiske
-
-## Verifisering mot faktiske fakturaer
-
-Alle beregninger er verifisert mot ekte BKK-fakturaer. Verifiseringsrapportene dokumenterer at integrasjonen beregner nettleie korrekt innenfor avrundingsfeil (< 0.01 kr avvik per fakturalinje).
-
-| Periode | Type | Nettleie (faktura) | Avvik | Rapport |
-|---|---|---|---|---|
-| Februar 2026 | Norgespris | 1008.86 kr | 0.01 kr | [Rapport](fakturaer/BKK_Faktura_februar_2026.md) |
-| Desember 2025 | Spot + strømstøtte | 1006.20 kr | < 1% | [Data](fakturaer/BKK_Faktura_desember_2025.md) |
-| November 2025 | Spot + strømstøtte | 696.28 kr | < 1% | [Data](fakturaer/BKK_Faktura_november_2025.md) |
-| Oktober 2025 | Spot + strømstøtte | 999.65 kr | < 1% | [Data](fakturaer/BKK_Faktura_oktober_2025.md) |
-
-Verifiseringen dekker både spotpris-kunder (med strømstøtte) og Norgespris-kunder, og validerer alle komponenter: energiledd dag/natt, kapasitetstrinn, forbruksavgift, Enova-avgift og MVA. Se `tests/test_faktura_validering.py` og `tests/test_faktura_februar_2026.py` for de tilhørende testene.
+Oppdateres hvert minutt. Topp-3 effektdager persisteres til disk.

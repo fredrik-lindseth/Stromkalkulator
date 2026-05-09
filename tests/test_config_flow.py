@@ -118,20 +118,21 @@ class TestEnergileddPrecision:
         assert stored == value
 
     def test_all_dso_energiledd_are_valid_floats(self):
-        """Every DSO energiledd_dag/natt must be a valid non-negative float."""
+        """Every DSO energiledd_*_eks_mva must be a valid non-negative float."""
         from stromkalkulator.dso import DSO_LIST
 
         for key, dso in DSO_LIST.items():
             if not dso.get("supported"):
                 continue
-            dag = dso["energiledd_dag"]
-            natt = dso["energiledd_natt"]
-            assert isinstance(dag, (int, float)), f"{key}: energiledd_dag is not numeric"
-            assert isinstance(natt, (int, float)), f"{key}: energiledd_natt is not numeric"
-            assert dag >= 0, f"{key}: energiledd_dag is negative: {dag}"
-            assert natt >= 0, f"{key}: energiledd_natt is negative: {natt}"
-            assert dag < 5, f"{key}: energiledd_dag suspiciously high: {dag}"
-            assert natt < 5, f"{key}: energiledd_natt suspiciously high: {natt}"
+            dag = dso["energiledd_dag_eks_mva"]
+            natt = dso["energiledd_natt_eks_mva"]
+            assert isinstance(dag, (int, float)), f"{key}: energiledd_dag_eks_mva is not numeric"
+            assert isinstance(natt, (int, float)), f"{key}: energiledd_natt_eks_mva is not numeric"
+            assert dag >= 0, f"{key}: energiledd_dag_eks_mva is negative: {dag}"
+            assert natt >= 0, f"{key}: energiledd_natt_eks_mva is negative: {natt}"
+            # Eks-mva-verdier ligger typisk under 0.6 NOK/kWh
+            assert dag < 1, f"{key}: energiledd_dag_eks_mva suspiciously high: {dag}"
+            assert natt < 1, f"{key}: energiledd_natt_eks_mva suspiciously high: {natt}"
 
     def test_energiledd_dag_ge_natt_for_all_dso(self):
         """Day rate should be >= night rate for all grid companies."""
@@ -140,8 +141,10 @@ class TestEnergileddPrecision:
         for key, dso in DSO_LIST.items():
             if not dso.get("supported"):
                 continue
-            assert dso["energiledd_dag"] >= dso["energiledd_natt"], (
-                f"{key}: dag ({dso['energiledd_dag']}) < natt ({dso['energiledd_natt']})"
+            dag = dso["energiledd_dag_eks_mva"]
+            natt = dso["energiledd_natt_eks_mva"]
+            assert dag >= natt, (
+                f"{key}: dag_eks_mva ({dag}) < natt_eks_mva ({natt})"
             )
 
 
@@ -209,7 +212,14 @@ class TestDSOList:
     def test_all_supported_dso_have_required_fields(self):
         from stromkalkulator.dso import DSO_LIST
 
-        required = {"name", "prisomrade", "supported", "energiledd_dag", "energiledd_natt", "kapasitetstrinn"}
+        required = {
+            "name",
+            "prisomrade",
+            "supported",
+            "energiledd_dag_eks_mva",
+            "energiledd_natt_eks_mva",
+            "kapasitetstrinn",
+        }
         for key, dso in DSO_LIST.items():
             if dso.get("supported"):
                 missing = required - set(dso.keys())

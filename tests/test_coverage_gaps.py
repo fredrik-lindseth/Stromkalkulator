@@ -98,6 +98,7 @@ def _make_entry(
         "tso": dso_id,
         "power_sensor": "sensor.power",
         "spot_price_sensor": "sensor.spot_price",
+        "spotpris_inkl_mva": True,
         "avgiftssone": avgiftssone,
     }
     if extra_data:
@@ -630,8 +631,8 @@ class TestCoordinatorInitFallbacks:
         entry = _make_entry(extra_data={"energiledd_dag": "invalid"})
         coordinator = coord_module.NettleieCoordinator(hass, entry)
 
-        # Should use BKK default
-        assert coordinator.energiledd_dag == 0.4613
+        # BKK default eks-mva = 0.28770; coordinator regner inkl-mva fra det.
+        assert coordinator.energiledd_dag_eks_mva == pytest.approx(0.28770)
 
     def test_invalid_energiledd_natt_falls_back(self, coord_module):
         """Non-numeric energiledd_natt should fall back to DSO default."""
@@ -639,7 +640,7 @@ class TestCoordinatorInitFallbacks:
         entry = _make_entry(extra_data={"energiledd_natt": None})
         coordinator = coord_module.NettleieCoordinator(hass, entry)
 
-        assert coordinator.energiledd_natt == 0.2329
+        assert coordinator.energiledd_natt_eks_mva == pytest.approx(0.10500)
 
     def test_invalid_kapasitet_varsel_terskel_falls_back(self, coord_module):
         """Non-numeric terskel should fall back to default 2.0."""
@@ -650,16 +651,23 @@ class TestCoordinatorInitFallbacks:
         assert coordinator.kapasitet_varsel_terskel == 2.0
 
     def test_valid_custom_energiledd_used(self, coord_module):
-        """Valid custom energiledd should override DSO defaults."""
+        """Valid custom energiledd should override DSO defaults.
+
+        Brukerens override er eks-mva. Coordinator beregner inkl-mva fra sone.
+        """
         hass = MagicMock()
         entry = _make_entry(extra_data={
-            "energiledd_dag": 0.55,
-            "energiledd_natt": 0.33,
+            "energiledd_dag": 0.40,
+            "energiledd_natt": 0.20,
         })
         coordinator = coord_module.NettleieCoordinator(hass, entry)
 
-        assert coordinator.energiledd_dag == 0.55
-        assert coordinator.energiledd_natt == 0.33
+        assert coordinator.energiledd_dag_eks_mva == 0.40
+        assert coordinator.energiledd_natt_eks_mva == 0.20
+        # BKK = standard sone (mva 25%, forbruksavgift 7.13)
+        # inkl_dag = (0.40 + 0.0713 + 0.01) * 1.25 = 0.601625
+        assert coordinator.energiledd_dag == pytest.approx(0.601625, abs=1e-5)
+        assert coordinator.energiledd_natt == pytest.approx(0.351625, abs=1e-5)
 
 
 # ===========================================================================
@@ -711,6 +719,7 @@ class TestElectricityCompanyPriceBadValues:
         entry = _make_entry(extra_data={
             "electricity_provider_price_sensor": "sensor.elco",
             "spot_price_sensor": "sensor.spot_price",
+            "spotpris_inkl_mva": True,
         })
         coordinator = coord_module.NettleieCoordinator(hass, entry)
         _run_update(coord_module, coordinator)  # cache 0.85
@@ -754,6 +763,7 @@ class TestElectricityCompanyPriceBadValues:
         entry = _make_entry(extra_data={
             "electricity_provider_price_sensor": "sensor.elco",
             "spot_price_sensor": "sensor.spot_price",
+            "spotpris_inkl_mva": True,
         })
         coordinator = coord_module.NettleieCoordinator(hass, entry)
 
@@ -781,6 +791,7 @@ class TestElectricityCompanyPriceBadValues:
         entry = _make_entry(extra_data={
             "electricity_provider_price_sensor": "sensor.elco",
             "spot_price_sensor": "sensor.spot_price",
+            "spotpris_inkl_mva": True,
         })
         coordinator = coord_module.NettleieCoordinator(hass, entry)
 

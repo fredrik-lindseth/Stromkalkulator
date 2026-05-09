@@ -2,7 +2,7 @@
 
 Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.12.0]
 
 ### Fikset
 
@@ -24,9 +24,12 @@ Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), [Sem
 
 ### Vedlikehold
 
-- Destillert dokumentasjon: kondensert AGENTS, README, CONTRIBUTING, DEVELOPMENT, TESTING, SENSORS, incident-rapporter. ~6400 linjer fjernet, ~1200 lagt til (netto ~5200 linjer kuttet).
-- Slettet 5 redundante testfiler som testet lokale re-implementasjoner i stedet for produksjonen (~1100 linjer). Suite gikk fra 1972 til 1912 tester uten reduksjon i dekning.
+- Destillert dokumentasjon: kondensert AGENTS, README, CONTRIBUTING, DEVELOPMENT, TESTING, SENSORS, incident-rapporter. Netto ~5200 linjer fjernet.
+- Slettet 5 redundante testfiler som testet lokale re-implementasjoner i stedet for produksjonen (~1100 linjer).
+- Konsolidert faktura-tester (februar+mars til parametrisert `test_faktura_bkk.py`), valideringer (`_validate_*` tester samlet ett sted), og test-helpers til `tests/conftest.py`. Netto ~1000 linjer fjernet på tvers av tester.
+- Mindre kode-rydding: ubrukt `month`-parameter fjernet fra `get_forbruksavgift` og `compute_energiledd_inkl_mva`, duplikat `kroner_spart_per_kwh`/`diff_per_kwh` slått sammen.
 - 9 nye tester i `test_spotpris_mva.py` for normaliserings-stien.
+- Suite: 1893 tester, ingen reduksjon i dekning. Kun fjerning av duplikater.
 - Slettet utdaterte planer og fakta-filer.
 
 ## [0.55.0]

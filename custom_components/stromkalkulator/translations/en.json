@@ -79,6 +79,9 @@
     }
   },
   "entity": {
+    "button": {
+      "lag_fakturarapport": { "name": "Generate invoice verification report" }
+    },
     "sensor": {
       "energiledd": { "name": "Energy tariff" },
       "kapasitetstrinn": { "name": "Capacity tier" },

@@ -52,11 +52,11 @@ Select your grid company from the dropdown. Tax zone (VAT and consumption tax) i
 
 ### Property type
 
-| Property type | Electricity subsidy | Norgespris cap | Source |
-|---------------|---------------------|----------------|--------|
-| Residence (default) | 5000 kWh/month | 5000 kWh/month | [Regulation § 5](https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791) |
-| Holiday home | None | 1000 kWh/month | [Regulation § 3](https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791) |
-| Holiday home (permanent residence) | 5000 kWh/month | 5000 kWh/month | [Regulation § 11](https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791) |
+| Property type                      | Electricity subsidy | Norgespris cap | Source                                                                      |
+| ---------------------------------- | ------------------- | -------------- | --------------------------------------------------------------------------- |
+| Residence (default)                | 5000 kWh/month      | 5000 kWh/month | [Regulation § 5](https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791)  |
+| Holiday home                       | None                | 1000 kWh/month | [Regulation § 3](https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791)  |
+| Holiday home (permanent residence) | 5000 kWh/month      | 5000 kWh/month | [Regulation § 11](https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791) |
 
 Above the Norgespris kWh cap, you pay spot price for the rest of the month. Holiday homes are not entitled to electricity subsidy unless you live there permanently (§ 11).
 
@@ -72,11 +72,11 @@ All Norwegian grid companies are supported.
 
 The tax zone determines VAT and consumption tax, and is set automatically from your grid company. You can override in settings if needed.
 
-| Tax zone          | Price areas    | Consumption tax | VAT  |
-|-------------------|----------------|-----------------|------|
-| Southern Norway   | NO1, NO2, NO5 | 7.13 øre/kWh   | 25%  |
-| Northern Norway   | NO3, NO4      | 7.13 øre/kWh   | 0%   |
-| Tiltakssonen      | Finnmark/Nord-Troms | 0 øre      | 0%   |
+| Tax zone        | Price areas         | Consumption tax | VAT |
+| --------------- | ------------------- | --------------- | --- |
+| Southern Norway | NO1, NO2, NO5       | 7.13 øre/kWh    | 25% |
+| Northern Norway | NO3, NO4            | 7.13 øre/kWh    | 0%  |
+| Tiltakssonen    | Finnmark/Nord-Troms | 0 øre           | 0%  |
 
 ## Devices and Sensors
 
@@ -120,10 +120,10 @@ Energy Dashboard needs a **consumption meter** (kWh) and a **cost source**. Stro
 
 Use **Totalpris inkl. avgifter** as a price sensor. Simplest to set up. The capacity charge is spread as kr/kWh, so the monthly total for that portion will be inaccurate.
 
-| What                 | Sensor                         | Source                   |
-|----------------------|--------------------------------|--------------------------|
-| Consumption (kWh)    | Your consumption meter         | AMS meter via HAN port (e.g. Tibber Pulse)  |
-| Price (NOK/kWh)      | **Total price incl. taxes**    | Stromkalkulator          |
+| What              | Sensor                      | Source                                     |
+| ----------------- | --------------------------- | ------------------------------------------ |
+| Consumption (kWh) | Your consumption meter      | AMS meter via HAN port (e.g. Tibber Pulse) |
+| Price (NOK/kWh)   | **Total price incl. taxes** | Stromkalkulator                            |
 
 1. **Settings > Dashboards > Energy**
 2. Under **Electricity grid**, click **Add consumption**
@@ -135,10 +135,10 @@ Use **Totalpris inkl. avgifter** as a price sensor. Simplest to set up. The capa
 
 Use **Akkumulert stromkostnad** for correct monthly totals. The capacity charge is distributed linearly over time instead of per kWh, so the monthly total matches the invoice regardless of consumption. The sensor is disabled by default.
 
-| What                 | Sensor                            | Source                   |
-|----------------------|-----------------------------------|--------------------------|
-| Consumption (kWh)    | Your consumption meter            | AMS meter via HAN port (e.g. Tibber Pulse)  |
-| Cost (NOK)           | **Akkumulert stromkostnad**       | Stromkalkulator          |
+| What              | Sensor                      | Source                                     |
+| ----------------- | --------------------------- | ------------------------------------------ |
+| Consumption (kWh) | Your consumption meter      | AMS meter via HAN port (e.g. Tibber Pulse) |
+| Cost (NOK)        | **Akkumulert stromkostnad** | Stromkalkulator                            |
 
 1. Enable the sensor: **Settings > Devices > Monthly consumption > Entities > Akkumulert stromkostnad**
 2. **Settings > Dashboards > Energy**
@@ -197,6 +197,7 @@ Designed for residential homes with individual electricity subscriptions. Not su
 **Why does the sensor show "natt" (night) in the middle of the day?**
 
 The "natt" tariff is actually "natt/helg" (night/weekend):
+
 - Nights (22:00-06:00)
 - Weekends (Sat-Sun, all day)
 - Public holidays (all day)
@@ -221,6 +222,7 @@ Some deviation is normal. The integration uses Riemann sum from the power sensor
 Only applies with **Totalpris inkl. avgifter** (the price sensor method). The sensor spreads the capacity charge (fixed kr/month) across expected kWh. The Energy Dashboard multiplies this by actual consumption. Use more or less than the distribution assumes, and the capacity charge comes out wrong.
 
 Example: March, capacity 250 kr/month, spread across 744 kWh (31 days x 24):
+
 - You use 1553 kWh, Dashboard computes (250/744) x 1553 = **522 kr** for capacity
 - Invoice says **250 kr**
 - Error: +272 kr on capacity alone
@@ -231,12 +233,12 @@ Example: March, capacity 250 kr/month, spread across 744 kWh (31 days x 24):
 
 ## Documentation
 
-| Document                                | Content                    |
-|-----------------------------------------|----------------------------|
-| [SENSORS.en.md](docs/SENSORS.en.md)     | All sensors and attributes |
-| [beregninger.md](docs/beregninger.md)   | Formulas and tax zones     |
+| Document                                | Content                       |
+| --------------------------------------- | ----------------------------- |
+| [SENSORS.en.md](docs/SENSORS.en.md)     | All sensors and attributes    |
+| [beregninger.md](docs/beregninger.md)   | Formulas and tax zones        |
 | [CONTRIBUTING.md](docs/CONTRIBUTING.md) | Update prices / report errors |
-| [TESTING.md](docs/TESTING.md)           | Validating calculations    |
+| [TESTING.md](docs/TESTING.md)           | Validating calculations       |
 
 ## License
 

@@ -10,13 +10,13 @@ Bruker oppdaget at integrasjonens "spart med Norgespris hittil i mai" (168 kr) a
 
 Sammenligning på BKK-instansens egne data 1.–9. mai 2026:
 
-| Måling                              | Verdi              |
-| ----------------------------------- | ------------------ |
-| Forbruk (vår sensor)                | 352,75 kWh         |
-| Forbruk (Tibber/Elhub)              | 316,55 kWh         |
-| `monthly_norgespris_diff` (vår)     | +168,22 kr         |
-| `monthly_norgespris_compensation`   | -244,82 kr         |
-| BKK "spart med Norgespris hittil"   | +319,29 kr         |
+| Måling                            | Verdi      |
+| --------------------------------- | ---------- |
+| Forbruk (vår sensor)              | 352,75 kWh |
+| Forbruk (Tibber/Elhub)            | 316,55 kWh |
+| `monthly_norgespris_diff` (vår)   | +168,22 kr |
+| `monthly_norgespris_compensation` | -244,82 kr |
+| BKK "spart med Norgespris hittil" | +319,29 kr |
 
 Vektet snitt-spot utledet fra `monthly_norgespris_compensation`: 119,4 øre/kWh. Vektet snitt-spot utledet fra BKK: 150,9 øre/kWh.
 

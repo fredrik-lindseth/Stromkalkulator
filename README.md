@@ -32,7 +32,13 @@ Sensorer som viser hva strømmen faktisk koster, ikke bare spotprisen:
 | ----------- | ---------- | ------------------- | ------------------ |
 | BKK         | NO5        | 6                   | april 2026         |
 
-Hver rapport matcher integrasjonens beregninger linje for linje mot en ekte faktura. Se [docs/fakturaer/REFERANSE.md](docs/fakturaer/REFERANSE.md). Bruker du et annet nettselskap, [send inn din faktura](docs/fakturaer/VERIFISER_DIN_FAKTURA.md) så bekrefter vi det.
+Hver rapport matcher integrasjonens beregninger linje for linje mot en ekte faktura. Se [docs/fakturaer/REFERANSE.md](docs/fakturaer/REFERANSE.md).
+
+**Presisjon:** Integrasjonen treffer fakturaen innenfor 9 Wh på månedsforbruk (0,001 %) og 0,2 % på Norgespris-kompensasjon. Avvikene skyldes sample-presisjon i HAN-protokollen og vekslingskurs på EUR/NOK, ikke logiske feil. Se [docs/begrensninger.md](docs/begrensninger.md) for detaljer.
+
+Verifiseringen er gjort på Aidon-måler med Pow-U HAN-leser (AMSleser.no) og offisiell `nordpool`-integrasjon i HA. Andre målere, HAN-lesere og spot-integrasjoner kan ha andre presisjons-karakteristikker.
+
+Bruker du et annet nettselskap, [send inn din faktura](docs/fakturaer/VERIFISER_DIN_FAKTURA.md) så bekrefter vi det.
 
 ## Installasjon
 
@@ -61,11 +67,11 @@ Velg nettselskapet ditt fra nedtrekkslisten. Avgiftssone (mva og forbruksavgift)
 
 ### Boligtype
 
-| Boligtype | Strømstøtte | Norgespris-tak | Kilde |
-|-----------|-------------|----------------|-------|
-| Bolig (standard) | 5000 kWh/mnd | 5000 kWh/mnd | [Forskrift § 5](https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791) |
-| Fritidsbolig | Ingen | 1000 kWh/mnd | [Forskrift § 3](https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791) |
-| Fritidsbolig (fast bosted) | 5000 kWh/mnd | 5000 kWh/mnd | [Forskrift § 11](https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791) |
+| Boligtype                  | Strømstøtte  | Norgespris-tak | Kilde                                                                      |
+| -------------------------- | ------------ | -------------- | -------------------------------------------------------------------------- |
+| Bolig (standard)           | 5000 kWh/mnd | 5000 kWh/mnd   | [Forskrift § 5](https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791)  |
+| Fritidsbolig               | Ingen        | 1000 kWh/mnd   | [Forskrift § 3](https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791)  |
+| Fritidsbolig (fast bosted) | 5000 kWh/mnd | 5000 kWh/mnd   | [Forskrift § 11](https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791) |
 
 Over kWh-taket for Norgespris betaler du spotpris for resten av måneden. Fritidsboliger har ikke rett på strømstøtte med mindre du bor der fast (§ 11).
 
@@ -230,6 +236,7 @@ Noe avvik er normalt. Integrasjonen beregner forbruk fra effektsensoren (Riemann
 Dette gjelder kun hvis du bruker **Totalpris inkl. avgifter** (prissensor-metoden). Totalpris-sensoren fordeler kapasitetsleddet over forventet kWh. Energy Dashboard ganger denne prisen med faktisk forbruk. Bruker du mer eller mindre enn fordelingen forutsetter, blir kapasitetsleddet feil.
 
 Eksempel: Mars, kapasitetsledd 250 kr/mnd, fordelt på 744 kWh (31 dager × 24):
+
 - Du bruker 1553 kWh → Dashboard beregner (250/744) × 1553 = **522 kr** for kapasitetsledd
 - Fakturaen sier **250 kr**
 - Avvik: +272 kr bare på kapasitetsleddet

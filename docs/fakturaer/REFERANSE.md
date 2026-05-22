@@ -4,8 +4,8 @@ Hver rapport her er en attest på at integrasjonen regner riktig for et gitt net
 
 ## Verifiserte nettselskap
 
-| Nettselskap | Prisområde | Avgiftssone | Antall verifiserte måneder | Siste verifisering | Avtale                         |
-| ----------- | ---------- | ----------- | -------------------------- | ------------------ | ------------------------------ |
+| Nettselskap | Prisområde | Avgiftssone | Antall verifiserte måneder | Siste verifisering | Avtale                             |
+| ----------- | ---------- | ----------- | -------------------------- | ------------------ | ---------------------------------- |
 | BKK         | NO5        | Standard    | 6                          | april 2026         | Spotpris (2025), Norgespris (2026) |
 
 Vil du legge til ditt nettselskap? Se [VERIFISER_DIN_FAKTURA.md](VERIFISER_DIN_FAKTURA.md).
@@ -139,15 +139,15 @@ automation:
 
 Etter oppdatering har du disse sensorene for fakturasammenligning:
 
-| Sensor                          | Beskrivelse               | Enhet   |
-| ------------------------------- | ------------------------- | ------- |
-| `sensor.energiledd_dag`         | Energiledd dag-sats       | NOK/kWh |
-| `sensor.energiledd_natt_helg`   | Energiledd natt-sats      | NOK/kWh |
-| `sensor.forbruksavgift`         | Forbruksavgift            | NOK/kWh |
-| `sensor.enovaavgift`            | Enovaavgift               | NOK/kWh |
-| `sensor.kapasitetstrinn`        | Kapasitetsledd            | kr/mnd  |
-| `sensor.stromstotte`            | Strømstøtte per kWh       | NOK/kWh |
-| `sensor.stromstotte_aktiv`      | Ja/Nei om støtte er aktiv | -       |
+| Sensor                        | Beskrivelse               | Enhet   |
+| ----------------------------- | ------------------------- | ------- |
+| `sensor.energiledd_dag`       | Energiledd dag-sats       | NOK/kWh |
+| `sensor.energiledd_natt_helg` | Energiledd natt-sats      | NOK/kWh |
+| `sensor.forbruksavgift`       | Forbruksavgift            | NOK/kWh |
+| `sensor.enovaavgift`          | Enovaavgift               | NOK/kWh |
+| `sensor.kapasitetstrinn`      | Kapasitetsledd            | kr/mnd  |
+| `sensor.stromstotte`          | Strømstøtte per kWh       | NOK/kWh |
+| `sensor.stromstotte_aktiv`    | Ja/Nei om støtte er aktiv | -       |
 
 Sensor-navn kan ha suffix (`_2`, `_3` osv.) hvis du har flere instanser av integrasjonen.
 

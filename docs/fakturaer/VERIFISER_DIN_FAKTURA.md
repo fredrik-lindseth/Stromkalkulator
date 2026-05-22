@@ -48,28 +48,28 @@ Hvis fakturaen viser pris eks. mva, kan du sammenligne direkte mot `eks_mva`-att
 
 Bruk denne malen for hver fakturalinje:
 
-| Priselement     | Forbruk (kWh)  | Pris (øre/kWh)  | Faktura (kr) | Vår beregning (kr) | Avvik |
-| --------------- | -------------- | --------------- | ------------ | ------------------ | ----- |
-| Energiledd dag  |                |                 |              | forbruk \* pris    |       |
-| Energiledd natt |                |                 |              | forbruk \* pris    |       |
-| Forbruksavgift  |                |                 |              | forbruk \* pris    |       |
-| Enovaavgift     |                |                 |              | forbruk \* pris    |       |
-| Kapasitetsledd  | (antall dager) | (kr/mnd)        |              | kr/mnd             |       |
+| Priselement     | Forbruk (kWh)  | Pris (øre/kWh) | Faktura (kr) | Vår beregning (kr) | Avvik |
+| --------------- | -------------- | -------------- | ------------ | ------------------ | ----- |
+| Energiledd dag  |                |                |              | forbruk \* pris    |       |
+| Energiledd natt |                |                |              | forbruk \* pris    |       |
+| Forbruksavgift  |                |                |              | forbruk \* pris    |       |
+| Enovaavgift     |                |                |              | forbruk \* pris    |       |
+| Kapasitetsledd  | (antall dager) | (kr/mnd)       |              | kr/mnd             |       |
 
-Avrundingsavvik på 0.01–0.05 kr per linje er normalt og forventet.
+Avrundingsavvik på 0.01-0.05 kr per linje er normalt og forventet.
 
 ### 4. Sammenlign mot integrasjonens sensorer
 
 Etter en hel måned bør disse sensorene matche fakturaen:
 
-| Sensor                          | Sammenlign mot                  |
-| ------------------------------- | ------------------------------- |
-| `sensor.energiledd_dag`         | Pris på "Energiledd dag"        |
-| `sensor.energiledd_natt_helg`   | Pris på "Energiledd natt/helg"  |
-| `sensor.forbruksavgift`         | Pris på "Forbruksavgift"        |
-| `sensor.enovaavgift`            | Pris på "Enovaavgift"           |
-| `sensor.kapasitetstrinn`        | Linje "Kapasitet X-Y kW"        |
-| `sensor.kapasitetstrinn_nummer` | Hvilket trinn (1, 2, 3, …)      |
+| Sensor                          | Sammenlign mot                 |
+| ------------------------------- | ------------------------------ |
+| `sensor.energiledd_dag`         | Pris på "Energiledd dag"       |
+| `sensor.energiledd_natt_helg`   | Pris på "Energiledd natt/helg" |
+| `sensor.forbruksavgift`         | Pris på "Forbruksavgift"       |
+| `sensor.enovaavgift`            | Pris på "Enovaavgift"          |
+| `sensor.kapasitetstrinn`        | Linje "Kapasitet X-Y kW"       |
+| `sensor.kapasitetstrinn_nummer` | Hvilket trinn (1, 2, 3, …)     |
 
 Sensor-navn kan ha suffix (`_2`, `_3` osv.) hvis du har flere instanser av integrasjonen.
 
@@ -101,7 +101,7 @@ Selve nettleie-fakturaen viser ikke kraftpris (det går via strømleverandøren)
 
 Send inn en kort bekreftelse, den blir en attest. Du trenger:
 
-- **Nettselskap** og **prisområde** (NO1–NO5)
+- **Nettselskap** og **prisområde** (NO1-NO5)
 - **Periode** (måned/år)
 - **Forbruk** per kategori (dag, natt/helg, totalt) i kWh
 - **Pris** per linje (øre/kWh)
@@ -142,14 +142,14 @@ Begge utfall er verdifulle, men match er det vanlige, og det er det som bygger t
 
 ## Vanlige avvik og hva de betyr
 
-| Avvik                               | Sannsynlig årsak                                                          |
-| ----------------------------------- | ------------------------------------------------------------------------- |
-| Energiledd avviker i sats           | `dso.py`-verdier er utdatert, send inn for å få fikset                   |
-| Energiledd avviker i forbruk        | Tariff-bytte (dag/natt) skjer feil, kan være helligdager eller `helg_som_natt` |
-| Forbruksavgift avviker              | Avgiftssone er feil konfigurert (Nord-Norge vs Sør-Norge)                 |
-| Kapasitetsledd avviker              | Trinn-grenser er feil i `dso.py`, eller ditt forbruksmønster brytes ned annerledes |
-| Strømstøtte avviker (2025-fakturaer)| Terskel eller dekningsgrad har endret seg                                 |
-| MVA på 0% når du forventet 25%      | Avgiftssone er satt til Nord-Norge eller tiltakssonen                     |
+| Avvik                                | Sannsynlig årsak                                                                   |
+| ------------------------------------ | ---------------------------------------------------------------------------------- |
+| Energiledd avviker i sats            | `dso.py`-verdier er utdatert, send inn for å få fikset                             |
+| Energiledd avviker i forbruk         | Tariff-bytte (dag/natt) skjer feil, kan være helligdager eller `helg_som_natt`     |
+| Forbruksavgift avviker               | Avgiftssone er feil konfigurert (Nord-Norge vs Sør-Norge)                          |
+| Kapasitetsledd avviker               | Trinn-grenser er feil i `dso.py`, eller ditt forbruksmønster brytes ned annerledes |
+| Strømstøtte avviker (2025-fakturaer) | Terskel eller dekningsgrad har endret seg                                          |
+| MVA på 0% når du forventet 25%       | Avgiftssone er satt til Nord-Norge eller tiltakssonen                              |
 
 ## Eksisterende verifikasjoner
 

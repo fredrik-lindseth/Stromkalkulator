@@ -10,34 +10,34 @@ Eller i venv: `python -m pytest tests/ -v`.
 
 ### Hva som dekkes
 
-| Område                              | Testfil                                                      |
-| ----------------------------------- | ------------------------------------------------------------ |
-| Strømstøtte (formel, tak)           | `test_stromstotte_tak.py`                                    |
-| Dag/natt-tariff og helligdager      | `test_energiledd.py`                                         |
-| Kapasitetstrinn, topp-3, varsel     | `test_kapasitetstrinn.py`                                    |
-| Norgespris og akkumulert besparelse | `test_norgespris.py`, `test_norgespris_akkumulert.py`        |
-| Faktura-verifisering 2026           | `test_faktura_februar_2026.py`, `test_faktura_mars_2026.py`  |
-| Validering av nye fakturafelter     | `test_faktura_validering_nye_felter.py`                      |
-| Månedsskifte                        | `test_month_transition_integration.py`                       |
-| DSO-migrering ved fusjoner          | `test_dso_migration.py`                                      |
-| DSO-data validering                 | `test_dso_data_validation.py`                                |
-| Property-baserte tester             | `test_property.py`                                           |
-| Lagringsnøkkel-isolasjon            | `test_storage_key.py`                                        |
-| Config flow struktur                | `test_config_flow.py`                                        |
-| Setup/unload                        | `test_init_setup.py`                                         |
-| Diagnostics                         | `test_diagnostics.py`                                        |
-| Sensor None-håndtering, units       | `test_sensor_classes.py`                                     |
-| Lagring (save/load, korrupsjon)     | `test_persistens.py`                                         |
-| Coordinator end-to-end              | `test_coordinator_update.py`                                 |
-| Robustness (cache, clamping)        | `test_coordinator_robustness.py`                             |
-| Månedlige sensorer, estimat         | `test_monthly_sensors.py`                                    |
-| Passthrough-sensorer                | `test_passthrough_sensors.py`                                |
-| Bugfiks-dekning                     | `test_coverage_gaps.py`                                      |
-| Strømpris per kWh                   | `test_strompris_per_kwh.py`                                  |
-| DST, helligdager 2031+              | `test_edge_cases.py`                                         |
-| Solcelle-eksport                    | `test_eksport.py`                                            |
-| Akkumulert kostnad                  | `test_akkumulert_kostnad.py`                                 |
-| Boligtype-avhengige tak             | `test_boligtype.py`                                          |
+| Område                              | Testfil                                                     |
+| ----------------------------------- | ----------------------------------------------------------- |
+| Strømstøtte (formel, tak)           | `test_stromstotte_tak.py`                                   |
+| Dag/natt-tariff og helligdager      | `test_energiledd.py`                                        |
+| Kapasitetstrinn, topp-3, varsel     | `test_kapasitetstrinn.py`                                   |
+| Norgespris og akkumulert besparelse | `test_norgespris.py`, `test_norgespris_akkumulert.py`       |
+| Faktura-verifisering 2026           | `test_faktura_februar_2026.py`, `test_faktura_mars_2026.py` |
+| Validering av nye fakturafelter     | `test_faktura_validering_nye_felter.py`                     |
+| Månedsskifte                        | `test_month_transition_integration.py`                      |
+| DSO-migrering ved fusjoner          | `test_dso_migration.py`                                     |
+| DSO-data validering                 | `test_dso_data_validation.py`                               |
+| Property-baserte tester             | `test_property.py`                                          |
+| Lagringsnøkkel-isolasjon            | `test_storage_key.py`                                       |
+| Config flow struktur                | `test_config_flow.py`                                       |
+| Setup/unload                        | `test_init_setup.py`                                        |
+| Diagnostics                         | `test_diagnostics.py`                                       |
+| Sensor None-håndtering, units       | `test_sensor_classes.py`                                    |
+| Lagring (save/load, korrupsjon)     | `test_persistens.py`                                        |
+| Coordinator end-to-end              | `test_coordinator_update.py`                                |
+| Robustness (cache, clamping)        | `test_coordinator_robustness.py`                            |
+| Månedlige sensorer, estimat         | `test_monthly_sensors.py`                                   |
+| Passthrough-sensorer                | `test_passthrough_sensors.py`                               |
+| Bugfiks-dekning                     | `test_coverage_gaps.py`                                     |
+| Strømpris per kWh                   | `test_strompris_per_kwh.py`                                 |
+| DST, helligdager 2031+              | `test_edge_cases.py`                                        |
+| Solcelle-eksport                    | `test_eksport.py`                                           |
+| Akkumulert kostnad                  | `test_akkumulert_kostnad.py`                                |
+| Boligtype-avhengige tak             | `test_boligtype.py`                                         |
 
 ### Begrensninger
 
@@ -106,10 +106,10 @@ Kapasitetstrinn (BKK):
 
 Avgifter (2026):
 
-| Avgift         | Forventet                            |
-| -------------- | ------------------------------------ |
-| Forbruksavgift | 0.0891 kr/kWh (7,13 øre × 1.25 mva)  |
-| Enova-avgift   | 0.0125 kr/kWh (1,0 øre × 1.25 mva)   |
+| Avgift         | Forventet                           |
+| -------------- | ----------------------------------- |
+| Forbruksavgift | 0.0891 kr/kWh (7,13 øre × 1.25 mva) |
+| Enova-avgift   | 0.0125 kr/kWh (1,0 øre × 1.25 mva)  |
 
 ## Feilsøking
 

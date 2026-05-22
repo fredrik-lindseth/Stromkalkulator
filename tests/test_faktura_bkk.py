@@ -30,7 +30,7 @@ BKK_ENOVAAVGIFT_2026_ORE = 1.25  # øre/kWh inkl. mva
 
 FAKTURA_FEBRUAR_2026 = {
     "navn": "februar_2026",
-    "fakturanr": "063926706",
+    "fakturanr": "012345681",
     "periode_dager": 28,
     "forbruk_dag_kwh": 893.615,
     "forbruk_natt_kwh": 780.171,
@@ -57,7 +57,7 @@ FAKTURA_FEBRUAR_2026 = {
 
 FAKTURA_MARS_2026 = {
     "navn": "mars_2026",
-    "fakturanr": "064202476",
+    "fakturanr": "012345682",
     "periode_dager": 31,
     "forbruk_dag_kwh": 831.768,
     "forbruk_natt_kwh": 721.449,
@@ -82,9 +82,36 @@ FAKTURA_MARS_2026 = {
 }
 
 
+FAKTURA_APRIL_2026 = {
+    "navn": "april_2026",
+    "fakturanr": "012345683",
+    "periode_dager": 30,
+    "forbruk_dag_kwh": 620.829,
+    "forbruk_natt_kwh": 760.998,
+    "forbruk_total_kwh": 1381.827,
+    "maks_effekt": [5.939, 4.779, 4.262],
+    "maks_effekt_snitt": 4.993,
+    "kapasitetstrinn_indeks": 1,  # Trinn 2: 2-5 kW (akkurat under 5,0 kW-grensen)
+    "kapasitetstrinn_grense": (5, 250),
+    "kapasitetstrinn_min_kw": 2.0,
+    "kapasitetstrinn_maks_kw": 5.0,
+    "norgespris_snitt_kr_per_kwh": -1.0333,
+    "forventet_energiledd_dag_kr": 223.26,
+    "forventet_energiledd_natt_kr": 99.88,
+    "forventet_norgespris_kr": -1427.89,
+    "forventet_kapasitet_kr": 250.00,
+    "forventet_forbruksavgift_kr": 123.16,
+    "forventet_enovaavgift_kr": 17.28,
+    "forventet_nettleie_kr": 713.58,
+    "forventet_total_kr": -714.31,
+    "forventet_mva_kr": 142.72,
+    "dobbelttelling_avvik_kr": 140,
+}
+
+
 @pytest.fixture(
-    params=[FAKTURA_FEBRUAR_2026, FAKTURA_MARS_2026],
-    ids=["februar_2026", "mars_2026"],
+    params=[FAKTURA_FEBRUAR_2026, FAKTURA_MARS_2026, FAKTURA_APRIL_2026],
+    ids=["februar_2026", "mars_2026", "april_2026"],
 )
 def faktura(request):
     """BKK-faktura for én måned. Norgespris-kunde."""

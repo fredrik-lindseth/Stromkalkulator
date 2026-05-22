@@ -48,22 +48,22 @@ Elinett ble feilaktig antatt å være i Helgeland (Nordland) under verifiseringe
 
 NO3 som FEIL får mva-fritak (skal være standard/25%):
 
-| DSO            | Plassering       | Fylke           |
-| -------------- | ---------------- | --------------- |
-| tensio_tn      | Nord-Trøndelag   | Trøndelag       |
-| tensio_ts      | Sør-Trøndelag    | Trøndelag       |
-| elinett        | Molde-området    | Møre og Romsdal |
-| mellom         | Romsdal/Nordmøre | Møre og Romsdal |
-| nettselskapet  | Namdal           | Trøndelag       |
-| fjellnett      | Oppdal           | Trøndelag       |
-| klive          | Kristiansund    | Møre og Romsdal |
-| nordvest_nett  | Sunnmøre         | Møre og Romsdal |
-| romsdalsnett   | Romsdal          | Møre og Romsdal |
-| s_nett         | Surnadal         | Møre og Romsdal |
-| straumen_nett  | Inderøy          | Trøndelag       |
-| vevig          | Nordmøre/Sunndal | Møre og Romsdal |
-| viermie        | Røros            | Trøndelag       |
-| netera         | Namsos           | Trøndelag       |
+| DSO           | Plassering       | Fylke           |
+| ------------- | ---------------- | --------------- |
+| tensio_tn     | Nord-Trøndelag   | Trøndelag       |
+| tensio_ts     | Sør-Trøndelag    | Trøndelag       |
+| elinett       | Molde-området    | Møre og Romsdal |
+| mellom        | Romsdal/Nordmøre | Møre og Romsdal |
+| nettselskapet | Namdal           | Trøndelag       |
+| fjellnett     | Oppdal           | Trøndelag       |
+| klive         | Kristiansund     | Møre og Romsdal |
+| nordvest_nett | Sunnmøre         | Møre og Romsdal |
+| romsdalsnett  | Romsdal          | Møre og Romsdal |
+| s_nett        | Surnadal         | Møre og Romsdal |
+| straumen_nett | Inderøy          | Trøndelag       |
+| vevig         | Nordmøre/Sunndal | Møre og Romsdal |
+| viermie       | Røros            | Trøndelag       |
+| netera        | Namsos           | Trøndelag       |
 
 NO3 som KORREKT skal ha mva-fritak:
 

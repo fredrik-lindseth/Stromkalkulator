@@ -1,45 +1,172 @@
-"""Property-based tests using Hypothesis — overkill edition.
+"""Property-based tests using Hypothesis - overkill edition.
 
 Three tiers of testing:
-1. Property tests (Hypothesis) — random inputs, verify invariants
-2. Exhaustive tests — brute-force every hour of the year, every DSO
-3. Differential tests — two independent implementations must agree
+1. Property tests (Hypothesis) - random inputs, verify invariants
+2. Exhaustive tests - brute-force every hour of the year, every DSO
+3. Differential tests - two independent implementations must agree
 
 Inspired by SQLite's approach of redundant verification across
 multiple strategies to catch bugs that any single approach would miss.
+
+Oracle: alle Hypothesis-tester går mot ekte coordinator-kode
+(NettleieCoordinator._is_day_rate, _get_kapasitetsledd,
+_calculate_stromstotte, _get_top_3_days) - ikke mot test-fil-lokale
+helpers. Dette gjør at fuzz-coverage faktisk fanger bugs i produksjon.
 """
 
 from __future__ import annotations
 
+import importlib
+import sys
 from datetime import datetime, timedelta
 
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from custom_components.stromkalkulator.const import (
+    BOLIGTYPE_BOLIG,
     HELLIGDAGER_BEVEGELIGE,
     HELLIGDAGER_FASTE,
     STROMSTOTTE_LEVEL,
     STROMSTOTTE_RATE,
 )
 from custom_components.stromkalkulator.dso import DSO_LIST
-from tests.test_energiledd import is_day_rate
-from tests.test_kapasitetstrinn import (
-    BKK_KAPASITETSTRINN,
-    calculate_avg_top_3,
-    get_kapasitetsledd,
-)
+from tests.conftest import _make_entry, _make_hass
 
 
-def calculate_stromstotte(spot_price: float) -> float:
-    """Calculate strømstøtte."""
-    if spot_price > STROMSTOTTE_LEVEL:
-        return round((spot_price - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE, 4)
-    return 0.0
+def _load_coordinator_module():
+    """Patch HA-base og last coordinator-modulen på nytt.
+
+    conftest mocker DataUpdateCoordinator som MagicMock på sys.modules-nivå.
+    Autouse-fixturen erstatter den med en ekte baseklasse, men det skjer FØRST
+    når fixturen kjører (per test). Modul-import skjer FØR det. Vi må derfor
+    manuelt installere base og reloade coordinator-modulen slik at
+    NettleieCoordinator-klassen blir bygget over den ekte basen.
+    """
+    mod = sys.modules["homeassistant.helpers.update_coordinator"]
+    if not hasattr(mod, "DataUpdateCoordinator") or not isinstance(
+        getattr(mod, "DataUpdateCoordinator", None), type
+    ):
+
+        class FakeDataUpdateCoordinator:
+            def __init_subclass__(cls, **kwargs):
+                pass
+
+            def __class_getitem__(cls, item):
+                return cls
+
+            def __init__(self, hass, logger, *, name, update_interval):
+                self.hass = hass
+
+            async def async_config_entry_first_refresh(self):
+                pass
+
+        mod.DataUpdateCoordinator = FakeDataUpdateCoordinator
+
+    if not isinstance(getattr(mod, "UpdateFailed", None), type) or not issubclass(
+        mod.UpdateFailed, BaseException
+    ):
+
+        class UpdateFailed(Exception):
+            pass
+
+        mod.UpdateFailed = UpdateFailed
+
+    coord = importlib.import_module("custom_components.stromkalkulator.coordinator")
+    importlib.reload(coord)
+    return coord
+
+
+_coord_module = _load_coordinator_module()
+NettleieCoordinator = _coord_module.NettleieCoordinator
+DailyMaxEntry = _coord_module.DailyMaxEntry
+
+# BKK kapasitetstrinn 2026 - speiler DSO_LIST["bkk"]["kapasitetstrinn"].
+# Beholdes for differential-tester (_alt_kapasitetsledd) og som referanse
+# i Hypothesis-strategier.
+BKK_KAPASITETSTRINN: list[tuple[float, int]] = [
+    (2, 155),
+    (5, 250),
+    (10, 415),
+    (15, 600),
+    (20, 770),
+    (25, 940),
+    (50, 1800),
+    (75, 2650),
+    (100, 3500),
+    (float("inf"), 6900),
+]
+
+
+def _make_coordinator(dso_id: str = "bkk") -> NettleieCoordinator:
+    """Bygg en ekte NettleieCoordinator for bruk som oracle i Hypothesis-tester.
+
+    Bruker conftest sine standard mock-helpers. Coordinator-en er ferdig
+    initialisert med DSO-data og kan kalle interne metoder (_is_day_rate,
+    _get_kapasitetsledd, _get_top_3_days) direkte uten _async_update_data.
+    """
+    hass = _make_hass()
+    entry = _make_entry(dso_id=dso_id)
+    return NettleieCoordinator(hass, entry)
+
+
+def _avg_top_3_via_coordinator(
+    coordinator: NettleieCoordinator, daily_max: dict[str, float]
+) -> float:
+    """Kjør avg-top-3-logikken via coordinator._get_top_3_days().
+
+    Speiler nøyaktig regnestykket i coordinator._async_update_data:
+      top_3 = self._get_top_3_days()
+      avg = sum(kw) / 3 if len >= 3 else sum(kw) / max(len, 1)
+    """
+    coordinator._daily_max_power = {
+        date: DailyMaxEntry(kw=kw, hour=None) for date, kw in daily_max.items()
+    }
+    top_3 = coordinator._get_top_3_days()
+    kw_values = [entry.kw for entry in top_3.values()]
+    if not kw_values:
+        return 0.0
+    if len(kw_values) >= 3:
+        return sum(kw_values) / 3
+    return sum(kw_values) / len(kw_values)
+
+
+# Lazy-initialisert cached coordinator-instans. Bygges ved første kall slik at
+# conftest sin autouse-fixture (_patch_update_coordinator) har rukket å erstatte
+# DataUpdateCoordinator-MagicMock med en ekte base. Hypothesis kjører 10000
+# ganger per test, så vi unngår å bygge en ny coordinator per eksempel.
+_BKK_COORDINATOR_CACHE: NettleieCoordinator | None = None
+
+
+def _bkk_coordinator() -> NettleieCoordinator:
+    """Returner cached BKK-coordinator, bygg ved første kall."""
+    global _BKK_COORDINATOR_CACHE
+    if _BKK_COORDINATOR_CACHE is None:
+        _BKK_COORDINATOR_CACHE = _make_coordinator("bkk")
+    return _BKK_COORDINATOR_CACHE
+
+
+def _is_day_rate(dt: datetime) -> bool:
+    """Oracle: ekte coordinator._is_day_rate fra produksjonskoden."""
+    return _bkk_coordinator()._is_day_rate(dt)
+
+
+def _get_kapasitetsledd_bkk(power: float) -> tuple[int, int, str]:
+    """Oracle: ekte coordinator._get_kapasitetsledd for BKK-kapasitetstrinn."""
+    return _bkk_coordinator()._get_kapasitetsledd(power)
+
+
+def _calculate_stromstotte(spot_price: float) -> float:
+    """Oracle: ekte coordinator._calculate_stromstotte (staticmethod).
+
+    Setter monthly_total_kwh=0 og boligtype=bolig slik at strømstøtte-taket
+    aldri slår inn - vi fuzz-tester selve formel-grenen for spot > terskel.
+    """
+    return NettleieCoordinator._calculate_stromstotte(spot_price, 0.0, BOLIGTYPE_BOLIG)
 
 
 # =============================================================================
-# TIER 1: Property tests (Hypothesis) — 10,000 random inputs per test
+# TIER 1: Property tests (Hypothesis) - 10,000 random inputs per test
 # =============================================================================
 
 HEAVY = settings(max_examples=10_000, deadline=None)
@@ -52,7 +179,7 @@ HEAVY = settings(max_examples=10_000, deadline=None)
 @HEAVY
 def test_kapasitetstrinn_always_returns_valid_tier(power: float) -> None:
     """Any non-negative power value must map to a valid tier."""
-    price, tier, range_str = get_kapasitetsledd(power, BKK_KAPASITETSTRINN)
+    price, tier, range_str = _get_kapasitetsledd_bkk(power)
     assert price > 0
     assert 1 <= tier <= len(BKK_KAPASITETSTRINN)
     assert "kW" in range_str
@@ -65,8 +192,8 @@ def test_kapasitetstrinn_always_returns_valid_tier(power: float) -> None:
 @HEAVY
 def test_kapasitetstrinn_monotonic(a: float, b: float) -> None:
     """Higher power must never give a lower price (monotonicity)."""
-    price_a, _, _ = get_kapasitetsledd(a, BKK_KAPASITETSTRINN)
-    price_b, _, _ = get_kapasitetsledd(b, BKK_KAPASITETSTRINN)
+    price_a, _, _ = _get_kapasitetsledd_bkk(a)
+    price_b, _, _ = _get_kapasitetsledd_bkk(b)
     if a <= b:
         assert price_a <= price_b
     else:
@@ -77,7 +204,7 @@ def test_kapasitetstrinn_monotonic(a: float, b: float) -> None:
 @HEAVY
 def test_kapasitetstrinn_tier_matches_range_string(power: float) -> None:
     """The range string must describe the tier the power falls into."""
-    _price, tier, range_str = get_kapasitetsledd(power, BKK_KAPASITETSTRINN)
+    _price, tier, range_str = _get_kapasitetsledd_bkk(power)
     # Range string should contain "kW"
     assert "kW" in range_str
     # If it starts with ">", it's the last tier
@@ -95,8 +222,8 @@ def test_kapasitetstrinn_tier_matches_range_string(power: float) -> None:
 @HEAVY
 def test_kapasitetstrinn_adding_power_never_decreases_price(power: float, offset: float) -> None:
     """Adding any positive amount of power must never decrease the price."""
-    price_before, _, _ = get_kapasitetsledd(power, BKK_KAPASITETSTRINN)
-    price_after, _, _ = get_kapasitetsledd(power + offset, BKK_KAPASITETSTRINN)
+    price_before, _, _ = _get_kapasitetsledd_bkk(power)
+    price_after, _, _ = _get_kapasitetsledd_bkk(power + offset)
     assert price_after >= price_before
 
 
@@ -114,7 +241,7 @@ def test_kapasitetstrinn_adding_power_never_decreases_price(power: float, offset
 def test_avg_top3_bounded_by_max(values: list[float]) -> None:
     """Average of top 3 can never exceed the maximum value."""
     daily_max = {f"2026-01-{i + 1:02d}": v for i, v in enumerate(values)}
-    avg = calculate_avg_top_3(daily_max)
+    avg = _avg_top_3_via_coordinator(_bkk_coordinator(), daily_max)
     assert avg <= max(values) + 1e-10
     assert avg >= 0
 
@@ -130,7 +257,7 @@ def test_avg_top3_bounded_by_max(values: list[float]) -> None:
 def test_avg_top3_between_min_and_max_of_top3(values: list[float]) -> None:
     """Average must lie between the min and max of the top 3 values."""
     daily_max = {f"2026-01-{i + 1:02d}": v for i, v in enumerate(values)}
-    avg = calculate_avg_top_3(daily_max)
+    avg = _avg_top_3_via_coordinator(_bkk_coordinator(), daily_max)
     top3 = sorted(values, reverse=True)[:3]
     assert avg >= min(top3) - 1e-10
     assert avg <= max(top3) + 1e-10
@@ -147,11 +274,11 @@ def test_avg_top3_between_min_and_max_of_top3(values: list[float]) -> None:
 def test_avg_top3_ignores_low_values(values: list[float]) -> None:
     """Adding a value below the min of top 3 must not change the average."""
     daily_max = {f"2026-01-{i + 1:02d}": v for i, v in enumerate(values)}
-    avg_before = calculate_avg_top_3(daily_max)
+    avg_before = _avg_top_3_via_coordinator(_bkk_coordinator(), daily_max)
     top3 = sorted(values, reverse=True)[:3]
     if min(top3) > 0:
         daily_max["2026-02-01"] = 0.0
-        avg_after = calculate_avg_top_3(daily_max)
+        avg_after = _avg_top_3_via_coordinator(_bkk_coordinator(), daily_max)
         assert abs(avg_after - avg_before) < 1e-10
 
 
@@ -171,9 +298,9 @@ def test_avg_top3_adding_value_never_decreases_when_3_plus(values: list[float], 
     the denominator grows. This invariant only holds once we have 3+ values.
     """
     daily_max = {f"2026-01-{i + 1:02d}": v for i, v in enumerate(values)}
-    avg_before = calculate_avg_top_3(daily_max)
+    avg_before = _avg_top_3_via_coordinator(_bkk_coordinator(), daily_max)
     daily_max["2026-02-01"] = extra
-    avg_after = calculate_avg_top_3(daily_max)
+    avg_after = _avg_top_3_via_coordinator(_bkk_coordinator(), daily_max)
     assert avg_after >= avg_before - 1e-10
 
 
@@ -185,7 +312,7 @@ def test_avg_top3_adding_value_never_decreases_when_3_plus(values: list[float], 
 def test_weekends_always_night(dt: datetime) -> None:
     """Weekends must always be night rate."""
     if dt.weekday() >= 5:
-        assert is_day_rate(dt) is False
+        assert _is_day_rate(dt) is False
 
 
 @given(dt=st.datetimes(min_value=datetime(2026, 1, 1), max_value=datetime(2026, 12, 31)))
@@ -193,14 +320,14 @@ def test_weekends_always_night(dt: datetime) -> None:
 def test_night_hours_always_night(dt: datetime) -> None:
     """Hours outside 06-22 must always be night rate."""
     if dt.hour < 6 or dt.hour >= 22:
-        assert is_day_rate(dt) is False
+        assert _is_day_rate(dt) is False
 
 
 @given(dt=st.datetimes(min_value=datetime(2026, 1, 1), max_value=datetime(2026, 12, 31)))
 @HEAVY
 def test_day_rate_implies_weekday_and_day_hours(dt: datetime) -> None:
     """If is_day_rate returns True, it must be a weekday during 06-22 and not a holiday."""
-    if is_day_rate(dt):
+    if _is_day_rate(dt):
         assert dt.weekday() < 5, f"Day rate on weekend: {dt}"
         assert 6 <= dt.hour < 22, f"Day rate during night hours: {dt}"
         mm_dd = dt.strftime("%m-%d")
@@ -216,14 +343,14 @@ def test_day_rate_implies_weekday_and_day_hours(dt: datetime) -> None:
 @HEAVY
 def test_stromstotte_never_negative(price: float) -> None:
     """Strømstøtte must never be negative."""
-    assert calculate_stromstotte(price) >= 0
+    assert _calculate_stromstotte(price) >= 0
 
 
 @given(price=st.floats(min_value=-10, max_value=100, allow_nan=False, allow_infinity=False))
 @HEAVY
 def test_stromstotte_never_exceeds_price_above_threshold(price: float) -> None:
     """Strømstøtte must never exceed the amount above threshold."""
-    stotte = calculate_stromstotte(price)
+    stotte = _calculate_stromstotte(price)
     if price > STROMSTOTTE_LEVEL:
         assert stotte <= (price - STROMSTOTTE_LEVEL) + 1e-4
     else:
@@ -238,16 +365,16 @@ def test_stromstotte_never_exceeds_price_above_threshold(price: float) -> None:
 def test_stromstotte_monotonic(a: float, b: float) -> None:
     """Higher spot price must never give lower strømstøtte."""
     if a <= b:
-        assert calculate_stromstotte(a) <= calculate_stromstotte(b) + 1e-4
+        assert _calculate_stromstotte(a) <= _calculate_stromstotte(b) + 1e-4
     else:
-        assert calculate_stromstotte(a) >= calculate_stromstotte(b) - 1e-4
+        assert _calculate_stromstotte(a) >= _calculate_stromstotte(b) - 1e-4
 
 
 @given(price=st.floats(min_value=-10, max_value=100, allow_nan=False, allow_infinity=False))
 @HEAVY
 def test_stromstotte_effective_price_never_below_threshold(price: float) -> None:
     """Spot price minus strømstøtte must never go below the threshold."""
-    stotte = calculate_stromstotte(price)
+    stotte = _calculate_stromstotte(price)
     effective = price - stotte
     if price > STROMSTOTTE_LEVEL:
         # Should pay approximately threshold + 10% of excess
@@ -261,12 +388,12 @@ def test_stromstotte_effective_price_never_below_threshold(price: float) -> None
 
 
 # =============================================================================
-# TIER 2: Exhaustive tests — brute-force verification
+# TIER 2: Exhaustive tests - brute-force verification
 # =============================================================================
 
 
 def test_exhaustive_every_hour_of_2026() -> None:
-    """Brute-force test is_day_rate for all 8,760 hours of 2026.
+    """Brute-force test coordinator._is_day_rate for all 8,760 hours of 2026.
 
     Verifies against an independent implementation that uses a completely
     different approach (set lookups instead of string formatting).
@@ -289,7 +416,7 @@ def test_exhaustive_every_hour_of_2026() -> None:
     night_count = 0
 
     while dt < end:
-        result = is_day_rate(dt)
+        result = _is_day_rate(dt)
 
         # Independent oracle: compute expected result from scratch
         is_weekend = dt.weekday() >= 5
@@ -317,7 +444,11 @@ def test_exhaustive_every_hour_of_2026() -> None:
 
 
 def test_exhaustive_every_boundary_of_every_kapasitetstrinn() -> None:
-    """Test every exact boundary and boundary+/-epsilon for all DSOs."""
+    """Test every exact boundary and boundary+/-epsilon for all DSOs.
+
+    Bygger en ekte coordinator per DSO og bruker coordinator._get_kapasitetsledd
+    som oracle. Fanger eventuelle off-by-one mellom DSO-config og kode.
+    """
     for dso_id, dso in DSO_LIST.items():
         if not dso["supported"]:
             continue
@@ -326,12 +457,14 @@ def test_exhaustive_every_boundary_of_every_kapasitetstrinn() -> None:
         if trinn and isinstance(trinn[0], dict):
             continue
 
+        coord = _make_coordinator(dso_id)
+
         for i, (threshold, expected_price) in enumerate(trinn):
             if threshold == float("inf"):
                 continue
 
             # At boundary: should be this tier
-            price_at, _, _ = get_kapasitetsledd(threshold, trinn)
+            price_at, _, _ = coord._get_kapasitetsledd(threshold)
             assert price_at == expected_price, (
                 f"{dso_id}: at {threshold} kW expected {expected_price}, got {price_at}"
             )
@@ -339,7 +472,7 @@ def test_exhaustive_every_boundary_of_every_kapasitetstrinn() -> None:
             # Just above: should be next tier
             if i + 1 < len(trinn):
                 next_price = trinn[i + 1][1]
-                price_above, _, _ = get_kapasitetsledd(threshold + 0.001, trinn)
+                price_above, _, _ = coord._get_kapasitetsledd(threshold + 0.001)
                 assert price_above == next_price, (
                     f"{dso_id}: at {threshold}+e expected {next_price}, got {price_above}"
                 )
@@ -352,14 +485,18 @@ def test_exhaustive_every_boundary_of_every_kapasitetstrinn() -> None:
 
 def _alt_stromstotte(spot: float) -> float:
     """Alternative strømstøtte implementation using max() instead of if."""
-    return round(max(0.0, (spot - STROMSTOTTE_LEVEL)) * STROMSTOTTE_RATE, 4)
+    return max(0.0, (spot - STROMSTOTTE_LEVEL)) * STROMSTOTTE_RATE
 
 
 @given(price=st.floats(min_value=-100, max_value=100, allow_nan=False, allow_infinity=False))
 @HEAVY
 def test_differential_stromstotte_two_implementations(price: float) -> None:
-    """Two independent strømstøtte implementations must agree."""
-    impl1 = calculate_stromstotte(price)
+    """Two independent strømstøtte implementations must agree.
+
+    Coordinator-staticmethod vs. lokal max()-variant. Begge skal gi samme
+    verdi uten avrunding.
+    """
+    impl1 = _calculate_stromstotte(price)
     impl2 = _alt_stromstotte(price)
     assert abs(impl1 - impl2) < 1e-10, (
         f"Implementations disagree at price={price}: {impl1} vs {impl2}"
@@ -376,7 +513,7 @@ def _alt_is_day_rate(dt: datetime) -> bool:
     if dt.hour not in day_hours:
         return False
 
-    # Check holidays — completely different approach: parse into tuples
+    # Check holidays - completely different approach: parse into tuples
     fixed = {(int(h[:2]), int(h[3:])) for h in HELLIGDAGER_FASTE}
     if (dt.month, dt.day) in fixed:
         return False
@@ -393,7 +530,7 @@ def _alt_is_day_rate(dt: datetime) -> bool:
 @HEAVY
 def test_differential_day_rate_two_implementations(dt: datetime) -> None:
     """Two independent is_day_rate implementations must agree."""
-    impl1 = is_day_rate(dt)
+    impl1 = _is_day_rate(dt)
     impl2 = _alt_is_day_rate(dt)
     assert impl1 == impl2, f"Implementations disagree at {dt}: {impl1} vs {impl2}"
 
@@ -410,7 +547,7 @@ def _alt_kapasitetsledd(avg_power: float, trinn: list) -> int:
 @HEAVY
 def test_differential_kapasitetsledd_two_implementations(power: float) -> None:
     """Two independent kapasitetsledd implementations must agree on price."""
-    price1, _, _ = get_kapasitetsledd(power, BKK_KAPASITETSTRINN)
+    price1, _, _ = _get_kapasitetsledd_bkk(power)
     price2 = _alt_kapasitetsledd(power, BKK_KAPASITETSTRINN)
     assert price1 == price2, f"At {power} kW: {price1} vs {price2}"
 
@@ -423,6 +560,8 @@ def _alt_avg_top3(daily_max: dict[str, float]) -> float:
         return 0.0
     values = list(daily_max.values())
     top3 = heapq.nlargest(min(3, len(values)), values)
+    if len(values) >= 3:
+        return sum(top3) / 3
     return sum(top3) / len(top3)
 
 
@@ -437,10 +576,8 @@ def _alt_avg_top3(daily_max: dict[str, float]) -> float:
 def test_differential_avg_top3_two_implementations(values: list[float]) -> None:
     """Two independent top-3 average implementations must agree."""
     daily_max = {f"2026-01-{i + 1:02d}": v for i, v in enumerate(values)}
-    result1 = calculate_avg_top_3(daily_max)
+    result1 = _avg_top_3_via_coordinator(_bkk_coordinator(), daily_max)
     result2 = _alt_avg_top3(daily_max)
     assert abs(result1 - result2) < 1e-10, (
         f"Implementations disagree: {result1} vs {result2} for {values}"
     )
-
-

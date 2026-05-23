@@ -1,8 +1,8 @@
-# Research: 12:00 CET-fixinger og hva norske banker faktisk bruker
+# 12:00 CET-fixinger og hva norske banker faktisk bruker
 
-Kilder hentet via offentlige websøk mai 2026. Ingen tilgang til Bloomberg/Refinitiv-terminal — så ticker/RIC kan ikke verifiseres direkte mot live terminaler.
+Kilder hentet via offentlige websøk mai 2026. Ingen tilgang til Bloomberg/Refinitiv-terminal, så ticker/RIC kan ikke verifiseres direkte mot live terminaler.
 
-## Spørsmål 1: 12:00 CET-fixing for EUR/NOK
+## 12:00 CET-fixing for EUR/NOK
 
 ### Konkret svar
 
@@ -20,7 +20,7 @@ Nord Pools formulering om "interbank-kurs 12:00 CET" er **deres egen prosess, ik
 > "Prior to price calculation, Nord Pool gets the currency rates valid at 12:00 CET. (...) Once EUR prices are complete, Nord Pool contacts two banks to perform official currency hedging, and the official exchange rates are set."
 > ([Nord Pool: Preliminary prices and exchange rates](https://www.nordpoolgroup.com/en/trading/Day-ahead-trading/Preliminary-prices-and-exchange-rates/))
 
-Preliminær interbank-snapshot brukes til auksjonsclearing. Deretter ringer Nord Pool to banker (ikke navngitt offentlig) som hedger og setter den **offisielle EXR-kursen** publisert etter clearing. EXR er altså ikke en markedsfix — det er hedge-prisen.
+Preliminær interbank-snapshot brukes til auksjonsclearing. Deretter ringer Nord Pool to banker (ikke navngitt offentlig) som hedger og setter den **offisielle EXR-kursen** publisert etter clearing. EXR er altså ikke en markedsfix, det er hedge-prisen.
 
 ### Bloomberg-ticker / RIC
 
@@ -39,7 +39,7 @@ Preliminær interbank-snapshot brukes til auksjonsclearing. Deretter ringer Nord
 - Hvilke to banker Nord Pool ringer.
 - Kommersiell benchmark som eksplisitt markedsfører "12:00 CET EUR/NOK fix".
 
-## Spørsmål 2: Hva bruker norske banker og bedrifter
+## Hva bruker norske banker og bedrifter
 
 ### Konkret svar
 

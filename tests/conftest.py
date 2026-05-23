@@ -58,6 +58,7 @@ def _make_entry(
     spot_price_sensor="sensor.spot_price",
     electricity_company_price_sensor=None,
     export_power_sensor=None,
+    energy_sensor=None,
     extra_data=None,
 ):
     """Lag et mock config entry med felles defaults og valgfrie utvidelser.
@@ -79,6 +80,8 @@ def _make_entry(
         entry.data["electricity_provider_price_sensor"] = electricity_company_price_sensor
     if export_power_sensor:
         entry.data["export_power_sensor"] = export_power_sensor
+    if energy_sensor:
+        entry.data["energy_sensor"] = energy_sensor
     if extra_data:
         entry.data.update(extra_data)
     entry.runtime_data = None

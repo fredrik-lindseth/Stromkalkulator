@@ -4,13 +4,13 @@ Liste over presisjons-begrensninger som er identifisert gjennom faktisk verifise
 
 ## 1. HAN-leser sample-presisjon (13 sekunder)
 
-**Hva det er:** Aidon-måleren broadcaster kumulativ tpi-verdi over HAN-port presis HH:00:13 lokal tid, ikke HH:00:00. Det betyr våre time-aggregater er forskjøvet 13 sekunder fra Elhub/BKK.
+**Hva det er:** AMS-måleren broadcaster kumulativ tpi-verdi over HAN-port presis HH:00:13 lokal tid, ikke HH:00:00. Det betyr våre time-aggregater er forskjøvet 13 sekunder fra Elhub/BKK.
 
 **Hvor forsinkelsen ligger:** Verifisert via Home Assistants recorder ved å sammenligne `sensor.pow_u_ams_rtc` (målerens egen RTC i HAN-framen) mot `last_updated_ts` (HA-mottakstid) over 24 timer. Splittingen er konsistent på sekundet:
 
 | Sekunder | Hvor                 | Hva skjer                                                      |
 | -------- | -------------------- | -------------------------------------------------------------- |
-| 10       | Inne i Aidon-måleren | Mellom internt Elhub-snapshot HH:00:00 og bygging av HAN-frame |
+| 10       | Inne i selve måleren | Mellom internt Elhub-snapshot HH:00:00 og bygging av HAN-frame |
 | 3        | Transmisjonskjeden   | HAN-overføring, Pow-U-parsing, MQTT-publish til HA             |
 
 Firmware-koden i [amsreader-firmware](https://github.com/UtilitechAS/amsreader-firmware) er gjennomgått. Det er ingen kunstig forsinkelse mellom parsing av HAN-frame og MQTT-publish, sub-millisekund i praksis. De 3 sekundene er fysisk transmisjon og parsing, ikke programvarevalg.
@@ -34,7 +34,7 @@ Se [research/elhub-vs-han-vs-faktura.md](research/elhub-vs-han-vs-faktura.md) fo
 
 ## 2. Momentan-effekt sample-frekvens (2,5 sekunder)
 
-**Hva det er:** Aidon broadcaster momentan effekt (`p`) hvert ~2,5 sek på list1. Vi kan ikke fange spikes som varer kortere enn dette.
+**Hva det er:** AMS-måleren broadcaster momentan effekt (`p`) hvert ~2,5 sek på list1. Vi kan ikke fange spikes som varer kortere enn dette.
 
 **Hvor stort:** Korte motor-spikes, kapasitiv inrush ved oppstart kan være usynlig.
 
@@ -75,7 +75,7 @@ Se [research/nok-omregning.md](research/nok-omregning.md) for full analyse.
 | Komponent               | Verdi                                   |
 | ----------------------- | --------------------------------------- |
 | Nettselskap             | BKK (NO5)                               |
-| Måler                   | Aidon                                   |
+| Måler                   | Kaifa MA304H3E                          |
 | HAN-leser               | Pow-U (AMSleser.no, AmsToMqtt-firmware) |
 | Strømleverandør         | Tibber Norge AS                         |
 | HA-integrasjon for spot | offisiell `nordpool` (eks. mva)         |

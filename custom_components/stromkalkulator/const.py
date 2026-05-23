@@ -254,8 +254,10 @@ HELLIGDAGER_FASTE: Final[list[str]] = [
     "01-01",  # Nyttårsdag
     "05-01",  # Arbeidernes dag
     "05-17",  # Grunnlovsdag
+    "12-24",  # Julaften
     "12-25",  # 1. juledag
     "12-26",  # 2. juledag
+    "12-31",  # Nyttårsaften
 ]
 
 

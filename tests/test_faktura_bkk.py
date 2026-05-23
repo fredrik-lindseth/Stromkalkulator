@@ -1,10 +1,15 @@
 """
-Test mot BKK-fakturaer (Norgespris-kunde, 2026).
+Test mot BKK-fakturaer.
 
-Verifiserer at våre beregninger matcher faktiske fakturaer.
-Parametrisert over flere måneder, slik at hver beregning kjøres mot
-hver måned. Tester som kun verifiserer 2026-satser (ikke avhengig av
-forbruk/periode) kjøres som ikke-parametriserte enkelttester.
+Dekker både 2026 (Norgespris-kunde) og 2025 (pre-Norgespris, strømstøtte-kunde).
+Parametrisert per måned. Tester som kun verifiserer satser (ikke avhengig
+av forbruk/periode) kjøres som ikke-parametriserte enkelttester.
+
+Strømstøtte-terskel:
+- 2025: 75 øre/kWh eks. mva = 93,75 øre inkl. mva, 90 % refusjon over
+- 2026: 77 øre/kWh eks. mva = 96,25 øre inkl. mva, 90 % refusjon over
+Koden i const.py har bare 2026-verdien. Strømstøtte-replay for 2025 er
+derfor ikke dekket av disse testene (fixturen har heller ikke spotpris-data).
 """
 
 import pytest
@@ -23,6 +28,15 @@ BKK_ENERGILEDD_DAG_2026_ORE = 35.963  # øre/kWh inkl. mva
 BKK_ENERGILEDD_NATT_2026_ORE = 13.125  # øre/kWh inkl. mva
 BKK_FORBRUKSAVGIFT_2026_ORE = 8.913  # øre/kWh inkl. mva
 BKK_ENOVAAVGIFT_2026_ORE = 1.25  # øre/kWh inkl. mva
+
+# BKK 2025-priser fra fakturaene (inkl. mva). Dag-tariff er uendret fra 2026,
+# men natt-tariff og forbruksavgift er begge høyere. Disse er hentet rett fra
+# faktura-PDF-ene for okt/nov/des 2025; vi har ikke disse i dso.py eller const.py
+# fordi koden kun støtter inneværende sats-år.
+BKK_ENERGILEDD_DAG_2025_ORE = 35.963  # øre/kWh inkl. mva (samme som 2026)
+BKK_ENERGILEDD_NATT_2025_ORE = 23.738  # øre/kWh inkl. mva (ned til 13,125 i 2026)
+BKK_FORBRUKSAVGIFT_2025_ORE = 15.662  # øre/kWh inkl. mva (ned til 8,913 i 2026)
+BKK_ENOVAAVGIFT_2025_ORE = 1.25  # øre/kWh inkl. mva (uendret)
 
 
 # --- Faktura-fixtures ---
@@ -115,6 +129,99 @@ FAKTURA_APRIL_2026 = {
 )
 def faktura(request):
     """BKK-faktura for én måned. Norgespris-kunde."""
+    return request.param
+
+
+# --- Pre-Norgespris-fakturaer (2025) ---
+#
+# Oktober, november og desember 2025 er pre-Norgespris (ordningen startet
+# 1. oktober 2025, men disse fakturaene viser kun strømstøtte). Felles
+# struktur, men 2025-priser. `forventet_stromstotte_kr` er fra fakturaen
+# og kan ikke replayes mot coordinator fordi fixturene mangler spotpris-data
+# og const.STROMSTOTTE_LEVEL er hardkodet til 2026-verdi.
+
+
+FAKTURA_OKTOBER_2025 = {
+    "navn": "oktober_2025",
+    "fakturanr": "",  # ikke oppgitt i fakturaen
+    "periode_dager": 31,
+    "forbruk_dag_kwh": 707.090,
+    "forbruk_natt_kwh": 536.117,
+    "forbruk_total_kwh": 1243.207,
+    "maks_effekt": [5.714, 5.475, 5.238],
+    "maks_effekt_snitt": 5.476,
+    "kapasitetstrinn_indeks": 2,  # Trinn 3: 5-10 kW
+    "kapasitetstrinn_grense": (10, 415),
+    "kapasitetstrinn_min_kw": 5.0,
+    "kapasitetstrinn_maks_kw": 10.0,
+    "stromstotte_snitt_ore_per_kwh": -6.188,  # gjelder kun de timer som er over terskel
+    "forventet_energiledd_dag_kr": 254.29,
+    "forventet_energiledd_natt_kr": 127.26,
+    "forventet_stromstotte_kr": -7.16,
+    "forventet_kapasitet_kr": 415.00,
+    "forventet_forbruksavgift_kr": 194.72,
+    "forventet_enovaavgift_kr": 15.54,
+    "forventet_nettleie_kr": 1006.81,
+    "forventet_total_kr": 999.65,
+}
+
+
+FAKTURA_NOVEMBER_2025 = {
+    "navn": "november_2025",
+    "fakturanr": "",
+    "periode_dager": 30,
+    "forbruk_dag_kwh": 709.157,
+    "forbruk_natt_kwh": 765.349,
+    "forbruk_total_kwh": 1474.506,
+    "maks_effekt": [6.776, 5.451, 5.434],
+    "maks_effekt_snitt": 5.887,
+    "kapasitetstrinn_indeks": 2,  # Trinn 3: 5-10 kW
+    "kapasitetstrinn_grense": (10, 415),
+    "kapasitetstrinn_min_kw": 5.0,
+    "kapasitetstrinn_maks_kw": 10.0,
+    "stromstotte_snitt_ore_per_kwh": -43.381,
+    "forventet_energiledd_dag_kr": 255.03,
+    "forventet_energiledd_natt_kr": 181.68,
+    "forventet_stromstotte_kr": -404.80,
+    "forventet_kapasitet_kr": 415.00,
+    "forventet_forbruksavgift_kr": 230.94,
+    "forventet_enovaavgift_kr": 18.43,
+    "forventet_nettleie_kr": 1101.08,
+    "forventet_total_kr": 696.28,
+}
+
+
+FAKTURA_DESEMBER_2025 = {
+    "navn": "desember_2025",
+    "fakturanr": "",
+    "periode_dager": 31,
+    "forbruk_dag_kwh": 667.422,
+    "forbruk_natt_kwh": 887.299,
+    "forbruk_total_kwh": 1554.721,
+    "maks_effekt": [6.233, 5.656, 5.572],
+    "maks_effekt_snitt": 5.820,
+    "kapasitetstrinn_indeks": 2,  # Trinn 3: 5-10 kW
+    "kapasitetstrinn_grense": (10, 415),
+    "kapasitetstrinn_min_kw": 5.0,
+    "kapasitetstrinn_maks_kw": 10.0,
+    "stromstotte_snitt_ore_per_kwh": -11.054,
+    "forventet_energiledd_dag_kr": 240.03,
+    "forventet_energiledd_natt_kr": 210.63,
+    "forventet_stromstotte_kr": -122.39,
+    "forventet_kapasitet_kr": 415.00,
+    "forventet_forbruksavgift_kr": 243.50,
+    "forventet_enovaavgift_kr": 19.43,
+    "forventet_nettleie_kr": 1128.59,
+    "forventet_total_kr": 1006.20,
+}
+
+
+@pytest.fixture(
+    params=[FAKTURA_OKTOBER_2025, FAKTURA_NOVEMBER_2025, FAKTURA_DESEMBER_2025],
+    ids=["oktober_2025", "november_2025", "desember_2025"],
+)
+def faktura_2025(request):
+    """BKK-faktura for én måned i 2025 (pre-Norgespris, strømstøtte-kunde)."""
     return request.param
 
 
@@ -370,3 +477,113 @@ def test_maanedlig_total_sensor_matcher_faktura(faktura):
         f"faktura={f['forventet_nettleie_kr']}. "
         f"Hvis sensoren er ~{f['dobbelttelling_avvik_kr']} kr for høy, dobbelttelles avgifter."
     )
+
+
+# ============================================================================
+# 2025-fakturaer (pre-Norgespris)
+# ============================================================================
+# Verifiserer at fakturaens beløp er internt konsistente med 2025-satser.
+# 2025-tariffene finnes ikke i koden (dso.py og const.py har bare 2026), så
+# disse testene er ren faktura-verifikasjon — ingen integrasjon mot const.
+
+
+def test_2025_energiledd_dag(faktura_2025):
+    """Energiledd dag = forbruk_dag * 35.963 øre/kWh (samme sats som 2026)."""
+    beregnet = faktura_2025["forbruk_dag_kwh"] * BKK_ENERGILEDD_DAG_2025_ORE / 100
+    assert beregnet == pytest.approx(faktura_2025["forventet_energiledd_dag_kr"], abs=0.10)
+
+
+def test_2025_energiledd_natt(faktura_2025):
+    """Energiledd natt = forbruk_natt * 23.738 øre/kWh (2025-sats, høyere enn 2026)."""
+    beregnet = faktura_2025["forbruk_natt_kwh"] * BKK_ENERGILEDD_NATT_2025_ORE / 100
+    assert beregnet == pytest.approx(faktura_2025["forventet_energiledd_natt_kr"], abs=0.10)
+
+
+def test_2025_forbruksavgift(faktura_2025):
+    """Forbruksavgift 2025 = forbruk_total * 15.662 øre/kWh."""
+    beregnet = faktura_2025["forbruk_total_kwh"] * BKK_FORBRUKSAVGIFT_2025_ORE / 100
+    assert beregnet == pytest.approx(faktura_2025["forventet_forbruksavgift_kr"], abs=0.10)
+
+
+def test_2025_enovaavgift(faktura_2025):
+    """Enovaavgift = forbruk_total * 1.25 øre/kWh."""
+    beregnet = faktura_2025["forbruk_total_kwh"] * BKK_ENOVAAVGIFT_2025_ORE / 100
+    assert beregnet == pytest.approx(faktura_2025["forventet_enovaavgift_kr"], abs=0.10)
+
+
+def test_2025_kapasitetstrinn(faktura_2025):
+    """Kapasitetstrinn fra dso.py matcher fakturaens beløp.
+
+    Trinn-grensene har vært uendret 2025→2026, så DSO_LIST["bkk"] kan brukes.
+    """
+    from custom_components.stromkalkulator.dso import DSO_LIST
+
+    bkk = DSO_LIST["bkk"]
+    assert bkk["kapasitetstrinn"][faktura_2025["kapasitetstrinn_indeks"]] == (
+        faktura_2025["kapasitetstrinn_grense"]
+    )
+    assert faktura_2025["forventet_kapasitet_kr"] == faktura_2025["kapasitetstrinn_grense"][1]
+
+
+def test_2025_maks_effekt_gir_riktig_trinn(faktura_2025):
+    """Snitt av topp 3 timesnitt-kW skal lande i forventet kapasitetstrinn."""
+    topper = faktura_2025["maks_effekt"]
+    snitt = sum(topper) / len(topper)
+    assert snitt == pytest.approx(faktura_2025["maks_effekt_snitt"], abs=0.01)
+    assert (
+        faktura_2025["kapasitetstrinn_min_kw"]
+        < snitt
+        <= faktura_2025["kapasitetstrinn_maks_kw"]
+    )
+
+
+def test_2025_nettleie_total(faktura_2025):
+    """Nettleie = energiledd dag + natt + kapasitet + forbruksavgift + enova."""
+    f = faktura_2025
+    beregnet = (
+        f["forbruk_dag_kwh"] * BKK_ENERGILEDD_DAG_2025_ORE / 100
+        + f["forbruk_natt_kwh"] * BKK_ENERGILEDD_NATT_2025_ORE / 100
+        + f["forventet_kapasitet_kr"]
+        + f["forbruk_total_kwh"] * BKK_FORBRUKSAVGIFT_2025_ORE / 100
+        + f["forbruk_total_kwh"] * BKK_ENOVAAVGIFT_2025_ORE / 100
+    )
+    assert beregnet == pytest.approx(f["forventet_nettleie_kr"], rel=0.01)
+
+
+def test_2025_total_inkl_stromstotte(faktura_2025):
+    """Total å betale = nettleie + strømstøtte (negativt = refusjon)."""
+    f = faktura_2025
+    total = f["forventet_nettleie_kr"] + f["forventet_stromstotte_kr"]
+    assert total == pytest.approx(f["forventet_total_kr"], abs=0.05)
+
+
+def test_2025_stromstotte_intern_konsistens(faktura_2025):
+    """Strømstøtte-snittsats * antall kompenserte kWh skal matche kr-beløp.
+
+    Fakturaen oppgir et snitt øre/kWh som gjelder kun kompenserte timer
+    (kWh over terskel). Vi sjekker bare at oppgitt snitt * fakturertes
+    grunnlag er konsistent — ikke at coordinator beregner samme tall,
+    siden STROMSTOTTE_LEVEL i const.py er 2026-verdi.
+    """
+    f = faktura_2025
+    # Hvor mye refusjon hadde vi fått om alt forbruk var over terskel?
+    maks_mulig = f["forbruk_total_kwh"] * f["stromstotte_snitt_ore_per_kwh"] / 100
+    # Faktisk refusjon er |forventet_stromstotte_kr| ≤ |maks_mulig|
+    assert abs(f["forventet_stromstotte_kr"]) <= abs(maks_mulig) + 0.10
+
+
+# --- 2025-natt-tariff vs. 2026 — sanity check ---
+
+
+def test_2025_natt_hoyere_enn_2026():
+    """2025-natt-tariff (23,738 øre/kWh) er ~10 øre høyere enn 2026 (13,125)."""
+    assert BKK_ENERGILEDD_NATT_2025_ORE > BKK_ENERGILEDD_NATT_2026_ORE
+    differanse = BKK_ENERGILEDD_NATT_2025_ORE - BKK_ENERGILEDD_NATT_2026_ORE
+    assert differanse == pytest.approx(10.613, abs=0.001)
+
+
+def test_2025_forbruksavgift_hoyere_enn_2026():
+    """2025-forbruksavgift (15,662 øre/kWh) er ~6,7 øre høyere enn 2026 (8,913)."""
+    assert BKK_FORBRUKSAVGIFT_2025_ORE > BKK_FORBRUKSAVGIFT_2026_ORE
+    differanse = BKK_FORBRUKSAVGIFT_2025_ORE - BKK_FORBRUKSAVGIFT_2026_ORE
+    assert differanse == pytest.approx(6.749, abs=0.001)

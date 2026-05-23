@@ -29,19 +29,28 @@ Følgende har ikke blitt verifisert mot ekte faktura:
 
 Vil du validere noen av disse: send faktura + Elhub-data, så kan vi utvide verifiserings-suiten.
 
-## 3. Norgespris-kompensasjon (EUR/NOK 0,2 %)
+## 3. Norgespris-kompensasjon (EUR/NOK 0,2 % i HA-integrasjonen)
 
-Beregningen av Norgespris-kompensasjon avviker 0,14 % fra BKKs på spot-snitt, som gir 0,2 % på selve kompensasjons-beløpet. Sannsynlig årsak er forskjellig EUR/NOK-snittberegning eller forskjellig kurskilde.
+Beregningen av Norgespris-kompensasjon basert på `sensor.nord_pool_no5_current_price` avviker 0,14 % fra BKK på spot-snittet, som gir 0,2 % på kompensasjons-beløpet. April 2026: 2,92 kr på 1427,89 kr Norgespris-kompensasjon.
 
-April 2026: 2,92 kr på 1427,89 kr Norgespris-kompensasjon.
+**Status 2026-05-23:** vi har testet 10 omregnings-varianter mot fakturaen ved å hente rå EUR/MWh fra Nord Pool og kombinere med ulike EUR/NOK-kurser:
 
-| Tiltak                                          | Effekt                                      | Kompleksitet       |
-| ----------------------------------------------- | ------------------------------------------- | ------------------ |
-| Akseptere (dagens valg)                         | 0,2 % avvik dokumentert                     | Ingen              |
-| Hente rå EUR-priser fra Nord Pool + Norges Bank | Forventet 0 % match hvis BKK også bruker NB | Middels            |
-| Spørre BKK direkte hvilken kurs de bruker       | Definitivt svar                             | Lav (kundeservice) |
+| Variant                                          | Avvik     | Notat                            |
+| ------------------------------------------------ | --------- | -------------------------------- |
+| Rå EUR + NB same-day forward-fill                | +0,79 kr  | Beste enkeltkilde (0,055 %)      |
+| Rå EUR + Nord Pool EXR (daglig)                  | -3,25 kr  | NPs egen interne kurs            |
+| HA `nordpool`-integrasjonens NOK-pris            | +2,92 kr  | Det vi faktisk bruker i dag      |
 
-Se [research/nok-omregning.md](research/nok-omregning.md) for full analyse.
+Implisitt single-rate som ville gitt 0-treff: 11,0706 NOK/EUR. Den ligger mellom NB (11,06) og Nord Pool EXR (11,08). Ingen offentlig publisert kurs treffer presist — sannsynligvis 12:00 CET interbankkurs som ikke er gratis tilgjengelig.
+
+| Tiltak                                          | Effekt                            | Kompleksitet       |
+| ----------------------------------------------- | --------------------------------- | ------------------ |
+| Akseptere (dagens valg)                         | 0,2 % avvik dokumentert           | Ingen              |
+| Bytte til rå EUR + NB-kurs i integrasjonen      | Reduserer avvik til 0,055 %       | Middels            |
+| Hente 12:00 CET interbankdata                   | Krever Bloomberg/Refinitiv        | Høy (ikke gratis)  |
+| Spørre BKK direkte hvilken kurs de bruker       | Definitivt svar                   | Lav (kundeservice) |
+
+Se [research/nok-omregning.md](research/nok-omregning.md) for full variant-matrise og kjørbart script.
 
 ## 4. Strømstøtte-formel (2 %)
 
@@ -75,7 +84,7 @@ Reelle avvik som påvirker brukeren:
 
 | Type                   | Worst case | Typisk     | Konsekvens                   |
 | ---------------------- | ---------- | ---------- | ---------------------------- |
-| Norgespris-komp kurs   | 18 kr/mnd  | 2-3 kr/mnd | Marginalt, EUR/NOK-kurs      |
+| Norgespris-komp kurs   | 18 kr/mnd  | 2-3 kr/mnd | Marginalt, EUR/NOK-kurs (kan reduseres til <1 kr ved bytte til rå EUR + NB-kurs) |
 | Strømstøtte-beregning  | 30 kr/mnd  | 30 kr/mnd  | Kun for teoretisk visning    |
 | Kapasitetstrinn-grense | 165 kr/mnd | 0          | Kun hvis permanent på grense |
 

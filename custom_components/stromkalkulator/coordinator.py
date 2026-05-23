@@ -661,7 +661,13 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
 
         if energy_kwh > 0 and spot_price_valid:
             self._monthly_norgespris_diff += kroner_spart_per_kwh * energy_kwh
-            self._monthly_norgespris_compensation += (norgespris - spot_price) * energy_kwh
+            # Kompensasjons-sensoren reflekterer kun timer under Norgespris-taket.
+            # Over taket betaler kunden faktisk spot, så det er ingen kompensasjon
+            # å regne på. Samme tak-logikk som total_price (linje 615-624).
+            # Kjent begrensning: hvis taket nås midt i en time, telles hele timen
+            # i feil bucket. Effekt < 1 min forbruk pga 1-min polling.
+            if not norgespris_over_tak:
+                self._monthly_norgespris_compensation += (norgespris - spot_price) * energy_kwh
             self._daily_cost += total_price * energy_kwh
             self._monthly_cost += total_price * energy_kwh
 

@@ -105,12 +105,12 @@ RJ45 HAN-porten **er** M-Bus elektrisk. Ingen separat M-Bus-kontakt på Kaifa MA
 
 **Hva vi kan gjøre:**
 
-| Tiltak                                         | Effekt                                                                                                                                                                            | Krav                                                  |
-| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| **Akseptere 9 Wh (anbefalt)**                  | Ingenting endres. Innenfor BKKs egen avrunding (3 desimaler)                                                                                                                      | Ingen                                                 |
-| Interpolere tpi til HH:00:00 via `p`-strøm     | Lukker 9 Wh-gapet til <1 Wh                                                                                                                                                       | Endring i `scripts/research/export_invoice_hourly.py` |
-| Bytt til annen HAN-leser (f.eks. Tibber Pulse) | Eliminerer 3 sek transmisjon, men 10 sek i måleren består. Merk: Pow-U fra desember 2023 og nyere støtter Kaifa-RJ45-terminering, eldre Pow-U-revisjoner hadde problemer på Kaifa | Hardware-bytte                                        |
-| Elhub-API direkte                              | 0 Wh-gap, men kun dagsoppløst, ikke live                                                                                                                                          | Ny integrasjon med Elhub-autentisering                |
+| Tiltak                                         | Effekt                                                                                                                                                                            | Krav                                   |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| Akseptere 9 Wh                                 | Ingenting endres. Innenfor BKKs egen avrunding (3 desimaler)                                                                                                                      | Ingen                                  |
+| **13-sek-shift-korreksjon (implementert)**     | **Lukker 9 Wh-gapet til 0,4 mWh**. Trekker fra 13s × (p_mean_HH - p_mean_HH-1) per time. Teleskopisk over måneden.                                                                | `verify_invoice_hourly.py --shift-13s` |
+| Bytt til annen HAN-leser (f.eks. Tibber Pulse) | Eliminerer 3 sek transmisjon, men 10 sek i måleren består. Merk: Pow-U fra desember 2023 og nyere støtter Kaifa-RJ45-terminering, eldre Pow-U-revisjoner hadde problemer på Kaifa | Hardware-bytte                         |
+| Elhub-API direkte                              | 0 Wh-gap, men kun dagsoppløst, ikke live                                                                                                                                          | Ny integrasjon med Elhub-autentisering |
 
 **Hva vi IKKE kan gjøre:**
 

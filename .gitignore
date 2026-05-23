@@ -23,6 +23,7 @@ beads-prompt.md
 
 # Anonymiserte fakturaer er OK
 !docs/fakturaer/
+.dogcatrc
 .dogcats/config.local.toml
 .claude/
 .hypothesis/

@@ -31,7 +31,7 @@ import json
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Final
+from typing import Final
 
 ROOT: Final[Path] = Path(__file__).resolve().parent.parent.parent
 FIXTURE: Final[Path] = ROOT / "tests" / "fixtures" / "bkk_april_2026_hourly.json"
@@ -330,7 +330,7 @@ def _print_full_report(hours: list[HourPoint]) -> int:
     total_kwh = sum(h.kwh for h in hours)
     spot_kost_inkl = sum(h.spot_inkl_mva * h.kwh for h in hours)
 
-    print(f"=== Strømstøtte-variant-matrise, april 2026 (NO5, BKK) ===\n")
+    print("=== Strømstøtte-variant-matrise, april 2026 (NO5, BKK) ===\n")
     print(f"Datapunkter: {len(hours)} timer, total {total_kwh:.3f} kWh")
     print(f"Vektet snitt spotpris eks. mva: {spot_kost_inkl/MVA/total_kwh:.6f}")
     print(f"Vektet snitt spotpris inkl. mva: {spot_kost_inkl/total_kwh:.6f}")
@@ -401,7 +401,7 @@ def _print_full_report(hours: list[HourPoint]) -> int:
     print(f"      → eks. mva: {best_terskel/MVA*100:.3f} øre")
     print(f"      → netto: {best_netto:.2f} kr (avvik {best_netto - TARGET_BKK:+.2f} kr)")
     print()
-    print(f"    Brute-force på rate (terskel 0.9625 fast):")
+    print("    Brute-force på rate (terskel 0.9625 fast):")
     best_rate = None
     best_diff = 1e9
     for r_int in range(50, 100):
@@ -436,12 +436,12 @@ def _print_full_report(hours: list[HourPoint]) -> int:
     # === G: Verifisering av "vår faktiske" beregning ===
     print("=== G: Verifisering: matcher 1347 vår faktiske kode? ===")
     _, stotte_oss, netto_oss = netto_spot_etter_stotte(hours, 0.9625, 0.90)
-    print(f"    Med STROMSTOTTE_LEVEL = 0.9625, RATE = 0.90 (gjeldende kode):")
+    print("    Med STROMSTOTTE_LEVEL = 0.9625, RATE = 0.90 (gjeldende kode):")
     print(f"      støtte total = {stotte_oss:.2f} kr")
     print(f"      netto spot etter støtte = {netto_oss:.2f} kr")
     print(f"      avvik vs brukerens påstand 1347: {netto_oss - USER_OBSERVED_OURS:+.2f} kr")
     print()
-    print(f"    Hvis vi feilaktig brukte STROMSTOTTE_LEVEL = 0.9125 (2024):")
+    print("    Hvis vi feilaktig brukte STROMSTOTTE_LEVEL = 0.9125 (2024):")
     _, stotte_old, netto_old = netto_spot_etter_stotte(hours, 0.9125, 0.90)
     print(f"      støtte total = {stotte_old:.2f} kr")
     print(f"      netto spot etter støtte = {netto_old:.2f} kr")

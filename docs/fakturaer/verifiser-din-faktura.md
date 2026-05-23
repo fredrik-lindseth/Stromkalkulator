@@ -118,7 +118,7 @@ For Nord-Norge: spotpris og avgifter er mva-fri. For tiltakssonen: ingen forbruk
 
 ### Hvis det stemmer (vanligste utfall)
 
-Lag et issue på Forgejo eller GitHub og bruk malen i [`.forgejo/issue_template/faktura-verifisering.md`](../../.forgejo/issue_template/faktura-verifisering.md). Eller send en PR med en ny verifiseringsrapport, kopier strukturen fra [BKK_Faktura_april_2026.md](BKK_Faktura_april_2026.md).
+Lag et issue på Forgejo eller GitHub og bruk malen i [`.forgejo/issue_template/faktura-verifisering.md`](../../.forgejo/issue_template/faktura-verifisering.md). Eller send en PR med en ny verifiseringsrapport, kopier strukturen fra [bkk-april-2026.md](bkk-april-2026.md).
 
 Vi trenger:
 
@@ -131,7 +131,7 @@ Vi trenger:
 - Avtaletype (spot, Norgespris, fastpris)
 - Hardware-oppsett fra [seksjon 3](#3-dokumenter-hardware-oppsettet-ditt)
 
-Du krediteres i [REFERANSE.md](REFERANSE.md) med fornavn eller alias.
+Du krediteres i [referanse.md](referanse.md) med fornavn eller alias.
 
 ### Hvis du finner reelt avvik
 
@@ -165,4 +165,4 @@ Ikke ta med:
 
 ## Eksisterende verifikasjoner
 
-Se [REFERANSE.md](REFERANSE.md) for oppdatert liste over verifiserte nettselskap og perioder.
+Se [referanse.md](referanse.md) for oppdatert liste over verifiserte nettselskap og perioder.

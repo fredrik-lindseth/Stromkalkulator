@@ -64,7 +64,7 @@ Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), [Sem
 ### Lagt til
 
 - Konfigurasjons-felt `spotpris_inkl_mva` (default `False`) som lar brukere med spesielle spotpris-sensorer (egendefinerte template-sensorer, eldre custom_components/nordpool med VAT=true) overstyre normaliseringen.
-- Faktura-verifisering som tillit-mekanisme (`docs/fakturaer/VERIFISER_DIN_FAKTURA.md`): brukere kan bekrefte at integrasjonen regner riktig for sitt nettselskap. Issue-mal for innsending. README har "Verifisert mot ekte fakturaer"-tabell.
+- Faktura-verifisering som tillit-mekanisme (`docs/fakturaer/verifiser-din-faktura.md`): brukere kan bekrefte at integrasjonen regner riktig for sitt nettselskap. Issue-mal for innsending. README har "Verifisert mot ekte fakturaer"-tabell.
 - BKK april 2026-rapport.
 
 ### Endret

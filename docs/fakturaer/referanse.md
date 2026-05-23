@@ -8,21 +8,21 @@ Hver rapport her er en attest på at integrasjonen regner riktig for et gitt net
 | ----------- | ---------- | ----------- | -------------------------- | ------------------ | ---------------------------------- |
 | BKK         | NO5        | Standard    | 6                          | april 2026         | Spotpris (2025), Norgespris (2026) |
 
-Vil du legge til ditt nettselskap? Se [VERIFISER_DIN_FAKTURA.md](VERIFISER_DIN_FAKTURA.md).
+Vil du legge til ditt nettselskap? Se [verifiser-din-faktura.md](verifiser-din-faktura.md).
 
 ## Fakturaer
 
 ### 2026 (Norgespris, 2026-satser)
 
-- [April 2026](BKK_Faktura_april_2026.md), verifiseringsrapport med full gjennomgang
-- [Mars 2026](BKK_Faktura_mars_2026.md), verifiseringsrapport med full gjennomgang
-- [Februar 2026](BKK_Faktura_februar_2026.md), verifiseringsrapport med full gjennomgang
+- [April 2026](bkk-april-2026.md), verifiseringsrapport med full gjennomgang
+- [Mars 2026](bkk-mars-2026.md), verifiseringsrapport med full gjennomgang
+- [Februar 2026](bkk-februar-2026.md), verifiseringsrapport med full gjennomgang
 
 ### 2025 (spotpris + stromstotte, 2025-satser)
 
-- [Oktober 2025](BKK_Faktura_oktober_2025.md)
-- [November 2025](BKK_Faktura_november_2025.md)
-- [Desember 2025](BKK_Faktura_desember_2025.md)
+- [Oktober 2025](bkk-oktober-2025.md)
+- [November 2025](bkk-november-2025.md)
+- [Desember 2025](bkk-desember-2025.md)
 
 ## Sammendrag
 

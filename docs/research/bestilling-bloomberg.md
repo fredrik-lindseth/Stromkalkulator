@@ -96,7 +96,3 @@ Hvis terminalen bare har closing-priser eller bestemte fastsette tidspunkter:
 - 16:00 CET — london-close
 
 Da kan vi sammenligne flere kandidater i samme analyse.
-
-## Kontakt
-
-Spørsmål om hva vi trenger eller hvordan dataene skal formateres: Fredrik (eier av hacs-strømkalkulator).

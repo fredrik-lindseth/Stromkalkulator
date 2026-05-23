@@ -8,12 +8,12 @@ Hentet 2026-05-23 fra DSO-ene egne sider og kraftsystemet.no.
 ## Hovedfunn
 
 Vi treffer godt på de aller største (Elvia, Tensio TS, Tensio TN, Glitre).
-Lnett og Lede har vesentlig feil priser i `dso.py` — vi har antakelig
+Lnett og Lede har vesentlig feil priser i `dso.py`, vi har antakelig
 gamle tall (2024 eller tidligere).
 
 Ingen avvik på avregningsmodell: alle store DSO-er bruker "snitt av de
 tre høyeste døgnmaks" eller "snitt av tre høyeste timer i forskellige
-døgn" — funksjonelt identisk med vår implementasjon i
+døgn", funksjonelt identisk med vår implementasjon i
 `_get_top_3_days()` + `_handle_month_rollover()`.
 
 ## Per nettselskap
@@ -60,7 +60,7 @@ Kilde: [Tensio nettleiepriser privat](https://www.tensio.no/no/kunde/nettleie/ne
 **Energiledd:** match
 - Dag: 25,902 øre/kWh eks. mva eks. avgifter (kraftsystemet.no, "u/ alle avgifter")
 - Natt: 13,006 øre/kWh eks. mva eks. avgifter
-- Vår dso.py: 25,902 / 13,006 — match.
+- Vår dso.py: 25,902 / 13,006, match.
 
 **Tidspunkter:** dag 06-22, natt 22-06. Match.
 
@@ -80,7 +80,7 @@ Kilde: [kraftsystemet.no Tensio TS](https://kraftsystemet.no/fri-nettleie/tariff
 **Energiledd:** match
 - Dag: 20,702 øre/kWh eks. mva eks. avgifter
 - Natt: 10,206 øre/kWh eks. mva eks. avgifter
-- Vår dso.py: 20,702 / 10,206 — match.
+- Vår dso.py: 20,702 / 10,206, match.
 
 **Tidspunkter, helg:** samme som TN.
 
@@ -91,7 +91,7 @@ Kilde: [kraftsystemet.no Tensio TS](https://kraftsystemet.no/fri-nettleie/tariff
 Kilde: [Glitre Nett nettleiepriser privat](https://www.glitrenett.no/kunde/nettleie-og-priser/nettleiepriser-privatkunde)
 
 **Energiledd:** match
-- Dag (06-22): 24,6 øre/kWh eks. mva. Vår: 24,598 (avrunding på 0,002 øre — neglisjerbart)
+- Dag (06-22): 24,6 øre/kWh eks. mva. Vår: 24,598 (avrunding på 0,002 øre, neglisjerbart)
 - Natt (22-06): 12,6 øre/kWh eks. mva. Vår: 12,598 (samme)
 
 **Avregning:** "Snittet av de tre høyeste døgnmaksene" - match.
@@ -113,7 +113,7 @@ Kilde: [Lnett tariffhefte 2026 (PDF)](https://www.l-nett.no/getfile.php/13156920
 | Natt eks. mva | 13,60 øre | 5,47 øre | +8,13 øre (~149% feil) |
 
 Avviket på nøyaktig 8,13 øre = forbruksavgift (7,13) + Enova (1,0).
-Mistanke: vi har feiltrekt fra avgiftene to ganger — trakk dem ut én gang
+Mistanke: vi har feiltrekt fra avgiftene to ganger, trakk dem ut én gang
 men dato-en stemmer ikke. Eller vi har gamle tall.
 
 **Kapasitetstrinn:** AVVIK på høyere trinn
@@ -143,7 +143,7 @@ Kilde: [Lede nettleie privatkunder](https://lede.no/priser/nettleie-privatkunder
 
 **Energiledd:** AVVIK
 - Lede 2026: 14,26 øre/kWh (flat, ingen dag/natt)
-- Vår dso.py: 24,382 (flat) — **+10,12 øre for høyt**.
+- Vår dso.py: 24,382 (flat), **+10,12 øre for høyt**.
 
 Vi har antakelig 2025-tall eller eldre. Verdt å notere: Lede har ikke
 dag/natt-differensiering for husholdning (kun for effekttariff på næring).
@@ -170,7 +170,7 @@ Kilde: [Norgesnett nettleie privat](https://norgesnett.no/nettleie-privat/)
 - Norgesnett 2026 inkl. mva: 44,36 (dag) / 33,46 (natt) øre/kWh
 - Inkl. mva -> eks. mva: 35,49 / 26,77 øre/kWh
 - Eks. mva -> ren nettleie (-8,13): **27,36 / 18,64** øre/kWh
-- Vår dso.py: **20,262 / 13,286** — for lavt med 7+ øre
+- Vår dso.py: **20,262 / 13,286**, for lavt med 7+ øre
 
 Antakelig 2025-tall.
 

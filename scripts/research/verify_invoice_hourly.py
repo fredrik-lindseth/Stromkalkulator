@@ -1,10 +1,7 @@
 """Reproduserer BKK-fakturaberegningen fra timesdata og sammenligner med faktura.
 
-Leser hourly JSON-fixture, gjør beregningene linje-for-linje og differ mot
-faktura-fixturen i tests/test_faktura_bkk.py. Kjøres lokalt for å verifisere
-at integrasjonens tall stemmer med faktiske BKK-fakturaer.
-
-Avhengigheter: kun Python 3 standardbibliotek.
+Leser hourly JSON-fixture, beregner linje-for-linje og differ mot faktura-fixturen
+i tests/test_faktura_bkk.py. Kun Python 3 standardbibliotek.
 """
 
 from __future__ import annotations
@@ -44,18 +41,10 @@ BKK_KAPASITETSTRINN = [
 # Helligdager 2026 (utvid her for andre år)
 HELLIGDAGER: dict[int, set[date]] = {
     2026: {
-        date(2026, 1, 1),    # 1. nyttårsdag
-        date(2026, 4, 2),    # Skjærtorsdag
-        date(2026, 4, 3),    # Langfredag
-        date(2026, 4, 5),    # 1. påskedag
-        date(2026, 4, 6),    # 2. påskedag
-        date(2026, 5, 1),    # Arbeidernes dag
-        date(2026, 5, 14),   # Kristi himmelfartsdag
-        date(2026, 5, 17),   # Grunnlovsdag
-        date(2026, 5, 24),   # 1. pinsedag
-        date(2026, 5, 25),   # 2. pinsedag
-        date(2026, 12, 25),  # 1. juledag
-        date(2026, 12, 26),  # 2. juledag
+        date(2026, 1, 1), date(2026, 4, 2), date(2026, 4, 3),
+        date(2026, 4, 5), date(2026, 4, 6), date(2026, 5, 1),
+        date(2026, 5, 14), date(2026, 5, 17), date(2026, 5, 24),
+        date(2026, 5, 25), date(2026, 12, 25), date(2026, 12, 26),
     },
 }
 
@@ -109,9 +98,7 @@ def er_helligdag(d: date) -> bool:
 
 def er_dagtid(ts: datetime) -> bool:
     """Dag-tariff: mandag-fredag 06-21 (slutt 22), ikke helligdag."""
-    if ts.weekday() >= 5:  # lørdag (5) eller søndag (6)
-        return False
-    if er_helligdag(ts.date()):
+    if ts.weekday() >= 5 or er_helligdag(ts.date()):
         return False
     return DAY_RATE_START_HOUR <= ts.hour < DAY_RATE_END_HOUR
 
@@ -123,7 +110,7 @@ def finn_kapasitetstrinn(snitt_kw: float) -> tuple[float, int]:
     return BKK_KAPASITETSTRINN[-1]
 
 
-def beregn(hours: list[dict[str, Any]], shift_13s: bool = False) -> dict[str, float]:
+def beregn(hours: list[dict[str, Any]], shift_seconds: int = 13) -> dict[str, float]:
     total_kwh = 0.0
     forbruk_dag = 0.0
     forbruk_natt = 0.0
@@ -137,13 +124,11 @@ def beregn(hours: list[dict[str, Any]], shift_13s: bool = False) -> dict[str, fl
         kwh = float(h["kwh"])
         spot_eks = float(h["spot_nok_kwh_eks_mva"])
 
-        # 13-sek-shift-korreksjon (eksperimentell). Spec sier HAN-frame ved
-        # HH:00:13 inneholder tpi(HH:00:00), så vår tpi-diff trenger en liten
-        # korreksjon for forskjell i snitt-effekt mellom tilstøtende timer.
-        # Korreksjon: -13s × (p_mean_HH - p_mean_HH-1), der p_mean = kwh × 1000 W.
-        # Over måneden er dette teleskopisk: bare første og siste time-snitt teller.
-        if shift_13s and i > 0:
-            delta = 13 / 3600 * (kwh - float(hours[i - 1]["kwh"]))
+        # Shift-korreksjon: HAN-broadcast ved HH:00:N inneholder tpi(HH:00:00),
+        # så tpi-diffen trenger -N/3600 x (p_mean_HH - p_mean_HH-1) per time.
+        # Teleskopisk over måneden: kun første/siste time-snitt teller.
+        if shift_seconds and i > 0:
+            delta = shift_seconds / 3600 * (kwh - float(hours[i - 1]["kwh"]))
             kwh = kwh - delta
 
         total_kwh += kwh
@@ -213,22 +198,14 @@ def print_rad(navn: str, beregnet: float, faktura: float, enhet: str = "kr") -> 
 def main() -> int:
     p = argparse.ArgumentParser(description="Verifiser BKK-faktura mot timesdata.")
     p.add_argument("--hourly", required=True, type=Path, help="Sti til hourly JSON-fixture")
+    p.add_argument("--faktura", required=True, choices=sorted(FAKTURAER.keys()), help="Faktura-fixture-navn")
     p.add_argument(
-        "--faktura",
-        required=True,
-        choices=sorted(FAKTURAER.keys()),
-        help="Faktura-fixture-navn",
-    )
-    p.add_argument(
-        "--no-shift-13s",
-        dest="shift_13s",
-        action="store_false",
-        default=True,
+        "--shift-seconds", type=int, default=13,
         help=(
-            "Skru AV 13-sek-shift-korreksjon. Standard: PÅ. "
-            "Korreksjonen kompenserer for at HAN-broadcast kommer ved HH:00:13 "
-            "(ikke HH:00:00) ved å trekke fra 13s x (p_mean_HH - p_mean_HH-1) per time. "
-            "Lukker 9 Wh-gapet til <1 mWh på Fredriks april 2026-data."
+            "Sek HAN-broadcast er forsinket etter timeskifte. "
+            "Default 13 = Fredriks Kaifa MA304H3E + Pow-U (10s i maler + 3s transmisjon). "
+            "Aidon/Pow-U: typisk 10-15. Kamstrup HAN-NVE: typisk 5-10. "
+            "Tibber Pulse: ukjent, eksperimenter selv. 0 skrur av korreksjonen."
         ),
     )
     args = p.parse_args()
@@ -245,11 +222,10 @@ def main() -> int:
         print("Ingen timer i fixturen", file=sys.stderr)
         return 2
 
-    beregnet = beregn(hours, shift_13s=args.shift_13s)
+    beregnet = beregn(hours, shift_seconds=args.shift_seconds)
     f = FAKTURAER[args.faktura]
 
-    mode = " (med 13-sek-korreksjon)" if args.shift_13s else ""
-    print(f"=== BKK {args.faktura} verifikasjon{mode} ===\n")
+    print(f"=== BKK {args.faktura} verifikasjon (shift={args.shift_seconds}s) ===\n")
     print(f"Antall timer: {len(hours)}")
     print(f"Kapasitet: snitt topp 3 = {beregnet['kapasitet_snitt_kw']:.3f} kW "
           f"-> trinn {beregnet['kapasitet_grense_kw']} kW, "

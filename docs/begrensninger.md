@@ -2,11 +2,26 @@
 
 Liste over presisjons-begrensninger som er identifisert gjennom faktisk verifisering. Disse er ikke feil i integrasjonen, men karakteristika ved datakildene og målerne. Dokumentert her for transparens.
 
-## 1. HAN-leser sample-presisjon (13 sekunder)
+## 1. Verifiserings-script: sample-skift mellom HAN-broadcast og time-grense
 
-**Hva det er:** AMS-måleren broadcaster kumulativ tpi-verdi over HAN-port presis HH:00:13 lokal tid, ikke HH:00:00. Det betyr våre time-aggregater er forskjøvet 13 sekunder fra Elhub/BKK.
+> **TL;DR:** Dette gjelder KUN dev-scriptet `scripts/research/verify_invoice_hourly.py`, IKKE integrasjonen i HA. Brukernes Energy Dashboard og månedstotaler i `custom_components/stromkalkulator/` er upåvirket fordi integrasjonen leser `p`-strømmen kontinuerlig og IKKE tpi-broadcasten.
 
-**Hvor forsinkelsen ligger:** Verifisert via Home Assistants recorder ved å sammenligne `sensor.pow_u_ams_rtc` (målerens egen RTC i HAN-framen) mot `last_updated_ts` (HA-mottakstid) over 24 timer. Splittingen er konsistent på sekundet:
+**Hva det er:** AMS-måleren broadcaster kumulativ tpi-verdi over HAN-port noen sekunder etter HH:00:00, ikke presis på time-grensen. Verifiserings-scriptet som sammenligner HAN-data mot Elhub/BKK får derfor time-aggregater forskjøvet med så mange sekunder som broadcasten ligger etter HH:00:00.
+
+**13 sekunder er IKKE universelt.** Det er måltallet for Fredriks Kaifa MA304H3E + Pow-U-oppsett. Andre måler- og HAN-leser-kombinasjoner gir andre tall:
+
+| Måler-merke + HAN-leser     | Total forsinkelse (forventet) | Komponenter                        |
+| --------------------------- | ----------------------------- | ---------------------------------- |
+| Kaifa MA304 + Pow-U         | 10-13 sek                     | 10 sek måler + 3 sek transmisjon   |
+| Aidon 65xx + Pow-U          | 10-15 sek                     | 10 sek måler + 3-5 sek transmisjon |
+| Kamstrup Omnipower + Pow-U  | 5-10 sek                      | 5 sek måler + 3-5 sek transmisjon  |
+| Kaifa/Aidon + Tibber Pulse  | Ukjent                        | Annet nettverkslag (Tibber Cloud)  |
+| Kaifa/Aidon + Tibber Bridge | Ukjent                        | RJ45 direkte HAN, lokal kobling    |
+| Kaifa/Aidon + ESPHome AMS   | 3-10 sek                      | Avhengig av firmware               |
+
+Tallene over kombinerer merke-spesifikk list3-broadcast (se [måler-hardware.md](måler-hardware.md#han-broadcast-timing)) med transmisjons-tid hos kjente HAN-lesere. For måler-leser-kombinasjoner som ikke er målt opp må du selv verifisere mot egen recorder.
+
+**Hvor forsinkelsen ligger (Fredriks oppsett, Kaifa + Pow-U):** Verifisert via Home Assistants recorder ved å sammenligne `sensor.pow_u_ams_rtc` (målerens egen RTC i HAN-framen) mot `last_updated_ts` (HA-mottakstid) over 24 timer. Splittingen er konsistent på sekundet:
 
 | Sekunder | Hvor                 | Hva skjer                                                      |
 | -------- | -------------------- | -------------------------------------------------------------- |
@@ -15,7 +30,9 @@ Liste over presisjons-begrensninger som er identifisert gjennom faktisk verifise
 
 Firmware-koden i [amsreader-firmware](https://github.com/UtilitechAS/amsreader-firmware) er gjennomgått. Det er ingen kunstig forsinkelse mellom parsing av HAN-frame og MQTT-publish, sub-millisekund i praksis. De 3 sekundene er fysisk transmisjon og parsing, ikke programvarevalg.
 
-**Hvor stort:** 9 Wh på månedssummen (Fredrik april 2026). Per enkelt time opptil ±21 Wh. Per topp-3-måling 3-8 W avvik.
+**Hvor stort (Fredriks oppsett):** 9 Wh på månedssummen (april 2026). Per enkelt time opptil ±21 Wh. Per topp-3-måling 3-8 W avvik. Andre kombinasjoner får andre tall, skalér lineært med forsinkelsen.
+
+**Default i scriptet:** `verify_invoice_hourly.py` har `--shift-seconds 13` som default. Det matcher Fredriks Kaifa + Pow-U. Andre brukere må justere flagget basert på sitt eget oppsett, eller måle det opp empirisk via recorder.
 
 **Hva kan gjøres:**
 
@@ -28,7 +45,7 @@ Firmware-koden i [amsreader-firmware](https://github.com/UtilitechAS/amsreader-f
 | Bytte HAN-leser (Tibber Pulse)             | Kan fjerne 3 sek i transmisjon, men 10 sek i måleren består                                                | Lav (hardware-bytte)                |
 | Bruke Elhub-API direkte                    | 0 Wh-presisjon, men dagsforsinkelse                                                                        | Høy (autentisering, ny integrasjon) |
 
-Sample-presisjonen påvirker bare time-fordelingen, ikke månedssummen meningsfullt. For faktura-kontroll-formål er 9 Wh ubetydelig.
+Sample-presisjonen påvirker bare time-fordelingen i scriptet, ikke månedssummen meningsfullt. For faktura-kontroll-formål er 9 Wh ubetydelig.
 
 Se [research/elhub-vs-han-vs-faktura.md](research/elhub-vs-han-vs-faktura.md) for full analyse.
 

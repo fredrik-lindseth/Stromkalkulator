@@ -29,7 +29,7 @@
           "power_sensor": "Sensor som viser nåværende strømforbruk i watt, f.eks. fra HAN-port, Tibber Pulse eller P1-måler.",
           "spot_price_sensor": "Sensor med gjeldende spotpris i NOK/kWh. Vanligvis «Current price» fra Nord Pool-integrasjonen.",
           "spotpris_inkl_mva": "La stå av for HA-core nordpool-integrasjon (leverer eks. mva). Slå på hvis sensoren din allerede inkluderer mva.",
-          "energy_sensor": "Kumulativ energi-teller fra AMS-måleren (OBIS 1.8.0, total forbruk i kWh). Anbefales: gir eksakt forbruk mot faktura. Uten denne brukes effektmåleren med Riemann-summering.",
+          "energy_sensor": "Kumulativ kWh-teller fra AMS-måleren. Anbefales for eksakte fakturatall. Se docs/input-sensorer.md for detaljer.",
           "electricity_provider_price_sensor": "Totalpris fra strømselskapet (f.eks. Tibber-sensor). Brukes til å vise hva du faktisk betaler. Kan legges til senere.",
           "export_power_sensor": "Sensor som viser eksportert effekt i watt (solceller/plusskunde). Brukes til å beregne inntekt fra salg av strøm."
         }

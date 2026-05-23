@@ -85,10 +85,10 @@ def run_invoice_mode(config: dict) -> None:
         output_path.write_text(anonymized, encoding="utf-8")
         print(f"  -> {output_path}")
 
-    ref_file = fakturaer_dir / "REFERANSE.md"
+    ref_file = fakturaer_dir / "referanse.md"
     if ref_file.exists():
         ref_content = anonymize_content(ref_file.read_text(encoding="utf-8"), replacements)
-        output_ref = output_dir / "REFERANSE.md"
+        output_ref = output_dir / "referanse.md"
         output_ref.write_text(ref_content, encoding="utf-8")
         print(f"  -> {output_ref}")
 

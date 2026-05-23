@@ -44,7 +44,7 @@ Alle andre fakturalinjer matchet innenfor 0,01 kr. Spørsmålet: hvor kommer 2,9
 
 ### Norges Bank EUR/NOK april 2026
 
-19 bankdager, ECB-konsertasjonskurs 14:15 CET.
+19 bankdager. Norges Bank publiserer middelkurs (mid-point i interbankmarkedet) basert på samme 14:15 CET-snapshot som ECBs euro-referansekurs, med publisering ~16:00 CET. Norges Bank synket publiseringstidspunktet sitt til ECBs etter ECB-omleggingen 1. juli 2016.
 
 - Første (01.04): 11,2080 NOK/EUR
 - Siste (30.04): 10,9123 NOK/EUR
@@ -66,12 +66,9 @@ Alle andre fakturalinjer matchet innenfor 0,01 kr. Spørsmålet: hvor kommer 2,9
 
 Restavviket på 2,92 kr i Norgespris-kompensasjonen kommer fra vekslingskurs-håndtering, ikke fra feil i integrasjonens logikk. Avviket utgjør 0,14 % av snittprisen, som er innenfor variasjon mellom forskjellige snittberegninger av samme grunnkurs.
 
-To plausible forklaringer som passer dataene:
+Mest sannsynlige forklaring etter videre research: HA-integrasjonen og BKK bruker forskjellige kurskilder. Nord Pool publiserer NOK-priser direkte via sin egen kursmekanisme — preliminære kurser hentet 12:00 CET fra interbankmarkedet, deretter "official" kurser satt sammen med to banker for valutahedging. Det er **ikke** ECB-referansekursen. HA's `nordpool`-integrasjon henter priser i konfigurert valuta rett fra Nord Pools API (`DayAheadPrices`), så omregningen skjer hos Nord Pool, ikke i integrasjonen.
 
-1. BKK forbruksvekter kursen. Hvis kunden brukte mer strøm tidlig i måneden da kursen var 11,21 og mindre senere når kursen var 10,91, vil forbruksvektet snitt bli høyere enn aritmetisk snitt.
-2. HA og BKK bruker forskjellige kurskilder. HA's Nord Pool-integrasjon kan bruke kursene Nord Pool selv publiserer, som kan avvike marginalt fra Norges Banks publiserte kurs.
-
-Avviket er for lite til å skille mellom disse. Begge er innenfor 0,2 %.
+BKK bruker etter alt å dømme samme Elspot-NOK-pris time for time som er forskriftsfestet (se "Forskriften" nedenfor), men kan ha en marginalt annen håndtering av etter-publiserte korreksjoner eller offisiell-vs-preliminær kurs. Avviket på 0,14 % er for lite til å skille presis kilde.
 
 ## Hvorfor 0,14 % på spot blir 0,2 % på Norgespris-kompensasjon
 
@@ -82,12 +79,18 @@ Norgespris-kompensasjon er en differanse: `(0,50 - spot) × kWh`. En liten endri
 - Diff per kWh: 0,0022
 - Over 1381,8 kWh: 3,04 kr (≈ vårt observerte 2,92 kr)
 
-## Hva vi ikke vet
+## Forskriften: hva sier loven om NOK-omregning?
 
-- Hvilken EUR/NOK-kilde Nord Pool-integrasjonen i HA bruker
-- Hvilken EUR/NOK-kilde BKK bruker
-- Hvilken snittberegningsmetode BKK bruker (aritmetisk, forbruksvektet, time-vektet)
-- Om Nord Pool publiserer NOK-priser direkte, eller om HA-integrasjonen gjør egen omregning
+Kort svar: **ingen** norsk lov eller forskrift sier eksplisitt hvilken EUR/NOK-kurs strømleverandører skal bruke.
+
+- Avregningsforskriften ([FOR-1999-03-11-301](https://lovdata.no/dokument/SF/forskrift/1999-03-11-301)) inneholder ingen ord om valuta, kurs, omregning eller EUR. Forskriften regulerer måling, avregning og fakturering i NOK uten å spesifisere hvordan utenlandsk valuta skal håndteres.
+- Norgespris-høringsnotatet ([Energidepartementet 10. mars 2025](https://www.regjeringen.no/contentassets/428d4ed2a03f47de9cc333609ff18106/horingsnotat-ny-lov-om-norgespris-og-stromstonad-til-husholdninger.pdf)) sier at beregningene gjøres **time for time**: "Prissikringsbeløp beregnes time for time. Det er differansen mellom spotprisen per time i budområdet og terskelverdi". Elspotpris er definert som "timespris i budområdet kunden tilhører". Ingen krav til snittberegning eller kurskilde — bare at det er den faktiske timespotprisen i budområdet som skal brukes.
+- I praksis betyr det at strømleverandører bruker den NOK-prisen Nord Pool selv publiserer for budområdet (`NO5` for BKK-kunder i Bergen). Nord Pool har egen kursmekanisme (12:00 CET preliminær + to-banks-hedging for offisiell). Det er ikke regulert hvilken Nord Pool-kurs som skal brukes, men `data.nordpoolgroup.com` er den autoritative publiseringskanalen for sluttbruker-fakturering.
+
+## Hva vi fortsatt ikke vet med sikkerhet
+
+- Om BKK bruker Nord Pools "preliminary" NOK-pris (12:00 CET-rate) eller "official" NOK-pris (etter to-banks-hedging)
+- Om BKK gjør egen runding per time eller jobber med flere desimaler
 
 Disse er ikke kritiske å løse. Avviket på 0,2 % er innenfor praktisk presisjon for fakturakontroll.
 
@@ -114,8 +117,23 @@ For å gjenta for andre måneder, dupliser scriptet og endre datoperiode + HA-ca
 
 ## Referanser
 
-- Norges Bank SDMX-JSON: https://data.norges-bank.no/api/data/EXR/
-- ECB-konsertasjonskurs: publiseres daglig 14:15 CET, brukes som referansekurs av Nord Pool m.fl.
-- HA `nordpool`-integrasjon: https://github.com/custom-components/nordpool
+### Kurs-kilder
+
+- [Norges Bank SDMX-JSON](https://data.norges-bank.no/api/data/EXR/): publiserer middelkurs (mid-point i interbankmarkedet) basert på 14:15 CET-snapshot, publisering ~16:00 CET (synket med ECB siden 1. juli 2016)
+- [ECB euro foreign exchange reference rates](https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html): basert på daglig "concertation procedure" mellom europeiske sentralbanker ~14:10 CET. Kursene reflekterer markedet 14:15 CET, publiseres ~16:00 CET. Brukes som informasjons-referanse, ikke for transaksjoner.
+- [ECB framework-dokument (PDF)](https://www.ecb.europa.eu/stats/pdf/exchange/Frameworkfortheeuroforeignexchangereferencerates.en.pdf): metodebeskrivelse for konsertasjons-prosessen
+- [Nord Pool: Preliminary prices and exchange rates](https://www.nordpoolgroup.com/en/trading/Day-ahead-trading/Preliminary-prices-and-exchange-rates/): Nord Pool henter interbankkurser 12:00 CET som preliminær kurs, kontakter to banker for valutahedging og setter offisiell kurs etter EUR-prisene er klare. **Ikke ECB-kurs.**
+
+### Norsk regulering
+
+- [Avregningsforskriften (FOR-1999-03-11-301)](https://lovdata.no/dokument/SF/forskrift/1999-03-11-301): regulerer fakturering, men ingen krav til valutakurs
+- [Norgespris-høringsnotat (10. mars 2025)](https://www.regjeringen.no/contentassets/428d4ed2a03f47de9cc333609ff18106/horingsnotat-ny-lov-om-norgespris-og-stromstonad-til-husholdninger.pdf): "Prissikringsbeløp beregnes time for time", basert på "elspotpris i budområdet". Ingen krav til kurskilde.
+
+### Integrasjon
+
+- [HA `nordpool`-integrasjon](https://www.home-assistant.io/integrations/nordpool/): henter priser i konfigurert valuta direkte fra Nord Pool API (`DayAheadPrices`). EUR-NOK-omregningen skjer hos Nord Pool, ikke i integrasjonen.
+
+### Verifikasjon
+
 - Faktura: `Fakturaer/Receipt-2735-6144-7538.pdf` eller tilsvarende (BKK 000000000)
 - Fixture: `tests/fixtures/bkk_april_2026_hourly.json`

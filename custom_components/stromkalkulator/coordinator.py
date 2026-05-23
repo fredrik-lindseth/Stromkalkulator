@@ -21,6 +21,7 @@ from .const import (
     CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
     CONF_ENERGILEDD_DAG,
     CONF_ENERGILEDD_NATT,
+    CONF_ENERGY_SENSOR,
     CONF_EXPORT_POWER_SENSOR,
     CONF_HAR_NORGESPRIS,
     CONF_KAPASITET_VARSEL_TERSKEL,
@@ -36,9 +37,11 @@ from .const import (
     ENOVA_AVGIFT,
     HELLIGDAGER_FASTE,
     MAX_ELAPSED_HOURS,
+    MAX_ENERGY_DELTA_KWH,
     MAX_POWER_CLAMP_W,
     STROMSTOTTE_LEVEL,
     STROMSTOTTE_RATE,
+    TPI_STALE_HOURS,
     UPDATE_INTERVAL_MINUTES,
     WEEKEND_WEEKDAY_START,
     _bevegelige_helligdager,
@@ -99,6 +102,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
     spot_price_sensor: str | None
     electricity_company_price_sensor: str | None
     export_power_sensor: str | None
+    energy_sensor: str | None
+    _last_tpi_kwh: float | None
     dso: DSOEntry
     _dso_id: str
     avgiftssone: str
@@ -151,6 +156,11 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         self.spot_price_sensor = entry.data.get(CONF_SPOT_PRICE_SENSOR)
         self.electricity_company_price_sensor = entry.data.get(CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR)
         self.export_power_sensor = entry.data.get(CONF_EXPORT_POWER_SENSOR)
+        # Valgfri kumulativ energi-sensor (kWh, OBIS 1.8.0 fra AMS-måler).
+        # Når satt: brukes som primær kilde via delta-akkumulasjon i stedet for
+        # p * elapsed-Riemann-sum. Eksakt mot faktura. Tom string -> ingen sensor.
+        energy_sensor_raw = entry.data.get(CONF_ENERGY_SENSOR)
+        self.energy_sensor = energy_sensor_raw if energy_sensor_raw else None
 
         # Get DSO config
         dso_id = entry.data.get(CONF_DSO, DEFAULT_DSO)
@@ -225,6 +235,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         self._monthly_norgespris_diff = 0.0
         self._monthly_norgespris_compensation = 0.0
         self._last_update = None
+        # Siste kumulative tpi-verdi vi har sett, brukt for delta-akkumulasjon
+        # når energy_sensor er konfigurert. None = første poll etter oppstart.
+        self._last_tpi_kwh = None
 
         # Track previous month's data for invoice verification
         self._previous_month_consumption = ConsumptionData()
@@ -297,6 +310,48 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             if raw is not None and math.isfinite(raw):
                 return raw
         return None
+
+    def _compute_energy_delta(self) -> float:
+        """Beregn forbruk siden forrige poll fra kumulativ energi-sensor.
+
+        Leser energy_sensor (kWh) og returnerer differansen mot forrige avlesning.
+        Negative deltas (counter reset, meter-bytte) og urealistisk store deltas
+        ignoreres. Oppdaterer _last_tpi_kwh som side-effekt. Hvis sensoren er
+        unavailable beholdes _last_tpi_kwh slik at neste poll kan plukke opp.
+        """
+        if not self.energy_sensor:
+            return 0.0
+        state = self.hass.states.get(self.energy_sensor)
+        if not state or state.state in ("unknown", "unavailable"):
+            return 0.0
+        try:
+            current_tpi = float(state.state)
+        except (ValueError, TypeError):
+            return 0.0
+        if not math.isfinite(current_tpi) or current_tpi <= 0:
+            return 0.0
+
+        delta = 0.0
+        if self._last_tpi_kwh is not None and self._last_tpi_kwh > 0:
+            raw_delta = current_tpi - self._last_tpi_kwh
+            if 0 < raw_delta < MAX_ENERGY_DELTA_KWH:
+                delta = raw_delta
+            elif raw_delta < 0:
+                _LOGGER.warning(
+                    "energy_sensor %s gikk nedover (%.3f -> %.3f). Counter reset eller meter-bytte? Ignorerer delta.",
+                    self.energy_sensor,
+                    self._last_tpi_kwh,
+                    current_tpi,
+                )
+            elif raw_delta >= MAX_ENERGY_DELTA_KWH:
+                _LOGGER.warning(
+                    "energy_sensor %s delta %.1f kWh > %.0f kWh. Ignorerer som outlier.",
+                    self.energy_sensor,
+                    raw_delta,
+                    MAX_ENERGY_DELTA_KWH,
+                )
+        self._last_tpi_kwh = current_tpi
+        return delta
 
     async def _handle_month_rollover(self, now: datetime) -> None:
         """Archive previous month's data and reset accumulators."""
@@ -419,11 +474,17 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             elapsed_hours = (now - self._last_update).total_seconds() / 3600
             elapsed_hours = max(0.0, min(elapsed_hours, MAX_ELAPSED_HOURS))
 
-        # Akkumuler energi FØRST, slik at siste syklus havner i riktig måned
+        # Akkumuler energi FØRST, slik at siste syklus havner i riktig måned.
+        # Med energy_sensor: bruk delta fra kumulativ kWh-teller (eksakt mot
+        # faktura). Uten: fall tilbake til p * elapsed-Riemann-sum.
         energy_kwh = 0.0
         dirty = False
-        if elapsed_hours > 0 and current_power_kw > 0:
+        if self.energy_sensor:
+            energy_kwh = self._compute_energy_delta()
+        elif elapsed_hours > 0 and current_power_kw > 0:
             energy_kwh = current_power_kw * elapsed_hours
+
+        if energy_kwh > 0:
             tariff = "dag" if self._is_day_rate(now) else "natt"
             if tariff == "dag":
                 self._monthly_consumption.dag += energy_kwh
@@ -945,19 +1006,36 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
                         # _async_update_data fires and properly archives previous month data
                         self._current_month = stored_month
                 stored_last_update = data.get("last_update")
+                last_update_age_hours: float | None = None
                 if stored_last_update:
                     try:
                         loaded_last_update = datetime.fromisoformat(stored_last_update)
                         # Bare gjenopprett hvis gapet er innenfor MAX_ELAPSED_HOURS.
                         # Lengre gap betyr restart-pause; da vil vi heller starte friskt
                         # (None) enn å akkumulere current_power * hele restart-vinduet.
-                        elapsed = (dt_util.now() - loaded_last_update).total_seconds() / 3600
-                        if 0 <= elapsed <= MAX_ELAPSED_HOURS:
+                        last_update_age_hours = (dt_util.now() - loaded_last_update).total_seconds() / 3600
+                        if 0 <= last_update_age_hours <= MAX_ELAPSED_HOURS:
                             self._last_update = loaded_last_update
                     except (ValueError, TypeError) as err:
                         _LOGGER.warning(
                             "Kunne ikke lese last_update fra storage: %s", err
                         )
+
+                # _last_tpi_kwh: gjenopprett kun hvis ferskt nok. Eldre verdi gir
+                # gigantisk delta ved første poll (alt forbruk siden restart).
+                stored_tpi = data.get("last_tpi_kwh")
+                if stored_tpi is not None:
+                    try:
+                        tpi_val = float(stored_tpi)
+                    except (ValueError, TypeError):
+                        tpi_val = None
+                    if (
+                        tpi_val is not None
+                        and math.isfinite(tpi_val)
+                        and tpi_val > 0
+                        and (last_update_age_hours is None or last_update_age_hours <= TPI_STALE_HOURS)
+                    ):
+                        self._last_tpi_kwh = tpi_val
             except (TypeError, KeyError, AttributeError) as err:
                 _LOGGER.warning("Corrupt storage data, using defaults: %s", err)
             _LOGGER.debug("Loaded stored data: %s", self._daily_max_power)
@@ -1058,6 +1136,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             "previous_month_export_revenue": self._previous_month_export_revenue,
             "previous_month_cost": self._previous_month_cost,
             "last_update": self._last_update.isoformat() if self._last_update else None,
+            "last_tpi_kwh": self._last_tpi_kwh,
         }
         try:
             await self._store.async_save(data)

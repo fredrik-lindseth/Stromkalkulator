@@ -503,6 +503,7 @@ class TestSaveDataStructure:
             "previous_month_export_revenue",
             "previous_month_cost",
             "last_update",
+            "last_tpi_kwh",
         }
         assert expected_keys == set(saved_data.keys())
 

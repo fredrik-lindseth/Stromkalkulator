@@ -2,6 +2,42 @@
 
 Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.0]
+
+### Lagt til
+
+- Nytt valgfritt config-flow-felt `energy_sensor` (kWh, TOTAL_INCREASING). Hvis konfigurert: integrasjonen bruker delta-akkumulering fra meter-registeret i stedet for Riemann-summering av effektmåleren. Treffer fakturaen ned til 0 Wh, uavhengig av HA-restart-mønster. Se [docs/input-sensorer.md](docs/input-sensorer.md).
+
+### Fikset
+
+- `_last_update` persisteres nå til storage. Tidligere ble feltet nullstilt ved HA-restart slik at akkumulator mistet tid i restart-vinduet. Eget oppsett april 2026: 36 % manglende forbruk i Norgespris-kompensasjon-sensor.
+- `_load_stored_data`: `_last_tpi_kwh` restaureres kun hvis `last_update` finnes og er innenfor 24 timer. Forhindrer at en gammel verdi blir baseline ved første poll etter restart.
+- `nb.json` og `en.json` manglet label for `spotpris_inkl_mva`. HA viste rå nøkkel-navn i config-flow-UIet.
+
+### Verifisert
+
+- 2001 tester passerer (47 nye for fix A og fix B).
+- Snapshot-fixtures lagret lokalt for des 2025 til april 2026 (Nord Pool EUR + NB EUR/NOK). Kan reverifiseres offline.
+- Hourly-replay-test mater fixturer time-for-time gjennom `_async_update_data()` og asserter mot fakturatall. Fanger akkumulasjons-bugs som unit-tester ikke ser.
+
+### Dokumentert
+
+- `docs/input-sensorer.md`: opplæring om hver input-sensor, OBIS-koder, Riemann-summering vs delta-akkumulering, anbefalt oppsett per situasjon.
+- `docs/begrensninger.md` restrukturert til bruker-fokus.
+- `docs/måler-hardware.md` med Kaifa MA304H3E som verifisert rigg, Aidon som referanse for andre brukere.
+- `docs/research/`: 5 nye filer med audit-trail for klokke-stempling, NOK-omregning, Elhub-data, AMS-måler-spec.
+
+### Rensket
+
+- Slettet 433 linjer false-positive-tester (`test_faktura_hourly_snapshot.py`, `test_faktura_validering_nye_felter.py`). Erstattet med ekte ende-til-ende-tester som kjører coordinator-koden.
+- Refaktorert `test_property.py`: Hypothesis tester nå ekte coordinator-metoder, ikke test-fil-helpers.
+
+### Migrering
+
+- Brukere uten energi-sensor: ingen endring. Integrasjonen fungerer bakoverkompatibelt.
+- Anbefalt: legg til `energy_sensor` i config via Settings > Devices > Strømkalkulator > Configure. For Pow-U: `sensor.pow_u_ams_tpi`. For Tibber Pulse: `sensor.<navn>_last_meter_consumption`. Se [docs/input-sensorer.md](docs/input-sensorer.md).
+- Hvis HA viser 4 reparasjonsmeldinger om `sensor.stromkostnad_per_time_*` etter oppgradering: dette gjelder dine egne template-sensorer (ikke integrasjonen). Klikk gjennom og godkjenn rydding av historiske statistikker.
+
 ## [1.12.1]
 
 ### Lagt til

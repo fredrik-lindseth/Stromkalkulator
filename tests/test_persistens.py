@@ -279,6 +279,206 @@ class TestLastUpdatePersistens:
         assert coordinator._last_update is None
 
 
+class TestLastTpiKwhPersistens:
+    """Tester for persistens og restore av _last_tpi_kwh (fix B).
+
+    Fix B akkumulerer kWh som delta av tpi-sensoren. Hvis _last_tpi_kwh
+    ikke persisteres ved restart, blir første delta enten 0 (verdi tapt)
+    eller gigantisk (alt forbruk siden restart). Begge er feil.
+    Restore krever fersk last_update for å unngå at en uker gammel tpi
+    bruker som baseline ved første poll.
+    """
+
+    @staticmethod
+    def _make_store_factory(stored_data, saved_holder=None):
+        def make_store(hass, version, key):
+            store = MagicMock()
+            store.async_load = AsyncMock(return_value=stored_data)
+            if saved_holder is not None:
+                async def save(data):
+                    saved_holder.update(data)
+                store.async_save = AsyncMock(side_effect=save)
+            else:
+                store.async_save = AsyncMock()
+            store.async_remove = AsyncMock()
+            return store
+        return make_store
+
+    def test_last_tpi_kwh_persisteres(self):
+        """Roundtrip: save lagrer float, load gjenoppretter eksakt verdi."""
+        coord = _reload_coord()
+
+        saved_data: dict = {}
+        coord.Store = MagicMock(side_effect=self._make_store_factory(None, saved_data))
+
+        hass = MagicMock()
+        entry = _make_entry()
+        coordinator = coord.NettleieCoordinator(hass, entry)
+
+        # Sett fersk last_update slik at tpi restores ved load
+        now = coord.dt_util.now()
+        coordinator._last_update = now - timedelta(minutes=1)
+        coordinator._last_tpi_kwh = 1234.567
+
+        asyncio.run(coordinator._save_stored_data())
+
+        assert saved_data["last_tpi_kwh"] == 1234.567
+
+        coord.Store = MagicMock(side_effect=self._make_store_factory(saved_data))
+        coordinator2 = coord.NettleieCoordinator(hass, entry)
+        assert coordinator2._last_tpi_kwh is None
+        asyncio.run(coordinator2._load_stored_data())
+
+        assert coordinator2._last_tpi_kwh == 1234.567
+
+    def test_last_tpi_kwh_ignoreres_hvis_last_update_stale(self):
+        """last_update > TPI_STALE_HOURS (24t) gammelt: tpi droppes."""
+        coord = _reload_coord()
+
+        now = coord.dt_util.now()
+        stored = {
+            "daily_max_power": {},
+            "monthly_consumption": {"dag": 0.0, "natt": 0.0},
+            "current_month": now.strftime("%Y-%m"),
+            "last_update": (now - timedelta(hours=25)).isoformat(),
+            "last_tpi_kwh": 1234.567,
+        }
+        coord.Store = MagicMock(side_effect=self._make_store_factory(stored))
+
+        hass = MagicMock()
+        coordinator = coord.NettleieCoordinator(hass, _make_entry())
+        asyncio.run(coordinator._load_stored_data())
+
+        assert coordinator._last_tpi_kwh is None
+
+    def test_last_tpi_kwh_ignoreres_hvis_last_update_mangler(self):
+        """Uten last_update kan vi ikke bedømme alder: drop tpi."""
+        coord = _reload_coord()
+
+        now = coord.dt_util.now()
+        stored = {
+            "daily_max_power": {},
+            "monthly_consumption": {"dag": 0.0, "natt": 0.0},
+            "current_month": now.strftime("%Y-%m"),
+            "last_tpi_kwh": 1234.567,
+            # last_update mangler bevisst
+        }
+        coord.Store = MagicMock(side_effect=self._make_store_factory(stored))
+
+        hass = MagicMock()
+        coordinator = coord.NettleieCoordinator(hass, _make_entry())
+        asyncio.run(coordinator._load_stored_data())
+
+        assert coordinator._last_tpi_kwh is None
+
+    def test_last_tpi_kwh_mangler_i_storage_gir_none(self):
+        """Bakoverkompat: storage uten last_tpi_kwh-nøkkel."""
+        coord = _reload_coord()
+
+        now = coord.dt_util.now()
+        stored = {
+            "daily_max_power": {},
+            "monthly_consumption": {"dag": 0.0, "natt": 0.0},
+            "current_month": now.strftime("%Y-%m"),
+            "last_update": (now - timedelta(minutes=1)).isoformat(),
+            # last_tpi_kwh mangler
+        }
+        coord.Store = MagicMock(side_effect=self._make_store_factory(stored))
+
+        hass = MagicMock()
+        coordinator = coord.NettleieCoordinator(hass, _make_entry())
+        asyncio.run(coordinator._load_stored_data())
+
+        assert coordinator._last_tpi_kwh is None
+
+    def test_last_tpi_kwh_korrupt_verdi_ignoreres(self):
+        """Ikke-numerisk verdi: load skal ikke kaste, tpi forblir None."""
+        coord = _reload_coord()
+
+        now = coord.dt_util.now()
+        stored = {
+            "daily_max_power": {},
+            "monthly_consumption": {"dag": 0.0, "natt": 0.0},
+            "current_month": now.strftime("%Y-%m"),
+            "last_update": (now - timedelta(minutes=1)).isoformat(),
+            "last_tpi_kwh": "not_a_number",
+        }
+        coord.Store = MagicMock(side_effect=self._make_store_factory(stored))
+
+        hass = MagicMock()
+        coordinator = coord.NettleieCoordinator(hass, _make_entry())
+        asyncio.run(coordinator._load_stored_data())  # skal ikke kaste
+
+        assert coordinator._last_tpi_kwh is None
+
+    def test_last_tpi_kwh_negativ_eller_null_ignoreres(self):
+        """Negativ eller null tpi er ugyldig; tpi-tellere er monotont stigende."""
+        coord = _reload_coord()
+
+        now = coord.dt_util.now()
+        for ugyldig in (-100.0, 0.0):
+            stored = {
+                "daily_max_power": {},
+                "monthly_consumption": {"dag": 0.0, "natt": 0.0},
+                "current_month": now.strftime("%Y-%m"),
+                "last_update": (now - timedelta(minutes=1)).isoformat(),
+                "last_tpi_kwh": ugyldig,
+            }
+            coord.Store = MagicMock(side_effect=self._make_store_factory(stored))
+
+            hass = MagicMock()
+            coordinator = coord.NettleieCoordinator(hass, _make_entry())
+            asyncio.run(coordinator._load_stored_data())
+
+            assert coordinator._last_tpi_kwh is None, f"verdi {ugyldig} burde gi None"
+
+    def test_last_tpi_kwh_nan_inf_ignoreres(self):
+        """NaN/Inf: defensiv filtrering via math.isfinite."""
+        coord = _reload_coord()
+
+        now = coord.dt_util.now()
+        for ugyldig in (float("nan"), float("inf"), float("-inf")):
+            stored = {
+                "daily_max_power": {},
+                "monthly_consumption": {"dag": 0.0, "natt": 0.0},
+                "current_month": now.strftime("%Y-%m"),
+                "last_update": (now - timedelta(minutes=1)).isoformat(),
+                "last_tpi_kwh": ugyldig,
+            }
+            coord.Store = MagicMock(side_effect=self._make_store_factory(stored))
+
+            hass = MagicMock()
+            coordinator = coord.NettleieCoordinator(hass, _make_entry())
+            asyncio.run(coordinator._load_stored_data())
+
+            assert coordinator._last_tpi_kwh is None, f"verdi {ugyldig} burde gi None"
+
+    def test_round_trip_inkluderer_last_tpi_med_verdi(self):
+        """Variant av test_round_trip som faktisk verifiserer at last_tpi_kwh
+        round-tripper med verdi, ikke bare at nøkkelen finnes."""
+        coord = _reload_coord()
+
+        saved_data: dict = {}
+        coord.Store = MagicMock(side_effect=self._make_store_factory(None, saved_data))
+
+        hass = MagicMock()
+        entry = _make_entry()
+        coordinator = coord.NettleieCoordinator(hass, entry)
+
+        now = coord.dt_util.now()
+        coordinator._last_update = now - timedelta(minutes=2)
+        coordinator._last_tpi_kwh = 9876.5
+
+        asyncio.run(coordinator._save_stored_data())
+        assert saved_data["last_tpi_kwh"] == 9876.5
+
+        coord.Store = MagicMock(side_effect=self._make_store_factory(saved_data))
+        coordinator2 = coord.NettleieCoordinator(hass, entry)
+        asyncio.run(coordinator2._load_stored_data())
+
+        assert coordinator2._last_tpi_kwh == 9876.5
+
+
 class TestMigrationFromDSOStorage:
     """Migration from old DSO-based storage to entry-based storage."""
 

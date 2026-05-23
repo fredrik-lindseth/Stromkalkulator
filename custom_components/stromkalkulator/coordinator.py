@@ -1023,8 +1023,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
 
                 # _last_tpi_kwh: gjenopprett kun hvis ferskt nok. Eldre verdi gir
                 # gigantisk delta ved første poll (alt forbruk siden restart).
+                # Uten last_update kan vi ikke bedømme alder -> drop.
                 stored_tpi = data.get("last_tpi_kwh")
-                if stored_tpi is not None:
+                if stored_tpi is not None and last_update_age_hours is not None:
                     try:
                         tpi_val = float(stored_tpi)
                     except (ValueError, TypeError):
@@ -1033,7 +1034,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
                         tpi_val is not None
                         and math.isfinite(tpi_val)
                         and tpi_val > 0
-                        and (last_update_age_hours is None or last_update_age_hours <= TPI_STALE_HOURS)
+                        and last_update_age_hours <= TPI_STALE_HOURS
                     ):
                         self._last_tpi_kwh = tpi_val
             except (TypeError, KeyError, AttributeError) as err:

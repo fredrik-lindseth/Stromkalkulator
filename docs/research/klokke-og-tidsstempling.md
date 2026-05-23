@@ -1,13 +1,13 @@
 # Klokke-kilde og tidsstempling i AMS-målere
 
-Oppfølging av spørsmål fra samtale med Håkon om GPS-tid og 10-sekunders-broadcast-forsinkelsen.
+Avklaring av tekniske spørsmål om GPS-tid og 10-sekunders broadcast-forsinkelse i AMS-målere.
 
 > Status: 2026-05-23. Konklusjoner basert på Kaifa KFM_001-spec (egen måler), Aidon RJ45 HAN-spec (referanse for andre brukere), DLMS-standarden, Elhub-dokumentasjon og NIST-data.
 
 ## Spørsmålene
 
 1. Hvor får AMS-måleren klokken fra?
-2. Er Håkons GPS-tid-poeng relevant (18 sek vs UTC)?
+2. Er GPS-tid (18 sek vs UTC) relevant for målerens broadcast-timing?
 3. Kan vi shifte vår tpi-data for å lukke 9 Wh-gapet?
 4. Hva med M-Bus direkte eller firmware-dump som alternativ?
 
@@ -29,7 +29,7 @@ DLMS class_id 8 (Clock-objektet) som måleren broadcaster på OBIS 0-0:1.0.0 har
 
 Kaifa-måleren bruker DLMS/COSEM over HDLC på HAN-porten (ikke ASCII IEC 62056-21 som noen eldre målertyper).
 
-## Håkons GPS-tid-poeng
+## GPS-tid vs UTC
 
 **Bekreftet faktum, men ikke relevant for vårt avvik:**
 

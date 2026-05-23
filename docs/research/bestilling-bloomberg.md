@@ -1,4 +1,4 @@
-# Bestilling: EUR/NOK 12:00 CET interbank-spot via Bloomberg eller Refinitiv
+# Bestilling: EUR/NOK 12:00 CET interbank-spot via Bloomberg
 
 For å lukke siste 0,79 kr i Norgespris-verifiseringen ([nok-omregning.md](nok-omregning.md)) trenger vi historiske EUR/NOK-kurser fra det tidspunktet Nord Pool selv bruker som preliminær kurs.
 
@@ -25,58 +25,61 @@ Norges Banks publiserte kurs (B.EUR.NOK.SP) er 14:15 CET-snapshot — to timer s
 
 **Merk DST:** april–oktober er CEST (UTC+2), november–mars er CET (UTC+1). 12:00 Oslo = 10:00 UTC i april, 11:00 UTC i januar–februar. Lettest å spørre på lokal Oslo-tid og la terminalen håndtere DST.
 
+> **Hvorfor 12:00 CET — og hva venter vi å se?**
+> Hele hypotesen og den månedsvise variantanalysen (hvorfor avviket er deterministisk per måned, hvorfor det varierer mellom måneder, og hvorfor alle tre avvikene har samme fortegn) ligger i [nok-omregning.md → "12:00 CET-hypotesen"](nok-omregning.md#1200-cet-hypotesen).
+
 ## Bloomberg-spørring
 
-**Ticker:** `EURNOK Curncy`
+**Foretrukket alternativ: BFIX EURNOK 12:00 CET.** Bloomberg har et eget intraday-fixing-produkt (BFIX) som tar mid-snapshot hvert 30. minutt — inkludert 12:00 CET. Det er det enkleste å hente og det nærmeste vi kommer en "standardisert" 12:00-kurs uten å plukke tick-data manuelt. Hvis terminalen har BFIX-tilgang, bruk dette.
+
+**Ticker (BFIX):** Sjekk i terminalen — typisk noe som `EURNOK 12:00 BFIX Curncy` eller via `BFIX <GO>`-funksjonen. Ber han bekrefte presis ticker når han er logget inn.
+
+**Fallback-ticker (vanlig spot):** `EURNOK Curncy`
 **Felt:** `PX_MID` (eller `PX_BID` + `PX_ASK`)
 **Periode:** 2026-01-02 til 2026-04-30, daglig
 **Snapshot:** 12:00 Europe/Berlin (= Europe/Oslo)
 
 ### Terminal
 
+For BFIX:
+```
+BFIX <GO>
+```
+Velg EUR/NOK, 12:00 CET, period 2026-01-02 til 2026-04-30.
+
+For vanlig spot med tid-override (fallback):
 ```
 EURNOK Curncy HP <GO>
 ```
-
-Sett:
-- Period = Daily
-- Time = 12:00
-- Time Zone = Europe/Berlin (TZ-kode 20)
+Sett Period = Daily, Time = 12:00, Time Zone = Europe/Berlin (TZ-kode 20).
 
 ### Excel (BDH-formel)
 
-```
-=BDH("EURNOK Curncy","PX_MID","01/02/2026","04/30/2026",
-     "Per","D","Time","12:00","TimeZone","20")
-```
-
-For bid og ask:
-```
-=BDH("EURNOK Curncy","PX_BID,PX_ASK","01/02/2026","04/30/2026",
-     "Per","D","Time","12:00","TimeZone","20")
-```
-
-## Refinitiv (Eikon/Workspace)
-
-**RIC:** `EURNOK=` (interbank spot — ikke `EURNOK=R`, som er Reuters internal)
-**Felt:** `BID`, `ASK` eller `MID_PRICE`
-**Periode:** 2026-01-02 til 2026-04-30
-**Snapshot:** 12:00 Europe/Oslo
-
-### Eikon Excel
+BFIX (om tilgjengelig — bekreft ticker først):
 
 ```
-=TR("EURNOK=","TR.BIDPRICE;TR.ASKPRICE",
-    "SDate=2026-01-02 SEdate=2026-04-30 Frq=D Time=12:00 TZ=Europe/Oslo")
+=BDH("EURNOK 12:00 BFIX Curncy","PX_LAST","2026-01-02","2026-04-30","Per","D")
 ```
 
-### Tick History (om tilgjengelig)
+Vanlig spot med tid-override (fallback) — bid og ask i én formel:
 
 ```
-RIC=EURNOK=
-Date Range: 2026-01-02 to 2026-04-30
-Tick interval: Daily at 10:00 UTC (april) / 11:00 UTC (jan–mars)
+=BDH("EURNOK Curncy","PX_BID,PX_ASK","2026-01-02","2026-04-30","Per","D","Time","12:00","TimeZone","Europe/Berlin")
 ```
+
+Hvis kun mid trengs:
+
+```
+=BDH("EURNOK Curncy","PX_MID","2026-01-02","2026-04-30","Per","D","Time","12:00","TimeZone","Europe/Berlin")
+```
+
+Siste fallback hvis terminalen mangler intraday-abonnement og klager på `Time`-overriden — daglig close (typisk London-tid). Ikke det vi egentlig vil ha, men gir oss noe å sammenligne mot NB:
+
+```
+=BDH("EURNOK Curncy","PX_LAST","2026-01-02","2026-04-30","Per","D")
+```
+
+Etter kjøring: "Save As → CSV" og send fila uten manuell formattering. Vi tar det vi får.
 
 ## Hva vi gjør med dataene
 

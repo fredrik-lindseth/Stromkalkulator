@@ -79,11 +79,11 @@ HA-mottakstid = meter-broadcast + transmisjons-tid gjennom HAN-leseren. Transmis
 | Kaifa/Aidon + Tibber Bridge | Ukjent                        | RJ45 direkte HAN, lokal kobling    |
 | Kaifa/Aidon + ESPHome AMS   | 3-10 sek                      | Avhengig av firmware               |
 
-Fredriks Kaifa + Pow-U-oppsett er målt til 13 sek presis (10 sek inne i måleren, 3 sek i transmisjon). Det er kun denne verifiserings-pipelinen i [scripts/research/verify_invoice_hourly.py](../scripts/research/verify_invoice_hourly.py) som påvirkes. Selve HA-integrasjonen leser `p`-strømmen kontinuerlig og er upåvirket av forsinkelsen.
+mitt Kaifa + Pow-U-oppsett er målt til 13 sek presis (10 sek inne i måleren, 3 sek i transmisjon). Det er kun denne verifiserings-pipelinen i [scripts/research/verify_invoice_hourly.py](../scripts/research/verify_invoice_hourly.py) som påvirkes. Selve HA-integrasjonen leser `p`-strømmen kontinuerlig og er upåvirket av forsinkelsen.
 
 Andre kombinasjoner må verifiseres empirisk hos brukeren. Se [begrensninger.md, seksjon 1](begrensninger.md#1-verifiserings-script-sample-skift-mellom-han-broadcast-og-time-grense) for hvordan dette håndteres i scriptet og hva `--shift-seconds` skal settes til.
 
-## Fredriks oppsett
+## eget oppsett
 
 | Felt                   | Verdi                                                  |
 | ---------------------- | ------------------------------------------------------ |

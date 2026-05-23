@@ -2,7 +2,7 @@
 
 Oppfølging av spørsmål fra samtale med Håkon om GPS-tid og 10-sekunders-broadcast-forsinkelsen.
 
-> Status: 2026-05-23. Konklusjoner basert på Kaifa KFM_001-spec (Fredriks måler), Aidon RJ45 HAN-spec (referanse for andre brukere), DLMS-standarden, Elhub-dokumentasjon og NIST-data.
+> Status: 2026-05-23. Konklusjoner basert på Kaifa KFM_001-spec (egen måler), Aidon RJ45 HAN-spec (referanse for andre brukere), DLMS-standarden, Elhub-dokumentasjon og NIST-data.
 
 ## Spørsmålene
 
@@ -13,7 +13,7 @@ Oppfølging av spørsmål fra samtale med Håkon om GPS-tid og 10-sekunders-broa
 
 ## Klokke-kilde i AMS-måleren
 
-Fredriks måler er en **Kaifa MA304H3E** (Nuri Telecom). Tabellen under gjelder norske AMS-målere generelt (Kaifa, Aidon, Kamstrup) siden alle følger samme bransjepraksis.
+egen måler er en **Kaifa MA304H3E** (Nuri Telecom). Tabellen under gjelder norske AMS-målere generelt (Kaifa, Aidon, Kamstrup) siden alle følger samme bransjepraksis.
 
 | Aspekt          | Verdi                                                 | Kilde                           |
 | --------------- | ----------------------------------------------------- | ------------------------------- |
@@ -123,7 +123,7 @@ RJ45 HAN-porten **er** M-Bus elektrisk. Ingen separat M-Bus-kontakt på Kaifa MA
 
 ## Kilder
 
-- [Kaifa KFM_001 HAN-spec (lokal)](specifications/kaifa-kfm-001.pdf), primær kilde for Fredriks Kaifa MA304H3E
+- [Kaifa KFM_001 HAN-spec (lokal)](specifications/kaifa-kfm-001.pdf), primær kilde for min Kaifa MA304H3E
 - [Aidon RJ45 HAN Interface v1.6 (lokal)](specifications/aidon-rj45-han-interface-v1.6-EN.pdf), punkt M side 8, sekundær referanse
 - [Elhub validering V004 Tidsstempling](https://dok.elhub.no/e27/4-0-krav-til-validering)
 - [Gurux DLMS Clock class](https://www.gurux.fi/Gurux.DLMS.Objects.GXDLMSClock)

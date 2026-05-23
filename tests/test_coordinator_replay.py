@@ -23,6 +23,7 @@ import pytest
 from tests.conftest import _make_entry, _make_state
 from tests.test_faktura_bkk import (
     FAKTURA_APRIL_2026,
+    FAKTURA_DESEMBER_2025,
     FAKTURA_FEBRUAR_2026,
     FAKTURA_MARS_2026,
 )
@@ -32,6 +33,11 @@ FIXTURES_DIR = Path(__file__).parent / "fixtures"
 # Map fakturanavn -> (fixture-fil, faktura-dict, første dag i måned).
 # Faktura-dict har "navn" som matcher YYYY-MM-strukturen i tpi-feltet.
 FAKTURA_MAP: dict[str, tuple[str, dict, datetime]] = {
+    "desember_2025": (
+        "bkk_desember_2025_hourly.json",
+        FAKTURA_DESEMBER_2025,
+        datetime(2025, 12, 1),
+    ),
     "februar_2026": (
         "bkk_februar_2026_hourly.json",
         FAKTURA_FEBRUAR_2026,
@@ -92,7 +98,12 @@ def _make_replay_coordinator(coord_module, init_now: datetime, har_norgespris=Tr
     return coord, hass
 
 
-def _replay_month(coord_module, fixture_name: str, faktura: dict) -> dict:
+def _replay_month(
+    coord_module,
+    fixture_name: str,
+    faktura: dict,
+    har_norgespris: bool = True,
+) -> dict:
     """Mat en hourly-fixture inn i coordinator og trigg månedsskifte.
 
     For hver time settes `now` til time-start lokaltid, tpi-sensoren
@@ -114,7 +125,9 @@ def _replay_month(coord_module, fixture_name: str, faktura: dict) -> dict:
     first_hour_iso = hours[0]["start_local"]
     first_hour_now = datetime.fromisoformat(first_hour_iso).replace(tzinfo=None)
 
-    coord, hass = _make_replay_coordinator(coord_module, init_now=first_hour_now)
+    coord, hass = _make_replay_coordinator(
+        coord_module, init_now=first_hour_now, har_norgespris=har_norgespris
+    )
 
     # Primer-poll: sett `_last_tpi_kwh = tpi_start` uten å akkumulere
     # forbruk. Uten dette returnerer `_compute_energy_delta` 0 på første poll
@@ -240,6 +253,85 @@ class TestReplayAprilThroughCoordinator:
 
     def test_kapasitetsledd_matcher_faktura(self, replay):
         """Kapasitetstrinn-beløp for forrige måned matcher faktura."""
+        result = replay["result"]
+        faktura = replay["faktura"]
+        assert result["previous_month_kapasitetsledd"] == faktura["forventet_kapasitet_kr"]
+
+
+class TestReplayDesember2025:
+    """Desember 2025 replay (pre-Norgespris, strømstøtte-kunde).
+
+    Fixturen mangler spotpris-data (alle timer har spot=None), så vi kan ikke
+    verifisere strømstøtte eller kostnad. Vi sjekker bare det som er drevet
+    av forbruks- og effekt-data: total kWh, dag/natt-split, topp 3 og
+    kapasitetstrinn. Strømstøtte-beløpet i fakturaen er verifisert separat
+    i `test_faktura_bkk.py::test_2025_*`.
+    """
+
+    @pytest.fixture
+    def replay(self, coord_module):
+        return _replay_month(
+            coord_module,
+            "bkk_desember_2025_hourly.json",
+            FAKTURA_DESEMBER_2025,
+            har_norgespris=False,
+        )
+
+    def test_total_kwh_matcher_faktura(self, replay):
+        result = replay["result"]
+        faktura = replay["faktura"]
+        assert result["previous_month_consumption_total_kwh"] == pytest.approx(
+            faktura["forbruk_total_kwh"], abs=0.05
+        )
+
+    def test_dag_natt_split_matcher_faktura(self, replay):
+        result = replay["result"]
+        faktura = replay["faktura"]
+        # 2 kWh-toleranse; se kommentar på TestReplayAprilThroughCoordinator.
+        assert result["previous_month_consumption_dag_kwh"] == pytest.approx(
+            faktura["forbruk_dag_kwh"], abs=2.0
+        )
+        assert result["previous_month_consumption_natt_kwh"] == pytest.approx(
+            faktura["forbruk_natt_kwh"], abs=2.0
+        )
+
+    def test_dag_natt_split_med_jul_nyttar_aften_helligdager(self, replay):
+        """Manuell reklassifisering av 24.12 og 31.12 som helligdag matcher fakturaen.
+
+        Dokumenterer at avviket i `test_dag_natt_split_matcher_faktura` skyldes
+        helligdagsdefinisjonen og ingenting annet. Beregner dag/natt-split direkte
+        fra fixturen med BKKs 2025-konvensjon.
+        """
+        from datetime import datetime as _datetime
+
+        fixture = _load_fixture("bkk_desember_2025_hourly.json")
+        bkk_helligdager = {"2025-12-24", "2025-12-25", "2025-12-26", "2025-12-31"}
+
+        dag_kwh = 0.0
+        natt_kwh = 0.0
+        for hour in fixture["hours"]:
+            dt = _datetime.fromisoformat(hour["start_local"])
+            dato = dt.strftime("%Y-%m-%d")
+            is_helligdag = dato in bkk_helligdager
+            is_weekend = dt.weekday() >= 5
+            is_dag_tariff = (6 <= dt.hour < 22) and not is_weekend and not is_helligdag
+            if is_dag_tariff:
+                dag_kwh += hour["kwh"]
+            else:
+                natt_kwh += hour["kwh"]
+
+        faktura = replay["faktura"]
+        assert dag_kwh == pytest.approx(faktura["forbruk_dag_kwh"], abs=0.5)
+        assert natt_kwh == pytest.approx(faktura["forbruk_natt_kwh"], abs=0.5)
+
+    def test_topp_3_kapasitet_matcher_faktura(self, replay):
+        result = replay["result"]
+        faktura = replay["faktura"]
+        assert result["previous_month_avg_top_3_kw"] == pytest.approx(
+            faktura["maks_effekt_snitt"], abs=0.10
+        )
+
+    def test_kapasitetsledd_matcher_faktura(self, replay):
         result = replay["result"]
         faktura = replay["faktura"]
         assert result["previous_month_kapasitetsledd"] == faktura["forventet_kapasitet_kr"]

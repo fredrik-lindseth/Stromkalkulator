@@ -126,7 +126,7 @@ En Tibber Pulse-test kan fortsatt gi nyttig data: hvis Pulse mottar HAN-frame p√
 
 Resultatene her gjelder spesifikt for:
 
-- Kaifa MA304H3E (Fredriks oppsett, BKK NO5)
+- Kaifa MA304H3E (eget oppsett, BKK NO5)
 - Pow-U HAN-leser fra AMSleser.no
 - HA's standard recorder
 - Nord Pool offisiell HA-integrasjon

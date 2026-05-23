@@ -56,7 +56,7 @@ Norge har tre dominerende AMS-måler-merker. Alle bruker samme NEK HAN-spec, men
 
 ### HAN-broadcast-timing
 
-Alle tre merker sender list1/list2 raskt og list3 (timesverdier) like etter time-grensen. Sitatene i spec-ene er nesten ordrette.
+Alle tre merker sender list1/list2 raskt og list3 (timesverdier) like etter time-grensen. Sitatene i spec-ene er nesten ordrette. Tallene her er kun selve målerens broadcast-tid på HAN-port, ikke ende-til-ende-forsinkelse til HA recorder.
 
 | Merke            | List 3 broadcast | Kilde                                                                                                  |
 | ---------------- | ---------------- | ------------------------------------------------------------------------------------------------------ |
@@ -65,6 +65,23 @@ Alle tre merker sender list1/list2 raskt og list3 (timesverdier) like etter time
 | Kamstrup HAN-NVE | HH:00:05         | [`kamstrup-han-nve-rev3.1.pdf`](research/specifications/kamstrup-han-nve-rev3.1.pdf)                   |
 
 Aidon og Kaifa har identisk timing. Begge spec-ene formulerer det som "values generated at XX:00:00 and streamed out from HAN interface 10 seconds later (XX:00:10)". Det er et bevisst designvalg, ikke et IEC-krav. IEC 62056-21-spesifikasjonen sier ingenting om timing av kumulative timesverdier.
+
+### Ende-til-ende-forsinkelse til HA recorder
+
+HA-mottakstid = meter-broadcast + transmisjons-tid gjennom HAN-leseren. Transmisjon dekker fysisk HAN-overføring, parsing i leseren og MQTT-publish (eller annen kanal) inn til HA recorder.
+
+| Måler-merke + HAN-leser     | Total forsinkelse (forventet) | Komponenter                        |
+| --------------------------- | ----------------------------- | ---------------------------------- |
+| Kaifa MA304 + Pow-U         | 10-13 sek                     | 10 sek måler + 3 sek transmisjon   |
+| Aidon 65xx + Pow-U          | 10-15 sek                     | 10 sek måler + 3-5 sek transmisjon |
+| Kamstrup Omnipower + Pow-U  | 5-10 sek                      | 5 sek måler + 3-5 sek transmisjon  |
+| Kaifa/Aidon + Tibber Pulse  | Ukjent                        | Annet nettverkslag (Tibber Cloud)  |
+| Kaifa/Aidon + Tibber Bridge | Ukjent                        | RJ45 direkte HAN, lokal kobling    |
+| Kaifa/Aidon + ESPHome AMS   | 3-10 sek                      | Avhengig av firmware               |
+
+Fredriks Kaifa + Pow-U-oppsett er målt til 13 sek presis (10 sek inne i måleren, 3 sek i transmisjon). Det er kun denne verifiserings-pipelinen i [scripts/research/verify_invoice_hourly.py](../scripts/research/verify_invoice_hourly.py) som påvirkes. Selve HA-integrasjonen leser `p`-strømmen kontinuerlig og er upåvirket av forsinkelsen.
+
+Andre kombinasjoner må verifiseres empirisk hos brukeren. Se [begrensninger.md, seksjon 1](begrensninger.md#1-verifiserings-script-sample-skift-mellom-han-broadcast-og-time-grense) for hvordan dette håndteres i scriptet og hva `--shift-seconds` skal settes til.
 
 ## Fredriks oppsett
 

@@ -25,6 +25,8 @@ beads-prompt.md
 !docs/fakturaer/
 .dogcatrc
 .dogcats/config.local.toml
+.dogcats/.issues.lock
+.dogcats/*.bak-*
 .claude/
 .hypothesis/
 .worktrees/

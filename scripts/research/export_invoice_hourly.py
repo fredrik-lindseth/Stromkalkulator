@@ -37,11 +37,33 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--month", type=int, required=True)
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--db-path", type=Path, default=Path("/config/home-assistant_v2.db"))
-    p.add_argument("--tpi-entity", default="sensor.pow_u_ams_tpi")
+    p.add_argument(
+        "--tpi-entity",
+        action="append",
+        default=None,
+        help=(
+            "Akkumulert kWh-sensor. Kan oppgis flere ganger som fallback-kjede; "
+            "data fra senere flagg overskriver tidligere ved overlapp. "
+            "Default: sensor.pow_u_ams_tpi"
+        ),
+    )
     p.add_argument("--spot-entity", default="sensor.nord_pool_no5_current_price")
-    p.add_argument("--p-entity", default="sensor.pow_u_ams_p")
+    p.add_argument(
+        "--p-entity",
+        action="append",
+        default=None,
+        help=(
+            "Effekt-sensor (watt). Kan oppgis flere ganger som fallback-kjede. "
+            "Default: sensor.pow_u_ams_p"
+        ),
+    )
     p.add_argument("--fakturanr", default="")
-    return p.parse_args()
+    args = p.parse_args()
+    if not args.tpi_entity:
+        args.tpi_entity = ["sensor.pow_u_ams_tpi"]
+    if not args.p_entity:
+        args.p_entity = ["sensor.pow_u_ams_p"]
+    return args
 
 
 def month_bounds_local(year: int, month: int) -> tuple[datetime, datetime]:
@@ -65,6 +87,23 @@ def load_meta_ids(con: sqlite3.Connection, entities: list[str]) -> dict[str, int
     if missing:
         sys.exit(f"Mangler statistics_meta for: {missing}")
     return ids
+
+
+def merge_entity_chain(
+    con: sqlite3.Connection,
+    entities: list[str],
+    meta: dict[str, int],
+    fetcher,
+    *fetch_args,
+) -> dict[float, float]:
+    """Slå sammen data fra flere entiteter, senere entitet vinner ved overlapp.
+
+    Bruksmønster: tibber-puls-meter dekker jan-30, deretter overtar pow-u_tpi.
+    """
+    merged: dict[float, float] = {}
+    for ent in entities:
+        merged.update(fetcher(con, meta[ent], *fetch_args))
+    return merged
 
 
 def fetch_tpi_states(con, meta_id, start_ts, end_ts) -> dict[float, float]:
@@ -149,11 +188,12 @@ def main() -> None:
     con = sqlite3.connect(f"file:{args.db_path}?mode=ro", uri=True)
     con.row_factory = sqlite3.Row
 
-    meta = load_meta_ids(con, [args.tpi_entity, args.spot_entity, args.p_entity])
+    all_entities = [*args.tpi_entity, args.spot_entity, *args.p_entity]
+    meta = load_meta_ids(con, all_entities)
 
-    tpi = fetch_tpi_states(con, meta[args.tpi_entity], start_ts, end_ts)
+    tpi = merge_entity_chain(con, args.tpi_entity, meta, fetch_tpi_states, start_ts, end_ts)
     spot = fetch_hourly_column(con, meta[args.spot_entity], "mean", start_ts, end_ts)
-    p_max = fetch_hourly_column(con, meta[args.p_entity], "max", start_ts, end_ts)
+    p_max = merge_entity_chain(con, args.p_entity, meta, fetch_hourly_column, "max", start_ts, end_ts)
 
     hours = build_hours(tpi, spot, p_max, start, end)
 
@@ -175,9 +215,15 @@ def main() -> None:
             "periode_start_local": start.isoformat(timespec="seconds"),
             "periode_end_local": end.isoformat(timespec="seconds"),
             "tidssone": "Europe/Oslo",
-            "kilde_forbruk": f"{args.tpi_entity} (Accumulated active import, delta per time)",
-            "kilde_spotpris": f"{args.spot_entity} (eks. mva — multipliser med 1.25 for inkl. mva)",
-            "kilde_p_max": f"{args.p_entity} (Active import i watt, max per time)",
+            "kilde_forbruk": (
+                ", ".join(args.tpi_entity)
+                + " (Akkumulert meter, delta per time, fallback-kjede)"
+            ),
+            "kilde_spotpris": f"{args.spot_entity} (eks. mva, multipliser med 1.25 for inkl. mva)",
+            "kilde_p_max": (
+                ", ".join(args.p_entity)
+                + " (Active import i watt, max per time, fallback-kjede)"
+            ),
             "tpi_start_kwh": tpi_start,
             "tpi_end_kwh": tpi_end,
         },

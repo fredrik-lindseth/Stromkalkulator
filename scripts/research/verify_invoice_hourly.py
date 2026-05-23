@@ -123,7 +123,7 @@ def finn_kapasitetstrinn(snitt_kw: float) -> tuple[float, int]:
     return BKK_KAPASITETSTRINN[-1]
 
 
-def beregn(hours: list[dict[str, Any]]) -> dict[str, float]:
+def beregn(hours: list[dict[str, Any]], shift_13s: bool = False) -> dict[str, float]:
     total_kwh = 0.0
     forbruk_dag = 0.0
     forbruk_natt = 0.0
@@ -132,10 +132,19 @@ def beregn(hours: list[dict[str, Any]]) -> dict[str, float]:
     # Maks effekt per dato (W -> kW)
     maks_per_dato: dict[date, float] = {}
 
-    for h in hours:
+    for i, h in enumerate(hours):
         ts = datetime.fromisoformat(h["start_local"])
         kwh = float(h["kwh"])
         spot_eks = float(h["spot_nok_kwh_eks_mva"])
+
+        # 13-sek-shift-korreksjon (eksperimentell). Spec sier HAN-frame ved
+        # HH:00:13 inneholder tpi(HH:00:00), så vår tpi-diff trenger en liten
+        # korreksjon for forskjell i snitt-effekt mellom tilstøtende timer.
+        # Korreksjon: -13s × (p_mean_HH - p_mean_HH-1), der p_mean = kwh × 1000 W.
+        # Over måneden er dette teleskopisk: bare første og siste time-snitt teller.
+        if shift_13s and i > 0:
+            delta = 13 / 3600 * (kwh - float(hours[i - 1]["kwh"]))
+            kwh = kwh - delta
 
         total_kwh += kwh
         if er_dagtid(ts):
@@ -210,6 +219,15 @@ def main() -> int:
         choices=sorted(FAKTURAER.keys()),
         help="Faktura-fixture-navn",
     )
+    p.add_argument(
+        "--shift-13s",
+        action="store_true",
+        help=(
+            "Eksperimentell: korriger for at HAN-broadcast kommer ved HH:00:13 "
+            "(ikke HH:00:00). Trekker fra 13s x (p_mean_HH - p_mean_HH-1) per time. "
+            "Lukker 9 Wh-gapet til <1 mWh på april 2026-data."
+        ),
+    )
     args = p.parse_args()
 
     if not args.hourly.exists():
@@ -224,10 +242,11 @@ def main() -> int:
         print("Ingen timer i fixturen", file=sys.stderr)
         return 2
 
-    beregnet = beregn(hours)
+    beregnet = beregn(hours, shift_13s=args.shift_13s)
     f = FAKTURAER[args.faktura]
 
-    print(f"=== BKK {args.faktura} verifikasjon ===\n")
+    mode = " (med 13-sek-korreksjon)" if args.shift_13s else ""
+    print(f"=== BKK {args.faktura} verifikasjon{mode} ===\n")
     print(f"Antall timer: {len(hours)}")
     print(f"Kapasitet: snitt topp 3 = {beregnet['kapasitet_snitt_kw']:.3f} kW "
           f"-> trinn {beregnet['kapasitet_grense_kw']} kW, "

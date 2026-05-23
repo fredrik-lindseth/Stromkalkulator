@@ -22,6 +22,7 @@ CONF_AVGIFTSSONE: Final[str] = "avgiftssone"
 CONF_KAPASITET_VARSEL_TERSKEL: Final[str] = "kapasitet_varsel_terskel"
 CONF_BOLIGTYPE: Final[str] = "boligtype"
 CONF_EXPORT_POWER_SENSOR: Final[str] = "export_power_sensor"
+CONF_ENERGY_SENSOR: Final[str] = "energy_sensor"
 CONF_SPOTPRIS_INKL_MVA: Final[str] = "spotpris_inkl_mva"
 
 # Avgiftssoner for forbruksavgift og mva
@@ -307,6 +308,12 @@ HELLIGDAGER_BEVEGELIGE: Final[list[str]] = (
 UPDATE_INTERVAL_MINUTES: Final[int] = 1
 MAX_POWER_CLAMP_W: Final[int] = 500_000  # 500 kW - reject obviously bad readings
 MAX_ELAPSED_HOURS: Final[float] = 0.1  # 6 min - reject clock jumps in Riemann sum
+# Maks delta per poll på kumulativ energi-sensor (kWh). Større = sannsynligvis
+# meter-bytte eller bug; ignoreres for å unngå hopp i månedsforbruk.
+MAX_ENERGY_DELTA_KWH: Final[float] = 100.0
+# Hvis lagret _last_tpi_kwh er eldre enn dette ved oppstart, nullstilles den
+# slik at første poll ikke gir et gigantisk delta.
+TPI_STALE_HOURS: Final[float] = 24.0
 
 # Dag/natt-tariff (nettleie energiledd)
 DAY_RATE_START_HOUR: Final[int] = 6

@@ -1,0 +1,4 @@
+namespace = "stromkalkulator"
+visible_namespaces = [
+    "stromkalkulator",
+]

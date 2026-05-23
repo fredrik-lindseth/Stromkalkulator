@@ -96,20 +96,43 @@ Disse er ikke kritiske å løse. Avviket på 0,2 % er innenfor praktisk presisjo
 
 ## Variant-matrise (2026-05-23)
 
-Vi gjorde det forrige doc kalte overkill: hentet rå EUR/MWh-priser direkte fra Nord Pool (via hvakosterstrommen.no-speilet) og kjørte 10 NOK-omregnings-varianter mot fakturaen. Reproduserbar via `scripts/research/match_norgespris_variants.py`.
+Vi gjorde det forrige doc kalte overkill: hentet rå EUR/MWh-priser direkte fra Nord Pool (via hvakosterstrommen.no-speilet) og kjørte 10 NOK-omregnings-varianter mot fakturaen. Reproduserbar via `just verify-april` (eller `scripts/research/match_norgespris_variants.py --emit-markdown`).
 
-| Variant                                       | Snitt eks. mva | Komp (kr) | Avvik (kr) | Avvik (%) |
-| --------------------------------------------- | -------------- | --------- | ---------- | --------- |
-| A: Nord Pool EXR (daglig, fra HKS)            | 1,228551       | -1431,14  | -3,25      | -0,228 %  |
-| **B: NB same-day forward-fill**               | **1,226212**   | **-1427,10** | **+0,79**  | **+0,055 %**  |
-| C: NB previous-bankday (T-1)                  | 1,227347       | -1429,06  | -1,17      | -0,082 %  |
-| D: NB aritmetisk månedssnitt                  | 1,221387       | -1418,77  | +9,12      | +0,639 %  |
-| E: NB forbruksvektet månedssnitt              | 1,225652       | -1426,14  | +1,75      | +0,123 %  |
-| F: HKS NOK_per_kWh direkte                    | 1,228551       | -1431,14  | -3,25      | -0,228 %  |
-| G: HKS NOK avrundet per time (4d)             | 1,228552       | -1431,14  | -3,25      | -0,228 %  |
-| H: HKS NOK avrundet per time (5d)             | 1,228551       | -1431,14  | -3,25      | -0,228 %  |
-| I: NB next-bankday (T+1)                      | 1,224821       | -1424,70  | +3,19      | +0,223 %  |
-| J: NB ukedag + NP-EXR helg                    | 1,226223       | -1427,12  | +0,77      | +0,054 %  |
+Tabellen under regenereres automatisk av `just verify-all` (kun lokale fixturer, ingen internett). Manuell historisk versjon med Nord Pool EXR fra live HKS-kall ligger i [tidligere git-revisjon](https://github.com/) av denne fila.
+
+<!-- BEGIN GENERATED: match_norgespris_variants -->
+_Generert av_ `scripts/research/match_norgespris_variants.py --emit-markdown` (april 2026, NO5, kun lokale fixturer).
+
+Faktura: forbruk 1381.830 kWh, Norgespris-kompensasjon -1427.89 kr. Implisitt snittspot eks. mva: 1.226666 NOK/kWh.
+
+| Variant | Snitt eks. mva | Komp (kr) | Avvik (kr) | Avvik (%) |
+| --- | ---: | ---: | ---: | ---: |
+| A: Nord Pool EXR (daglig)  (proxy: NB same-day, snapshot mangler EXR) | 1.226212 | -1427.10 | +0.79 | +0.055 % |
+| B: NB same-day forward-fill | 1.226212 | -1427.10 | +0.79 | +0.055 % |
+| C: NB previous-bankday (T-1) | 1.227347 | -1429.07 | -1.18 | -0.082 % |
+| D: NB aritmetisk månedssnitt | 1.221387 | -1418.77 | +9.12 | +0.639 % |
+| E: NB forbruksvektet månedssnitt | 1.225652 | -1426.14 | +1.75 | +0.123 % |
+| F: HKS NOK_per_kWh direkte  (proxy: NB same-day, snapshot mangler EXR) | 1.226212 | -1427.10 | +0.79 | +0.055 % |
+| G: HKS NOK avrundet per time (4d)  (proxy: NB same-day, snapshot mangler EXR) | 1.226208 | -1427.10 | +0.79 | +0.055 % |
+| H: HKS NOK avrundet per time (5d)  (proxy: NB same-day, snapshot mangler EXR) | 1.226211 | -1427.10 | +0.79 | +0.055 % |
+| I: NB next-bankday (T+1) | 1.224821 | -1424.70 | +3.19 | +0.223 % |
+| J: NB ukedag + NP-EXR helg  (proxy: NB same-day, snapshot mangler EXR) | 1.226212 | -1427.10 | +0.79 | +0.055 % |
+
+**Beste variant:** A: Nord Pool EXR (daglig) (+0.79 kr / +0.055 %).
+
+### Reverse-engineering
+
+| Kurs | Verdi |
+| --- | ---: |
+| Forbruksvektet EUR/kWh | 0.110804 |
+| Implisitt single-rate NOK/EUR | 11.0706 |
+| Nord Pool EXR snitt (aritmetisk) | 11.0549 |
+| Nord Pool EXR snitt (vektet) | 11.0614 |
+| NB aritmetisk månedssnitt | 11.0229 |
+| NB forbruksvektet snitt | 11.0614 |
+
+> Kjørt i `--no-network`-modus. NP-snapshot inneholder kun rå EUR/MWh, ikke Nord Pools egen EXR. Variantene A, F, G, H, J bruker NB same-day som proxy for EXR (markert i tabellen). For nøyaktige tall mot Nord Pools faktiske valutakurs, kjør uten `--no-network` med live HKS-data.
+<!-- END GENERATED -->
 
 **Konklusjon:** Ingen offentlig tilgjengelig kursvariant treffer fakturaen eksakt. Beste enkeltkilde er **NB same-day forward-fill** med +0,79 kr avvik (0,055 %). Det er en reduksjon fra det opprinnelige avviket på 2,92 kr på 73 %.
 
@@ -141,19 +164,93 @@ Når vi gjør konverteringen lokalt med rå EUR + NB same-day forward-fill, komm
 
 Krever ikke-offentlige data eller direkte kilde:
 
-1. Hente historiske interbankkurser 12:00 CET — bestillingsbeskrivelse i [bestilling-bloomberg-refinitiv.md](bestilling-bloomberg-refinitiv.md)
+1. Hente historiske interbankkurser 12:00 CET — bestillingsbeskrivelse i [bestilling-bloomberg.md](bestilling-bloomberg.md)
 2. Spørre BKK kundeservice eksplisitt hvilken kursleverandør og hvilket snapshot-tidspunkt de bruker
 3. Få tak i en strømleverandørs interne dokumentasjon (Tibber, BKK Direkte etc.) som beskriver deres NOK-omregningsmetode
 
 For praktisk fakturakontroll er 0,79 kr / 0,055 % innenfor "treffer på øret"-toleransen.
 
+## 12:00 CET-hypotesen
+
+Hovedmistanken er at BKK bruker Nord Pools preliminære interbankkurs ved 12:00 CET, ikke Norges Banks 14:15 CET-snapshot. Tre observasjoner bygger opp hypotesen.
+
+### Hva er forskjellen på 12:00 CET-kursen og Norges Bank?
+
+Samme valutapar (EUR/NOK spot, mid-point i interbankmarkedet) og samme underliggende marked. Forskjellen er tidspunkt og leverandør.
+
+Norges Bank snapper kursen 14:15 CET hver bankdag — synket med ECBs euro reference rate siden 2016. Den publiseres gratis dagen etter via SDMX-JSON API. Nord Pool snapper kursen to timer tidligere, kl. 12:00 CET. Grunnen er at day-ahead-auksjonen avholdes ~12:50 CET dagen før, så Nord Pool snapper kursen rett før auksjonen og bruker den til å konvertere EUR-priser til NOK ([Nord Pool: Preliminary prices and exchange rates](https://www.nordpoolgroup.com/en/trading/Day-ahead-trading/Preliminary-prices-and-exchange-rates/)).
+
+EUR/NOK kan bevege seg 0,02–0,05 i løpet av de to timene mellom 12:00 og 14:15. Det høres lite ut, men over 720 timer med strømforbruk gir det merkbar forskjell i den endelige Norgespris-kompensasjonen.
+
+### Hvorfor diffen er deterministisk per måned, men varierer mellom måneder
+
+Beregningen er deterministisk: rå EUR/MWh per time fra Nord Pool-snapshot (statisk JSON), NB-kurs fra snapshot (statisk JSON), forbruk fra Elhub-CSV (statisk). Forward-fill og forbruksvektet snitt er rene funksjoner. Kjører vi scriptet ti ganger på samme måned, får vi samme tall ti ganger. Det er ikke statistisk støy.
+
+Når vi sammenligner forskjellige måneder, varierer diffen. Tre måneder testet på variant B (NB same-day forward-fill): februar +2,07 kr, mars +0,70 kr, april +0,79 kr. NOK svinger ulikt mellom 12:00 og 14:15 fra dag til dag, og hver måned har sin egen forbruks-vekt mot ulike dager. Ingen måned får systematisk samme avvik, men alle ligger innenfor samme størrelsesorden.
+
+Hvis BKK hadde brukt en helt annen kurskilde (bank-spesifikk eller forward-spread), skulle vi sett mer kaotisk variasjon. At avviket ligger ±0,02–0,05 fra NB-kursen, ulikt hver måned, men alltid innenfor det båndet NOK svinger i på to timer — det stemmer presist med 12:00 CET-snapshot før 14:15 CET-snapshot.
+
+### Hvorfor alle tre avvikene har samme fortegn
+
+Alle tre månedene gir *positivt* avvik: vår beregnede kompensasjon er litt mindre negativ enn fakturaen. Det betyr at vår beregnede snittspot er litt lavere enn fakturaens implisitte snittspot — altså at NB-kursen ligger litt under den BKK bruker. Hver gang. På tre måneder, alle samme retning.
+
+Tilfeldighet ville gitt blandet fortegn. Systematisk skjevhet i én retning forteller at BKK bruker en *høyere* kurs enn NB 14:15. Det stemmer med 12:00 CET-hypotesen i akkurat denne perioden: krona styrket seg gjennom 2026 (april gikk fra 11,21 til 10,91), og når krona styrker seg gjennom dagen er 12:00-kursen høyere enn 14:15-kursen.
+
+Det gir en testbar prediksjon: hvis vi sammenligner en måned med systematisk svekkende krone-trend (f.eks. høst 2025), forventer vi *negativt* avvik på samme variant. Hvis det også slår til, har vi enda sterkere bevis for hypotesen.
+
+### Hva som vil bevise eller avkrefte hypotesen
+
+Når vi får 12:00 CET-data fra Bloomberg ([bestilling](bestilling-bloomberg.md)) og kjører samme beregning, forventer vi at de tre tallene (0,79, 2,07, 0,70 kr) alle krymper mot null. Hvis de gjør det, har vi bevist hypotesen. Hvis ikke — hvis avviket blir samme størrelsesorden eller endrer fortegn på en uventet måte — må vi se etter en annen forklaring (egen bankkurs, forward-spread, eller noe vi ikke har tenkt på enda).
+
+## Variant-matrise per måned
+
+Samme variantsett kjørt mot alle måneder vi har Norgespris-faktura for. Bekrefter at "beste variant"-valget ikke er stabil over måneder, og at NB-kurser ligger innenfor ±0,3 % uavhengig av valgt forward/backward-fill-strategi.
+
+<!-- BEGIN GENERATED: match_norgespris_alle_maaneder -->
+_Generert av_ `scripts/research/match_norgespris_alle_maaneder.py --emit-markdown` (alle måneder med Norgespris-faktura, kun lokale fixturer).
+
+## Avvik (kr) per variant per måned
+
+| Måned | B | C | D | E | I | Beste |
+| --- | ---: | ---: | ---: | ---: | ---: | :--- |
+| 2026-02 | +2.07 | +0.08 | +5.15 | +2.86 | +2.94 | C (+0.08) |
+| 2026-03 | +0.70 | +0.65 | -0.86 | +0.24 | -2.49 | E (+0.24) |
+| 2026-04 | +0.78 | -1.19 | +9.11 | +1.74 | +3.18 | B (+0.78) |
+
+## Avvik (%) per variant per måned
+
+| Måned | B | C | D | E | I |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 2026-02 | +0.114 % | +0.004 % | +0.282 % | +0.157 % | +0.162 % |
+| 2026-03 | +0.045 % | +0.042 % | -0.056 % | +0.015 % | -0.160 % |
+| 2026-04 | +0.054 % | -0.083 % | +0.638 % | +0.122 % | +0.222 % |
+
+## Implisitte match-kurser (reverse-engineering)
+
+| Måned | match NOK/EUR | NB arith | NB vektet | diff vs NB-arith |
+| --- | ---: | ---: | ---: | ---: |
+| 2026-02 | 11.3426 | 11.3206 | 11.3303 | +0.0220 |
+| 2026-03 | 11.1616 | 11.1658 | 11.1605 | -0.0041 |
+| 2026-04 | 11.0705 | 11.0229 | 11.0614 | +0.0476 |
+<!-- END GENERATED -->
+
 ## Reprodusering
 
 ```bash
-python3 scripts/research/eur_nok_april_2026.py
+# Krever ikke internett — bruker fixturer.
+just verify-all
+
+# Eller direkte:
+python3 scripts/research/match_norgespris_variants.py --emit-markdown
+python3 scripts/research/match_norgespris_alle_maaneder.py --emit-markdown
 ```
 
-Krever internett (slår opp Norges Bank API). Bruker kun standardbiblioteket.
+Live-versjonen (henter HKS-data live for sammenligning med EXR) krever internett:
+
+```bash
+python3 scripts/research/match_norgespris_variants.py    # uten flagg
+python3 scripts/research/eur_nok_april_2026.py
+```
 
 For å gjenta for andre måneder, dupliser scriptet og endre datoperiode + HA-cache-snittet.
 

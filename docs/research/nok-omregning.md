@@ -1,8 +1,8 @@
 # NOK-omregning og Norgespris-restavviket
 
-Undersøkelse av hvorfor vår beregning av Norgespris-kompensasjon avviker 2,92 kr (0,2 %) fra BKKs faktura april 2026.
+Undersøkelse av hvorfor vår beregning av Norgespris-kompensasjon avviker fra BKKs faktura april 2026.
 
-> Status: konklusjon 2026-05-22, åpne spørsmål gjenstår. Reproduserbar via `scripts/research/eur_nok_april_2026.py`.
+> Status: konklusjon 2026-05-23 etter variant-matrise. Avviket redusert fra 2,92 kr til 0,79 kr (73 %). Reproduserbar via `scripts/research/match_norgespris_variants.py` (live HKS-kall + lokal NB-fixture).
 
 ## Avviket
 
@@ -94,16 +94,58 @@ Kort svar: **ingen** norsk lov eller forskrift sier eksplisitt hvilken EUR/NOK-k
 
 Disse er ikke kritiske å løse. Avviket på 0,2 % er innenfor praktisk presisjon for fakturakontroll.
 
-## Hvis du vil gå dypere
+## Variant-matrise (2026-05-23)
 
-For å lukke gapet helt må vi:
+Vi gjorde det forrige doc kalte overkill: hentet rå EUR/MWh-priser direkte fra Nord Pool (via hvakosterstrommen.no-speilet) og kjørte 10 NOK-omregnings-varianter mot fakturaen. Reproduserbar via `scripts/research/match_norgespris_variants.py`.
 
-1. Hente rå EUR/MWh-priser fra Nord Pool eller ENTSO-E (krever security token for ENTSO-E)
-2. Bygge egen NOK-omregning med flere forskjellige kurser
-3. Kjøre alle varianter mot fakturaen til vi finner perfekt match
-4. Konfrontere BKK kundeservice med funnet
+| Variant                                       | Snitt eks. mva | Komp (kr) | Avvik (kr) | Avvik (%) |
+| --------------------------------------------- | -------------- | --------- | ---------- | --------- |
+| A: Nord Pool EXR (daglig, fra HKS)            | 1,228551       | -1431,14  | -3,25      | -0,228 %  |
+| **B: NB same-day forward-fill**               | **1,226212**   | **-1427,10** | **+0,79**  | **+0,055 %**  |
+| C: NB previous-bankday (T-1)                  | 1,227347       | -1429,06  | -1,17      | -0,082 %  |
+| D: NB aritmetisk månedssnitt                  | 1,221387       | -1418,77  | +9,12      | +0,639 %  |
+| E: NB forbruksvektet månedssnitt              | 1,225652       | -1426,14  | +1,75      | +0,123 %  |
+| F: HKS NOK_per_kWh direkte                    | 1,228551       | -1431,14  | -3,25      | -0,228 %  |
+| G: HKS NOK avrundet per time (4d)             | 1,228552       | -1431,14  | -3,25      | -0,228 %  |
+| H: HKS NOK avrundet per time (5d)             | 1,228551       | -1431,14  | -3,25      | -0,228 %  |
+| I: NB next-bankday (T+1)                      | 1,224821       | -1424,70  | +3,19      | +0,223 %  |
+| J: NB ukedag + NP-EXR helg                    | 1,226223       | -1427,12  | +0,77      | +0,054 %  |
 
-Overkill for å validere integrasjonen. Ligger på prosjekt-todo som [fakturaverifisering-prosjekt.md fase 4](../fakturaverifisering-prosjekt.md) hvis vi vil.
+**Konklusjon:** Ingen offentlig tilgjengelig kursvariant treffer fakturaen eksakt. Beste enkeltkilde er **NB same-day forward-fill** med +0,79 kr avvik (0,055 %). Det er en reduksjon fra det opprinnelige avviket på 2,92 kr på 73 %.
+
+### Hva sier reverse-engineeringen?
+
+Implisitt single-rate som ville gitt eksakt match: **11,0706 NOK/EUR**.
+
+| Kurs                                | Verdi        |
+| ----------------------------------- | ------------ |
+| Implisitt match-kurs                | 11,0706      |
+| Nord Pool EXR (aritmetisk snitt)    | 11,0761      |
+| Nord Pool EXR (forbruksvektet)      | 11,0815      |
+| NB aritmetisk månedssnitt           | 11,0229      |
+| NB forbruksvektet snitt (same-day)  | 11,0614      |
+
+BKKs implisitte kurs ligger **mellom** NB og Nord Pool EXR. Det er ingen offentlig publisert kurs som treffer 11,0706 — verken Norges Bank, ECB-referansekurs, eller Nord Pools daglige EXR. Mest sannsynlige forklaringer:
+
+1. **12:00 CET interbankkurs** (Nord Pools preliminære kurs): hentet 2 timer før NB-snapshotet (14:15 CET). Krona kan svekkes/styrkes 0,02–0,05 i løpet av disse to timene i et volatilt marked. Denne kursen publiseres ikke offentlig.
+2. **Egen bankkurs**: BKK kan ha avtale med en spesifikk bank (DNB, Nordea etc.) med litt egne marginer.
+3. **Avrundingsstøy**: 0,79 kr på 1428 kr er 0,055 %. På 720 timer med 4-desimals pris-publisering er det innenfor støy.
+
+### Hvorfor HA-integrasjonen avvek mer (2,92 kr i forrige verifisering)
+
+Det opprinnelige 2,92 kr-avviket kom fra HA `nordpool`-integrasjonens egen NOK-konvertering. Den henter priser i konfigurert valuta direkte fra Nord Pool API, men konverteringen Nord Pool gjør for HA-integrasjonen bruker tilsynelatende ECB-/NB-kurs (ikke deres egen interne EXR). Det ga 0,14 % på spot, som ble 0,2 % på Norgespris-kompensasjonen.
+
+Når vi gjør konverteringen lokalt med rå EUR + NB same-day forward-fill, kommer vi ned i 0,055 %.
+
+## Hvis vi vil lukke siste 0,79 kr
+
+Krever ikke-offentlige data eller direkte kilde:
+
+1. Hente historiske interbankkurser 12:00 CET — bestillingsbeskrivelse i [bestilling-bloomberg-refinitiv.md](bestilling-bloomberg-refinitiv.md)
+2. Spørre BKK kundeservice eksplisitt hvilken kursleverandør og hvilket snapshot-tidspunkt de bruker
+3. Få tak i en strømleverandørs interne dokumentasjon (Tibber, BKK Direkte etc.) som beskriver deres NOK-omregningsmetode
+
+For praktisk fakturakontroll er 0,79 kr / 0,055 % innenfor "treffer på øret"-toleransen.
 
 ## Reprodusering
 

@@ -52,17 +52,13 @@ Implisitt single-rate som ville gitt 0-treff: 11,0706 NOK/EUR. Den ligger mellom
 
 Se [research/nok-omregning.md](research/nok-omregning.md) for full variant-matrise og kjørbart script.
 
-## 4. Strømstøtte-formel (2 %)
+## 4. Strømstøtte-formel (~30 kr/mnd vs BKKs visning)
 
-Beregningen av "spot etter strømstøtte" avviker 2 % fra BKKs egen visning (1347 kr vs 1377 kr for april 2026). Vi bruker standard formel: 90 % refusjon over 0,9125 kr/kWh inkl. mva, time-for-time.
+Vår "spot etter strømstøtte" avviker ~30 kr/mnd fra BKKs egen "Uten Norgespris"-visning (april 2026: vi beregner 1408,52 kr, BKK viser 1377 kr). Vi bruker 2026-terskel fra forskrift 2025-09-08-1791 §5: 90 % refusjon når spotpris overstiger 77 øre/kWh eks. mva (0,9625 kr/kWh inkl. mva), time-for-time.
 
-Mulige årsaker:
+Avviket ser ut til å skyldes at BKKs visning fortsatt bruker 2025-terskelen (75 øre eks. mva / 0,9375 inkl. mva). Med lavere terskel blir refusjonen større, så BKK trekker fra mer enn vi gjør — vi gir altså MER strømstøtte i vår beregning enn det BKK viser. Dette er anekdotisk basert på én faktura (april 2026); det kan også være avrundingsregler eller andre forskrifts-detaljer i spill.
 
-- BKK bruker en litt annen avrundingsregel
-- Tibbers prismodell-påslag inkluderes muligens
-- Andre forskrifts-detaljer i strømstøtten som ikke er åpenbare
-
-Kun relevant for sammenligning mot BKKs "Uten Norgespris"-tall. Har du faktisk Norgespris er dette et teoretisk tall, ikke en faktisk fakturalinje.
+Kun relevant for Norgespris-kunder som vil sammenligne mot BKKs "Uten Norgespris"-tall i kundeportalen. Tallet er en hypotetisk visning, ikke en faktisk fakturalinje — Norgespris-kunder mottar ikke strømstøtte uansett.
 
 ## 5. Momentan-effekt sample-frekvens (2,5 sek)
 

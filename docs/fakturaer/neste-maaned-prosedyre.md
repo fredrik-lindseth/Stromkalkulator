@@ -74,11 +74,11 @@ Hvis avvik er signifikant større: undersøk. Mulige årsaker:
 
 ### 7. Lag faktura-rapport
 
-Kopier `docs/fakturaer/BKK_Faktura_april_2026.md` til `BKK_Faktura_mai_2026.md` og oppdater tallene.
+Kopier `docs/fakturaer/bkk-april-2026.md` til `bkk-mai-2026.md` og oppdater tallene.
 
-### 8. Oppdater REFERANSE.md
+### 8. Oppdater referanse.md
 
-Øk verifiserte måneder i `docs/fakturaer/REFERANSE.md` og README-tabellen.
+Øk verifiserte måneder i `docs/fakturaer/referanse.md` og README-tabellen.
 
 ### 9. Anonymiser personlig data
 

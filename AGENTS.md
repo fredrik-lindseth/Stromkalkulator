@@ -29,7 +29,7 @@ Kjøres også via pre-commit hooks.
 
 - [docs/domain-rules.md](docs/domain-rules.md): domene-regler, avgifter, sjekklister, kilder
 - [docs/beregninger.md](docs/beregninger.md): formler og sensorer
-- [docs/SENSORS.md](docs/SENSORS.md): sensorer og attributter
-- [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md): arkitektur
-- [docs/TESTING.md](docs/TESTING.md): test-guide
-- [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md): oppdatere priser, rapportere feil
+- [docs/sensorer.md](docs/sensorer.md): sensorer og attributter
+- [docs/development.md](docs/development.md): arkitektur
+- [docs/testing.md](docs/testing.md): test-guide
+- [docs/contributing.md](docs/contributing.md): oppdatere priser, rapportere feil

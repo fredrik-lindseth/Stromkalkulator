@@ -14,7 +14,7 @@ All faktura-verifisering er gjort mot eget oppsett:
 | Strømleverandør         | Tibber Norge AS                         |
 | HA-integrasjon for spot | offisiell `nordpool` (eks. mva)         |
 
-Resultatene gjelder strengt for denne kombinasjonen. Andre kombinasjoner kan ha andre presisjons-karakteristikker, spesielt på kurs-/MVA-håndtering i andre nordpool-integrasjoner og kapasitetstrinn-formler hos andre nettselskaper. Andre brukere bør verifisere mot egne fakturaer. Se [VERIFISER_DIN_FAKTURA.md](fakturaer/VERIFISER_DIN_FAKTURA.md).
+Resultatene gjelder strengt for denne kombinasjonen. Andre kombinasjoner kan ha andre presisjons-karakteristikker, spesielt på kurs-/MVA-håndtering i andre nordpool-integrasjoner og kapasitetstrinn-formler hos andre nettselskaper. Andre brukere bør verifisere mot egne fakturaer. Se [verifiser-din-faktura.md](fakturaer/verifiser-din-faktura.md).
 
 ## 2. Ikke-validerte scenarier
 
@@ -41,7 +41,7 @@ Beregningen av Norgespris-kompensasjon basert på `sensor.nord_pool_no5_current_
 | Rå EUR + Nord Pool EXR (daglig)                  | -3,25 kr  | NPs egen interne kurs            |
 | HA `nordpool`-integrasjonens NOK-pris            | +2,92 kr  | Det vi faktisk bruker i dag      |
 
-Implisitt single-rate som ville gitt 0-treff: 11,0706 NOK/EUR. Den ligger mellom NB (11,06) og Nord Pool EXR (11,08). Ingen offentlig publisert kurs treffer presist — sannsynligvis 12:00 CET interbankkurs som ikke er gratis tilgjengelig.
+Implisitt single-rate som ville gitt 0-treff: 11,0706 NOK/EUR. Den ligger mellom NB (11,06) og Nord Pool EXR (11,08). Ingen offentlig publisert kurs treffer presist, sannsynligvis 12:00 CET interbankkurs som ikke er gratis tilgjengelig.
 
 | Tiltak                                          | Effekt                            | Kompleksitet       |
 | ----------------------------------------------- | --------------------------------- | ------------------ |
@@ -56,9 +56,9 @@ Se [research/nok-omregning.md](research/nok-omregning.md) for full variant-matri
 
 Vår "spot etter strømstøtte" avviker ~30 kr/mnd fra BKKs egen "Uten Norgespris"-visning (april 2026: vi beregner 1408,52 kr, BKK viser 1377 kr). Vi bruker 2026-terskel fra forskrift 2025-09-08-1791 §5: 90 % refusjon når spotpris overstiger 77 øre/kWh eks. mva (0,9625 kr/kWh inkl. mva), time-for-time.
 
-Avviket ser ut til å skyldes at BKKs visning fortsatt bruker 2025-terskelen (75 øre eks. mva / 0,9375 inkl. mva). Med lavere terskel blir refusjonen større, så BKK trekker fra mer enn vi gjør — vi gir altså MER strømstøtte i vår beregning enn det BKK viser. Dette er anekdotisk basert på én faktura (april 2026); det kan også være avrundingsregler eller andre forskrifts-detaljer i spill.
+Avviket ser ut til å skyldes at BKKs visning fortsatt bruker 2025-terskelen (75 øre eks. mva / 0,9375 inkl. mva). Med lavere terskel blir refusjonen større, så BKK trekker fra mer enn vi gjør, vi gir altså MER strømstøtte i vår beregning enn det BKK viser. Dette er anekdotisk basert på én faktura (april 2026); det kan også være avrundingsregler eller andre forskrifts-detaljer i spill.
 
-Kun relevant for Norgespris-kunder som vil sammenligne mot BKKs "Uten Norgespris"-tall i kundeportalen. Tallet er en hypotetisk visning, ikke en faktisk fakturalinje — Norgespris-kunder mottar ikke strømstøtte uansett.
+Kun relevant for Norgespris-kunder som vil sammenligne mot BKKs "Uten Norgespris"-tall i kundeportalen. Tallet er en hypotetisk visning, ikke en faktisk fakturalinje, Norgespris-kunder mottar ikke strømstøtte uansett.
 
 ## 5. Momentan-effekt sample-frekvens (2,5 sek)
 

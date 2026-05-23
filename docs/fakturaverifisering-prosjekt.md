@@ -83,7 +83,7 @@ Se [måler-hardware.md](måler-hardware.md). Gjenstående:
 
 ### Fase 5: Generaliser for andre brukere
 
-- [ ] Skriv brukerveiledning i [VERIFISER_DIN_FAKTURA.md](fakturaer/VERIFISER_DIN_FAKTURA.md) eller egen fil
+- [ ] Skriv brukerveiledning i [verifiser-din-faktura.md](fakturaer/verifiser-din-faktura.md) eller egen fil
 - [ ] Parametriser scripts for andre AMS-lesere (Tibber Pulse, Tibber Bridge, andre Pow-U-varianter)
 - [ ] Parametriser for andre DSO-er enn BKK
 

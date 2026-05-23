@@ -36,7 +36,7 @@ Hver rapport matcher integrasjonens beregninger linje for linje mot en ekte fakt
 
 **Presisjon:** Integrasjonen treffer fakturaen innenfor 9 Wh på månedsforbruk (0,001 %) og 0,2 % på Norgespris-kompensasjon. Avvikene skyldes sample-presisjon i HAN-protokollen og vekslingskurs på EUR/NOK, ikke logiske feil. Se [docs/begrensninger.md](docs/begrensninger.md) for detaljer.
 
-Verifiseringen er gjort på Aidon-måler med Pow-U HAN-leser (AMSleser.no) og offisiell `nordpool`-integrasjon i HA. Andre målere, HAN-lesere og spot-integrasjoner kan ha andre presisjons-karakteristikker.
+Verifiseringen er gjort på Kaifa MA304H3E (3-fase, Nuri Telecom-importert) med Pow-U HAN-leser (AMSleser.no) og offisiell `nordpool`-integrasjon i HA. Aidon-målere har samme broadcast-timing (HH:00:10) og forventes å gi samme presisjon. Andre HAN-lesere og spot-integrasjoner kan ha andre presisjons-karakteristikker.
 
 Bruker du et annet nettselskap, [send inn din faktura](docs/fakturaer/VERIFISER_DIN_FAKTURA.md) så bekrefter vi det.
 

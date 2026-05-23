@@ -1,12 +1,12 @@
 # Elhub vs HAN vs faktura: hvor ligger 13-sek-laget?
 
-Analysen identifiserer hvor i kjeden Aidon → Pow-U → HA → BKK den observerte 13-sekunders forsinkelsen ligger, og hvor mye av den ligger i måleren versus i transmisjonen.
+Analysen identifiserer hvor i kjeden AMS-måler → Pow-U → HA → BKK den observerte 13-sekunders forsinkelsen ligger, og hvor mye av den ligger i måleren versus i transmisjonen.
 
 > Status: konklusjon 2026-05-22. Data: april 2026. Reproduserbar.
 
 ## Spørsmålet
 
-Vår tpi-baserte forbruksberegning fra HAN-porten har 9 Wh avvik mot BKK-fakturaen for april 2026, og 3-8 W avvik på topp 3 maks effekt. Tidligere observasjon viste at AMS-broadcasten over HAN-port skjer presis HH:00:13 lokal tid, ikke HH:00:00. Hvor i kjeden Aidon → Pow-U → HA oppstår de 13 sekundene?
+Vår tpi-baserte forbruksberegning fra HAN-porten har 9 Wh avvik mot BKK-fakturaen for april 2026, og 3-8 W avvik på topp 3 maks effekt. Tidligere observasjon viste at AMS-broadcasten over HAN-port skjer presis HH:00:13 lokal tid, ikke HH:00:00. Hvor i kjeden AMS-måler → Pow-U → HA oppstår de 13 sekundene?
 
 ## Hva vi gjorde
 
@@ -65,7 +65,7 @@ For 24 påfølgende timer sammenlignet vi `sensor.pow_u_ams_rtc` (målerens egen
 | Tidspunkt                    | Hva skjer                                                                                      |
 | ---------------------------- | ---------------------------------------------------------------------------------------------- |
 | HH:00:00 (internt i måler)   | Elhub-snapshot tas. Verdi sendes videre til Elhub via målerens oppstrømsprotokoll (DLMS/GPRS). |
-| HH:00:10 UTC (målerens RTC)  | Aidon-måleren bygger og sender HAN-frame over RJ45.                                            |
+| HH:00:10 UTC (målerens RTC)  | AMS-måleren bygger og sender HAN-frame over RJ45.                                              |
 | HH:00:13 lokal (HA recorder) | MQTT-melding fra Pow-U mottatt og skrevet av HA.                                               |
 
 Splittingen er altså 10 sekunder internt i måleren, pluss 3 sekunder transmisjon HAN → Pow-U → MQTT → HA.
@@ -73,7 +73,7 @@ Splittingen er altså 10 sekunder internt i måleren, pluss 3 sekunder transmisj
 ```
 HH:00:00  måler-snapshot ──► Elhub ──► BKK ──► faktura        (0 sek lag, 0 avvik)
    │
-   │ 10 sek internt i Aidon
+   │ 10 sek internt i måleren
    ▼
 HH:00:10  HAN-frame bygget og sendt
    │
@@ -94,7 +94,7 @@ Kildekoden i amsreader-firmware bekrefter at firmware ikke har artificial delay.
 
 ### De 10 sekundene i måleren
 
-Aidon bruker ~10 sek mellom internt snapshot og HAN-broadcast. Det er målerens egen designvalg og kan ikke endres fra utsiden. Verdien som havner i HAN-framen er likevel snapshot-verdien fra HH:00:00, ikke en oppdatert verdi fra HH:00:10. Det betyr energiteller-tallet er korrekt, det er bare _tidspunktet for når vi mottar det_ som er forskjøvet.
+Måleren bruker ~10 sek mellom internt snapshot og HAN-broadcast. Det er målerens egen designvalg og kan ikke endres fra utsiden. Verdien som havner i HAN-framen er likevel snapshot-verdien fra HH:00:00, ikke en oppdatert verdi fra HH:00:10. Det betyr energiteller-tallet er korrekt, det er bare _tidspunktet for når vi mottar det_ som er forskjøvet.
 
 ## Per-time-avviket: hvorfor svinger HAN ±20 Wh per time?
 
@@ -120,13 +120,13 @@ Vi har HAN-data forsinket 13 sek etter Elhub-snapshot. Av disse er 10 sek låst 
 
 For dagens behov holder det å dokumentere at vi har bevist samsvar innenfor 9 Wh / 0,001 %. Interpolering via `p` kan vurderes hvis kravet skjerpes.
 
-En Tibber Pulse-test kan fortsatt gi nyttig data: hvis Pulse mottar HAN-frame på et annet tidspunkt enn HH:00:10, betyr det at transmisjons-3-sek varierer mellom HAN-lesere. De 10 sek i Aidon-måleren vil være de samme uansett leser.
+En Tibber Pulse-test kan fortsatt gi nyttig data: hvis Pulse mottar HAN-frame på et annet tidspunkt enn HH:00:10, betyr det at transmisjons-3-sek varierer mellom HAN-lesere. De 10 sek inne i måleren vil være de samme uansett leser.
 
 ## Konsekvens for andre brukere
 
 Resultatene her gjelder spesifikt for:
 
-- Aidon-måler (BKK-området)
+- Kaifa MA304H3E (Fredriks oppsett, BKK NO5)
 - Pow-U HAN-leser fra AMSleser.no
 - HA's standard recorder
 - Nord Pool offisiell HA-integrasjon
@@ -151,7 +151,7 @@ For nå er sammenligningen kjørt ad-hoc i Bash-prompts. Skal pakkes i et perman
 
 ## Åpne spørsmål
 
-1. Hvilken protokoll sender Aidon til Elhub? DLMS over PLC? GPRS? Begge?
+1. Hvilken protokoll sender måleren til Elhub? DLMS over PLC? GPRS? Begge?
 2. Får Elhub presis HH:00 fra alle målere, eller har andre målermerker (Kaifa, Kamstrup) andre snapshot-tidspunkt og andre interne forsinkelser før HAN-broadcast?
 3. Hva er retensjon hos BKK hvis kunden bytter strømleverandør? (Tibber leverer denne kunden, har BKK fortsatt tilgang til Elhub-data?)
 4. Varierer transmisjons-3-sek mellom HAN-lesere? (Tibber Pulse vs Pow-U parallelltest kan svare.)

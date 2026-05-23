@@ -8,7 +8,7 @@ Vi har allerede `tests/test_faktura_bkk.py` som sjekker at formlene og satsene i
 
 Fredrik foreslo å lukke det hullet ved å validere mot to ekte datakilder:
 
-- Time-for-time-forbruk fra AMS-måleren (Aidon + Pow-U + AMSleser.no)
+- Time-for-time-forbruk fra AMS-måleren (Kaifa MA304H3E + Pow-U + AMSleser.no)
 - Time-for-time-spotpriser fra Nord Pool-integrasjonen i HA
 
 Utforskingen 2026-05-22 viste at dette fungerer veldig bra. Avvikene mot april 2026-fakturaen er små nok til å forklares av sample-presisjon, ikke logiske feil.
@@ -32,18 +32,18 @@ Totalavviket forklares av sample-presisjon i HAN-broadcast, ikke av logiske feil
 
 Med Elhub-data og NOK-omregningsanalyse er flere spørsmål nå besvart:
 
-| Spørsmål                                         | Svar                                               | Kilde                                                                      |
-| ------------------------------------------------ | -------------------------------------------------- | -------------------------------------------------------------------------- |
-| Sender Elhub presis HH:00:00 til BKK?            | Ja, 0 avvik mellom Elhub og faktura                | [research/elhub-vs-han-vs-faktura.md](research/elhub-vs-han-vs-faktura.md) |
-| Bruker BKK timesnitt-effekt for kapasitetstrinn? | Ja, kWh-diff per time                              | Topp 3 i Elhub = faktura eksakt                                            |
-| Hvor stort er kurs-avviket på Norgespris?        | 0,14 % på spot, gir 0,2 % på kompensasjon          | [research/nok-omregning.md](research/nok-omregning.md)                     |
-| Hvor er 13-sek-laget?                            | Ikke mellom Elhub og BKK. Enten Aidon eller Pow-U. | Elhub-totaler matcher faktura presis                                       |
+| Spørsmål                                         | Svar                                                                  | Kilde                                                                      |
+| ------------------------------------------------ | --------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Sender Elhub presis HH:00:00 til BKK?            | Ja, 0 avvik mellom Elhub og faktura                                   | [research/elhub-vs-han-vs-faktura.md](research/elhub-vs-han-vs-faktura.md) |
+| Bruker BKK timesnitt-effekt for kapasitetstrinn? | Ja, kWh-diff per time                                                 | Topp 3 i Elhub = faktura eksakt                                            |
+| Hvor stort er kurs-avviket på Norgespris?        | 0,14 % på spot, gir 0,2 % på kompensasjon                             | [research/nok-omregning.md](research/nok-omregning.md)                     |
+| Hvor er 13-sek-laget?                            | Ikke mellom Elhub og BKK. 10 sek i selve måleren + 3 sek transmisjon. | Elhub-totaler matcher faktura presis                                       |
 
 ## Det vi mangler
 
 Se [måler-hardware.md](måler-hardware.md). Gjenstående:
 
-1. Er 13-sek-laget i Aidon-måleren eller Pow-U firmware? Krever Tibber Pulse-test
+1. Bekreftet: 10 sek i måleren (Kaifa/Aidon-spec), 3 sek i Pow-U-transmisjon
 2. Hvilken EUR/NOK-kurs bruker BKK eksakt? Krever spørsmål til BKK eller test mot flere kursvarianter
 
 ## Plan
@@ -61,9 +61,9 @@ Se [måler-hardware.md](måler-hardware.md). Gjenstående:
 - [x] Elhub-snapshot-presisjon: bekreftet HH:00:00 lokal tid, 0 avvik mot faktura
 - [x] BKK bruker timesnitt-effekt for kapasitetstrinn (bekreftet via topp 3-sammenligning)
 - [x] Norgespris-avvik forklart med EUR/NOK-snittberegning (innenfor 0,2 %)
-- [ ] Hent Aidon-manual, sjekk om 13-sek-lag er målerens eller Pow-U's
+- [ ] Måler-spec lest (Kaifa KFM_001 og Aidon RJ45 HAN v1.6): 10 sek dokumentert som design
 - [ ] Test med Tibber Pulse parallelt (krever fysisk bytte av HAN-leser)
-- [ ] Oppdater [måler-hardware.md](måler-hardware.md) når Aidon-svaret kommer
+- [ ] Oppdater [måler-hardware.md](måler-hardware.md) ved nye funn
 
 ### Fase 3: Bygg verktøyene
 

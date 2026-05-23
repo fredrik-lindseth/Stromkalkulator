@@ -220,12 +220,15 @@ def main() -> int:
         help="Faktura-fixture-navn",
     )
     p.add_argument(
-        "--shift-13s",
-        action="store_true",
+        "--no-shift-13s",
+        dest="shift_13s",
+        action="store_false",
+        default=True,
         help=(
-            "Eksperimentell: korriger for at HAN-broadcast kommer ved HH:00:13 "
-            "(ikke HH:00:00). Trekker fra 13s x (p_mean_HH - p_mean_HH-1) per time. "
-            "Lukker 9 Wh-gapet til <1 mWh på april 2026-data."
+            "Skru AV 13-sek-shift-korreksjon. Standard: PÅ. "
+            "Korreksjonen kompenserer for at HAN-broadcast kommer ved HH:00:13 "
+            "(ikke HH:00:00) ved å trekke fra 13s x (p_mean_HH - p_mean_HH-1) per time. "
+            "Lukker 9 Wh-gapet til <1 mWh på Fredriks april 2026-data."
         ),
     )
     args = p.parse_args()

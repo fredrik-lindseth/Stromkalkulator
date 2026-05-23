@@ -1,156 +1,168 @@
 # Verifiser at integrasjonen regner riktig for ditt nettselskap
 
-**Det viktigste utfallet av en verifisering er at det stemmer.** Hver gang en bruker bekrefter at fakturaen matcher integrasjonens beregninger, er det en attest på at dette regner riktig. Ikke bare for deg, for alle som bruker integrasjonen for samme nettselskap.
+Når du bekrefter at fakturaen din matcher integrasjonens beregninger, fungerer det som en attest for alle som bruker samme nettselskap. Foreløpig er kun BKK (NO5) verifisert mot ekte fakturaer. Hjelp oss verifisere resten.
 
-Foreløpig er kun BKK (NO5) verifisert mot ekte fakturaer. Resten av landet stoler på satser fra nettselskapenes prislister, men har ikke hatt en faktisk faktura å sammenligne mot. Hjelp oss endre det.
+Denne guiden tar deg gjennom verifiseringen steg for steg, uansett hvilken AMS-måler, HAN-leser eller DSO du har.
 
-## Hva du oppnår ved å verifisere
+## 1. Hva er forventet avvik?
 
-- **Bekreftelse for ditt nettselskap**, andre brukere ser at noen har stress-testet beregningene mot en ekte faktura
-- **Synlig kreditt**, ditt nettselskap legges til i [REFERANSE.md](REFERANSE.md) med periode og dato (du krediteres med fornavn eller alias hvis du vil)
-- **Skikkelig feilretting hvis noe avviker**, sjeldent, men da vet vi nøyaktig hva som må fikses
+Integrasjonen treffer fakturaen innenfor disse toleransene:
 
-## Sånn gjør du det
+| Linje                                             | Forventet avvik              |
+| ------------------------------------------------- | ---------------------------- |
+| Månedstotal forbruk                               | 0 til 50 Wh                  |
+| Energiledd, avgifter, kapasitetsledd, strømstøtte | inntil 0,01 kr               |
+| Norgespris-kompensasjon                           | inntil 0,2 % (vekslingskurs) |
 
-### 1. Hent fakturaen din
+Større avvik enn dette tyder på reell feil i satser, konfigurasjon eller hardware-oppsett.
 
-Logg inn på "Mine sider" hos nettselskapet ditt og finn en månedsfaktura. Du trenger linjer for:
+## 2. Sjekk integrasjonens tall først
 
-- Energiledd (dag og natt/helg, eventuelt flat)
-- Forbruksavgift
-- Enovaavgift
-- Kapasitetsledd (eller "fastledd", varierer mellom selskap)
-- Eventuelt strømstøtte eller Norgespris-kompensasjon
+1. Åpne Home Assistant og finn enheten "Forrige måned" (en del av integrasjonen).
+2. Trykk på knappen `Lag faktura-rapport`.
+3. En notifikasjon dukker opp med ferdig utfylt rapport.
+4. Kopier rapporten og sammenlign linje for linje mot fakturaen din.
 
-### 2. Sjekk satsene mot `dso.py`
+Hvis alle linjer er innenfor toleransene i tabellen over, er du ferdig. Send rapporten inn som verifisering (se [seksjon 7](#7-send-inn-verifiseringen)).
 
-Åpne [`custom_components/stromkalkulator/dso.py`](../../custom_components/stromkalkulator/dso.py) og finn ditt nettselskap. Verdiene `energiledd_dag_eks_mva` og `energiledd_natt_eks_mva` er **ren energiledd**, uten forbruksavgift, Enova eller mva. Coordinator legger på avgiftene basert på avgiftssone.
+## 3. Dokumenter hardware-oppsettet ditt
 
-For å sammenligne med fakturaen din:
+Hvis du finner avvik, noter ned følgende før du går videre. Du trenger informasjonen for både feilsøking og for å sende inn issue.
 
-```
-sluttpris (inkl. alt, øre/kWh) = (energiledd_eks_mva + 0.0713 + 0.01) * 1.25 * 100
-```
+| Felt              | Hvor finner du det                                             |
+| ----------------- | -------------------------------------------------------------- |
+| DSO (nettselskap) | "Mine sider" hos nettselskapet                                 |
+| Prisområde        | NO1 til NO5, står på fakturaen                                 |
+| Avgiftssone       | Standard / Nord-Norge / Tiltakssonen, står på fakturaen        |
+| Målermerke        | Frontpanelet på AMS-måleren (Aidon, Kaifa, Kamstrup, ...)      |
+| Målermodell       | Typenummer, samme sted                                         |
+| HAN-leser         | Pow-U, Tibber Pulse, Tibber Bridge, ESPHome AMS, ...           |
+| Spot-integrasjon  | Offisiell `nordpool`, custom_components/nordpool, manuell, ... |
+| Avtaletype        | Spotpris + strømstøtte, Norgespris, fastpris, ...              |
 
-**Eksempel (BKK 2026, Sør-Norge):**
+## 4. Verifiser kilden med Elhub
 
-```
-energiledd_dag_eks_mva = 0.2877 NOK/kWh = 28.77 øre
-+ forbruksavgift 7.13 + Enova 1.0 = 36.90 øre eks. mva
-* 1.25 (mva)                       = 46.12 øre/kWh inkl. alt
-```
+Elhub har de offisielle timesverdiene som DSO fakturerer på. Sammenligning mot Elhub viser om avviket sitter hos HAN-leseren eller hos DSO.
 
-For Nord-Norge: hopp over `* 1.25` (mva-fritak). For tiltakssone: hopp over forbruksavgift også (kun Enova).
+1. Logg inn på [elhub.no](https://elhub.no) med BankID.
+2. Velg "Min side" og last ned timesverdier (CSV) for fakturaperioden.
+3. Sammenlign Elhub-totalen mot fakturaen din:
 
-Hvis fakturaen viser pris eks. mva, kan du sammenligne direkte mot `eks_mva`-attributtet på sensorene.
+| Resultat                     | Konklusjon                                            |
+| ---------------------------- | ----------------------------------------------------- |
+| Elhub matcher fakturaen      | Avviket sitter hos HAN-leseren din, ikke hos DSO      |
+| Elhub matcher ikke fakturaen | Kontakt DSO, det er sannsynligvis en faktureringsfeil |
+| Elhub matcher HA-tallene     | HAN-leseren er presis, problemet ligger andre steder  |
 
-### 3. Sammenlign linje for linje
+## 5. Verifiseringsskript for utviklere
 
-Bruk denne malen for hver fakturalinje:
+Hvis du vil dykke i timesnivå, finnes det et Python-skript som reproduserer hele BKK-beregningen fra rå timesdata.
 
-| Priselement     | Forbruk (kWh)  | Pris (øre/kWh) | Faktura (kr) | Vår beregning (kr) | Avvik |
-| --------------- | -------------- | -------------- | ------------ | ------------------ | ----- |
-| Energiledd dag  |                |                |              | forbruk \* pris    |       |
-| Energiledd natt |                |                |              | forbruk \* pris    |       |
-| Forbruksavgift  |                |                |              | forbruk \* pris    |       |
-| Enovaavgift     |                |                |              | forbruk \* pris    |       |
-| Kapasitetsledd  | (antall dager) | (kr/mnd)       |              | kr/mnd             |       |
+### 5a. Eksporter timesdata fra Home Assistant
 
-Avrundingsavvik på 0.01-0.05 kr per linje er normalt og forventet.
-
-### 4. Sammenlign mot integrasjonens sensorer
-
-Etter en hel måned bør disse sensorene matche fakturaen:
-
-| Sensor                          | Sammenlign mot                 |
-| ------------------------------- | ------------------------------ |
-| `sensor.energiledd_dag`         | Pris på "Energiledd dag"       |
-| `sensor.energiledd_natt_helg`   | Pris på "Energiledd natt/helg" |
-| `sensor.forbruksavgift`         | Pris på "Forbruksavgift"       |
-| `sensor.enovaavgift`            | Pris på "Enovaavgift"          |
-| `sensor.kapasitetstrinn`        | Linje "Kapasitet X-Y kW"       |
-| `sensor.kapasitetstrinn_nummer` | Hvilket trinn (1, 2, 3, …)     |
-
-Sensor-navn kan ha suffix (`_2`, `_3` osv.) hvis du har flere instanser av integrasjonen.
-
-Hver sensor har attributtene `eks_mva`, `inkl_mva` og `ore_per_kwh_eks_mva` for direkte fakturasammenligning.
-
-### 5. For Norgespris-kunder
-
-Norgespris-kompensasjonen er en separat linje på fakturaen. Selve fastprisen er 50 øre/kWh inkl. mva i Sør-Norge (40 øre i Nord-Norge/tiltakssonen).
-
-Kompensasjonsraten varierer per måned basert på spotpris. Du kan utlede gjennomsnittlig spotpris fra fakturaen:
-
-```
-spotpris-snitt (øre/kWh inkl. mva) = 50 + |kompensasjon-rate i øre|
+```bash
+ssh ha-local "python3 /config/scripts/export_invoice_hourly.py \
+    --start 2026-04-01 \
+    --end 2026-05-01 \
+    --output /config/timesdata_april_2026.json"
 ```
 
-### 6. Sjekk det fakturaen IKKE viser
+Se [`scripts/research/export_invoice_hourly.py`](../../scripts/research/export_invoice_hourly.py) for tilpasning til ditt oppsett.
 
-Selve nettleie-fakturaen viser ikke kraftpris (det går via strømleverandøren), så den fanger ikke feil i spotpris-håndtering, strømstøtte eller Norgespris-besparelse. Disse må sjekkes separat ved å sammenligne integrasjonens egne sensorer mot tilsvarende tall fra nettselskapet eller strømleverandøren.
+### 5b. Kjør verifiseringen lokalt
 
-**For Norgespris-kunder:** logg inn på "Mine sider" hos nettselskapet og finn "spart med Norgespris hittil i [måned]". Sammenlign med `sensor.manedlig_forbruk_norgespris_besparelse`. Avvik over 10 % tyder på en bug i mva-håndtering eller spotpris-input. Se [incident 004](../incidents/004-spotpris-mva-feilbehandling.md) for hva slags feil dette har avdekket før.
+```bash
+git clone https://github.com/fredrik-lindseth/Stromkalkulator hacs-strømkalkulator
+cd hacs-strømkalkulator
+python3 scripts/research/verify_invoice_hourly.py \
+    --hourly tests/fixtures/dine_timesdata.json \
+    --faktura april_2026 \
+    --shift-seconds 13
+```
 
-**For spot-kunder:** sammenlign `sensor.totalpris_inkl_avgifter` mot snittprisen strømleverandøren rapporterer (f.eks. Tibber). Forventet avvik er små rundinger.
+### 5c. Velg riktig `--shift-seconds`
 
-**For plusskunder:** verifiser at `monthly_export_revenue_kr` matcher det strømleverandøren utbetaler. Kraftleverandører betaler typisk spotpris eks. mva.
+HAN-broadcast kommer noen sekunder etter timeskifte. Parameteren kompenserer for dette og avhenger av målermerke og HAN-leser.
 
-## Hva vi trenger fra deg
+| Kombinasjon                | Foreslått `--shift-seconds` |
+| -------------------------- | --------------------------- |
+| Kaifa + Pow-U              | 13                          |
+| Aidon + Pow-U              | 13                          |
+| Kamstrup + Pow-U           | 8                           |
+| Tibber Pulse (alle målere) | 0 til 5, eksperimenter      |
+| Tibber Bridge              | 0 til 5, eksperimenter      |
+| ESPHome AMS                | 0 til 10, eksperimenter     |
+| Andre kombinasjoner        | 0 til 15, eksperimenter     |
 
-### Hvis det stemmer (mest sannsynlig utfall)
+Test flere verdier og se hvilken som gir lavest avvik på månedstotalen.
 
-Send inn en kort bekreftelse, den blir en attest. Du trenger:
+## 6. Sensorer for direkte sammenligning
 
-- **Nettselskap** og **prisområde** (NO1-NO5)
-- **Periode** (måned/år)
-- **Forbruk** per kategori (dag, natt/helg, totalt) i kWh
-- **Pris** per linje (øre/kWh)
-- **Beløp** per linje (kr)
-- **Kapasitetstrinn** (hvilket trinn og kr/mnd)
-- **MVA-sats** (25% eller 0% for Nord-Norge)
-- **Konklusjon:** "matchet innenfor avrundingsfeil" (eller liste over linjer som avvek)
+Hvis du heller vil sammenligne sensorer direkte mot fakturaen, bruk denne tabellen.
 
-### Hva du IKKE trenger å sende
+| Sensor                                          | Fakturalinje                           |
+| ----------------------------------------------- | -------------------------------------- |
+| `sensor.energiledd_dag`                         | Energiledd dag                         |
+| `sensor.energiledd_natt_helg`                   | Energiledd natt/helg                   |
+| `sensor.forbruksavgift`                         | Forbruksavgift                         |
+| `sensor.enovaavgift`                            | Enovaavgift                            |
+| `sensor.kapasitetstrinn`                        | Kapasitet X-Y kW                       |
+| `sensor.kapasitetstrinn_nummer`                 | Trinn-nummer (1, 2, 3, ...)            |
+| `sensor.manedlig_forbruk_norgespris_besparelse` | "Spart med Norgespris" på "Mine sider" |
+
+Alle sensorer har attributtene `eks_mva`, `inkl_mva` og `ore_per_kwh_eks_mva`. Sensor-navn kan ha suffiks (`_2`, `_3` osv.) hvis du har flere instanser.
+
+For Nord-Norge: spotpris og avgifter er mva-fri. For tiltakssonen: ingen forbruksavgift.
+
+## 7. Send inn verifiseringen
+
+### Hvis det stemmer (vanligste utfall)
+
+Lag et issue på Forgejo eller GitHub og bruk malen i [`.forgejo/issue_template/faktura-verifisering.md`](../../.forgejo/issue_template/faktura-verifisering.md). Eller send en PR med en ny verifiseringsrapport, kopier strukturen fra [BKK_Faktura_april_2026.md](BKK_Faktura_april_2026.md).
+
+Vi trenger:
+
+- Nettselskap og prisområde
+- Periode
+- Forbruk per kategori (dag, natt/helg, totalt)
+- Pris og beløp per fakturalinje
+- Kapasitetstrinn
+- MVA-sats
+- Avtaletype (spot, Norgespris, fastpris)
+- Hardware-oppsett fra [seksjon 3](#3-dokumenter-hardware-oppsettet-ditt)
+
+Du krediteres i [REFERANSE.md](REFERANSE.md) med fornavn eller alias.
+
+### Hvis du finner reelt avvik
+
+Lag et issue med:
+
+- Konkrete tall (din beregning vs faktura, avvik i kr og Wh)
+- Hardware-oppsett fra [seksjon 3](#3-dokumenter-hardware-oppsettet-ditt)
+- Anonymisert faktura-bilde (fjern navn, adresse, kundenummer, KID)
+- Output fra `verify_invoice_hourly.py` hvis du har kjørt det
+- Resultat fra Elhub-sammenligningen hvis du har gjort den
+
+### Personvern
+
+Ikke ta med:
 
 - Navn, adresse, kundenummer, fakturanummer
 - KID, kontonummer, betalingsinfo
 - Strømleverandør (kraftleveranse er separat)
 
-## Hvordan sende inn
+## 8. Vanlige avvik og hva de betyr
 
-### Alternativ 1: Issue på Forgejo
-
-Bruk malen i [`.forgejo/issue_template/faktura-verifisering.md`](../../.forgejo/issue_template/faktura-verifisering.md). Fyll inn tabellen og send inn.
-
-### Alternativ 2: Issue på GitHub
-
-[Opprett et issue](https://github.com/fredrik-lindseth/Stromkalkulator/issues) og bruk samme mal.
-
-### Alternativ 3: PR med ferdig rapport
-
-Hvis du er komfortabel med Markdown og git: kopier en eksisterende rapport (f.eks. [BKK_Faktura_april_2026.md](BKK_Faktura_april_2026.md)), tilpass for ditt nettselskap, og lag en PR.
-
-## Hva skjer etter du har sendt inn
-
-1. Vi sammenligner dine tall mot beregningen vår
-2. **Hvis det matcher** (det vanlige): Vi legger til en verifiseringsrapport for ditt nettselskap i [REFERANSE.md](REFERANSE.md) og oppdaterer "Verifiserte nettselskap"-tabellen. Du krediteres med fornavn eller alias.
-3. **Hvis det er avvik:**
-   - Avvik på øre-nivå (avrunding): vi noterer det i rapporten og lukker
-   - Avvik på krone-nivå: vi finner feilen i `dso.py` eller `const.py`, fikser den, og krediterer deg for funnet
-
-Begge utfall er verdifulle, men match er det vanlige, og det er det som bygger tillit til integrasjonen over tid.
-
-## Vanlige avvik og hva de betyr
-
-| Avvik                                | Sannsynlig årsak                                                                   |
-| ------------------------------------ | ---------------------------------------------------------------------------------- |
-| Energiledd avviker i sats            | `dso.py`-verdier er utdatert, send inn for å få fikset                             |
-| Energiledd avviker i forbruk         | Tariff-bytte (dag/natt) skjer feil, kan være helligdager eller `helg_som_natt`     |
-| Forbruksavgift avviker               | Avgiftssone er feil konfigurert (Nord-Norge vs Sør-Norge)                          |
-| Kapasitetsledd avviker               | Trinn-grenser er feil i `dso.py`, eller ditt forbruksmønster brytes ned annerledes |
-| Strømstøtte avviker (2025-fakturaer) | Terskel eller dekningsgrad har endret seg                                          |
-| MVA på 0% når du forventet 25%       | Avgiftssone er satt til Nord-Norge eller tiltakssonen                              |
+| Avvik                                   | Sannsynlig årsak                                                                                        |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Energiledd avviker i sats               | `dso.py`-verdier er utdatert, send inn for å få fikset                                                  |
+| Energiledd avviker i forbruk            | Tariff-bytte (dag/natt) skjer feil, sjekk helligdager og `helg_som_natt`                                |
+| Forbruksavgift avviker                  | Avgiftssone er feil konfigurert (Nord-Norge vs Sør-Norge)                                               |
+| Kapasitetsledd avviker                  | Trinn-grenser i `dso.py` er feil, eller forbruksmønster brytes ned annerledes                           |
+| Strømstøtte avviker (2025-fakturaer)    | Terskel eller dekningsgrad har endret seg                                                               |
+| Månedstotal avviker med > 50 Wh         | HAN-leser-shift, prøv andre `--shift-seconds`-verdier                                                   |
+| Norgespris-kompensasjon avviker > 0,2 % | Spotpris-håndtering (eks/inkl. mva), se [incident 004](../incidents/004-spotpris-mva-feilbehandling.md) |
 
 ## Eksisterende verifikasjoner
 
-Se [REFERANSE.md](REFERANSE.md) for en oppdatert liste over verifiserte nettselskap og perioder.
+Se [REFERANSE.md](REFERANSE.md) for oppdatert liste over verifiserte nettselskap og perioder.

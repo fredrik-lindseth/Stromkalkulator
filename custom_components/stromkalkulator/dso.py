@@ -104,18 +104,18 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "energiledd_dag_eks_mva": 0.2099,  # 20,99 øre/kWh ren energiledd (2026)
         "energiledd_natt_eks_mva": 0.1299,  # 12,99 øre/kWh ren energiledd (2026)
         "url": "https://www.elvia.no/nettleie/alt-om-nettleiepriser/nettleie-pris/",
-        # Trinn 1-5 fra nettside, trinn 6-10 fra PDF tariffblad_1_0_standard-tariff_privat_20260101.pdf
+        # Kilde: tariffblad_1_0_standard-tariff_privat_20260101.pdf (verifisert 2026-05-23)
         "kapasitetstrinn": [
             (2, 125),
             (5, 190),
             (10, 300),
             (15, 410),
             (20, 520),
-            (25, 655),  # Fra PDF
-            (50, 1135),  # Fra PDF
-            (75, 1750),  # Fra PDF
-            (100, 2370),  # Fra PDF
-            (float("inf"), 4225),  # Fra PDF
+            (25, 630),
+            (50, 1175),
+            (75, 1720),
+            (100, 2270),
+            (float("inf"), 4570),
         ],
     },
     "glitre": {
@@ -219,33 +219,44 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "Lede",
         "prisomrade": "NO2",
         "supported": True,
-        # Kilde: kraftsystemet 2026. Flat sats - ingen dag/natt-forskjell.
-        "energiledd_dag_eks_mva": 0.24382,  # 24,38 øre/kWh ren energiledd (2026)
-        "energiledd_natt_eks_mva": 0.24382,  # Flat sats - ingen dag/natt-forskjell
-        "url": "https://www.lede.no/nettleie/nettleiepriser",
+        # Kilde: lede.no/priser/nettleie-privatkunder + kraftsystemet.no/lede (verifisert 2026-05-23).
+        # Flat sats - ingen dag/natt-forskjell. 24,42 øre/kWh inkl. alle avgifter = 11,41 eks. mva og avgifter.
+        "energiledd_dag_eks_mva": 0.1141,  # 11,41 øre/kWh ren energiledd (2026)
+        "energiledd_natt_eks_mva": 0.1141,  # Flat sats - ingen dag/natt-forskjell
+        "url": "https://lede.no/priser/nettleie-privatkunder/",
         "kapasitetstrinn": [
-            (5, 294),  # 0-5 kW: 293,75 kr/mnd
-            (10, 503),  # 5-10 kW: 502,50 kr/mnd
-            (15, 708),  # 10-15 kW: 707,50 kr/mnd
-            (20, 916),  # 15-20 kW: 916,25 kr/mnd
-            (25, 1124),  # 20-25 kW: 1123,75 kr/mnd
-            (float("inf"), 1746),  # 25-50 kW: 1746,25 kr/mnd
+            (5, 269),  # 0-5 kW: 268,75 kr/mnd inkl. mva
+            (10, 459),  # 5-10 kW: 458,75 kr/mnd inkl. mva
+            (15, 648),  # 10-15 kW: 647,50 kr/mnd inkl. mva
+            (20, 838),  # 15-20 kW: 837,50 kr/mnd inkl. mva
+            (25, 1028),  # 20-25 kW: 1027,50 kr/mnd inkl. mva
+            (50, 1596),  # 25-50 kW: 1596,25 kr/mnd inkl. mva
+            (75, 2545),  # 50-75 kW: 30540/12 kr/mnd inkl. mva
+            (100, 3493),  # 75-100 kW: 41910/12 kr/mnd inkl. mva
+            (150, 4915),  # 100-150 kW: 58980/12 kr/mnd inkl. mva
+            (200, 6810),  # 150-200 kW: 81720/12 kr/mnd inkl. mva
+            (float("inf"), 9655),  # 200+ kW: 115860/12 kr/mnd inkl. mva
         ],
     },
     "lnett": {
         "name": "Lnett",
         "prisomrade": "NO2",
         "supported": True,
-        "energiledd_dag_eks_mva": 0.1747,  # 17,47 øre/kWh ren energiledd (2026)
-        "energiledd_natt_eks_mva": 0.0547,  # 5,47 øre/kWh ren energiledd (2026)
+        # Kilde: Lnett tariffhefte 2026 PDF (verifisert 2026-05-23).
+        "energiledd_dag_eks_mva": 0.256,  # 25,60 øre/kWh ren energiledd (2026)
+        "energiledd_natt_eks_mva": 0.136,  # 13,60 øre/kWh ren energiledd (2026)
         "url": "https://www.l-nett.no/nettleie/priser-og-vilkar-privat/",
         "kapasitetstrinn": [
-            (2, 150),  # 0-2 kW: 150 kr/mnd
-            (5, 250),  # 2-5 kW: 250 kr/mnd
-            (10, 400),  # 5-10 kW: 400 kr/mnd
-            (15, 650),  # 10-15 kW: 650 kr/mnd
-            (20, 900),  # 15-20 kW: 900 kr/mnd
-            (float("inf"), 1150),  # 20-25 kW: 1150 kr/mnd
+            (2, 150),  # 0-2 kW: 150 kr/mnd inkl. mva
+            (5, 250),  # 2-5 kW: 250 kr/mnd inkl. mva
+            (10, 400),  # 5-10 kW: 400 kr/mnd inkl. mva
+            (15, 650),  # 10-15 kW: 650 kr/mnd inkl. mva
+            (20, 900),  # 15-20 kW: 900 kr/mnd inkl. mva
+            (25, 1150),  # 20-25 kW: 1150 kr/mnd inkl. mva
+            (50, 2150),  # 25-50 kW: 2150 kr/mnd inkl. mva
+            (75, 3150),  # 50-75 kW: 3150 kr/mnd inkl. mva
+            (100, 4150),  # 75-100 kW: 4150 kr/mnd inkl. mva
+            (float("inf"), 7000),  # 100+ kW: 7000 kr/mnd inkl. mva
         ],
     },
     "arva": {

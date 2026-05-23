@@ -66,7 +66,7 @@ Alle andre fakturalinjer matchet innenfor 0,01 kr. Spørsmålet: hvor kommer 2,9
 
 Restavviket på 2,92 kr i Norgespris-kompensasjonen kommer fra vekslingskurs-håndtering, ikke fra feil i integrasjonens logikk. Avviket utgjør 0,14 % av snittprisen, som er innenfor variasjon mellom forskjellige snittberegninger av samme grunnkurs.
 
-Mest sannsynlige forklaring etter videre research: HA-integrasjonen og BKK bruker forskjellige kurskilder. Nord Pool publiserer NOK-priser direkte via sin egen kursmekanisme — preliminære kurser hentet 12:00 CET fra interbankmarkedet, deretter "official" kurser satt sammen med to banker for valutahedging. Det er **ikke** ECB-referansekursen. HA's `nordpool`-integrasjon henter priser i konfigurert valuta rett fra Nord Pools API (`DayAheadPrices`), så omregningen skjer hos Nord Pool, ikke i integrasjonen.
+Mest sannsynlige forklaring etter videre research: HA-integrasjonen og BKK bruker forskjellige kurskilder. Nord Pool publiserer NOK-priser direkte via sin egen kursmekanisme, preliminære kurser hentet 12:00 CET fra interbankmarkedet, deretter "official" kurser satt sammen med to banker for valutahedging. Det er **ikke** ECB-referansekursen. HA's `nordpool`-integrasjon henter priser i konfigurert valuta rett fra Nord Pools API (`DayAheadPrices`), så omregningen skjer hos Nord Pool, ikke i integrasjonen.
 
 BKK bruker etter alt å dømme samme Elspot-NOK-pris time for time som er forskriftsfestet (se "Forskriften" nedenfor), men kan ha en marginalt annen håndtering av etter-publiserte korreksjoner eller offisiell-vs-preliminær kurs. Avviket på 0,14 % er for lite til å skille presis kilde.
 
@@ -84,7 +84,7 @@ Norgespris-kompensasjon er en differanse: `(0,50 - spot) × kWh`. En liten endri
 Kort svar: **ingen** norsk lov eller forskrift sier eksplisitt hvilken EUR/NOK-kurs strømleverandører skal bruke.
 
 - Avregningsforskriften ([FOR-1999-03-11-301](https://lovdata.no/dokument/SF/forskrift/1999-03-11-301)) inneholder ingen ord om valuta, kurs, omregning eller EUR. Forskriften regulerer måling, avregning og fakturering i NOK uten å spesifisere hvordan utenlandsk valuta skal håndteres.
-- Norgespris-høringsnotatet ([Energidepartementet 10. mars 2025](https://www.regjeringen.no/contentassets/428d4ed2a03f47de9cc333609ff18106/horingsnotat-ny-lov-om-norgespris-og-stromstonad-til-husholdninger.pdf)) sier at beregningene gjøres **time for time**: "Prissikringsbeløp beregnes time for time. Det er differansen mellom spotprisen per time i budområdet og terskelverdi". Elspotpris er definert som "timespris i budområdet kunden tilhører". Ingen krav til snittberegning eller kurskilde — bare at det er den faktiske timespotprisen i budområdet som skal brukes.
+- Norgespris-høringsnotatet ([Energidepartementet 10. mars 2025](https://www.regjeringen.no/contentassets/428d4ed2a03f47de9cc333609ff18106/horingsnotat-ny-lov-om-norgespris-og-stromstonad-til-husholdninger.pdf)) sier at beregningene gjøres **time for time**: "Prissikringsbeløp beregnes time for time. Det er differansen mellom spotprisen per time i budområdet og terskelverdi". Elspotpris er definert som "timespris i budområdet kunden tilhører". Ingen krav til snittberegning eller kurskilde, bare at det er den faktiske timespotprisen i budområdet som skal brukes.
 - I praksis betyr det at strømleverandører bruker den NOK-prisen Nord Pool selv publiserer for budområdet (`NO5` for BKK-kunder i Bergen). Nord Pool har egen kursmekanisme (12:00 CET preliminær + to-banks-hedging for offisiell). Det er ikke regulert hvilken Nord Pool-kurs som skal brukes, men `data.nordpoolgroup.com` er den autoritative publiseringskanalen for sluttbruker-fakturering.
 
 ## Hva vi fortsatt ikke vet med sikkerhet
@@ -148,7 +148,7 @@ Implisitt single-rate som ville gitt eksakt match: **11,0706 NOK/EUR**.
 | NB aritmetisk månedssnitt           | 11,0229      |
 | NB forbruksvektet snitt (same-day)  | 11,0614      |
 
-BKKs implisitte kurs ligger **mellom** NB og Nord Pool EXR. Det er ingen offentlig publisert kurs som treffer 11,0706 — verken Norges Bank, ECB-referansekurs, eller Nord Pools daglige EXR. Mest sannsynlige forklaringer:
+BKKs implisitte kurs ligger **mellom** NB og Nord Pool EXR. Det er ingen offentlig publisert kurs som treffer 11,0706, verken Norges Bank, ECB-referansekurs, eller Nord Pools daglige EXR. Mest sannsynlige forklaringer:
 
 1. **12:00 CET interbankkurs** (Nord Pools preliminære kurs): hentet 2 timer før NB-snapshotet (14:15 CET). Krona kan svekkes/styrkes 0,02–0,05 i løpet av disse to timene i et volatilt marked. Denne kursen publiseres ikke offentlig.
 2. **Egen bankkurs**: BKK kan ha avtale med en spesifikk bank (DNB, Nordea etc.) med litt egne marginer.
@@ -164,7 +164,7 @@ Når vi gjør konverteringen lokalt med rå EUR + NB same-day forward-fill, komm
 
 Krever ikke-offentlige data eller direkte kilde:
 
-1. Hente historiske interbankkurser 12:00 CET — bestillingsbeskrivelse i [bestilling-bloomberg.md](bestilling-bloomberg.md)
+1. Hente historiske interbankkurser 12:00 CET, bestillingsbeskrivelse i [bestilling-bloomberg.md](bestilling-bloomberg.md)
 2. Spørre BKK kundeservice eksplisitt hvilken kursleverandør og hvilket snapshot-tidspunkt de bruker
 3. Få tak i en strømleverandørs interne dokumentasjon (Tibber, BKK Direkte etc.) som beskriver deres NOK-omregningsmetode
 
@@ -178,7 +178,7 @@ Hovedmistanken er at BKK bruker Nord Pools preliminære interbankkurs ved 12:00 
 
 Samme valutapar (EUR/NOK spot, mid-point i interbankmarkedet) og samme underliggende marked. Forskjellen er tidspunkt og leverandør.
 
-Norges Bank snapper kursen 14:15 CET hver bankdag — synket med ECBs euro reference rate siden 2016. Den publiseres gratis dagen etter via SDMX-JSON API. Nord Pool snapper kursen to timer tidligere, kl. 12:00 CET. Grunnen er at day-ahead-auksjonen avholdes ~12:50 CET dagen før, så Nord Pool snapper kursen rett før auksjonen og bruker den til å konvertere EUR-priser til NOK ([Nord Pool: Preliminary prices and exchange rates](https://www.nordpoolgroup.com/en/trading/Day-ahead-trading/Preliminary-prices-and-exchange-rates/)).
+Norges Bank snapper kursen 14:15 CET hver bankdag, synket med ECBs euro reference rate siden 2016. Den publiseres gratis dagen etter via SDMX-JSON API. Nord Pool snapper kursen to timer tidligere, kl. 12:00 CET. Grunnen er at day-ahead-auksjonen avholdes ~12:50 CET dagen før, så Nord Pool snapper kursen rett før auksjonen og bruker den til å konvertere EUR-priser til NOK ([Nord Pool: Preliminary prices and exchange rates](https://www.nordpoolgroup.com/en/trading/Day-ahead-trading/Preliminary-prices-and-exchange-rates/)).
 
 EUR/NOK kan bevege seg 0,02–0,05 i løpet av de to timene mellom 12:00 og 14:15. Det høres lite ut, men over 720 timer med strømforbruk gir det merkbar forskjell i den endelige Norgespris-kompensasjonen.
 
@@ -188,11 +188,11 @@ Beregningen er deterministisk: rå EUR/MWh per time fra Nord Pool-snapshot (stat
 
 Når vi sammenligner forskjellige måneder, varierer diffen. Tre måneder testet på variant B (NB same-day forward-fill): februar +2,07 kr, mars +0,70 kr, april +0,79 kr. NOK svinger ulikt mellom 12:00 og 14:15 fra dag til dag, og hver måned har sin egen forbruks-vekt mot ulike dager. Ingen måned får systematisk samme avvik, men alle ligger innenfor samme størrelsesorden.
 
-Hvis BKK hadde brukt en helt annen kurskilde (bank-spesifikk eller forward-spread), skulle vi sett mer kaotisk variasjon. At avviket ligger ±0,02–0,05 fra NB-kursen, ulikt hver måned, men alltid innenfor det båndet NOK svinger i på to timer — det stemmer presist med 12:00 CET-snapshot før 14:15 CET-snapshot.
+Hvis BKK hadde brukt en helt annen kurskilde (bank-spesifikk eller forward-spread), skulle vi sett mer kaotisk variasjon. At avviket ligger ±0,02–0,05 fra NB-kursen, ulikt hver måned, men alltid innenfor det båndet NOK svinger i på to timer, det stemmer presist med 12:00 CET-snapshot før 14:15 CET-snapshot.
 
 ### Hvorfor alle tre avvikene har samme fortegn
 
-Alle tre månedene gir *positivt* avvik: vår beregnede kompensasjon er litt mindre negativ enn fakturaen. Det betyr at vår beregnede snittspot er litt lavere enn fakturaens implisitte snittspot — altså at NB-kursen ligger litt under den BKK bruker. Hver gang. På tre måneder, alle samme retning.
+Alle tre månedene gir *positivt* avvik: vår beregnede kompensasjon er litt mindre negativ enn fakturaen. Det betyr at vår beregnede snittspot er litt lavere enn fakturaens implisitte snittspot, altså at NB-kursen ligger litt under den BKK bruker. Hver gang. På tre måneder, alle samme retning.
 
 Tilfeldighet ville gitt blandet fortegn. Systematisk skjevhet i én retning forteller at BKK bruker en *høyere* kurs enn NB 14:15. Det stemmer med 12:00 CET-hypotesen i akkurat denne perioden: krona styrket seg gjennom 2026 (april gikk fra 11,21 til 10,91), og når krona styrker seg gjennom dagen er 12:00-kursen høyere enn 14:15-kursen.
 
@@ -200,7 +200,7 @@ Det gir en testbar prediksjon: hvis vi sammenligner en måned med systematisk sv
 
 ### Hva som vil bevise eller avkrefte hypotesen
 
-Når vi får 12:00 CET-data fra Bloomberg ([bestilling](bestilling-bloomberg.md)) og kjører samme beregning, forventer vi at de tre tallene (0,79, 2,07, 0,70 kr) alle krymper mot null. Hvis de gjør det, har vi bevist hypotesen. Hvis ikke — hvis avviket blir samme størrelsesorden eller endrer fortegn på en uventet måte — må vi se etter en annen forklaring (egen bankkurs, forward-spread, eller noe vi ikke har tenkt på enda).
+Når vi får 12:00 CET-data fra Bloomberg ([bestilling](bestilling-bloomberg.md)) og kjører samme beregning, forventer vi at de tre tallene (0,79, 2,07, 0,70 kr) alle krymper mot null. Hvis de gjør det, har vi bevist hypotesen. Hvis ikke, hvis avviket blir samme størrelsesorden eller endrer fortegn på en uventet måte, må vi se etter en annen forklaring (egen bankkurs, forward-spread, eller noe vi ikke har tenkt på enda).
 
 ## Variant-matrise per måned
 
@@ -237,7 +237,7 @@ _Generert av_ `scripts/research/match_norgespris_alle_maaneder.py --emit-markdow
 ## Reprodusering
 
 ```bash
-# Krever ikke internett — bruker fixturer.
+# Krever ikke internett, bruker fixturer.
 just verify-all
 
 # Eller direkte:

@@ -1,6 +1,6 @@
 # Trippelverifisering av DSO-tariffer 2026
 
-Sjekk av forrige agents flaggede feil mot tre uavhengige kilder per
+Sjekk av flaggede feil i `dso.py` mot tre uavhengige kilder per
 nettselskap. Verdier i `dso.py` er **ren nettleie eks. mva og eks.
 forbruksavgift/Enova** for energiledd, og **kr/mnd inkl. mva** for
 kapasitetsledd.
@@ -13,7 +13,7 @@ Hentet 2026-05-23 (dagens dato).
 |---|---|---|
 | Lnett | Feil bekreftet | Energiledd + manglende trinn 7-10 |
 | Lede | Feil bekreftet | Energiledd + kapasitetstrinn 9-10 % for høyt |
-| Norgesnett | Ingen feil | Forrige agent regnet feil — vår verdi stemmer |
+| Norgesnett | Ingen feil | Tidligere flagging var feil, eksisterende verdi stemmer |
 | Asker Nett | Ingen feil | Tariff matcher 2026 |
 | Elvia | Feil bekreftet | Kapasitetstrinn 6-10 |
 
@@ -46,7 +46,7 @@ Hentet 2026-05-23 (dagens dato).
 | 9 | 75-100 | mangler | 4150 | (kun PDF) | 4150 | **4150** |
 | 10 | 100+ | mangler | 7000 | (kun PDF) | 7000 | **7000** |
 
-HTML-prisliste viser bare trinn 1-6 — PDF og kraftsystemet bekrefter trinn
+HTML-prisliste viser bare trinn 1-6, PDF og kraftsystemet bekrefter trinn
 7-10. Tre kilder enige.
 
 ## Lede (NO2)
@@ -93,7 +93,7 @@ ren nettleie. Feil semantikk.
 Lede HTML viser tier 0-50 kW direkte. Kraftsystemet gir alle 11 trinn.
 Tre kilder enige der de overlapper.
 
-## Norgesnett (NO1) — Ingen endring
+## Norgesnett (NO1), Ingen endring
 
 **Kilder:**
 - Primær: [Norgesnett kunde-prisside](https://norgesnett.no/kunde/nettleie-privat/)
@@ -107,17 +107,17 @@ Tre kilder enige der de overlapper.
 | Dag | 20,262 | 35,49 inkl. alt | (35,49/1,25) - 7,13 - 1,0 = 20,262 | 20,26 | **20,262** |
 | Natt | 13,286 | 26,77 inkl. alt | (26,77/1,25) - 7,13 - 1,0 = 13,286 | 13,29 | **13,286** |
 
-Forrige agent tolket 35,49 / 26,77 som "eks. mva" og kom til 27,36/18,64.
+Tidligere tolkning leste 35,49 / 26,77 som "eks. mva" og kom til 27,36/18,64.
 Norgesnetts egen side er entydig: "Disse prisene inneholder forbruksavgift
 (8,9125 øre/kWh), Enova-avgift (1,25 øre/kWh), og 25% mva." Vår verdi er
-korrekt — ingen endring.
+korrekt, ingen endring.
 
 ### Kapasitetsledd
 
 Alle 10 trinn matcher Norgesnetts egen tabell innenfor 1 kr/mnd (vi har
 avrundet til hele kroner; Norgesnett oppgir desimaler).
 
-## Asker Nett (NO1) — Ingen endring
+## Asker Nett (NO1), Ingen endring
 
 **Kilder:**
 - Primær: [Asker Nett prisliste 2026](https://askernett.no/prisliste-for-privatkunder-i-2026/)
@@ -164,7 +164,7 @@ korrekt.
 | 10 | 100+ | 4225 | **4570** | (PDF-referert) | 4570 | **4570** |
 
 Trinn 1-5 enige på tvers av kilder. Trinn 6-10 avviker mellom vår dso.py
-og PDF — PDF og kraftsystemet enige. PDF har dato `20260101` i URL og
+og PDF, PDF og kraftsystemet enige. PDF har dato `20260101` i URL og
 oppgir eksplisitt "Tariffer gjeldende fra: 01.01.2026". Velger PDF-tall.
 
 ## Avgifter (uendret)
@@ -174,5 +174,5 @@ oppgir eksplisitt "Tariffer gjeldende fra: 01.01.2026". Velger PDF-tall.
 - Mva: 25 % (gjelder ikke Nord-Norge/tiltakssone)
 
 PDF-er fra Lnett, Norgesnett og Glitre flagger at 2026-avgiftene "ikke er
-vedtatt" formelt. Skatteetaten oppgir 7,13 som gjeldende — beholder
+vedtatt" formelt. Skatteetaten oppgir 7,13 som gjeldende, beholder
 const.py uendret.

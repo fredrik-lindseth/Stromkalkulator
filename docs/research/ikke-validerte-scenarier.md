@@ -1,7 +1,6 @@
 # Ikke-validerte scenarier: kodegjennomgang
 
-Researchrapport. Ingen kodeendringer gjort. Referanser per 1.13.0 (commit
-935f600). Linjenumre kan flytte seg.
+Referanser per 1.13.0 (commit 935f600). Linjenumre kan flytte seg.
 
 Tre scenarier dokumentert i `docs/begrensninger.md §2`:
 
@@ -37,14 +36,14 @@ reell elapsed-tid uavhengig av DST. Riemann-summen er derfor korrekt.
 
   Hour-bytting: `self._current_hour` går fra 1 til 3 (timme 2 eksisterer
   ikke). Den manglende timen lagres aldri som maks-time fordi
-  `_current_hour_energy` for "time 2" aldri akkumulerer. Korrekt — den timen
+  `_current_hour_energy` for "time 2" aldri akkumulerer. Korrekt, den timen
   eksisterer ikke. Forrige time (1) får sin energi lagret når polling kl 03:xx
   detekterer hour-bytte.
 
 - **Høst-DST (25. oktober 2026, 25-timersdøgn):** Klokken hopper 03:00 til
   02:00. Timme 2 oppleves to ganger.
 
-  `_current_hour` går fra 2 til 2 — ingen hour-bytte i `coordinator.py:518`.
+  `_current_hour` går fra 2 til 2, ingen hour-bytte i `coordinator.py:518`.
   Resultat: energiakkumulering for "andre time 2" legges sammen med
   "første time 2" i `_current_hour_energy`. Når klokken endelig blir 3 (etter
   to passeringer av timme 2), arkiveres den summerte timen som maks.
@@ -67,7 +66,7 @@ reell elapsed-tid uavhengig av DST. Riemann-summen er derfor korrekt.
    aware fra `dt_util.now()`. OK i produksjon. Tester må bruke aware tid hvis
    de skal etterligne reell DST-adferd. Eksisterende `test_dst_overgang.py`
    bruker delvis naiv tid (linje 97-103), men cap-en redder oss.
-3. **Ingen bruk av `range(24)` for aggregering** — sjekket, ikke funnet i
+3. **Ingen bruk av `range(24)` for aggregering**, sjekket, ikke funnet i
    coordinator. Topp-3-utvelgelse er via sortert dict, ikke hardkodet.
 4. **`days_in_month` ignorerer DST**: `coordinator.py:88-91` antar 24 timer
    per dag i `seconds_in_month = dim * 24 * 3600` (linje 684). I oktober
@@ -105,7 +104,7 @@ faktisk kapasitetsledd. Sjekk en gang etter høst-DST 2026 mot ekte faktura.
   prisen allerede er under terskelen.
 - Norgespris-kompensasjon: `coordinator.py:664`.
   `(norgespris - spot_price) * energy_kwh`. Ved negativ spot blir
-  `(0,50 - (-0,30)) * kWh = 0,80 * kWh` — positiv kompensasjon, dvs.
+  `(0,50 - (-0,30)) * kWh = 0,80 * kWh`, positiv kompensasjon, dvs.
   Norgespris-kunden "taper" 0,80 kr/kWh fordi spot ville vært bedre.
 - `kroner_spart_per_kwh`: linje 656-660. Ved negativ spot for ikke-Norgespris-
   kunde: `alternativ_pris = norgespris = 0,50`, `total_price = spot - 0 +
@@ -146,7 +145,7 @@ faktisk kapasitetsledd. Sjekk en gang etter høst-DST 2026 mot ekte faktura.
    eksakt: ingen støtte. Konsistent med tests. OK.
 3. **Negative spot + Norgespris-tak overskredet** (linje 627-628): faller
    tilbake til `spot_price + energiledd + fastledd_per_kwh`. Hvis spot er
-   negativ kan total_price gå negativ. Korrekt — det reflekterer at strømmen
+   negativ kan total_price gå negativ. Korrekt, det reflekterer at strømmen
    bokstavelig talt subsidierer brukeren i den timen.
 
 ### Foreslåtte testscenarier
@@ -162,7 +161,7 @@ faktisk kapasitetsledd. Sjekk en gang etter høst-DST 2026 mot ekte faktura.
 
 **Akademisk.** Koden håndterer negative tall matematisk korrekt. Ingen
 abs/max-bugs. Verifikasjon mot ekte faktura ville være fint men er ikke
-påtrengende — Norge har sjeldent vedvarende negativ spot, og effekten på
+påtrengende, Norge har sjeldent vedvarende negativ spot, og effekten på
 total fakturasum er liten.
 
 ---
@@ -231,7 +230,7 @@ For en bruker som forbruker 6000 kWh/mnd:
 
 Avvik for 6000-kWh-kunde i april 2026 (snitt-spot 1,30): ca 800 kr på
 kompensasjons-sensoren, alt for høyt absolutt-tall. Brukeren ser ikke
-direkte feil prising av strøm — `total_price` byttes korrekt — men
+direkte feil prising av strøm, `total_price` byttes korrekt, men
 verifikasjonssensoren `monthly_norgespris_compensation_kr` skjevviser.
 
 ### Foreslåtte testscenarier

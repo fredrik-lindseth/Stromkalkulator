@@ -116,6 +116,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
     kapasitetstrinn: list[tuple[float, int]]
     kapasitet_varsel_terskel: float
     _daily_max_power: dict[str, DailyMaxEntry]
+    _current_hour_utcoffset: timedelta | None
     _current_month: str  # "YYYY-MM" format for year-aware month tracking
     _monthly_consumption: ConsumptionData
     _last_update: datetime | None
@@ -228,6 +229,11 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         self._daily_max_power: dict[str, DailyMaxEntry] = {}
         self._current_hour_energy: float = 0.0
         self._current_hour: int = dt_util.now().hour
+        # Sporing av aware-tidssone for hour-bucket: ved høst-DST skjer time
+        # 02:xx to ganger fysisk (CEST -> CET). Vi må flushe bucketen mellom
+        # passeringene. Hvis now er naiv blir denne None og adferden er som
+        # før (kun .hour-sammenligning).
+        self._current_hour_utcoffset: timedelta | None = dt_util.now().utcoffset()
         self._current_month = dt_util.now().strftime("%Y-%m")
 
         # Track energy consumption for monthly utility meter
@@ -419,6 +425,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         self._daily_max_power = {}
         self._current_hour_energy = 0.0
         self._current_hour = now.hour
+        self._current_hour_utcoffset = now.utcoffset()
         self._monthly_consumption = ConsumptionData()
         self._monthly_norgespris_diff = 0.0
         self._monthly_norgespris_compensation = 0.0
@@ -514,8 +521,19 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
 
         # Akkumuler energi i inneværende klokke-time
         current_hour = now.hour
+        current_utcoffset = now.utcoffset()
         previous_hour = self._current_hour
-        if current_hour != self._current_hour:
+        # Sammenlign både time og utcoffset for å fange høst-DST: ved
+        # gjentatt 02:xx (CEST -> CET) er .hour lik, men utcoffset skifter
+        # fra +02:00 til +01:00. Naive datetimes har utcoffset()==None i
+        # begge tilfeller, så naive tester beholder eksisterende adferd.
+        hour_changed = current_hour != self._current_hour
+        offset_changed = (
+            current_utcoffset is not None
+            and self._current_hour_utcoffset is not None
+            and current_utcoffset != self._current_hour_utcoffset
+        )
+        if hour_changed or offset_changed:
             # Timen har endret seg -- den forrige timen er komplett.
             # _current_hour_energy (kWh over 1 time) = gjennomsnittlig kW for den timen.
             if self._current_hour_energy > 0:
@@ -531,6 +549,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
                     dirty = True
             self._current_hour_energy = 0.0
             self._current_hour = current_hour
+            self._current_hour_utcoffset = current_utcoffset
 
         # Legg til denne oppdateringens energi i timens akkumulator
         self._current_hour_energy += energy_kwh

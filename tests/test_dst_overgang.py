@@ -139,6 +139,125 @@ class TestAkkumulatorOverDst:
         assert result["monthly_consumption_total_kwh"] >= 0.0
 
 
+class TestHostDstDobleltTimeBucket:
+    """Høst-DST 25.10.2026: timme 02:xx skjer to ganger fysisk.
+
+    Bug: `now.hour == self._current_hour` trigger ikke hour-bytte ved
+    gjentatt time 02:xx, så de to fysiske timene 02:00 CEST + 02:00 CET
+    smelter sammen til én logisk time i `_current_hour_energy`. Resultat:
+    `_daily_max_power` for 2026-10-25 kan få kunstig høy kW.
+
+    Sekvenser nedenfor bruker aware Oslo-tid med eksplisitt `fold` for å
+    skille de to fysiske passeringene. Reelle intervaller holdes <= 6 min
+    (MAX_ELAPSED_HOURS) så cappen ikke maskerer bugen.
+    """
+
+    def test_to_fysiske_timer_telles_som_to_separate_buckets(self, coord_module):
+        """5 kW konstant over begge fysiske 02-timer skal gi maks-time = 5 kW.
+
+        Med bugen: bucket akkumulerer over hele 2-timersperioden og lagres
+        som ~10 kW når klokken endelig blir 03:00 CET. Med fix: hver
+        fysisk time flushes separat, maks-time blir ~5 kW.
+        """
+        coord = _coord(coord_module, power_w=5000)
+
+        # Polling annet hvert 5. minutt gjennom første time 02 (CEST, fold=0)
+        # Starter 02:00 for å bootstrap _last_update, så akkumulerer fra 02:05
+        for minute in (0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55):
+            _run_update(
+                coord_module,
+                coord,
+                now=_real_datetime(*HOST_SONDAG, 2, minute, tzinfo=OSLO, fold=0),
+            )
+
+        # DST-skifte: 02:55 CEST -> 02:00 CET er 5 min reell tid (fold=1)
+        for minute in (0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55):
+            _run_update(
+                coord_module,
+                coord,
+                now=_real_datetime(*HOST_SONDAG, 2, minute, tzinfo=OSLO, fold=1),
+            )
+
+        # Flush ved 03:00 CET (fold irrelevant, time bytter til 3)
+        _run_update(
+            coord_module, coord, now=_real_datetime(*HOST_SONDAG, 3, 0, tzinfo=OSLO, fold=1)
+        )
+
+        entry = coord._daily_max_power.get("2026-10-25")
+        assert entry is not None, "maks-time for 25.10 burde være lagret"
+        # 5 kW i 1 fysisk time = 5 kWh. To timer slått sammen ville gitt ~10.
+        # Slakk margin for capping/første-poll-effekter.
+        assert entry.kw < 7.0, (
+            f"maks-time {entry.kw} kW for 2026-10-25 antyder at to fysiske "
+            f"timer 02:xx CEST + 02:xx CET ble slått sammen i samme bucket"
+        )
+
+    def test_current_hour_energy_flushes_ved_dst_skifte(self, coord_module):
+        """_current_hour_energy skal nullstilles når 02 CEST blir til 02 CET.
+
+        Direkte sjekk på intern state: etter at vi krysser DST-grensen
+        skal den forrige times akkumulator være flushet til
+        _daily_max_power, ikke fortsatt liggende i _current_hour_energy.
+        """
+        coord = _coord(coord_module, power_w=5000)
+
+        # Fyll opp _current_hour_energy gjennom første time 02 (CEST)
+        for minute in (0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55):
+            _run_update(
+                coord_module,
+                coord,
+                now=_real_datetime(*HOST_SONDAG, 2, minute, tzinfo=OSLO, fold=0),
+            )
+        energy_etter_forste_time = coord._current_hour_energy
+        assert energy_etter_forste_time > 0, "burde ha akkumulert energi i time 2 CEST"
+
+        # Krysser DST-grensen til 02:00 CET (fold=1). Forventet: forrige
+        # times bucket flushes til _daily_max_power, ny bucket starter.
+        _run_update(
+            coord_module,
+            coord,
+            now=_real_datetime(*HOST_SONDAG, 2, 0, tzinfo=OSLO, fold=1),
+        )
+
+        # Med fix: bucket skal være flushet (ny time startet).
+        # Energien fra første time 2 CEST skal nå ligge i _daily_max_power.
+        assert "2026-10-25" in coord._daily_max_power, (
+            "første fysiske time 02 (CEST) skal flushes til daily_max_power "
+            "når DST tar oss inn i andre fysiske time 02 (CET)"
+        )
+
+    def test_to_separate_buckets_gir_riktig_topp_for_dagen(self, coord_module):
+        """Konstant 4 kW over begge 02-timene skal gi topp-time = ca 4 kW.
+
+        Hvis bucketene slås sammen blir topp-tiden ~8 kW, som flytter
+        dagen feilaktig inn i en høyere kapasitetstrinn.
+        """
+        coord = _coord(coord_module, power_w=4000)
+
+        # Hele første time 02 CEST + bytte til 02 CET + hele andre time + 03 CET
+        timestamps = []
+        for minute in range(0, 60, 5):
+            timestamps.append(
+                _real_datetime(*HOST_SONDAG, 2, minute, tzinfo=OSLO, fold=0)
+            )
+        for minute in range(0, 60, 5):
+            timestamps.append(
+                _real_datetime(*HOST_SONDAG, 2, minute, tzinfo=OSLO, fold=1)
+            )
+        timestamps.append(_real_datetime(*HOST_SONDAG, 3, 0, tzinfo=OSLO, fold=1))
+
+        for dt in timestamps:
+            _run_update(coord_module, coord, now=dt)
+
+        entry = coord._daily_max_power.get("2026-10-25")
+        assert entry is not None
+        # 4 kW i 1 time = 4 kWh maks-time. Sammenslått = ~8 kWh.
+        assert entry.kw < 6.0, (
+            f"maks-time {entry.kw} kW for 25.10 indikerer sammenslåtte buckets "
+            f"(forventet ~4 kW for 4 kW konstant effekt)"
+        )
+
+
 class TestTopp3RundtDst:
     """Topp-3-datoer bruker lokal dato og flippes ikke pga tidssone."""
 

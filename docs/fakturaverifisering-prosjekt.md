@@ -6,7 +6,7 @@ Prosjektdokument for arbeidet med å validere `stromkalkulator` ende-til-ende mo
 
 Vi har allerede `tests/test_faktura_bkk.py` som sjekker at formlene og satsene i integrasjonen reproduserer kjente BKK-fakturaer. Den testen tar akkumulerte verdier som input, og verifiserer at de gir riktig fakturasum. Den sier ingenting om hvorvidt de akkumulerte verdiene fra integrasjonen faktisk matcher det måleren har sendt ut.
 
-Fredrik foreslo å lukke det hullet ved å validere mot to ekte datakilder:
+jeg foreslo å lukke det hullet ved å validere mot to ekte datakilder:
 
 - Time-for-time-forbruk fra AMS-måleren (Kaifa MA304H3E + Pow-U + AMSleser.no)
 - Time-for-time-spotpriser fra Nord Pool-integrasjonen i HA

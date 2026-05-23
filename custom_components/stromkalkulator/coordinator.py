@@ -944,6 +944,20 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
                         # Set to stored month so the normal month-transition in
                         # _async_update_data fires and properly archives previous month data
                         self._current_month = stored_month
+                stored_last_update = data.get("last_update")
+                if stored_last_update:
+                    try:
+                        loaded_last_update = datetime.fromisoformat(stored_last_update)
+                        # Bare gjenopprett hvis gapet er innenfor MAX_ELAPSED_HOURS.
+                        # Lengre gap betyr restart-pause; da vil vi heller starte friskt
+                        # (None) enn å akkumulere current_power * hele restart-vinduet.
+                        elapsed = (dt_util.now() - loaded_last_update).total_seconds() / 3600
+                        if 0 <= elapsed <= MAX_ELAPSED_HOURS:
+                            self._last_update = loaded_last_update
+                    except (ValueError, TypeError) as err:
+                        _LOGGER.warning(
+                            "Kunne ikke lese last_update fra storage: %s", err
+                        )
             except (TypeError, KeyError, AttributeError) as err:
                 _LOGGER.warning("Corrupt storage data, using defaults: %s", err)
             _LOGGER.debug("Loaded stored data: %s", self._daily_max_power)
@@ -1043,6 +1057,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             "previous_month_export_kwh": self._previous_month_export_kwh,
             "previous_month_export_revenue": self._previous_month_export_revenue,
             "previous_month_cost": self._previous_month_cost,
+            "last_update": self._last_update.isoformat() if self._last_update else None,
         }
         try:
             await self._store.async_save(data)

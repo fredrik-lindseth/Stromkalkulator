@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import importlib
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
 
 from tests.conftest import _make_entry
@@ -125,6 +125,158 @@ class TestSaveLoadCycle:
         assert coordinator._daily_max_power == {}
         assert coordinator._monthly_consumption == coord.ConsumptionData()
         assert coordinator._previous_month_top_3 == {}
+
+
+class TestLastUpdatePersistens:
+    """_last_update skal lagres og lastes for å unngå tap av forbruk ved restart.
+
+    Bug: ved HA-restart settes _last_update = None i __init__, og første poll
+    får elapsed_hours = 0 -> energien for restart-perioden ignoreres. Hvis
+    spot-sensor ikke er klar enda kastes UpdateFailed slik at _last_update
+    forblir None gjennom hele oppstarten. Når første vellykkede poll endelig
+    kjører cappes elapsed til MAX_ELAPSED_HOURS (6 min). April 2026 hadde
+    12 release-restarter -- gapet forklarer en del av 36 %-Norgespris-bugen.
+    """
+
+    def test_last_update_persisteres(self):
+        """_last_update lagres som isoformat og restored hvis innenfor vindu."""
+        coord = _reload_coord()
+
+        saved_data: dict = {}
+
+        def make_store(hass, version, key):
+            store = MagicMock()
+            store.async_load = AsyncMock(return_value=None)
+
+            async def save(data):
+                saved_data.update(data)
+
+            store.async_save = AsyncMock(side_effect=save)
+            store.async_remove = AsyncMock()
+            return store
+
+        coord.Store = MagicMock(side_effect=make_store)
+
+        hass = MagicMock()
+        entry = _make_entry()
+        coordinator = coord.NettleieCoordinator(hass, entry)
+
+        # dt_util.now() er 2026-06-15 12:00:00 (conftest). MAX_ELAPSED_HOURS = 0.1.
+        # Sett _last_update til 1 minutt tilbake -- godt innenfor 6-minutters-vinduet.
+        now = coord.dt_util.now()
+        last_update = now - timedelta(minutes=1)
+        coordinator._last_update = last_update
+
+        asyncio.run(coordinator._save_stored_data())
+
+        assert saved_data["last_update"] == last_update.isoformat()
+
+        # Last data i en ny coordinator
+        def make_store_with_data(hass, version, key):
+            store = MagicMock()
+            store.async_load = AsyncMock(return_value=saved_data)
+            store.async_save = AsyncMock()
+            store.async_remove = AsyncMock()
+            return store
+
+        coord.Store = MagicMock(side_effect=make_store_with_data)
+
+        coordinator2 = coord.NettleieCoordinator(hass, entry)
+        assert coordinator2._last_update is None  # __init__ default
+        asyncio.run(coordinator2._load_stored_data())
+
+        assert coordinator2._last_update == last_update
+
+    def test_last_update_ignoreres_hvis_for_gammelt(self):
+        """Lagret last_update eldre enn MAX_ELAPSED_HOURS skal ignoreres.
+
+        Vi vil ikke at "siste oppdatering var 3 timer siden" skal gi
+        3 h * current_power i akkumulert energi -- det ville være feil.
+        Bedre å starte friskt (None) og miste én poll-syklus.
+        """
+        coord = _reload_coord()
+
+        # Storage med last_update fra 3 timer siden (langt utenfor 6-min-vinduet)
+        now = coord.dt_util.now()
+        gammelt = (now - timedelta(hours=3)).isoformat()
+        stored_data = {
+            "daily_max_power": {},
+            "monthly_consumption": {"dag": 0.0, "natt": 0.0},
+            "current_month": now.strftime("%Y-%m"),
+            "last_update": gammelt,
+        }
+
+        def make_store(hass, version, key):
+            store = MagicMock()
+            store.async_load = AsyncMock(return_value=stored_data)
+            store.async_save = AsyncMock()
+            store.async_remove = AsyncMock()
+            return store
+
+        coord.Store = MagicMock(side_effect=make_store)
+
+        hass = MagicMock()
+        entry = _make_entry()
+        coordinator = coord.NettleieCoordinator(hass, entry)
+        asyncio.run(coordinator._load_stored_data())
+
+        assert coordinator._last_update is None
+
+    def test_last_update_mangler_i_storage_gir_none(self):
+        """Bakoverkompatibilitet: storage uten last_update -> _last_update er None."""
+        coord = _reload_coord()
+
+        now = coord.dt_util.now()
+        stored_data = {
+            "daily_max_power": {},
+            "monthly_consumption": {"dag": 0.0, "natt": 0.0},
+            "current_month": now.strftime("%Y-%m"),
+            # last_update mangler bevisst
+        }
+
+        def make_store(hass, version, key):
+            store = MagicMock()
+            store.async_load = AsyncMock(return_value=stored_data)
+            store.async_save = AsyncMock()
+            store.async_remove = AsyncMock()
+            return store
+
+        coord.Store = MagicMock(side_effect=make_store)
+
+        hass = MagicMock()
+        entry = _make_entry()
+        coordinator = coord.NettleieCoordinator(hass, entry)
+        asyncio.run(coordinator._load_stored_data())
+
+        assert coordinator._last_update is None
+
+    def test_last_update_korrupt_isoformat_ignoreres(self):
+        """Ugyldig isoformat-string skal logges som warning og ignoreres."""
+        coord = _reload_coord()
+
+        now = coord.dt_util.now()
+        stored_data = {
+            "daily_max_power": {},
+            "monthly_consumption": {"dag": 0.0, "natt": 0.0},
+            "current_month": now.strftime("%Y-%m"),
+            "last_update": "ikke-en-gyldig-dato",
+        }
+
+        def make_store(hass, version, key):
+            store = MagicMock()
+            store.async_load = AsyncMock(return_value=stored_data)
+            store.async_save = AsyncMock()
+            store.async_remove = AsyncMock()
+            return store
+
+        coord.Store = MagicMock(side_effect=make_store)
+
+        hass = MagicMock()
+        entry = _make_entry()
+        coordinator = coord.NettleieCoordinator(hass, entry)
+        asyncio.run(coordinator._load_stored_data())
+
+        assert coordinator._last_update is None
 
 
 class TestMigrationFromDSOStorage:
@@ -350,6 +502,7 @@ class TestSaveDataStructure:
             "previous_month_export_kwh",
             "previous_month_export_revenue",
             "previous_month_cost",
+            "last_update",
         }
         assert expected_keys == set(saved_data.keys())
 

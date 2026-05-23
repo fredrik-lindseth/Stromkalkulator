@@ -11,7 +11,7 @@ Fant du feil priser?
 
 ## Verifisere fakturaen din
 
-Vil du bekrefte at integrasjonen regner riktig? Se [VERIFISER_DIN_FAKTURA.md](fakturaer/VERIFISER_DIN_FAKTURA.md).
+Vil du bekrefte at integrasjonen regner riktig? Se [verifiser-din-faktura.md](fakturaer/verifiser-din-faktura.md).
 
 Foreløpig er kun BKK (NO5) verifisert. Vi trenger fakturadata fra andre nettselskap. Bruk [issue-malen](../.github/ISSUE_TEMPLATE/faktura-verifisering.md).
 

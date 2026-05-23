@@ -24,4 +24,4 @@ Fyll inn beløp fra fakturaen din i tabellen som ble limt inn over.
 
 **Personvern:** ikke ta med navn, adresse, kundenummer, fakturanummer eller KID. Knappen genererer ingen slik info, men dobbeltsjekk hvis du skriver inn noe selv.
 
-Mer kontekst: [VERIFISER_DIN_FAKTURA.md](https://forgejo.serveren.0v.no:2222/fredrik/Stromkalkulator/src/branch/main/docs/fakturaer/VERIFISER_DIN_FAKTURA.md).
+Mer kontekst: [verifiser-din-faktura.md](https://forgejo.serveren.0v.no:2222/fredrik/Stromkalkulator/src/branch/main/docs/fakturaer/verifiser-din-faktura.md).

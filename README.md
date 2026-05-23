@@ -32,13 +32,13 @@ Sensorer som viser hva strømmen faktisk koster, ikke bare spotprisen:
 | ----------- | ---------- | ------------------- | ------------------ |
 | BKK         | NO5        | 6                   | april 2026         |
 
-Hver rapport matcher integrasjonens beregninger linje for linje mot en ekte faktura. Se [docs/fakturaer/REFERANSE.md](docs/fakturaer/REFERANSE.md).
+Hver rapport matcher integrasjonens beregninger linje for linje mot en ekte faktura. Se [docs/fakturaer/referanse.md](docs/fakturaer/referanse.md).
 
 **Presisjon:** Integrasjonen treffer fakturaen på øret (innenfor 50 Wh på månedsforbruk, 0,01 kr på alle linjer). Eneste dokumenterte avvik er 0,2 % på Norgespris-kompensasjon, som skyldes EUR/NOK-vekslingskurs (ikke logikkfeil). Out-of-the-box, ingen konfigurasjon trengs. Se [docs/begrensninger.md](docs/begrensninger.md) for detaljer per målermerke og HAN-leser.
 
 Verifiseringen er gjort på Kaifa MA304H3E (3-fase, Nuri Telecom-importert) med Pow-U HAN-leser (AMSleser.no) og offisiell `nordpool`-integrasjon i HA. Aidon-målere har samme broadcast-timing (HH:00:10) og forventes å gi samme presisjon. Andre HAN-lesere og spot-integrasjoner kan ha andre presisjons-karakteristikker.
 
-Bruker du et annet nettselskap, [send inn din faktura](docs/fakturaer/VERIFISER_DIN_FAKTURA.md) så bekrefter vi det.
+Bruker du et annet nettselskap, [send inn din faktura](docs/fakturaer/verifiser-din-faktura.md) så bekrefter vi det.
 
 ## Installasjon
 
@@ -187,7 +187,7 @@ Klikk på en sensor for detaljer som topp-3 effektdager og kostnader fordelt på
 
 ## Støttede nettselskap
 
-Alle norske nettselskap er støttet. Prisene oppdateres årlig ved nyttår. Finner du feil, [lag en PR](docs/CONTRIBUTING.md) eller åpne et issue.
+Alle norske nettselskap er støttet. Prisene oppdateres årlig ved nyttår. Finner du feil, [lag en PR](docs/contributing.md) eller åpne et issue.
 
 ## Fusjon av nettselskap
 
@@ -197,7 +197,7 @@ Integrasjonen håndterer fusjoner automatisk. Konfigurasjonen oppdateres ved nes
 
 34 aktive sensorer fordelt på 6 devices. Diagnostikk-sensorer er deaktivert som standard og kan slås på under Settings > Devices > Entities. Å deaktivere en sensor påvirker ikke beregningene.
 
-Se [SENSORS.md](docs/SENSORS.md) for komplett oversikt.
+Se [sensorer.md](docs/sensorer.md) for komplett oversikt.
 
 ## Begrensninger
 
@@ -249,10 +249,10 @@ Sensoren «Månedlig nettleie total» er også nyttig for faktura-verifisering, 
 
 | Dokument                                | Innhold                            |
 | --------------------------------------- | ---------------------------------- |
-| [SENSORS.md](docs/SENSORS.md)           | Alle sensorer og attributter       |
+| [sensorer.md](docs/sensorer.md)         | Alle sensorer og attributter       |
 | [beregninger.md](docs/beregninger.md)   | Formler og avgiftssoner            |
-| [CONTRIBUTING.md](docs/CONTRIBUTING.md) | Oppdatere priser / rapportere feil |
-| [TESTING.md](docs/TESTING.md)           | Validere beregninger               |
+| [contributing.md](docs/contributing.md) | Oppdatere priser / rapportere feil |
+| [testing.md](docs/testing.md)           | Validere beregninger               |
 
 ## Verifisering av releases
 

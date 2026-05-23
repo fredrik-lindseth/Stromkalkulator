@@ -183,7 +183,7 @@ Click on a sensor for details like top-3 power days and costs split by day/night
 
 ## Supported grid companies
 
-All Norwegian grid companies are supported. Prices are updated annually. Found an error, [create a PR](docs/CONTRIBUTING.md) or open an issue.
+All Norwegian grid companies are supported. Prices are updated annually. Found an error, [create a PR](docs/contributing.md) or open an issue.
 
 ## Limitations
 
@@ -235,10 +235,10 @@ Example: March, capacity 250 kr/month, spread across 744 kWh (31 days x 24):
 
 | Document                                | Content                       |
 | --------------------------------------- | ----------------------------- |
-| [SENSORS.en.md](docs/SENSORS.en.md)     | All sensors and attributes    |
+| [sensors.en.md](docs/sensors.en.md)     | All sensors and attributes    |
 | [beregninger.md](docs/beregninger.md)   | Formulas and tax zones        |
-| [CONTRIBUTING.md](docs/CONTRIBUTING.md) | Update prices / report errors |
-| [TESTING.md](docs/TESTING.md)           | Validating calculations       |
+| [contributing.md](docs/contributing.md) | Update prices / report errors |
+| [testing.md](docs/testing.md)           | Validating calculations       |
 
 ## License
 

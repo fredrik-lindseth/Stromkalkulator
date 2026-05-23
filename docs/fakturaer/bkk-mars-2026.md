@@ -33,7 +33,7 @@
 | Trinn: 2-5 kW (trinn 2)                   | `kapasitetstrinn_nummer: 2`   | Match                                    |
 | Pris: 250 kr/mnd                          | `kapasitetsledd: 250`         | Match                                    |
 
-Kapasitetstrinn gikk ned fra 5-10 kW (415 kr/mnd) i februar til 2-5 kW (250 kr/mnd) i mars — en besparelse på 165 kr/mnd.
+Kapasitetstrinn gikk ned fra 5-10 kW (415 kr/mnd) i februar til 2-5 kW (250 kr/mnd) i mars, en besparelse på 165 kr/mnd.
 
 ## Satsverifisering mot dso.py
 
@@ -65,7 +65,7 @@ Norgespris-kompensasjonslinjen (-1550.68 kr) beregnes av BKK basert på time-for
 | -------------- | ----------------- | -------------------- | ----------------- | ------ |
 | Forbruksavgift | 8.913             | 7.13                 | 8.9125            | Ja     |
 | Enovaavgift    | 1.25              | 1.00                 | 1.25              | Ja     |
-| MVA-sats       | 25%               | 0.25                 | —                 | Ja     |
+| MVA-sats       | 25%               | 0.25                 |,                 | Ja     |
 
 ## Sammenligning med februar 2026
 

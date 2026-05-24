@@ -8,15 +8,16 @@ Target thread: https://community.home-assistant.io/t/stromkalkulator-true-electr
 
 **Now invoice-accurate**
 
-Six BKK invoices replayed hour-by-hour from October 2025 through April 2026. Every nettleie line matches within 0,01-0,02 kr. With an energy meter sensor configured, monthly consumption matches Elhub to the watt-hour. Spot price, strømstøtte and Norgespris-compensation are checked against the same source data.
+Six BKK invoices replayed hour-by-hour from October 2025 through April 2026. Every nettleie line matches within 0,01-0,02 kr. With an energy meter sensor configured, monthly consumption matches the DSO invoice to the watt-hour (same numbers as Elhub). Spot price, strømstøtte and Norgespris-compensation are checked against the same source data.
 
 **Bugs that moved real money**
 
 - Spot price VAT handling. HA-core Nordpool delivers ex. VAT, the integration assumed incl. VAT. Sør-Norge users on spot saw 25 % off in strømstøtte and Norgespris comparison. Auto-migrated. (v1.12)
 - NO3 VAT classification. ~14 DSOs in Trøndelag and Møre og Romsdal were treated as VAT-exempt by mistake. (v1.11)
 - Double-counted Forbruksavgift and Enova-avgift in monthly totals, about 150 kr/month too high for a typical household. (v1.7)
-- Kapasitetstrinn used instant power instead of hourly energy average. Now matches Elhub. (v1.7)
+- Kapasitetstrinn used instant power instead of hourly energy average. Now matches how the DSO derives the step from Elhub. (v1.7)
 - Tariff corrections for Lnett, Lede, Elvia 2026, triple-verified against official price lists. (v1.13)
+- Spot sensor validation in config flow. If you point the spot price input at a kr-sensor or a kWh meter, setup now rejects it instead of accepting it silently. Previously some Elvia users ended up with strømstøtte at 182 469 kr/month. (v1.13)
 
 **More robust**
 
@@ -30,7 +31,7 @@ Six BKK invoices replayed hour-by-hour from October 2025 through April 2026. Eve
 - Fritidsbolig and hytte support with correct kWh caps for strømstøtte and Norgespris. (v1.6)
 - Accumulated cost sensor for the Energy Dashboard, includes capacity step. (v1.9)
 - Norgespris compensation in kroner, directly comparable to the invoice line. (v1.8)
-- Per-DSO weekend tariff and VAT zone overrides. (v1.11)
+- Per-DSO weekend tariff and VAT zone overrides (v1.11), plus per-DSO `helligdager_ekstra` so BKK gets 24.12/31.12 as low-tariff while other DSOs stay on default holidays until invoice data confirms otherwise (v1.13).
 
 **Trust the numbers**
 

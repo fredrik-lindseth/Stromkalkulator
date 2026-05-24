@@ -404,6 +404,10 @@ def test_exhaustive_every_hour_of_2026() -> None:
     for mm_dd in HELLIGDAGER_FASTE:
         m, d = map(int, mm_dd.split("-"))
         holidays.add((m, d))
+    # DSO-spesifikke ekstra "helligdager" (BKK behandler 24.12 og 31.12 som lavtariff)
+    for mm_dd in DSO_LIST["bkk"].get("helligdager_ekstra", []):
+        m, d = map(int, mm_dd.split("-"))
+        holidays.add((m, d))
     # Moving holidays for 2026
     for yyyy_mm_dd in HELLIGDAGER_BEVEGELIGE:
         if yyyy_mm_dd.startswith("2026"):
@@ -515,7 +519,12 @@ def _alt_is_day_rate(dt: datetime) -> bool:
 
     # Check holidays - completely different approach: parse into tuples
     fixed = {(int(h[:2]), int(h[3:])) for h in HELLIGDAGER_FASTE}
-    if (dt.month, dt.day) in fixed:
+    # Inkluder BKKs DSO-spesifikke ekstra (24.12, 31.12) siden _is_day_rate
+    # går mot BKK-coordinator.
+    bkk_extra = {
+        (int(h[:2]), int(h[3:])) for h in DSO_LIST["bkk"].get("helligdager_ekstra", [])
+    }
+    if (dt.month, dt.day) in fixed or (dt.month, dt.day) in bkk_extra:
         return False
 
     moving = set()

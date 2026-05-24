@@ -249,15 +249,17 @@ def resolve_avgiftssone(dso: dict) -> str:
 
 
 # Helligdager
-# Faste helligdager (MM-DD format)
+# Offisielle norske helligdager (MM-DD format).
+# Julaften (12-24) og nyttårsaften (12-31) er IKKE offisielle helligdager etter
+# helligdagsfredsloven, men flere nettselskaper behandler dem som lavtariff
+# hele døgnet. BKK gjør det. Andre DSO-er må eksplisitt opte inn via
+# `helligdager_ekstra` i dso.py når faktura-data bekrefter det.
 HELLIGDAGER_FASTE: Final[list[str]] = [
     "01-01",  # Nyttårsdag
     "05-01",  # Arbeidernes dag
     "05-17",  # Grunnlovsdag
-    "12-24",  # Julaften
     "12-25",  # 1. juledag
     "12-26",  # 2. juledag
-    "12-31",  # Nyttårsaften
 ]
 
 

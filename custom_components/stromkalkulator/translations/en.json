@@ -49,7 +49,9 @@
     },
     "error": {
       "sensor_not_found": "Sensor not found",
-      "already_configured": "This power sensor is already used by another Strømkalkulator instance"
+      "already_configured": "This power sensor is already used by another Strømkalkulator instance",
+      "spot_unit_invalid": "Sensor does not have a price unit (expected e.g. NOK/kWh, øre/kWh or EUR/MWh). Choose a spot price sensor from the Nord Pool integration.",
+      "spot_value_unreasonable": "Sensor value is too high to be a spot price. You probably selected a kr-total sensor instead of a spot price sensor."
     },
     "abort": {
       "already_configured": "Already configured"

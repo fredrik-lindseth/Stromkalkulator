@@ -24,11 +24,11 @@ Foreløpig er kun BKK (NO5) verifisert. Vi trenger fakturadata fra andre nettsel
     "name": "Eksempel Nett",
     "prisomrade": "NO1",
     "supported": True,
-    "energiledd_dag": 0.4613,      # NOK/kWh inkl. avgifter
-    "energiledd_natt": 0.2329,     # NOK/kWh inkl. avgifter
+    "energiledd_dag_eks_mva": 0.2877,   # NOK/kWh, ren nettleie eks. avgifter
+    "energiledd_natt_eks_mva": 0.105,   # NOK/kWh, ren nettleie eks. avgifter
     "url": "https://www.eksempelnett.no/nettleiepriser",
     "kapasitetstrinn": [
-        (2, 150),                  # 0-2 kW: 150 kr/mnd
+        (2, 150),                       # 0-2 kW: 150 kr/mnd
         (5, 250),
         (10, 400),
         (15, 600),
@@ -42,18 +42,18 @@ Foreløpig er kun BKK (NO5) verifisert. Vi trenger fakturadata fra andre nettsel
 },
 ```
 
-`energiledd_dag` og `energiledd_natt` skal være i NOK/kWh (ikke øre) og inkludere alle avgifter (forbruksavgift + MVA). Feil format gir feil beregninger for alle brukere.
+`energiledd_dag_eks_mva` og `energiledd_natt_eks_mva` er ren nettleie i NOK/kWh, **eks. forbruksavgift, Enova og mva**. Integrasjonen legger på avgifter og mva selv basert på avgiftssone. Finn beløpet «energiledd» eller «overføring» på prislisten din, før avgifter og mva.
 
 ### Spesielle tilfeller
 
 Flat sats (ingen dag/natt-forskjell):
 
 ```python
-"energiledd_dag": 0.2556,
-"energiledd_natt": 0.2556,
+"energiledd_dag_eks_mva": 0.1556,
+"energiledd_natt_eks_mva": 0.1556,
 ```
 
-Nord-Norge (NO3, NO4, mva-fritak): bruk priser eks. mva fra nettsiden.
+Nord-Norge (NO3, NO4, mva-fritak): bruk de samme eks-mva-verdiene. Integrasjonen detekterer prisområdet og hopper over mva-påslag.
 
 Tiltakssonen (Finnmark + Nord-Troms): legg til `"tiltakssone": True`. Fritak for forbruksavgift og MVA.
 

@@ -38,4 +38,8 @@ Six BKK invoices replayed hour-by-hour from October 2025 through April 2026. Eve
 - Invoice verification button on the "Previous month" device. Generates a ready-to-paste report you can submit if your DSO is not yet in the verified table.
 - Signed releases, SHA256 plus `gh attestation verify` on every zip.
 
+**Help us verify your price area**
+
+So far only BKK (NO5) is verified hour-by-hour against real invoices. If you have an invoice + Elhub export from NO1, NO2, NO3 or NO4, please send them in. You do not need to run Home Assistant or the integration to contribute. Guide here: https://github.com/fredrik-lindseth/Stromkalkulator/blob/main/docs/fakturaer/bidra-med-faktura.md
+
 All release notes: https://github.com/fredrik-lindseth/Stromkalkulator/releases

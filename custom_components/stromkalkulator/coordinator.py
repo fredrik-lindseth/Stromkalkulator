@@ -168,6 +168,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         self.dso = DSO_LIST.get(dso_id, DSO_LIST[DEFAULT_DSO])
         self._dso_id = dso_id
         self._helg_som_natt = self.dso.get("helg_som_natt", True)
+        self._helligdager_ekstra = self.dso.get("helligdager_ekstra", [])
 
         # Get avgiftssone from config
         self.avgiftssone = entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
@@ -902,11 +903,18 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         date_yyyy_mm_dd = now.strftime("%Y-%m-%d")
 
         is_fixed_holiday = date_mm_dd in HELLIGDAGER_FASTE
+        is_dso_extra_holiday = date_mm_dd in self._helligdager_ekstra
         bevegelige = _bevegelige_helligdager(now.year)
         is_moving_holiday = date_yyyy_mm_dd in bevegelige
         is_weekend = now.weekday() >= WEEKEND_WEEKDAY_START
 
-        return not (is_fixed_holiday or is_moving_holiday or is_weekend or is_night)
+        return not (
+            is_fixed_holiday
+            or is_dso_extra_holiday
+            or is_moving_holiday
+            or is_weekend
+            or is_night
+        )
 
     def _format_month_name(self, dt: datetime) -> str:
         """Format date as Norwegian month name with year."""

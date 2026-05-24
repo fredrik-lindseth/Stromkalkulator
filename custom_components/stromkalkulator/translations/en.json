@@ -69,6 +69,7 @@
           "har_norgespris": "I have Norgespris",
           "power_sensor": "Power meter (W)",
           "spot_price_sensor": "Spot price sensor (NOK/kWh)",
+          "spotpris_inkl_mva": "Spot price sensor delivers prices incl. VAT",
           "energy_sensor": "Energy meter sensor (kWh, optional)",
           "electricity_provider_price_sensor": "Electricity provider sensor (optional)",
           "export_power_sensor": "Export power sensor (optional)",

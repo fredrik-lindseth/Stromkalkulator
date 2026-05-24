@@ -7,10 +7,11 @@ Vurderer om observerte 12:00 → 14:15 CET-bevegelser på 0,02–0,05 NOK/EUR i 
 **Ja, godt innenfor normalen. Trolig i nedre halvdel av forventet bånd.**
 
 Referansepunkter:
+
 - Daglig EUR/NOK-ATR i januar 2026: **0,0662** (Traders Union, 13. jan 2026).
 - Daglig vol siste 30 dager (myfxbook): **~1,15%**, ca. 0,12–0,14 NOK ved kurs ~11,5.
 - NYU V-Lab GARCH for NOK 22. mai 2026: **~8,2% annualisert** = ca. 0,52% daglig (~0,06 NOK).
-- Krohn/Mueller/Whelan (2024): G9-valutaer har ~**2bp pre-fix run-up** i USD og like stor reversal post-fix. 2bp på EUR/NOK = ~0,002 NOK. Den *systematiske* fix-komponenten er mye mindre enn støyen rundt.
+- Krohn/Mueller/Whelan (2024): G9-valutaer har ~**2bp pre-fix run-up** i USD og like stor reversal post-fix. 2bp på EUR/NOK = ~0,002 NOK. Den _systematiske_ fix-komponenten er mye mindre enn støyen rundt.
 
 Et 2t15-vindu fanger typisk **20–30% av daglig variasjon**. På ATR ~0,07 betyr det forventet absoluttbevegelse **0,015–0,025 NOK** stille dag, **0,04–0,08 NOK** travel dag. 0,02–0,05 ligger midt i båndet.
 

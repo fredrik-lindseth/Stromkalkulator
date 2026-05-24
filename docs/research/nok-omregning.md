@@ -140,13 +140,13 @@ Faktura: forbruk 1381.830 kWh, Norgespris-kompensasjon -1427.89 kr. Implisitt sn
 
 Implisitt single-rate som ville gitt eksakt match: **11,0706 NOK/EUR**.
 
-| Kurs                                | Verdi        |
-| ----------------------------------- | ------------ |
-| Implisitt match-kurs                | 11,0706      |
-| Nord Pool EXR (aritmetisk snitt)    | 11,0761      |
-| Nord Pool EXR (forbruksvektet)      | 11,0815      |
-| NB aritmetisk månedssnitt           | 11,0229      |
-| NB forbruksvektet snitt (same-day)  | 11,0614      |
+| Kurs                               | Verdi   |
+| ---------------------------------- | ------- |
+| Implisitt match-kurs               | 11,0706 |
+| Nord Pool EXR (aritmetisk snitt)   | 11,0761 |
+| Nord Pool EXR (forbruksvektet)     | 11,0815 |
+| NB aritmetisk månedssnitt          | 11,0229 |
+| NB forbruksvektet snitt (same-day) | 11,0614 |
 
 BKKs implisitte kurs ligger **mellom** NB og Nord Pool EXR. Det er ingen offentlig publisert kurs som treffer 11,0706, verken Norges Bank, ECB-referansekurs, eller Nord Pools daglige EXR. Mest sannsynlige forklaringer:
 
@@ -192,11 +192,11 @@ Hvis BKK hadde brukt en helt annen kurskilde (bank-spesifikk eller forward-sprea
 
 ### Hvorfor alle tre avvikene har samme fortegn
 
-Alle tre månedene gir *positivt* avvik: vår beregnede kompensasjon er litt mindre negativ enn fakturaen. Det betyr at vår beregnede snittspot er litt lavere enn fakturaens implisitte snittspot, altså at NB-kursen ligger litt under den BKK bruker. Hver gang. På tre måneder, alle samme retning.
+Alle tre månedene gir _positivt_ avvik: vår beregnede kompensasjon er litt mindre negativ enn fakturaen. Det betyr at vår beregnede snittspot er litt lavere enn fakturaens implisitte snittspot, altså at NB-kursen ligger litt under den BKK bruker. Hver gang. På tre måneder, alle samme retning.
 
-Tilfeldighet ville gitt blandet fortegn. Systematisk skjevhet i én retning forteller at BKK bruker en *høyere* kurs enn NB 14:15. Det stemmer med 12:00 CET-hypotesen i akkurat denne perioden: krona styrket seg gjennom 2026 (april gikk fra 11,21 til 10,91), og når krona styrker seg gjennom dagen er 12:00-kursen høyere enn 14:15-kursen.
+Tilfeldighet ville gitt blandet fortegn. Systematisk skjevhet i én retning forteller at BKK bruker en _høyere_ kurs enn NB 14:15. Det stemmer med 12:00 CET-hypotesen i akkurat denne perioden: krona styrket seg gjennom 2026 (april gikk fra 11,21 til 10,91), og når krona styrker seg gjennom dagen er 12:00-kursen høyere enn 14:15-kursen.
 
-Det gir en testbar prediksjon: hvis vi sammenligner en måned med systematisk svekkende krone-trend (f.eks. høst 2025), forventer vi *negativt* avvik på samme variant. Hvis det også slår til, har vi enda sterkere bevis for hypotesen.
+Det gir en testbar prediksjon: hvis vi sammenligner en måned med systematisk svekkende krone-trend (f.eks. høst 2025), forventer vi _negativt_ avvik på samme variant. Hvis det også slår til, har vi enda sterkere bevis for hypotesen.
 
 ### Hva som vil bevise eller avkrefte hypotesen
 

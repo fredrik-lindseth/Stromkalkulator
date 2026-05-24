@@ -59,6 +59,8 @@ Tiltakssonen (Finnmark + Nord-Troms): legg til `"tiltakssone": True`. Fritak for
 
 Glitre Nett, Tensio TN/TS har `helg_som_natt: False` (kun klokkeslett styrer dag/natt).
 
+Julaften og nyttårsaften som lavtariff: legg til `"helligdager_ekstra": ["12-24", "12-31"]`. Skal kun gjøres når en ekte faktura fra DSO-en bekrefter at hele dagen behandles som natt-tariff. Default er offisielle norske helligdager, som ikke inkluderer 24.12 eller 31.12.
+
 ## Testing
 
 ```bash

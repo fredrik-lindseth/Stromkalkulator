@@ -239,9 +239,10 @@ automation:
 ## Tekniske detaljer
 
 - Oppdateres hvert minutt
-- Forbruk: Riemann-sum fra effektsensor
+- Forbruk med energi-sensor (anbefalt): delta fra meter-register, eksakt mot faktura
+- Forbruk uten energi-sensor: Riemann-sum fra effektsensor, 1-5 % avvik per måned
 - Lagring: `/config/.storage/stromkalkulator_<entry_id>` (unik per instans)
-- 1-5% avvik fra faktura er normalt (Riemann-sum vs. måler)
+- Se [input-sensorer.md](input-sensorer.md) for sensor-oppsett
 
 ### Manuelt redigere lagret data
 

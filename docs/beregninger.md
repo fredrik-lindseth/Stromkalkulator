@@ -98,9 +98,11 @@ Netto månedskostnad = brutto kostnad minus eksportinntekt.
 
 ## Månedlig forbruk
 
-Riemann-sum fra effektsensoren: forbruk = effekt × tid mellom oppdateringer. Klassifiseres som dag eller natt/helg ved hver oppdatering.
+Standard (med energi-sensor konfigurert): delta fra meter-registeret. Forbruk = `energy_sensor.state - forrige_avlesning`. Identisk med Elhub og fakturaen.
 
-Kostnaden akkumuleres parallelt med forbruket. Estimert månedstotal projiserer fra forbruket hittil og legger til kapasitetsleddet (fast).
+Fallback (kun effektsensor): Riemann-sum, forbruk = effekt × tid mellom oppdateringer. Gir 1-5 % avvik over en måned. Se [Nøyaktighet](#nøyaktighet).
+
+Klassifiseres som dag eller natt/helg ved hver oppdatering. Kostnaden akkumuleres parallelt. Estimert månedstotal projiserer fra forbruket hittil og legger til kapasitetsleddet (fast).
 
 ## Månedsskifte
 
@@ -110,7 +112,9 @@ Energi akkumulert i selve overgangs-syklusen havner i forrige måned.
 
 ## Nøyaktighet
 
-1-5 % avvik fra faktura er normalt: integrasjonen bruker Riemann-sum fra effektsensor, fakturaen leser måleren direkte. Nettleie er typisk svært tett (innenfor 0,02 kr per linje for BKK), kraftpris kan avvike mer fordi vi ikke har time-for-time spotpris med samme oppløsning som Elhub.
+Med energi-sensor konfigurert (anbefalt oppsett): forbruket leses som delta fra meter-registeret og er identisk med Elhub og fakturaen. Nettleie-linjer matcher innenfor 0,01-0,02 kr per linje (verifisert mot 6 BKK-fakturaer fra oktober 2025 til april 2026).
+
+Uten energi-sensor: integrasjonen Riemann-summerer effektsensoren, og du får typisk 1-5 % avvik over en måned. Avviket er størst med mye av/på-utstyr (varmtvannsbereder, induksjonstopp, varmepumpe i defrost). Konfigurer en energi-sensor for å fjerne det.
 
 Nettleie-fakturaen verifiserer kun nettleie-stien (energiledd, kapasitetsledd, avgifter). Spotpris, strømstøtte, Norgespris-besparelse og eksportinntekt fanges ikke der, og må sjekkes mot nettselskapets eller strømleverandørens egne tall. Se [verifiser-din-faktura.md](fakturaer/verifiser-din-faktura.md) for sjekkpunkter utenfor fakturaen. Manglende slik sjekk lot [incident 004](incidents/004-spotpris-mva-feilbehandling.md) gå usett i flere måneder.
 

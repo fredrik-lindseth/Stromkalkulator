@@ -218,8 +218,9 @@ automation:
 ## Technical details
 
 - Updates every minute
-- Consumption: Riemann sum from power sensor
+- Consumption with energy sensor (recommended): delta from meter register, exact against invoice
+- Consumption without energy sensor: Riemann sum from power sensor, 1-5 % deviation per month
 - Storage: `/config/.storage/stromkalkulator_<entry_id>` (unique per instance)
-- 1-5% deviation from invoice is normal (Riemann sum vs. meter counter)
+- See [input-sensorer.md](input-sensorer.md) for sensor setup (Norwegian)
 
 See [beregninger.md](beregninger.md) for formulas (Norwegian).

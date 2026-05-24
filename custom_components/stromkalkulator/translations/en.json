@@ -30,8 +30,8 @@
           "spot_price_sensor": "Sensor with current spot price in NOK/kWh. Usually 'Current price' from the Nord Pool integration.",
           "spotpris_inkl_mva": "Leave off for HA-core nordpool integration (delivers excl. VAT). Turn on if your sensor already includes VAT.",
           "energy_sensor": "Cumulative kWh counter from the AMS smart meter. Recommended for exact invoice numbers. See docs/input-sensorer.md for details.",
-          "electricity_provider_price_sensor": "Total price from your electricity provider (e.g. Tibber sensor). Used to show what you actually pay. Can be added later.",
-          "export_power_sensor": "Sensor showing exported power in watts (solar panels/prosumer). Used to calculate revenue from electricity sales."
+          "electricity_provider_price_sensor": "Sensor with the total price from your electricity provider (e.g. Tibber 'Electricity price'). Only used to populate the 'Total price (electricity contract)' sensor for comparison against your actual contract. Does not affect any other calculation. Skip if you have spot price directly or Norgespris.",
+          "export_power_sensor": "Power sensor for export to the grid (OBIS 2.7.0), for prosumers with solar panels only. Used to calculate export revenue and net monthly cost. Skip if you don't have solar panels."
         }
       },
       "pricing": {
@@ -80,6 +80,14 @@
           "boligtype": "Residence: Subsidy up to 5000 kWh/month, Norgespris up to 5000 kWh/month. Holiday home: No subsidy, Norgespris up to 1000 kWh/month. Holiday home (permanent residence): Same as residence (Regulation § 11).",
           "avgiftssone": "Set automatically from grid company. Override only if you know you belong to a different zone.",
           "har_norgespris": "Enable if you have opted for Norgespris from your grid company. Uses fixed price (40-50 øre/kWh) instead of spot price.",
+          "power_sensor": "Sensor showing current power consumption in watts, e.g. from HAN port, Tibber Pulse, or P1 meter.",
+          "spot_price_sensor": "Sensor with current spot price in NOK/kWh. Usually 'Current price' from the Nord Pool integration.",
+          "spotpris_inkl_mva": "Leave off for HA-core nordpool integration (delivers excl. VAT). Turn on if your sensor already includes VAT.",
+          "energy_sensor": "Cumulative kWh counter from the AMS smart meter (OBIS 1.8.0). Recommended for exact invoice numbers. Without it, the power sensor is used with Riemann summation.",
+          "electricity_provider_price_sensor": "Sensor with the total price from your electricity provider (e.g. Tibber 'Electricity price'). Only used to populate the 'Total price (electricity contract)' sensor for comparison against your actual contract. Does not affect any other calculation. Skip if you have spot price directly or Norgespris.",
+          "export_power_sensor": "Power sensor for export to the grid (OBIS 2.7.0), for prosumers with solar panels only. Used to calculate export revenue and net monthly cost. Skip if you don't have solar panels.",
+          "energiledd_dag": "Net grid tariff excl. VAT and consumption tax. The integration adds consumption tax, Enova fee and VAT based on tax zone.",
+          "energiledd_natt": "Net grid tariff excl. VAT and consumption tax. Set the same as day for flat rate.",
           "kapasitet_varsel_terskel": "Warn when margin to next capacity tier is below this value. Default: 2.0 kW."
         }
       }

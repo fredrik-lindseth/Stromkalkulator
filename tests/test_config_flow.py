@@ -405,3 +405,75 @@ class TestAvgiftssoneAutoDetection:
             dso = DSO_LIST[dso_id]
             assert dso.get("tiltakssone") is True, f"{dso_id} should have tiltakssone=True"
             assert resolve_avgiftssone(dso) == "tiltakssone", f"{dso_id} should be tiltakssone"
+
+
+class _FakeState:
+    """Minimal State-stub for å teste spot-sensor-validator uten HA."""
+
+    def __init__(self, state: str, unit: str | None = None) -> None:
+        self.state = state
+        self.attributes: dict[str, str] = {}
+        if unit is not None:
+            self.attributes["unit_of_measurement"] = unit
+
+
+class TestValidateSpotSensor:
+    """_validate_spot_sensor fanger åpenbart feil sensorvalg.
+
+    Regresjon for stromkalkulator-34qzbh: bruker hadde pekt spot_price_sensor
+    mot en kr-totalsensor (~877 kr). Alle Elvia-derivater ble katastrofalt feil
+    uten advarsel.
+    """
+
+    def test_nord_pool_style_sensor_passes(self):
+        from stromkalkulator.config_flow import _validate_spot_sensor
+
+        state = _FakeState("0.85", "NOK/kWh")
+        assert _validate_spot_sensor(state) is None
+
+    def test_ore_per_kwh_sensor_passes(self):
+        from stromkalkulator.config_flow import _validate_spot_sensor
+
+        state = _FakeState("85.5", "øre/kWh")
+        assert _validate_spot_sensor(state) is None
+
+    def test_eur_per_mwh_passes(self):
+        from stromkalkulator.config_flow import _validate_spot_sensor
+
+        state = _FakeState("65.4", "EUR/MWh")
+        assert _validate_spot_sensor(state) is None
+
+    def test_negative_spot_price_passes(self):
+        """Spot price can briefly go negative."""
+        from stromkalkulator.config_flow import _validate_spot_sensor
+
+        state = _FakeState("-0.05", "NOK/kWh")
+        assert _validate_spot_sensor(state) is None
+
+    def test_kr_unit_rejected(self):
+        """User pointed at a kr-total sensor."""
+        from stromkalkulator.config_flow import _validate_spot_sensor
+
+        state = _FakeState("877.50", "kr")
+        assert _validate_spot_sensor(state) == "spot_unit_invalid"
+
+    def test_kwh_unit_rejected(self):
+        """User pointed at a kWh meter."""
+        from stromkalkulator.config_flow import _validate_spot_sensor
+
+        state = _FakeState("1543.2", "kWh")
+        assert _validate_spot_sensor(state) == "spot_unit_invalid"
+
+    def test_extreme_value_rejected_even_without_unit(self):
+        """Sensor without unit but with value of 8772 is not a spot price."""
+        from stromkalkulator.config_flow import _validate_spot_sensor
+
+        state = _FakeState("8772.40", unit=None)
+        assert _validate_spot_sensor(state) == "spot_value_unreasonable"
+
+    def test_unavailable_sensor_accepted(self):
+        """unavailable/unknown state should not block config save."""
+        from stromkalkulator.config_flow import _validate_spot_sensor
+
+        state = _FakeState("unavailable", "NOK/kWh")
+        assert _validate_spot_sensor(state) is None

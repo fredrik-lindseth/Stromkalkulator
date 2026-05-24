@@ -45,6 +45,32 @@ if TYPE_CHECKING:
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
 
+# Enheter som ikke kan være en spotpris (mangler /-tegnet) eller er valuta uten energi-divisor.
+_INVALID_SPOT_UNITS: frozenset[str] = frozenset(
+    {"kr", "nok", "eur", "kwh", "mwh", "wh"}
+)
+# Spotpris er typisk -1 til ~10 NOK/kWh, eller -100 til 1000 øre/kWh, eller -10 til
+# ~100 EUR/MWh. Et tall over denne grensen er nesten garantert ikke en spotpris.
+_MAX_REASONABLE_SPOT_VALUE: float = 2000.0
+
+
+def _validate_spot_sensor(state: Any) -> str | None:
+    """Sjekk at sensoren ser ut som en pris-sensor og ikke en kr- eller kWh-sensor.
+
+    Returnerer error-nøkkel hvis ugyldig, ellers None. Ment som første-linjes
+    forsvar mot at brukere peker mot en kr-totalsensor eller en kWh-måler.
+    """
+    unit = (state.attributes.get("unit_of_measurement") or "").strip().lower()
+    if unit and unit in _INVALID_SPOT_UNITS:
+        return "spot_unit_invalid"
+    try:
+        value = float(state.state)
+    except (ValueError, TypeError):
+        return None
+    if abs(value) > _MAX_REASONABLE_SPOT_VALUE:
+        return "spot_value_unreasonable"
+    return None
+
 
 def _dso_options() -> list[selector.SelectOptionDict]:
     """Get sorted DSO options with Egendefinert last."""
@@ -122,6 +148,10 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
                 errors[CONF_POWER_SENSOR] = "sensor_not_found"
             if spot_state is None:
                 errors[CONF_SPOT_PRICE_SENSOR] = "sensor_not_found"
+            else:
+                spot_error = _validate_spot_sensor(spot_state)
+                if spot_error:
+                    errors[CONF_SPOT_PRICE_SENSOR] = spot_error
 
             # Check if this power sensor is already used by another instance
             if not errors:
@@ -397,6 +427,17 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):  # type: ignore[misc]
                     if entry.entry_id != self.config_entry.entry_id and entry.unique_id == new_unique_id:
                         errors[CONF_POWER_SENSOR] = "already_configured"
                         break
+
+            # Validate spot sensor looks like a price sensor
+            new_spot = user_input.get(CONF_SPOT_PRICE_SENSOR)
+            if new_spot:
+                spot_state = self.hass.states.get(new_spot)
+                if spot_state is None:
+                    errors[CONF_SPOT_PRICE_SENSOR] = "sensor_not_found"
+                else:
+                    spot_error = _validate_spot_sensor(spot_state)
+                    if spot_error:
+                        errors[CONF_SPOT_PRICE_SENSOR] = spot_error
 
             if not errors:
                 # Update config entry data

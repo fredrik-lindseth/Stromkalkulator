@@ -49,7 +49,9 @@
     },
     "error": {
       "sensor_not_found": "Sensor ikke funnet",
-      "already_configured": "Denne effektmåleren er allerede i bruk av en annen Strømkalkulator-instans"
+      "already_configured": "Denne effektmåleren er allerede i bruk av en annen Strømkalkulator-instans",
+      "spot_unit_invalid": "Sensoren har ikke en pris-enhet (forventer f.eks. NOK/kWh, øre/kWh eller EUR/MWh). Velg en spotpris-sensor fra Nord Pool-integrasjonen.",
+      "spot_value_unreasonable": "Sensorverdien er for høy til å være en spotpris. Du har sannsynligvis valgt en kr-totalsensor i stedet for en spotpris-sensor."
     },
     "abort": {
       "already_configured": "Allerede konfigurert"

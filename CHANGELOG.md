@@ -7,25 +7,34 @@ Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), [Sem
 ### Lagt til
 
 - Nytt valgfritt config-flow-felt `energy_sensor` (kWh, TOTAL_INCREASING). Hvis konfigurert: integrasjonen bruker delta-akkumulering fra meter-registeret i stedet for Riemann-summering av effektmåleren. Treffer fakturaen ned til 0 Wh, uavhengig av HA-restart-mønster. Se [docs/input-sensorer.md](docs/input-sensorer.md).
+- Per-DSO `helligdager_ekstra` i `dso.py`: hvert nettselskap kan definere ekstra datoer som skal regnes som lavtariff. BKK har `["12-24", "12-31"]` (verifisert mot 6 fakturaer). Andre DSO-er starter uten ekstra dager inntil faktura-data sier noe annet.
+- Spot-sensor-validering i config_flow og options_flow: avviser sensorer med urimelige enheter (kr, kWh, MWh) eller åpenbart høye verdier (> 2000). Forhindrer at brukere peker spotpris-feltet mot en kr-totalsensor eller en kWh-måler.
 
 ### Fikset
 
 - `_last_update` persisteres nå til storage. Tidligere ble feltet nullstilt ved HA-restart slik at akkumulator mistet tid i restart-vinduet. Eget oppsett april 2026: 36 % manglende forbruk i Norgespris-kompensasjon-sensor.
 - `_load_stored_data`: `_last_tpi_kwh` restaureres kun hvis `last_update` finnes og er innenfor 24 timer. Forhindrer at en gammel verdi blir baseline ved første poll etter restart.
 - `nb.json` og `en.json` manglet label for `spotpris_inkl_mva`. HA viste rå nøkkel-navn i config-flow-UIet.
+- Norgespris-kompensasjons-sensor respekterer nå kWh-taket (5000 for bolig, 1000 for fritid). Tidligere akkumulerte den for alle timer, så storforbrukere som krysset taket fikk ~20 % overdrevet besparelse/tap-visning. Selve prisingen var korrekt.
+- Tariff-feil rettet for Lnett, Lede og Elvia (2026). Lnett manglet kapasitetstrinn 7-10. Lede hadde feil energiledd og kapasitet ~10 % for høyt. Elvia trinn 6-10 hadde 25-345 kr/mnd avvik. Trippelverifisert mot offisielle prislister.
+- Overgang sommertid til vintertid: siste søndag i oktober slo integrasjonen de to fysiske 02-timene (CEST og CET) sammen til én logisk bucket. Kunne forhøye topp-3 for kapasitetstrinn-beregning. Fakturaeffekt null (nettselskapet aggregerer fysisk), men kapasitetsledd-visning er nå korrekt.
+- Jul- og nyttårsaften (BKK): 24.12 og 31.12 behandles nå som lavtariff via per-DSO `helligdager_ekstra`. Påvirker dag/natt-split for desember. `HELLIGDAGER_FASTE` i `const.py` inneholder nå bare offisielle norske helligdager etter helligdagsfredsloven.
 
 ### Verifisert
 
-- 2001 tester passerer (47 nye for fix A og fix B).
-- Snapshot-fixtures lagret lokalt for des 2025 til april 2026 (Nord Pool EUR + NB EUR/NOK). Kan reverifiseres offline.
+- 2126 tester passerer (+125 siden v1.12.1), inkludert hourly-replay mot 6 BKK-fakturaer fra oktober 2025 til april 2026.
+- Snapshot-fixtures lagret lokalt for desember 2025 til april 2026 (Nord Pool EUR + NB EUR/NOK). Kan reverifiseres offline.
 - Hourly-replay-test mater fixturer time-for-time gjennom `_async_update_data()` og asserter mot fakturatall. Fanger akkumulasjons-bugs som unit-tester ikke ser.
+- DSO-tariffer trippelverifisert mot offisielle prislister.
 
 ### Dokumentert
 
 - `docs/input-sensorer.md`: opplæring om hver input-sensor, OBIS-koder, Riemann-summering vs delta-akkumulering, anbefalt oppsett per situasjon.
 - `docs/begrensninger.md` restrukturert til bruker-fokus.
 - `docs/måler-hardware.md` med Kaifa MA304H3E som verifisert rigg, Aidon som referanse for andre brukere.
-- `docs/research/`: 5 nye filer med audit-trail for klokke-stempling, NOK-omregning, Elhub-data, AMS-måler-spec.
+- `docs/domain-rules.md` og `docs/contributing.md`: per-DSO `helligdager_ekstra` med eksempel og veiledning.
+- `docs/research/`: nye filer med audit-trail for klokke-stempling, NOK-omregning, Elhub-data, AMS-måler-spec.
+- README, beregninger og sensorer: anbefalt oppsett er med energi-sensor (eksakt mot faktura). Uten den gir 1-5 % avvik. Tidligere ble avviket beskrevet som "normalt" uten å vise løsningen.
 
 ### Rensket
 
@@ -34,7 +43,7 @@ Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), [Sem
 
 ### Migrering
 
-- Brukere uten energi-sensor: ingen endring. Integrasjonen fungerer bakoverkompatibelt.
+- Bakoverkompatibelt. Brukere uten energi-sensor: ingen endring. Integrasjonen fungerer som før.
 - Anbefalt: legg til `energy_sensor` i config via Settings > Devices > Strømkalkulator > Configure. For Pow-U: `sensor.pow_u_ams_tpi`. For Tibber Pulse: `sensor.<navn>_last_meter_consumption`. Se [docs/input-sensorer.md](docs/input-sensorer.md).
 - Hvis HA viser 4 reparasjonsmeldinger om `sensor.stromkostnad_per_time_*` etter oppgradering: dette gjelder dine egne template-sensorer (ikke integrasjonen). Klikk gjennom og godkjenn rydding av historiske statistikker.
 

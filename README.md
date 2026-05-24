@@ -228,7 +228,7 @@ Nei. Strømstøtte utbetales kun når spotprisen er over 96,25 øre/kWh (2026). 
 
 **Tallene stemmer ikke helt med fakturaen?**
 
-Noe avvik er normalt. Integrasjonen beregner forbruk fra effektsensoren (Riemann-sum), fakturaen bruker måleren direkte. Typisk 1-5% forskjell. Se [beregninger.md](docs/beregninger.md#nøyaktighet).
+Du mangler sannsynligvis en energi-sensor (kWh-måler) i konfigurasjonen. Med energi-sensor leser integrasjonen forbruket direkte fra meter-registeret og treffer fakturaen til siste watt-time. Uten den estimeres forbruket via Riemann-sum av effektsensoren, og du får typisk 1-5 % avvik over en måned. Se [input-sensorer.md](docs/input-sensorer.md) for hvordan du legger til en, og [beregninger.md](docs/beregninger.md#nøyaktighet) for detaljer.
 
 <a id="kapasitetsledd-i-energy-dashboard"></a>
 **Hvorfor viser Energy Dashboard feil kapasitetsledd?**

@@ -929,3 +929,39 @@ class TestHelgSomNatt:
         coordinator = coord_module.NettleieCoordinator(hass, entry)
         result = _run_update(coord_module, coordinator, now=christmas_noon)
         assert result["is_day_rate"] is False
+
+    def test_bkk_julaften_uses_night_rate(self, coord_module):
+        """BKK: 24.12 (Thursday 2026) uses night rate via helligdager_ekstra."""
+        julaften_noon = _real_datetime(2026, 12, 24, 12, 0)
+        hass = _make_hass()
+        entry = _make_entry(dso_id="bkk")
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+        result = _run_update(coord_module, coordinator, now=julaften_noon)
+        assert result["is_day_rate"] is False
+
+    def test_bkk_nyttarsaften_uses_night_rate(self, coord_module):
+        """BKK: 31.12 (Thursday 2026) uses night rate via helligdager_ekstra."""
+        nyttarsaften_noon = _real_datetime(2026, 12, 31, 12, 0)
+        hass = _make_hass()
+        entry = _make_entry(dso_id="bkk")
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+        result = _run_update(coord_module, coordinator, now=nyttarsaften_noon)
+        assert result["is_day_rate"] is False
+
+    def test_julaften_uses_day_rate_for_dso_without_extra(self, coord_module):
+        """Elvia (no helligdager_ekstra): 24.12 weekday at noon uses day rate."""
+        julaften_noon = _real_datetime(2026, 12, 24, 12, 0)
+        hass = _make_hass()
+        entry = _make_entry(dso_id="elvia")
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+        result = _run_update(coord_module, coordinator, now=julaften_noon)
+        assert result["is_day_rate"] is True
+
+    def test_nyttarsaften_uses_day_rate_for_dso_without_extra(self, coord_module):
+        """Elvia (no helligdager_ekstra): 31.12 weekday at noon uses day rate."""
+        nyttarsaften_noon = _real_datetime(2026, 12, 31, 12, 0)
+        hass = _make_hass()
+        entry = _make_entry(dso_id="elvia")
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+        result = _run_update(coord_module, coordinator, now=nyttarsaften_noon)
+        assert result["is_day_rate"] is True

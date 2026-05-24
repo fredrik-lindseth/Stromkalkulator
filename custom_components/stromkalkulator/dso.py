@@ -49,6 +49,11 @@ class DSOEntry(TypedDict):
     tiltakssone: NotRequired[bool]
     helg_som_natt: NotRequired[bool]  # Default True. False = kun klokkeslett styrer dag/natt.
     avgiftssone: NotRequired[str]  # Overstyrer default fra prisomrade (f.eks. Nordland-selskap i NO3)
+    # DSO-spesifikke ekstra "helligdager" i tillegg til HELLIGDAGER_FASTE.
+    # Format: MM-DD. Brukes for nettselskaper som tar lavtariff på dager som
+    # ikke er offisielle helligdager (julaften, nyttårsaften, etc).
+    # Krever bekreftelse fra ekte faktura før det legges til.
+    helligdager_ekstra: NotRequired[list[str]]
 
 
 @dataclass(frozen=True)
@@ -84,6 +89,9 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "energiledd_dag_eks_mva": 0.2877,
         "energiledd_natt_eks_mva": 0.105,
         "url": "https://www.bkk.no/nettleiepriser/priser-privatkunder",
+        # Verifisert mot BKK-fakturaer okt 2025 til apr 2026: hele 24.12 og 31.12
+        # behandles som lavtariff (helg-tariff).
+        "helligdager_ekstra": ["12-24", "12-31"],
         "kapasitetstrinn": [
             (2, 155),
             (5, 250),

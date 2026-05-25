@@ -12,7 +12,7 @@ Varianter:
     C: NB previous-bankday (T-1)
     D: NB månedssnitt aritmetisk
     E: NB månedssnitt forbruksvektet
-    F: ECB-kurs (samme kilde som NB siden 2016 — tatt med som sanity check)
+    F: ECB-kurs (samme kilde som NB siden 2016, tatt med som sanity check)
 
 Kjøres uten tredjeparts-avhengigheter (Python 3.11+ stdlib).
 
@@ -176,7 +176,7 @@ def fetch_april_hours(area: str) -> list[HourPoint]:
 def load_april_hours_from_snapshot(nb_rates: dict[str, float]) -> list[HourPoint]:
     """Bygg HourPoints fra NP-snapshot + NB-kurs (helt uten internett).
 
-    NP-snapshot inneholder kun EUR/MWh — ikke Nord Pools egen EXR eller deres
+    NP-snapshot inneholder kun EUR/MWh, ikke Nord Pools egen EXR eller deres
     avrundede NOK_per_kWh. For variant A (Nord Pool EXR) og F/G/H (HKS NOK)
     bruker vi NB same-day forward-fill som proxy. Det er dokumentert i den
     genererte tabellen.

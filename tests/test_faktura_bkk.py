@@ -484,7 +484,7 @@ def test_maanedlig_total_sensor_matcher_faktura(faktura):
 # ============================================================================
 # Verifiserer at fakturaens beløp er internt konsistente med 2025-satser.
 # 2025-tariffene finnes ikke i koden (dso.py og const.py har bare 2026), så
-# disse testene er ren faktura-verifikasjon — ingen integrasjon mot const.
+# disse testene er ren faktura-verifikasjon, ingen integrasjon mot const.
 
 
 def test_2025_energiledd_dag(faktura_2025):
@@ -562,7 +562,7 @@ def test_2025_stromstotte_intern_konsistens(faktura_2025):
 
     Fakturaen oppgir et snitt øre/kWh som gjelder kun kompenserte timer
     (kWh over terskel). Vi sjekker bare at oppgitt snitt * fakturertes
-    grunnlag er konsistent — ikke at coordinator beregner samme tall,
+    grunnlag er konsistent, ikke at coordinator beregner samme tall,
     siden STROMSTOTTE_LEVEL i const.py er 2026-verdi.
     """
     f = faktura_2025
@@ -572,7 +572,7 @@ def test_2025_stromstotte_intern_konsistens(faktura_2025):
     assert abs(f["forventet_stromstotte_kr"]) <= abs(maks_mulig) + 0.10
 
 
-# --- 2025-natt-tariff vs. 2026 — sanity check ---
+# --- 2025-natt-tariff vs. 2026, sanity check ---
 
 
 def test_2025_natt_hoyere_enn_2026():

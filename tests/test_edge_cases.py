@@ -21,7 +21,7 @@ from custom_components.stromkalkulator.const import (
 from tests.test_energiledd import is_day_rate
 
 # =============================================================================
-# DST (sommertid) — energiledd rundt klokkeomstilling
+# DST (sommertid), energiledd rundt klokkeomstilling
 # =============================================================================
 
 
@@ -41,11 +41,11 @@ class TestDaylightSavingTime:
         assert is_day_rate(datetime(2026, 3, 29, 1, 59)) is False  # weekend
         # At 03:00 (after spring forward, 02:00 doesn't exist)
         assert is_day_rate(datetime(2026, 3, 29, 3, 0)) is False  # weekend
-        # At 06:00 — still weekend
+        # At 06:00, still weekend
         assert is_day_rate(datetime(2026, 3, 29, 6, 0)) is False  # weekend
 
     def test_day_after_spring_forward_march_2026(self):
-        """Monday March 30 2026 — first weekday after spring forward."""
+        """Monday March 30 2026, first weekday after spring forward."""
         # 05:59 → night rate
         assert is_day_rate(datetime(2026, 3, 30, 5, 59)) is False
         # 06:00 → day rate
@@ -61,14 +61,14 @@ class TestDaylightSavingTime:
         assert is_day_rate(datetime(2026, 10, 25, 12, 0)) is False  # weekend
 
     def test_day_after_fall_back_october_2026(self):
-        """Monday October 26 2026 — first weekday after fall back."""
+        """Monday October 26 2026, first weekday after fall back."""
         assert is_day_rate(datetime(2026, 10, 26, 5, 59)) is False
         assert is_day_rate(datetime(2026, 10, 26, 6, 0)) is True
         assert is_day_rate(datetime(2026, 10, 26, 22, 0)) is False
 
 
 # =============================================================================
-# Helligdager 2031+ — påskealgoritmen utover forhåndskompilert cache
+# Helligdager 2031+, påskealgoritmen utover forhåndskompilert cache
 # =============================================================================
 
 
@@ -135,7 +135,7 @@ class TestHolidaysBeyond2030:
         holidays_2031 = _bevegelige_helligdager(2031)
         for h in holidays_2031:
             assert h not in HELLIGDAGER_BEVEGELIGE, (
-                f"{h} found in precomputed list — update const.py?"
+                f"{h} found in precomputed list, update const.py?"
             )
 
     def test_is_day_rate_on_2031_easter_not_detected(self):

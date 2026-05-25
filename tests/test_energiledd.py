@@ -13,7 +13,7 @@ from datetime import datetime
 
 import pytest
 
-# Import holidays from const.py — single source of truth
+# Import holidays from const.py, single source of truth
 from custom_components.stromkalkulator.const import (
     HELLIGDAGER_BEVEGELIGE,
     HELLIGDAGER_FASTE,

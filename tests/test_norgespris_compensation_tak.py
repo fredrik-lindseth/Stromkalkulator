@@ -5,7 +5,7 @@ oppdatert for *alle* timer der `energy_kwh > 0 and spot_price_valid`, også
 etter at månedsforbruket passerte taket på 5000 kWh (bolig) / 1000 kWh
 (fritidsbolig). For storforbrukere overdrev verktøyet både besparelse og tap
 på sammenligningssensoren, fordi timene over taket faktisk faktureres til
-spot — ikke til Norgespris.
+spot, ikke til Norgespris.
 
 Fixen er å gate akkumuleringen på `not norgespris_over_tak`, samme tak-logikk
 som `total_price`.
@@ -162,7 +162,7 @@ class TestNorgesprisCompensationOverTak:
 
 
 class TestNorgesprisCompensationFritidsbolig:
-    """Fritidsbolig har 1000 kWh-tak — sjekk at samme gating fungerer der."""
+    """Fritidsbolig har 1000 kWh-tak: sjekk at samme gating fungerer der."""
 
     def test_fritidsbolig_compensation_stops_at_1000_kwh(self, coord_module):
         """Fritidsbolig krysser 1000 kWh-taket: kompensasjon skal stoppe."""
@@ -193,7 +193,7 @@ class TestNorgesprisCompensationFritidsbolig:
 
 
 class TestNorgesprisCompensationBoundaryCrossing:
-    """Tak-overgang midt i en akkumulering — kjent sub-time-begrensning."""
+    """Tak-overgang midt i en akkumulering (kjent sub-time-begrensning)."""
 
     def test_boundary_crossing_documented_behavior(self, coord_module):
         """Tak-overgang ved presis 5000 kWh: dokumenter at sub-time-feilen aksepteres.
@@ -201,7 +201,7 @@ class TestNorgesprisCompensationBoundaryCrossing:
         Når akkumuleringen passerer 5000 kWh midt i en time, vil den
         polling-syklusen som tipper teller over enten bli helt med eller helt
         utenfor kompensasjons-bucketen, avhengig av rekkefølgen. Dette er en
-        kjent og akseptert sub-minutt-presisjonsfeil — coordinator polles hvert
+        kjent og akseptert sub-minutt-presisjonsfeil. Coordinator polles hvert
         minutt og kan ikke allokere delvis forbruk.
 
         Denne testen sjekker at gatingen IKKE er per-time-rekursiv (dvs. den
@@ -232,14 +232,14 @@ class TestNorgesprisCompensationBoundaryCrossing:
         # Den syklusen som tipper teller over taket ble ikke akkumulert i
         # kompensasjonen (fordi total er >= 5000 i samme syklus). Det er den
         # konservative tolkningen. Verifiser at kompensasjonen er 0 eller
-        # negativ med liten verdi — IKKE de fulle -1.50 kr som bugen ga.
+        # negativ med liten verdi, IKKE de fulle -1.50 kr som bugen ga.
         compensation = result["monthly_norgespris_compensation_kr"]
         # Aksepter både 0 (syklus utelatt fordi over_tak) og ca -1.5 (syklus
-        # inkludert fordi monthly_total_kwh ble lest før akkumulering — dette
+        # inkludert fordi monthly_total_kwh ble lest før akkumulering (dette
         # avhenger av leserekkefølge i koden). Det viktige er at vi ikke
         # akkumulerer mer enn ÉN syklus.
         # Med fixen: monthly_total_kwh leses linje ~596 før akkumulering
-        # på linje 487 — vent, akkumuleringen er ETTER (linje 487-493) og
+        # på linje 487, men akkumuleringen er ETTER (linje 487-493) og
         # monthly_total_kwh leses linje 596. Så monthly_total_kwh = 5000 i
         # akkurat denne syklusen, og norgespris_over_tak = True → bidraget
         # skipper. Forventet: compensation = 0.

@@ -34,6 +34,7 @@ class TestBasicUpdate:
             "kapasitetsledd", "kapasitetstrinn_nummer", "kapasitetstrinn_intervall",
             "kapasitetsledd_per_kwh", "spot_price", "stromstotte",
             "spotpris_etter_stotte", "norgespris",
+            "strompris_norgespris",
             "total_pris_norgespris", "kroner_spart_per_kwh",
             "total_price", "total_price_uten_stotte", "total_price_inkl_avgifter",
             "strompris_per_kwh", "strompris_per_kwh_etter_stotte",

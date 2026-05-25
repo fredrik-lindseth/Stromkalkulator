@@ -115,6 +115,7 @@
       "total_pris_inkl_avgifter": { "name": "Total price incl. fees" },
       "strompris_per_kwh_etter_stotte": { "name": "Electricity price per kWh (after subsidy)" },
       "total_pris_norgespris": { "name": "Total price (Norgespris)" },
+      "strompris_norgespris": { "name": "Electricity price (Norgespris, excl. grid fees)" },
       "prisforskjell_norgespris": { "name": "Price difference (Norgespris)" },
       "norgespris_aktiv": { "name": "Norgespris active now" },
       "energiledd_dag": { "name": "Energy tariff day" },

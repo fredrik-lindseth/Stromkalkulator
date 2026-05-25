@@ -34,7 +34,7 @@ AVGIFTSSONE_STANDARD: Final[str] = "standard"
 AVGIFTSSONE_NORD_NORGE: Final[str] = "nord_norge"
 AVGIFTSSONE_TILTAKSSONE: Final[str] = "tiltakssone"
 
-# Boligtype — bestemmer kWh-tak for strømstøtte og Norgespris
+# Boligtype: bestemmer kWh-tak for strømstøtte og Norgespris
 # Kilde: Forskrift om strømstønad (lovdata.no/dokument/SF/forskrift/2025-09-08-1791)
 # - Bolig (§ 5): 5000 kWh/mnd strømstøtte, 5000 kWh/mnd Norgespris
 # - Fritidsbolig (§ 3): Ingen strømstøtte, 1000 kWh/mnd Norgespris
@@ -50,13 +50,13 @@ BOLIGTYPE_OPTIONS: Final[dict[str, str]] = {
 }
 
 AVGIFTSSONE_OPTIONS: Final[dict[str, str]] = {
-    AVGIFTSSONE_STANDARD: "Standard — full avgift + 25% mva",
-    AVGIFTSSONE_NORD_NORGE: "Nord-Norge — Nordland, Troms (mva-fritak)",
-    AVGIFTSSONE_TILTAKSSONE: "Tiltakssonen — Finnmark/Nord-Troms (avgiftsfritak, mva-fritak)",
+    AVGIFTSSONE_STANDARD: "Standard: full avgift + 25% mva",
+    AVGIFTSSONE_NORD_NORGE: "Nord-Norge: Nordland, Troms (mva-fritak)",
+    AVGIFTSSONE_TILTAKSSONE: "Tiltakssonen: Finnmark/Nord-Troms (avgiftsfritak, mva-fritak)",
 }
 
 
-# Default values (BKK) — eks. mva og eks. forbruksavgift/Enova
+# Default values (BKK), eks. mva og eks. forbruksavgift/Enova
 DEFAULT_ENERGILEDD_DAG: Final[float] = 0.28770  # 35,963 øre/kWh inkl. mva → eks-mva
 DEFAULT_ENERGILEDD_NATT: Final[float] = 0.10500  # 13,125 øre/kWh inkl. mva → eks-mva
 DEFAULT_DSO: Final[str] = "bkk"
@@ -150,7 +150,7 @@ def get_stromstotte_max_kwh(boligtype: str) -> int:
     """Returnerer maks kWh/mnd for strømstøtte basert på boligtype.
 
     Bolig/Fritidsbolig fast bosted: 5000 kWh/mnd (Forskrift § 5)
-    Fritidsbolig: 0 kWh/mnd — ingen rett på strømstøtte (Forskrift § 3)
+    Fritidsbolig: 0 kWh/mnd (ingen rett på strømstøtte, Forskrift § 3)
 
     Kilde: lovdata.no/dokument/SF/forskrift/2025-09-08-1791
     """
@@ -298,7 +298,7 @@ def _bevegelige_helligdager(year: int) -> list[str]:
     return [(easter + timedelta(days=d)).isoformat() for d in offsets]
 
 
-# Bevegelige helligdager — beregnes automatisk fra påskeformelen
+# Bevegelige helligdager, beregnes automatisk fra påskeformelen
 HELLIGDAGER_BEVEGELIGE: Final[list[str]] = (
     _bevegelige_helligdager(2025)
     + _bevegelige_helligdager(2026)

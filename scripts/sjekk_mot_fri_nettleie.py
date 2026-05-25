@@ -44,7 +44,7 @@ DSO_LIST = _dso_module.DSO_LIST
 
 GITHUB_API = "https://api.github.com/repos/kraftsystemet/fri-nettleie/contents/tariffer"
 RAW_BASE = "https://raw.githubusercontent.com/kraftsystemet/fri-nettleie/main/tariffer"
-TOLERANSE = 0.001  # NOK/kWh — 0,1 øre
+TOLERANSE = 0.001  # NOK/kWh, 0,1 øre
 
 # Mapping mellom våre DSO-IDer og fri-nettleie sine filnavn. Hvis vår ID kan
 # utledes direkte (med "-" → "_") trenger vi ikke oppføring her.

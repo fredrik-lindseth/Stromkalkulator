@@ -229,7 +229,7 @@ def kjor_maaned(year: int, month: int, np_eur: dict[str, float],
             "avvik_pct": avvik / abs(norgespris_faktura) * 100,
         }
 
-    # Bonus: reverse-engineering — hvilken konstant kurs ville matchet?
+    # Bonus: reverse-engineering, hvilken konstant kurs ville matchet?
     weighted_eur_per_kwh = sum(p.eur_mwh / 1000.0 * p.kwh for p in points) / total_kwh
     faktura_implied_eks_mva = (
         NORGESPRIS_FASTPRIS_INKL_MVA - (norgespris_faktura / forbruk_faktura)
@@ -269,7 +269,7 @@ def print_maaned(year: int, month: int, res: dict[str, dict[str, float]]) -> Non
 
 
 def print_oppsummering(per_maaned: dict[tuple[int, int], dict]) -> None:
-    print("\n\n=== OPPSUMMERING — avvik (kr) per variant per måned ===\n")
+    print("\n\n=== OPPSUMMERING: avvik (kr) per variant per måned ===\n")
     variants = [
         "B: NB same-day forward-fill",
         "C: NB previous-bankday (T-1)",

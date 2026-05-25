@@ -677,7 +677,7 @@ class TestDailyMaxPower:
             now = _real_datetime(2026, 6, 15, 12, minute)
             _run_update(coord_module, coordinator, now=now)
 
-        # Inneværende time er ikke fullført ennå — ingen daily max registrert
+        # Inneværende time er ikke fullført ennå, ingen daily max registrert
         today = "2026-06-15"
         assert coordinator._daily_max_power.get(today) is None
 
@@ -776,7 +776,7 @@ class TestOffentligeAvgifter:
         assert result["total_price_inkl_avgifter"] == result["total_price"], (
             f"total_price_inkl_avgifter={result['total_price_inkl_avgifter']} != "
             f"total_price={result['total_price']}. "
-            "Avgifter er allerede i energiledd — ikke legg dem til på nytt."
+            "Avgifter er allerede i energiledd, ikke legg dem til på nytt."
         )
 
     def test_total_price_inkl_avgifter_norgespris(self, coord_module):

@@ -30,7 +30,7 @@ FAKTURA_SNITT_INKL_MVA: Final[float] = 1.5333
 # Norges Bank SDMX-JSON API. NB-middelkurs er mid-point i interbankmarkedet
 # ved 14:15 CET-snapshot, publisert ~16:00 CET (synket med ECB sin
 # euro reference rate siden 1. juli 2016). Merk: dette er IKKE den kursen
-# Nord Pool bruker — Nord Pool henter interbankkurs 12:00 CET og hedger
+# Nord Pool bruker. Nord Pool henter interbankkurs 12:00 CET og hedger
 # senere med to banker for offisiell sluttkurs.
 NB_URL: Final[str] = (
     "https://data.norges-bank.no/api/data/EXR/B.EUR.NOK.SP"

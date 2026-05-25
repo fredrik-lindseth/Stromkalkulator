@@ -38,7 +38,7 @@ def _runner() -> list[str] | None:
 def test_research_verify_all_is_deterministic() -> None:
     runner = _runner()
     if runner is None:
-        pytest.skip("Verken `just` eller `make` tilgjengelig — hopper over drift-test")
+        pytest.skip("Verken `just` eller `make` tilgjengelig, hopper over drift-test")
 
     if not GENERATED.exists():
         pytest.skip(f"{GENERATED.relative_to(ROOT)} finnes ikke ennå (første kjøring)")

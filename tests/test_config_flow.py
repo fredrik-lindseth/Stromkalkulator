@@ -239,7 +239,7 @@ class TestDSOList:
 
 
 # ---------------------------------------------------------------------------
-# 5. Coordinator robustness — non-numeric sensor states
+# 5. Coordinator robustness, non-numeric sensor states
 # ---------------------------------------------------------------------------
 
 

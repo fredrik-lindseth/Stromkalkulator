@@ -120,7 +120,7 @@ def finn_aktiv_periode(
 # supported: True = har priser, False = mangler priser (trenger bidrag)
 # For å legge til priser for et nettselskap:
 # 1. Finn nettleiepriser på nettselskapets nettside (url-feltet)
-# 2. Sett energiledd_*_eks_mva i NOK/kWh — kun nettleieleddet, eks. mva og
+# 2. Sett energiledd_*_eks_mva i NOK/kWh: kun nettleieleddet, eks. mva og
 #    eks. forbruksavgift/Enova. Coordinator legger på avgifter og mva basert
 #    på avgiftssone.
 # 3. Legg til kapasitetstrinn som liste med tupler: (kW-grense, kr/mnd)
@@ -318,7 +318,7 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         # Korrigert 2026-05-25: tidligere tall trakk forbruksavgift+Enova dobbelt.
         # NO4 har ikke mva, så "u/ avgifter" hos kraftsystemet = ren netteierandel.
         # Sesongprising: vinter 1.9-30.4, sommer 1.5-31.8. Sommer-sats ikke verifisert
-        # ennå — trenger PDF fra Arva. Aktiv sats nå er vinter-pris.
+        # ennå (trenger PDF fra Arva). Aktiv sats nå er vinter-pris.
         "energiledd_dag_eks_mva": 0.231,  # 23,10 øre/kWh ren energiledd (2026 vinter)
         "energiledd_natt_eks_mva": 0.116,  # 11,60 øre/kWh ren energiledd (2026 vinter)
         "url": "https://www.arva.no/kunde/nettleie/nettleiepriser",

@@ -22,8 +22,8 @@ Tråder gjennomgått mai 2026. Norsk forum: hjemmeautomasjon.no. Internasjonalt 
 
 Mest etterspurt i forumet. Brukes til billader, varmtvannsbereder, varmekabler.
 
-- [Tråd 12474 — Howto: Finn laveste strømpris-timer (hjemmeautomasjon)](https://www.hjemmeautomasjon.no/forums/topic/12474-howto-finn-laveste-strømpris-timer/): Node-RED-flow som henter priser fra hvakosterstrommen.no og setter globale variabler `lavPris` og `lavLavPris`.
-- [Tråd 11669 — Integrere strømpriser fra AMS-leser (hjemmeautomasjon)](https://www.hjemmeautomasjon.no/forums/topic/11669-integrere-strømpriser-fra-amsleser-i-home-assistant/): Brukerne ber om sensorer for billigste/dyreste timer. Diskusjon om AMS-lesere som sletter historikk, som gjør "har bilen ladet i 3 eller 5 timer hittil i natt"-logikk vanskelig.
+- [Tråd 12474: Howto: Finn laveste strømpris-timer (hjemmeautomasjon)](https://www.hjemmeautomasjon.no/forums/topic/12474-howto-finn-laveste-strømpris-timer/): Node-RED-flow som henter priser fra hvakosterstrommen.no og setter globale variabler `lavPris` og `lavLavPris`.
+- [Tråd 11669: Integrere strømpriser fra AMS-leser (hjemmeautomasjon)](https://www.hjemmeautomasjon.no/forums/topic/11669-integrere-strømpriser-fra-amsleser-i-home-assistant/): Brukerne ber om sensorer for billigste/dyreste timer. Diskusjon om AMS-lesere som sletter historikk, som gjør "har bilen ladet i 3 eller 5 timer hittil i natt"-logikk vanskelig.
 
 Status hos oss: ikke implementert.
 
@@ -31,7 +31,7 @@ Status hos oss: ikke implementert.
 
 24 (eller 96 etter 15-min-overgangen) separate sensorer for prisen hver time.
 
-- [Tråd 13540 — Template sensor for timespriser nordpool (hjemmeautomasjon)](https://www.hjemmeautomasjon.no/forums/topic/13540-template-sensor-for-timespriser-nordpool/): Template-sensorer per time fra Nordpool sine `today`/`tomorrow`-attributter. Trådkommentar peker på at logikken bryter etter 15-min-overgangen (24×4 elementer).
+- [Tråd 13540: Template sensor for timespriser nordpool (hjemmeautomasjon)](https://www.hjemmeautomasjon.no/forums/topic/13540-template-sensor-for-timespriser-nordpool/): Template-sensorer per time fra Nordpool sine `today`/`tomorrow`-attributter. Trådkommentar peker på at logikken bryter etter 15-min-overgangen (24×4 elementer).
 
 Status hos oss: ikke implementert.
 
@@ -39,7 +39,7 @@ Status hos oss: ikke implementert.
 
 Nord Pool gikk over til kvartersbasert dag-ahead-pricing høsten 2025.
 
-- [Tråd 13363 — 15 minutters interval på strømpris (hjemmeautomasjon)](https://www.hjemmeautomasjon.no/forums/topic/13363-15-minutters-interval-på-strømpris/).
+- [Tråd 13363: 15 minutters interval på strømpris (hjemmeautomasjon)](https://www.hjemmeautomasjon.no/forums/topic/13363-15-minutters-interval-på-strømpris/).
 - [Tråd 13540 (samme som over)](https://www.hjemmeautomasjon.no/forums/topic/13540-template-sensor-for-timespriser-nordpool/): kommentar om at eksisterende kode brytes.
 
 Status hos oss: coordinator leser current price hvert minutt. Ikke verifisert mot 24×4-elementer i `today`/`tomorrow`-attributter. Mulig regresjon vi ikke har fanget.
@@ -48,24 +48,24 @@ Status hos oss: coordinator leser current price hvert minutt. Ikke verifisert mo
 
 Aktivt regulere forbrukere for å unngå å overskride neste effekttrinn.
 
-- [Tråd 9253 — Prediktiv reduksjon av strømbruk effektariff-nivå (hjemmeautomasjon)](https://www.hjemmeautomasjon.no/forums/topic/9253-prediktiv-reduksjon-av-strømbruk-effektariff-nivå/): PID-regulator basert på Tibber Pulse 2,5s-effekt. Integrerer opp forventet timesforbruk, styrer 0–100 %-utgang som slår av/på forbrukere.
+- [Tråd 9253: Prediktiv reduksjon av strømbruk effektariff-nivå (hjemmeautomasjon)](https://www.hjemmeautomasjon.no/forums/topic/9253-prediktiv-reduksjon-av-strømbruk-effektariff-nivå/): PID-regulator basert på Tibber Pulse 2,5s-effekt. Integrerer opp forventet timesforbruk, styrer 0–100 %-utgang som slår av/på forbrukere.
 
-Status hos oss: vi har `kapasitet_varsel` (binær). Ikke prediktiv styring. Bevisst utenfor scope — egen integrasjon (Effektvakt) tar dette.
+Status hos oss: vi har `kapasitet_varsel` (binær). Ikke prediktiv styring. Bevisst utenfor scope, egen integrasjon (Effektvakt) tar dette.
 
 ### Styring av forbrukere basert på pris
 
 Slå av VVB og varmeovner i pristopper. Slå på når billig.
 
-- [Tråd 12298 — Styring av VVB med Nordpool og rene HA-automasjoner](https://www.hjemmeautomasjon.no/forums/topic/12298-styring-av-varmtvannsbereder-med-nordpool-og-rene-ha-automasjoner/): ESPHome + Dallas-temperatursensor + smart relé + Generic Thermostat helper. Ren HA-automasjon.
-- [Tråd 11282 — Styring av forbruk basert på strømpriser (hjemmeautomasjon)](https://www.hjemmeautomasjon.no/forums/topic/11282-styring-av-forbuk-basert-på-strømpriser-leverandøruavhengig/): HomeSeer-plugin (PowerControl) som henter priser fra ENTSO-E, beregner når strømmen bør slås av, tar hensyn til VVB-begrensninger.
-- [Tråd 10824 — Flow til styring av VVB etter strømpriser](https://www.hjemmeautomasjon.no/forums/topic/10824-flow-til-styring-av-vvb-etter-strømpriser/).
+- [Tråd 12298: Styring av VVB med Nordpool og rene HA-automasjoner](https://www.hjemmeautomasjon.no/forums/topic/12298-styring-av-varmtvannsbereder-med-nordpool-og-rene-ha-automasjoner/): ESPHome + Dallas-temperatursensor + smart relé + Generic Thermostat helper. Ren HA-automasjon.
+- [Tråd 11282: Styring av forbruk basert på strømpriser (hjemmeautomasjon)](https://www.hjemmeautomasjon.no/forums/topic/11282-styring-av-forbuk-basert-på-strømpriser-leverandøruavhengig/): HomeSeer-plugin (PowerControl) som henter priser fra ENTSO-E, beregner når strømmen bør slås av, tar hensyn til VVB-begrensninger.
+- [Tråd 10824: Flow til styring av VVB etter strømpriser](https://www.hjemmeautomasjon.no/forums/topic/10824-flow-til-styring-av-vvb-etter-strømpriser/).
 
 Cheapest-hours-blueprintet på det internasjonale forumet dominerer:
 
-- [Nordpool cheapest hours, turn on devices](https://community.home-assistant.io/t/blueprint-that-uses-nordpool-and-lets-you-turn-on-devices-on-the-cheapest-hours-and-make-automations-based-on-that-information/646360) — de facto-standarden. Rangerer timer fra billigst til dyrest, kjører handling i N billigste.
-- [Nordpool price cheap/expensive actions](https://community.home-assistant.io/t/nordpool-price-cheap-expensive-actions/498055) — terskel-basert.
-- [Nordpool cheapest hours (15-min)](https://community.home-assistant.io/t/nordpool-cheapest-hours-actions/940421) — nyere, støtter 15-min.
-- [Warmwater boiler — cheapest hours via Nordpool](https://community.home-assistant.io/t/warmwater-boiler-run-only-during-cheapest-hours-based-on-nordpool/565021).
+- [Nordpool cheapest hours, turn on devices](https://community.home-assistant.io/t/blueprint-that-uses-nordpool-and-lets-you-turn-on-devices-on-the-cheapest-hours-and-make-automations-based-on-that-information/646360): de facto-standarden. Rangerer timer fra billigst til dyrest, kjører handling i N billigste.
+- [Nordpool price cheap/expensive actions](https://community.home-assistant.io/t/nordpool-price-cheap-expensive-actions/498055): terskel-basert.
+- [Nordpool cheapest hours (15-min)](https://community.home-assistant.io/t/nordpool-cheapest-hours-actions/940421): nyere, støtter 15-min.
+- [Warmwater boiler, cheapest hours via Nordpool](https://community.home-assistant.io/t/warmwater-boiler-run-only-during-cheapest-hours-based-on-nordpool/565021).
 - [Smart immersion heating](https://community.home-assistant.io/t/smart-immersion-heating-for-domestic-hot-water/536281): VVB + solcelle-overskudd.
 - [Smart Energy Arbitrage](https://community.home-assistant.io/t/smart-energy-arbitrage-system-octopus-energy-enphase-solcast-996732): Octopus + Enphase + Solcast, kjøp/selg/hold-beslutning for hjemmebatteri.
 
@@ -75,7 +75,7 @@ Status hos oss: bevisst utenfor scope. Vi gir data, ikke styringslogikk.
 
 Tibber-integrasjonen viser kun råpris, ikke det brukerne ser i Tibber-appen.
 
-- [Tråd 12029 — Tibber med avgifter og nettleie som i Tibber-appen (hjemmeautomasjon)](https://www.hjemmeautomasjon.no/forums/topic/12029-går-det-an-å-få-prisen-fra-tibber-med-avgifter-og-nettleie-som-i-tibber-appen/): Trådanbefaling går til HACS-integrasjonen [home_assistant_tibber_data](https://github.com/Danielhiversen/home_assistant_tibber_data).
+- [Tråd 12029: Tibber med avgifter og nettleie som i Tibber-appen (hjemmeautomasjon)](https://www.hjemmeautomasjon.no/forums/topic/12029-går-det-an-å-få-prisen-fra-tibber-med-avgifter-og-nettleie-som-i-tibber-appen/): Trådanbefaling går til HACS-integrasjonen [home_assistant_tibber_data](https://github.com/Danielhiversen/home_assistant_tibber_data).
 - [Tibber visualization for DE/SE/NO](https://community.home-assistant.io/t/tibber-energy-price-and-consumption-visualization-for-germany-sweden-and-norway/244623): delt template-pakke.
 
 Status hos oss: vi har "Total strømpris (strømavtale)"-sensor som dekker dette. Direkte konkurrent til `home_assistant_tibber_data`, men også for ikke-Tibber-brukere.
@@ -84,24 +84,24 @@ Status hos oss: vi har "Total strømpris (strømavtale)"-sensor som dekker dette
 
 Lovelace-kort som fargekoder strømpris dynamisk basert på dagens min/max/mean.
 
-- [Tråd 12313 — ApexChart med fargekoding (hjemmeautomasjon)](https://www.hjemmeautomasjon.no/forums/topic/12313-apexchart-med-fargekoding-for-strømpriser-og-strømforbruk-nordpool-og-tibber/): ferdig ApexChart-config. Fargen i tittelen og linjen endres basert på prisnivå.
-- [Tråd 11352 — Stolpediagram for fremtidige strømpriser](https://www.hjemmeautomasjon.no/forums/topic/11352-stolpediagram-for-fremtidige-strømpriser/).
-- [Tråd 12344 — AI for å generere YAML (apex charts, fargekoding)](https://www.hjemmeautomasjon.no/forums/topic/12344-bruk-av-ai-for-å-generere-yaml-kode-i-ha-eksempel-apex-charts-for-å-fargekode-billigste-og-dyreste-strømpriser/).
+- [Tråd 12313: ApexChart med fargekoding (hjemmeautomasjon)](https://www.hjemmeautomasjon.no/forums/topic/12313-apexchart-med-fargekoding-for-strømpriser-og-strømforbruk-nordpool-og-tibber/): ferdig ApexChart-config. Fargen i tittelen og linjen endres basert på prisnivå.
+- [Tråd 11352: Stolpediagram for fremtidige strømpriser](https://www.hjemmeautomasjon.no/forums/topic/11352-stolpediagram-for-fremtidige-strømpriser/).
+- [Tråd 12344: AI for å generere YAML (apex charts, fargekoding)](https://www.hjemmeautomasjon.no/forums/topic/12344-bruk-av-ai-for-å-generere-yaml-kode-i-ha-eksempel-apex-charts-for-å-fargekode-billigste-og-dyreste-strømpriser/).
 
 Status hos oss: vi gir sensorer, ikke dashboard-eksempler. Mulig: legge til ferdige Lovelace-kort i docs.
 
 ### Manuell template-pris-beregning (det vi erstatter)
 
-- [Tråd 11102 — Strømpriser (hjemmeautomasjon)](https://www.hjemmeautomasjon.no/forums/topic/11102-strømpriser/): Template som regner ut EUR→NOK med Nordpool/Entso-e + dag/natt-tariff + mva. Manuelt vedlikehold per bruker.
-- [Tråd 13251 — Nordpool oppsett med nettleie sommer/vinter (hjemmeautomasjon)](https://www.hjemmeautomasjon.no/forums/topic/13251-nordpool-oppsett-med-nettleie-sommer-vinter-mm/): bruker strever med `additional_costs` i Nordpool-YAML.
+- [Tråd 11102: Strømpriser (hjemmeautomasjon)](https://www.hjemmeautomasjon.no/forums/topic/11102-strømpriser/): Template som regner ut EUR→NOK med Nordpool/Entso-e + dag/natt-tariff + mva. Manuelt vedlikehold per bruker.
+- [Tråd 13251: Nordpool oppsett med nettleie sommer/vinter (hjemmeautomasjon)](https://www.hjemmeautomasjon.no/forums/topic/13251-nordpool-oppsett-med-nettleie-sommer-vinter-mm/): bruker strever med `additional_costs` i Nordpool-YAML.
 - [Any good ideas are welcome. Nordpool Energy Price per hour](https://community.home-assistant.io/t/any-good-ideas-are-welcome-nordpool-energy-price-per-hour/34646): 25+ sider, hovedhubben for Nordpool-DIY internasjonalt.
 
 Status hos oss: vi erstatter dette fullstendig. Hovedgrunnen til å bruke Strømkalkulator i stedet for DIY.
 
 ### Nettleie-API-tilgang
 
-- [Tråd 9051 — API for nettleie-priser hos Elvia](https://www.hjemmeautomasjon.no/forums/topic/9051-api-for-nettleie-priser-hos-elvia/).
-- [Tråd 11108 — API for nettleie-priser hos Lnett](https://www.hjemmeautomasjon.no/forums/topic/11108-api-for-nettleie-priser-hos-lnett/).
+- [Tråd 9051: API for nettleie-priser hos Elvia](https://www.hjemmeautomasjon.no/forums/topic/9051-api-for-nettleie-priser-hos-elvia/).
+- [Tråd 11108: API for nettleie-priser hos Lnett](https://www.hjemmeautomasjon.no/forums/topic/11108-api-for-nettleie-priser-hos-lnett/).
 
 Status hos oss: alle nettselskap innebygd i `dso.py`.
 
@@ -113,11 +113,11 @@ Status hos oss: alle nettselskap innebygd i `dso.py`.
 
 ### Direkte konkurrent (gammel)
 
-- [Tråd 9415 — Lurer du på hva din nye nettleie-kostnad blir? (hjemmeautomasjon)](https://www.hjemmeautomasjon.no/forums/topic/9415-lurer-du-på-hva-din-nye-nettleie-kostnad-blir-bruk-denne-kalkulatoren/): Kalkulator på GitHub (https://github.com/salvesen/Ny-nettleie-kalkulator-elhub-data-). Kun Haugaland Kraft, fra 2021, ikke vedlikeholdt.
+- [Tråd 9415: Lurer du på hva din nye nettleie-kostnad blir? (hjemmeautomasjon)](https://www.hjemmeautomasjon.no/forums/topic/9415-lurer-du-på-hva-din-nye-nettleie-kostnad-blir-bruk-denne-kalkulatoren/): Kalkulator på GitHub (https://github.com/salvesen/Ny-nettleie-kalkulator-elhub-data-). Kun Haugaland Kraft, fra 2021, ikke vedlikeholdt.
 
 ### Vår egen tråd
 
-- [Strømkalkulator — True electricity cost for Norway (HA community)](https://community.home-assistant.io/t/stromkalkulator-true-electricity-cost-for-norway-all-grid-companies/1000314): brukerne ber om salgsinntekt for plusskunder + Norgespris-sammenligning, netto-kost (forbruk minus eksport), "forbruk-only"-pris uten kapasitetstrinn, strømstøtte parallelt med Norgespris.
+- [Strømkalkulator: True electricity cost for Norway (HA community)](https://community.home-assistant.io/t/stromkalkulator-true-electricity-cost-for-norway-all-grid-companies/1000314): brukerne ber om salgsinntekt for plusskunder + Norgespris-sammenligning, netto-kost (forbruk minus eksport), "forbruk-only"-pris uten kapasitetstrinn, strømstøtte parallelt med Norgespris.
 
 ## Hva vi har som andre ikke har
 

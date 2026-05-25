@@ -1,7 +1,7 @@
 """Tests for ForbruksavgiftSensor and EnovaavgiftSensor.
 
 P3 hull 9: These sensors have their own calculation logic (not just
-coordinator passthrough) — they compute avgifter from const.py values
+coordinator passthrough): they compute avgifter from const.py values
 using _get_forbruksavgift() / _get_mva_sats() methods.
 """
 

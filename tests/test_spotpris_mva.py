@@ -172,5 +172,5 @@ class TestNorgesprisDiffMedNormalisering:
         # Spot brukes som 1.20 inkl mva (feil). Stromstotte = (1.20 - 0.9625) * 0.90 = 0.2138
         # spot_total_etter_stotte = 0.9863
         # total_price = 0.50
-        # Diff = 0.9863 - 0.50 = 0.4863 — undervurderer 0.5162 (riktig) med ~6%
+        # Diff = 0.9863 - 0.50 = 0.4863, undervurderer 0.5162 (riktig) med ~6%
         assert result["kroner_spart_per_kwh"] == pytest.approx(0.4863, abs=1e-3)

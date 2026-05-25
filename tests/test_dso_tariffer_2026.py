@@ -1,7 +1,7 @@
 """Verifisering av 2026-tariffer for nettselskaper som ble fikset etter
 trippelsjekk mot offisielle kilder (se docs/research/dso-trippelverifisering.md).
 
-Test-stil: gitt energi X og effekt Y, returner kostnad Z kr — speiler
+Test-stil: gitt energi X og effekt Y, returner kostnad Z kr. Speiler
 faktura-kalkylen brukerne ser. Bruker samme inkl-mva-formel som
 coordinator (energiledd_eks_mva + forbruksavgift + Enova) * (1 + mva).
 """
@@ -183,7 +183,7 @@ class TestElvia2026:
         return DSO_LIST["elvia"]
 
     def test_energiledd_uendret(self, elvia):
-        """Elvia energiledd var allerede korrekt — bekreftet av PDF."""
+        """Elvia energiledd var allerede korrekt, bekreftet av PDF."""
         assert elvia["energiledd_dag_eks_mva"] == pytest.approx(0.2099)
         assert elvia["energiledd_natt_eks_mva"] == pytest.approx(0.1299)
 
@@ -201,7 +201,7 @@ class TestElvia2026:
     @pytest.mark.parametrize(
         ("avg_power", "expected_kr_mnd"),
         [
-            # Trinn 1-5 var korrekte — sanity-check
+            # Trinn 1-5 var korrekte (sanity-check)
             (1.0, 125),
             (3.0, 190),
             (7.0, 300),

@@ -1,4 +1,4 @@
-"""Tests for __init__.py — async_setup_entry and async_unload_entry.
+"""Tests for __init__.py: async_setup_entry and async_unload_entry.
 
 Verifies that setup creates a coordinator, forwards platforms,
 and that unload returns True. Also tests DSO migration triggering.

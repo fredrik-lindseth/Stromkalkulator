@@ -70,14 +70,14 @@ class TestExportAccumulation:
         t1 = t0 + timedelta(minutes=1)
         t2 = t1 + timedelta(minutes=1)
 
-        # First update — sets _last_update, no accumulation yet
+        # First update: sets _last_update, no accumulation yet
         _run_update(coord_module, coordinator, now=t0)
-        # Second update — 1 minute elapsed, 3 kW export = 0.05 kWh
+        # Second update: 1 minute elapsed, 3 kW export = 0.05 kWh
         result1 = _run_update(coord_module, coordinator, now=t1)
         export_kwh_1 = result1["monthly_export_kwh"]
         assert export_kwh_1 > 0
 
-        # Third update — another minute
+        # Third update: another minute
         result2 = _run_update(coord_module, coordinator, now=t2)
         export_kwh_2 = result2["monthly_export_kwh"]
         assert export_kwh_2 > export_kwh_1

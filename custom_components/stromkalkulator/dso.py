@@ -315,8 +315,12 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "Arva",
         "prisomrade": "NO4",
         "supported": True,
-        "energiledd_dag_eks_mva": 0.1497,  # 14,97 øre/kWh ren energiledd (2026, nord_norge, dag 06-22)
-        "energiledd_natt_eks_mva": 0.0347,  # 3,47 øre/kWh ren energiledd (2026, nord_norge, natt 22-06)
+        # Korrigert 2026-05-25: tidligere tall trakk forbruksavgift+Enova dobbelt.
+        # NO4 har ikke mva, så "u/ avgifter" hos kraftsystemet = ren netteierandel.
+        # Sesongprising: vinter 1.9-30.4, sommer 1.5-31.8. Sommer-sats ikke verifisert
+        # ennå — trenger PDF fra Arva. Aktiv sats nå er vinter-pris.
+        "energiledd_dag_eks_mva": 0.231,  # 23,10 øre/kWh ren energiledd (2026 vinter)
+        "energiledd_natt_eks_mva": 0.116,  # 11,60 øre/kWh ren energiledd (2026 vinter)
         "url": "https://www.arva.no/kunde/nettleie/nettleiepriser",
         "kapasitetstrinn": [
             (2, 85),  # 0-2 kW: 85 kr/mnd
@@ -536,10 +540,11 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "Alut",
         "prisomrade": "NO4",
         "supported": True,
-        # NO4 - mva-fritak for husholdninger
-        # Flat sats inkl. 4 øre rabatt. Coordinator legger på forbruksavgift 7,13 + Enova 1,0.
-        "energiledd_dag_eks_mva": 0.131,  # 13,10 øre/kWh ren energiledd (2026, nord_norge)
-        "energiledd_natt_eks_mva": 0.131,  # Flat sats - ingen dag/natt-differensiering
+        # Korrigert 2026-05-25: Alut publiserer 13,10 inkl. Enova (vanlig norsk konvensjon).
+        # Ren netteierandel: 13,10 - 1,00 = 12,10. Tidligere lagret 13,10 dobbelt-tellet Enova.
+        # NO4 - mva-fritak for husholdninger. Gyldig fra 01.07.2025.
+        "energiledd_dag_eks_mva": 0.121,  # 12,10 øre/kWh ren energiledd
+        "energiledd_natt_eks_mva": 0.121,  # Flat sats - ingen dag/natt-differensiering
         "url": "https://alut.no/nettleie/",
         "kapasitetstrinn": [
             (2, 292),  # 3500/12
@@ -740,12 +745,14 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
     },
     "everket": {
         "name": "Everket",
-        "prisomrade": "NO2",
+        "prisomrade": "NO1",
         "supported": True,
-        # Kilde: Midtnett PDF 2026.
-        "energiledd_dag_eks_mva": 0.23862,  # 23,86 øre/kWh ren energiledd (2026, dag 06-22)
-        "energiledd_natt_eks_mva": 0.18862,  # 18,86 øre/kWh ren energiledd (2026, natt 22-06)
-        "url": "https://midtnett.no/nettleie-informasjon-og-priser/",
+        # Korrigert 2026-05-25: feil prisomrade (sto NO2, Everket er Notodden = NO1).
+        # Også feil tall: tidligere kopiert fra Midtnett. Riktig flat 19,20 fra 01.10.2025.
+        # Kilde: PDF 251001-Nettleie-Everket. "Energiledd eks. mva" + avgifter legges på separat.
+        "energiledd_dag_eks_mva": 0.192,
+        "energiledd_natt_eks_mva": 0.192,
+        "url": "https://everket-notodden.no/",
         "kapasitetstrinn": [
             (5, 275),
             (10, 413),
@@ -780,9 +787,11 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "Føre",
         "prisomrade": "NO2",
         "supported": True,
+        # Korrigert 2026-05-25: tidligere 11,16 hadde trukket avgifter dobbelt.
+        # Riktig flat 19,29 ren energiledd. Føre publiserer "Energiledd eks. mva" + avgifter separat.
         # Kapasitetsbasert modell, ingen dag/natt-differensiering.
-        "energiledd_dag_eks_mva": 0.11158,  # 11,16 øre/kWh ren energiledd (2026)
-        "energiledd_natt_eks_mva": 0.11158,  # Flat sats - ingen dag/natt-differensiering
+        "energiledd_dag_eks_mva": 0.1929,
+        "energiledd_natt_eks_mva": 0.1929,
         "url": "https://foere.net/nettleie/",
         "kapasitetstrinn": [
             (2, 329),  # 328,8 kr/mnd inkl. mva
@@ -1066,9 +1075,10 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "Netera",
         "prisomrade": "NO3",
         "supported": True,
-        # Har sesongpriser - bruker vinterpriser (høyest).
-        "energiledd_dag_eks_mva": 0.2091,  # 20,91 øre/kWh ren energiledd (2026, vinter)
-        "energiledd_natt_eks_mva": 0.2091,  # Flat sats - ingen dag/natt-differensiering
+        # Korrigert 2026-05-25: Netera fjernet sesongprising i 2026. Flat 20,0 hele året.
+        # Tidligere 2025-tariff (20,91) hadde Høylast vinter 20,9 / lavlast 18,6.
+        "energiledd_dag_eks_mva": 0.20,  # 20,0 øre/kWh ren energiledd (2026, flat)
+        "energiledd_natt_eks_mva": 0.20,
         "url": "https://www.netera.no/nettleie/avtaler/privat/",
         "kapasitetstrinn": [
             (10, 167),  # 2000/12
@@ -1302,9 +1312,11 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "Straumnett",
         "prisomrade": "NO5",
         "supported": True,
+        # Korrigert 2026-05-25: tidligere 26,20/19,95 var inkl. mva fra straumnett.no,
+        # ikke ren netteierandel. Konvertert: 26,20/1,25 - 8,13 = 12,83 / 7,83.
         # Coordinator legger på forbruksavgift 7,13 + Enova 1,0 + 25% mva.
-        "energiledd_dag_eks_mva": 0.26198,  # 26,20 øre/kWh ren energiledd (2026)
-        "energiledd_natt_eks_mva": 0.1995,  # 19,95 øre/kWh ren energiledd (2026)
+        "energiledd_dag_eks_mva": 0.1283,  # 12,83 øre/kWh ren energiledd (2026)
+        "energiledd_natt_eks_mva": 0.0783,  # 7,83 øre/kWh ren energiledd (2026)
         "url": "https://straumnett.no/prisar-for-nettleige",
         "kapasitetstrinn": [
             (2, 200),

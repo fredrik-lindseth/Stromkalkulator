@@ -57,7 +57,7 @@ if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
 
-    from .dso import DSOEntry
+    from .dso import DSOEntry, EnergileddPeriode
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -111,8 +111,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
     boligtype: str
     energiledd_dag_eks_mva: float
     energiledd_natt_eks_mva: float
-    energiledd_dag: float  # inkl. forbruksavgift, Enova og mva
+    energiledd_dag: float  # inkl. forbruksavgift, Enova og mva (aktiv sats, oppdateres ved sesongbytte)
     energiledd_natt: float
+    _energiledd_perioder_inkl: list[tuple[str, str, float, float]]  # (fra, til, dag_inkl, natt_inkl)
     kapasitetstrinn: list[tuple[float, int]]
     kapasitet_varsel_terskel: float
     _daily_max_power: dict[str, DailyMaxEntry]
@@ -187,17 +188,26 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         # Bruker kan overstyre via config (CONF_ENERGILEDD_*) — også eks. mva.
         # Vi beregner inkl-mva-verdier her én gang basert på avgiftssone slik
         # at sensorene kan bruke de ferdige verdiene direkte.
-        try:
-            self.energiledd_dag_eks_mva = float(
-                entry.data.get(CONF_ENERGILEDD_DAG, self.dso["energiledd_dag_eks_mva"])
-            )
-        except (ValueError, TypeError):
+        #
+        # Sesongprising: hvis DSO har `energiledd_perioder`, ignoreres CONF-
+        # overstyring og periodene driver aktiv sats. CONF-overstyring gir
+        # lite mening på en DSO som bytter pris flere ganger i året.
+        raw_perioder: list[EnergileddPeriode] = self.dso.get("energiledd_perioder", [])
+        if not raw_perioder:
+            try:
+                self.energiledd_dag_eks_mva = float(
+                    entry.data.get(CONF_ENERGILEDD_DAG, self.dso["energiledd_dag_eks_mva"])
+                )
+            except (ValueError, TypeError):
+                self.energiledd_dag_eks_mva = float(self.dso["energiledd_dag_eks_mva"])
+            try:
+                self.energiledd_natt_eks_mva = float(
+                    entry.data.get(CONF_ENERGILEDD_NATT, self.dso["energiledd_natt_eks_mva"])
+                )
+            except (ValueError, TypeError):
+                self.energiledd_natt_eks_mva = float(self.dso["energiledd_natt_eks_mva"])
+        else:
             self.energiledd_dag_eks_mva = float(self.dso["energiledd_dag_eks_mva"])
-        try:
-            self.energiledd_natt_eks_mva = float(
-                entry.data.get(CONF_ENERGILEDD_NATT, self.dso["energiledd_natt_eks_mva"])
-            )
-        except (ValueError, TypeError):
             self.energiledd_natt_eks_mva = float(self.dso["energiledd_natt_eks_mva"])
 
         self.energiledd_dag = compute_energiledd_inkl_mva(
@@ -206,6 +216,15 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         self.energiledd_natt = compute_energiledd_inkl_mva(
             self.energiledd_natt_eks_mva, self.avgiftssone
         )
+        self._energiledd_perioder_inkl = [
+            (
+                p["fra"],
+                p["til"],
+                compute_energiledd_inkl_mva(p["dag_eks_mva"], self.avgiftssone),
+                compute_energiledd_inkl_mva(p["natt_eks_mva"], self.avgiftssone),
+            )
+            for p in raw_perioder
+        ]
 
         # Get kapasitetstrinn from DSO
         # Normalize: some DSOs (e.g. Barents Nett) use dict format {"min", "max", "pris"}
@@ -418,9 +437,14 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
                 self._previous_month_kapasitetsledd = 0
                 self._previous_month_kapasitetstrinn = ""
 
-        # Archive energiledd rates for accurate previous-month calculations
-        self._previous_month_energiledd_dag = self.energiledd_dag
-        self._previous_month_energiledd_natt = self.energiledd_natt
+        # Archive energiledd rates for accurate previous-month calculations.
+        # For sesong-DSO-er bruker vi forrige måneds siste dag (now - 1 dag) for å fange
+        # satsen som faktisk gjaldt mesteparten av forrige måned. Eksempel: rollover
+        # 1. juli kl 00:00 — vi vil ha juni-satsen, ikke juli-satsen.
+        forrige_dag = now - timedelta(days=1)
+        forrige_dag_dag, forrige_dag_natt = self._get_aktive_energileddsatser(forrige_dag)
+        self._previous_month_energiledd_dag = forrige_dag_dag
+        self._previous_month_energiledd_natt = forrige_dag_natt
 
         # Reset current month data
         self._daily_max_power = {}
@@ -644,10 +668,13 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             total_price_uten_stotte = spot_price + energiledd + fastledd_per_kwh
 
         # Norgespris comparison: use Norgespris if under cap, else spotpris
+        # strompris_norgespris er ren strømdel uten nettleie (for ApexCharts-sammenligning
+        # mot spotpris). Over taket faller man tilbake til spotpris.
         if norgespris_over_tak:
-            total_pris_norgespris = spot_price + energiledd + fastledd_per_kwh
+            strompris_norgespris = spot_price
         else:
-            total_pris_norgespris = norgespris + energiledd + fastledd_per_kwh
+            strompris_norgespris = norgespris
+        total_pris_norgespris = strompris_norgespris + energiledd + fastledd_per_kwh
 
         # Strømpris per kWh (uten kapasitetsledd)
         if self.har_norgespris:
@@ -756,6 +783,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             stromstotte=stromstotte,
             spotpris_etter_stotte=spotpris_etter_stotte,
             norgespris=norgespris,
+            strompris_norgespris=strompris_norgespris,
             total_pris_norgespris=total_pris_norgespris,
             kroner_spart_per_kwh=kroner_spart_per_kwh,
             total_price=total_price,
@@ -787,11 +815,17 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         prev_top_3 = self._previous_month_top_3
         ec_price = kw["electricity_company_price"]
         ec_total = kw["electricity_company_total"]
+        now = kw["now"]
+        aktiv_dag, aktiv_natt = self._get_aktive_energileddsatser(now)
+        perioder_meta = self._serialize_perioder()
+        aktiv_periode = self._aktiv_periode_label(now)
 
         return {
             "energiledd": round(kw["energiledd"], 4),
-            "energiledd_dag": self.energiledd_dag,
-            "energiledd_natt": self.energiledd_natt,
+            "energiledd_dag": aktiv_dag,
+            "energiledd_natt": aktiv_natt,
+            "energiledd_perioder": perioder_meta,
+            "aktiv_energiledd_periode": aktiv_periode,
             "kapasitetsledd": kw["kapasitetsledd"],
             "kapasitetstrinn_nummer": kw["trinn_nummer"],
             "kapasitetstrinn_intervall": kw["trinn_intervall"],
@@ -800,6 +834,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             "stromstotte": round(kw["stromstotte"], 4),
             "spotpris_etter_stotte": round(kw["spotpris_etter_stotte"], 4),
             "norgespris": round(kw["norgespris"], 4),
+            "strompris_norgespris": round(kw["strompris_norgespris"], 4),
             "total_pris_norgespris": round(kw["total_pris_norgespris"], 4),
             "kroner_spart_per_kwh": round(kw["kroner_spart_per_kwh"], 4),
             "total_price": round(kw["total_price"], 4),
@@ -886,11 +921,55 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         last_price = self.kapasitetstrinn[-1][1]
         return last_price, last_idx, f">{prev:.0f} kW"
 
+    def _serialize_perioder(self) -> list[dict[str, Any]] | None:
+        """Returner energiledd-periodene som dict-liste for sensor-attributter.
+
+        Returnerer None hvis DSO ikke har sesongprising. Satser er inkl.
+        avgifter og mva.
+        """
+        if not self._energiledd_perioder_inkl:
+            return None
+        return [
+            {"fra": fra, "til": til, "dag": round(dag, 4), "natt": round(natt, 4)}
+            for fra, til, dag, natt in self._energiledd_perioder_inkl
+        ]
+
+    def _aktiv_periode_label(self, now: datetime) -> str | None:
+        """Returner "fra-til" for aktiv periode, eller None ved ikke-sesong DSO."""
+        if not self._energiledd_perioder_inkl:
+            return None
+        mm_dd = now.strftime("%m-%d")
+        for fra, til, _dag, _natt in self._energiledd_perioder_inkl:
+            if fra <= til:
+                if fra <= mm_dd <= til:
+                    return f"{fra} til {til}"
+            elif mm_dd >= fra or mm_dd <= til:
+                return f"{fra} til {til}"
+        return None
+
+    def _get_aktive_energileddsatser(self, now: datetime) -> tuple[float, float]:
+        """Returner (dag, natt) energileddsatser inkl. avgifter for nåværende dato.
+
+        For DSO-er med sesongprising slås det opp i `energiledd_perioder`.
+        Faller tilbake til `self.energiledd_dag/natt` hvis ingen periode
+        treffer (skal ikke skje hvis periodene dekker hele året, men er en
+        trygg fallback).
+        """
+        if not self._energiledd_perioder_inkl:
+            return self.energiledd_dag, self.energiledd_natt
+        mm_dd = now.strftime("%m-%d")
+        for fra, til, dag, natt in self._energiledd_perioder_inkl:
+            if fra <= til:
+                if fra <= mm_dd <= til:
+                    return dag, natt
+            elif mm_dd >= fra or mm_dd <= til:
+                return dag, natt
+        return self.energiledd_dag, self.energiledd_natt
+
     def _get_energiledd(self, now: datetime) -> float:
         """Get energiledd based on time of day."""
-        if self._is_day_rate(now):
-            return self.energiledd_dag
-        return self.energiledd_natt
+        dag, natt = self._get_aktive_energileddsatser(now)
+        return dag if self._is_day_rate(now) else natt
 
     def _is_day_rate(self, now: datetime) -> bool:
         """Check if current time is day rate."""

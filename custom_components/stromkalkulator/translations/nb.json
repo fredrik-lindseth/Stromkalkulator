@@ -115,6 +115,7 @@
       "total_pris_inkl_avgifter": { "name": "Totalpris inkl. avgifter" },
       "strompris_per_kwh_etter_stotte": { "name": "Strømpris per kWh (etter støtte)" },
       "total_pris_norgespris": { "name": "Total strømpris (Norgespris)" },
+      "strompris_norgespris": { "name": "Strømpris (Norgespris, uten nettleie)" },
       "prisforskjell_norgespris": { "name": "Prisforskjell (Norgespris)" },
       "norgespris_aktiv": { "name": "Norgespris aktiv nå" },
       "energiledd_dag": { "name": "Energiledd dag" },

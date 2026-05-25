@@ -151,6 +151,9 @@
       "total_pris_norgespris": {
         "name": "Total strømpris (Norgespris)"
       },
+      "strompris_norgespris": {
+        "name": "Strømpris (Norgespris, uten nettleie)"
+      },
       "prisforskjell_norgespris": {
         "name": "Prisforskjell (Norgespris)"
       },

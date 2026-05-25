@@ -105,6 +105,7 @@ async def async_setup_entry(
         StromprisPerKwhEtterStotteSensor(coordinator, entry),
         # Norgespris
         TotalPrisNorgesprisSensor(coordinator, entry),
+        StromprisNorgesprisSensor(coordinator, entry),
         PrisforskjellNorgesprisSensor(coordinator, entry),
         NorgesprisAktivSensor(coordinator, entry),
         # Månedlig forbruk og kostnad
@@ -228,13 +229,19 @@ class EnergileddSensor(NettleieBaseSensor):
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return extra attributes."""
         if self.coordinator.data:
-            return {
+            attrs: dict[str, Any] = {
                 "is_day_rate": self.coordinator.data.get("is_day_rate"),
                 "rate_type": "dag" if self.coordinator.data.get("is_day_rate") else "natt/helg",
                 "energiledd_dag": self.coordinator.data.get("energiledd_dag"),
                 "energiledd_natt": self.coordinator.data.get("energiledd_natt"),
                 "dso": self.coordinator.data.get("dso"),
             }
+            perioder = self.coordinator.data.get("energiledd_perioder")
+            if perioder:
+                attrs["sesongprising"] = True
+                attrs["aktiv_periode"] = self.coordinator.data.get("aktiv_energiledd_periode")
+                attrs["perioder"] = perioder
+            return attrs
         return None
 
 
@@ -749,6 +756,39 @@ class TotalPrisNorgesprisSensor(NettleieBaseSensor):
                 "norgespris_stromstotte": self.coordinator.data.get("norgespris_stromstotte"),
                 "energiledd": self.coordinator.data.get("energiledd"),
                 "kapasitetsledd_per_kwh": self.coordinator.data.get("kapasitetsledd_per_kwh"),
+                "norgespris_over_tak": self.coordinator.data.get("norgespris_over_tak", False),
+                "boligtype": self.coordinator.data.get("boligtype", "bolig"),
+            }
+        return None
+
+
+class StromprisNorgesprisSensor(NettleieBaseSensor):
+    """Sensor for ren strømpris under Norgespris-ordningen, uten nettleie."""
+
+    _device_group: str = DEVICE_NORGESPRIS
+    _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
+    _attr_native_unit_of_measurement: str = "NOK/kWh"
+    _attr_icon: str = "mdi:cash"
+    _attr_suggested_display_precision: int = 2
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "strompris_norgespris", "strompris_norgespris")
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the state."""
+        if self.coordinator.data:
+            return cast("float | None", self.coordinator.data.get("strompris_norgespris"))
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return extra attributes."""
+        if self.coordinator.data:
+            return {
+                "norgespris_fast": self.coordinator.data.get("norgespris"),
+                "spot_price": self.coordinator.data.get("spot_price"),
                 "norgespris_over_tak": self.coordinator.data.get("norgespris_over_tak", False),
                 "boligtype": self.coordinator.data.get("boligtype", "bolig"),
             }

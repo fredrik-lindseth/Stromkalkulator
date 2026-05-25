@@ -58,7 +58,7 @@ def inject_one(md_path: Path) -> list[str]:
 
 def main() -> int:
     if not GENERATED_DIR.exists():
-        print(f"Ingen {GENERATED_DIR.relative_to(ROOT)}/-mappe — har du kjørt verify-scriptene?",
+        print(f"Ingen {GENERATED_DIR.relative_to(ROOT)}/-mappe. Har du kjørt verify-scriptene?",
               file=sys.stderr)
         return 1
 
@@ -72,7 +72,7 @@ def main() -> int:
             total_changed += len(changed)
 
     if total_changed == 0:
-        print("Ingen GENERATED-blokker endret — alle docs er allerede synkende.")
+        print("Ingen GENERATED-blokker endret, alle docs er allerede synkende.")
     else:
         print(f"Oppdaterte {total_changed} blokk(er).")
     return 0

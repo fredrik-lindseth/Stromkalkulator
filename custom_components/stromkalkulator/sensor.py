@@ -1354,7 +1354,7 @@ class MaanedligTotalSensor(MaanedligBaseSensor):
 
         energiledd_dag/natt fra dso.py inkluderer allerede forbruksavgift og
         Enova-avgift, så nettleie-beløpet er komplett. Avgifter legges IKKE
-        til separat — det ville dobbelttelle dem.
+        til separat, det ville dobbelttelle dem.
         """
         if self.coordinator.data:
             dag_kwh = self.coordinator.data.get("monthly_consumption_dag_kwh", 0)
@@ -1868,7 +1868,7 @@ class MaanedligEksportInntektSensor(EksportBaseSensor):
             return {
                 "eksport_kwh": kwh,
                 "snitt_spotpris": round(revenue / kwh, 4) if kwh > 0 else None,
-                "note": "Eksport betales til spotpris — ingen nettleie, avgifter eller stromstotte",
+                "note": "Eksport betales til spotpris, ingen nettleie, avgifter eller stromstotte",
             }
         return None
 

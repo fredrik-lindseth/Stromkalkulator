@@ -80,7 +80,7 @@ class TestComputeEnergyDelta:
 
         delta = coordinator_with_energy_sensor._compute_energy_delta()
 
-        # _last_tpi_kwh oppdateres uansett (linje 353) — neste poll får riktig baseline
+        # _last_tpi_kwh oppdateres uansett (linje 353), neste poll får riktig baseline
         assert delta == 0.0
         assert coordinator_with_energy_sensor._last_tpi_kwh == 1101.0
 
@@ -186,7 +186,7 @@ class TestComputeEnergyDelta:
         """Baseline 0 fra storage behandles som "ikke seedet" (linje 335: ``> 0``).
 
         Med last = 0 og current = 1000 skal vi IKKE rapportere 1000 kWh forbruk
-        i én poll — vi setter heller ny baseline og returnerer 0.
+        i én poll, vi setter heller ny baseline og returnerer 0.
         """
         coordinator_with_energy_sensor._last_tpi_kwh = 0.0
         coordinator_with_energy_sensor.hass = _hass_with_energy(1000.0)
@@ -206,7 +206,7 @@ class TestComputeEnergyDelta:
         delta = coordinator._compute_energy_delta()
 
         assert delta == 0.0
-        # Baseline urørt — vi traff aldri linjen som setter den
+        # Baseline urørt, vi traff aldri linjen som setter den
         assert coordinator._last_tpi_kwh == 500.0
 
     def test_state_not_in_registry_returns_zero(self, coord_module):

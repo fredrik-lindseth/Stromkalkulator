@@ -83,7 +83,7 @@ Dag: man-fre 06-22 (ikke helligdager). Natt: 22-06, helger, helligdager.
 | Sensor                                | Enhet  | Beskrivelse                                                       |
 | ------------------------------------- | ------ | ----------------------------------------------------------------- |
 | Total strømpris (norgespris)          | kr/kWh | Hva du ville betalt med Norgespris: fast 50 øre + nettleie        |
-| Strømpris (Norgespris, uten nettleie) | kr/kWh | Ren strømdel — fast 50 øre under tak, spotpris over tak           |
+| Strømpris (Norgespris, uten nettleie) | kr/kWh | Ren strømdel: fast 50 øre under tak, spotpris over tak            |
 | Prisforskjell (norgespris)            | kr/kWh | Positiv = du betaler mer enn Norgespris (Norgespris er billigere) |
 | Norgespris aktiv nå                   | -      | "Ja"/"Nei" om du har valgt Norgespris                             |
 

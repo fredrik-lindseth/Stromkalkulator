@@ -36,6 +36,27 @@ class KapasitetstrinnDict(TypedDict):
     pris: int
 
 
+class EnergileddPeriode(TypedDict):
+    """En sesongperiode med egne energileddsatser.
+
+    Format: fra/til som "MM-DD" (begge inkludert). Krysser perioden nyttår
+    (fra > til), tolkes det som "fra fra-dato til årsslutt, og fra årets
+    start til til-dato". Satser er eks. mva og avgifter, som hovedfeltene
+    i DSOEntry. Coordinator legger på forbruksavgift, Enova og mva basert
+    på avgiftssone.
+
+    Brukes for nettselskaper som bytter pris mellom sommer og vinter
+    (Tensio, De Nett, Netera, Nettselskapet, m.fl.). Tensio publiserer
+    nye priser uten varsel, så satsene må oppdateres manuelt når
+    DSO-en endrer prislisten. Krever bekreftelse fra DSO-prisliste.
+    """
+
+    fra: str
+    til: str
+    dag_eks_mva: float
+    natt_eks_mva: float
+
+
 class DSOEntry(TypedDict):
     """Type definition for a DSO (Distribution System Operator) entry."""
 
@@ -54,6 +75,11 @@ class DSOEntry(TypedDict):
     # ikke er offisielle helligdager (julaften, nyttårsaften, etc).
     # Krever bekreftelse fra ekte faktura før det legges til.
     helligdager_ekstra: NotRequired[list[str]]
+    # Sesongprising. Hvis satt, overstyrer energiledd_dag/natt_eks_mva for
+    # dager som ligger innenfor en periode. Periodene må dekke hele året
+    # uten overlapp; ellers faller coordinator tilbake til
+    # energiledd_*_eks_mva for ukjente datoer.
+    energiledd_perioder: NotRequired[list[EnergileddPeriode]]
 
 
 @dataclass(frozen=True)
@@ -67,6 +93,24 @@ class DSOFusjon:
 DSO_MIGRATIONS: Final[list[DSOFusjon]] = [
     DSOFusjon(gammel="skiakernett", ny="vevig"),
 ]
+
+
+def finn_aktiv_periode(
+    perioder: list[EnergileddPeriode], mm_dd: str
+) -> EnergileddPeriode | None:
+    """Finn perioden som dekker `mm_dd` ("MM-DD"). None hvis ingen treffer.
+
+    Krysser en periode nyttår (fra > til), tolkes det som union av
+    [fra, 12-31] og [01-01, til].
+    """
+    for periode in perioder:
+        fra, til = periode["fra"], periode["til"]
+        if fra <= til:
+            if fra <= mm_dd <= til:
+                return periode
+        elif mm_dd >= fra or mm_dd <= til:
+            return periode
+    return None
 
 
 # Distribution System Operators (DSO) with default values
@@ -630,9 +674,16 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "De Nett",
         "prisomrade": "NO2",
         "supported": True,
-        # De Nett PDF 2026 vinter.
-        "energiledd_dag_eks_mva": 0.31398,  # 31,40 øre/kWh ren energiledd (2026, vinter)
-        "energiledd_natt_eks_mva": 0.28398,  # 28,40 øre/kWh ren energiledd (2026, vinter)
+        # Verifisert mot offisiell PDF 2026 (denett.no/uploads/Nettleietariffer-fra-01.01.2026...).
+        # Vinter (okt-mars): dag 31,40 / natt 28,40 øre/kWh ren energiledd.
+        # Sommer (apr-sep): dag 26,60 / natt 23,60 øre/kWh ren energiledd.
+        # PDF-en oppgir base + "Reduksjon energiledd natt" 3,00 øre/kWh (eks. mva).
+        "energiledd_dag_eks_mva": 0.314,
+        "energiledd_natt_eks_mva": 0.284,
+        "energiledd_perioder": [
+            {"fra": "10-01", "til": "03-31", "dag_eks_mva": 0.314, "natt_eks_mva": 0.284},
+            {"fra": "04-01", "til": "09-30", "dag_eks_mva": 0.266, "natt_eks_mva": 0.236},
+        ],
         "url": "https://denett.no/priser-tariffer/",
         "kapasitetstrinn": [
             (2, 286),  # 3432/12
@@ -1541,10 +1592,14 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "Sør Aurdal Energi",
         "prisomrade": "NO1",
         "supported": True,
-        # Har sesongpriser - bruker vinterpriser (høyest).
-        # Flat sats - ingen dag/natt-differensiering.
-        "energiledd_dag_eks_mva": 0.25518,  # 25,52 øre/kWh ren energiledd (vinter)
-        "energiledd_natt_eks_mva": 0.25518,  # Flat sats - ingen dag/natt-differensiering
+        # Korrigert 2026-05-25: lagt på sesongprising (verifisert mot SAE PDF 2026).
+        # Vinter (okt-mar) 25,52 / sommer (apr-sep) 21,52. Flat sats, ingen dag/natt.
+        "energiledd_dag_eks_mva": 0.2552,
+        "energiledd_natt_eks_mva": 0.2552,
+        "energiledd_perioder": [
+            {"fra": "10-01", "til": "03-31", "dag_eks_mva": 0.2552, "natt_eks_mva": 0.2552},
+            {"fra": "04-01", "til": "09-30", "dag_eks_mva": 0.2152, "natt_eks_mva": 0.2152},
+        ],
         "url": "https://sae.no/tariffer",
         "kapasitetstrinn": [
             (5, 563),  # 6750/12

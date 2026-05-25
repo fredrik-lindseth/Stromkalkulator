@@ -1,12 +1,12 @@
 # Sensorer
 
-6 devices, 52 sensorer totalt (34 aktive som standard).
+6 devices, 53 sensorer totalt (35 aktive som standard).
 
 | Device           | Aktive | Totalt |
 | ---------------- | ------ | ------ |
 | Nettleie         | 11     | 19     |
 | Strømstøtte      | 6      | 7      |
-| Norgespris       | 3      | 3      |
+| Norgespris       | 4      | 4      |
 | Månedlig forbruk | 8      | 12     |
 | Forrige måned    | 6      | 6      |
 | Eksport          | 0      | 5      |
@@ -80,11 +80,12 @@ Dag: man-fre 06-22 (ikke helligdager). Natt: 22-06, helger, helligdager.
 
 ## Norgespris
 
-| Sensor                       | Enhet  | Beskrivelse                                                       |
-| ---------------------------- | ------ | ----------------------------------------------------------------- |
-| Total strømpris (norgespris) | kr/kWh | Hva du ville betalt med Norgespris: fast 50 øre + nettleie        |
-| Prisforskjell (norgespris)   | kr/kWh | Positiv = du betaler mer enn Norgespris (Norgespris er billigere) |
-| Norgespris aktiv nå          | -      | "Ja"/"Nei" om du har valgt Norgespris                             |
+| Sensor                                | Enhet  | Beskrivelse                                                       |
+| ------------------------------------- | ------ | ----------------------------------------------------------------- |
+| Total strømpris (norgespris)          | kr/kWh | Hva du ville betalt med Norgespris: fast 50 øre + nettleie        |
+| Strømpris (Norgespris, uten nettleie) | kr/kWh | Ren strømdel — fast 50 øre under tak, spotpris over tak           |
+| Prisforskjell (norgespris)            | kr/kWh | Positiv = du betaler mer enn Norgespris (Norgespris er billigere) |
+| Norgespris aktiv nå                   | -      | "Ja"/"Nei" om du har valgt Norgespris                             |
 
 kWh-tak: bolig=5000, fritidsbolig=1000. Over taket betaler du spotpris.
 

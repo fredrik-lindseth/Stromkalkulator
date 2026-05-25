@@ -1,4 +1,4 @@
-"""Tests for diagnostics.py — async_get_config_entry_diagnostics.
+"""Tests for diagnostics.py: async_get_config_entry_diagnostics.
 
 Verifies that the diagnostics output has the correct structure
 and includes all required sections.

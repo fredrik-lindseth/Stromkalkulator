@@ -41,15 +41,15 @@ class TestFinnAktivPeriode:
             {"fra": "11-01", "til": "03-31", "dag_eks_mva": 0.30, "natt_eks_mva": 0.15},
             {"fra": "04-01", "til": "10-31", "dag_eks_mva": 0.20, "natt_eks_mva": 0.10},
         ]
-        # Januar — vinter-perioden krysser nyttår
+        # Januar: vinter-perioden krysser nyttår
         treff = finn_aktiv_periode(perioder, "01-15")
         assert treff is not None
         assert treff["dag_eks_mva"] == 0.30
-        # Desember — fortsatt vinter
+        # Desember: fortsatt vinter
         treff = finn_aktiv_periode(perioder, "12-15")
         assert treff is not None
         assert treff["dag_eks_mva"] == 0.30
-        # Juli — sommer
+        # Juli: sommer
         treff = finn_aktiv_periode(perioder, "07-15")
         assert treff is not None
         assert treff["dag_eks_mva"] == 0.20

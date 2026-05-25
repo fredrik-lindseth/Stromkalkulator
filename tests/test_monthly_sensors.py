@@ -88,7 +88,7 @@ def _make_entry(avgiftssone: str = "standard") -> MagicMock:
 
 
 # ---------------------------------------------------------------------------
-# P1.1 — MaanedligNettleieSensor
+# P1.1: MaanedligNettleieSensor
 # ---------------------------------------------------------------------------
 
 
@@ -109,7 +109,7 @@ class TestMaanedligNettleieSensor:
         assert sensor.native_value == expected
 
     def test_zero_consumption(self):
-        """0 kWh forbruk — should only return kapasitetsledd."""
+        """0 kWh forbruk: should only return kapasitetsledd."""
         data = {
             "monthly_consumption_dag_kwh": 0,
             "monthly_consumption_natt_kwh": 0,
@@ -159,7 +159,7 @@ class TestMaanedligNettleieSensor:
 
 
 # ---------------------------------------------------------------------------
-# P1.2 — MaanedligAvgifterSensor
+# P1.2: MaanedligAvgifterSensor
 # ---------------------------------------------------------------------------
 
 
@@ -218,7 +218,7 @@ class TestMaanedligAvgifterSensor:
 
 
 # ---------------------------------------------------------------------------
-# P1.3 — MaanedligTotalSensor
+# P1.3: MaanedligTotalSensor
 # ---------------------------------------------------------------------------
 
 
@@ -274,7 +274,7 @@ class TestMaanedligTotalSensor:
 
         # Total skal være lik nettleie (ikke nettleie + avgifter)
         assert total_sensor.native_value == nettleie_sensor.native_value
-        # Avgifter-sensoren er informasjonell — den viser hva som allerede er
+        # Avgifter-sensoren er informasjonell: den viser hva som allerede er
         # inkludert i nettleien, men legges ikke til i totalen
         assert avgifter_sensor.native_value > 0
 
@@ -304,7 +304,7 @@ class TestMaanedligTotalSensor:
         assert "nettleie_kr" in attrs
         assert "stromstotte_kr" in attrs
         assert "forbruk_total_kwh" in attrs
-        # avgifter_kr skal IKKE være her — avgifter er allerede inkludert i nettleie
+        # avgifter_kr skal IKKE være her: avgifter er allerede inkludert i nettleie
         assert "avgifter_kr" not in attrs
 
     def test_vektet_snittpris_with_consumption(self, base_data):
@@ -338,7 +338,7 @@ class TestMaanedligTotalSensor:
 
 
 # ---------------------------------------------------------------------------
-# P1.4 — ForrigeMaanedNettleieSensor (med _get_kapasitetsledd_for_avg)
+# P1.4: ForrigeMaanedNettleieSensor (med _get_kapasitetsledd_for_avg)
 # ---------------------------------------------------------------------------
 
 
@@ -434,7 +434,7 @@ class TestForrigeMaanedNettleieSensor:
 
 
 # ---------------------------------------------------------------------------
-# MaanedligForbrukTotalSensor — dag/natt-fordeling (%)
+# MaanedligForbrukTotalSensor: dag/natt-fordeling (%)
 # ---------------------------------------------------------------------------
 
 
@@ -526,7 +526,7 @@ class TestEstimertMaanedskostnadSensor:
         assert value is not None
 
         # Calculate expected manually
-        # energiledd_dag/natt inkluderer allerede avgifter — ikke legg dem til separat
+        # energiledd_dag/natt inkluderer allerede avgifter, ikke legg dem til separat
         dag_kwh, natt_kwh = 150.0, 50.0
         total_kwh = dag_kwh + natt_kwh
         nettleie_variable = dag_kwh * 0.4613 + natt_kwh * 0.2329
@@ -561,7 +561,7 @@ class TestEstimertMaanedskostnadSensor:
 
     @patch("stromkalkulator.sensor.dt_util")
     def test_december_days_in_month(self, mock_dt):
-        """Desember har 31 dager — spesialcase i koden."""
+        """Desember har 31 dager (spesialcase i koden)."""
         mock_dt.now.return_value = datetime(2026, 12, 10, 12, 0, 0)
         data = self._base_data()
         sensor = EstimertMaanedskostnadSensor(

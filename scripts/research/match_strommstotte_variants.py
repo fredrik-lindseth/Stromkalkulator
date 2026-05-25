@@ -43,7 +43,7 @@ USER_OBSERVED_OURS: Final[float] = 1347.0
 
 MVA: Final[float] = 1.25
 
-# Terskler — verdier i NOK/kWh inkl. mva
+# Terskler, verdier i NOK/kWh inkl. mva
 TERSKLER_INKL = {
     "2023 (70 øre)": 0.875,
     "2024 (73 øre)": 0.9125,
@@ -170,7 +170,7 @@ def compute_markdown_rows(hours: list[HourPoint]) -> tuple[list[dict], dict]:
             "delta_us": netto - USER_OBSERVED_OURS,
         })
 
-    # A: forskriftens metode (time-for-time) — viser bare gjeldende kombinasjon + 2025
+    # A: forskriftens metode (time-for-time), viser bare gjeldende kombinasjon + 2025
     for tname, terskel in TERSKLER_INKL.items():
         for rname, rate in RATES.items():
             _, _, netto = netto_spot_etter_stotte(hours, terskel, rate)
@@ -351,7 +351,7 @@ def _print_full_report(hours: list[HourPoint]) -> int:
     print()
 
     # === B: Månedsnitt (vanlig feil) ===
-    print("=== B: Snitt-basert (potensiell feil — IKKE forskriftsmetode) ===")
+    print("=== B: Snitt-basert (potensiell feil, IKKE forskriftsmetode) ===")
     print("    Bruker forbruksvektet månedsnitt mot terskel.")
     for tname, terskel in TERSKLER_INKL.items():
         for rname, rate in [("90 %", 0.90)]:
@@ -359,7 +359,7 @@ def _print_full_report(hours: list[HourPoint]) -> int:
             report(f"snitt-basert: terskel={tname:<14} rate={rname}", netto)
     print()
 
-    # === C: Mva-orientering — terskel oppgitt eks. mva ===
+    # === C: Mva-orientering (terskel oppgitt eks. mva) ===
     print("=== C: Sammenligning i eks. mva-rom (også vanlig feiltolkning) ===")
     print("    Terskel og spotpris sammenlignes eks. mva, støtte multipliseres med 1.25.")
     for label, terskel_eks in [
@@ -384,8 +384,8 @@ def _print_full_report(hours: list[HourPoint]) -> int:
             report(f"round_hour={round_h} round_day={round_d}", netto)
     print()
 
-    # === E: BKKs "uten Norgespris" — hypotese ===
-    print("=== E: Hypotese — hva slags formel matcher BKKs 1377 kr? ===")
+    # === E: BKKs "uten Norgespris" (hypotese) ===
+    print("=== E: Hypotese: hva slags formel matcher BKKs 1377 kr? ===")
     print("    Brute-force på terskel (rate 90 % fast):")
     best_terskel = None
     best_diff = 1e9
@@ -418,7 +418,7 @@ def _print_full_report(hours: list[HourPoint]) -> int:
 
     # === F: Tibber prismodell-påslag (relevant?) ===
     # Brukeren har Norgespris og Tibber er kraftleverandøren. Tibbers påslag (per
-    # 2026 ~10 øre/kWh) er IKKE en del av strømstøtte-formelen — strømstøtten
+    # 2026 ~10 øre/kWh) er IKKE en del av strømstøtte-formelen. Strømstøtten
     # baserer seg på elspotpris i budområdet (forskrift §3), ikke
     # kraftleverandørens pris.
     print("=== F: Tibber-påslag (skal IKKE påvirke strømstøtte) ===")

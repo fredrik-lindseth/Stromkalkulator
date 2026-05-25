@@ -185,7 +185,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         self.spotpris_inkl_mva = entry.data.get(CONF_SPOTPRIS_INKL_MVA, False)
 
         # Energiledd lagres i DSO som ren nettleie eks. mva og avgifter.
-        # Bruker kan overstyre via config (CONF_ENERGILEDD_*) — også eks. mva.
+        # Bruker kan overstyre via config (CONF_ENERGILEDD_*), også eks. mva.
         # Vi beregner inkl-mva-verdier her én gang basert på avgiftssone slik
         # at sensorene kan bruke de ferdige verdiene direkte.
         #
@@ -440,7 +440,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         # Archive energiledd rates for accurate previous-month calculations.
         # For sesong-DSO-er bruker vi forrige måneds siste dag (now - 1 dag) for å fange
         # satsen som faktisk gjaldt mesteparten av forrige måned. Eksempel: rollover
-        # 1. juli kl 00:00 — vi vil ha juni-satsen, ikke juli-satsen.
+        # 1. juli kl 00:00: vi vil ha juni-satsen, ikke juli-satsen.
         forrige_dag = now - timedelta(days=1)
         forrige_dag_dag, forrige_dag_natt = self._get_aktive_energileddsatser(forrige_dag)
         self._previous_month_energiledd_dag = forrige_dag_dag

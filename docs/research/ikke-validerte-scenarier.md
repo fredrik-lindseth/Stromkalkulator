@@ -81,7 +81,7 @@ reell elapsed-tid uavhengig av DST. Riemann-summen er derfor korrekt.
   overstiger forventet kW.
 - Polling-gap som krysser DST: før-hopp + etter-hopp med 90 minutter mellom.
   Verifiser at cap (6 min) forhindrer feilakkumulering.
-- Måneds-rollover natt til 1. november (etter høst-DST i samme måned) —
+- Måneds-rollover natt til 1. november (etter høst-DST i samme måned):
   verifiser `_handle_month_rollover` skriver riktig forrige måned.
 
 ### Prioritering

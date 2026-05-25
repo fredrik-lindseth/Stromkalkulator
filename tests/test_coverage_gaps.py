@@ -565,7 +565,7 @@ class TestNordNorgeAvgiftssone:
 
 
 # ===========================================================================
-# Electricity company price — bad values (from test_quality_r3)
+# Electricity company price, bad values (from test_quality_r3)
 # ===========================================================================
 
 

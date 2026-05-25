@@ -29,6 +29,7 @@ from .const import (
     get_forbruksavgift,
     get_mva_sats,
     get_norgespris_inkl_mva,
+    get_norgespris_max_kwh,
 )
 from .coordinator import days_in_month
 
@@ -786,11 +787,14 @@ class StromprisNorgesprisSensor(NettleieBaseSensor):
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return extra attributes."""
         if self.coordinator.data:
+            boligtype = self.coordinator.data.get("boligtype", "bolig")
             return {
-                "norgespris_fast": self.coordinator.data.get("norgespris"),
-                "spot_price": self.coordinator.data.get("spot_price"),
-                "norgespris_over_tak": self.coordinator.data.get("norgespris_over_tak", False),
-                "boligtype": self.coordinator.data.get("boligtype", "bolig"),
+                "fast_pris": self.coordinator.data.get("norgespris"),
+                "spot_pris": self.coordinator.data.get("spot_price"),
+                "forbruk_denne_maaneden_kwh": self.coordinator.data.get("monthly_consumption_total_kwh"),
+                "maks_kwh_med_fast_pris": get_norgespris_max_kwh(boligtype),
+                "over_maaneds_grense": self.coordinator.data.get("norgespris_over_tak", False),
+                "boligtype": boligtype,
             }
         return None
 

@@ -11,7 +11,7 @@
         },
         "data_description": {
           "boligtype": "Residence: Subsidy up to 5000 kWh/month, Norgespris up to 5000 kWh/month. Holiday home: No subsidy, Norgespris up to 1000 kWh/month. Holiday home (permanent residence): Same as residence (Regulation § 11).",
-          "har_norgespris": "Enable if you have opted for Norgespris from your grid company. Uses fixed price (40-50 øre/kWh) instead of spot price."
+          "har_norgespris": "Enable if you have opted for Norgespris from your grid company. Fixed price (50 øre/kWh in southern Norway, 40 øre in northern Norway) for the first 5000 kWh per month (1000 kWh for holiday homes). Consumption above the limit is billed at spot price."
         }
       },
       "sensors": {
@@ -80,7 +80,7 @@
         "data_description": {
           "boligtype": "Residence: Subsidy up to 5000 kWh/month, Norgespris up to 5000 kWh/month. Holiday home: No subsidy, Norgespris up to 1000 kWh/month. Holiday home (permanent residence): Same as residence (Regulation § 11).",
           "avgiftssone": "Set automatically from grid company. Override only if you know you belong to a different zone.",
-          "har_norgespris": "Enable if you have opted for Norgespris from your grid company. Uses fixed price (40-50 øre/kWh) instead of spot price.",
+          "har_norgespris": "Enable if you have opted for Norgespris from your grid company. Fixed price (50 øre/kWh in southern Norway, 40 øre in northern Norway) for the first 5000 kWh per month (1000 kWh for holiday homes). Consumption above the limit is billed at spot price.",
           "power_sensor": "Sensor showing current power consumption in watts, e.g. from HAN port, Tibber Pulse, or P1 meter.",
           "spot_price_sensor": "Sensor with current spot price in NOK/kWh. Usually 'Current price' from the Nord Pool integration.",
           "spotpris_inkl_mva": "Leave off for HA-core nordpool integration (delivers excl. VAT). Turn on if your sensor already includes VAT.",
@@ -115,7 +115,7 @@
       "total_pris_inkl_avgifter": { "name": "Total price incl. fees" },
       "strompris_per_kwh_etter_stotte": { "name": "Electricity price per kWh (after subsidy)" },
       "total_pris_norgespris": { "name": "Total price (Norgespris)" },
-      "strompris_norgespris": { "name": "Electricity price (Norgespris, excl. grid fees)" },
+      "strompris_norgespris": { "name": "Electricity price (Norgespris scheme)" },
       "prisforskjell_norgespris": { "name": "Price difference (Norgespris)" },
       "norgespris_aktiv": { "name": "Norgespris active now" },
       "energiledd_dag": { "name": "Energy tariff day" },

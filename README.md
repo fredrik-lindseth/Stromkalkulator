@@ -265,6 +265,10 @@ Alle releases har en kryptografisk attestasjon som beviser at ZIP-filen ble bygd
 gh attestation verify stromkalkulator.zip --repo fredrik-lindseth/Stromkalkulator
 ```
 
+## Datakilder
+
+Nettleieprisene vedlikeholdes i integrasjonen og kryssjekkes mot [fri-nettleie](https://github.com/kraftsystemet/fri-nettleie) fra kraftsystemet, som fungerer som referanse/fasit for satsene. Dataene derfra brukes under [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/). Avgifter kommer fra skatteetaten, kapasitetstrinn-struktur fra NVE.
+
 ## Lisens
 
 MIT

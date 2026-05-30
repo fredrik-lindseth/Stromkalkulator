@@ -240,6 +240,10 @@ Example: March, capacity 250 kr/month, spread across 744 kWh (31 days x 24):
 | [contributing.md](docs/contributing.md) | Update prices / report errors |
 | [testing.md](docs/testing.md)           | Validating calculations       |
 
+## Data sources
+
+Grid tariff prices are maintained in the integration and cross-checked against [fri-nettleie](https://github.com/kraftsystemet/fri-nettleie) by kraftsystemet, which serves as the reference for the rates. Their data is used under [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/). Taxes come from the Norwegian Tax Administration, capacity tier structure from NVE.
+
 ## License
 
 MIT

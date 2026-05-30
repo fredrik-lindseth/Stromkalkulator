@@ -1270,9 +1270,10 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "Stannum",
         "prisomrade": "NO2",
         "supported": True,
-        # Stannum PDF 2026. Helg har ingen reduksjon (PDF viser "Reduksjon helg: -").
-        "energiledd_dag_eks_mva": 0.28334,  # 28,33 øre/kWh ren energiledd (2026)
-        "energiledd_natt_eks_mva": 0.25334,  # 25,33 øre/kWh ren energiledd (2026)
+        # Verifisert 2026-05-30 mot fri-nettleie (Stannum PDF 01.10.25): prisen falt
+        # 2025-10-01 fra 28,33/25,33 til 25,01/22,01. Helg har ingen reduksjon.
+        "energiledd_dag_eks_mva": 0.2501,  # 25,01 øre/kWh ren energiledd (fra 01.10.2025)
+        "energiledd_natt_eks_mva": 0.2201,  # 22,01 øre/kWh ren energiledd (fra 01.10.2025)
         "url": "https://stannum.no/nettleiepriser",
         "helg_som_natt": False,
         "kapasitetstrinn": [

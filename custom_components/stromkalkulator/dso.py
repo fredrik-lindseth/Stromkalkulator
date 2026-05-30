@@ -457,8 +457,11 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "Mellom",
         "prisomrade": "NO3",
         "supported": True,
-        "energiledd_dag_eks_mva": 0.21638,  # 21,64 øre/kWh ren energiledd (2026, dag 06-22)
-        "energiledd_natt_eks_mva": 0.15342,  # 15,34 øre/kWh ren energiledd (2026, natt 22-06)
+        # Verifisert 2026-05-30 mot fri-nettleie (NVE-referansedata): mellom.no
+        # publiserer energiledd inkl. mva, men eks. forbruksavgift/Enova (de kommer
+        # i tillegg). 37,21/29,34 inkl. mva ÷1,25 = 29,77/23,47 ren netteierandel.
+        "energiledd_dag_eks_mva": 0.2977,  # 29,77 øre/kWh ren energiledd (2026, dag)
+        "energiledd_natt_eks_mva": 0.2347,  # 23,47 øre/kWh ren energiledd (2026, natt)
         "url": "https://mellom.no/nettleiepriser/",
         "kapasitetstrinn": [
             (2, 254),  # 0-2 kW: 254 kr/mnd
@@ -496,10 +499,15 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "prisomrade": "NO3",
         "supported": True,
         # Namdal (Trøndelag) - HAR 25% mva (ikke mva-fritak)
-        # Har sommer/vinter-priser, bruker vinterpriser (høyest).
+        # Sesongpriser, verifisert 2026-05-30 mot fri-nettleie (NVE-referansedata):
+        # vinter (nov-apr) 12,7/2,7, sommer (mai-okt) 11,6/1,6. Base = vinter (fallback).
         # Coordinator legger på forbruksavgift 7,13 + Enova 1,0 + 25% mva.
-        "energiledd_dag_eks_mva": 0.12702,  # 12,70 øre/kWh ren energiledd (2026, vinter dag)
-        "energiledd_natt_eks_mva": 0.02702,  # 2,70 øre/kWh ren energiledd (2026, vinter natt)
+        "energiledd_dag_eks_mva": 0.127,  # 12,70 øre/kWh ren energiledd (vinter dag)
+        "energiledd_natt_eks_mva": 0.027,  # 2,70 øre/kWh ren energiledd (vinter natt)
+        "energiledd_perioder": [
+            {"fra": "11-01", "til": "04-30", "dag_eks_mva": 0.127, "natt_eks_mva": 0.027},
+            {"fra": "05-01", "til": "10-31", "dag_eks_mva": 0.116, "natt_eks_mva": 0.016},
+        ],
         "url": "https://nettselskapet.as/strompris",
         "kapasitetstrinn": [
             (2, 138),  # 0-2 kW: 137,50 kr/mnd
@@ -1224,8 +1232,10 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "Romsdalsnett",
         "prisomrade": "NO3",
         "supported": True,
-        "energiledd_dag_eks_mva": 0.2259,  # 22,59 øre/kWh ren energiledd (2026)
-        "energiledd_natt_eks_mva": 0.1259,  # 12,59 øre/kWh ren energiledd (2026)
+        # Verifisert 2026-05-30 mot fri-nettleie (NVE-referansedata): publisert
+        # eks. forbruksavgift/Enova, ikke trekk dem fra. Natt = grunnpris.
+        "energiledd_dag_eks_mva": 0.3072,  # 30,72 øre/kWh ren energiledd (2026, dag)
+        "energiledd_natt_eks_mva": 0.2072,  # 20,72 øre/kWh ren energiledd (2026, natt)
         "url": "https://www.romsdalsnettas.no/nettleie/",
         "kapasitetstrinn": [
             (2, 290),
@@ -1241,8 +1251,10 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "S-Nett",
         "prisomrade": "NO3",
         "supported": True,
-        "energiledd_dag_eks_mva": 0.1827,  # 18,27 øre/kWh ren energiledd (2025)
-        "energiledd_natt_eks_mva": 0.13278,  # 13,28 øre/kWh ren energiledd (2025)
+        # Verifisert 2026-05-30 mot fri-nettleie (NVE-referansedata): snett.no
+        # oppgir eks. mva, og forbruksavgift/Enova kommer i tillegg. Ikke trekk dem fra.
+        "energiledd_dag_eks_mva": 0.264,  # 26,40 øre/kWh ren energiledd (2026, dag)
+        "energiledd_natt_eks_mva": 0.2141,  # 21,41 øre/kWh ren energiledd (2026, natt)
         "url": "https://snett.no/nettleie-forbruk-under-100-000-kwh",
         "kapasitetstrinn": [
             (2, 200),
@@ -1312,11 +1324,13 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "Straumnett",
         "prisomrade": "NO5",
         "supported": True,
-        # Korrigert 2026-05-25: tidligere 26,20/19,95 var inkl. mva fra straumnett.no,
-        # ikke ren netteierandel. Konvertert: 26,20/1,25 - 8,13 = 12,83 / 7,83.
+        # Verifisert 2026-05-30 mot fri-nettleie (NVE-referansedata): straumnett.no
+        # oppgir energiledd inkl. mva, men forbruksavgift/Enova kommer i tillegg.
+        # Tidligere trakk vi feilaktig fra 8,13 øre (forbruksavgift+Enova).
+        # 2026: grunnpris 15,96 (natt) / høylast 20,96 (dag), eks. avgifter.
         # Coordinator legger på forbruksavgift 7,13 + Enova 1,0 + 25% mva.
-        "energiledd_dag_eks_mva": 0.1283,  # 12,83 øre/kWh ren energiledd (2026)
-        "energiledd_natt_eks_mva": 0.0783,  # 7,83 øre/kWh ren energiledd (2026)
+        "energiledd_dag_eks_mva": 0.2096,  # 20,96 øre/kWh ren energiledd (2026, dag)
+        "energiledd_natt_eks_mva": 0.1596,  # 15,96 øre/kWh ren energiledd (2026, natt)
         "url": "https://straumnett.no/prisar-for-nettleige",
         "kapasitetstrinn": [
             (2, 200),
@@ -1429,9 +1443,11 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "Vang Energiverk",
         "prisomrade": "NO1",
         "supported": True,
-        # Coordinator legger på forbruksavgift 7,13 + Enova 1,0 + 25% mva.
-        "energiledd_dag_eks_mva": 0.21134,  # 21,13 øre/kWh ren energiledd (2026)
-        "energiledd_natt_eks_mva": 0.21134,  # Flat sats - ingen dag/natt-differensiering
+        # Verifisert 2026-05-30 mot fri-nettleie + vangenergi.no: nettsiden oppgir
+        # 21,13 øre/kWh eks. mva INKL. forbruksavgift+Enova. Ren netteierandel =
+        # 21,13 - 8,13 = 13,00. Coordinator legger på forbruksavgift 7,13 + Enova 1,0 + mva.
+        "energiledd_dag_eks_mva": 0.13,  # 13,00 øre/kWh ren energiledd (2026)
+        "energiledd_natt_eks_mva": 0.13,  # Flat sats - ingen dag/natt-differensiering
         "url": "https://vangenergi.no/forbrukarkundar",
         "kapasitetstrinn": [
             (2, 450),  # Fra nettside - kapasitetsbasert
@@ -1570,8 +1586,10 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "Etna Nett",
         "prisomrade": "NO1",
         "supported": True,
-        "energiledd_dag_eks_mva": 0.2455,  # 24,55 øre/kWh ren energiledd (2025)
-        "energiledd_natt_eks_mva": 0.1759,  # 17,59 øre/kWh ren energiledd (2025)
+        # Verifisert 2026-05-30 mot fri-nettleie (Etna-Nett tariff 1. mai 2026):
+        # prisen steg 2026-05-01 fra 24,55/17,59 til 25,55/18,59.
+        "energiledd_dag_eks_mva": 0.2555,  # 25,55 øre/kWh ren energiledd (2026, fra 01.05)
+        "energiledd_natt_eks_mva": 0.1859,  # 18,59 øre/kWh ren energiledd (2026, fra 01.05)
         "url": "https://etna.no/om-nettleie",
         "kapasitetstrinn": [
             (2, 319),  # 3829/12

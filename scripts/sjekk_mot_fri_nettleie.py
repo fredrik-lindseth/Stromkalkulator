@@ -71,6 +71,16 @@ EKSPLISITT_MAPPING: dict[str, str] = {
     "rakkestad_energi": "elvia",
     "fore": "foere",
     "foie": "foie",
+    # fri-nettleie dropper "nett"/selskapsledd i slug; auto-utleding tar ikke dette.
+    "etna_nett": "etna",
+    "breheim_nett": "breheim",
+    "straumen_nett": "straumen",
+    "telemark_nett": "telemark",
+    "vestmar_nett": "vestmar",
+    "vang_energiverk": "vang",
+    "uvdal_kraftforsyning": "uvdal",
+    # area_nett har ingen ren match: fri-nettleie deler Area i fire regioner
+    # (area-alle/lega/luostejok/nettinord) med ulik pris. Sjekkes manuelt.
 }
 
 
@@ -247,8 +257,16 @@ def main() -> int:
     avvik = sammenlign(remote, args.dato, args.bare_avvik, filter_ids)
 
     pris_avvik = [a for a in avvik if a.felt in ("dag", "natt")]
+    umatchet = sorted(a.dso_id for a in avvik if a.felt == "match")
+    fetch_feil = sorted(a.dso_id for a in avvik if a.felt == "fetch")
     print()
     print(f"# Sammendrag: {len(pris_avvik) // 2} DSO-er med prisavvik over toleranse")
+    # Umatchede DSO-er kan ikke auto-sjekkes og må verifiseres manuelt mot kilde.
+    # De skjules ellers i --bare-avvik, og det er nettopp der drift sniker seg inn.
+    if umatchet:
+        print(f"# {len(umatchet)} uten match i fri-nettleie (sjekk manuelt): {', '.join(umatchet)}")
+    if fetch_feil:
+        print(f"# {len(fetch_feil)} feilet henting: {', '.join(fetch_feil)}")
     return 1 if pris_avvik else 0
 
 

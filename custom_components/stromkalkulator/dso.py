@@ -8,6 +8,9 @@ display-avrundede inkl-priser.
 
 Kilder:
 - Energileddsatser: nettselskapets prisliste (url-felt)
+- Referanse/fasit: kraftsystemet/fri-nettleie (CC-BY-4.0,
+  https://github.com/kraftsystemet/fri-nettleie). Satsene kryssjekkes mot
+  fri-nettleie med scripts/sjekk_mot_fri_nettleie.py.
 - Avgifter: skatteetaten.no (FORBRUKSAVGIFT_ALMINNELIG, ENOVA_AVGIFT i const.py)
 - DSO-liste: Elhub (https://elhub.no/nettselskaper/)
 - Kapasitetstrinn-struktur: NVE (https://www.nve.no/reguleringsmyndigheten/)

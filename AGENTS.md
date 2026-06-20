@@ -14,11 +14,13 @@ Home Assistant-integrasjon for nettleie, strømstøtte og Norgespris-sammenligni
 ## Før commit
 
 ```bash
-pipx run pytest tests/ -v
+pipx run --with hypothesis pytest tests/ -v
 ruff check custom_components/stromkalkulator/ tests/
 ```
 
-Kjøres også via pre-commit hooks.
+`--with hypothesis` trengs fordi `tests/test_property.py` bruker den; uten
+flagget feiler `pipx run pytest` allerede på collection. Kjøres også via
+pre-commit hooks.
 
 ## Viktige regler
 
@@ -26,6 +28,7 @@ Kjøres også via pre-commit hooks.
 - **Satser**: endringer i `const.py` (avgifter, terskel) eller `dso.py` (energiledd, kapasitetstrinn) krever offisiell kilde og bestått testsuite. Kjør `uv run --with pyyaml python scripts/sjekk_mot_fri_nettleie.py --bare-avvik` for å fange pris-drift mot fri-nettleie før du endrer eller committer satser.
 - **DSO-helligdager**: `helligdager_ekstra` i `dso.py` (f.eks. `["12-24", "12-31"]` for BKK) skal kun legges til når en ekte faktura fra DSO-en bekrefter at hele dagen behandles som natt-tariff. Default er kun offisielle norske helligdager.
 - **Månedsskifte**: ikke nullstill `_daily_max_power`, `_monthly_consumption` eller `_previous_month_*` manuelt. Skjer automatisk.
+- **Kursarkiv (kjør månedlig)**: Nord Pools daglige `exchangeRate` er fasiten for NOK-omregningen i Norgespris-kompensasjonen, men det gratis API-et rekker bare ~2 måneder bakover. Kjør `just snapshot-kurs` hver gang du er i repoet (minst månedlig) så ferske kurser arkiveres i `_private/Måleverdier/` før de faller ut. Den offisielle Nord Pool-integrasjonen eksponerer samme kurs som `sensor.nord_pool_no5_exchange_rate` (aktivert på Fredriks HA 2026-06-20, `state_class: measurement`), så HA-recorderen arkiverer den løpende dag-for-dag — det er den primære framtidige kilden, `just snapshot-kurs` er backfill for repo-fixturen. Bakgrunn og veien videre mot eksakt sum: [docs/research/bloomberg-verifisering.md](docs/research/bloomberg-verifisering.md).
 
 ## Dokumentasjon
 

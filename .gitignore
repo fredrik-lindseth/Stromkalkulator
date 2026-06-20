@@ -16,23 +16,22 @@ venv/
 # Lokale filer (personlig data)
 _private/
 Fakturaer/
-.beads/
-.beads-old-backup/
-beads-prompt.md
+
 .anonymize_config.json
 
 # Anonymiserte fakturaer er OK
 !docs/fakturaer/
+
+.dogcats/
 .dogcatrc
 .dogcats/config.local.toml
 .dogcats/.issues.lock
 .dogcats/*.bak-*
+
 .claude/
+
 .hypothesis/
 .worktrees/
 .coverage
 
-# Beads / Dolt files (added by bd init)
-.dolt/
-*.db
-.beads-credential-key
+docs/iec-62056-21/

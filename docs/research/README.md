@@ -16,7 +16,7 @@ Filene her dokumenterer hvordan integrasjonen forholder seg til faktiske BKK-fak
 - [forward-hedge-og-nok-likviditet.md](forward-hedge-og-nok-likviditet.md), Nord Pools to-banks-hedge og NOK-likviditet i lunsj-vinduet.
 - [nok-intraday-volatilitet.md](nok-intraday-volatilitet.md), er observerte 12:00 → 14:15 bevegelser normale, og finnes det systematisk skjevhet.
 - [sporsmal-valutaekspert.md](sporsmal-valutaekspert.md), strukturerte spørsmål til en valuta-PhD om EUR/NOK-omregning.
-- [bestilling-bloomberg.md](bestilling-bloomberg.md), bestillingsbeskrivelse for historiske EUR/NOK 12:00 CET-kurser fra Bloomberg-terminal.
+- [bloomberg-verifisering.md](bloomberg-verifisering.md), resultat av Bloomberg 12:00 CET-uttrekket: hypotesen holdt ikke, og veien videre.
 
 ## AMS-måler og timing
 

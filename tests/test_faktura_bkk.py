@@ -123,9 +123,36 @@ FAKTURA_APRIL_2026 = {
 }
 
 
+FAKTURA_MAI_2026 = {
+    "navn": "mai_2026",
+    "fakturanr": "012345684",
+    "periode_dager": 31,
+    "forbruk_dag_kwh": 518.142,
+    "forbruk_natt_kwh": 661.161,
+    "forbruk_total_kwh": 1179.303,
+    "maks_effekt": [5.167, 4.553, 4.357],
+    "maks_effekt_snitt": 4.692,
+    "kapasitetstrinn_indeks": 1,  # Trinn 2: 2-5 kW
+    "kapasitetstrinn_grense": (5, 250),
+    "kapasitetstrinn_min_kw": 2.0,
+    "kapasitetstrinn_maks_kw": 5.0,
+    "norgespris_snitt_kr_per_kwh": -0.87557,
+    "forventet_energiledd_dag_kr": 186.34,
+    "forventet_energiledd_natt_kr": 86.77,
+    "forventet_norgespris_kr": -1032.56,
+    "forventet_kapasitet_kr": 250.00,
+    "forventet_forbruksavgift_kr": 105.10,
+    "forventet_enovaavgift_kr": 14.74,
+    "forventet_nettleie_kr": 642.95,
+    "forventet_total_kr": -389.61,
+    "forventet_mva_kr": 128.59,
+    "dobbelttelling_avvik_kr": 120,
+}
+
+
 @pytest.fixture(
-    params=[FAKTURA_FEBRUAR_2026, FAKTURA_MARS_2026, FAKTURA_APRIL_2026],
-    ids=["februar_2026", "mars_2026", "april_2026"],
+    params=[FAKTURA_FEBRUAR_2026, FAKTURA_MARS_2026, FAKTURA_APRIL_2026, FAKTURA_MAI_2026],
+    ids=["februar_2026", "mars_2026", "april_2026", "mai_2026"],
 )
 def faktura(request):
     """BKK-faktura for én måned. Norgespris-kunde."""

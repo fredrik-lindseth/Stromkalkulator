@@ -1,6 +1,6 @@
 # Verifiseringsrapport: BKK-faktura april 2026
 
-**Fakturanr:** 64489074
+**Fakturanr:** 012345683
 **Periode:** 01.04.2026 - 01.05.2026 (30 dager)
 **Nettselskap:** BKK (NO5, standard avgiftssone)
 **Avtale:** Norgespris (fast 50 øre/kWh inkl. mva)

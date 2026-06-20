@@ -18,8 +18,6 @@ Lagre `BKK_FakturaXXXXXXXX.pdf` i `Fakturaer/` med opprinnelig filnavn.
 ### 2. Eksporter HAN-data fra HA
 
 ```bash
-ssh ha-local "python3 /tmp/export.py" < scripts/research/export_invoice_hourly.py
-# Eller manuelt:
 scp scripts/research/export_invoice_hourly.py ha-local:/tmp/
 ssh ha-local "python3 /tmp/export_invoice_hourly.py \
     --year 2026 --month 5 \
@@ -27,6 +25,11 @@ ssh ha-local "python3 /tmp/export_invoice_hourly.py \
     --fakturanr <ny-fakturanr>"
 scp ha-local:/tmp/bkk_mai_2026_hourly.json tests/fixtures/
 ```
+
+Spotprisen i fixturen er HA-ens lagrede NOK-pris fra den offisielle Nord
+Pool-integrasjonen, altså med Nord Pools egen `exchangeRate` allerede bakt inn
+(samme kursgrunnlag som BKK fakturerer fra). Verifiseringen under bruker den
+direkte, så ingen EUR→NOK-omregning trengs for månedssjekken.
 
 ### 3. Last ned Elhub-data
 
@@ -44,8 +47,8 @@ Kopier `FAKTURA_APRIL_2026`-blokken, endre navn til `FAKTURA_MAI_2026` og fyll i
 ### 5. Kjør verifisering
 
 ```bash
-# Snapshot-test (validerer hourly mot fakturasum)
-pipx run pytest tests/test_faktura_hourly_snapshot.py -v
+# Parametrisert faktura-test (validerer alle måneder, inkl. den nye, mot fakturasum)
+pipx run --with hypothesis pytest tests/test_faktura_bkk.py -v
 
 # Direkte sammenligning
 python3 scripts/research/verify_invoice_hourly.py \
@@ -63,6 +66,8 @@ Forventede avvik (basert på april 2026):
 | Dag/natt-split     | ±100 Wh hver    |
 | Topp 3 maks effekt | 3-8 W per topp  |
 | Norgespris-komp    | 2-5 kr (0,2 %)  |
+
+Norgespris-komp-avviket på ~0,2 % er dokumentert kurs-/avrundingsstøy, ikke en logikkfeil: spotprisen er allerede Nord Pools NOK-pris. Vil du grave i selve kursen, er den daglige `exchangeRate` arkivert (HA-sensor `sensor.nord_pool_no5_exchange_rate` + `just snapshot-kurs`). Bakgrunn: [../research/nok-omregning.md](../research/nok-omregning.md), [../research/bloomberg-verifisering.md](../research/bloomberg-verifisering.md).
 
 Hvis avvik er innenfor: alt fungerer som dokumentert.
 

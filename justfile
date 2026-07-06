@@ -36,12 +36,18 @@ regen-fixtures start="2026-01-01" end="2026-05-22" area="NO5":
         --start {{start}} --end {{end}} \
         --output tests/fixtures/nb_eur_nok_2026.json
 
-# Arkiver Nord Pools daglige EUR/NOK (exchangeRate) for Norgespris-verifisering.
+# Arkiver Nord Pools daglige EUR/NOK (exchangeRate) og publiserte NOK-kvarterpriser.
 # Kjør hver gang du er i repoet (minst månedlig): gratis-API-et rekker bare ~2 mnd
-# bakover, så ferske kurser må fanges før de faller ut. Merger inn i arkivet under
-# _private/. Bakgrunn: docs/research/bloomberg-verifisering.md.
+# bakover, så ferske data må fanges før de faller ut. Merger inn i arkivene under
+# _private/. Kvarterprisene trengs for eksakt Norgespris-verifisering, se
+# docs/research/norgespris-eksakt-match.md.
 snapshot-kurs area="NO5":
     python3 scripts/research/snapshot_nordpool_exchangerate.py --area {{area}}
+    python3 scripts/research/snapshot_nordpool_nok.py --area {{area}}
+
+# Verifiser Norgespris-linjen mot publiserte Final-priser (alle måneder med dekning).
+verify-norgespris:
+    python3 scripts/research/verify_norgespris_eksakt.py
 
 # Kjør hele testpakken + linting.
 test:

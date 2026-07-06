@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Convert PDF invoices to text files."""
-import subprocess
 import os
+import subprocess
 
 fakturaer_dir = "Fakturaer"
 pdf_files = [f for f in os.listdir(fakturaer_dir) if f.endswith('.pdf')]

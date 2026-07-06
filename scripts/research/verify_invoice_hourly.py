@@ -274,7 +274,34 @@ def main() -> int:
 
     print()
     print("Alt innenfor toleranse" if ok else "Avvik utenfor toleranse")
+    print_norgespris_eksakt(args.faktura, args.shift_seconds)
     return 0 if ok else 1
+
+
+def print_norgespris_eksakt(faktura_navn: str, shift_seconds: int) -> None:
+    """Informativ tilleggssjekk: Norgespris mot Nord Pools publiserte Final-priser.
+
+    HA-recorderen kan ha en annen prisårgang enn BKK fakturerer fra (foreløpig
+    vs Final valutakurs på dager der FX-markedet var stengt). Med publiserte
+    priser skal linjen treffe fakturaen tilnærmet eksakt; juni 2026 traff på
+    øret. Se docs/research/norgespris-eksakt-match.md. Krever de private
+    prisarkivene (`just snapshot-kurs`); hopper stille over hvis de mangler.
+    """
+    try:
+        import verify_norgespris_eksakt as vne
+        res = vne.analyser_maaned(faktura_navn, shift_seconds)
+    except Exception as e:  # aldri la tilleggssjekken velte hovedverifiseringen
+        print(f"\n(Norgespris eksakt-sjekk hoppet over: {type(e).__name__}: {e})")
+        return
+    if res is None:
+        print("\n(Norgespris eksakt-sjekk hoppet over: mangler prisarkiv for måneden, "
+              "kjør `just snapshot-kurs`)")
+        return
+    avvik = res["komp_np"] - res["faktura"]
+    print(f"\nNorgespris mot publiserte Final-priser: {res['komp_np']:+.2f} kr, "
+          f"faktura {res['faktura']:+.2f}, avvik {avvik:+.2f} kr")
+    print("  (forventet |avvik| <= 0.05 kr; større avvik tyder på prisårgang- eller "
+          "kWh-avvik, se docs/research/norgespris-eksakt-match.md)")
 
 
 if __name__ == "__main__":

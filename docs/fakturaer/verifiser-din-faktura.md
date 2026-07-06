@@ -44,7 +44,7 @@ Hvis du finner avvik, noter ned følgende før du går videre. Du trenger inform
 
 Elhub har de offisielle timesverdiene som DSO fakturerer på. Sammenligning mot Elhub viser om avviket sitter hos HAN-leseren eller hos DSO.
 
-1. Logg inn på [elhub.no](https://elhub.no) med BankID.
+1. Logg inn på [minside.elhub.no/metering-points](https://minside.elhub.no/metering-points) med BankID.
 2. Velg "Min side" og last ned timesverdier (CSV) for fakturaperioden.
 3. Sammenlign Elhub-totalen mot fakturaen din:
 

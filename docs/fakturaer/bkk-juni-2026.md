@@ -119,8 +119,9 @@ avrundingsfeil. Verifisert via `tests/test_faktura_bkk.py` (fixture
 `FAKTURA_JUNI_2026`) og coordinator-replay i
 `tests/test_coordinator_replay.py`.
 
-Elhub-CSV-sammenligning (krever BankID-innlogging) gjenstår som frivillig
-tilleggssjekk.
+Elhub-CSV-sammenligning ble utført samme kveld: Elhub matcher fakturaens
+dag-, natt- og totalforbruk på 0 Wh, og Elhub-kWh x publiserte Final-priser
+treffer Norgespris-linjen på 0.005 kr. Ingenting gjenstår for juni.
 
 ## Konklusjon
 

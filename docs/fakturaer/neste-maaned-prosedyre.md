@@ -33,12 +33,11 @@ direkte, så ingen EUR→NOK-omregning trengs for månedssjekken.
 
 ### 3. Last ned Elhub-data
 
-1. Logg inn på [elhub.no](https://elhub.no)
-2. Velg "Min strøm" eller tilsvarende
-3. Velg ditt målepunkt
-4. Eksporter timesverdier som CSV for hele måneden
-5. Lagre originalen i `_private/Måleverdier/elhub_mai.csv` (gitignored, beholder rådata)
-6. Kopier også til `Måleverdier/elhub_mai.csv` om du vil ha den committet. CSV-innholdet har ingen personlig info, men kun én demo-måned committes vanligvis.
+1. Logg inn på [minside.elhub.no/metering-points](https://minside.elhub.no/metering-points)
+2. Velg ditt målepunkt
+3. Eksporter timesverdier som CSV for hele måneden
+4. Lagre originalen i `_private/Måleverdier/elhub_<måned>.csv` (gitignored, beholder rådata). `verify_norgespris_eksakt.py` plukker den opp automatisk på det navnet, og Elhub-kWh er fasiten for eksakt-sjekken (HAN-serien kan ha aggregatglipper, jf. 2. pinsedag 2026).
+5. Kopier også til `Måleverdier/elhub_<måned>.csv` om du vil ha den committet. CSV-innholdet har ingen personlig info, men kun én demo-måned committes vanligvis.
 
 ### 4. Legg til fixture i `tests/test_faktura_bkk.py`
 
@@ -68,20 +67,22 @@ just verify-norgespris
 
 Forventede avvik (basert på april 2026):
 
-| Linje                           | Forventet avvik |
-| ------------------------------- | --------------- |
-| Total kWh                       | ±50 Wh          |
-| Dag/natt-split                  | ±100 Wh hver    |
-| Topp 3 maks effekt              | 3-8 W per topp  |
-| Norgespris-komp (HA-recorder)   | 0,1-0,6 kr      |
-| Norgespris-komp (publisert Final) | ±0,05 kr      |
-| Avgiftslinjer (forbruk/enova)   | ±2 øre          |
+| Linje                              | Forventet avvik |
+| ---------------------------------- | --------------- |
+| Total kWh                          | ±50 Wh          |
+| Dag/natt-split                     | ±100 Wh hver    |
+| Topp 3 maks effekt                 | 3-8 W per topp  |
+| Norgespris (HAN x HA-recorder)     | 0,1-0,6 kr      |
+| Norgespris (HAN x publisert Final) | ±0,4 kr         |
+| Norgespris (Elhub x publisert Final) | ±0,01 kr      |
+| Avgiftslinjer (forbruk/enova)      | ±2 øre          |
 
 Recorder-avviket på Norgespris skyldes at HA lagret en foreløpig valutakurs
-på søndager, ikke logikkfeil. Eksakt-sjekken mot publiserte Final-priser
-skal treffe tilnærmet null; juni 2026 traff på øret. Større avvik der tyder
-på kWh-avvik mot Elhub, eller at Nord Pool har korrigert prisen i etterkant.
-Se [../research/norgespris-eksakt-match.md](../research/norgespris-eksakt-match.md).
+på søndager, ikke logikkfeil. Eksakt-sjekken er Elhub-kWh x Final-priser og
+skal treffe tilnærmet null (mai og juni 2026: innenfor 0,005 kr).
+HAN-varianten kan bomme opp mot 0,4 kr hvis recorder-aggregatet har byttet
+delta mellom nabotimer (skjedde 2. pinsedag 2026). Se
+[../research/norgespris-eksakt-match.md](../research/norgespris-eksakt-match.md).
 Avgiftslinjene har et gulv på 1-2 øre som er BKKs interne avrunding.
 
 Hvis avvik er innenfor: alt fungerer som dokumentert.

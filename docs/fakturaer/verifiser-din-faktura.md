@@ -8,11 +8,11 @@ Denne guiden tar deg gjennom verifiseringen steg for steg, uansett hvilken AMS-m
 
 Integrasjonen treffer fakturaen innenfor disse toleransene:
 
-| Linje                                             | Forventet avvik              |
-| ------------------------------------------------- | ---------------------------- |
-| Månedstotal forbruk                               | 0 til 50 Wh                  |
-| Energiledd, avgifter, kapasitetsledd, strømstøtte | inntil 0,01 kr               |
-| Norgespris-kompensasjon                           | inntil 0,2 % (vekslingskurs) |
+| Linje                                             | Forventet avvik                |
+| ------------------------------------------------- | ------------------------------ |
+| Månedstotal forbruk                               | 0 til 50 Wh                    |
+| Energiledd, avgifter, kapasitetsledd, strømstøtte | inntil 0,02 kr                 |
+| Norgespris-kompensasjon                           | inntil 0,05 % (foreløpige priser i HA) |
 
 Større avvik enn dette tyder på reell feil i satser, konfigurasjon eller hardware-oppsett.
 
@@ -161,7 +161,7 @@ Ikke ta med:
 | Kapasitetsledd avviker                  | Trinn-grenser i `dso.py` er feil, eller forbruksmønster brytes ned annerledes                           |
 | Strømstøtte avviker (2025-fakturaer)    | Terskel eller dekningsgrad har endret seg                                                               |
 | Månedstotal avviker med > 50 Wh         | HAN-leser-shift, prøv andre `--shift-seconds`-verdier                                                   |
-| Norgespris-kompensasjon avviker > 0,2 % | Spotpris-håndtering (eks/inkl. mva), se [incident 004](../incidents/004-spotpris-mva-feilbehandling.md) |
+| Norgespris-kompensasjon avviker > 0,2 % | Spotpris-håndtering (eks/inkl. mva), se [incident 004](../incidents/004-spotpris-mva-feilbehandling.md). Avvik på 0,04-0,05 % er normalt: HA-recorderen kan ha foreløpige priser, se [research/norgespris-eksakt-match.md](../research/norgespris-eksakt-match.md) |
 
 ## Eksisterende verifikasjoner
 

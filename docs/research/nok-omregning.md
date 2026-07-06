@@ -5,6 +5,8 @@ Undersøkelse av hvorfor vår beregning av Norgespris-kompensasjon avviker fra B
 > Status: konklusjon 2026-05-23 etter variant-matrise. Avviket redusert fra 2,92 kr til 0,79 kr (73 %). Reproduserbar via `scripts/research/match_norgespris_variants.py` (live HKS-kall + lokal NB-fixture).
 >
 > **Oppdatering 2026-06-20:** Bloomberg-data for 12:00 CET er nå hentet og testet. Hypotesen om at BKK bruker 12:00-kursen holdt **ikke** — se [Resultat: Bloomberg 12:00 CET](#resultat-bloomberg-1200-cet-2026-06-20). Restavviket forblir i samme ±0,2 %-bånd som med Norges Bank-kursen.
+>
+> **Løst 2026-07-06:** Med Nord Pools publiserte Final-kvarterpriser (ikke rekonstruert EUR x kurs) reproduseres Norgespris-linjen **eksakt** for juni 2026. ±0,2 %-båndet i denne analysen skyldtes at både HA-recorderen og rekonstruksjonene brukte en annen prisårgang eller kurskilde enn BKK. Kurssporet er lukket. Se [norgespris-eksakt-match.md](norgespris-eksakt-match.md).
 
 ## Avviket
 

@@ -5,7 +5,7 @@ nettselskap. Verdier i `dso.py` er **ren nettleie eks. mva og eks.
 forbruksavgift/Enova** for energiledd, og **kr/mnd inkl. mva** for
 kapasitetsledd.
 
-Hentet 2026-05-23 (dagens dato).
+Hentet 2026-05-23.
 
 ## Konklusjoner
 
@@ -62,8 +62,9 @@ HTML-prisliste viser bare trinn 1-6, PDF og kraftsystemet bekrefter trinn
 |---|---|---|---|---|---|
 | Flat | 24,382 | 14,26 (inkl. mva ÷ 1,25 = 11,408) | ikke spesifisert | 11,41 (u/ avgifter) | **11,41** |
 
-Lede oppgir 14,26 øre/kWh men det er deretter merket som "ekskl. mva" på
-deres egen side, mens kraftsystemet.no detaljerer alle nivåer eksplisitt:
+Lede oppgir 14,26 øre/kWh merket "ekskl. mva" på egen side, men merkingen
+stemmer ikke: 11,41 × 1,25 = 14,26, så tallet er inkl. mva og ekskl.
+avgifter. Kraftsystemet.no detaljerer alle nivåer eksplisitt:
 11,41 u/ avgifter, 12,41 m/ Enova, 19,54 m/ Enova og forbruksavgift, 24,42
 m/ alle avgifter og mva.
 
@@ -78,7 +79,7 @@ ren nettleie. Feil semantikk.
 
 | kW | Vår dso.py | Primær (Lede HTML) | Sekundær (kraftsystemet, årspris inkl. mva ÷ 12) | Valgt |
 |---|---|---|---|---|
-| 0-5 | 294 | 268,75 | 5505/12 = 458,75? nei: 3225/12 = 268,75 | **269** |
+| 0-5 | 294 | 268,75 | 3225/12 = 268,75 | **269** |
 | 5-10 | 503 | 458,75 | 5505/12 = 458,75 | **459** |
 | 10-15 | 708 | 647,50 | 7770/12 = 647,50 | **648** |
 | 15-20 | 916 | 837,50 | 10050/12 = 837,50 | **838** |
@@ -122,7 +123,7 @@ avrundet til hele kroner; Norgesnett oppgir desimaler).
 **Kilder:**
 - Primær: [Asker Nett prisliste 2026](https://askernett.no/prisliste-for-privatkunder-i-2026/)
 - Sekundær: [Asker Nett prisjustering 2026](https://askernett.no/prisjustering-pa-nettleien-fra-1-januar-2026/)
-- Tertiær: Search-bekreftelse
+- Tertiær: websøk-bekreftelse
 
 ### Energiledd
 

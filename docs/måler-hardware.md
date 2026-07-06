@@ -79,11 +79,11 @@ HA-mottakstid = meter-broadcast + transmisjons-tid gjennom HAN-leseren. Transmis
 | Kaifa/Aidon + Tibber Bridge | Ukjent                        | RJ45 direkte HAN, lokal kobling    |
 | Kaifa/Aidon + ESPHome AMS   | 3-10 sek                      | Avhengig av firmware               |
 
-mitt Kaifa + Pow-U-oppsett er målt til 13 sek presis (10 sek inne i måleren, 3 sek i transmisjon). Det er kun denne verifiserings-pipelinen i [scripts/research/verify_invoice_hourly.py](../scripts/research/verify_invoice_hourly.py) som påvirkes. Selve HA-integrasjonen leser `p`-strømmen kontinuerlig og er upåvirket av forsinkelsen.
+Mitt Kaifa + Pow-U-oppsett er målt til nøyaktig 13 sek (10 sek inne i måleren, 3 sek i transmisjon). Det er kun denne verifiserings-pipelinen i [scripts/research/verify_invoice_hourly.py](../scripts/research/verify_invoice_hourly.py) som påvirkes. Selve HA-integrasjonen leser `p`-strømmen kontinuerlig og er upåvirket av forsinkelsen.
 
-Andre kombinasjoner må verifiseres empirisk hos brukeren. Se [begrensninger.md, seksjon 1](begrensninger.md#1-verifiserings-script-sample-skift-mellom-han-broadcast-og-time-grense) for hvordan dette håndteres i scriptet og hva `--shift-seconds` skal settes til.
+Andre kombinasjoner må verifiseres empirisk hos brukeren. Se [begrensninger.md, seksjon 6](begrensninger.md#6-for-utviklere-verifisering-mot-ekte-faktura) for hvordan dette håndteres i scriptet og hva `--shift-seconds` skal settes til.
 
-## eget oppsett
+## Eget oppsett
 
 | Felt                   | Verdi                                                  |
 | ---------------------- | ------------------------------------------------------ |
@@ -168,9 +168,9 @@ Sensorer som havner i HA (auto-oppdaget):
 | `sensor.pow_u_ams_peaks0/1/2` | list3             | 1x per time           |
 | `sensor.pow_u_ams_max`        | beregnet av Pow-U | løpende               |
 
-`pow_u_ams_houruse` er Pow-U's egen kalkulasjon (tpi-diff per time). I praksis matcher den `tpi_HH+1 - tpi_HH`, men kan avvike marginalt på grenser.
+`pow_u_ams_houruse` er Pow-U sin egen kalkulasjon (tpi-diff per time). I praksis matcher den `tpi_HH+1 - tpi_HH`, men kan avvike marginalt på grenser.
 
-`pow_u_ams_peaks0/1/2` er målerens egen rapporterte topp-3 max-effekt for current month. Dette er **time-snitt-effekt**, ikke momentan-topp.
+`pow_u_ams_peaks0/1/2` er målerens egen rapporterte topp-3 maks-effekt for inneværende måned. Dette er **time-snitt-effekt**, ikke momentan-topp.
 
 ## HA recorder og long-term statistics
 
@@ -202,13 +202,13 @@ NVE/RME-forskriften krever at AMS-målere rapporterer timesverdier til Elhub. Be
 
 Elhub-snapshot tas ved presis HH:00:00 lokal tid (måleren har egen RTC for dette). HAN list3-broadcast skjer 13 sek senere.
 
-Det betyr **BKK har de samme verdiene som Elhub**, og **vi har 13-sek-forskjøvet aggregat** i HAN-data. Akkumulert over 720 timer blir det -9 Wh på sum.
+Det betyr at BKK har de samme verdiene som Elhub, og at vi har 13-sek-forskjøvet aggregat i HAN-data. Akkumulert over 720 timer blir det -9 Wh på sum.
 
 Se [research/elhub-vs-han-vs-faktura.md](research/elhub-vs-han-vs-faktura.md) for detaljert analyse.
 
-## Hvor vi har KANTE over BKK
+## Der vi ser mer enn BKK
 
-For `p` (momentan effekt) er HAN-strømmen kontinuerlig. Vi kan måle hver 2,5 sekund. BKK ser bare hourly snitt-effekt (kWh-diff per time).
+For `p` (momentan effekt) er HAN-strømmen kontinuerlig. Vi kan måle hvert 2,5 sekund. BKK ser bare times-snitt av effekten (kWh-diff per time).
 
 Dette betyr:
 

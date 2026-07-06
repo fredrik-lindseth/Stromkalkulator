@@ -138,7 +138,7 @@ Lagres ved månedsskifte. Brukes til faktura-verifisering.
 | Forrige måned toppforbruk             | kW    | Snitt av topp-3, bestemte kapasitetstrinn |
 | Forrige måned Norgespris-kompensasjon | kr    | Norgespris-kompensasjon for forrige måned |
 
-Alle har `måned`-attributt (f.eks. "januar 2026").
+Alle har `maaned`-attributt (f.eks. "januar 2026").
 
 **Nettleie-sensoren** har også: `energiledd_dag_kr`, `energiledd_natt_kr`, `kapasitetsledd_kr`, `snitt_topp_3_kw`, `norgespris_differanse_kr`.
 

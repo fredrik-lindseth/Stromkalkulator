@@ -1,6 +1,6 @@
 # AMS-måler-spesifikasjoner og standarder
 
-Lokal kopi av offisielle dokumenter brukt i fakturaverifiserings-prosjektet. Lagret 2026-05-22 så vi slipper å lete igjen og er beskyttet mot at originalt-URLer flyttes eller forsvinner.
+Lokal kopi av offisielle dokumenter brukt i fakturaverifiserings-prosjektet. Lagret 2026-05-22 så vi slipper å lete igjen og er beskyttet mot at original-URL-ene flyttes eller forsvinner.
 
 ## Aidon (BKK-området, vanligst i Norge)
 
@@ -38,7 +38,7 @@ Modeller dokumentert: 6515 (1-fase), 6520, 6525 (3-fase Hafslund), 6530, **6534 
 | -------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
 | [iec62056-21-ed1.0-1996.pdf](iec62056-21-ed1.0-1996.pdf) | IEC 62056-21 ed 1.0 (1996) ASCII serial protocol | [ungelesen.net](https://www.ungelesen.net/protagWork/media/downloads/solar-steuerung/iec62056-21%7Bed1.0%7Den_.pdf) |
 
-**Nøkkelfunn:** Standarden regulerer framing, baudrate og data-encoding, men sier ingenting om når kumulative timesverdier skal sendes. Hver målerprodusent velger eget timing. Den nyeste utgaven er bak IEC-paywall (~CHF 200), men vi har ikke behov for den.
+**Nøkkelfunn:** Standarden regulerer framing, baudrate og data-encoding, men sier ingenting om når kumulative timesverdier skal sendes. Hver målerprodusent velger egen timing. Den nyeste utgaven er bak IEC-paywall (~CHF 200), men vi har ikke behov for den.
 
 ## Konklusjon på tvers av merker
 

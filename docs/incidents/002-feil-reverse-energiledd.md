@@ -49,5 +49,5 @@ Fungerer for alle tre avgiftssoner (Standard, Nord-Norge, Tiltakssonen).
 ## Lærdom
 
 1. **Ikke bland inkl. mva og eks. mva i aritmetikk.** Konverter til samme basis først (del på (1 + mva)), trekk fra etterpå.
-2. **Fakturaverifisering avdekker subtile feil.** Diagnostikk-attributter brukes sjelden i daglig bruk, og ble bare fanget gjennom systematisk sammenligning.
+2. **Fakturaverifisering avdekker subtile feil.** Diagnostikk-attributter brukes sjelden til daglig, og ble bare fanget gjennom systematisk sammenligning.
 3. **Tester må matche faktiske fakturaer.** `test_reverse_energiledd_*` i `tests/test_faktura_februar_2026.py`.

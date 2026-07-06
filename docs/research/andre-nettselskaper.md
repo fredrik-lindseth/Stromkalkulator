@@ -12,13 +12,13 @@ Lnett og Lede har vesentlig feil priser i `dso.py`, vi har antakelig
 gamle tall (2024 eller tidligere).
 
 Ingen avvik på avregningsmodell: alle store DSO-er bruker "snitt av de
-tre høyeste døgnmaks" eller "snitt av tre høyeste timer i forskellige
+tre høyeste døgnmaks" eller "snitt av tre høyeste timer i forskjellige
 døgn", funksjonelt identisk med vår implementasjon i
 `_get_top_3_days()` + `_handle_month_rollover()`.
 
 ## Per nettselskap
 
-### Elvia (NO1) - Norges største
+### Elvia (NO1): Norges største
 
 Kilde: [Tariffblad 1.0 standard tariff privat 2026-01-01 (PDF)](https://www.elvia.no/siteassets/dokumenter/priser/2026/tariffblad_1_0_standard-tariff_privat_20260101.pdf)
 
@@ -45,14 +45,14 @@ søndag/helligdager hele døgnet. Match med `_is_day_rate()`.
 | 10    | 100+ | 4 570    | 4 225      | -345   |
 
 Kommentaren i dso.py:108 sier trinn 6-10 er "fra PDF
-tariffblad_1_0_standard-tariff_privat_20260101.pdf" - men tallene
+tariffblad_1_0_standard-tariff_privat_20260101.pdf", men tallene
 matcher ikke aktuell PDF. Enten leste vi feil eller PDFen har endret seg.
 
 **Avregning:** "Gjennomsnittet av de tre høyeste døgnmaksene i måneden" -
 match med vår `_get_top_3_days()`. Døgnmaks = "klokketimen i løpet av et
-døgn med høyest kWh-forbruk" - match med vårt `_current_hour_energy`.
+døgn med høyest kWh-forbruk": match med vårt `_current_hour_energy`.
 
-### Tensio TN (NO3) - Trøndelag nord
+### Tensio TN (NO3): Trøndelag nord
 
 Kilde: [Tensio nettleiepriser privat](https://www.tensio.no/no/kunde/nettleie/nettleiepriser-for-privat),
 [kraftsystemet.no Tensio TN](https://kraftsystemet.no/fri-nettleie/tariffer/tensio-tn.html)
@@ -66,14 +66,14 @@ Kilde: [Tensio nettleiepriser privat](https://www.tensio.no/no/kunde/nettleie/ne
 
 **Helg/helligdag:** Tensios egen side: "Energileddet varierer bare mellom
 dag- og nattpris, vi har ikke ulike priser for helg eller helligdager."
-Vår `helg_som_natt: False` - match.
+Vår `helg_som_natt: False`: match.
 
 **Kapasitetstrinn:** kunne ikke verifisere kr/mnd-tallene direkte fra
 Tensios side (vises ikke på nettsiden uten konkrete tabeller). Vi har
 beregnet fra kr/år-tabell. Bør verifiseres mot ekte faktura før vi kan
 si noe sikkert.
 
-### Tensio TS (NO3) - Trøndelag sør
+### Tensio TS (NO3): Trøndelag sør
 
 Kilde: [kraftsystemet.no Tensio TS](https://kraftsystemet.no/fri-nettleie/tariffer/tensio-ts.html)
 
@@ -94,14 +94,14 @@ Kilde: [Glitre Nett nettleiepriser privat](https://www.glitrenett.no/kunde/nettl
 - Dag (06-22): 24,6 øre/kWh eks. mva. Vår: 24,598 (avrunding på 0,002 øre, neglisjerbart)
 - Natt (22-06): 12,6 øre/kWh eks. mva. Vår: 12,598 (samme)
 
-**Avregning:** "Snittet av de tre høyeste døgnmaksene" - match.
+**Avregning:** "Snittet av de tre høyeste døgnmaksene": match.
 
 **Helg/helligdag:** Glitres side nevner ikke spesiell helgebehandling, vår
-`helg_som_natt: False` - virker riktig, men bør dobbeltsjekkes mot faktura.
+`helg_som_natt: False`: virker riktig, men bør dobbeltsjekkes mot faktura.
 
 **Kapasitetstrinn:** match alle ti trinn.
 
-### Lnett (NO2) - Stavanger-området
+### Lnett (NO2): Stavanger-området
 
 Kilde: [Lnett tariffhefte 2026 (PDF)](https://www.l-nett.no/getfile.php/131569206-1764934863/Tariffhefte%20fra%201.%20januar%202026.pdf),
 [Lnett priser privat](https://www.l-nett.no/nettleie/priser-og-vilkar-privat/)
@@ -113,8 +113,8 @@ Kilde: [Lnett tariffhefte 2026 (PDF)](https://www.l-nett.no/getfile.php/13156920
 | Natt eks. mva | 13,60 øre | 5,47 øre | +8,13 øre (~149% feil) |
 
 Avviket på nøyaktig 8,13 øre = forbruksavgift (7,13) + Enova (1,0).
-Mistanke: vi har feiltrekt fra avgiftene to ganger, trakk dem ut én gang
-men dato-en stemmer ikke. Eller vi har gamle tall.
+Mistanke: gamle tall, eller avgifter trukket fra to ganger. Datoen i
+kommentaren stemmer heller ikke. Eller vi har gamle tall.
 
 **Kapasitetstrinn:** AVVIK på høyere trinn
 | Trinn | kW | Lnett 2026 | Vår dso.py |
@@ -130,12 +130,12 @@ men dato-en stemmer ikke. Eller vi har gamle tall.
 | 9 | 75-100 | 4 150 | --- |
 | 10 | 100+ | 7 000 | --- |
 
-Vår dso.py:248 har `(float("inf"), 1150)` - alle kunder over 25 kW
+Vår dso.py:248 har `(float("inf"), 1150)`: alle kunder over 25 kW
 faktureres feil i vår implementasjon. Mistolket "20-25 kW" som siste
 trinn.
 
 **Avregning:** "Snittet av de tre høyeste timesforbrukene ('døgnmakser')
-forrige måned" - match.
+forrige måned": match.
 
 ### Lede (NO2)
 
@@ -174,20 +174,20 @@ Kilde: [Norgesnett nettleie privat](https://norgesnett.no/nettleie-privat/)
 
 Antakelig 2025-tall.
 
-## Forbruksavgift 2026 - sjekk const.py
+## Forbruksavgift 2026: sjekk const.py
 
 Statsbudsjettet 2026 foreslår 8,9125 øre/kWh inkl. mva = **7,13 øre/kWh
 eks. mva**. Skatteetaten bekrefter dette. Vår `const.py:181` har
-`FORBRUKSAVGIFT_ALMINNELIG = 0.0713` - korrekt.
+`FORBRUKSAVGIFT_ALMINNELIG = 0.0713`: korrekt.
 
 Lnett og Glitre nevner i sine prislister at 2026-avgiftene "ikke er
-vedtatt" formelt - merk for framtiden hvis dette endres i vedtatt
+vedtatt" formelt, merk for framtiden hvis dette endres i vedtatt
 statsbudsjett.
 
-## Enova-avgift 2026 - sjekk const.py
+## Enova-avgift 2026: sjekk const.py
 
 Glitre og Lnett rapporterer **1,25 øre/kWh inkl. mva = 1,0 øre/kWh eks. mva**.
-Vår `const.py:182` har `ENOVA_AVGIFT = 0.01` - korrekt.
+Vår `const.py:182` har `ENOVA_AVGIFT = 0.01`: korrekt.
 
 ## Bugs i dso.py
 
@@ -217,7 +217,7 @@ Vår `const.py:182` har `ENOVA_AVGIFT = 0.01` - korrekt.
 
 ### Helg-flagg ikke konsistent
 
-Glitre `helg_som_natt: False` - men Glitres egen side viser ikke entydig
+Glitre `helg_som_natt: False`, men Glitres egen side viser ikke entydig
 om dag-prisen gjelder helg. Trenger faktura-verifisering. Hvis Glitre
 faktisk har helg = natt, blir vi for høye på helger.
 
@@ -225,7 +225,7 @@ Tensios egen side er entydig: ingen helg-rabatt. `helg_som_natt: False`
 korrekt for begge Tensio TS og TN.
 
 Elvia har eksplisitt "Lørdag og søndag samt helligdager" = natt/helg.
-Vår dso.py for Elvia mangler `helg_som_natt`-felt - default er True
+Vår dso.py for Elvia mangler `helg_som_natt`-felt: default er True
 ifølge `dso.py:50`. Default-oppførselen behandler helg som natt, så
 det blir riktig for Elvia. Bra.
 
@@ -233,7 +233,7 @@ det blir riktig for Elvia. Bra.
 
 Kraftsystemet.no skriver "tre høyeste timer i forskjellige døgn". Vår
 implementasjon plukker `daily_max_power` (én verdi per dag) og snitter
-topp 3. Funksjonelt likt - hvis du har to høye timer på samme dag, regnes
+topp 3. Funksjonelt likt: hvis du har to høye timer på samme dag, regnes
 kun den høyeste. Det er Tensios intensjon (forskjellige døgn).
 
 Risiko: hvis et nettselskap faktisk snitter "topp 3 timer på 3
@@ -244,12 +244,12 @@ treffer vi feil. Ingen DSO så langt har den formuleringen.
 
 Lnett og Glitre flagger 2026-avgiftene som "ikke vedtatt" (statsbudsjettet
 er ikke endelig). Skatteetaten oppgir 7,13 øre eks. mva som gjeldende.
-Hvis Stortinget endrer dette i desember 2026, må vi oppdatere const.py
-- ingen krise i mai 2026.
+Hvis Stortinget endrer dette i desember 2026, må vi oppdatere const.py.
+Ingen krise i mai 2026.
 
 ## Anbefaling
 
-**Avgrense scope er ikke realistisk** - vi har allerede 30+ DSO-er i
+**Avgrense scope er ikke realistisk**: vi har allerede 30+ DSO-er i
 dso.py, og brukere har valgt dem i config. Å fjerne støtte for alle
 utenom BKK ville bryte eksisterende oppsett.
 

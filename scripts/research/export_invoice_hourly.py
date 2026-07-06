@@ -206,7 +206,12 @@ def main() -> None:
             file=sys.stderr,
         )
 
-    navn = f"{start.strftime('%B').lower()}_{args.year}"
+    # strftime('%B') er locale-avhengig og ga engelske navn i HA-kontaineren
+    maaneder = [
+        "januar", "februar", "mars", "april", "mai", "juni",
+        "juli", "august", "september", "oktober", "november", "desember",
+    ]
+    navn = f"{maaneder[args.month - 1]}_{args.year}"
 
     out = {
         "metadata": {

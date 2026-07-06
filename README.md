@@ -33,7 +33,7 @@ Sensorer som viser hva strømmen faktisk koster, ikke bare spotprisen:
 
 | Nettselskap | Prisområde | Verifiserte måneder | Siste verifisering |
 | ----------- | ---------- | ------------------- | ------------------ |
-| BKK         | NO5        | 7                   | mai 2026           |
+| BKK         | NO5        | 8                   | juni 2026          |
 
 Hver rapport matcher integrasjonens beregninger linje for linje mot en ekte faktura. Se [docs/fakturaer/referanse.md](docs/fakturaer/referanse.md).
 

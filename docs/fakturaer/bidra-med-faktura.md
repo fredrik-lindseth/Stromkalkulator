@@ -13,7 +13,7 @@ Begge må være fra samme måned for at vi skal kunne sammenligne.
 
 ## Slik henter du Elhub-eksport
 
-1. Gå til [elhub.no](https://elhub.no) og logg inn med BankID
+1. Gå til [minside.elhub.no/metering-points](https://minside.elhub.no/metering-points) og logg inn med BankID
 2. Velg "Mine målepunkter"
 3. Velg perioden som matcher fakturaen
 4. Eksporter som CSV

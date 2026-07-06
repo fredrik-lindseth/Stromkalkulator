@@ -16,6 +16,13 @@ Priskilder, i prioritert rekkefølge per time:
 2. tests/fixtures/nordpool_eur_no5_2026.json x _private exchangeRate-arkivet
    (for dager som har falt ut av gratis-vinduet, f.eks. 1.-4. mai 2026).
 
+kWh-kilder: HAN-fixturen (alltid), pluss Elhub-CSV når
+_private/Måleverdier/elhub_<måned>.csv finnes. Elhub er fakturagrunnlaget
+BKK leser, så Elhub x Final er den skarpeste sjekken: mai og juni 2026
+traff fakturaen innenfor 0,005 kr. HAN-serien kan ha enkelttimer der
+recorder-aggregatet byttet delta mellom nabotimer (mai 2026: 0,35 kr på
+2. pinsedag), så den får romsligere forventning.
+
 Måneder uten full prisdekning hoppes over. Kjøres uten nett.
 
     python3 scripts/research/verify_norgespris_eksakt.py
@@ -25,6 +32,7 @@ Måneder uten full prisdekning hoppes over. Kjøres uten nett.
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import sys
 from datetime import datetime
@@ -95,6 +103,30 @@ def publiserte_priser(hours: list[dict[str, Any]]) -> tuple[dict[str, float], di
     return priser, kilder
 
 
+def last_elhub(navn: str) -> dict[str, float] | None:
+    """{time-start ISO: kWh} fra Elhub-CSV, eller None hvis fila mangler.
+
+    Ser etter elhub_<måned>_<år>.csv og elhub_<måned>.csv under både
+    _private/Måleverdier/ og Måleverdier/ (tracked demo-kopier).
+    """
+    maaned, aar = navn.split("_")
+    kandidater = [
+        ROOT / "_private" / "Måleverdier" / f"elhub_{maaned}_{aar}.csv",
+        ROOT / "_private" / "Måleverdier" / f"elhub_{maaned}.csv",
+        ROOT / "Måleverdier" / f"elhub_{maaned}_{aar}.csv",
+        ROOT / "Måleverdier" / f"elhub_{maaned}.csv",
+    ]
+    for p in kandidater:
+        if not p.exists():
+            continue
+        out: dict[str, float] = {}
+        with p.open(encoding="utf-8-sig") as f:
+            for row in csv.DictReader(f, delimiter=";"):
+                out[row["Fra"]] = float(row["Volum"].replace(",", "."))
+        return out
+    return None
+
+
 def skiftede_kwh(hours: list[dict[str, Any]], shift_seconds: int) -> list[float]:
     """Samme 13-sekunders teleskop-korreksjon som verify_invoice_hourly.beregn()."""
     ut: list[float] = []
@@ -163,12 +195,19 @@ def analyser_maaned(navn: str, shift_seconds: int) -> dict[str, Any] | None:
         if vih.NORGESPRIS_INKL_MVA - p * vih.MVA_SATS <= 0
     )
 
+    # Elhub-kWh x Final: skarpeste sjekk, når CSV-en finnes og dekker måneden
+    komp_elhub = None
+    elhub = last_elhub(navn)
+    if elhub is not None and all(h["start_local"] in elhub for h in hours):
+        komp_elhub = komp_sum([elhub[h["start_local"]] for h in hours], np_)
+
     faktura = vih.FAKTURAER[navn]["forventet_norgespris_kr"]
     return {
         "navn": navn,
         "faktura": faktura,
         "komp_ha": komp_sum(kwhs, ha),
         "komp_np": komp_sum(kwhs, np_),
+        "komp_elhub": komp_elhub,
         "n_timer": len(hours),
         "kilder": kilder,
         "bitlike": bitlike,
@@ -192,9 +231,14 @@ def print_konsoll(res: dict[str, Any]) -> None:
             print(f"    {a['dag']} {a['ukedag']}: HA/publisert = {a['ratio']:.5f} ({merke}, {a['timer']} timer)")
     print(f"  symmetri: {res['betaletimer']} timer med spot < 50 øre inkl. mva; "
           f"å klippe dem ville flyttet summen {res['clamp_avvik']:+.2f} kr")
-    for kilde, verdi in (("HA-recorder    ", res["komp_ha"]), ("publisert Final", res["komp_np"])):
+    rader = [("HAN-kWh x HA-recorder ", res["komp_ha"]), ("HAN-kWh x Final       ", res["komp_np"])]
+    if res["komp_elhub"] is not None:
+        rader.append(("Elhub-kWh x Final     ", res["komp_elhub"]))
+    for kilde, verdi in rader:
         print(f"  Norgespris, {kilde}: {verdi:+10.2f} kr, faktura {res['faktura']:+.2f}, "
-              f"avvik {verdi - res['faktura']:+.2f}")
+              f"avvik {verdi - res['faktura']:+.3f}")
+    if res["komp_elhub"] is None:
+        print("  (ingen Elhub-CSV for måneden; last ned fra elhub.no for skarpeste sjekk)")
     print()
 
 
@@ -203,14 +247,18 @@ def emit_markdown(resultater: list[dict[str, Any]]) -> str:
         "_Generert av_ `scripts/research/verify_norgespris_eksakt.py --emit-markdown` "
         "(krever de private prisarkivene, se `just snapshot-kurs`).",
         "",
-        "| Måned | Faktura (kr) | HA-recorder (kr) | Avvik | Publisert Final (kr) | Avvik |",
-        "| --- | ---: | ---: | ---: | ---: | ---: |",
+        "| Måned | Faktura (kr) | HAN x HA-recorder | Avvik | HAN x Final | Avvik | Elhub x Final | Avvik |",
+        "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     for r in resultater:
+        if r["komp_elhub"] is not None:
+            elhub_celler = f"{r['komp_elhub']:+.2f} | {r['komp_elhub'] - r['faktura']:+.3f}"
+        else:
+            elhub_celler = "(mangler CSV) | "
         linjer.append(
             f"| {r['navn']} | {r['faktura']:+.2f} | {r['komp_ha']:+.2f} | "
             f"{r['komp_ha'] - r['faktura']:+.2f} | {r['komp_np']:+.2f} | "
-            f"{r['komp_np'] - r['faktura']:+.2f} |"
+            f"{r['komp_np'] - r['faktura']:+.2f} | {elhub_celler} |"
         )
     linjer += [
         "",

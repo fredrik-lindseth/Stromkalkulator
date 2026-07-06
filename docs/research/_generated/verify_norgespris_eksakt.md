@@ -1,9 +1,9 @@
 _Generert av_ `scripts/research/verify_norgespris_eksakt.py --emit-markdown` (krever de private prisarkivene, se `just snapshot-kurs`).
 
-| Måned | Faktura (kr) | HA-recorder (kr) | Avvik | Publisert Final (kr) | Avvik |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| mai_2026 | -1032.56 | -1033.11 | -0.55 | -1032.91 | -0.35 |
-| juni_2026 | -363.54 | -363.39 | +0.15 | -363.54 | +0.00 |
+| Måned | Faktura (kr) | HAN x HA-recorder | Avvik | HAN x Final | Avvik | Elhub x Final | Avvik |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| mai_2026 | -1032.56 | -1033.11 | -0.55 | -1032.91 | -0.35 | -1032.56 | -0.001 |
+| juni_2026 | -363.54 | -363.39 | +0.15 | -363.54 | +0.00 | -363.53 | +0.005 |
 
 Prisårgang-dager (HA-recorderen har foreløpig kurs, publisert er Final):
 

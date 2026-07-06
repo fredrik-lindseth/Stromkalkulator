@@ -89,6 +89,32 @@ FAKTURAER: dict[str, dict[str, Any]] = {
         "forventet_nettleie_kr": 713.58,
         "forventet_total_kr": -714.31,
     },
+    "mai_2026": {
+        "forbruk_dag_kwh": 518.142,
+        "forbruk_natt_kwh": 661.161,
+        "forbruk_total_kwh": 1179.303,
+        "forventet_energiledd_dag_kr": 186.34,
+        "forventet_energiledd_natt_kr": 86.77,
+        "forventet_forbruksavgift_kr": 105.10,
+        "forventet_enovaavgift_kr": 14.74,
+        "forventet_kapasitet_kr": 250.00,
+        "forventet_norgespris_kr": -1032.56,
+        "forventet_nettleie_kr": 642.95,
+        "forventet_total_kr": -389.61,
+    },
+    "juni_2026": {
+        "forbruk_dag_kwh": 590.646,
+        "forbruk_natt_kwh": 442.982,
+        "forbruk_total_kwh": 1033.628,
+        "forventet_energiledd_dag_kr": 212.41,
+        "forventet_energiledd_natt_kr": 58.14,
+        "forventet_forbruksavgift_kr": 92.11,
+        "forventet_enovaavgift_kr": 12.93,
+        "forventet_kapasitet_kr": 250.00,
+        "forventet_norgespris_kr": -363.54,
+        "forventet_nettleie_kr": 625.59,
+        "forventet_total_kr": 262.05,
+    },
 }
 
 

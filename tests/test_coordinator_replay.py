@@ -25,6 +25,8 @@ from tests.test_faktura_bkk import (
     FAKTURA_APRIL_2026,
     FAKTURA_DESEMBER_2025,
     FAKTURA_FEBRUAR_2026,
+    FAKTURA_JUNI_2026,
+    FAKTURA_MAI_2026,
     FAKTURA_MARS_2026,
 )
 
@@ -52,6 +54,16 @@ FAKTURA_MAP: dict[str, tuple[str, dict, datetime]] = {
         "bkk_april_2026_hourly.json",
         FAKTURA_APRIL_2026,
         datetime(2026, 4, 1),
+    ),
+    "mai_2026": (
+        "bkk_mai_2026_hourly.json",
+        FAKTURA_MAI_2026,
+        datetime(2026, 5, 1),
+    ),
+    "juni_2026": (
+        "bkk_juni_2026_hourly.json",
+        FAKTURA_JUNI_2026,
+        datetime(2026, 6, 1),
     ),
 }
 
@@ -339,12 +351,12 @@ class TestReplayDesember2025:
 
 @pytest.mark.parametrize(
     "replay",
-    ["februar_2026", "mars_2026", "april_2026"],
+    ["februar_2026", "mars_2026", "april_2026", "mai_2026", "juni_2026"],
     indirect=True,
-    ids=["februar", "mars", "april"],
+    ids=["februar", "mars", "april", "mai", "juni"],
 )
 class TestReplayParametrized:
-    """Samme replay for feb/mars/april, parametrisert via indirect fixture."""
+    """Samme replay for feb-juni, parametrisert via indirect fixture."""
 
     @pytest.fixture
     def replay(self, coord_module, request):

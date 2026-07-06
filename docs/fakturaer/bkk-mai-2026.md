@@ -92,11 +92,14 @@ Dette er en linje-for-linje-attest: integrasjonens satser og formler
 reproduserer fakturaen innenfor avrundingsfeil. Verifisert via
 `tests/test_faktura_bkk.py` (fixture `FAKTURA_MAI_2026`).
 
-Time-for-time-verifisering (HAN-eksport + Elhub-sammenligning, jf.
-[neste-maaned-prosedyre.md](neste-maaned-prosedyre.md)) gjenstår til
-mai-dataene er eksportert fra HA. Bloomberg 12:00 CET-dataene som nå
-finnes dekker kun jan–apr 2026, ikke mai, så Norgespris-kursanalysen for
-mai må vente på neste Bloomberg-uttrekk.
+Time-for-time-verifisering ble utført 2026-07-06 (sammen med juni):
+HAN-eksporten (`tests/fixtures/bkk_mai_2026_hourly.json`, 744 timer) matcher
+fakturaen på alle linjer. Total kWh treffer på 4 Wh, nettleie på 0.02 kr,
+Norgespris-kompensasjonen på 0.55 kr (0.05 %, innenfor dokumentert
+kursstøy). Coordinator-replay dekkes av `tests/test_coordinator_replay.py`.
+Bloomberg 12:00 CET-dataene dekker fortsatt kun jan–apr 2026, så
+Norgespris-kursanalysen for mai venter på neste Bloomberg-uttrekk.
+Elhub-CSV-sammenligning (krever BankID) gjenstår som frivillig tilleggssjekk.
 
 ## Konklusjon
 

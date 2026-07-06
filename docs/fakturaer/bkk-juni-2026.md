@@ -40,11 +40,18 @@ Utført med HAN-eksport fra HA-recorder (`tests/fixtures/bkk_juni_2026_hourly.js
 | Forbruk natt kWh       | 443.002  | 442.982  | +0.020   |
 | Nettleie sum           | 625.60   | 625.59   | +0.01    |
 | Norgespris-komp        | -363.39  | -363.54  | +0.15    |
+| Norgespris-komp (publisert Final-pris) | **-363.54** | -363.54 | **0.00** |
 | Total inkl. Norgespris | 262.21   | 262.05   | +0.16    |
 
-Alt innenfor toleranse. Norgespris-avviket på 0.15 kr (0.04 %) er den
-dokumenterte kurs-/avrundingsstøyen. Dag/natt-splitten treffer på 20 Wh,
-juni har ingen helligdager, så klassifiseringen er ren ukedag/helg.
+Alt innenfor toleranse. Norgespris-linjen reproduseres **eksakt** når
+beregningen bruker Nord Pools publiserte Final-priser i stedet for
+HA-recorderens lagrede verdier; recorder-avviket på 0.15 kr skyldes at
+recorderen har en foreløpig valutakurs for to søndager, se
+[research/norgespris-eksakt-match.md](../research/norgespris-eksakt-match.md).
+Juni hadde 83 timer med spot under 50 øre inkl. mva der kunden betaler
+mellomlegg; at fakturaen matcher bekrefter at BKK fakturerer symmetrisk.
+Dag/natt-splitten treffer på 20 Wh, juni har ingen helligdager, så
+klassifiseringen er ren ukedag/helg.
 
 ## Kapasitetstrinn-verifisering
 
@@ -102,7 +109,7 @@ Satsene er uendret fra mai. Juni er fortsatt sommersats for forbruksavgift
 Totalforbruket faller videre inn i sommeren, men dag-andelen øker: mai hadde
 fem helligdager som ble klassifisert som natt-tariff (1., 14., 17., 24. og
 25. mai), juni har ingen. Norgespris-kompensasjonen stuper med spotprisen,
-og for første gang i 2026 er fakturaen et beløp å betale, ikke tilgode.
+og for første gang i 2026 er fakturaen et beløp å betale, ikke til gode.
 
 ## Status og gjenstående
 
@@ -119,5 +126,6 @@ tilleggssjekk.
 
 Integrasjonen beregner nettleie korrekt for juni 2026. Alle fakturaposter
 matcher innenfor avrundingsfeil (maks 0.02 kr på en faktura med 625.59 kr
-nettleie). Satsene i dso.py og const.py er konsistente med det BKK fakturerer,
-uendret fra mai.
+nettleie), og Norgespris-linjen treffer eksakt med publiserte Final-priser.
+Satsene i dso.py og const.py er konsistente med det BKK fakturerer, uendret
+fra mai.

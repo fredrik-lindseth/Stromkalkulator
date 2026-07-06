@@ -36,7 +36,7 @@ Med Elhub-data og NOK-omregningsanalyse er flere spørsmål nå besvart:
 | ------------------------------------------------ | --------------------------------------------------------------------- | -------------------------------------------------------------------------- |
 | Sender Elhub presis HH:00:00 til BKK?            | Ja, 0 avvik mellom Elhub og faktura                                   | [research/elhub-vs-han-vs-faktura.md](research/elhub-vs-han-vs-faktura.md) |
 | Bruker BKK timesnitt-effekt for kapasitetstrinn? | Ja, kWh-diff per time                                                 | Topp 3 i Elhub = faktura eksakt                                            |
-| Hvor stort er kurs-avviket på Norgespris?        | 0,14 % på spot, gir 0,2 % på kompensasjon                             | [research/nok-omregning.md](research/nok-omregning.md)                     |
+| Hvor stort er kurs-avviket på Norgespris?        | Løst 2026-07-06: eksakt match med publiserte Final-priser. Recorder-avviket (0,04-0,05 %) er prisårgang | [research/norgespris-eksakt-match.md](research/norgespris-eksakt-match.md) |
 | Hvor er 13-sek-laget?                            | Ikke mellom Elhub og BKK. 10 sek i selve måleren + 3 sek transmisjon. | Elhub-totaler matcher faktura presis                                       |
 
 ## Det vi mangler
@@ -44,7 +44,7 @@ Med Elhub-data og NOK-omregningsanalyse er flere spørsmål nå besvart:
 Se [måler-hardware.md](måler-hardware.md). Gjenstående:
 
 1. Bekreftet: 10 sek i måleren (Kaifa/Aidon-spec), 3 sek i Pow-U-transmisjon
-2. Hvilken EUR/NOK-kurs bruker BKK eksakt? Krever spørsmål til BKK eller test mot flere kursvarianter
+2. ~~Hvilken EUR/NOK-kurs bruker BKK eksakt?~~ Besvart 2026-07-06: Nord Pools publiserte Final-pris, verifisert med eksakt match for juni. Gjenstår: mai-restavviket på 0,35 kr (Elhub-CSV for mai eller RME-verdier avgjør)
 
 ## Plan
 
@@ -61,6 +61,7 @@ Se [måler-hardware.md](måler-hardware.md). Gjenstående:
 - [x] Elhub-snapshot-presisjon: bekreftet HH:00:00 lokal tid, 0 avvik mot faktura
 - [x] BKK bruker timesnitt-effekt for kapasitetstrinn (bekreftet via topp 3-sammenligning)
 - [x] Norgespris-avvik forklart med EUR/NOK-snittberegning (innenfor 0,2 %)
+- [x] Norgespris-avvik lukket: eksakt match (0,00 kr) mot publiserte Final-priser for juni 2026, recorder-avviket var prisårgang, se [research/norgespris-eksakt-match.md](research/norgespris-eksakt-match.md)
 - [ ] Måler-spec lest (Kaifa KFM_001 og Aidon RJ45 HAN v1.6): 10 sek dokumentert som design
 - [ ] Test med Tibber Pulse parallelt (krever fysisk bytte av HAN-leser)
 - [ ] Oppdater [måler-hardware.md](måler-hardware.md) ved nye funn

@@ -71,7 +71,7 @@ implisitt match (11,0705) pent mellom NB (11,0614) og BBG (11,0748), men
 februar bryter mønsteret: implisitt (11,3426) ligger over både NB og BBG. En
 ren tid-på-dagen-forklaring holder ikke.
 
-## Datakavet
+## Forbehold om dataene
 
 I dette uttrekket er PX_MID @ 12:00 og daglig PX_LAST (close) numerisk så godt
 som identiske (innenfor 5·10⁻⁵). Vi kan derfor ikke fullt ut skille et ekte
@@ -94,8 +94,7 @@ python3 scripts/research/match_norgespris_bloomberg.py
 
 ## Veien videre
 
-FX-sporet er ikke dødt på den måten vi trodde. Bloomberg-runden avlivet
-*Bloomberg 12:00* som kilde, men den åpnet et bedre spor: hva BKK faktisk
+Bloomberg 12:00 er utelukket som kilde. Neste spørsmål er hva BKK faktisk
 fakturerer fra. En research-runde 2026-06-20 (seks vinkler + verifisering),
 fulgt opp med egne live-kall, ga to ting verdt å ta med videre.
 
@@ -126,11 +125,11 @@ gratis-proxyen er **variant C (NB previous-bankday / D-1)**, som allerede ga
 den beste februar-matchen (+0,08 kr). Restavviket er da gapet mellom NB D-1 og
 Nord Pools faktiske hedge-kurs (~0,02 i kurs, ~0,2 % i sum).
 
-### Haken, og hva som faktisk er actionable
+### Haken, og hva vi faktisk kan gjøre
 
-Det gratis anonyme API-et serverer om lag de siste to månedene (naabart tilbake
+Det gratis anonyme API-et serverer om lag de siste to månedene (tilgjengelig tilbake
 til ~19.04 da jeg sjekket 20.06); eldre datoer gir 401. Fixturemånedene jan–mars
-og første halvdel av april er altså ikke gratis-naabare lenger. Men **mai (den
+og første halvdel av april er altså ikke gratis tilgjengelige lenger. Men **mai (den
 nye fakturaen) ligger innenfor vinduet akkurat nå** og faller ut utover sommeren.
 Det betyr at vi for første gang kan teste med Nord Pools EKTE kurs, mot
 mai-fakturaen, hvis vi henter dataene snart. For å verifisere bakover lenger enn
@@ -170,7 +169,7 @@ og mai. Henter vi RMEs timesverdier for NO5, trenger vi ingen FX-rekonstruksjon
 og ingen Nord Pool-vindu, og kan sjekke hvilken som helst måned til øret.
 **Verifisert 2026-06-20:** RME publiserer verdiene kun som en innebygd Power
 BI-rapport på [nve.no/…/prissikringsverdier-time-for-time](https://www.nve.no/reguleringsmyndigheten/kunde/stroem/dette-er-norgespris/prissikringsverdier-time-for-time/)
-— ingen åpen fil-nedlasting og intet API (`api.nve.no` har ingen pris-endepunkter).
+: ingen åpen fil-nedlasting og intet API (`api.nve.no` har ingen pris-endepunkter).
 Eneste vei til rådata er Power BI sin «Eksporter data»: åpne rapporten, filtrer
 NO5 + måned, eksporter CSV/XLSX. Siden er åpen, ingen innlogging. For NO5 er
 verdiene oppgitt **inkl. mva**. Maskinporten gjelder bare nettselskapenes
@@ -178,7 +177,7 @@ innrapportering *til* RME, ikke nedlasting. Det som gjenstår å bekrefte er om
 eksporten faktisk gir time-rader (ikke aggregert) og rekker tilbake til
 01.10.2025; klarer den ikke det, er fallback en innsynsforespørsel til RME
 (`underlag_stromstotte@nve.no`), som etter § 23 plikter å offentliggjøre verdiene.
-Selve uttrekket krever en nettleser-økt — Power BI-eksporten lar seg ikke skripte rent.
+Selve uttrekket krever en nettleser-økt; Power BI-eksporten lar seg ikke skripte rent.
 
 Den ene gjenværende usikkerheten: § 11 sier nettselskapet *beregner* verdien,
 mens § 23 sier RME *offentliggjør* den. Om BKKs fakturerte verdi er bit-identisk
@@ -219,7 +218,7 @@ seg umulig å lukke til null utenfra.
 
 **Anbefalt neste steg:** finn og hent RMEs timesverdier for NO5 (1). Det er den
 direkte fasiten og svarer på bakover-verifiseringen uten FX i det hele tatt.
-Reproduksjon av NP-kurs-uthentingen som krysssjekk:
+Reproduksjon av NP-kurs-uthentingen som kryssjekk:
 
 ```bash
 curl -s -H "User-Agent: Mozilla/5.0" \

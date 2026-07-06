@@ -16,7 +16,7 @@ Tråder gjennomgått mai 2026. Norsk forum: hjemmeautomasjon.no. Internasjonalt 
 | [AMSHAN](https://community.home-assistant.io/t/norway-sweden-electric-meter-reading-ams-han/384646) | Leser Aidon/Kamstrup/Kaifa via HAN-port. Norsk. | Input-data. Komplementær. |
 | [Tibber Pulse MQTT](https://community.home-assistant.io/t/tibber-pulse-mqtt-local-mqtt-integration-with-optional-aws-iot-bridge-hacs/1006458) | Lokal Tibber Pulse uten sky-API. | Input-data. Komplementær. |
 
-## Features andre har bygd
+## Funksjoner andre har bygd
 
 ### Billigste/dyreste X timer
 
@@ -35,16 +35,16 @@ Status hos oss: ikke implementert.
 
 Status hos oss: ikke implementert.
 
-### 15-min Nordpool-pricing
+### 15-min Nord Pool-prising
 
-Nord Pool gikk over til kvartersbasert dag-ahead-pricing høsten 2025.
+Nord Pool gikk over til kvartersbaserte day-ahead-priser høsten 2025.
 
 - [Tråd 13363: 15 minutters interval på strømpris (hjemmeautomasjon)](https://www.hjemmeautomasjon.no/forums/topic/13363-15-minutters-interval-på-strømpris/).
 - [Tråd 13540 (samme som over)](https://www.hjemmeautomasjon.no/forums/topic/13540-template-sensor-for-timespriser-nordpool/): kommentar om at eksisterende kode brytes.
 
-Status hos oss: coordinator leser current price hvert minutt. Ikke verifisert mot 24×4-elementer i `today`/`tomorrow`-attributter. Mulig regresjon vi ikke har fanget.
+Status hos oss: coordinator leser gjeldende pris hvert minutt. Ikke verifisert mot 24×4-elementer i `today`/`tomorrow`-attributter. Mulig regresjon vi ikke har fanget.
 
-### Predictive kapasitetstrinn-styring
+### Prediktiv kapasitetstrinn-styring
 
 Aktivt regulere forbrukere for å unngå å overskride neste effekttrinn.
 

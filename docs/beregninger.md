@@ -54,7 +54,7 @@ Når spotpris (inkl. mva) er over terskelen, dekkes 90 % av differansen.
 | 2026 | 96,25 øre/kWh | 77 øre   |
 | 2025 | 93,75 øre/kWh | 75 øre   |
 
-Beregnes time for time. kWh-tak per måned avhenger av boligtype: bolig og fritidsbolig (fast bosted) har 5000 kWh/mnd, fritidsbolig har ingen rett. Over taket settes støtten til 0 resten av måneden. `stromstotte_gjenstaaende_kwh` viser hvor mye som er igjen.
+Beregnes time for time. kWh-tak per måned avhenger av boligtype: bolig har 5000 kWh/mnd (gjelder også fritidsbolig som er fast bosted), ren fritidsbolig har ingen rett. Over taket settes støtten til 0 resten av måneden. `stromstotte_gjenstaaende_kwh` viser hvor mye som er igjen.
 
 Næring, fjernvarme og borettslag med fellesmåling støttes ikke.
 

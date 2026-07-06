@@ -1,4 +1,4 @@
-# Elhub vs HAN vs faktura: hvor ligger 13-sek-laget?
+# Elhub vs HAN vs faktura: hvor ligger 13-sek-forsinkelsen?
 
 Analysen identifiserer hvor i kjeden AMS-måler → Pow-U → HA → BKK den observerte 13-sekunders forsinkelsen ligger, og hvor mye av den ligger i måleren versus i transmisjonen.
 
@@ -30,7 +30,7 @@ Sammenlignet tre datakilder:
 | HAN vs faktura   | +0,009 kWh (9 Wh) |
 | HAN vs Elhub     | +0,009 kWh (9 Wh) |
 
-Elhub er identisk med fakturaen til siste øre.
+Elhub er identisk med fakturaen på alle desimaler.
 
 ### Topp 3 maks effekt (per unike dag)
 
@@ -56,7 +56,7 @@ Diffen per time svinger i begge retninger med ±20 Wh, men summerer til -9 Wh ov
 
 ## Tolkning
 
-Elhub leverer eksakt samme tall som faktura. Det betyr Elhub-snapshotene tas ved presis HH:00:00 lokal tid, og BKK leser disse uendret. 13-sek-laget ligger tidligere i kjeden, mellom målerens interne register og HA-recorderen.
+Elhub leverer eksakt samme tall som faktura. Det betyr Elhub-snapshotene tas ved presis HH:00:00 lokal tid, og BKK leser disse uendret. 13-sek-forsinkelsen ligger tidligere i kjeden, mellom målerens interne register og HA-recorderen.
 
 ## Hva vi har bevist via målerens egen RTC
 
@@ -84,7 +84,7 @@ HH:00:13  HA recorder skriver tilstand
 
 ### De 3 transmisjons-sekundene
 
-Kildekoden i amsreader-firmware bekrefter at firmware ikke har artificial delay. Fra parse til MQTT-publish er sub-millisekund. De 3 sekundene består av:
+Kildekoden i amsreader-firmware bekrefter at firmware ikke har kunstig forsinkelse. Fra parse til MQTT-publish er sub-millisekund. De 3 sekundene består av:
 
 - HAN-byte-overføring over RJ45 ved 2400 baud (frame på ~50 ms reelt, men sendt som del av lengre cosem-payload)
 - Pow-U parsing av list3-frame
@@ -94,7 +94,7 @@ Kildekoden i amsreader-firmware bekrefter at firmware ikke har artificial delay.
 
 ### De 10 sekundene i måleren
 
-Måleren bruker ~10 sek mellom internt snapshot og HAN-broadcast. Det er målerens egen designvalg og kan ikke endres fra utsiden. Verdien som havner i HAN-framen er likevel snapshot-verdien fra HH:00:00, ikke en oppdatert verdi fra HH:00:10. Det betyr energiteller-tallet er korrekt, det er bare _tidspunktet for når vi mottar det_ som er forskjøvet.
+Måleren bruker ~10 sek mellom internt snapshot og HAN-broadcast. Det er målerens eget designvalg og kan ikke endres fra utsiden. Verdien som havner i HAN-framen er likevel snapshot-verdien fra HH:00:00, ikke en oppdatert verdi fra HH:00:10. Det betyr energiteller-tallet er korrekt, det er bare _tidspunktet for når vi mottar det_ som er forskjøvet.
 
 ## Per-time-avviket: hvorfor svinger HAN ±20 Wh per time?
 
@@ -128,7 +128,7 @@ Resultatene her gjelder spesifikt for:
 
 - Kaifa MA304H3E (eget oppsett, BKK NO5)
 - Pow-U HAN-leser fra AMSleser.no
-- HA's standard recorder
+- HAs standard-recorder
 - Nord Pool offisiell HA-integrasjon
 
 Andre kombinasjoner kan ha annen sample-timing, andre data-forsinkelser, og andre avrundinger. Verifisering for andre DSO-er bør gjøres med deres egne fakturaer og Elhub-data.
@@ -147,7 +147,7 @@ scp ha-local:/tmp/bkk_april_2026_hourly.json tests/fixtures/
 python3 scripts/research/sammenlign_elhub_han_faktura.py  # TBD
 ```
 
-For nå er sammenligningen kjørt ad-hoc i Bash-prompts. Skal pakkes i et permanent script i fase 3 av prosjektet, se [fakturaverifisering-prosjekt.md](../fakturaverifisering-prosjekt.md).
+Foreløpig er sammenligningen kjørt ad-hoc i Bash-prompts. Skal pakkes i et permanent script i fase 3 av prosjektet, se [fakturaverifisering-prosjekt.md](../fakturaverifisering-prosjekt.md).
 
 ## Åpne spørsmål
 

@@ -48,9 +48,9 @@ Day: Mon-Fri 06-22 (not holidays). Night: 22-06, weekends, holidays.
 
 | Sensor                                     | Unit   | Description                              |
 | ------------------------------------------ | ------ | ---------------------------------------- |
-| Total strompris (for stotte)               | kr/kWh | Spot + grid tariff, before subsidy       |
-| Strompris per kWh                          | kr/kWh | Spot + energy component, no capacity fee |
-| _(optional)_ Total strompris (stromavtale) | kr/kWh | With provider's price instead of spot    |
+| Total price (before subsidy)               | kr/kWh | Spot + grid tariff, before subsidy       |
+| Electricity price per kWh                          | kr/kWh | Spot + energy component, no capacity fee |
+| _(optional)_ Total price (provider) | kr/kWh | With provider's price instead of spot    |
 
 ### Diagnostics (taxes)
 
@@ -64,17 +64,17 @@ Day: Mon-Fri 06-22 (not holidays). Night: 22-06, weekends, holidays.
 
 ---
 
-## Electricity subsidy (Stromstotte)
+## Electricity subsidy (Strømstøtte)
 
 | Sensor                                        | Unit   | Description                                                                                                                                       |
 | --------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Stromstotte                                   | kr/kWh | Subsidy per kWh when spot > 96.25 ore (90% of excess)                                                                                             |
+| Electricity subsidy                                   | kr/kWh | Subsidy per kWh when spot > 96.25 øre (90% of excess)                                                                                             |
 | Spotpris etter stotte                         | kr/kWh | Spot price minus subsidy                                                                                                                          |
-| Total strompris etter stotte                  | kr/kWh | Real total: spot + grid - subsidy                                                                                                                 |
-| Totalpris inkl. avgifter                      | kr/kWh | Price sensor for Energy Dashboard. Capacity fee spread per kWh (inaccurate). For correct totals: use [Akkumulert stromkostnad](#energy-dashboard) |
-| Stromstotte aktiv na                          | -      | "Yes"/"No" if spot is over threshold                                                                                                              |
-| Stromstotte gjenstaaende kWh                  | kWh    | Remaining kWh of monthly cap (residence=5000, holiday home=0)                                                                                     |
-| _(optional)_ Strompris per kWh (etter stotte) | kr/kWh | Like "Strompris per kWh" but with subsidy                                                                                                         |
+| Total price after subsidy                  | kr/kWh | Real total: spot + grid - subsidy                                                                                                                 |
+| Totalpris inkl. avgifter                      | kr/kWh | Price sensor for Energy Dashboard. Capacity fee spread per kWh (inaccurate). For correct totals: use [Accumulated electricity cost](#energy-dashboard) |
+| Electricity subsidy active now                          | -      | "Yes"/"No" if spot is over threshold                                                                                                              |
+| Electricity subsidy remaining                  | kWh    | Remaining kWh of monthly cap (residence=5000, holiday home=0)                                                                                     |
+| _(optional)_ Electricity price per kWh (after subsidy) | kr/kWh | Like "Electricity price per kWh" but with subsidy                                                                                                         |
 
 ---
 
@@ -82,7 +82,7 @@ Day: Mon-Fri 06-22 (not holidays). Night: 22-06, weekends, holidays.
 
 | Sensor                       | Unit   | Description                                                     |
 | ---------------------------- | ------ | --------------------------------------------------------------- |
-| Total strompris (norgespris) | kr/kWh | What you'd pay with Norgespris: fixed 50 ore + grid tariff      |
+| Total price (Norgespris) | kr/kWh | What you'd pay with Norgespris: fixed 50 øre + grid tariff      |
 | Prisforskjell (norgespris)   | kr/kWh | Positive = you pay more than Norgespris (Norgespris is cheaper) |
 | Norgespris aktiv na          | -      | "Yes"/"No" if Norgespris is selected                            |
 
@@ -98,44 +98,44 @@ Resets automatically at month change.
 
 | Sensor                      | Unit | Description                          |
 | --------------------------- | ---- | ------------------------------------ |
-| Maanedlig forbruk dagtariff | kWh  | Day-tariff consumption this month    |
-| Maanedlig forbruk natt/helg | kWh  | Night/weekend consumption this month |
-| Maanedlig forbruk totalt    | kWh  | Sum of day and night                 |
+| Monthly consumption day tariff | kWh  | Day-tariff consumption this month    |
+| Monthly consumption night/weekend | kWh  | Night/weekend consumption this month |
+| Monthly consumption total    | kWh  | Sum of day and night                 |
 
-Attributes on "Maanedlig forbruk totalt": `dag_kwh`, `natt_kwh`, `dag_pct`, `natt_pct`.
+Attributes on "Monthly consumption total": `dag_kwh`, `natt_kwh`, `dag_pct`, `natt_pct`.
 
 ### Costs
 
 | Sensor                               | Unit | Description                                         |
 | ------------------------------------ | ---- | --------------------------------------------------- |
-| Maanedlig nettleie total             | kr   | Bottom line: grid tariff + taxes - subsidy          |
+| Monthly grid tariff total             | kr   | Bottom line: grid tariff + taxes - subsidy          |
 | Dagens kostnad                       | kr   | Accumulated cost since midnight                     |
-| Estimert maanedskostnad              | kr   | Forecast for the whole month, based on usage so far |
-| Maanedlig Norgespris-differanse      | kr   | Accumulated savings/loss vs alternative             |
+| Estimated monthly cost              | kr   | Forecast for the whole month, based on usage so far |
+| Norgespris savings      | kr   | Accumulated savings/loss vs alternative             |
 | Norgespris-kompensasjon              | kr   | Accumulated (norgespris - spot) x kWh this month    |
-| _(optional)_ Maanedlig nettleie      | kr   | Grid tariff so far: day + night + capacity          |
-| _(optional)_ Maanedlig avgifter      | kr   | Consumption tax + Enova incl. VAT                   |
-| _(optional)_ Maanedlig stromstotte   | kr   | Estimated subsidy this month                        |
-| _(optional)_ Akkumulert stromkostnad | kr   | For Energy Dashboard with correct monthly totals    |
+| _(optional)_ Monthly grid tariff      | kr   | Grid tariff so far: day + night + capacity          |
+| _(optional)_ Monthly fees      | kr   | Consumption tax + Enova incl. VAT                   |
+| _(optional)_ Monthly electricity subsidy   | kr   | Estimated subsidy this month                        |
+| _(optional)_ Accumulated electricity cost | kr   | For Energy Dashboard with correct monthly totals    |
 
-Attributes on "Akkumulert stromkostnad": `strompris_kr`, `energiledd_kr`, `kapasitetsledd_kr`, `total_kwh`.
+Attributes on "Accumulated electricity cost": `strompris_kr`, `energiledd_kr`, `kapasitetsledd_kr`, `total_kwh`.
 
-Attributes on "Maanedlig nettleie total": `nettleie_kr`, `avgifter_kr`, `stromstotte_kr`, `forbruk_dag_kwh`, `forbruk_natt_kwh`, `forbruk_total_kwh`, `vektet_snittpris_kr_per_kwh`.
+Attributes on "Monthly grid tariff total": `nettleie_kr`, `avgifter_kr`, `stromstotte_kr`, `forbruk_dag_kwh`, `forbruk_natt_kwh`, `forbruk_total_kwh`, `vektet_snittpris_kr_per_kwh`.
 
 ---
 
-## Previous month (Forrige maaned)
+## Previous month (Forrige måned)
 
 Stored at month change. Used for invoice verification.
 
 | Sensor                                 | Unit | Description                                |
 | -------------------------------------- | ---- | ------------------------------------------ |
-| Forrige maaned forbruk dagtariff       | kWh  | Day consumption last month                 |
-| Forrige maaned forbruk natt/helg       | kWh  | Night/weekend consumption last month       |
-| Forrige maaned forbruk totalt          | kWh  | Total consumption last month               |
-| Forrige maaned nettleie                | kr   | Compare with invoice                       |
-| Forrige maaned toppforbruk             | kW   | Average of top-3, determined capacity tier |
-| Forrige maaned Norgespris-kompensasjon | kr   | Norgespris compensation for previous month |
+| Last month consumption day tariff       | kWh  | Day consumption last month                 |
+| Last month consumption night/weekend       | kWh  | Night/weekend consumption last month       |
+| Last month consumption total          | kWh  | Total consumption last month               |
+| Last month grid tariff                | kr   | Compare with invoice                       |
+| Last month peak demand             | kW   | Average of top-3, determined capacity tier |
+| Last month Norgespris compensation | kr   | Norgespris compensation for previous month |
 
 All have `maaned` attribute (e.g. "januar 2026").
 
@@ -151,11 +151,11 @@ For prosumers. Requires configured export power sensor. All disabled by default.
 
 | Sensor                                      | Unit | Description                           |
 | ------------------------------------------- | ---- | ------------------------------------- |
-| _(optional)_ Maanedlig eksport kWh          | kWh  | Exported energy this month            |
-| _(optional)_ Maanedlig eksport inntekt      | kr   | Revenue (spot price x kWh)            |
-| _(optional)_ Maanedlig nettokostnad         | kr   | Consumption cost minus export revenue |
-| _(optional)_ Forrige maaned eksport kWh     | kWh  | Exported energy last month            |
-| _(optional)_ Forrige maaned eksport inntekt | kr   | Export revenue last month             |
+| _(optional)_ Monthly export          | kWh  | Exported energy this month            |
+| _(optional)_ Monthly export revenue      | kr   | Revenue (spot price x kWh)            |
+| _(optional)_ Monthly net cost         | kr   | Consumption cost minus export revenue |
+| _(optional)_ Last month export     | kWh  | Exported energy last month            |
+| _(optional)_ Last month export revenue | kr   | Export revenue last month             |
 
 ---
 
@@ -174,13 +174,13 @@ Use `Totalpris inkl. avgifter`. Simplest, but capacity fee is wrong with deviati
 
 ### Option 2: Accumulated cost (recommended)
 
-Use `Akkumulert stromkostnad`. Capacity fee is distributed linearly over time, monthly total matches the invoice.
+Use `Accumulated electricity cost`. Capacity fee is distributed linearly over time, monthly total matches the invoice.
 
-1. Enable: **Settings > Devices > Monthly consumption > Entities > Akkumulert stromkostnad**
+1. Enable: **Settings > Devices > Monthly consumption > Entities > Accumulated electricity cost**
 2. **Settings > Dashboards > Energy > Add consumption**
 3. Select your kWh sensor as "Consumed energy"
 4. Enable "Use an entity tracking total costs"
-5. Select `Akkumulert stromkostnad`
+5. Select `Accumulated electricity cost`
 
 The kWh meter comes from your AMS reader, not Stromkalkulator.
 
@@ -197,7 +197,7 @@ automation:
     action:
       - service: notify.mobile_app
         data:
-          message: "Norgespris is now 10+ ore cheaper than spot"
+          message: "Norgespris is now 10+ øre cheaper than spot"
 ```
 
 ---
@@ -206,12 +206,12 @@ automation:
 
 | Invoice line item    | Sensor                           | Where                           |
 | -------------------- | -------------------------------- | ------------------------------- |
-| Energy day (kWh)     | Forrige maaned forbruk dagtariff | State                           |
-| Energy night (kWh)   | Forrige maaned forbruk natt/helg | State                           |
-| Energy day (kr)      | Forrige maaned nettleie          | Attribute: `energiledd_dag_kr`  |
-| Energy night (kr)    | Forrige maaned nettleie          | Attribute: `energiledd_natt_kr` |
-| Capacity charge (kr) | Forrige maaned nettleie          | Attribute: `kapasitetsledd_kr`  |
-| Capacity tier (kW)   | Forrige maaned toppforbruk       | State (avg top-3)               |
+| Energy day (kWh)     | Last month consumption day tariff | State                           |
+| Energy night (kWh)   | Last month consumption night/weekend | State                           |
+| Energy day (kr)      | Last month grid tariff          | Attribute: `energiledd_dag_kr`  |
+| Energy night (kr)    | Last month grid tariff          | Attribute: `energiledd_natt_kr` |
+| Capacity charge (kr) | Last month grid tariff          | Attribute: `kapasitetsledd_kr`  |
+| Capacity tier (kW)   | Last month peak demand       | State (avg top-3)               |
 
 ---
 

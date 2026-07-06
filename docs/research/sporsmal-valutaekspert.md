@@ -6,7 +6,7 @@ En Home Assistant-integrasjon for verifisering av norske strømfakturaer mot rå
 
 Reverse-engineering av kursen BKK ser ut til å bruke gir en implisitt EUR/NOK-kurs (11,0706 for april 2026) som ligger systematisk mellom Norges Banks publiserte 14:15 CET-snapshot (11,0229 aritmetisk, 11,0614 forbruksvektet) og Nord Pools offisielle EXR (11,0815). Hypotesen er at BKK bruker Nord Pools preliminære interbank-kurs ved 12:00 CET (kursen Nord Pool selv dokumenterer at de henter for å konvertere day-ahead-prisene fra EUR til NOK, før auksjonen avholdes ~12:50 CET).
 
-Data: tre måneders verifisering (februar, mars, april 2026). Alle tre månedene gir positivt avvik (vår beregning underestimerer kompensasjonen) på samme variant (NB same-day forward-fill). Krona styrket seg gjennom 2026, fra 11,21 til 10,91 i april alene.
+Data: tre måneders verifisering (februar, mars, april 2026). Alle tre månedene gir positivt avvik (vår beregning underestimerer kompensasjonen) på samme variant (NB same-day forward-fill). Kronen styrket seg gjennom 2026, fra 11,21 til 10,91 i april alene.
 
 Vi har allerede gravd i offentlige kilder. De fleste spørsmålene under har vi forsøkt å besvare selv først, det vi ber deg om er **verifikasjon, korrigering eller utdypning**, ikke grunnleggende forklaring.
 
@@ -18,7 +18,7 @@ Vi har allerede gravd i offentlige kilder. De fleste spørsmålene under har vi 
 
 **Spørsmål:**
 - Er BFIX 12:00 CET den beste tilgjengelige proxyen for "interbank-mid 12:00 CET" som Nord Pool refererer til? Eller bør vi heller hente tick-data direkte fra EBS/Reuters EUR=?
-- Hva er den faktiske ticker-syntaxen i Bloomberg? Vi tipper `EURNOK 12:00 BFIX Curncy`, men er ikke sikre.
+- Hva er den faktiske ticker-syntaksen i Bloomberg? Vi tipper `EURNOK 12:00 BFIX Curncy`, men er ikke sikre.
 - Forskjell mellom BFIX og en "vanlig" EURNOK Curncy med Time-override på 12:00, er det vesentlig?
 
 ### 2. Strømleverandørers EUR/NOK-konvertering, Nord Pool EXR eller noe annet?
@@ -32,7 +32,7 @@ Vi har allerede gravd i offentlige kilder. De fleste spørsmålene under har vi 
 
 ### 3. Intraday-volatilitet 12:00 → 14:15 i 2026
 
-**Vår forståelse:** EUR/NOK ATR ~0,066 i 2026, GARCH-vol 8,2 % annualisert (NYU V-Lab). Et 2t15-vindu skal fange 0,015–0,025 NOK stille / 0,04–0,08 NOK travel. Våre observerte 0,02–0,05 NOK-bevegelser ligger midt i bandet.
+**Vår forståelse:** EUR/NOK ATR ~0,066 i 2026, GARCH-vol 8,2 % annualisert (NYU V-Lab). Et 2t15-vindu skal fange 0,015–0,025 NOK stille / 0,04–0,08 NOK travel. Våre observerte 0,02–0,05 NOK-bevegelser ligger midt i båndet.
 
 **Spørsmål:**
 - Bekrefter du at 0,02–0,05 mellom 12:00 og 14:15 er innenfor normal intraday-volatilitet for EUR/NOK, eller virker det høyt/lavt?
@@ -56,15 +56,15 @@ Vi har allerede gravd i offentlige kilder. De fleste spørsmålene under har vi 
 - Hvis spreaden er 2–4× bredere på 12:00 CET, betyr det at "mid" 12:00 CET er en dårligere estimator av "fair value" enn samme mid på 14:15 CET? Eller er bid og ask symmetrisk rundt en stabil mid, bare videre fra hverandre?
 - Krohn, Mueller & Whelan (JoF 2024) viser V-formet return-reversal rundt 14:15 Frankfurt-fix, ~2bp run-up + reversal. Det er ~0,002 NOK, to størrelsesordener mindre enn vår observerte 0,02–0,05 gap. Forklarer ikke det vi ser. Stemmer det?
 
-## Det mest aksjonable
+## Det vi kan gjøre noe med
 
-Spørsmål 1 og 2 er mest aksjonable, de gir oss enten en bedre Bloomberg-ticker eller en helt ny hypotese om kursleverandør. 3 er kontekst for hvordan vi tolker dataene vi får tilbake. 4 og 5 er bonus, men 5 kan ha implikasjoner for om vår tilnærming i det hele tatt er meningsfull.
+Spørsmål 1 og 2 er mest anvendelige, de gir oss enten en bedre Bloomberg-ticker eller en helt ny hypotese om kursleverandør. 3 er kontekst for hvordan vi tolker dataene vi får tilbake. 4 og 5 er bonus, men 5 kan ha implikasjoner for om vår tilnærming i det hele tatt er meningsfull.
 
 Ikke alle må besvares. Bare det du finner mest interessant eller har umiddelbar kunnskap om.
 
-## Hvorfor dette spiller noen rolle
+## Motivasjon
 
-Avviket på 2,92 kr/mnd (eller 0,79 kr ved bytte til rå EUR + NB) er innenfor "treffer på øret"-toleransen for fakturakontroll. Vi *trenger* ikke svar. Men hele prosjektet handler om tillit til beregningene, at vi forstår nøyaktig hvorfor en figur i en sensor er som den er. Hvis vi kan dokumentere kursvalget BKK gjør, kan vi velge å implementere det samme i integrasjonen, og brukere får tall som matcher fakturaen på øret.
+Avviket på 2,92 kr/mnd (eller 0,79 kr ved bytte til rå EUR + NB) er innenfor "treffer på øret"-toleransen for fakturakontroll. Vi *trenger* ikke svar. Men hele prosjektet handler om tillit til beregningene, at vi forstår nøyaktig hvorfor et tall i en sensor er som det er. Hvis vi kan dokumentere kursvalget BKK gjør, kan vi velge å implementere det samme i integrasjonen, og brukere får tall som matcher fakturaen på øret.
 
 ## Kilder vi har brukt for vår nåværende forståelse
 

@@ -65,7 +65,7 @@ Norgespris-kompensasjonslinjen (-1550.68 kr) beregnes av BKK basert på time-for
 | -------------- | ----------------- | -------------------- | ----------------- | ------ |
 | Forbruksavgift | 8.913             | 7.13                 | 8.9125            | Ja     |
 | Enovaavgift    | 1.25              | 1.00                 | 1.25              | Ja     |
-| MVA-sats       | 25%               | 0.25                 |,                 | Ja     |
+| MVA-sats       | 25%               | 0.25                 |                   | Ja     |
 
 ## Sammenligning med februar 2026
 

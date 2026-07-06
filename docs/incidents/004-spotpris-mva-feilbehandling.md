@@ -44,7 +44,7 @@ Alle Sør-Norge-brukere med spotprisavtale får feil i fire sensorer:
 3. **Akkumulert kostnad i Energy Dashboard** undervurderer faktiske kraftkostnader.
 4. **Norgespris-sammenligning** viser for lav besparelse (vist 47 % lavere enn faktisk i caset over).
 
-Bug-en ble ikke fanget av faktura-verifiseringen fordi fakturaene viser nettleie, ikke kraftpris. Nettleie-beregningene er korrekte.
+Buggen ble ikke fanget av faktura-verifiseringen fordi fakturaene viser nettleie, ikke kraftpris. Nettleie-beregningene er korrekte.
 
 Nord-Norge-brukere er ikke påvirket: avgiftssonen har 0 % mva, så `spot * (1 + 0)` = `spot`.
 
@@ -85,7 +85,7 @@ Ved migrering settes `spotpris_inkl_mva = False` for alle eksisterende konfig-en
 
 > Strømkalkulator behandler nå spotpris-sensoren som eks. mva (riktig for HA-core nordpool). De fleste trenger ikke gjøre noe. Du trenger kun å handle hvis sensoren din allerede leverer inkl. mva (custom template eller eldre custom_components/nordpool med VAT=true). Da må du slå PÅ feltet i innstillingene.
 
-Vurdert alternativ: sette `True` (preserves behavior) og be brukere slå AV. Forkastet fordi det betyr at brukere som ikke leser repair-issue beholder bug-en.
+Vurdert alternativ: sette `True` (beholder gammel oppførsel) og be brukere slå AV. Forkastet fordi det betyr at brukere som ikke leser repair-issue beholder buggen.
 
 ### 4. Tester
 
@@ -101,7 +101,7 @@ Vurdert alternativ: sette `True` (preserves behavior) og be brukere slå AV. For
 
 ## Lærdom
 
-1. **Eksterne sensor-konvensjoner er ikke statiske.** Da koden ble skrevet var custom_components/nordpool med `VAT: true` vanlig. Den offisielle integrasjonen i HA-core endret default uten at vi merket. Antagelser om eksterne sensorer må verifiseres med jevne mellomrom.
+1. **Eksterne sensor-konvensjoner er ikke statiske.** Da koden ble skrevet var custom_components/nordpool med `VAT: true` vanlig. Den offisielle integrasjonen i HA-core endret default uten at vi merket det. Antagelser om eksterne sensorer må verifiseres med jevne mellomrom.
 2. **Faktura-verifisering dekker bare nettleie.** Vår tillit til at "alt regner riktig" var basert på BKK-faktura-match. Fakturaene viser ikke kraftpris (det går via strømleverandøren), så kraftpris-feil var usynlig i denne testen.
 3. **Avvik på 25 % er signaleffekt, ikke avrundingsstøy.** Når et tall avviker med eksakt mva-rate, er sannsynligheten høy for en mva-håndtering-feil et sted i kjeden.
 

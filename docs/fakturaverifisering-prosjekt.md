@@ -6,7 +6,7 @@ Prosjektdokument for arbeidet med å validere `stromkalkulator` ende-til-ende mo
 
 Vi har allerede `tests/test_faktura_bkk.py` som sjekker at formlene og satsene i integrasjonen reproduserer kjente BKK-fakturaer. Den testen tar akkumulerte verdier som input, og verifiserer at de gir riktig fakturasum. Den sier ingenting om hvorvidt de akkumulerte verdiene fra integrasjonen faktisk matcher det måleren har sendt ut.
 
-jeg foreslo å lukke det hullet ved å validere mot to ekte datakilder:
+Vi lukker hullet ved å validere mot to ekte datakilder:
 
 - Time-for-time-forbruk fra AMS-måleren (Kaifa MA304H3E + Pow-U + AMSleser.no)
 - Time-for-time-spotpriser fra Nord Pool-integrasjonen i HA
@@ -15,7 +15,7 @@ Utforskingen 2026-05-22 viste at dette fungerer veldig bra. Avvikene mot april 2
 
 ## Det vi har bekreftet
 
-Eksporterte april 2026-hourly-data fra HA's `home-assistant_v2.db` på `ha-local`. Brukte `tpi`-delta (Total Power In, OBIS 1-0:1.8.0, kumulativ kWh-teller i måleren) som forbrukskilde.
+Eksporterte april 2026-hourly-data fra HAs `home-assistant_v2.db` på `ha-local`. Brukte `tpi`-delta (Total Power In, OBIS 1-0:1.8.0, kumulativ kWh-teller i måleren) som forbrukskilde.
 
 | Måling          | HAN-data                 | BKK-faktura              | Avvik            | Forklaring                                      |
 | --------------- | ------------------------ | ------------------------ | ---------------- | ----------------------------------------------- |
@@ -28,23 +28,20 @@ Eksporterte april 2026-hourly-data fra HA's `home-assistant_v2.db` på `ha-local
 
 Totalavviket forklares av sample-presisjon i HAN-broadcast, ikke av logiske feil i integrasjonen. Nord Pool-integrasjonen i HA returnerer priser eks. mva, så de må multipliseres med 1,25 for å matche fakturaens Norgespris-beregning.
 
-## Det vi har bekreftet (oppdatert 2026-05-22 kveld)
-
-Med Elhub-data og NOK-omregningsanalyse er flere spørsmål nå besvart:
+Med Elhub-data og NOK-omregningsanalyse (oppdatert 2026-05-22 kveld) er flere spørsmål besvart:
 
 | Spørsmål                                         | Svar                                                                  | Kilde                                                                      |
 | ------------------------------------------------ | --------------------------------------------------------------------- | -------------------------------------------------------------------------- |
 | Sender Elhub presis HH:00:00 til BKK?            | Ja, 0 avvik mellom Elhub og faktura                                   | [research/elhub-vs-han-vs-faktura.md](research/elhub-vs-han-vs-faktura.md) |
 | Bruker BKK timesnitt-effekt for kapasitetstrinn? | Ja, kWh-diff per time                                                 | Topp 3 i Elhub = faktura eksakt                                            |
 | Hvor stort er kurs-avviket på Norgespris?        | Løst 2026-07-06: eksakt match med publiserte Final-priser. Recorder-avviket (0,04-0,05 %) er prisårgang | [research/norgespris-eksakt-match.md](research/norgespris-eksakt-match.md) |
-| Hvor er 13-sek-laget?                            | Ikke mellom Elhub og BKK. 10 sek i selve måleren + 3 sek transmisjon. | Elhub-totaler matcher faktura presis                                       |
+| Hvor er 13-sek-laget?                            | Ikke mellom Elhub og BKK. 10 sek i selve måleren (Kaifa/Aidon-spec) + 3 sek Pow-U-transmisjon. | Elhub-totaler matcher faktura presis                                       |
 
 ## Det vi mangler
 
 Se [måler-hardware.md](måler-hardware.md). Gjenstående:
 
-1. Bekreftet: 10 sek i måleren (Kaifa/Aidon-spec), 3 sek i Pow-U-transmisjon
-2. ~~Hvilken EUR/NOK-kurs bruker BKK eksakt?~~ Besvart 2026-07-06: Nord Pools publiserte Final-pris, verifisert med eksakt match for juni. Gjenstår: mai-restavviket på 0,35 kr (Elhub-CSV for mai eller RME-verdier avgjør)
+1. ~~Hvilken EUR/NOK-kurs bruker BKK eksakt?~~ Besvart 2026-07-06: Nord Pools publiserte Final-pris, verifisert med eksakt match for juni. Gjenstår: mai-restavviket på 0,35 kr (Elhub-CSV for mai eller RME-verdier avgjør)
 
 ## Plan
 

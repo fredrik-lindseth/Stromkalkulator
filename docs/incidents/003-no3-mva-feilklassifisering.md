@@ -42,7 +42,7 @@ NO3-kunder i Trøndelag/Møre og Romsdal får feil strømstøtte og Norgespris.
 
 ### Sidekommentar: Elinett
 
-Elinett ble feilaktig antatt å være i Helgeland (Nordland) under verifiseringen. Statnetts Områdeplan Midt 2025 bekrefter Elinett betjener Aukra, Hustadvika, Gjemnes og Molde i Møre og Romsdal. Prisene ble midlertidig endret til eks. mva-verdier og umiddelbart revertert.
+Elinett ble feilaktig antatt å være i Helgeland (Nordland) under verifiseringen. Statnetts Områdeplan Midt 2025 bekrefter at Elinett betjener Aukra, Hustadvika, Gjemnes og Molde i Møre og Romsdal. Prisene ble midlertidig endret til eks. mva-verdier og umiddelbart revertert.
 
 ## Berørte DSO-er
 
@@ -71,7 +71,7 @@ NO3 som KORREKT skal ha mva-fritak:
 | ---------------- | ---------- | -------- |
 | bindal_kraftnett | Bindal     | Nordland |
 
-`bindal_kraftnett` har 43,04/36,79 (lagret som inkl. mva via dobbel mva-beregning), men Bindal har mva-fritak. Bør være eks. mva. 2025-priser, må også oppdateres.
+`bindal_kraftnett` har 43,04/36,79 (lagret som inkl. mva via dobbel mva-beregning), men Bindal har mva-fritak. Verdiene bør være eks. mva, og 2025-prisene må også oppdateres.
 
 ### Energiledd-status
 

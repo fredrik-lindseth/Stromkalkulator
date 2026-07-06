@@ -34,19 +34,19 @@ reell elapsed-tid uavhengig av DST. Riemann-summen er derfor korrekt.
   ingenting spesielt. Hvis HA er nede over hoppet, blir gapet >6 min og
   cappes til 6 min av `MAX_ELAPSED_HOURS`. Ingen feilakkumulering.
 
-  Hour-bytting: `self._current_hour` går fra 1 til 3 (timme 2 eksisterer
+  Hour-bytting: `self._current_hour` går fra 1 til 3 (time 2 eksisterer
   ikke). Den manglende timen lagres aldri som maks-time fordi
   `_current_hour_energy` for "time 2" aldri akkumulerer. Korrekt, den timen
   eksisterer ikke. Forrige time (1) får sin energi lagret når polling kl 03:xx
   detekterer hour-bytte.
 
 - **Høst-DST (25. oktober 2026, 25-timersdøgn):** Klokken hopper 03:00 til
-  02:00. Timme 2 oppleves to ganger.
+  02:00. Time 2 oppleves to ganger.
 
   `_current_hour` går fra 2 til 2, ingen hour-bytte i `coordinator.py:518`.
   Resultat: energiakkumulering for "andre time 2" legges sammen med
   "første time 2" i `_current_hour_energy`. Når klokken endelig blir 3 (etter
-  to passeringer av timme 2), arkiveres den summerte timen som maks.
+  to passeringer av time 2), arkiveres den summerte timen som maks.
 
   **Det er en bug, men en liten en.** En "25-timersdag" får én logisk time
   som er kunstig høyere fordi to fysiske timer (02:00-03:00 CEST + 02:00-03:00
@@ -57,7 +57,7 @@ reell elapsed-tid uavhengig av DST. Riemann-summen er derfor korrekt.
 ### Identifiserte bugs
 
 1. **Høst-DST: doblet time akkumuleres som én logisk time** (linje 516-536).
-   `now.hour == self._current_hour` triggrer ikke hour-bytte. `fold` brukes
+   `now.hour == self._current_hour` trigger ikke time-bytte. `fold` brukes
    aldri til å skille de to passeringene. Effekt: forhøyet topp-time
    i oktober for noen brukere. Konsekvens på kapasitetsledd: typisk
    ingen, fordi nettselskapet selv aggregerer per fysisk klokke-time.
@@ -161,7 +161,7 @@ faktisk kapasitetsledd. Sjekk en gang etter høst-DST 2026 mot ekte faktura.
 
 **Akademisk.** Koden håndterer negative tall matematisk korrekt. Ingen
 abs/max-bugs. Verifikasjon mot ekte faktura ville være fint men er ikke
-påtrengende, Norge har sjeldent vedvarende negativ spot, og effekten på
+påtrengende, Norge har sjelden vedvarende negativ spot, og effekten på
 total fakturasum er liten.
 
 ---
@@ -229,7 +229,7 @@ For en bruker som forbruker 6000 kWh/mnd:
   5000 * (0,50 - 1,50) = -5000 kr (kunden taper kun for timene under tak).
 
 Avvik for 6000-kWh-kunde i april 2026 (snitt-spot 1,30): ca 800 kr på
-kompensasjons-sensoren, alt for høyt absolutt-tall. Brukeren ser ikke
+kompensasjons-sensoren, altfor høyt absolutt-tall. Brukeren ser ikke
 direkte feil prising av strøm, `total_price` byttes korrekt, men
 verifikasjonssensoren `monthly_norgespris_compensation_kr` skjevviser.
 

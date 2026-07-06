@@ -56,7 +56,7 @@ Elhub har de offisielle timesverdiene som DSO fakturerer på. Sammenligning mot 
 
 ## 5. Verifiseringsskript for utviklere
 
-Hvis du vil dykke i timesnivå, finnes det et Python-skript som reproduserer hele BKK-beregningen fra rå timesdata.
+Vil du grave i timesdataene, finnes det et Python-skript som reproduserer hele BKK-beregningen fra rå timesdata.
 
 ### 5a. Eksporter timesdata fra Home Assistant
 

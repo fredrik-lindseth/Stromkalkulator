@@ -40,7 +40,7 @@ Listet etter hvor mye verdi det gir oss:
 
 1. **Nord-Norge (NO4)** med nettselskap som Nordlandsnett, Lofotkraft, Troms Kraft, Hålogaland Kraft. Avgiftssone Nord-Norge har ingen mva på strøm og redusert forbruksavgift. Vi har kode for det, men null faktura-verifisering ennå.
 
-2. **Tiltakssonen (Finnmark + Nord-Troms)** har ingen mva i det hele tatt. Egen kategori.
+2. **Tiltakssonen (Finnmark + Nord-Troms)** har ingen mva i det hele tatt, og er en egen kategori.
 
 3. **NO2 (Sør-Vest)** med Lnett eller Lede. Vi fikset nettopp tariff-bugs i begge basert på offisielle prislister, men har ikke verifisert at fikset treffer ekte fakturaer.
 
@@ -48,7 +48,7 @@ Listet etter hvor mye verdi det gir oss:
 
 5. **NO1 (Sør-Norge/Østlandet)** med Elvia. Norges største nettselskap.
 
-NO5 (Bergens-området) med BKK er allerede dekket, og NO1 med andre nettselskaper enn Elvia (f.eks. Glitre Nett, Norgesnett, Asker Nett) er nice-to-have men ikke prioritert.
+NO5 (Bergens-området) med BKK er allerede dekket, og NO1 med andre nettselskaper enn Elvia (f.eks. Glitre Nett, Norgesnett, Asker Nett) er fint å ha, men ikke prioritert.
 
 ## Norgespris eller strømstøtte
 
@@ -80,4 +80,4 @@ Tar ~30 minutter per faktura å integrere.
 
 ## Takk
 
-Hver faktura som blir lagt inn dekker tusenvis av brukere i samme nettselskap. Det er en av de mest verdifulle bidragene man kan gjøre til prosjektet.
+Hver faktura som blir lagt inn dekker tusenvis av brukere i samme nettselskap. Det er noe av det mest verdifulle du kan bidra med.

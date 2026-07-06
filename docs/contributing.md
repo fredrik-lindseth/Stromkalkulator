@@ -88,4 +88,4 @@ Fjern også gammel oppføring fra `DSO_LIST`. Brukere migreres automatisk.
 
 ## Årlige oppdateringer
 
-Nettleiepriser endres typisk ved nyttår. Oppdateres i januar, hjelp settes pris på.
+Nettleiepriser endres typisk ved nyttår. Oppdateres i januar. Hjelp er velkommen.

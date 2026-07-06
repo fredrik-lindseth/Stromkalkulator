@@ -13,7 +13,7 @@ Avklaring av tekniske spørsmål om GPS-tid og 10-sekunders broadcast-forsinkels
 
 ## Klokke-kilde i AMS-måleren
 
-egen måler er en **Kaifa MA304H3E** (Nuri Telecom). Tabellen under gjelder norske AMS-målere generelt (Kaifa, Aidon, Kamstrup) siden alle følger samme bransjepraksis.
+Egen måler er en **Kaifa MA304H3E** (Nuri Telecom). Tabellen under gjelder norske AMS-målere generelt (Kaifa, Aidon, Kamstrup) siden alle følger samme bransjepraksis.
 
 | Aspekt          | Verdi                                                 | Kilde                           |
 | --------------- | ----------------------------------------------------- | ------------------------------- |
@@ -34,10 +34,10 @@ Kaifa-måleren bruker DLMS/COSEM over HDLC på HAN-porten (ikke ASCII IEC 62056-
 **Bekreftet faktum, men ikke relevant for vårt avvik:**
 
 - GPS-tid er 18 sekunder foran UTC per 2026
-- Siste leap second var 31.12.2016, ingen er lagt til siden
-- CGPM-vedtak 2022: stopp leap seconds innen 2035
+- Siste skuddsekund var 31.12.2016, ingen er lagt til siden
+- CGPM-vedtak 2022: stopp skuddsekund innen 2035
 
-Hvis måleren brukte rå GPS-tid uten leap-justering, ville broadcast-tidspunktet vist 18 sek diff. Vi observerer 10 sek. Kaifa bruker intern krystall + sync mot head-end, ikke GPS.
+Hvis måleren brukte rå GPS-tid uten skuddsekund-justering, ville broadcast-tidspunktet vist 18 sek diff. Vi observerer 10 sek. Kaifa bruker intern krystall + sync mot head-end, ikke GPS.
 
 ## 10-sekunders-stemplingen er DESIGN
 
@@ -79,8 +79,8 @@ RJ45 HAN-porten **er** M-Bus elektrisk. Ingen separat M-Bus-kontakt på Kaifa MA
 
 - Ingen offentlig reverse-engineering av Kaifa MA304 eksisterer
 - Måleren bruker sannsynligvis Cortex-M med TrustZone, secure boot og signert/kryptert firmware
-- Plomben er Justervesenets, brytes må det rapporteres + gebyr (forskrift 2007-12-20-1723)
-- Selv hvis du fikk ut firmware, ville den ikke gi noen sniksvei. 10-sek-grensen ligger i DLMS-list-konfigurasjonen, ikke i transport
+- Plomben er Justervesenets; brytes den, må det rapporteres, og det koster gebyr (forskrift 2007-12-20-1723)
+- Selv hvis du fikk ut firmware, ville den ikke gi noen snarvei. 10-sek-grensen ligger i DLMS-list-konfigurasjonen, ikke i transport
 
 ## Praktisk plan
 
@@ -92,7 +92,7 @@ RJ45 HAN-porten **er** M-Bus elektrisk. Ingen separat M-Bus-kontakt på Kaifa MA
 | M-Bus / firmware                                | Ikke tilgjengelig                                                                     | Skrinlagt        |
 | Bytt til annen HAN-leser (Tibber Pulse)         | Eliminerer 3 sek transmisjons-lag, men ikke 10 sek i måleren                          | Marginal gevinst |
 
-## Konklusjon med tiden
+## Konklusjon om timingen
 
 **Hva vi vet:**
 
@@ -127,7 +127,7 @@ RJ45 HAN-porten **er** M-Bus elektrisk. Ingen separat M-Bus-kontakt på Kaifa MA
 - [Aidon RJ45 HAN Interface v1.6 (lokal)](specifications/aidon-rj45-han-interface-v1.6-EN.pdf), punkt M side 8, sekundær referanse
 - [Elhub validering V004 Tidsstempling](https://dok.elhub.no/e27/4-0-krav-til-validering)
 - [Gurux DLMS Clock class](https://www.gurux.fi/Gurux.DLMS.Objects.GXDLMSClock)
-- [NIST – leap seconds, GPS-UTC = 18 s siden 2017](https://www.nist.gov/pml/time-and-frequency-division/time-realization/leap-seconds)
+- [NIST: leap seconds, GPS-UTC = 18 s siden 2017](https://www.nist.gov/pml/time-and-frequency-division/time-realization/leap-seconds)
 - [Justervesenet om plombering](https://www.justervesenet.no/en/surveillance/sealing/)
 - [Forskrift om målenheter og måling](https://lovdata.no/dokument/SF/forskrift/2007-12-20-1723)
 - [Gridspertise oppkjøp av Aidon (2023)](https://aidon.com/gridspertise-s-r-l-acquires-leading-nordic-smart-grid-solution-provider-aidon-oy/)

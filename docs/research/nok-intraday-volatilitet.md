@@ -26,7 +26,7 @@ Ingen publisert studie dokumenterer en "12:00 CET dip" spesifikt for EUR/NOK, me
 - Desk-observasjoner (SEB, Nordea): NOK-likviditet konsentrert **08:00–16:00 CET**, peak under London-overlapp ~09:00–11:00 og 13:30–16:00. Vinduet **11:30–13:30 CET** er "European lunch lull", Nordic-desker redusert, US ennå ikke åpne.
 - Nord Pools 12:00-snapshot faller midt i denne tynne perioden. En enkelt stor ordre kan flytte mid-prisen mer enn senere.
 
-Rimelig å forvente at **12:00-kursen har høyere varians enn 14:15-kursen**, ikke som bias.
+Rimelig å forvente at **12:00-kursen har høyere varians enn 14:15-kursen**, men ingen systematisk bias.
 
 ## 3. ECB-fix 14:15 CET, kjent vol-mønster
 
@@ -37,9 +37,9 @@ Krohn, Mueller & Whelan (JoF 2024, "Foreign Exchange Fixings and Returns around 
 - Long-USD pre-fix / short post-fix: 11–14% annualisert mot EUR, GBP, JPY.
 - Forfatterne tolker det som dealer-intermediasjon av USD-etterspørsel rundt benchmarks. NOK er ikke i G9-utvalget, men paperet generaliserer til G10.
 
-Bias-størrelsen (2bp) er to størrelsesordener mindre enn 12:00→14:15-spreaden (0,02–0,05 NOK = ~20–45bp på kurs 11). Fix-effekten forklarer ikke din observasjon, den drukner i intraday-støy.
+Bias-størrelsen (2bp) er to størrelsesordener mindre enn 12:00→14:15-spreaden (0,02–0,05 NOK = ~20–45bp på kurs 11). Fix-effekten forklarer ikke observasjonen vår, den drukner i intraday-støy.
 
-ECB publiserer ingen offisiell volatilitets- eller bias-analyse av 14:15-snapshot. Norges Bank arvet tidspunktet fra ECB i 2015–2016 av synkronisasjonsgrunner og har ikke publisert egen sammenligning.
+ECB publiserer ingen offisiell volatilitets- eller bias-analyse av 14:15-snapshot. Norges Bank arvet tidspunktet fra ECB i 2015–2016 av synkroniseringsgrunner og har ikke publisert egen sammenligning.
 
 ## 4. Systematisk 12:00 høyere enn 14:15 i styrkings-perioder?
 
@@ -48,7 +48,7 @@ Ingen publisert evidens. Hypoteser som er forenlige:
 - I en trend-styrking gjennom dagen vil ethvert tidlig snapshot ligge svakere enn et senere. Ikke et NOK-fenomen, triviell konsekvens av drift.
 - 12:00 CET ligger i lunch lull. Hvis Nord Pools deltakere systematisk gjør EUR-salg (NOK-inntekt-hedge) før day-ahead-auksjonen ~12:50, kan EUR/NOK presses ned mot 14:15. Spekulativt, ingen kilde dokumenterer dette.
 
-Med ~100 handelsdager i Q1+Q2 og systematisk bias < 0,01 NOK ville en t-test sannsynligvis ikke skilt fra støy. Hvis dere ser stabilt fortegn over 100+ observasjoner, kjør en mean-difference-test før dere kaller det mønster.
+Med ~100 handelsdager i Q1+Q2 og systematisk bias < 0,01 NOK ville en t-test sannsynligvis ikke skilt fra støy. Hvis vi ser stabilt fortegn over 100+ observasjoner, kjør en mean-difference-test før vi kaller det mønster.
 
 ## 5. Det vi ikke fant offentlig svar på
 
@@ -63,7 +63,7 @@ Med ~100 handelsdager i Q1+Q2 og systematisk bias < 0,01 NOK ville en t-test san
 - BIS Triennial Central Bank Survey 2022, OTC FX turnover. https://www.bis.org/statistics/rpfx22_fx.htm
 - King, Osler, Rime (2013). "The market microstructure approach to foreign exchange." Norges Bank WP 12/2013. https://www.norges-bank.no/en/news-events/news-publications/Papers/Working-Papers/2013/WP-201312/
 - ECB Framework for euro foreign exchange reference rates. https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html
-- Norges Bank, exchange rates FAQ (14:15 CET snapshot, synket med ECB). https://www.norges-bank.no/en/topics/statistics/exchange_rates/valutakursar-faq/
+- Norges Bank, exchange rates FAQ (14:15 CET snapshot, synkronisert med ECB). https://www.norges-bank.no/en/topics/statistics/exchange_rates/valutakursar-faq/
 - NYU V-Lab, NOK GARCH volatility. https://vlab.stern.nyu.edu/volatility/VOL.NOK:FOREX-R.GARCH
 - Traders Union, EUR/NOK ATR & forecast. https://tradersunion.com/currencies/forecast/eur-nok/long-term-forecast/
 - myfxbook EUR/NOK volatility. https://www.myfxbook.com/forex-market/volatility/EURNOK

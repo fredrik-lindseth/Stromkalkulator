@@ -39,7 +39,7 @@ Det som gjenstår er den løpende sensoren i HA. Den akkumulerer med prisen slik
 
 Vår "spot etter strømstøtte" avviker ~30 kr/mnd fra BKKs egen "Uten Norgespris"-visning (april 2026: vi beregner 1408,52 kr, BKK viser 1377 kr). Vi bruker 2026-terskel fra forskrift 2025-09-08-1791 §5: 90 % refusjon når spotpris overstiger 77 øre/kWh eks. mva (0,9625 kr/kWh inkl. mva), time-for-time.
 
-Avviket ser ut til å skyldes at BKKs visning fortsatt bruker 2025-terskelen (75 øre eks. mva / 0,9375 inkl. mva). Med lavere terskel blir refusjonen større, så BKK trekker fra mer enn vi gjør, vi gir altså MER strømstøtte i vår beregning enn det BKK viser. Dette er anekdotisk basert på én faktura (april 2026); det kan også være avrundingsregler eller andre forskrifts-detaljer i spill.
+Avviket ser ut til å skyldes at BKKs visning fortsatt bruker 2025-terskelen (75 øre eks. mva / 0,9375 inkl. mva). Med lavere terskel blir refusjonen større, så BKK trekker fra mer enn vi gjør, vi gir altså mer strømstøtte i vår beregning enn det BKK viser. Dette er anekdotisk basert på én faktura (april 2026); det kan også være avrundingsregler eller andre detaljer i forskriften som spiller inn.
 
 Kun relevant for Norgespris-kunder som vil sammenligne mot BKKs "Uten Norgespris"-tall i kundeportalen. Tallet er en hypotetisk visning, ikke en faktisk fakturalinje, Norgespris-kunder mottar ikke strømstøtte uansett.
 
@@ -51,7 +51,7 @@ Relevant kun hvis du vil oppdage korte effekt-topper i hjemmet ditt.
 
 ## 6. For utviklere: verifisering mot ekte faktura
 
-Vi har en dev-pipeline (`scripts/research/verify_invoice_hourly.py`) som leser tpi-broadcast direkte fra AMS-måleren for å sammenligne mot Elhub og fakturaen. Den har et 13-sek sample-skift (10 sek inne i måleren + 3 sek transmisjon på Kaifa + Pow-U-oppsett) som påvirker BARE denne pipelinen.
+Vi har en dev-pipeline (`scripts/research/verify_invoice_hourly.py`) som leser tpi-broadcast direkte fra AMS-måleren for å sammenligne mot Elhub og fakturaen. Den har et 13-sek sample-skift (10 sek inne i måleren + 3 sek transmisjon på Kaifa + Pow-U-oppsett) som påvirker bare denne pipelinen.
 
 Selve HA-integrasjonen leser `p`-strømmen kontinuerlig og er ikke påvirket. Det betyr at sensorene du ser i Energy Dashboard og månedstotaler ikke har de 9 Wh-avvikene som dev-pipelinen viser.
 
@@ -67,4 +67,4 @@ Reelle avvik som påvirker brukeren:
 | Strømstøtte-beregning  | 30 kr/mnd  | 30 kr/mnd    | Kun for teoretisk visning    |
 | Kapasitetstrinn-grense | 165 kr/mnd | 0            | Kun hvis permanent på grense |
 
-Total typisk ukjent feil: under 5 kr/mnd for vanlig bruker. Under 0,1 % av total fakturasum. Integrasjonen kan trygt brukes for fakturakontroll og fanger reelle feil i størrelsesorden 50 kr+ uten problem.
+Total typisk ukjent feil: under 5 kr/mnd for vanlig bruker. Under 0,1 % av total fakturasum. Integrasjonen kan trygt brukes for fakturakontroll og fanger reelle feil i størrelsesorden 50 kr+.

@@ -1,6 +1,6 @@
 # Input-sensorer
 
-Hva integrasjonen trenger fra Home Assistant for å beregne strømkostnad. Denne guiden forklarer hva hver sensor er, hvor du finner den, og hvilken kombinasjon som gir mest presise tall.
+Hva integrasjonen trenger fra Home Assistant for å beregne strømkostnad.
 
 ## TL;DR
 
@@ -14,7 +14,7 @@ Eksport-effektmåler og strømleverandør-sensor er valgfrie og brukes kun hvis 
 
 ## Effektmåler (power_sensor)
 
-**Hva**: Sensor som rapporterer hvor mye strøm du bruker NÅ, i watt (W). Verdien hopper opp og ned i takt med at apparater slår seg på og av.
+**Hva**: Sensor som rapporterer hvor mye strøm du bruker nå, i watt (W). Verdien hopper opp og ned i takt med at apparater slår seg på og av.
 
 **Hvor finner du den**: Vanligvis fra AMS-måleren via HAN-porten. Typiske kilder:
 
@@ -85,23 +85,17 @@ Når dokumentasjonen sier «OBIS 1.8.0», menes altså bare «kumulativ kWh-tell
 
 **Hvorfor**: Brukes til å beregne inntekt fra salg av strøm til nettet.
 
-## Hvorfor anbefales energi-sensor?
-
-Korte versjonen: med energi-sensor får du eksakt månedsforbruk. Uten den får du et estimat som kan avvike fra fakturaen med 1-5 %.
-
-Lange versjonen forklart med analogi under.
-
 ## Riemann-summering vs delta-akkumulering (forklart enkelt)
 
-Tenk på effektmåleren (W) som speedometer i bilen. Den viser hvor fort du går NÅ.
+Tenk på effektmåleren (W) som speedometer i bilen. Den viser hvor fort du går nå.
 
 Tenk på energimåleren (kWh) som tripteller. Den viser totalt antall kWh siden den ble nullstilt.
 
-Integrasjonen kan regne ut total forbruk på to måter:
+Integrasjonen kan regne ut totalt forbruk på to måter:
 
 **Riemann-summering (når energi-sensor mangler):** Les speedometeret hvert minutt, regn ut «hvor langt har jeg kjørt i dette minuttet» som hastighet × tid. Summer over en hel måned.
 
-Problem: hvis du leser speedometeret midt under en akselerasjon, får du for høy estimering for forrige minutt. Hvis du leser mens du står stille, men brukte mye effekt for 2 sekunder før, mister du forbruk.
+Problem: hvis du leser speedometeret midt under en akselerasjon, får du for høyt estimat for forrige minutt. Hvis du leser mens du står stille, men brukte mye effekt for 2 sekunder før, mister du forbruk.
 
 Over en hel måned: summeringen kan avvike fra «ekte» forbruk med flere prosent. Avviket er typisk størst hvis du har mye av/på-utstyr (varmtvannsbereder, induksjonstopp, varmepumpe i defrost).
 
@@ -167,9 +161,9 @@ Tilsvarende oppsett. Effekt og energi eksponeres som separate sensorer.
 
 ## Hvorfor 'eks. mva' for spotpris-sensor?
 
-Nord Pool publiserer spotpriser eks. mva. HA's offisielle nordpool-integrasjon leverer eks. mva. Integrasjonen forventer dette og legger på mva selv basert på avgiftssone (25 % i Sør-Norge, 0 % i Nord-Norge).
+Nord Pool publiserer spotpriser eks. mva. HAs offisielle nordpool-integrasjon leverer eks. mva. Integrasjonen forventer dette og legger på mva selv basert på avgiftssone (25 % i Sør-Norge, 0 % i Nord-Norge).
 
-Hvis sensoren din ALLEREDE leverer inkl. mva (f.eks. eldre `custom_components/nordpool` med VAT=true, eller manuell template-sensor som legger på 25 %), kryss av «Spotpris-sensor leverer priser inkl. mva» i konfigurasjonen.
+Hvis sensoren din allerede leverer inkl. mva (f.eks. eldre `custom_components/nordpool` med VAT=true, eller manuell template-sensor som legger på 25 %), kryss av «Spotpris-sensor leverer priser inkl. mva» i konfigurasjonen.
 
 Verifiser ved å sammenligne med Nord Pool sin nettside (som viser eks. mva).
 

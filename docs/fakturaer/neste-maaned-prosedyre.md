@@ -4,7 +4,7 @@ Stegene som må gjøres når en ny BKK-faktura kommer. Forutsetter at fakturaen 
 
 ## Forutsetninger
 
-- SSH-tilgang til HomeAssistant
+- SSH-tilgang til Home Assistant
 - BankID for å logge inn på elhub.no
 - BKK-faktura som PDF
 - Git-clone av dette repoet
@@ -86,7 +86,7 @@ Avgiftslinjene har et gulv på 1-2 øre som er BKKs interne avrunding.
 
 Hvis avvik er innenfor: alt fungerer som dokumentert.
 
-Hvis avvik er signifikant større: undersøk. Mulige årsaker:
+Hvis avviket er vesentlig større: undersøk. Mulige årsaker:
 
 - HAN-leser nedetid (sjekk `Kvalitet`-kolonnen i Elhub-CSV for "Beregnet"-rader)
 - Endret målerprosess hos BKK

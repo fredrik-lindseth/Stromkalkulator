@@ -6,14 +6,14 @@ Til din kontakt i BKK. Mål: hvilken EUR/NOK-kurs og snittberegning brukes for N
 
 Vi har bygd et open source-verktøy som verifiserer BKK-fakturaer linje-for-linje. Alle linjer treffer på øret unntatt Norgespris-snittpris, der vi ligger 0,14 % over. Avviket er marginalt, men vi vil dokumentere hvorfor.
 
-## Email-utkast
+## Epost-utkast
 
 Emne: Hvilken EUR/NOK-kurs brukes for Norgespris-snittpris?
 
 ```
 Hei,
 
-Jeg har laget en  Home Assistant-integrasjon som
+Jeg har laget en Home Assistant-integrasjon som
 verifiserer BKK-fakturaer mot egen AMS-måler-data.
 
 Alle linjer matcher på øret unntatt Norgespris-snittpris, der vi
@@ -27,11 +27,11 @@ For april 2026 (faktura 000000000):
 
 To spørsmål:
 
-1. Hvilken EUR/NOK-kurs bruker dere? Nord Pools egne NOK-priser,  Norges Banks daglige fixing, eller noe annet?
+1. Hvilken EUR/NOK-kurs bruker dere? Nord Pools egne NOK-priser, Norges Banks daglige fixing, eller noe annet?
 
-2. Snittes kursen aritmetisk over måneden, eller forbruksvektes den  per time?
+2. Snittes kursen aritmetisk over måneden, eller forbruksvektes den per time?
 
-Jeg vil bare kunne dokumentere "BKK bruker X" i verktøyet, så brukere forstår hvorfor vi har 0,14 % rest-avvik og evt vi kan bruke det samme valutaen. Fakturaen er riktig.
+Jeg vil bare kunne dokumentere "BKK bruker X" i verktøyet, så brukere forstår hvorfor vi har 0,14 % rest-avvik, og eventuelt kan vi bruke samme kurs. Fakturaen er riktig.
 
 Mvh
 <kunde>

@@ -9,7 +9,7 @@ Kilder hentet via offentlige websøk mai 2026. Ingen tilgang til Bloomberg/Refin
 Det finnes **ingen enkelt "industri-standard 12:00 CET-fix"** for EUR/NOK analogt med WMR/Refinitiv 16:00 London. Kandidatene:
 
 - **ECB Reference Rate:** concertation ca. 14:10 CET, publiseres ca. 16:00 CET. Disclaimer: *"Using the rates for transaction purposes is strongly discouraged."* Ikke en 12:00-fix.
-- **Bloomberg BFIX:** publiseres hver 30. minutt mens markedet er åpent. Det finnes derfor en **BFIX EURNOK 12:00 CET (11:00 GMT)** som datapunkt, TWAP over 306-sek vindu (G10). Ticker-konvensjon `EURNOK BFIX <GO>`, men eksakt streng krever terminal.
+- **Bloomberg BFIX:** publiseres hvert 30. minutt mens markedet er åpent. Det finnes derfor en **BFIX EURNOK 12:00 CET (11:00 GMT)** som datapunkt, TWAP over 306-sek vindu (G10). Ticker-konvensjon `EURNOK BFIX <GO>`, men eksakt streng krever terminal.
 - **WMR/LSEG:** hovedfix 16:00 London. Tilbyr også **WMR 2PM CET FX Spot Rate** som egen benchmark, og **WMR Intraday Service** med timesfix 06:00–21:00 UK-tid. EUR/NOK 11:00 GMT er inkludert i intraday-abonnementet, men ikke et eget produkt.
 - **Reuters EUR= / EBS snapshot:** råkilde, ikke benchmark.
 

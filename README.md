@@ -37,7 +37,7 @@ Sensorer som viser hva strømmen faktisk koster, ikke bare spotprisen:
 
 Hver rapport matcher integrasjonens beregninger linje for linje mot en ekte faktura. Se [docs/fakturaer/referanse.md](docs/fakturaer/referanse.md).
 
-**Presisjon:** Integrasjonen treffer fakturaen på øret (innenfor 50 Wh på månedsforbruk, 0,01 kr på alle linjer). Eneste dokumenterte avvik er 0,2 % på Norgespris-kompensasjon. Det er kurs-/avrundingspresisjon, ikke logikkfeil eller feil kurskilde: spotprisen integrasjonen bruker er Nord Pools NOK-pris med deres egen vekslingskurs allerede bakt inn, samme grunnlag som nettselskapet fakturerer fra. Out-of-the-box, ingen konfigurasjon trengs. Se [docs/begrensninger.md](docs/begrensninger.md) for detaljer per målermerke og HAN-leser.
+**Presisjon:** Integrasjonen treffer fakturaen på øret: innenfor 50 Wh på månedsforbruk, 1-2 øre på nettleielinjene (BKKs interne avrunding), og Norgespris-linjen er reprodusert eksakt mot publiserte Final-priser (juni 2026, se [docs/research/norgespris-eksakt-match.md](docs/research/norgespris-eksakt-match.md)). Den løpende sensoren kan avvike 0,04-0,05 % fordi Nord Pool kan korrigere valutakursen etter publisering. Ingen konfigurasjon trengs. Detaljer per målermerke og HAN-leser: [docs/begrensninger.md](docs/begrensninger.md).
 
 Verifiseringen er gjort på Kaifa MA304H3E (3-fase, Nuri Telecom-importert) med Pow-U HAN-leser (AMSleser.no) og offisiell `nordpool`-integrasjon i HA. Aidon-målere har samme broadcast-timing (HH:00:10) og forventes å gi samme presisjon. Andre HAN-lesere og spot-integrasjoner kan ha andre presisjons-karakteristikker.
 

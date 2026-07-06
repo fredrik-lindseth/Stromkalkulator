@@ -190,6 +190,10 @@ desimaler). Et restavvik på under 3 kr / 0,05–0,2 % per måned er sannsynligv
 avrundings- og kildepresisjonsstøy, ikke en feil i integrasjonen. Det kan vise
 seg umulig å lukke til null utenfra.
 
+> **Motbevist 2026-07-06:** Det lot seg lukke. Med Nord Pools publiserte
+> Final-kvarterpriser traff vi juni-fakturaens Norgespris-linje på øret.
+> Se [norgespris-eksakt-match.md](norgespris-eksakt-match.md).
+
 ### Rangert
 
 1. **Hent RMEs publiserte timesverdier (prissikringsverdi) for NO5.** Den
@@ -199,19 +203,19 @@ seg umulig å lukke til null utenfra.
    verdiene finnes kun som Power BI-dashboard, ikke som fil/API, så uttrekket
    må gjøres manuelt via «Eksporter data» i en nettleser (detaljer over).
    Høyest sjanse for å faktisk lukke gapet.
-2. **Kjør Nord Pools faktiske `exchangeRate` mot den nye mai-fakturaen.**
-   Kursserien er allerede snapshottet (19.04–19.06.2026) til
-   `_private/Måleverdier/nordpool_exchangerate_no5.json` med
-   `scripts/research/snapshot_nordpool_exchangerate.py`, før gratis-vinduet
-   lukker seg. Når mai-timesdata er eksportert fra HA, er dette første test med
-   ekte NP-kurs, og en god krysssjekk mot RME-verdiene.
+2. ~~**Kjør Nord Pools faktiske `exchangeRate` mot den nye mai-fakturaen.**~~
+   Gjort 2026-07-06, med de publiserte NOK-kvarterprisene i stedet for
+   rekonstruksjon: juni traff eksakt (0,00 kr), mai har -0,35 kr igjen.
+   Arkivet utvidet med `scripts/research/snapshot_nordpool_nok.py`.
+   Se [norgespris-eksakt-match.md](norgespris-eksakt-match.md).
 3. **Bytt primær gratis-proxy fra NB same-day (B) til NB D-1 (C)** i
    variantanalysen. Mekanisk korrekt, gratis, og best-matchende. Lav innsats.
 4. **Spør BKK direkte** om de fakturerer bit-identisk med RMEs publiserte
    verdier, og hvilken kurskilde/avrunding de bruker. Utkast i
    [epost-utkast-bkk.md](epost-utkast-bkk.md).
-5. **Godta ±0,2 % / under 3 kr som gulv** og dokumenter restavviket som
-   avrundingsstøy.
+5. ~~**Godta ±0,2 % / under 3 kr som gulv**~~ Avlivet 2026-07-06: gulvet på
+   Norgespris-linjen er ~0 med riktig priskilde. Det som gjenstår er
+   mai-restavviket på 0,35 kr (punkt 1 og Elhub-CSV avgjør).
 
 **Anbefalt neste steg:** finn og hent RMEs timesverdier for NO5 (1). Det er den
 direkte fasiten og svarer på bakover-verifiseringen uten FX i det hele tatt.

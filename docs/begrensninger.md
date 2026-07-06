@@ -8,7 +8,7 @@ All faktura-verifisering er gjort mot eget oppsett:
 
 | Komponent               | Verdi                                   |
 | ----------------------- | --------------------------------------- |
-| Nettselskap             | BKK (NO5), verifisert mot 6 fakturaer   |
+| Nettselskap             | BKK (NO5), verifisert mot 8 fakturaer   |
 | Måler                   | Kaifa MA304H3E                          |
 | HAN-leser               | Pow-U (AMSleser.no, AmsToMqtt-firmware) |
 | Strømleverandør         | Tibber Norge AS                         |
@@ -29,28 +29,11 @@ Følgende har ikke blitt verifisert mot ekte faktura:
 
 Vil du validere noen av disse: send faktura + Elhub-data, så kan vi utvide verifiserings-suiten.
 
-## 3. Norgespris-kompensasjon (EUR/NOK 0,2 % i HA-integrasjonen)
+## 3. Norgespris-kompensasjon (prisårgang i den løpende sensoren)
 
-Beregningen av Norgespris-kompensasjon basert på `sensor.nord_pool_no5_current_price` avviker 0,14 % fra BKK på spot-snittet, som gir 0,2 % på kompensasjons-beløpet. April 2026: 2,92 kr på 1427,89 kr Norgespris-kompensasjon.
+**Løst for verifisering 2026-07-06:** Med Nord Pools publiserte Final-priser reproduseres Norgespris-linjen eksakt (juni 2026: 0,00 kr avvik). Formelen, symmetrien og kursgrunnlaget er riktig. Se [research/norgespris-eksakt-match.md](research/norgespris-eksakt-match.md).
 
-**Status 2026-05-23:** vi har testet 10 omregnings-varianter mot fakturaen ved å hente rå EUR/MWh fra Nord Pool og kombinere med ulike EUR/NOK-kurser:
-
-| Variant                                          | Avvik     | Notat                            |
-| ------------------------------------------------ | --------- | -------------------------------- |
-| Rå EUR + NB same-day forward-fill                | +0,79 kr  | Beste enkeltkilde (0,055 %)      |
-| Rå EUR + Nord Pool EXR (daglig)                  | -3,25 kr  | NPs egen interne kurs            |
-| HA `nordpool`-integrasjonens NOK-pris            | +2,92 kr  | Det vi faktisk bruker i dag      |
-
-Implisitt single-rate som ville gitt 0-treff: 11,0706 NOK/EUR. Den ligger mellom NB (11,06) og Nord Pool EXR (11,08). Ingen offentlig publisert kurs treffer presist, sannsynligvis 12:00 CET interbankkurs som ikke er gratis tilgjengelig.
-
-| Tiltak                                          | Effekt                            | Kompleksitet       |
-| ----------------------------------------------- | --------------------------------- | ------------------ |
-| Akseptere (dagens valg)                         | 0,2 % avvik dokumentert           | Ingen              |
-| Bytte til rå EUR + NB-kurs i integrasjonen      | Reduserer avvik til 0,055 %       | Middels            |
-| Hente 12:00 CET interbankdata                   | Krever Bloomberg/Refinitiv        | Høy (ikke gratis)  |
-| Spørre BKK direkte hvilken kurs de bruker       | Definitivt svar                   | Lav (kundeservice) |
-
-Se [research/nok-omregning.md](research/nok-omregning.md) for full variant-matrise og kjørbart script.
+Det som gjenstår er den løpende sensoren i HA. Den akkumulerer med prisen slik den ser ut i leveringstimen, og på dager der valutamarkedet var stengt på auksjonsdagen (søndager, enkelte helligdager) er det en foreløpig kurs som Nord Pool senere korrigerer til Final. En akkumulert sum kan ikke rettes bakover. Målt effekt: 0,15 kr (juni) og 0,55 kr (mai), altså 0,04-0,05 % av kompensasjonen. Fakturaverifiseringen i etterkant er ikke berørt, den bruker publiserte Final-priser fra prisarkivet (`just snapshot-kurs`).
 
 ## 4. Strømstøtte-formel (~30 kr/mnd vs BKKs visning)
 
@@ -78,10 +61,10 @@ Se [research/klokke-og-tidsstempling.md](research/klokke-og-tidsstempling.md) og
 
 Reelle avvik som påvirker brukeren:
 
-| Type                   | Worst case | Typisk     | Konsekvens                   |
-| ---------------------- | ---------- | ---------- | ---------------------------- |
-| Norgespris-komp kurs   | 18 kr/mnd  | 2-3 kr/mnd | Marginalt, EUR/NOK-kurs (kan reduseres til <1 kr ved bytte til rå EUR + NB-kurs) |
-| Strømstøtte-beregning  | 30 kr/mnd  | 30 kr/mnd  | Kun for teoretisk visning    |
-| Kapasitetstrinn-grense | 165 kr/mnd | 0          | Kun hvis permanent på grense |
+| Type                   | Worst case | Typisk       | Konsekvens                   |
+| ---------------------- | ---------- | ------------ | ---------------------------- |
+| Norgespris prisårgang  | ~1 kr/mnd  | 0,1-0,6 kr/mnd | Kun løpende sensor, verifisering treffer eksakt |
+| Strømstøtte-beregning  | 30 kr/mnd  | 30 kr/mnd    | Kun for teoretisk visning    |
+| Kapasitetstrinn-grense | 165 kr/mnd | 0            | Kun hvis permanent på grense |
 
 Total typisk ukjent feil: under 5 kr/mnd for vanlig bruker. Under 0,1 % av total fakturasum. Integrasjonen kan trygt brukes for fakturakontroll og fanger reelle feil i størrelsesorden 50 kr+ uten problem.

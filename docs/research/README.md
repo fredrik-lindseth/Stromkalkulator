@@ -6,6 +6,7 @@ Filene her dokumenterer hvordan integrasjonen forholder seg til faktiske BKK-fak
 
 ## Fakturaverifisering og kodegjennomgang
 
+- [norgespris-eksakt-match.md](norgespris-eksakt-match.md), fasiten: Norgespris-linjen reproduseres eksakt med Nord Pools publiserte Final-priser (juni 2026). Recorder-avviket var prisårgang.
 - [nok-omregning.md](nok-omregning.md), variant-matrise for EUR/NOK-omregning av Norgespris-kompensasjon, med konklusjon om 12:00 CET-hypotesen.
 - [elhub-vs-han-vs-faktura.md](elhub-vs-han-vs-faktura.md), sammenligning av Elhub-data, HAN-broadcast og BKK-faktura for å lokalisere 13-sek-forsinkelsen.
 - [ikke-validerte-scenarier.md](ikke-validerte-scenarier.md), kodegjennomgang av tre kjente scenarier (DST, negative spotpriser, Norgespris-tak) med identifiserte småfeil.

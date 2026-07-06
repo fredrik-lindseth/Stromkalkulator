@@ -47,27 +47,42 @@ Kopier `FAKTURA_APRIL_2026`-blokken, endre navn til `FAKTURA_MAI_2026` og fyll i
 ### 5. Kjør verifisering
 
 ```bash
+# Arkiver publiserte Nord Pool-priser FØRST (gratis-vinduet er ~2 mnd,
+# fakturamåneden må fanges nå). Trengs for eksakt Norgespris-sjekk.
+just snapshot-kurs
+
 # Parametrisert faktura-test (validerer alle måneder, inkl. den nye, mot fakturasum)
 pipx run --with hypothesis pytest tests/test_faktura_bkk.py -v
 
-# Direkte sammenligning
+# Direkte sammenligning (viser også Norgespris mot publiserte Final-priser)
 python3 scripts/research/verify_invoice_hourly.py \
     --hourly tests/fixtures/bkk_mai_2026_hourly.json \
     --faktura mai_2026
+
+# Legg den nye måneden til i FAKTURAER-dicten i verify_invoice_hourly.py
+# og kjør eksakt-sjekken for alle måneder med prisdekning:
+just verify-norgespris
 ```
 
 ### 6. Sjekk avvik mot april
 
 Forventede avvik (basert på april 2026):
 
-| Linje              | Forventet avvik |
-| ------------------ | --------------- |
-| Total kWh          | ±50 Wh          |
-| Dag/natt-split     | ±100 Wh hver    |
-| Topp 3 maks effekt | 3-8 W per topp  |
-| Norgespris-komp    | 2-5 kr (0,2 %)  |
+| Linje                           | Forventet avvik |
+| ------------------------------- | --------------- |
+| Total kWh                       | ±50 Wh          |
+| Dag/natt-split                  | ±100 Wh hver    |
+| Topp 3 maks effekt              | 3-8 W per topp  |
+| Norgespris-komp (HA-recorder)   | 0,1-0,6 kr      |
+| Norgespris-komp (publisert Final) | ±0,05 kr      |
+| Avgiftslinjer (forbruk/enova)   | ±2 øre          |
 
-Norgespris-komp-avviket på ~0,2 % er dokumentert kurs-/avrundingsstøy, ikke en logikkfeil: spotprisen er allerede Nord Pools NOK-pris. Vil du grave i selve kursen, er den daglige `exchangeRate` arkivert (HA-sensor `sensor.nord_pool_no5_exchange_rate` + `just snapshot-kurs`). Bakgrunn: [../research/nok-omregning.md](../research/nok-omregning.md), [../research/bloomberg-verifisering.md](../research/bloomberg-verifisering.md).
+Recorder-avviket på Norgespris skyldes at HA lagret en foreløpig valutakurs
+på søndager, ikke logikkfeil. Eksakt-sjekken mot publiserte Final-priser
+skal treffe tilnærmet null; juni 2026 traff på øret. Større avvik der tyder
+på kWh-avvik mot Elhub, eller at Nord Pool har korrigert prisen i etterkant.
+Se [../research/norgespris-eksakt-match.md](../research/norgespris-eksakt-match.md).
+Avgiftslinjene har et gulv på 1-2 øre som er BKKs interne avrunding.
 
 Hvis avvik er innenfor: alt fungerer som dokumentert.
 

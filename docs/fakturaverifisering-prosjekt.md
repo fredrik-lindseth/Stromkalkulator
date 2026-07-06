@@ -41,7 +41,7 @@ Med Elhub-data og NOK-omregningsanalyse (oppdatert 2026-05-22 kveld) er flere sp
 
 Se [måler-hardware.md](måler-hardware.md). Gjenstående:
 
-1. ~~Hvilken EUR/NOK-kurs bruker BKK eksakt?~~ Besvart 2026-07-06: Nord Pools publiserte Final-pris, verifisert med eksakt match for juni. Gjenstår: mai-restavviket på 0,35 kr (Elhub-CSV for mai eller RME-verdier avgjør)
+1. ~~Hvilken EUR/NOK-kurs bruker BKK eksakt?~~ Besvart 2026-07-06: Nord Pools publiserte Final-pris. Med Elhub-kWh x Final-priser treffer både mai og juni fakturaen innenfor 0,005 kr. Mai-restavviket på 0,35 kr var en recorder-aggregatglipp 2. pinsedag, ikke pris. Ingenting gjenstår på Norgespris-sporet.
 
 ## Plan
 

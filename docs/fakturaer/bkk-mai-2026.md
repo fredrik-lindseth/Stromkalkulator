@@ -95,14 +95,13 @@ reproduserer fakturaen innenfor avrundingsfeil. Verifisert via
 Time-for-time-verifisering ble utført 2026-07-06 (sammen med juni):
 HAN-eksporten (`tests/fixtures/bkk_mai_2026_hourly.json`, 744 timer) matcher
 fakturaen på alle linjer. Total kWh treffer på 4 Wh, nettleie på 0.02 kr.
-Norgespris-kompensasjonen avviker 0.55 kr med HA-recorderens priser og 0.35
-kr med Nord Pools publiserte Final-priser (juni traff eksakt med samme
-metode). Restavviket skyldes ikke kWh-støy eller kurskilden; mest sannsynlig
-er det mai-kWh-serien mot Elhub, eller at Nord Pool korrigerte priser etter
-BKKs fakturakjøring. Se
+Norgespris-linjen er verifisert **eksakt** med Elhub-CSV: Elhub-kWh x
+publiserte Final-priser gir -1032.56 kr, avvik -0.001 kr. Elhub matcher
+også fakturaens dag/natt/total på 0 Wh. HAN-kWh-varianten avvek 0.35 kr,
+som viste seg å sitte i én recorder-aggregatglipp på 2. pinsedag (delta
+byttet mellom nabotimer). Se
 [research/norgespris-eksakt-match.md](../research/norgespris-eksakt-match.md).
 Coordinator-replay dekkes av `tests/test_coordinator_replay.py`.
-Elhub-CSV for mai (krever BankID) er neste steg for å lukke de 0.35 kr.
 
 ## Konklusjon
 

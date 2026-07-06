@@ -197,11 +197,12 @@ seg umulig å lukke til null utenfra.
 
 1. **Hent RMEs publiserte timesverdier (prissikringsverdi) for NO5.** Den
    offisielle fasiten i NOK, med omregningen allerede bakt inn, dekker alle
-   måneder fra 01.10.2025. Lar oss verifisere bakover til øret uten
-   FX-rekonstruksjon og uten Nord Pool-vinduet. Haken (verifisert 2026-06-20):
-   verdiene finnes kun som Power BI-dashboard, ikke som fil/API, så uttrekket
-   må gjøres manuelt via «Eksporter data» i en nettleser (detaljer over).
-   Høyest sjanse for å faktisk lukke gapet.
+   måneder fra 01.10.2025. Haken (verifisert 2026-06-20): verdiene finnes kun
+   som Power BI-dashboard, så uttrekket må gjøres manuelt via «Eksporter
+   data» i en nettleser (detaljer over). **Nedgradert 2026-07-06:** gapet er
+   lukket uten RME (Elhub-kWh x NP Final traff fakturaen, se
+   [norgespris-eksakt-match.md](norgespris-eksakt-match.md)); kun aktuelt
+   igjen for å verifisere måneder eldre enn NP-gratis-vinduet.
 2. ~~**Kjør Nord Pools faktiske `exchangeRate` mot den nye mai-fakturaen.**~~
    Gjort 2026-07-06, med de publiserte NOK-kvarterprisene i stedet for
    rekonstruksjon: juni traff eksakt (0,00 kr), mai har -0,35 kr igjen.
@@ -213,11 +214,14 @@ seg umulig å lukke til null utenfra.
    verdier, og hvilken kurskilde/avrunding de bruker. Utkast i
    [epost-utkast-bkk.md](epost-utkast-bkk.md).
 5. ~~**Godta ±0,2 % / under 3 kr som gulv**~~ Avlivet 2026-07-06: gulvet på
-   Norgespris-linjen er ~0 med riktig priskilde. Det som gjenstår er
-   mai-restavviket på 0,35 kr (punkt 1 og Elhub-CSV avgjør).
+   Norgespris-linjen er ~0 med riktig priskilde og Elhub-kWh. Mai-restavviket
+   på 0,35 kr ble lukket samme kveld med Elhub-CSV (recorder-aggregatglipp,
+   ikke pris).
 
-**Anbefalt neste steg:** finn og hent RMEs timesverdier for NO5 (1). Det er den
-direkte fasiten og svarer på bakover-verifiseringen uten FX i det hele tatt.
+**Status: sporet er lukket.** Elhub-kWh x Nord Pools publiserte Final-priser
+reproduserer fakturaen (mai og juni 2026 innenfor 0,005 kr), se
+[norgespris-eksakt-match.md](norgespris-eksakt-match.md). RME-uttrekket (1)
+og BKK-eposten (4) er kun aktuelle for måneder eldre enn gratis-vinduet.
 Reproduksjon av NP-kurs-uthentingen som kryssjekk:
 
 ```bash

@@ -149,8 +149,10 @@ class TestReadSensorFloat:
         assert coord._read_sensor_float("sensor.power") == 0.0
 
     def test_negative(self, _patch_coordinator_base):
+        # Negativ effekt klippes til 0 (clamp_min): power_sensor er unidireksjonell
+        # import, negative verdier er sensorstøy/feilkonfig og skal ikke telle.
         coord = self._make_coordinator(_patch_coordinator_base, "-100")
-        assert coord._read_sensor_float("sensor.power") == -100.0
+        assert coord._read_sensor_float("sensor.power") == 0.0
 
     def test_no_entity_id(self, _patch_coordinator_base):
         coord = self._make_coordinator(_patch_coordinator_base, "5000")

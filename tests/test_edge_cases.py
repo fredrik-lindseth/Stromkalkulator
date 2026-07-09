@@ -1,15 +1,16 @@
 """Tests for edge cases not covered elsewhere.
 
 Covers:
-- Daylight saving time (DST) transitions
 - Holiday calculations beyond 2030
-- is_day_rate at DST clock change boundaries
+
+DST-overganger (is_day_rate rundt klokkeomstilling) dekkes av
+tests/test_dst_overgang.py mot den ekte coordinator._is_day_rate.
 """
 
 from __future__ import annotations
 
 import typing
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 
 import pytest
 
@@ -18,54 +19,6 @@ from custom_components.stromkalkulator.const import (
     _bevegelige_helligdager,
     _easter,
 )
-from tests.test_energiledd import is_day_rate
-
-# =============================================================================
-# DST (sommertid), energiledd rundt klokkeomstilling
-# =============================================================================
-
-
-class TestDaylightSavingTime:
-    """Test is_day_rate around DST transitions.
-
-    Norway switches to summer time last Sunday of March (02:00 → 03:00)
-    and back last Sunday of October (03:00 → 02:00).
-
-    is_day_rate uses naive datetimes (hour-based), so DST doesn't affect
-    the logic directly. But we verify behavior at the boundary hours.
-    """
-
-    def test_spring_forward_boundary_march_2026(self):
-        """Last Sunday of March 2026 = March 29. Weekend → always night rate."""
-        # At 01:59 (before spring forward)
-        assert is_day_rate(datetime(2026, 3, 29, 1, 59)) is False  # weekend
-        # At 03:00 (after spring forward, 02:00 doesn't exist)
-        assert is_day_rate(datetime(2026, 3, 29, 3, 0)) is False  # weekend
-        # At 06:00, still weekend
-        assert is_day_rate(datetime(2026, 3, 29, 6, 0)) is False  # weekend
-
-    def test_day_after_spring_forward_march_2026(self):
-        """Monday March 30 2026, first weekday after spring forward."""
-        # 05:59 → night rate
-        assert is_day_rate(datetime(2026, 3, 30, 5, 59)) is False
-        # 06:00 → day rate
-        assert is_day_rate(datetime(2026, 3, 30, 6, 0)) is True
-        # 21:59 → day rate
-        assert is_day_rate(datetime(2026, 3, 30, 21, 59)) is True
-        # 22:00 → night rate
-        assert is_day_rate(datetime(2026, 3, 30, 22, 0)) is False
-
-    def test_fall_back_boundary_october_2026(self):
-        """Last Sunday of October 2026 = October 25. Weekend → always night rate."""
-        assert is_day_rate(datetime(2026, 10, 25, 2, 0)) is False  # weekend
-        assert is_day_rate(datetime(2026, 10, 25, 12, 0)) is False  # weekend
-
-    def test_day_after_fall_back_october_2026(self):
-        """Monday October 26 2026, first weekday after fall back."""
-        assert is_day_rate(datetime(2026, 10, 26, 5, 59)) is False
-        assert is_day_rate(datetime(2026, 10, 26, 6, 0)) is True
-        assert is_day_rate(datetime(2026, 10, 26, 22, 0)) is False
-
 
 # =============================================================================
 # Helligdager 2031+, påskealgoritmen utover forhåndskompilert cache
@@ -137,31 +90,3 @@ class TestHolidaysBeyond2030:
             assert h not in HELLIGDAGER_BEVEGELIGE, (
                 f"{h} found in precomputed list, update const.py?"
             )
-
-    def test_is_day_rate_on_2031_easter_not_detected(self):
-        """Easter 2031 (April 13) will be treated as normal Sunday.
-
-        This test documents the current behavior: since 2031 holidays
-        aren't in HELLIGDAGER_BEVEGELIGE, they won't trigger night rate
-        via the holiday check. April 13, 2031 happens to be a Sunday,
-        so it gets night rate via the weekend check instead.
-        """
-        easter_2031 = datetime(2031, 4, 13, 12, 0)  # Sunday
-        # Still night rate because it's a weekend
-        assert is_day_rate(easter_2031) is False
-
-    def test_is_day_rate_on_2031_kristi_himmelfartsdag_not_detected(self):
-        """Kr. himmelfart 2031 (May 22, Thursday) won't be detected as holiday.
-
-        This is a genuine bug for 2031: a weekday holiday not in the cache
-        will be treated as a normal weekday with day rate.
-        """
-        # Easter 2031 is April 13, +39 = May 22 (Thursday)
-        kr_himmelfart = datetime(2031, 5, 22, 12, 0)
-        assert kr_himmelfart.weekday() == 3  # Thursday
-
-        # BUG: This should be False (holiday), but returns True because
-        # 2031 isn't in the precomputed cache
-        assert is_day_rate(kr_himmelfart) is True  # Known limitation
-
-

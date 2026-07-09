@@ -29,7 +29,7 @@ Skiller mellom dag og natt/helg:
 
 Bevegelige helligdager (påske, pinse, Kristi himmelfartsdag) regnes fra påskeformelen.
 
-Noen DSO-er (Glitre Nett, Tensio TN/TS) bruker `helg_som_natt: false`: kun klokkeslett styrer dag/natt. Helger og helligdager er som vanlige hverdager der.
+Noen DSO-er (Glitre Nett, Tensio TN/TS, Stannum) bruker `helg_som_natt: false`: kun klokkeslett styrer dag/natt. Helger og helligdager er som vanlige hverdager der.
 
 DSO-en lagrer ren energiledd. Coordinator legger på offentlige avgifter og mva basert på avgiftssone.
 
@@ -112,7 +112,7 @@ Energi akkumulert i selve overgangs-syklusen havner i forrige måned.
 
 ## Nøyaktighet
 
-Med energi-sensor konfigurert (anbefalt oppsett): forbruket leses som delta fra meter-registeret og er identisk med det nettselskapet fakturerer (samme tall som Elhub). Nettleie-linjer matcher innenfor 0,01-0,02 kr per linje (verifisert mot 6 BKK-fakturaer fra oktober 2025 til april 2026).
+Med energi-sensor konfigurert (anbefalt oppsett): forbruket leses som delta fra meter-registeret og er identisk med det nettselskapet fakturerer (samme tall som Elhub). Nettleie-linjer matcher innenfor 0,01-0,02 kr per linje (verifisert mot 8 BKK-fakturaer fra oktober 2025 til juni 2026).
 
 Uten energi-sensor: integrasjonen Riemann-summerer effektsensoren, og du får typisk 1-5 % avvik over en måned. Avviket er størst med mye av/på-utstyr (varmtvannsbereder, induksjonstopp, varmepumpe i defrost). Konfigurer en energi-sensor for å fjerne det.
 

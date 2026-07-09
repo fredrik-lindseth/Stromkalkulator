@@ -27,7 +27,7 @@
 
 ## Verifisering
 
-**SHA256:** `abc123...` ([hvordan verifisere](SECURITY.md))
+**SHA256:** `abc123...` ([hvordan verifisere](https://github.com/fredrik-lindseth/Stromkalkulator/blob/main/SECURITY.md))
 
 <details>
 <summary>Alle commits</summary>

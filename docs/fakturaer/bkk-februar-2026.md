@@ -79,6 +79,8 @@ Under denne verifiseringen ble en feil i reverse-beregningen av `eks_avgifter_mv
 
 17 tester verifiserer alle fakturalinjer: `tests/test_faktura_februar_2026.py`
 
+> Note: konsolidert inn i `tests/test_faktura_bkk.py` (fixture `FAKTURA_FEBRUAR_2026`). Historisk referanse over, ikke omskrevet.
+
 ## Konklusjon
 
 Integrasjonen beregner nettleie korrekt for februar 2026. Alle fakturaposter matcher innenfor avrundingsfeil (maks 0.01 kr på en faktura på 1008.86 kr nettleie).

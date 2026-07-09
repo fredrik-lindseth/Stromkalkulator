@@ -419,13 +419,17 @@ class TestIdempotency:
         hass.config_entries.async_update_entry.assert_not_called()
         mock_ir.async_create_issue.assert_not_called()
 
-    def test_future_version_returns_true_without_changes(self, init_module):
-        """Hypotetisk v4-entry (fra nedgradering) skal ikke krasje."""
+    def test_future_version_returns_false_downgrade_protection(self, init_module):
+        """Hypotetisk v4-entry (fra nedgradering) skal avvises, ikke lastes.
+
+        HA-konvensjon: returner False når entry.version er høyere enn koden
+        støtter, så en nedgradert installasjon ikke laster et ukjent skjema.
+        """
         entry = _make_entry(version=4, data={"tso": "bkk"})
         hass = _make_hass(entry)
 
         result = _migrate(init_module, hass, entry)
 
-        assert result is True
+        assert result is False
         assert entry.version == 4
         hass.config_entries.async_update_entry.assert_not_called()

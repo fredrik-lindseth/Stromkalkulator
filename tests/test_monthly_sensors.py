@@ -451,7 +451,7 @@ class TestDagskostnadSensor:
         data = {"daily_cost_kr": 42.50}
         sensor = DagskostnadSensor(_make_coordinator(data), _make_entry())
         assert sensor.native_value == 42.50
-        assert sensor._attr_native_unit_of_measurement == "kr"
+        assert sensor._attr_native_unit_of_measurement == "NOK"
 
     def test_dagskostnad_sensor_none_when_no_data(self):
         """Returnerer None når coordinator.data er None."""

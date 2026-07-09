@@ -311,7 +311,7 @@ class TestSensorDeviceClassAndUnit:
 
     @pytest.mark.parametrize("sensor_class,expected_unit", [
         (EnergileddSensor, "NOK/kWh"),
-        (KapasitetstrinnSensor, "kr/mnd"),
+        (KapasitetstrinnSensor, "NOK"),
         (TotalPriceSensor, "NOK/kWh"),
         (StromstotteSensor, "NOK/kWh"),
         (SpotprisEtterStotteSensor, "NOK/kWh"),
@@ -328,8 +328,8 @@ class TestSensorDeviceClassAndUnit:
         (MaanedligForbrukDagSensor, "kWh"),
         (MaanedligForbrukNattSensor, "kWh"),
         (MaanedligForbrukTotalSensor, "kWh"),
-        (MaanedligNettleieSensor, "kr"),
-        (MaanedligTotalSensor, "kr"),
+        (MaanedligNettleieSensor, "NOK"),
+        (MaanedligTotalSensor, "NOK"),
     ])
     def test_unit_of_measurement(self, sensor_class, expected_unit, mock_coordinator, mock_entry):
         sensor = sensor_class(mock_coordinator, mock_entry)
@@ -365,9 +365,9 @@ class TestSensorDeviceClassAndUnit:
         assert sensor._attr_state_class == "measurement"
 
     # Faktiske kronebeløp (månedskostnader, differanser, inntekter) er ekte
-    # pengeverdier og beholder MONETARY med enhet "kr". Enheten endres ikke til
-    # ISO 4217 ("NOK"), fordi disse har eksisterende long-term-statistikk som en
-    # enhetsendring ville splitte for brukere.
+    # pengeverdier med MONETARY device_class og enhet "NOK" (ISO 4217). Byttet fra
+    # "kr" i v1.15.0. Merk: enhetsendringen splitter eksisterende long-term-
+    # statistikk for disse sensorene, bevisst akseptert for korrekt device_class.
     @pytest.mark.parametrize("sensor_class", [
         MaanedligNettleieSensor,
         MaanedligTotalSensor,
@@ -376,7 +376,7 @@ class TestSensorDeviceClassAndUnit:
     def test_amount_sensors_stay_monetary(self, sensor_class, mock_coordinator, mock_entry):
         sensor = sensor_class(mock_coordinator, mock_entry)
         assert sensor._attr_device_class == "monetary"
-        assert sensor._attr_native_unit_of_measurement == "kr"
+        assert sensor._attr_native_unit_of_measurement == "NOK"
 
 
 class TestEnumStateSensors:

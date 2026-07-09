@@ -54,6 +54,30 @@ Default settes fra prisområde (NO4 → Nord-Norge, NO3 → Sør-Norge), med DSO
 2. Verifiser mot fakturaer i `docs/fakturaer/`. Beregnet total bør stemme innenfor ±2%.
 3. Dokumenter kilden i koden: `# Kilde: [URL] YYYY-MM-DD`
 
+## Sensor-enheter og device_class
+
+Skill mellom **satser** og **pengebeløp**. De behandles ulikt, og å blande dem koster brukerne statistikk.
+
+| Type       | Eksempel                       | Enhet             | device_class | state_class   |
+| ---------- | ------------------------------ | ----------------- | ------------ | ------------- |
+| Sats       | Energiledd, totalpris          | `NOK/kWh`         | ingen        | `MEASUREMENT` |
+| Sats       | Kapasitetstrinn                | `kr/mnd`          | ingen        | `MEASUREMENT` |
+| Pengebeløp | Månedskostnad, differanse      | `NOK`             | `MONETARY`   | `TOTAL`       |
+
+`MONETARY` skal ha ISO 4217-kode (`NOK`), ikke `kr`. Ikke fordi HA validerer det, for det gjør den ikke: `SensorDeviceClass.MONETARY` står ikke i `DEVICE_CLASS_UNITS`. Grunnen er frontenden, som i `compute_state_display.ts` formaterer `MONETARY`-sensorer med `Intl.NumberFormat` og `style: "currency"`. `currency: "kr"` er ikke en gyldig trebokstavskode, så kallet kaster og faller tilbake til rått tall uten valutaformatering.
+
+**En sats uten `MONETARY` har ingenting å hente på ISO 4217.** Å døpe om `kr/mnd` til `NOK` gir null gevinst, mister `/mnd`, og koster en repair hos hver bruker. Det ble gjort med kapasitetstrinn i `0ccb02d` og rullet tilbake før det rakk ut i en release.
+
+### Enhetsbytte er brytende
+
+Endrer du enheten på en sensor med `state_class`, kan ikke HA konvertere lagret langtidsstatistikk. Hver berørt bruker får ett repair-varsel per sensor, med to valg: oppdatere enheten på historikken uten å konvertere, eller slette all historikk. Det første bevarer dataene når verdiene er uendret, som når `kr` blir `NOK`.
+
+Sjekk før du bytter enhet:
+
+- [ ] Har sensoren `state_class`? Uten den finnes ingen statistikk, og ingen repair.
+- [ ] Er gevinsten reell, eller er det kosmetikk?
+- [ ] Er byttet ført opp i release-noten med hvilket valg brukeren skal ta?
+
 ## Sjekklister
 
 ### Legge til ny sensor

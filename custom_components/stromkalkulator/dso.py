@@ -157,7 +157,7 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "Elvia",
         "prisomrade": "NO1",
         "supported": True,
-        "energiledd_dag_eks_mva": 0.2899,  # 28,99 øre/kWh ren energiledd (per 01.07.2026)
+        "energiledd_dag_eks_mva": 0.2915,  # 29,15 øre/kWh ren energiledd (per 01.07.2026, elvia.no 46,60 inkl.)
         "energiledd_natt_eks_mva": 0.1699,  # 16,99 øre/kWh ren energiledd (per 01.07.2026)
         "url": "https://www.elvia.no/nettleie/alt-om-nettleiepriser/nettleie-pris/",
         # Kilde: tariffblad_1_0_standard-tariff_privat_20260101.pdf (verifisert 2026-05-23)

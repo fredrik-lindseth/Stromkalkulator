@@ -46,6 +46,14 @@ GITHUB_API = "https://api.github.com/repos/kraftsystemet/fri-nettleie/contents/t
 RAW_BASE = "https://raw.githubusercontent.com/kraftsystemet/fri-nettleie/main/tariffer"
 TOLERANSE = 0.001  # NOK/kWh, 0,1 øre
 
+# Kjente, bevisste avvik mot fri-nettleie: DSO-er der vi følger nettselskapets
+# egen prisside framfor fri-nettleie fordi de spriker. Rapporteres, men teller
+# ikke som drift (exit-kode). Fjern når fri-nettleie er oppdatert.
+KJENTE_AVVIK: dict[str, str] = {
+    "elvia": "elvia.no oppgir dag 46,60 øre inkl. (29,15 eks); fri-nettleie har 46,40 (28,99). "
+    "Elvia er primærkilde. Meldt: github.com/kraftsystemet/fri-nettleie/issues/384.",
+}
+
 # Mapping mellom våre DSO-IDer og fri-nettleie sine filnavn. Hvis vår ID kan
 # utledes direkte (med "-" → "_") trenger vi ikke oppføring her.
 EKSPLISITT_MAPPING: dict[str, str] = {
@@ -257,17 +265,21 @@ def main() -> int:
     avvik = sammenlign(remote, args.dato, args.bare_avvik, filter_ids)
 
     pris_avvik = [a for a in avvik if a.felt in ("dag", "natt")]
+    ekte_avvik = [a for a in pris_avvik if a.dso_id not in KJENTE_AVVIK]
+    kjente = sorted({a.dso_id for a in pris_avvik if a.dso_id in KJENTE_AVVIK})
     umatchet = sorted(a.dso_id for a in avvik if a.felt == "match")
     fetch_feil = sorted(a.dso_id for a in avvik if a.felt == "fetch")
     print()
-    print(f"# Sammendrag: {len(pris_avvik) // 2} DSO-er med prisavvik over toleranse")
+    print(f"# Sammendrag: {len(ekte_avvik) // 2} DSO-er med uventet prisavvik over toleranse")
+    if kjente:
+        print(f"# {len(kjente)} kjent(e) avvik (følger nettselskapets egen side, ikke drift): {', '.join(kjente)}")
     # Umatchede DSO-er kan ikke auto-sjekkes og må verifiseres manuelt mot kilde.
     # De skjules ellers i --bare-avvik, og det er nettopp der drift sniker seg inn.
     if umatchet:
         print(f"# {len(umatchet)} uten match i fri-nettleie (sjekk manuelt): {', '.join(umatchet)}")
     if fetch_feil:
         print(f"# {len(fetch_feil)} feilet henting: {', '.join(fetch_feil)}")
-    return 1 if pris_avvik else 0
+    return 1 if ekte_avvik else 0
 
 
 if __name__ == "__main__":

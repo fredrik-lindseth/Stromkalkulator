@@ -1204,7 +1204,7 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "prisomrade": "NO1",
         "supported": True,
         # Nå del av Elvia - bruker Elvia-priser fra sept 2025.
-        "energiledd_dag_eks_mva": 0.2899,  # 28,99 øre/kWh ren energiledd (per 01.07.2026)
+        "energiledd_dag_eks_mva": 0.2915,  # 29,15 øre/kWh ren energiledd (Elvia-priser, jf. fri-nettleie #248, per 01.07.2026)
         "energiledd_natt_eks_mva": 0.1699,  # 16,99 øre/kWh ren energiledd (per 01.07.2026)
         # Rakkestad Energi er na del av Elvia
         "url": "https://www.elvia.no/nettleie/alt-om-nettleiepriser/nettleie-pris/",

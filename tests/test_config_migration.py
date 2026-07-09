@@ -1,4 +1,4 @@
-"""Tester for async_migrate_entry (v1→v2→v3 config entry-migrering).
+"""Tester for async_migrate_entry (v1→v2→v3→v4 config entry-migrering).
 
 Migrering kjører på alle eksisterende brukere ved oppgradering. Ufanget
 exception stopper integrasjonen kald, så denne funksjonen MÅ være dekket.
@@ -6,6 +6,7 @@ Se docs/research/test-strategi-vurdering.md (anbefaling 1, P0).
 
 v1 → v2: Energiledd-overrides konverteres fra inkl-mva til eks-mva.
 v2 → v3: Setter spotpris_inkl_mva = False og lager repair-issue for Sør-Norge.
+v3 → v4: Setter entry unique_id = entry_id (stabil, uavhengig av power-sensor).
 """
 
 from __future__ import annotations
@@ -26,24 +27,29 @@ def init_module():
     return init_mod
 
 
-def _make_entry(version: int, data: dict, entry_id: str = "abc123") -> MagicMock:
+def _make_entry(
+    version: int, data: dict, entry_id: str = "abc123", unique_id: str | None = None
+) -> MagicMock:
     """Lag en mock config entry med oppgitt versjon og data.
 
     Mocker entry slik at hass.config_entries.async_update_entry kan oppdatere
-    både `.data` og `.version` in-place, slik at kjedet migrering virker.
+    `.data`, `.version` og `.unique_id` in-place, slik at kjedet migrering
+    virker. `unique_id` defaulter til det gamle power-sensor-baserte skjemaet
+    for å speile en ekte pre-v4-entry.
     """
     entry = MagicMock()
     entry.version = version
     entry.data = dict(data)
     entry.entry_id = entry_id
+    entry.unique_id = unique_id if unique_id is not None else "stromkalkulator_sensor.gammel"
     return entry
 
 
 def _make_hass(entry: MagicMock) -> MagicMock:
-    """HA-mock der async_update_entry oppdaterer entry.data/.version in-place.
+    """HA-mock der async_update_entry oppdaterer entry-felter in-place.
 
-    Det matcher hvordan ekte HA oppfører seg, slik at kjedet v1→v2→v3-
-    migrering kan testes uten å hoppe over v2-grenen.
+    Det matcher hvordan ekte HA oppfører seg, slik at kjedet v1→v2→v3→v4-
+    migrering kan testes uten å hoppe over mellomliggende grener.
     """
     hass = MagicMock()
 
@@ -52,6 +58,8 @@ def _make_hass(entry: MagicMock) -> MagicMock:
             target.data = kwargs["data"]
         if "version" in kwargs:
             target.version = kwargs["version"]
+        if "unique_id" in kwargs:
+            target.unique_id = kwargs["unique_id"]
 
     hass.config_entries.async_update_entry = MagicMock(side_effect=update_entry)
     return hass
@@ -84,7 +92,7 @@ class TestV1ToV2Migration:
         result = _migrate(init_module, hass, entry)
 
         assert result is True
-        assert entry.version == 3  # kjedet videre via v2-grenen
+        assert entry.version == 4  # kjedet helt fram via v2- og v3-grenene
         assert entry.data["energiledd_dag"] == pytest.approx(0.31870, abs=1e-5)
 
     def test_converts_energiledd_natt_inkl_to_eks(self, init_module):
@@ -134,7 +142,7 @@ class TestV1ToV2Migration:
 
         assert "energiledd_dag" not in entry.data
         assert "energiledd_natt" not in entry.data
-        assert entry.version == 3
+        assert entry.version == 4
 
     def test_nord_norge_no_mva_no_forbruksavgift_reduction(self, init_module):
         """Nord-Norge: mva-fritak, men full forbruksavgift fra 2026."""
@@ -258,7 +266,7 @@ class TestV2ToV3Migration:
 
         assert result is True
         assert entry.data["spotpris_inkl_mva"] is False
-        assert entry.version == 3
+        assert entry.version == 4
 
     def test_standard_avgiftssone_creates_repair_issue(self, init_module):
         """Sør-Norge (standard) skal få repair-issue om mva-sjekk."""
@@ -352,11 +360,47 @@ class TestV2ToV3Migration:
         assert entry.data["power_sensor"] == "sensor.power"
 
 
-class TestChainedMigration:
-    """v1 → v3 i én operasjon (kjedet)."""
+class TestV3ToV4Migration:
+    """v3 → v4: unique_id settes til entry_id (stabil, uavhengig av power-sensor)."""
 
-    def test_v1_to_v3_full_chain(self, init_module):
-        """v1-entry skal migreres helt fram til v3 i én call."""
+    def test_sets_unique_id_to_entry_id(self, init_module):
+        """En v3-entry skal få unique_id = entry_id og bumpes til v4."""
+        entry = _make_entry(
+            version=3,
+            data={"tso": "bkk", "avgiftssone": "standard", "spotpris_inkl_mva": False},
+            entry_id="entry_v3",
+            unique_id="stromkalkulator_sensor.gammel_power",
+        )
+        hass = _make_hass(entry)
+
+        result = _migrate(init_module, hass, entry)
+
+        assert result is True
+        assert entry.version == 4
+        assert entry.unique_id == "entry_v3"
+
+    def test_preserves_data(self, init_module):
+        """v3→v4 rører ikke entry.data (bare unique_id og versjon)."""
+        original = {
+            "tso": "bkk",
+            "avgiftssone": "standard",
+            "spotpris_inkl_mva": False,
+            "power_sensor": "sensor.x",
+            "energiledd_dag": 0.31870,
+        }
+        entry = _make_entry(version=3, data=dict(original), entry_id="e1")
+        hass = _make_hass(entry)
+
+        _migrate(init_module, hass, entry)
+
+        assert entry.data == original
+
+
+class TestChainedMigration:
+    """v1 → v4 i én operasjon (kjedet)."""
+
+    def test_v1_to_v4_full_chain(self, init_module):
+        """v1-entry skal migreres helt fram til v4 i én call."""
         entry = _make_entry(
             version=1,
             data={
@@ -364,6 +408,7 @@ class TestChainedMigration:
                 "avgiftssone": "standard",
                 "energiledd_dag": 0.50,
             },
+            entry_id="entry_chain",
         )
         hass = _make_hass(entry)
 
@@ -374,15 +419,17 @@ class TestChainedMigration:
         result = _migrate(init_module, hass, entry)
 
         assert result is True
-        assert entry.version == 3
+        assert entry.version == 4
         # v1→v2: energiledd konvertert
         assert entry.data["energiledd_dag"] == pytest.approx(0.31870, abs=1e-5)
         # v2→v3: spotpris-flag satt og repair-issue laget
         assert entry.data["spotpris_inkl_mva"] is False
         mock_ir.async_create_issue.assert_called_once()
+        # v3→v4: unique_id byttet til entry_id
+        assert entry.unique_id == "entry_chain"
 
-    def test_v1_to_v3_calls_update_twice(self, init_module):
-        """v1→v3 skal kalle async_update_entry én gang per versjons-bump."""
+    def test_v1_to_v4_calls_update_thrice(self, init_module):
+        """v1→v4 skal kalle async_update_entry én gang per versjons-bump."""
         entry = _make_entry(
             version=1,
             data={"tso": "bkk", "avgiftssone": "standard"},
@@ -391,13 +438,13 @@ class TestChainedMigration:
 
         _migrate(init_module, hass, entry)
 
-        assert hass.config_entries.async_update_entry.call_count == 2
+        assert hass.config_entries.async_update_entry.call_count == 3
 
 
 class TestIdempotency:
-    """v3 → v3 skal være no-op."""
+    """v4 → v4 skal være no-op."""
 
-    def test_v3_returns_true_without_changes(self, init_module):
+    def test_v4_returns_true_without_changes(self, init_module):
         """Allerede migrert entry skal returnere True uten å røre data."""
         original_data = {
             "tso": "bkk",
@@ -405,7 +452,9 @@ class TestIdempotency:
             "spotpris_inkl_mva": False,
             "energiledd_dag": 0.31870,
         }
-        entry = _make_entry(version=3, data=original_data)
+        entry = _make_entry(
+            version=4, data=original_data, entry_id="entry1", unique_id="entry1"
+        )
         hass = _make_hass(entry)
 
         mock_ir = MagicMock()
@@ -415,21 +464,21 @@ class TestIdempotency:
 
         assert result is True
         assert entry.data == original_data
-        assert entry.version == 3
+        assert entry.version == 4
         hass.config_entries.async_update_entry.assert_not_called()
         mock_ir.async_create_issue.assert_not_called()
 
     def test_future_version_returns_false_downgrade_protection(self, init_module):
-        """Hypotetisk v4-entry (fra nedgradering) skal avvises, ikke lastes.
+        """Hypotetisk v5-entry (fra nedgradering) skal avvises, ikke lastes.
 
         HA-konvensjon: returner False når entry.version er høyere enn koden
         støtter, så en nedgradert installasjon ikke laster et ukjent skjema.
         """
-        entry = _make_entry(version=4, data={"tso": "bkk"})
+        entry = _make_entry(version=5, data={"tso": "bkk"})
         hass = _make_hass(entry)
 
         result = _migrate(init_module, hass, entry)
 
         assert result is False
-        assert entry.version == 4
+        assert entry.version == 5
         hass.config_entries.async_update_entry.assert_not_called()

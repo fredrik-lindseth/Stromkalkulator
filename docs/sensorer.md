@@ -83,7 +83,7 @@ Dag: man-fre 06-22 (ikke helligdager). Natt: 22-06, helger, helligdager.
 | Sensor                                | Enhet  | Beskrivelse                                                       |
 | ------------------------------------- | ------ | ----------------------------------------------------------------- |
 | Total strømpris (norgespris)          | kr/kWh | Hva du ville betalt med Norgespris: fast 50 øre + nettleie        |
-| Strømpris (Norgespris, uten nettleie) | kr/kWh | Ren strømdel: fast 50 øre under tak, spotpris over tak            |
+| Strømpris (Norgespris-ordningen)      | kr/kWh | Ren strømdel: fast 50 øre under tak, spotpris over tak            |
 | Prisforskjell (norgespris)            | kr/kWh | Positiv = du betaler mer enn Norgespris (Norgespris er billigere) |
 | Norgespris aktiv nå                   | -      | "Ja"/"Nei" om du har valgt Norgespris                             |
 
@@ -112,7 +112,7 @@ Attributter på "Månedlig forbruk totalt": `dag_kwh`, `natt_kwh`, `dag_pct`, `n
 | Månedlig nettleie total             | kr    | Bunnlinjen: nettleie + avgifter - støtte                |
 | Dagens kostnad                      | kr    | Akkumulert kostnad siden midnatt                        |
 | Estimert månedskostnad              | kr    | Prognose for hele måneden, basert på forbruket hittil   |
-| Månedlig Norgespris-differanse      | kr    | Akkumulert besparelse/tap vs alternativ avtale          |
+| Norgespris besparelse               | kr    | Akkumulert besparelse/tap vs alternativ avtale          |
 | Norgespris-kompensasjon             | kr    | Akkumulert (norgespris - spotpris) × kWh denne måneden  |
 | _(valgfri)_ Månedlig nettleie       | kr    | Nettleie hittil: energiledd dag + natt + kapasitetsledd |
 | _(valgfri)_ Månedlig avgifter       | kr    | Forbruksavgift + Enova inkl. mva                        |
@@ -121,7 +121,7 @@ Attributter på "Månedlig forbruk totalt": `dag_kwh`, `natt_kwh`, `dag_pct`, `n
 
 Attributter på "Akkumulert strømkostnad": `strompris_kr`, `energiledd_kr`, `kapasitetsledd_kr`, `total_kwh`.
 
-Attributter på "Månedlig nettleie total": `nettleie_kr`, `avgifter_kr`, `stromstotte_kr`, `forbruk_dag_kwh`, `forbruk_natt_kwh`, `forbruk_total_kwh`, `vektet_snittpris_kr_per_kwh`.
+Attributter på "Månedlig nettleie total": `nettleie_kr`, `stromstotte_kr`, `forbruk_dag_kwh`, `forbruk_natt_kwh`, `forbruk_total_kwh`, `vektet_snittpris_kr_per_kwh`.
 
 ---
 
@@ -142,7 +142,7 @@ Alle har `maaned`-attributt (f.eks. "januar 2026").
 
 **Nettleie-sensoren** har også: `energiledd_dag_kr`, `energiledd_natt_kr`, `kapasitetsledd_kr`, `snitt_topp_3_kw`, `norgespris_differanse_kr`.
 
-**Toppforbruk-sensoren** har: `topp_1_dato`, `topp_1_kw`, `topp_2_dato`, `topp_2_kw`, `topp_3_dato`, `topp_3_kw`.
+**Toppforbruk-sensoren** har: `maaned`, `topp_1_dato`, `topp_1_kw`, `topp_1_time`, `topp_2_dato`, `topp_2_kw`, `topp_2_time`, `topp_3_dato`, `topp_3_kw`, `topp_3_time`.
 
 ---
 

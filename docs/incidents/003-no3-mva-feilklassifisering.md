@@ -1,7 +1,7 @@
 # Incident 003: NO3 feilklassifisert som mva-fritak
 
 **Dato:** april 2026
-**Status:** under utredning
+**Status:** løst (kode-fiks april 2026, tekst-layer i README/docs/strings juli 2026)
 
 ## Symptomer
 

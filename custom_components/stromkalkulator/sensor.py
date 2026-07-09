@@ -301,7 +301,8 @@ class EnergileddSensor(NettleieBaseSensor):
 class KapasitetstrinnSensor(NettleieBaseSensor):
     """Sensor for kapasitetstrinn."""
 
-    _attr_native_unit_of_measurement: str = "NOK"
+    # Sats, ikke pengebeløp: ingen MONETARY, ingen ISO 4217. Se docs/domain-rules.md.
+    _attr_native_unit_of_measurement: str = "kr/mnd"
     _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
     _attr_icon: str = "mdi:transmission-tower"
 

@@ -311,7 +311,7 @@ class TestSensorDeviceClassAndUnit:
 
     @pytest.mark.parametrize("sensor_class,expected_unit", [
         (EnergileddSensor, "NOK/kWh"),
-        (KapasitetstrinnSensor, "NOK"),
+        (KapasitetstrinnSensor, "kr/mnd"),
         (TotalPriceSensor, "NOK/kWh"),
         (StromstotteSensor, "NOK/kWh"),
         (SpotprisEtterStotteSensor, "NOK/kWh"),
@@ -365,9 +365,8 @@ class TestSensorDeviceClassAndUnit:
         assert sensor._attr_state_class == "measurement"
 
     # Faktiske kronebeløp (månedskostnader, differanser, inntekter) er ekte
-    # pengeverdier med MONETARY device_class og enhet "NOK" (ISO 4217). Byttet fra
-    # "kr" i v1.15.0. Merk: enhetsendringen splitter eksisterende long-term-
-    # statistikk for disse sensorene, bevisst akseptert for korrekt device_class.
+    # pengeverdier med MONETARY device_class og enhet "NOK" (ISO 4217). Satser
+    # hører ikke hjemme her, se docs/domain-rules.md.
     @pytest.mark.parametrize("sensor_class", [
         MaanedligNettleieSensor,
         MaanedligTotalSensor,

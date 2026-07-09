@@ -1,5 +1,13 @@
 # Utkast: epost til BKK om Norgespris-snittpris
 
+> **LØST empirisk 2026-07-06, ikke sendt.** [norgespris-eksakt-match.md](norgespris-eksakt-match.md)
+> reproduserer Norgespris-linjen eksakt (innenfor 0,005 kr) med Nord Pools
+> publiserte Final-priser. Det gjenværende avviket var prisårgang i
+> HA-recorderen (foreløpig vs. Final kurs på søndager/helligdager) pluss én
+> recorder-aggregatglipp, ikke EUR/NOK-kurskilde. Epost-utkastet under er
+> derfor dødt. Se dcat-issue `stromkalkulator-47djr5` for status på om det
+> likevel skal sendes for bekreftelse fra kilden.
+
 Til din kontakt i BKK. Mål: hvilken EUR/NOK-kurs og snittberegning brukes for Norgespris-snittpris på fakturaen.
 
 ## Bakgrunn

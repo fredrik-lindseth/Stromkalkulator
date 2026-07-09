@@ -59,31 +59,31 @@ Se [måler-hardware.md](måler-hardware.md). Gjenstående:
 - [x] BKK bruker timesnitt-effekt for kapasitetstrinn (bekreftet via topp 3-sammenligning)
 - [x] Norgespris-avvik forklart med EUR/NOK-snittberegning (innenfor 0,2 %)
 - [x] Norgespris-avvik lukket: eksakt match (0,00 kr) mot publiserte Final-priser for juni 2026, recorder-avviket var prisårgang, se [research/norgespris-eksakt-match.md](research/norgespris-eksakt-match.md)
-- [ ] Måler-spec lest (Kaifa KFM_001 og Aidon RJ45 HAN v1.6): 10 sek dokumentert som design
-- [ ] Test med Tibber Pulse parallelt (krever fysisk bytte av HAN-leser)
-- [ ] Oppdater [måler-hardware.md](måler-hardware.md) ved nye funn
+- [x] Måler-spec lest (Kaifa KFM_001 og Aidon RJ45 HAN v1.6): 10 sek dokumentert som design, se [måler-hardware.md](måler-hardware.md#han-broadcast-timing)
+- [ ] Test med Tibber Pulse parallelt (krever fysisk bytte av HAN-leser, se `stromkalkulator-450dw5`)
+- [ ] Oppdater [måler-hardware.md](måler-hardware.md) ved nye funn (løpende, ikke en engangsoppgave)
 
 ### Fase 3: Bygg verktøyene
 
-- [ ] `scripts/export_invoice_hourly.py` (kjøres på HA-host, eksporterer JSON for én måned)
-- [ ] `scripts/verify_invoice_hourly.py` (kjøres lokalt, sammenligner JSON mot fixture)
-- [ ] Snapshot-fixture `tests/fixtures/bkk_april_2026_hourly.json` (allerede eksportert)
-- [ ] `tests/test_faktura_hourly_snapshot.py` (kjører verifiserings-logikk i CI)
-- [ ] Vurder snapshot-automation i HA som tar tpi-snapshot presis HH:00:00 (avhengig av Fase 2-svar)
+- [x] `scripts/research/export_invoice_hourly.py` (kjøres på HA-host, eksporterer JSON for én måned)
+- [x] `scripts/research/verify_invoice_hourly.py` (kjøres lokalt, sammenligner JSON mot fixture)
+- [x] Snapshot-fixture `tests/fixtures/bkk_april_2026_hourly.json` (allerede eksportert, nå én fixture per måned des 2025-juni 2026)
+- [x] ~~`tests/test_faktura_hourly_snapshot.py`~~ Slettet 2026-05-23 (`98cd37a`): reimplementerte dag/natt-split og Norgespris-komp parallelt med coordinator uten å kjøre den. Erstattet av `tests/test_coordinator_replay.py`, som mater fixturene gjennom ekte `_async_update_data()` og kjører i CI via vanlig `pytest tests/`.
+- [x] Vurdert snapshot-automation i HA på HH:00:00: virker ikke, 10 av 13 sek ligger inne i selve måleren mellom Elhub-snapshot og HAN-frame-bygging, se [måler-hardware.md](måler-hardware.md#hva-vi-kan-gjøre-bedre)
 
 ### Fase 4: Validere neste måned
 
-- [ ] Når mai 2026-faktura kommer (rundt 2026-06-04), eksporter samme data
-- [ ] Kjør verifiserings-script
-- [ ] Sammenlign avvik mot april. Er det konsistent?
-- [ ] Hvis konsistent: dokumenter som kjent presisjons-grense
-- [ ] Hvis inkonsistent: undersøk hvorfor
+- [x] Mai og juni 2026-faktura eksportert og analysert
+- [x] Verifiserings-script kjørt (`verify_norgespris_eksakt.py`, `verify_invoice_hourly.py`)
+- [x] Sammenlignet avvik mot april: juni konsistent (prisårgang), mai avvek initialt
+- [x] Konsistente avvik (juni, april) dokumentert som prisårgang, se [norgespris-eksakt-match.md](research/norgespris-eksakt-match.md)
+- [x] Inkonsistent avvik (mai, -0,35 kr) undersøkt: recorder-aggregatglipp 2. pinsedag, løst med Elhub-CSV som kWh-fasit
 
 ### Fase 5: Generaliser for andre brukere
 
-- [ ] Skriv brukerveiledning i [verifiser-din-faktura.md](fakturaer/verifiser-din-faktura.md) eller egen fil
+- [x] Brukerveiledning skrevet: [verifiser-din-faktura.md](fakturaer/verifiser-din-faktura.md)
 - [ ] Parametriser scripts for andre AMS-lesere (Tibber Pulse, Tibber Bridge, andre Pow-U-varianter)
-- [ ] Parametriser for andre DSO-er enn BKK
+- [ ] Parametriser for andre DSO-er enn BKK (se `stromkalkulator-2b94op`)
 
 ### Fase 6: Beslutning om release
 
@@ -99,6 +99,6 @@ Se [måler-hardware.md](måler-hardware.md). Gjenstående:
 
 ## Beslutninger som gjenstår
 
-- Skal vi bygge en HA add-on for snapshot-automation, eller bare dokumentere config-endringer?
-- Skal verifisering kjøre i CI med hardkodet fixture, eller kun manuelt som dev-tool?
+- ~~Skal vi bygge en HA add-on for snapshot-automation, eller bare dokumentere config-endringer?~~ Bortfalt: snapshot-automation virker ikke uansett trigger-tidspunkt (10 av 13 sek ligger inne i måleren selv).
+- ~~Skal verifisering kjøre i CI med hardkodet fixture, eller kun manuelt som dev-tool?~~ Besvart: `tests/test_coordinator_replay.py` kjører automatisk i `.github/workflows/ci.yml` via `pytest tests/`, ikke som separat dev-tool.
 - Skal vi gjøre samme verifisering for andre DSO-er proaktivt, eller vente på brukernes egen verifisering?

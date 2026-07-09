@@ -120,18 +120,12 @@
       "total_pris_norgespris": { "name": "Total price (Norgespris)" },
       "strompris_norgespris": { "name": "Electricity price (Norgespris scheme)" },
       "prisforskjell_norgespris": { "name": "Price difference (Norgespris)" },
-      "norgespris_aktiv": {
-        "name": "Norgespris active now",
-        "state": { "Ja": "Yes", "Nei": "No" }
-      },
+      "norgespris_aktiv": { "name": "Norgespris active now" },
       "energiledd_dag": { "name": "Energy tariff day" },
       "energiledd_natt": { "name": "Energy tariff night/weekend" },
       "forbruksavgift": { "name": "Consumption tax" },
       "enovaavgift": { "name": "Enova fee" },
-      "stromstotte_kwh": {
-        "name": "Electricity subsidy active now",
-        "state": { "Ja": "Yes", "Nei": "No" }
-      },
+      "stromstotte_kwh": { "name": "Electricity subsidy active now" },
       "tariff": {
         "name": "Tariff",
         "state": { "dag": "Day", "natt": "Night" }

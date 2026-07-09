@@ -163,11 +163,7 @@
         "name": "Prisforskjell (Norgespris)"
       },
       "norgespris_aktiv": {
-        "name": "Norgespris aktiv nå",
-        "state": {
-          "Ja": "Ja",
-          "Nei": "Nei"
-        }
+        "name": "Norgespris aktiv nå"
       },
       "energiledd_dag": {
         "name": "Energiledd dag"
@@ -182,11 +178,7 @@
         "name": "Enovaavgift"
       },
       "stromstotte_kwh": {
-        "name": "Strømstøtte aktiv nå",
-        "state": {
-          "Ja": "Ja",
-          "Nei": "Nei"
-        }
+        "name": "Strømstøtte aktiv nå"
       },
       "tariff": {
         "name": "Tariff",

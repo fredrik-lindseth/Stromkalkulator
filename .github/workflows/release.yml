@@ -47,7 +47,11 @@ jobs:
         if: steps.check_release.outputs.exists == 'false'
         run: |
           mkdir -p dist
-          zip -r dist/stromkalkulator.zip custom_components/stromkalkulator
+          # HACS' zip_release-modus pakker ut zipen direkte i
+          # .../custom_components/stromkalkulator/ uten å strippe et
+          # prefiks. Zip derfor flatt fra inne i komponentkatalogen,
+          # ikke custom_components/stromkalkulator som toppnivå-mappe.
+          (cd custom_components/stromkalkulator && zip -r ../../dist/stromkalkulator.zip .)
           echo "✅ Created ZIP for HACS"
 
       - name: Generate SHA256 checksum

@@ -72,6 +72,7 @@ class DSOEntry(TypedDict):
     kapasitetstrinn: list[KapasitetstrinnTuple | KapasitetstrinnDict]
     tiltakssone: NotRequired[bool]
     helg_som_natt: NotRequired[bool]  # Default True. False = kun klokkeslett styrer dag/natt.
+    terskel_inkludert: NotRequired[bool]  # Default True. False = eksakt grensetreff hører til lavere trinn.
     avgiftssone: NotRequired[str]  # Overstyrer default fra prisomrade (f.eks. Nordland-selskap i NO3)
     # DSO-spesifikke ekstra "helligdager" i tillegg til HELLIGDAGER_FASTE.
     # Format: MM-DD. Brukes for nettselskaper som tar lavtariff på dager som
@@ -548,6 +549,7 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
     # Bidra gjerne med priser! Se README.md for instruksjoner.
     # =========================================================================
     "alut": {
+        "terskel_inkludert": False,
         "name": "Alut",
         "prisomrade": "NO4",
         "supported": True,
@@ -626,6 +628,7 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         ],
     },
     "bindal_kraftnett": {
+        "terskel_inkludert": False,
         "name": "Bindal Kraftnett",
         "prisomrade": "NO3",
         "avgiftssone": "nord_norge",  # Bindal er i Nordland (mva-fritak), men NO3 prisomrade
@@ -795,6 +798,7 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         ],
     },
     "fore": {
+        "terskel_inkludert": False,
         "name": "Føre",
         "prisomrade": "NO2",
         "supported": True,
@@ -1290,6 +1294,7 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         ],
     },
     "stram": {
+        "terskel_inkludert": False,
         "name": "Stram",
         "prisomrade": "NO4",
         "supported": True,

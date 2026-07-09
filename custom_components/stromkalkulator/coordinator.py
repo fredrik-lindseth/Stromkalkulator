@@ -170,6 +170,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.dso = DSO_LIST.get(dso_id, DSO_LIST[DEFAULT_DSO])
         self._dso_id = dso_id
         self._helg_som_natt = self.dso.get("helg_som_natt", True)
+        self._terskel_inkludert = self.dso.get("terskel_inkludert", True)
         self._helligdager_ekstra = self.dso.get("helligdager_ekstra", [])
 
         # Get avgiftssone from config
@@ -307,9 +308,14 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._store_loaded = False
 
     def _read_sensor_float(
-        self, entity_id: str | None, *, clamp_max: int | None = MAX_POWER_CLAMP_W
+        self, entity_id: str | None, *, clamp_max: int | None = MAX_POWER_CLAMP_W, clamp_min: float = 0.0
     ) -> float:
-        """Read a HA sensor state as a finite float, returning 0 if unavailable."""
+        """Read a HA sensor state as a finite float, returning 0 if unavailable.
+
+        Negative avlesninger klippes til clamp_min (default 0). power_sensor er
+        unidireksjonell import (OBIS 1.7.0), eksport skal gå via export_power_sensor,
+        så en negativ effektverdi er sensorstøy eller feilkonfig og skal ikke telle.
+        """
         if not entity_id:
             return 0.0
         state = self.hass.states.get(entity_id)
@@ -324,7 +330,19 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if clamp_max is not None and value > clamp_max:
             _LOGGER.warning("Sensor %s reading %s exceeds clamp %s, rejecting", entity_id, value, clamp_max)
             return 0.0
+        if value < clamp_min:
+            return clamp_min
         return value
+
+    def _avg_in_lower_tier(self, avg_power: float, threshold: float) -> bool:
+        """Om avg_power hører til trinnet under denne terskelen.
+
+        De fleste DSO-er inkluderer terskelen i trinnet over (eksakt treff = høyere
+        trinn), så `<`. DSO-er med terskel_inkludert=False bruker `<=`.
+        """
+        if self._terskel_inkludert:
+            return avg_power < threshold
+        return avg_power <= threshold
 
     def _read_price_sensor(self, entity_id: str | None) -> float | None:
         """Read a price sensor, caching last known value. Returns None if never available."""
@@ -602,7 +620,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         margin_neste_trinn = 0.0
         neste_trinn_pris = kapasitetsledd
         for i, (threshold, _price) in enumerate(self.kapasitetstrinn):
-            if avg_power < threshold:
+            if self._avg_in_lower_tier(avg_power, threshold):
                 if i + 1 < len(self.kapasitetstrinn):
                     margin_neste_trinn = round(threshold - avg_power, 2)
                     neste_trinn_pris = self.kapasitetstrinn[i + 1][1]
@@ -934,7 +952,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         Returns: (price, tier_number, tier_range)
         """
         for i, (threshold, price) in enumerate(self.kapasitetstrinn, 1):
-            if avg_power < threshold:
+            if self._avg_in_lower_tier(avg_power, threshold):
                 prev_threshold = self.kapasitetstrinn[i - 2][0] if i > 1 else 0.0
                 if threshold == float("inf"):
                     tier_range = f">{prev_threshold:.0f} kW"

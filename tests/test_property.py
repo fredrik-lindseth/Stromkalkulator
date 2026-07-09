@@ -462,6 +462,9 @@ def test_exhaustive_every_boundary_of_every_kapasitetstrinn() -> None:
             continue
 
         coord = _make_coordinator(dso_id)
+        # De fleste DSO-er inkluderer terskelen i trinnet over (eksakt treff = høyere trinn).
+        # Et lite mindretall (terskel_inkludert=False) legger eksakt treff i lavere trinn.
+        terskel_inkludert = dso.get("terskel_inkludert", True)
 
         for i, (threshold, expected_price) in enumerate(trinn):
             if threshold == float("inf"):
@@ -473,18 +476,56 @@ def test_exhaustive_every_boundary_of_every_kapasitetstrinn() -> None:
                 f"{dso_id}: at {threshold}-e expected {expected_price}, got {price_below}"
             )
 
-            # Exact boundary and just above both belong to the next (higher) tier:
-            # snitt på nøyaktig terskelen hører til trinnet over.
             if i + 1 < len(trinn):
                 next_price = trinn[i + 1][1]
+                # Exact boundary: next tier when terskel_inkludert, else this tier.
+                boundary_expected = next_price if terskel_inkludert else expected_price
                 price_at, _, _ = coord._get_kapasitetsledd(threshold)
-                assert price_at == next_price, (
-                    f"{dso_id}: at {threshold} kW expected {next_price}, got {price_at}"
+                assert price_at == boundary_expected, (
+                    f"{dso_id}: at {threshold} kW expected {boundary_expected}, got {price_at}"
                 )
+                # Just above boundary: always the next (higher) tier.
                 price_above, _, _ = coord._get_kapasitetsledd(threshold + 0.001)
                 assert price_above == next_price, (
                     f"{dso_id}: at {threshold}+e expected {next_price}, got {price_above}"
                 )
+
+
+def test_terskel_inkludert_true_boundary_goes_to_higher_tier() -> None:
+    """DSO med terskel_inkludert=True (default): eksakt grensetreff -> høyere trinn.
+
+    BKK er referanse-DSO med terskel_inkludert=True. Snitt på nøyaktig 5,0 kW
+    (grensen mellom trinn 2 og 3) skal gi trinn 3-prisen.
+    """
+    coord = _make_coordinator("bkk")
+    # Finn en endelig grense i BKK-trinnene og verifiser at eksakt treff = trinnet over.
+    trinn = coord.kapasitetstrinn
+    threshold, _ = trinn[1]  # andre trinn-grense
+    price_at, _, _ = coord._get_kapasitetsledd(threshold)
+    price_above, _, _ = coord._get_kapasitetsledd(threshold + 0.001)
+    assert price_at == price_above, "terskel_inkludert=True: eksakt treff skal følge trinnet over"
+
+
+def test_terskel_inkludert_false_boundary_stays_in_lower_tier() -> None:
+    """DSO med terskel_inkludert=False: eksakt grensetreff -> lavere trinn.
+
+    Alut/Bindal/Føre/Stram publiserer grensene inklusivt i lavere trinn.
+    """
+    coord = _make_coordinator("alut")
+    assert coord._terskel_inkludert is False
+    trinn = coord.kapasitetstrinn
+    # Finn en endelig grense der trinnet under og over har ulik pris.
+    for i, (threshold, price) in enumerate(trinn):
+        if threshold == float("inf") or i + 1 >= len(trinn):
+            continue
+        next_price = trinn[i + 1][1]
+        if price == next_price:
+            continue
+        price_at, _, _ = coord._get_kapasitetsledd(threshold)
+        assert price_at == price, "terskel_inkludert=False: eksakt treff skal bli i lavere trinn"
+        price_below, _, _ = coord._get_kapasitetsledd(threshold - 0.001)
+        assert price_below == price
+        break
 
 
 # =============================================================================

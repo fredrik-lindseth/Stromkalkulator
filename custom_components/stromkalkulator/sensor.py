@@ -49,8 +49,10 @@ DEVICE_MAANEDLIG = "maanedlig"
 DEVICE_FORRIGE_MAANED = "forrige_maaned"
 DEVICE_EKSPORT = "eksport"
 
-# Silver requirement: limit parallel updates
-PARALLEL_UPDATES = 1
+# Coordinator-entiteter gjør ingen egen I/O ved oppdatering, så oppdateringene
+# trenger ikke serialiseres. 0 er HA-konvensjonen for coordinator-baserte
+# plattformer (ubegrenset parallellitet, coordinateren styrer henting).
+PARALLEL_UPDATES = 0
 
 # SensorDeviceClass.ENUM som modulkonstant. getattr med streng-fallback gjør
 # importen robust der SensorDeviceClass er en redusert stub uten ENUM-medlemmet;
@@ -105,14 +107,12 @@ async def async_setup_entry(
         SpotprisEtterStotteSensor(coordinator, entry),
         TotalPrisEtterStotteSensor(coordinator, entry),
         TotalPrisInklAvgifterSensor(coordinator, entry),
-        StromstotteAktivSensor(coordinator, entry),
         StromstotteGjenstaaendeSensor(coordinator, entry),
         StromprisPerKwhEtterStotteSensor(coordinator, entry),
         # Norgespris
         TotalPrisNorgesprisSensor(coordinator, entry),
         StromprisNorgesprisSensor(coordinator, entry),
         PrisforskjellNorgesprisSensor(coordinator, entry),
-        NorgesprisAktivSensor(coordinator, entry),
         # Månedlig forbruk og kostnad
         MaanedligForbrukDagSensor(coordinator, entry),
         MaanedligForbrukNattSensor(coordinator, entry),
@@ -857,26 +857,6 @@ class PrisforskjellNorgesprisSensor(NettleieBaseSensor):
         return None
 
 
-class NorgesprisAktivSensor(NettleieBaseSensor):
-    """Sensor showing if Norgespris is active."""
-
-    _device_group: str = DEVICE_NORGESPRIS
-    _attr_entity_category: EntityCategory = EntityCategory.DIAGNOSTIC
-    _attr_icon: str = "mdi:check-circle"
-
-    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
-        """Initialize the sensor."""
-        super().__init__(coordinator, entry, "norgespris_aktiv", "norgespris_aktiv")
-
-    @property
-    def native_value(self) -> str | None:
-        """Return 'Ja' if Norgespris is active, 'Nei' otherwise."""
-        if self.coordinator.data:
-            has_norgespris = self.coordinator.data.get("har_norgespris", False)
-            return "Ja" if has_norgespris else "Nei"
-        return None
-
-
 # =============================================================================
 # Fakturasammenligning - Separate sensorer for hver fakturalinje
 # =============================================================================
@@ -1006,44 +986,6 @@ class EnovaavgiftSensor(NettleieBaseSensor):
             "ore_per_kwh_eks_mva": round(ENOVA_AVGIFT * 100, 2),
             "note": "Fakturaen viser Enova-avgift eks. mva (1,0 øre/kWh)",
         }
-
-
-class StromstotteAktivSensor(NettleieBaseSensor):
-    """Sensor for om strømstøtte er aktiv (spotpris over terskel)."""
-
-    _device_group: str = DEVICE_STROMSTOTTE
-    _attr_entity_category: EntityCategory = EntityCategory.DIAGNOSTIC
-    _attr_icon: str = "mdi:cash-check"
-
-    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
-        """Initialize the sensor."""
-        super().__init__(coordinator, entry, "stromstotte_aktiv", "stromstotte_kwh")
-
-    @property
-    def native_value(self) -> str | None:
-        """Return 'Ja' if strømstøtte is active, 'Nei' otherwise (None ved manglende spotdata)."""
-        if self.coordinator.data and self._spot_price_valid():
-            stromstotte = self.coordinator.data.get("stromstotte", 0)
-            return "Ja" if stromstotte > 0 else "Nei"
-        return None
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any] | None:
-        """Return attributes."""
-        if self.coordinator.data:
-            spot_price = self.coordinator.data.get("spot_price", 0)
-            terskel = self.coordinator.data.get("stromstotte_terskel", STROMSTOTTE_LEVEL)
-            stromstotte = self.coordinator.data.get("stromstotte", 0)
-            boligtype = self.coordinator.data.get("boligtype", "bolig")
-            return {
-                "spotpris": spot_price,
-                "terskel": terskel,
-                "over_terskel": spot_price > terskel,
-                "stromstotte_per_kwh": stromstotte,
-                "boligtype": boligtype,
-                "note": f"Timer hvor spotpris > {terskel * 100:.2f} øre/kWh gir strømstøtte på fakturaen",
-            }
-        return None
 
 
 class StromstotteGjenstaaendeSensor(NettleieBaseSensor):

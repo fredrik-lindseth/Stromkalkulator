@@ -45,6 +45,39 @@
         "data_description": {
           "avgiftssone": "Bestemmer mva og forbruksavgift. Mva-fritaket følger fylke, ikke prisområde: «Nord-Norge» gjelder Nordland og Troms, «Tiltakssonen» gjelder Finnmark og Nord-Troms (mval. § 6-6). Alle andre, inkludert NO3 (Trøndelag og Møre og Romsdal), velger «Sør-Norge» og betaler 25 % mva."
         }
+      },
+      "reconfigure": {
+        "title": "Strømkalkulator innstillinger",
+        "description": "Endre nettselskap, sensorer eller Norgespris-innstillinger.",
+        "data": {
+          "tso": "Nettselskap",
+          "boligtype": "Boligtype",
+          "avgiftssone": "Avgiftssone",
+          "har_norgespris": "Jeg har Norgespris",
+          "power_sensor": "Effektmåler (W)",
+          "spot_price_sensor": "Spotpris-sensor (NOK/kWh)",
+          "spotpris_inkl_mva": "Spotpris-sensor leverer priser inkl. mva",
+          "energy_sensor": "Energimåler-sensor (kWh, valgfri)",
+          "electricity_provider_price_sensor": "Strømleverandør-sensor (valgfri)",
+          "export_power_sensor": "Eksport-effektmåler (valgfri)",
+          "energiledd_dag": "Energiledd dag (NOK/kWh)",
+          "energiledd_natt": "Energiledd natt/helg (NOK/kWh)",
+          "kapasitet_varsel_terskel": "Kapasitetsvarsel-terskel (kW)"
+        },
+        "data_description": {
+          "boligtype": "Bolig: Strømstøtte opptil 5000 kWh/mnd, Norgespris opptil 5000 kWh/mnd. Fritidsbolig: Ingen strømstøtte, Norgespris opptil 1000 kWh/mnd. Fritidsbolig (fast bosted): Samme som bolig (Forskrift § 11).",
+          "avgiftssone": "Settes automatisk fra nettselskap. Overstyr kun hvis du vet du tilhører en annen sone.",
+          "har_norgespris": "Aktiver hvis du har valgt Norgespris hos nettselskapet. Bruker fast pris (40-50 øre/kWh) i stedet for spotpris.",
+          "power_sensor": "Sensor som viser nåværende strømforbruk i watt, f.eks. fra HAN-port, Tibber Pulse eller P1-måler.",
+          "spot_price_sensor": "Sensor med gjeldende spotpris i NOK/kWh. Vanligvis «Current price» fra Nord Pool-integrasjonen.",
+          "spotpris_inkl_mva": "La stå av for HA-core nordpool-integrasjon (leverer eks. mva). Slå på hvis sensoren din allerede inkluderer mva.",
+          "energy_sensor": "Kumulativ energi-teller fra AMS-måleren (OBIS 1.8.0, total forbruk i kWh). Anbefales: gir eksakt forbruk mot faktura. Uten denne brukes effektmåleren med Riemann-summering.",
+          "electricity_provider_price_sensor": "Sensor med totalprisen fra din strømleverandør (f.eks. Tibber «Electricity price»). Kun for å vise «Total strømpris (strømavtale)»-sensoren som sammenligning mot din faktiske avtale. Påvirker ingen andre beregninger. Hopp over hvis du har spotpris direkte eller Norgespris.",
+          "export_power_sensor": "Effektmåler for eksport til nettet (OBIS 2.7.0), kun for plusskunder med solceller. Brukes til å beregne salgsinntekt og netto månedskostnad. Hopp over hvis du ikke har solceller.",
+          "energiledd_dag": "Ren nettleie eks. mva og avgifter. Integrasjonen legger på forbruksavgift, Enova og mva basert på avgiftssone.",
+          "energiledd_natt": "Ren nettleie eks. mva og avgifter. Sett samme verdi som dag for flat sats.",
+          "kapasitet_varsel_terskel": "Varsle når margin til neste kapasitetstrinn er under denne verdien. Standard: 2.0 kW."
+        }
       }
     },
     "error": {
@@ -99,7 +132,9 @@
       "lag_fakturarapport": { "name": "Lag fakturaverifiserings-rapport" }
     },
     "binary_sensor": {
-      "kapasitet_varsel": { "name": "Kapasitetsvarsel" }
+      "kapasitet_varsel": { "name": "Kapasitetsvarsel" },
+      "norgespris_aktiv": { "name": "Norgespris aktiv nå" },
+      "stromstotte_aktiv": { "name": "Strømstøtte aktiv nå" }
     },
     "sensor": {
       "energiledd": { "name": "Energiledd" },
@@ -120,12 +155,10 @@
       "total_pris_norgespris": { "name": "Total strømpris (Norgespris)" },
       "strompris_norgespris": { "name": "Strømpris (Norgespris, uten nettleie)" },
       "prisforskjell_norgespris": { "name": "Prisforskjell (Norgespris)" },
-      "norgespris_aktiv": { "name": "Norgespris aktiv nå" },
       "energiledd_dag": { "name": "Energiledd dag" },
       "energiledd_natt": { "name": "Energiledd natt/helg" },
       "forbruksavgift": { "name": "Forbruksavgift" },
       "enovaavgift": { "name": "Enovaavgift" },
-      "stromstotte_kwh": { "name": "Strømstøtte aktiv nå" },
       "tariff": {
         "name": "Tariff",
         "state": { "dag": "Dag", "natt": "Natt" }

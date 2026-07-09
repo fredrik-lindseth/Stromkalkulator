@@ -81,7 +81,7 @@ HA-mottakstid = meter-broadcast + transmisjons-tid gjennom HAN-leseren. Transmis
 
 Mitt Kaifa + Pow-U-oppsett er målt til nøyaktig 13 sek (10 sek inne i måleren, 3 sek i transmisjon). Det er kun denne verifiserings-pipelinen i [scripts/research/verify_invoice_hourly.py](../scripts/research/verify_invoice_hourly.py) som påvirkes. Selve HA-integrasjonen leser `p`-strømmen kontinuerlig og er upåvirket av forsinkelsen.
 
-Andre kombinasjoner må verifiseres empirisk hos brukeren. Se [begrensninger.md, seksjon 6](begrensninger.md#6-for-utviklere-verifisering-mot-ekte-faktura) for hvordan dette håndteres i scriptet og hva `--shift-seconds` skal settes til.
+Andre kombinasjoner må verifiseres empirisk hos brukeren. Se [verifiser-din-faktura.md, seksjon 5c](fakturaer/verifiser-din-faktura.md#5c-velg-riktig---shift-seconds) for hvordan dette håndteres i scriptet og hva `--shift-seconds` skal settes til.
 
 ## Eget oppsett
 

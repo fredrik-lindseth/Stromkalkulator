@@ -19,7 +19,7 @@ Større avvik enn dette tyder på reell feil i satser, konfigurasjon eller hardw
 ## 2. Sjekk integrasjonens tall først
 
 1. Åpne Home Assistant og finn enheten "Forrige måned" (en del av integrasjonen).
-2. Trykk på knappen `Lag faktura-rapport`.
+2. Trykk på knappen `Lag fakturaverifiserings-rapport`.
 3. En notifikasjon dukker opp med ferdig utfylt rapport.
 4. Kopier rapporten og sammenlign linje for linje mot fakturaen din.
 

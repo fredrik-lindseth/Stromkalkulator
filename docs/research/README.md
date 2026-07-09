@@ -16,8 +16,8 @@ Filene her dokumenterer hvordan integrasjonen forholder seg til faktiske BKK-fak
 - [valutafixinger-12cet.md](valutafixinger-12cet.md), hvilke 12:00 CET-fixinger som faktisk finnes, og hva norske banker og strømleverandører bruker.
 - [forward-hedge-og-nok-likviditet.md](forward-hedge-og-nok-likviditet.md), Nord Pools to-banks-hedge og NOK-likviditet i lunsj-vinduet.
 - [nok-intraday-volatilitet.md](nok-intraday-volatilitet.md), er observerte 12:00 → 14:15 bevegelser normale, og finnes det systematisk skjevhet.
-- [sporsmal-valutaekspert.md](sporsmal-valutaekspert.md), strukturerte spørsmål til en valuta-PhD om EUR/NOK-omregning.
-- [bloomberg-verifisering.md](bloomberg-verifisering.md), resultat av Bloomberg 12:00 CET-uttrekket: hypotesen holdt ikke, og veien videre.
+- [sporsmal-valutaekspert.md](sporsmal-valutaekspert.md), spørsmål utarbeidet til en valuta-PhD om EUR/NOK-omregning, aldri sendt. Kurs-sporet ble løst empirisk før spørsmålene ble nødvendige, filen står som audit-trail.
+- [bloomberg-verifisering.md](bloomberg-verifisering.md), resultat av Bloomberg 12:00 CET-uttrekket: hypotesen holdt ikke. Kurs-sporet er avsluttet, se norgespris-eksakt-match.md.
 
 ## AMS-måler og timing
 
@@ -30,7 +30,7 @@ Filene her dokumenterer hvordan integrasjonen forholder seg til faktiske BKK-fak
 
 ## Kommunikasjon
 
-- [epost-utkast-bkk.md](epost-utkast-bkk.md), utkast til epost til BKK om Norgespris-snittpris og kursvalg.
+`epost-utkast-bkk.md` er slettet: e-posten til BKK om Norgespris-snittpris og kursvalg ble aldri sendt. Kurs-sporet ble lukket empirisk (se norgespris-eksakt-match.md) før utkastet var nødvendig.
 
 ## Underkataloger
 

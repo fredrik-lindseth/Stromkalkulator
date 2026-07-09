@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 from homeassistant.const import Platform
 from homeassistant.helpers import issue_registry as ir
+from homeassistant.util import dt as dt_util
 
 from .const import (
     AVGIFTSSONE_NORD_NORGE,
@@ -16,10 +17,13 @@ from .const import (
     CONF_DSO,
     CONF_ENERGILEDD_DAG,
     CONF_ENERGILEDD_NATT,
+    CONF_HAR_NORGESPRIS,
     CONF_SPOTPRIS_INKL_MVA,
     DEFAULT_DSO,
     DOMAIN,
     ENOVA_AVGIFT,
+    NORGESPRIS_SLUTT_AAR,
+    SATSER_GJELDER_AAR,
     get_forbruksavgift,
     get_mva_sats,
     resolve_avgiftssone,
@@ -248,7 +252,46 @@ async def async_setup_entry(hass: HomeAssistant, entry: StromkalkulatorConfigEnt
 
     entry.async_on_unload(entry.add_update_listener(_async_update_options))
 
+    _check_stale_rates(hass, entry)
+
     return True
+
+
+def _check_stale_rates(hass: HomeAssistant, entry: StromkalkulatorConfigEntry) -> None:
+    """Varsle via Repairs hvis satsene kan være utdaterte eller Norgespris har opphørt.
+
+    Satsene i const.py og dso.py er verifisert for et bestemt år. Ruller kalenderen
+    over uten at satsene er oppdatert, regner integrasjonen videre på fjorårets tall,
+    stikk i strid med presisjonsløftet. Varselet er informativt (ikke fiksbart): det
+    ber brukeren se etter en oppdatering. Fjernes automatisk når satsene er oppdatert.
+    """
+    current_year = dt_util.now().year
+
+    if current_year > SATSER_GJELDER_AAR:
+        ir.async_create_issue(
+            hass,
+            DOMAIN,
+            "satser_utdatert",
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="satser_utdatert",
+            translation_placeholders={"aar": str(SATSER_GJELDER_AAR)},
+        )
+    else:
+        ir.async_delete_issue(hass, DOMAIN, "satser_utdatert")
+
+    if entry.data.get(CONF_HAR_NORGESPRIS) and current_year > NORGESPRIS_SLUTT_AAR:
+        ir.async_create_issue(
+            hass,
+            DOMAIN,
+            "norgespris_utlopt",
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="norgespris_utlopt",
+            translation_placeholders={"aar": str(NORGESPRIS_SLUTT_AAR)},
+        )
+    else:
+        ir.async_delete_issue(hass, DOMAIN, "norgespris_utlopt")
 
 
 async def _async_update_options(hass: HomeAssistant, entry: StromkalkulatorConfigEntry) -> None:

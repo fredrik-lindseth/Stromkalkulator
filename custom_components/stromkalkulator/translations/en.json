@@ -191,6 +191,14 @@
     }
   },
   "issues": {
+    "satser_utdatert": {
+      "title": "Grid tariff and tax rates may be outdated",
+      "description": "The rates in Strømkalkulator are verified for {aar}. The calendar has rolled over and the integration is still using {aar} rates. Check HACS for an updated version, otherwise grid tariffs, taxes and subsidy may be wrong for the current year."
+    },
+    "norgespris_utlopt": {
+      "title": "The Norgespris scheme may have ended",
+      "description": "The Norgespris scheme was decided through {aar}. You have Norgespris enabled, but the scheme may have ended or changed terms. Check the current rules and turn off Norgespris in settings if it no longer applies to you."
+    },
     "tso_migrated": {
       "title": "Your grid company has merged",
       "fix_flow": {

@@ -102,6 +102,11 @@
         "name": "Lag fakturaverifiserings-rapport"
       }
     },
+    "binary_sensor": {
+      "kapasitet_varsel": {
+        "name": "Kapasitetsvarsel"
+      }
+    },
     "sensor": {
       "energiledd": {
         "name": "Energiledd"
@@ -158,7 +163,11 @@
         "name": "Prisforskjell (Norgespris)"
       },
       "norgespris_aktiv": {
-        "name": "Norgespris aktiv nå"
+        "name": "Norgespris aktiv nå",
+        "state": {
+          "Ja": "Ja",
+          "Nei": "Nei"
+        }
       },
       "energiledd_dag": {
         "name": "Energiledd dag"
@@ -173,10 +182,18 @@
         "name": "Enovaavgift"
       },
       "stromstotte_kwh": {
-        "name": "Strømstøtte aktiv nå"
+        "name": "Strømstøtte aktiv nå",
+        "state": {
+          "Ja": "Ja",
+          "Nei": "Nei"
+        }
       },
       "tariff": {
-        "name": "Tariff"
+        "name": "Tariff",
+        "state": {
+          "dag": "Dag",
+          "natt": "Natt"
+        }
       },
       "maanedlig_forbruk_dag": {
         "name": "Månedlig forbruk dagtariff"
@@ -216,9 +233,6 @@
       },
       "margin_neste_trinn": {
         "name": "Margin til neste trinn"
-      },
-      "kapasitet_varsel": {
-        "name": "Kapasitetsvarsel"
       },
       "stromstotte_gjenstaaende": {
         "name": "Strømstøtte gjenstående"

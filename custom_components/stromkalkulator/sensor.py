@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -52,6 +52,11 @@ DEVICE_EKSPORT = "eksport"
 # Silver requirement: limit parallel updates
 PARALLEL_UPDATES = 1
 
+# SensorDeviceClass.ENUM som modulkonstant. getattr med streng-fallback gjør
+# importen robust der SensorDeviceClass er en redusert stub uten ENUM-medlemmet;
+# i Home Assistant er ENUM uansett StrEnum-verdien "enum".
+_ENUM_DEVICE_CLASS = getattr(SensorDeviceClass, "ENUM", "enum")
+
 
 def _beregn_nettleie(
     dag_kwh: float,
@@ -82,7 +87,6 @@ async def async_setup_entry(
         TrinnIntervallSensor(coordinator, entry),
         KapasitetstrinnSensor(coordinator, entry),
         MarginNesteTrinnSensor(coordinator, entry),
-        KapasitetVarselSensor(coordinator, entry),
         # Nettleie - Energiledd
         EnergileddSensor(coordinator, entry),
         EnergileddDagSensor(coordinator, entry),
@@ -149,6 +153,7 @@ class NettleieBaseSensor(CoordinatorEntity, SensorEntity):
     _attr_translation_key: str
     _entry: ConfigEntry
     _dso: DSOEntry
+    _last_state_written: tuple[Any, Any, Any] | None = None
 
     def __init__(
         self,
@@ -165,6 +170,20 @@ class NettleieBaseSensor(CoordinatorEntity, SensorEntity):
 
         dso_id = entry.data.get(CONF_DSO, DEFAULT_DSO)
         self._dso = DSO_LIST.get(dso_id, DSO_LIST[DEFAULT_DSO])
+
+    def _handle_coordinator_update(self) -> None:
+        """Skriv kun ny state når noe faktisk endret seg.
+
+        Uten dette skriver hver sensor state ved hver coordinator-refresh
+        (~1/min), så recorderen får ~52 identiske rader i minuttet. Signaturen
+        dekker alt som styrer entitetens HA-state: tilgjengelighet, verdi og
+        attributter. Er den uendret, hoppes skrivingen over.
+        """
+        signature = (self.available, self.native_value, self.extra_state_attributes)
+        if signature == self._last_state_written:
+            return
+        self._last_state_written = signature
+        super()._handle_coordinator_update()
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -344,33 +363,6 @@ class MarginNesteTrinnSensor(NettleieBaseSensor):
             return {
                 "naavarende_trinn_pris": self.coordinator.data.get("kapasitetsledd"),
                 "neste_trinn_pris": self.coordinator.data.get("neste_trinn_pris"),
-            }
-        return None
-
-
-class KapasitetVarselSensor(NettleieBaseSensor):
-    """Binary-like sensor that warns when close to next capacity tier."""
-
-    _attr_icon: str = "mdi:alert"
-
-    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
-        """Initialize the sensor."""
-        super().__init__(coordinator, entry, "kapasitet_varsel", "kapasitet_varsel")
-
-    @property
-    def native_value(self) -> str | None:
-        """Return the state."""
-        if self.coordinator.data:
-            varsel = self.coordinator.data.get("kapasitet_varsel", False)
-            return "on" if varsel else "off"
-        return None
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any] | None:
-        """Return extra attributes."""
-        if self.coordinator.data:
-            return {
-                "margin_kw": self.coordinator.data.get("margin_neste_trinn_kw"),
             }
         return None
 
@@ -870,6 +862,8 @@ class NorgesprisAktivSensor(NettleieBaseSensor):
 
     _device_group: str = DEVICE_NORGESPRIS
     _attr_entity_category: EntityCategory = EntityCategory.DIAGNOSTIC
+    _attr_device_class: SensorDeviceClass = _ENUM_DEVICE_CLASS
+    _attr_options: ClassVar[list[str]] = ["Ja", "Nei"]
     _attr_icon: str = "mdi:check-circle"
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -1021,6 +1015,8 @@ class StromstotteAktivSensor(NettleieBaseSensor):
 
     _device_group: str = DEVICE_STROMSTOTTE
     _attr_entity_category: EntityCategory = EntityCategory.DIAGNOSTIC
+    _attr_device_class: SensorDeviceClass = _ENUM_DEVICE_CLASS
+    _attr_options: ClassVar[list[str]] = ["Ja", "Nei"]
     _attr_icon: str = "mdi:cash-check"
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -1111,6 +1107,8 @@ class StromprisPerKwhEtterStotteSensor(NettleieBaseSensor):
 class TariffSensor(NettleieBaseSensor):
     """Sensor for current tariff period (dag/natt) - for use with utility_meter."""
 
+    _attr_device_class: SensorDeviceClass = _ENUM_DEVICE_CLASS
+    _attr_options: ClassVar[list[str]] = ["dag", "natt"]
     _attr_icon: str = "mdi:clock-outline"
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:

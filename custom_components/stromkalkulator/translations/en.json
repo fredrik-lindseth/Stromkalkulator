@@ -98,6 +98,9 @@
     "button": {
       "lag_fakturarapport": { "name": "Generate invoice verification report" }
     },
+    "binary_sensor": {
+      "kapasitet_varsel": { "name": "Capacity warning" }
+    },
     "sensor": {
       "energiledd": { "name": "Energy tariff" },
       "kapasitetstrinn": { "name": "Capacity tier" },
@@ -117,13 +120,22 @@
       "total_pris_norgespris": { "name": "Total price (Norgespris)" },
       "strompris_norgespris": { "name": "Electricity price (Norgespris scheme)" },
       "prisforskjell_norgespris": { "name": "Price difference (Norgespris)" },
-      "norgespris_aktiv": { "name": "Norgespris active now" },
+      "norgespris_aktiv": {
+        "name": "Norgespris active now",
+        "state": { "Ja": "Yes", "Nei": "No" }
+      },
       "energiledd_dag": { "name": "Energy tariff day" },
       "energiledd_natt": { "name": "Energy tariff night/weekend" },
       "forbruksavgift": { "name": "Consumption tax" },
       "enovaavgift": { "name": "Enova fee" },
-      "stromstotte_kwh": { "name": "Electricity subsidy active now" },
-      "tariff": { "name": "Tariff" },
+      "stromstotte_kwh": {
+        "name": "Electricity subsidy active now",
+        "state": { "Ja": "Yes", "Nei": "No" }
+      },
+      "tariff": {
+        "name": "Tariff",
+        "state": { "dag": "Day", "natt": "Night" }
+      },
       "maanedlig_forbruk_dag": { "name": "Monthly consumption day tariff" },
       "maanedlig_forbruk_natt": { "name": "Monthly consumption night/weekend" },
       "maanedlig_forbruk_total": { "name": "Monthly consumption total" },
@@ -137,7 +149,6 @@
       "forrige_maaned_nettleie": { "name": "Last month grid tariff" },
       "forrige_maaned_toppforbruk": { "name": "Last month peak demand" },
       "margin_neste_trinn": { "name": "Margin to next tier" },
-      "kapasitet_varsel": { "name": "Capacity warning" },
       "stromstotte_gjenstaaende": { "name": "Electricity subsidy remaining" },
       "maanedlig_norgespris_diff": { "name": "Norgespris savings" },
       "maanedlig_norgespris_kompensasjon": { "name": "Norgespris compensation" },

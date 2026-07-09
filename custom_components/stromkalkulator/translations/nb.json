@@ -98,6 +98,9 @@
     "button": {
       "lag_fakturarapport": { "name": "Lag fakturaverifiserings-rapport" }
     },
+    "binary_sensor": {
+      "kapasitet_varsel": { "name": "Kapasitetsvarsel" }
+    },
     "sensor": {
       "energiledd": { "name": "Energiledd" },
       "kapasitetstrinn": { "name": "Kapasitetstrinn" },
@@ -117,13 +120,22 @@
       "total_pris_norgespris": { "name": "Total strømpris (Norgespris)" },
       "strompris_norgespris": { "name": "Strømpris (Norgespris, uten nettleie)" },
       "prisforskjell_norgespris": { "name": "Prisforskjell (Norgespris)" },
-      "norgespris_aktiv": { "name": "Norgespris aktiv nå" },
+      "norgespris_aktiv": {
+        "name": "Norgespris aktiv nå",
+        "state": { "Ja": "Ja", "Nei": "Nei" }
+      },
       "energiledd_dag": { "name": "Energiledd dag" },
       "energiledd_natt": { "name": "Energiledd natt/helg" },
       "forbruksavgift": { "name": "Forbruksavgift" },
       "enovaavgift": { "name": "Enovaavgift" },
-      "stromstotte_kwh": { "name": "Strømstøtte aktiv nå" },
-      "tariff": { "name": "Tariff" },
+      "stromstotte_kwh": {
+        "name": "Strømstøtte aktiv nå",
+        "state": { "Ja": "Ja", "Nei": "Nei" }
+      },
+      "tariff": {
+        "name": "Tariff",
+        "state": { "dag": "Dag", "natt": "Natt" }
+      },
       "maanedlig_forbruk_dag": { "name": "Månedlig forbruk dagtariff" },
       "maanedlig_forbruk_natt": { "name": "Månedlig forbruk natt/helg" },
       "maanedlig_forbruk_total": { "name": "Månedlig forbruk totalt" },
@@ -137,7 +149,6 @@
       "forrige_maaned_nettleie": { "name": "Forrige måned nettleie" },
       "forrige_maaned_toppforbruk": { "name": "Forrige måned toppforbruk" },
       "margin_neste_trinn": { "name": "Margin til neste trinn" },
-      "kapasitet_varsel": { "name": "Kapasitetsvarsel" },
       "stromstotte_gjenstaaende": { "name": "Strømstøtte gjenstående" },
       "maanedlig_norgespris_diff": { "name": "Norgespris besparelse" },
       "maanedlig_norgespris_kompensasjon": { "name": "Norgespris-kompensasjon" },

@@ -34,11 +34,9 @@ Modeller dokumentert: 6515 (1-fase), 6520, 6525 (3-fase Hafslund), 6530, **6534 
 
 ## Internasjonal standard
 
-| Fil                                                      | Beskrivelse                                      | Kilde                                                                                                               |
-| -------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| [iec62056-21-ed1.0-1996.pdf](iec62056-21-ed1.0-1996.pdf) | IEC 62056-21 ed 1.0 (1996) ASCII serial protocol | [ungelesen.net](https://www.ungelesen.net/protagWork/media/downloads/solar-steuerung/iec62056-21%7Bed1.0%7Den_.pdf) |
+IEC 62056-21 ed 1.0 (1996), ASCII serial protocol. Ikke arkivert lokalt: betalt IEC-standard uten redistribusjonsrett. Offisiell kilde (kjøp/lisens): [webstore.iec.ch/publication/6122](https://webstore.iec.ch/publication/6122).
 
-**Nøkkelfunn:** Standarden regulerer framing, baudrate og data-encoding, men sier ingenting om når kumulative timesverdier skal sendes. Hver målerprodusent velger egen timing. Den nyeste utgaven er bak IEC-paywall (~CHF 200), men vi har ikke behov for den.
+**Nøkkelfunn:** Standarden regulerer framing, baudrate og data-encoding, men sier ingenting om når kumulative timesverdier skal sendes. Hver målerprodusent velger egen timing. Den nyeste utgaven er bak IEC-paywall (~CHF 200), og vi har ikke behov for den, konklusjonen over er allerede uttømt.
 
 ## Konklusjon på tvers av merker
 

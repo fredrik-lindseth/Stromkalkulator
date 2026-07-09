@@ -140,7 +140,7 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class NettleieBaseSensor(CoordinatorEntity, SensorEntity):  # type: ignore[misc]
+class NettleieBaseSensor(CoordinatorEntity, SensorEntity):
     """Base class for Strømkalkulator sensors."""
 
     _attr_has_entity_name = True
@@ -243,8 +243,8 @@ class NettleieBaseSensor(CoordinatorEntity, SensorEntity):  # type: ignore[misc]
 class EnergileddSensor(NettleieBaseSensor):
     """Sensor for energiledd."""
 
-    _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "NOK/kWh"
+    _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
     _attr_icon: str = "mdi:currency-usd"
     _attr_suggested_display_precision: int = 2
 
@@ -282,8 +282,8 @@ class EnergileddSensor(NettleieBaseSensor):
 class KapasitetstrinnSensor(NettleieBaseSensor):
     """Sensor for kapasitetstrinn."""
 
-    _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "kr/mnd"
+    _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
     _attr_icon: str = "mdi:transmission-tower"
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -378,8 +378,8 @@ class KapasitetVarselSensor(NettleieBaseSensor):
 class TotalPriceSensor(NettleieBaseSensor):
     """Sensor for total electricity price (without strømstøtte)."""
 
-    _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "NOK/kWh"
+    _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
     _attr_icon: str = "mdi:cash"
     _attr_suggested_display_precision: int = 2
 
@@ -519,10 +519,10 @@ class TrinnIntervallSensor(NettleieBaseSensor):
 class OffentligeAvgifterSensor(NettleieBaseSensor):
     """Sensor for offentlige avgifter (forbruksavgift, Enova, mva)."""
 
-    _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_entity_category: EntityCategory = EntityCategory.DIAGNOSTIC
     _attr_entity_registry_enabled_default: bool = False
     _attr_native_unit_of_measurement: str = "NOK/kWh"
+    _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
     _attr_icon: str = "mdi:bank"
     _attr_suggested_display_precision: int = 2
 
@@ -562,8 +562,8 @@ class ElectricityCompanyTotalSensor(NettleieBaseSensor):
     """Sensor for total price with electricity company + nettleie."""
 
     _attr_entity_registry_enabled_default: bool = False
-    _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "NOK/kWh"
+    _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
     _attr_icon: str = "mdi:cash-plus"
     _attr_suggested_display_precision: int = 2
 
@@ -595,8 +595,8 @@ class ElectricityCompanyTotalSensor(NettleieBaseSensor):
 class StromprisPerKwhSensor(NettleieBaseSensor):
     """Sensor for electricity price per kWh (without capacity fee)."""
 
-    _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "NOK/kWh"
+    _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
     _attr_icon: str = "mdi:flash"
     _attr_suggested_display_precision: int = 2
 
@@ -627,8 +627,8 @@ class StromstotteSensor(NettleieBaseSensor):
     """Sensor for strømstøtte per kWh."""
 
     _device_group: str = DEVICE_STROMSTOTTE
-    _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "NOK/kWh"
+    _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
     _attr_icon: str = "mdi:cash-refund"
     _attr_suggested_display_precision: int = 2
 
@@ -659,8 +659,8 @@ class SpotprisEtterStotteSensor(NettleieBaseSensor):
     """Sensor for spot price after strømstøtte."""
 
     _device_group: str = DEVICE_STROMSTOTTE
-    _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "NOK/kWh"
+    _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
     _attr_icon: str = "mdi:currency-usd-off"
     _attr_suggested_display_precision: int = 2
 
@@ -688,8 +688,8 @@ class TotalPrisEtterStotteSensor(NettleieBaseSensor):
     """Sensor for total price after strømstøtte (spot + nettleie - støtte)."""
 
     _device_group: str = DEVICE_STROMSTOTTE
-    _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "NOK/kWh"
+    _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
     _attr_icon: str = "mdi:cash-check"
     _attr_suggested_display_precision: int = 2
 
@@ -723,8 +723,8 @@ class TotalPrisInklAvgifterSensor(NettleieBaseSensor):
     """Sensor for total price including all taxes (for Energy Dashboard)."""
 
     _device_group: str = DEVICE_STROMSTOTTE
-    _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "NOK/kWh"
+    _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
     _attr_icon: str = "mdi:receipt-text-check"
     _attr_suggested_display_precision: int = 2
 
@@ -762,8 +762,8 @@ class TotalPrisNorgesprisSensor(NettleieBaseSensor):
     """Sensor for totalpris med norgespris."""
 
     _device_group: str = DEVICE_NORGESPRIS
-    _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "NOK/kWh"
+    _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
     _attr_icon: str = "mdi:map-marker"
     _attr_suggested_display_precision: int = 2
 
@@ -796,8 +796,8 @@ class StromprisNorgesprisSensor(NettleieBaseSensor):
     """Sensor for ren strømpris under Norgespris-ordningen, uten nettleie."""
 
     _device_group: str = DEVICE_NORGESPRIS
-    _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "NOK/kWh"
+    _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
     _attr_icon: str = "mdi:cash"
     _attr_suggested_display_precision: int = 2
 
@@ -832,8 +832,8 @@ class PrisforskjellNorgesprisSensor(NettleieBaseSensor):
     """Sensor for prisforskjell mellom norgespris og vanlig pris."""
 
     _device_group: str = DEVICE_NORGESPRIS
-    _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "NOK/kWh"
+    _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
     _attr_icon: str = "mdi:cash-minus"
     _attr_suggested_display_precision: int = 2
 
@@ -893,10 +893,10 @@ class NorgesprisAktivSensor(NettleieBaseSensor):
 class EnergileddDagSensor(NettleieBaseSensor):
     """Sensor for energiledd dag-sats (eks. avgifter, for fakturasammenligning)."""
 
-    _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_entity_category: EntityCategory = EntityCategory.DIAGNOSTIC
     _attr_entity_registry_enabled_default: bool = False
     _attr_native_unit_of_measurement: str = "NOK/kWh"
+    _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
     _attr_icon: str = "mdi:weather-sunny"
     _attr_suggested_display_precision: int = 2
 
@@ -920,10 +920,10 @@ class EnergileddDagSensor(NettleieBaseSensor):
 class EnergileddNattSensor(NettleieBaseSensor):
     """Sensor for energiledd natt/helg-sats (eks. avgifter, for fakturasammenligning)."""
 
-    _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_entity_category: EntityCategory = EntityCategory.DIAGNOSTIC
     _attr_entity_registry_enabled_default: bool = False
     _attr_native_unit_of_measurement: str = "NOK/kWh"
+    _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
     _attr_icon: str = "mdi:weather-night"
     _attr_suggested_display_precision: int = 2
 
@@ -947,10 +947,10 @@ class EnergileddNattSensor(NettleieBaseSensor):
 class ForbruksavgiftSensor(NettleieBaseSensor):
     """Sensor for forbruksavgift (elavgift) per kWh."""
 
-    _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_entity_category: EntityCategory = EntityCategory.DIAGNOSTIC
     _attr_entity_registry_enabled_default: bool = False
     _attr_native_unit_of_measurement: str = "NOK/kWh"
+    _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
     _attr_icon: str = "mdi:lightning-bolt"
     _attr_suggested_display_precision: int = 2
 
@@ -984,10 +984,10 @@ class ForbruksavgiftSensor(NettleieBaseSensor):
 class EnovaavgiftSensor(NettleieBaseSensor):
     """Sensor for Enova-avgift per kWh."""
 
-    _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_entity_category: EntityCategory = EntityCategory.DIAGNOSTIC
     _attr_entity_registry_enabled_default: bool = False
     _attr_native_unit_of_measurement: str = "NOK/kWh"
+    _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
     _attr_icon: str = "mdi:leaf"
     _attr_suggested_display_precision: int = 2
 
@@ -1079,8 +1079,8 @@ class StromprisPerKwhEtterStotteSensor(NettleieBaseSensor):
 
     _attr_entity_registry_enabled_default: bool = False
     _device_group: str = DEVICE_STROMSTOTTE
-    _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "NOK/kWh"
+    _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
     _attr_icon: str = "mdi:flash-outline"
     _attr_suggested_display_precision: int = 2
 
@@ -1590,7 +1590,7 @@ class EstimertMaanedskostnadSensor(MaanedligBaseSensor):
         variable_cost = nettleie_variable - stotte
 
         estimated_variable = (variable_cost / day_of_month) * dim
-        return round(estimated_variable + kapasitet, 0)
+        return round(cast("float", estimated_variable + kapasitet), 0)
 
 
 # =============================================================================
@@ -1852,7 +1852,7 @@ class EksportBaseSensor(NettleieBaseSensor):
         """Only available when export sensor is configured."""
         if not self.coordinator.data:
             return False
-        return self.coordinator.data.get("eksport_konfigurert", False)
+        return bool(self.coordinator.data.get("eksport_konfigurert", False))
 
 
 class MaanedligEksportKwhSensor(EksportBaseSensor):

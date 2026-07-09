@@ -55,7 +55,11 @@ _coord_mod.CoordinatorEntity = FakeCoordinatorEntity
 from stromkalkulator.const import STROMSTOTTE_LEVEL  # noqa: E402
 from stromkalkulator.sensor import (  # noqa: E402
     ElectricityCompanyTotalSensor,
+    EnergileddDagSensor,
+    EnergileddNattSensor,
     EnergileddSensor,
+    EnovaavgiftSensor,
+    ForbruksavgiftSensor,
     ForrigeMaanedForbrukDagSensor,
     ForrigeMaanedToppforbrukSensor,
     KapasitetstrinnSensor,
@@ -69,6 +73,7 @@ from stromkalkulator.sensor import (  # noqa: E402
     MaksForbrukSensor,
     MarginNesteTrinnSensor,
     NorgesprisAktivSensor,
+    OffentligeAvgifterSensor,
     PrisforskjellNorgesprisSensor,
     SpotprisEtterStotteSensor,
     StromprisNorgesprisSensor,
@@ -307,7 +312,7 @@ class TestSensorUniqueId:
 
 
 class TestSensorDeviceClassAndUnit:
-    """Verify monetary sensors have correct device class and unit."""
+    """Verify sensors have correct device class, state class and unit."""
 
     @pytest.mark.parametrize("sensor_class,expected_unit", [
         (EnergileddSensor, "NOK/kWh"),
@@ -334,3 +339,46 @@ class TestSensorDeviceClassAndUnit:
     def test_unit_of_measurement(self, sensor_class, expected_unit, mock_coordinator, mock_entry):
         sensor = sensor_class(mock_coordinator, mock_entry)
         assert sensor._attr_native_unit_of_measurement == expected_unit
+
+    # NOK/kWh og kr/mnd er per-enhet-satser, ikke pengebeløp. HA reserverer
+    # MONETARY for ISO 4217-beløp og holder MONETARY-sensorer utenfor
+    # measurement-statistikken. Satsene skal derfor ikke ha device_class, men
+    # state_class MEASUREMENT så de fortsatt får statistikk (min/snitt/maks).
+    @pytest.mark.parametrize("sensor_class", [
+        EnergileddSensor,
+        EnergileddDagSensor,
+        EnergileddNattSensor,
+        KapasitetstrinnSensor,
+        OffentligeAvgifterSensor,
+        ForbruksavgiftSensor,
+        EnovaavgiftSensor,
+        TotalPriceSensor,
+        ElectricityCompanyTotalSensor,
+        StromprisPerKwhSensor,
+        StromprisPerKwhEtterStotteSensor,
+        StromstotteSensor,
+        SpotprisEtterStotteSensor,
+        TotalPrisEtterStotteSensor,
+        TotalPrisInklAvgifterSensor,
+        TotalPrisNorgesprisSensor,
+        StromprisNorgesprisSensor,
+        PrisforskjellNorgesprisSensor,
+    ])
+    def test_rate_sensors_are_measurement_not_monetary(self, sensor_class, mock_coordinator, mock_entry):
+        sensor = sensor_class(mock_coordinator, mock_entry)
+        assert getattr(sensor, "_attr_device_class", None) is None
+        assert sensor._attr_state_class == "measurement"
+
+    # Faktiske kronebeløp (månedskostnader, differanser, inntekter) er ekte
+    # pengeverdier og beholder MONETARY med enhet "kr". Enheten endres ikke til
+    # ISO 4217 ("NOK"), fordi disse har eksisterende long-term-statistikk som en
+    # enhetsendring ville splitte for brukere.
+    @pytest.mark.parametrize("sensor_class", [
+        MaanedligNettleieSensor,
+        MaanedligTotalSensor,
+        MaanedligNorgesprisDifferanseSensor,
+    ])
+    def test_amount_sensors_stay_monetary(self, sensor_class, mock_coordinator, mock_entry):
+        sensor = sensor_class(mock_coordinator, mock_entry)
+        assert sensor._attr_device_class == "monetary"
+        assert sensor._attr_native_unit_of_measurement == "kr"

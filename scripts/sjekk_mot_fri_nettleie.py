@@ -52,6 +52,8 @@ TOLERANSE = 0.001  # NOK/kWh, 0,1 øre
 KJENTE_AVVIK: dict[str, str] = {
     "elvia": "elvia.no oppgir dag 46,60 øre inkl. (29,15 eks); fri-nettleie har 46,40 (28,99). "
     "Elvia er primærkilde. Meldt: github.com/kraftsystemet/fri-nettleie/issues/384.",
+    "rakkestad_energi": "Rakkestad er nå Elvia (fri-nettleie #248), bruker Elvia-priser. Samme "
+    "dag-avvik som elvia (29,15 vs 28,99). Realigner når PR #385 merges.",
 }
 
 # Mapping mellom våre DSO-IDer og fri-nettleie sine filnavn. Hvis vår ID kan

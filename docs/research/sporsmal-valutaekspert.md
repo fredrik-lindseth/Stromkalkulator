@@ -1,5 +1,13 @@
 # Spørsmål til en valuta-PhD om EUR/NOK-omregning hos norske strømleverandører
 
+> **LØST empirisk 2026-07-06, ikke sendt.** [norgespris-eksakt-match.md](norgespris-eksakt-match.md)
+> reproduserer Norgespris-linjen eksakt med Nord Pools publiserte Final-priser.
+> Det var aldri et EUR/NOK-kurs- eller mikrostruktur-spørsmål: restavviket var
+> prisårgang (foreløpig vs. Final NOK-pris i HA-recorderen på søndager/
+> helligdager) pluss én recorder-aggregatglipp. Spørsmålene under er derfor
+> dødt spor, bevart som audit-trail for hypotesene som ble utforsket før
+> løsningen.
+
 ## Kort kontekst
 
 En Home Assistant-integrasjon for verifisering av norske strømfakturaer mot rådata fra Nord Pool og Norges Bank ([hacs-strømkalkulator](https://github.com/0v-no/hacs-strømkalkulator)). Alle fakturalinjer treffer innenfor noen øre, bortsett fra Norgespris-kompensasjonen, som ligger ~0,5–2 kr unna på en månedsfaktura på ~1500 kr.

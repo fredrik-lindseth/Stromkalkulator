@@ -53,7 +53,7 @@ Flat sats (ingen dag/natt-forskjell):
 "energiledd_natt_eks_mva": 0.1556,
 ```
 
-Nord-Norge (NO3, NO4, mva-fritak): bruk de samme eks-mva-verdiene. Integrasjonen detekterer prisområdet og hopper over mva-påslag.
+Nord-Norge (Nordland, Troms — mva-fritak): bruk de samme eks-mva-verdiene. Integrasjonen detekterer avgiftssone og hopper over mva-påslag. Default følger prisområde (NO4 → Nord-Norge, NO3 → Sør-Norge/25% mva, siden NO3 i hovedsak er Trøndelag/Møre og Romsdal). For DSO-er i NO3 med mva-fritak (f.eks. Bindal), sett `"avgiftssone": "nord_norge"` eksplisitt.
 
 Tiltakssonen (Finnmark + Nord-Troms): legg til `"tiltakssone": True`. Fritak for forbruksavgift og MVA.
 
@@ -65,7 +65,7 @@ Julaften og nyttårsaften som lavtariff: legg til `"helligdager_ekstra": ["12-24
 
 ```bash
 python3 -m py_compile custom_components/stromkalkulator/dso.py
-pipx run pytest tests/ -v
+pipx run --with hypothesis pytest tests/ -v
 ```
 
 ## PR
@@ -80,11 +80,12 @@ pipx run pytest tests/ -v
 ```python
 DSO_MIGRATIONS: Final[list[DSOFusjon]] = [
     DSOFusjon(gammel="skiakernett", ny="vevig"),
-    DSOFusjon(gammel="norgesnett", ny="glitre"),
 ]
 ```
 
 Fjern også gammel oppføring fra `DSO_LIST`. Brukere migreres automatisk.
+
+Fusjoner kan reverseres: norgesnett ble kort innfusjonert i glitre, men er aktiv DSO igjen i dag. Fjern oppføringen fra `DSO_MIGRATIONS` og legg tilbake den gamle `DSO_LIST`-oppføringen hvis det skjer. Sjekk `dso.py` for hva som faktisk gjelder nå.
 
 ## Årlige oppdateringer
 

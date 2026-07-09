@@ -18,6 +18,11 @@ jobs:
         with:
           python-version: '3.12'
 
+      # Drift-vakten i tests/test_research_reproducibility.py skipper hvis verken
+      # `just` eller `make` finnes. Uten dette steget kjørte den aldri i CI.
+      - name: Set up just
+        uses: extractions/setup-just@v3
+
       - name: Install dependencies
         run: |
           pip install pytest pytest-cov hypothesis vulture ruff mypy
@@ -34,7 +39,9 @@ jobs:
 
       - name: Run unit tests with coverage
         run: |
-          pytest tests/ -v --cov=custom_components/stromkalkulator --cov-report=xml --cov-report=term-missing
+          # test_smoke_ha.py ekskluderes: den kjører mot ekte HA i egen jobb.
+          # conftest.py mocker homeassistant.* globalt her, så den ville kollidere.
+          pytest tests/ --ignore=tests/test_smoke_ha.py -v --cov=custom_components/stromkalkulator --cov-report=xml --cov-report=term-missing
           echo "✅ All unit tests passed"
 
       - name: Upload coverage to Codecov
@@ -73,3 +80,30 @@ jobs:
             exit 1
           fi
           echo "✅ manifest.json and pyproject.toml versions match"
+
+  # Egen jobb for røyktesten mot ekte Home Assistant. Isolert fra `test`-jobben
+  # fordi tests/conftest.py mocker homeassistant.* globalt for hele tests/-mappen.
+  # Vi kjører med --noconftest (slår kun av conftest.py, ikke entry-point-pluginen
+  # pytest-homeassistant-custom-component) og asyncio_mode=auto (hass-fixturen er
+  # en async generator). Se tests/test_smoke_ha.py for detaljer.
+  smoke-ha:
+    name: Smoke test (real Home Assistant)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Install Home Assistant test framework
+        run: |
+          # Trekker inn homeassistant + pytest-oppsett transitivt.
+          pip install pytest-homeassistant-custom-component
+
+      - name: Run real-HA smoke test
+        run: |
+          pytest tests/test_smoke_ha.py --noconftest -o asyncio_mode=auto
+          echo "✅ Real-HA smoke test passed"

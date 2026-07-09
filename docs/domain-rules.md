@@ -6,7 +6,11 @@
 stromstotte = max(0, (spotpris - 0.9625) * 0.90)  # 90% over 96,25 øre
 ```
 
+Terskel per år, kWh-tak og sonebevisst terskel: [beregninger.md](beregninger.md#strømstøtte) (kanonisk).
+
 ## Dag/natt-tariff
+
+Kanonisk definisjon: [beregninger.md](beregninger.md#energiledd). Kort:
 
 - Dag: man-fre 06:00-22:00 (ikke helligdager)
 - Natt: 22:00-06:00, helger, helligdager

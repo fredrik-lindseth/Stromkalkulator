@@ -1,6 +1,10 @@
 # Bidra
 
-Alle norske nettselskaper er støttet, men priser endres årlig og feil kan forekomme.
+73 norske nettselskap er lagt inn med satser, og Egendefinert dekker resten. Priser endres årlig og feil kan forekomme.
+
+## Egendefinert nettselskap
+
+Er ikke nettselskapet ditt i listen, eller vil du teste egne satser uten å vente på en PR? Velg **Egendefinert** nederst i nettselskap-listen under oppsett. Du får da et eget steg der du legger inn energiledd dag og natt (NOK/kWh, eks. mva og avgifter) og avgiftssone. Integrasjonen legger på forbruksavgift, Enova og mva selv. Send gjerne satsene inn som en PR etterpå, så slipper andre i samme nettselskap å fylle inn manuelt.
 
 ## Rapportere feil
 
@@ -60,6 +64,19 @@ Tiltakssonen (Finnmark + Nord-Troms): legg til `"tiltakssone": True`. Fritak for
 Glitre Nett, Tensio TN/TS har `helg_som_natt: False` (kun klokkeslett styrer dag/natt).
 
 Julaften og nyttårsaften som lavtariff: legg til `"helligdager_ekstra": ["12-24", "12-31"]`. Skal kun gjøres når en ekte faktura fra DSO-en bekrefter at hele dagen behandles som natt-tariff. Default er offisielle norske helligdager, som ikke inkluderer 24.12 eller 31.12.
+
+## Sesongpriser
+
+Bytter nettselskapet energiledd mellom sommer og vinter, legg til `energiledd_perioder`. Hver periode har `fra`/`til` som `"MM-DD"` (begge inkludert), pluss `dag_eks_mva` og `natt_eks_mva`:
+
+```python
+"energiledd_perioder": [
+    {"fra": "11-01", "til": "04-30", "dag_eks_mva": 0.127, "natt_eks_mva": 0.027},
+    {"fra": "05-01", "til": "10-31", "dag_eks_mva": 0.116, "natt_eks_mva": 0.016},
+],
+```
+
+Periodene må dekke hele året uten overlapp. Krysser en periode nyttår (`fra` > `til`), tolkes det som fra `fra`-dato til årsslutt pluss fra årets start til `til`-dato. `energiledd_dag_eks_mva` og `energiledd_natt_eks_mva` beholdes som fallback for datoer ingen periode dekker. Satsene er eks. mva og avgifter, som de vanlige energiledd-feltene, og krever bekreftelse fra DSO-ens prisliste.
 
 ## Testing
 

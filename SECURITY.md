@@ -4,6 +4,8 @@
 
 Alle releases inkluderer en [artifact attestation](https://docs.github.com/en/actions/security-for-github-actions/using-artifact-attestations/using-artifact-attestations-to-establish-provenance-for-builds) som kryptografisk binder ZIP-filen til kildekoden og GitHub Actions-workflowen som bygde den.
 
+`stromkalkulator.zip` er også filen HACS selv laster ned og installerer (`zip_release` er satt i `hacs.json`), ikke bare et vedlegg til release-siden. Attestasjonen dekker dermed nøyaktig det som legges i `custom_components/stromkalkulator/` på systemet ditt.
+
 ### Hvorfor?
 
 Custom integrasjoner i Home Assistant kjører med full tilgang til systemet ditt. Du bør kunne verifisere at koden du installerer faktisk kommer fra kildekoden du kan lese på GitHub.

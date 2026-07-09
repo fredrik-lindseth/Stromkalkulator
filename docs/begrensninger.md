@@ -20,7 +20,7 @@ Resultatene gjelder strengt for denne kombinasjonen. Andre kombinasjoner kan ha 
 
 Følgende har ikke blitt verifisert mot ekte faktura:
 
-- DST-overgang (mars og oktober, ±1 time per år)
+- DST-overgang høst (oktober, +1 time, doblet klokke-time, kjent bug: [research/ikke-validerte-scenarier.md](research/ikke-validerte-scenarier.md#1-dst-overgang)). Har ikke inntruffet ennå i verifiseringsperioden. Vår-DST (mars, -1 time) er derimot dekket: mars 2026-fakturaen omfatter hele 23-timersdøgnet 29.03, og dag/natt-totalene matcher innenfor vanlig avrundingsfeil (se `tests/fixtures/README.md`).
 - Negative spotpriser (kan oppstå ved overskudd av sol/vind)
 - Norgespris kWh-tak (5000 kWh/mnd for bolig)
 - Avgiftssone Nord-Norge / Tiltakssone (mva-fritak)

@@ -431,11 +431,16 @@ class TestValidateSpotSensor:
         state = _FakeState("0.85", "NOK/kWh")
         assert _validate_spot_sensor(state) is None
 
-    def test_ore_per_kwh_sensor_passes(self):
+    def test_ore_per_kwh_sensor_rejected(self):
+        """øre/kWh tolkes av coordinator som NOK/kWh og gir 100x for lav pris.
+
+        Regresjon for stromkalkulator-3hnc: verdien (~85) er innenfor den
+        godtatte terskelen, så enheten er eneste holdepunkt for å avvise den.
+        """
         from stromkalkulator.config_flow import _validate_spot_sensor
 
         state = _FakeState("85.5", "øre/kWh")
-        assert _validate_spot_sensor(state) is None
+        assert _validate_spot_sensor(state) == "spot_unit_invalid"
 
     def test_eur_per_mwh_passes(self):
         from stromkalkulator.config_flow import _validate_spot_sensor

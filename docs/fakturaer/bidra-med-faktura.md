@@ -38,7 +38,7 @@ De fleste norske nettleie-fakturaer har dette som standard. BKK, Elvia, Tensio, 
 
 Listet etter hvor mye verdi det gir oss:
 
-1. **Nord-Norge (NO4)** med nettselskap som Nordlandsnett, Lofotkraft, Troms Kraft, Hålogaland Kraft. Avgiftssone Nord-Norge har ingen mva på strøm og redusert forbruksavgift. Vi har kode for det, men null faktura-verifisering ennå.
+1. **Nord-Norge (NO4)** med nettselskap som Nordlandsnett, Lofotkraft, Troms Kraft, Hålogaland Kraft. Avgiftssone Nord-Norge har ingen mva på strøm; forbruksavgiften er lik standardsatsen fra 2026 (kun mva skiller). Vi har kode for det, men null faktura-verifisering ennå.
 
 2. **Tiltakssonen (Finnmark + Nord-Troms)** har ingen mva i det hele tatt, og er en egen kategori.
 

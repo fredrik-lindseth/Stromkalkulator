@@ -30,3 +30,7 @@ _device_group
 
 # Used in Home Assistant
 PLATFORMS
+
+# Home Assistant repairs-plattform: async_create_fix_flow-signaturen er
+# rammeverk-påkrevd, men issue_id brukes ikke av ConfirmRepairFlow-varianten.
+issue_id

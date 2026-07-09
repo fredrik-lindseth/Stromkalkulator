@@ -1,21 +1,27 @@
 name: Release
 
 on:
-  push:
-    branches: [ main ]
+  workflow_run:
+    workflows: [ "CI" ]
+    types: [ completed ]
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    # Kun release etter grønn CI på main (ikke på PR-kjøringer av CI).
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.event == 'push'
     permissions:
       contents: write
       id-token: write
       attestations: write
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
+          # Pin til commiten CI faktisk validerte, ikke default-branch HEAD
+          # (workflow_run sjekker ellers ut siste commit på main ved kjøretid).
+          ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
 
       - name: Get version from manifest

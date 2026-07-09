@@ -862,8 +862,6 @@ class NorgesprisAktivSensor(NettleieBaseSensor):
 
     _device_group: str = DEVICE_NORGESPRIS
     _attr_entity_category: EntityCategory = EntityCategory.DIAGNOSTIC
-    _attr_device_class: SensorDeviceClass = _ENUM_DEVICE_CLASS
-    _attr_options: ClassVar[list[str]] = ["Ja", "Nei"]
     _attr_icon: str = "mdi:check-circle"
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -1015,8 +1013,6 @@ class StromstotteAktivSensor(NettleieBaseSensor):
 
     _device_group: str = DEVICE_STROMSTOTTE
     _attr_entity_category: EntityCategory = EntityCategory.DIAGNOSTIC
-    _attr_device_class: SensorDeviceClass = _ENUM_DEVICE_CLASS
-    _attr_options: ClassVar[list[str]] = ["Ja", "Nei"]
     _attr_icon: str = "mdi:cash-check"
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:

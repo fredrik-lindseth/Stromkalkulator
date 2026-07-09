@@ -143,7 +143,7 @@ def _replay_month(
 
     # Primer-poll: sett `_last_tpi_kwh = tpi_start` uten å akkumulere
     # forbruk. Uten dette returnerer `_compute_energy_delta` 0 på første poll
-    # (line 335 i coordinator.py) og første times energi blir tapt.
+    # (``_last_tpi_kwh > 0``-guarden) og første times energi blir tapt.
     hass.states.get = MagicMock(
         side_effect=_make_replay_state(
             power_w=0,

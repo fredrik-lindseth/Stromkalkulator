@@ -1,0 +1,127 @@
+name: Sjekk fri-nettleie
+
+# Ukentlig delta-detektor: sammenligner dso.py mot publiserte satser i
+# kraftsystemet/fri-nettleie (CC-BY-4.0) via scripts/sjekk_mot_fri_nettleie.py.
+# fri-nettleie er IKKE vår datakilde (vi er fakturaverifisert, de er ikke) -
+# se dcat-oppgaven stromkalkulator-xdhj og AGENTS.md for begrunnelse. Dette
+# er kun et varslingssystem for å fange pris-drift tidlig.
+#
+# Scriptets exit-kode er den autoritative "avvik funnet"-signalen (1 hvis
+# noe DSO har dag/natt-avvik > 0,1 øre/kWh eks. mva, 0 ellers). DSO-er uten
+# match i fri-nettleie (f.eks. area_nett, som fri-nettleie splitter i fire
+# regioner) eller med mislykket henting rapporteres i output, men påvirker
+# ikke exit-koden - det er en kjent, vedvarende tilstand som må verifiseres
+# manuelt og ikke bør trigge et nytt issue hver uke.
+on:
+  schedule:
+    - cron: "0 6 * * 1" # mandag 06:00 UTC (ca. 07-08 norsk tid)
+  workflow_dispatch:
+    inputs:
+      dso:
+        description: "Kommaseparert liste over DSO-IDer å sjekke (tomt = alle)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  sjekk-fri-nettleie:
+    name: Sjekk pris-drift mot fri-nettleie
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Installer avhengigheter
+        run: pip install pyyaml
+
+      # Scriptet henter tariff-YAML-filer live fra api.github.com og
+      # raw.githubusercontent.com (ingen auth), så det krever internett-
+      # tilgang. GitHub-hostede runnere har full internett-tilgang som
+      # standard, så dette er ikke et problem her - men scriptet ville
+      # feile på en self-hosted runner uten utgående nettverk.
+      - name: Kjør sjekk mot fri-nettleie
+        id: sjekk
+        continue-on-error: true
+        shell: bash
+        env:
+          DSO_FILTER: ${{ inputs.dso }}
+        run: |
+          ARGS=(--bare-avvik)
+          if [ -n "$DSO_FILTER" ]; then
+            ARGS+=(--dso "$DSO_FILTER")
+          fi
+          python scripts/sjekk_mot_fri_nettleie.py "${ARGS[@]}" 2>&1 | tee avvik.txt
+          exit "${PIPESTATUS[0]}"
+
+      - name: Sørg for at pris-drift-label finnes
+        if: steps.sjekk.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh label create "pris-drift" \
+            --color "d93f0b" \
+            --description "Automatisk oppdaget avvik mellom dso.py og fri-nettleie" \
+            --force
+
+      - name: Sjekk om et pris-drift-issue allerede er åpent
+        if: steps.sjekk.outcome == 'failure'
+        id: eksisterende
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ANTALL=$(gh issue list --state open --label "pris-drift" --json number --jq 'length')
+          echo "antall=$ANTALL" >> "$GITHUB_OUTPUT"
+
+      - name: Opprett issue ved nytt avvik
+        if: steps.sjekk.outcome == 'failure' && steps.eksisterende.outputs.antall == '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          {
+            echo "Ukentlig sjekk mot [fri-nettleie](https://github.com/kraftsystemet/fri-nettleie) fant avvik mellom \`dso.py\` og publiserte nettleiesatser (dag/natt-energiledd, eks. mva)."
+            echo
+            echo "Kjøring: $RUN_URL"
+            echo
+            echo '```'
+            cat avvik.txt
+            echo '```'
+            echo
+            echo "Verifiser mot ekte faktura før du endrer satser i \`dso.py\` - fri-nettleie er en delta-detektor, ikke fasit (se AGENTS.md). Kjør lokalt:"
+            echo
+            echo '```'
+            echo "uv run --with pyyaml python scripts/sjekk_mot_fri_nettleie.py"
+            echo '```'
+          } > issue-body.md
+
+          gh issue create \
+            --title "Pris-drift oppdaget mot fri-nettleie" \
+            --label "pris-drift" \
+            --body-file issue-body.md
+
+      - name: Feil jobben ved avvik
+        if: steps.sjekk.outcome == 'failure'
+        run: |
+          echo "::error::Pris-drift oppdaget mot fri-nettleie. Se åpent issue (label 'pris-drift') eller kjør 'uv run --with pyyaml python scripts/sjekk_mot_fri_nettleie.py' lokalt."
+          exit 1
+
+      # Rydder opp automatisk når satsene igjen matcher fri-nettleie, så
+      # issuet ikke blir liggende åpent for alltid etter at drift er fikset.
+      - name: Lukk pris-drift-issue hvis avviket er løst
+        if: steps.sjekk.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for NR in $(gh issue list --state open --label "pris-drift" --json number --jq '.[].number'); do
+            gh issue comment "$NR" --body "Ukentlig sjekk mot fri-nettleie fant ingen avvik over toleranse lenger. Lukker automatisk."
+            gh issue close "$NR"
+          done

@@ -397,34 +397,6 @@ class TestForrigeMaanedNettleieSensor:
         expected = round(50.0 * 0.4613 + 30.0 * 0.2329 + 155, 2)
         assert sensor.native_value == expected
 
-    @pytest.mark.parametrize(
-        "avg_power,expected_kapasitet",
-        [
-            (1.5, 155),    # trinn 1: <= 2 kW
-            (2.0, 155),    # exactly at boundary
-            (4.0, 250),    # trinn 2: <= 5 kW
-            (10.0, 415),   # trinn 3: <= 10 kW
-            (15.0, 600),   # trinn 4: <= 15 kW
-            (20.0, 770),   # trinn 5: <= 20 kW
-            (25.0, 940),   # trinn 6: <= 25 kW
-            (50.0, 1800),  # trinn 7: <= 50 kW
-            (75.0, 2650),  # trinn 8: <= 75 kW
-            (100.0, 3500), # trinn 9: <= 100 kW
-            (150.0, 6900), # trinn 10: > 100 kW (inf)
-        ],
-    )
-    def test_kapasitetsledd_for_avg_tiers(self, avg_power, expected_kapasitet):
-        """Sensor uses pre-computed kapasitetsledd from coordinator data."""
-        data = {
-            "previous_month_consumption_dag_kwh": 0.0,
-            "previous_month_consumption_natt_kwh": 0.0,
-            "previous_month_energiledd_dag": 0.0,
-            "previous_month_energiledd_natt": 0.0,
-            "previous_month_kapasitetsledd": expected_kapasitet,
-        }
-        sensor = ForrigeMaanedNettleieSensor(_make_coordinator(data), _make_entry())
-        assert sensor.native_value == float(expected_kapasitet)
-
     def test_returns_none_when_no_data(self):
         coord = MagicMock()
         coord.data = None

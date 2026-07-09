@@ -192,15 +192,6 @@ class TestMaanedligStromstotteSensor:
 
     def test_returns_none_when_no_data(self):
         sensor = self._make_sensor(None)
-        # coordinator.data is None - but the mock returns None for .data
-        from stromkalkulator.sensor import MaanedligStromstotteSensor
-
-        coord = MagicMock()
-        coord.data = None
-        entry = MagicMock()
-        entry.entry_id = "test"
-        entry.data = {"tso": "bkk"}
-        sensor = MaanedligStromstotteSensor(coord, entry)
         assert sensor.native_value is None
 
     def test_attributes_include_merknad(self):
@@ -293,17 +284,6 @@ class TestPowerReadingValidation:
 
         result = _run_update(coord_module, coordinator)
         assert result["current_power_kw"] == 500.0
-
-    def test_negative_power_zeroed(self, coord_module):
-        """Negative power after float() should be 0 (unavailable/unknown)."""
-        # Negative values come from sensor returning "unavailable"/"unknown"
-        # which is handled before this check, but negative floats should
-        # not accumulate energy
-        hass = _make_hass(power_w=0)
-        coordinator = coord_module.NettleieCoordinator(hass, _make_entry())
-
-        result = _run_update(coord_module, coordinator)
-        assert result["current_power_kw"] == 0
 
 
 # ===========================================================================

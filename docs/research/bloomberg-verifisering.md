@@ -210,9 +210,10 @@ seg umulig å lukke til null utenfra.
    Se [norgespris-eksakt-match.md](norgespris-eksakt-match.md).
 3. **Bytt primær gratis-proxy fra NB same-day (B) til NB D-1 (C)** i
    variantanalysen. Mekanisk korrekt, gratis, og best-matchende. Lav innsats.
-4. **Spør BKK direkte** om de fakturerer bit-identisk med RMEs publiserte
-   verdier, og hvilken kurskilde/avrunding de bruker. Utkast i
-   [epost-utkast-bkk.md](epost-utkast-bkk.md).
+4. ~~**Spør BKK direkte** om de fakturerer bit-identisk med RMEs publiserte
+   verdier, og hvilken kurskilde/avrunding de bruker.~~ Utkast skrevet, aldri
+   sendt: sporet ble løst empirisk 2026-07-06 før spørsmålet ble nødvendig.
+   Utkastfilen (`epost-utkast-bkk.md`) er slettet.
 5. ~~**Godta ±0,2 % / under 3 kr som gulv**~~ Avlivet 2026-07-06: gulvet på
    Norgespris-linjen er ~0 med riktig priskilde og Elhub-kWh. Mai-restavviket
    på 0,35 kr ble lukket samme kveld med Elhub-CSV (recorder-aggregatglipp,
@@ -221,7 +222,8 @@ seg umulig å lukke til null utenfra.
 **Status: sporet er lukket.** Elhub-kWh x Nord Pools publiserte Final-priser
 reproduserer fakturaen (mai og juni 2026 innenfor 0,005 kr), se
 [norgespris-eksakt-match.md](norgespris-eksakt-match.md). RME-uttrekket (1)
-og BKK-eposten (4) er kun aktuelle for måneder eldre enn gratis-vinduet.
+er kun aktuelt for å verifisere måneder eldre enn gratis-vinduet. BKK-eposten
+(4) ble aldri nødvendig, og utkastet er slettet.
 Reproduksjon av NP-kurs-uthentingen som kryssjekk:
 
 ```bash

@@ -58,7 +58,7 @@ if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
 
-    from .dso import DSOEntry, EnergileddPeriode
+    from .dso import DSOEntry, EnergileddPeriode, KapasitetstrinnDict
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -95,7 +95,7 @@ def days_in_month(now: datetime) -> int:
 _SPOT_CACHE_MAX_AGE = timedelta(hours=2)
 
 
-class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignore[misc]
+class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Coordinator for Nettleie data."""
 
     entry: ConfigEntry
@@ -232,7 +232,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         # Convert to standard tuple format (kW_threshold, NOK_per_month)
         raw_trinn = self.dso["kapasitetstrinn"]
         if raw_trinn and isinstance(raw_trinn[0], dict):
-            self.kapasitetstrinn = [(entry["max"], entry["pris"]) for entry in raw_trinn]
+            dict_trinn = cast("list[KapasitetstrinnDict]", raw_trinn)
+            self.kapasitetstrinn = [(entry["max"], entry["pris"]) for entry in dict_trinn]
         else:
             self.kapasitetstrinn = cast("list[tuple[float, int]]", raw_trinn)
 
@@ -601,7 +602,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         margin_neste_trinn = 0.0
         neste_trinn_pris = kapasitetsledd
         for i, (threshold, _price) in enumerate(self.kapasitetstrinn):
-            if avg_power <= threshold:
+            if avg_power < threshold:
                 if i + 1 < len(self.kapasitetstrinn):
                     margin_neste_trinn = round(threshold - avg_power, 2)
                     neste_trinn_pris = self.kapasitetstrinn[i + 1][1]
@@ -933,7 +934,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         Returns: (price, tier_number, tier_range)
         """
         for i, (threshold, price) in enumerate(self.kapasitetstrinn, 1):
-            if avg_power <= threshold:
+            if avg_power < threshold:
                 prev_threshold = self.kapasitetstrinn[i - 2][0] if i > 1 else 0.0
                 if threshold == float("inf"):
                     tier_range = f">{prev_threshold:.0f} kW"

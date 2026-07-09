@@ -61,8 +61,14 @@ def _validate_spot_sensor(state: Any) -> str | None:
     forsvar mot at brukere peker mot en kr-totalsensor eller en kWh-måler.
     """
     unit = (state.attributes.get("unit_of_measurement") or "").strip().lower()
-    if unit and unit in _INVALID_SPOT_UNITS:
-        return "spot_unit_invalid"
+    if unit:
+        if unit in _INVALID_SPOT_UNITS:
+            return "spot_unit_invalid"
+        # øre/kWh-sensorer (ofte skrevet "ore" uten ø) tolkes av coordinator som
+        # NOK/kWh og gir 100x for lav pris. Verdien alene røper det ikke, siden
+        # øre-området (~-100 til 1000) er innenfor den godtatte terskelen.
+        if "øre" in unit or "ore" in unit:
+            return "spot_unit_invalid"
     try:
         value = float(state.state)
     except (ValueError, TypeError):
@@ -440,6 +446,19 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):  # type: ignore[misc]
                         errors[CONF_SPOT_PRICE_SENSOR] = spot_error
 
             if not errors:
+                # Ved bytte til et kjent nettselskap er energiledd og avgiftssone
+                # avledet av DSO-en, ikke brukervalg. Skjemaets energiledd-felter
+                # defaulter til forrige DSOs lagrede verdier, så uten dette ville
+                # et bytte f.eks. gi BKK-energiledd med Elvia-kapasitetstrinn.
+                # Egendefinert DSO beholder brukerens felter (samme som oppsettet).
+                new_dso = user_input.get(CONF_DSO)
+                old_dso = self.config_entry.data.get(CONF_DSO)
+                if new_dso != old_dso and new_dso != "custom" and new_dso in DSO_LIST:
+                    dso: DSOEntry = DSO_LIST[new_dso]
+                    user_input[CONF_ENERGILEDD_DAG] = dso["energiledd_dag_eks_mva"]
+                    user_input[CONF_ENERGILEDD_NATT] = dso["energiledd_natt_eks_mva"]
+                    user_input[CONF_AVGIFTSSONE] = resolve_avgiftssone(dso)
+
                 # Update config entry data
                 new_data: dict[str, Any] = {**self.config_entry.data, **user_input}
                 self.hass.config_entries.async_update_entry(self.config_entry, data=new_data)

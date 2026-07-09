@@ -55,7 +55,6 @@ from stromkalkulator.sensor import (  # noqa: E402
     StromprisNorgesprisSensor,
     StromprisPerKwhEtterStotteSensor,
     StromprisPerKwhSensor,
-    StromstotteAktivSensor,
     StromstotteGjenstaaendeSensor,
     StromstotteSensor,
     TotalPriceSensor,
@@ -139,9 +138,8 @@ class TestSensorGating:
         sensor = sensor_cls(_coord(_data(spot_valid=True)), _entry())
         assert sensor.native_value is not None
 
-    def test_stromstotte_aktiv_none_ved_ugyldig(self):
-        sensor = StromstotteAktivSensor(_coord(_data(spot_valid=False)), _entry())
-        assert sensor.native_value is None
+    # Strømstøtte-aktiv er nå en binary_sensor med samme spot-gating; se
+    # tests/test_binary_sensor.py (test_is_on_none_when_spot_invalid).
 
     @pytest.mark.parametrize(
         "sensor_cls",

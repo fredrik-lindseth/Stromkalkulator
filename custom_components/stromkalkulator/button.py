@@ -28,6 +28,10 @@ from .const import (
 )
 from .dso import DSO_LIST
 
+# Coordinator-basert entitet uten egen I/O ved oppdatering: 0 er HA-konvensjonen
+# for coordinator-plattformer (ubegrenset parallellitet, coordinateren styrer).
+PARALLEL_UPDATES = 0
+
 
 def _read_manifest_version() -> str:
     """Les versjon fra manifest.json (kun ved import for å unngå blocking I/O)."""

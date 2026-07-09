@@ -45,6 +45,39 @@
         "data_description": {
           "avgiftssone": "Determines VAT and consumption tax. The VAT exemption follows county, not price area: 'Nord-Norge' covers Nordland and Troms, 'Tiltakssonen' covers Finnmark and Nord-Troms (VAT Act § 6-6). Everyone else, including NO3 (Trøndelag and Møre og Romsdal), selects 'Sør-Norge' and pays 25% VAT."
         }
+      },
+      "reconfigure": {
+        "title": "Strømkalkulator settings",
+        "description": "Change grid company, sensors, or Norgespris settings.",
+        "data": {
+          "tso": "Grid company",
+          "boligtype": "Property type",
+          "avgiftssone": "Tax zone",
+          "har_norgespris": "I have Norgespris",
+          "power_sensor": "Power meter (W)",
+          "spot_price_sensor": "Spot price sensor (NOK/kWh)",
+          "spotpris_inkl_mva": "Spot price sensor delivers prices incl. VAT",
+          "energy_sensor": "Energy meter sensor (kWh, optional)",
+          "electricity_provider_price_sensor": "Electricity provider sensor (optional)",
+          "export_power_sensor": "Export power sensor (optional)",
+          "energiledd_dag": "Energy tariff day (NOK/kWh)",
+          "energiledd_natt": "Energy tariff night/weekend (NOK/kWh)",
+          "kapasitet_varsel_terskel": "Capacity warning threshold (kW)"
+        },
+        "data_description": {
+          "boligtype": "Residence: Subsidy up to 5000 kWh/month, Norgespris up to 5000 kWh/month. Holiday home: No subsidy, Norgespris up to 1000 kWh/month. Holiday home (permanent residence): Same as residence (Regulation § 11).",
+          "avgiftssone": "Set automatically from grid company. Override only if you know you belong to a different zone.",
+          "har_norgespris": "Enable if you have opted for Norgespris from your grid company. Fixed price (50 øre/kWh in southern Norway, 40 øre in northern Norway) for the first 5000 kWh per month (1000 kWh for holiday homes). Consumption above the limit is billed at spot price.",
+          "power_sensor": "Sensor showing current power consumption in watts, e.g. from HAN port, Tibber Pulse, or P1 meter.",
+          "spot_price_sensor": "Sensor with current spot price in NOK/kWh. Usually 'Current price' from the Nord Pool integration.",
+          "spotpris_inkl_mva": "Leave off for HA-core nordpool integration (delivers excl. VAT). Turn on if your sensor already includes VAT.",
+          "energy_sensor": "Cumulative kWh counter from the AMS smart meter (OBIS 1.8.0). Recommended for exact invoice numbers. Without it, the power sensor is used with Riemann summation.",
+          "electricity_provider_price_sensor": "Sensor with the total price from your electricity provider (e.g. Tibber 'Electricity price'). Only used to populate the 'Total price (electricity contract)' sensor for comparison against your actual contract. Does not affect any other calculation. Skip if you have spot price directly or Norgespris.",
+          "export_power_sensor": "Power sensor for export to the grid (OBIS 2.7.0), for prosumers with solar panels only. Used to calculate export revenue and net monthly cost. Skip if you don't have solar panels.",
+          "energiledd_dag": "Net grid tariff excl. VAT and consumption tax. The integration adds consumption tax, Enova fee and VAT based on tax zone.",
+          "energiledd_natt": "Net grid tariff excl. VAT and consumption tax. Set the same as day for flat rate.",
+          "kapasitet_varsel_terskel": "Warn when margin to next capacity tier is below this value. Default: 2.0 kW."
+        }
       }
     },
     "error": {
@@ -99,7 +132,9 @@
       "lag_fakturarapport": { "name": "Generate invoice verification report" }
     },
     "binary_sensor": {
-      "kapasitet_varsel": { "name": "Capacity warning" }
+      "kapasitet_varsel": { "name": "Capacity warning" },
+      "norgespris_aktiv": { "name": "Norgespris active now" },
+      "stromstotte_aktiv": { "name": "Electricity subsidy active now" }
     },
     "sensor": {
       "energiledd": { "name": "Energy tariff" },
@@ -120,12 +155,10 @@
       "total_pris_norgespris": { "name": "Total price (Norgespris)" },
       "strompris_norgespris": { "name": "Electricity price (Norgespris scheme)" },
       "prisforskjell_norgespris": { "name": "Price difference (Norgespris)" },
-      "norgespris_aktiv": { "name": "Norgespris active now" },
       "energiledd_dag": { "name": "Energy tariff day" },
       "energiledd_natt": { "name": "Energy tariff night/weekend" },
       "forbruksavgift": { "name": "Consumption tax" },
       "enovaavgift": { "name": "Enova fee" },
-      "stromstotte_kwh": { "name": "Electricity subsidy active now" },
       "tariff": {
         "name": "Tariff",
         "state": { "dag": "Day", "natt": "Night" }

@@ -72,14 +72,12 @@ from stromkalkulator.sensor import (  # noqa: E402
     MaanedligTotalSensor,
     MaksForbrukSensor,
     MarginNesteTrinnSensor,
-    NorgesprisAktivSensor,
     OffentligeAvgifterSensor,
     PrisforskjellNorgesprisSensor,
     SpotprisEtterStotteSensor,
     StromprisNorgesprisSensor,
     StromprisPerKwhEtterStotteSensor,
     StromprisPerKwhSensor,
-    StromstotteAktivSensor,
     StromstotteGjenstaaendeSensor,
     StromstotteSensor,
     TariffSensor,
@@ -192,12 +190,10 @@ class TestSensorNoneWhenNoData:
         TotalPrisNorgesprisSensor,
         StromprisNorgesprisSensor,
         PrisforskjellNorgesprisSensor,
-        NorgesprisAktivSensor,
         TariffSensor,
         StromprisPerKwhSensor,
         StromprisPerKwhEtterStotteSensor,
         StromstotteGjenstaaendeSensor,
-        StromstotteAktivSensor,
         ElectricityCompanyTotalSensor,
     ])
     def test_returns_none_without_data(self, sensor_class, mock_entry):
@@ -386,10 +382,10 @@ class TestSensorDeviceClassAndUnit:
 class TestEnumStateSensors:
     """Tariff-sensoren bruker ENUM device_class med definerte options.
 
-    Strømstøtte-aktiv og Norgespris-aktiv kan ikke være ENUM: hassfest krever
-    at enum-state-nøkler er [a-z0-9-_]+, og "Ja"/"Nei" er ugyldige. De beholder
-    "Ja"/"Nei" som ren tekst for bakoverkompatibilitet. Idiomatisk løsning er
-    binary_sensor (egen oppfølging).
+    Strømstøtte-aktiv og Norgespris-aktiv var tidligere tekst-sensorer med
+    "Ja"/"Nei" (kunne ikke være ENUM fordi hassfest krever [a-z0-9-_]+ og
+    "Ja"/"Nei" er ugyldige). De er nå binary_sensor-entiteter, se
+    tests/test_binary_sensor.py.
     """
 
     def test_tariff_enum_device_class_and_options(self, mock_coordinator, mock_entry):
@@ -402,15 +398,6 @@ class TestEnumStateSensors:
     def test_tariff_native_value_is_a_declared_option(self, mock_coordinator, mock_entry):
         sensor = TariffSensor(mock_coordinator, mock_entry)
         assert sensor.native_value in sensor._attr_options
-
-    @pytest.mark.parametrize("sensor_class,expected", [
-        (NorgesprisAktivSensor, ("Ja", "Nei")),
-        (StromstotteAktivSensor, ("Ja", "Nei")),
-    ])
-    def test_aktiv_sensors_return_plain_text(self, sensor_class, expected, mock_coordinator, mock_entry):
-        sensor = sensor_class(mock_coordinator, mock_entry)
-        assert not hasattr(sensor, "_attr_options")
-        assert sensor.native_value in expected
 
 
 class TestHandleCoordinatorUpdateDedup:

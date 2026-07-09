@@ -5,8 +5,10 @@
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/fredrik-lindseth/Stromkalkulator",
+  "integration_type": "hub",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/fredrik-lindseth/Stromkalkulator/issues",
+  "loggers": ["stromkalkulator"],
   "requirements": [],
   "version": "1.14.0"
 }

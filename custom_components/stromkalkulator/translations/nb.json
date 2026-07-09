@@ -191,6 +191,14 @@
     }
   },
   "issues": {
+    "satser_utdatert": {
+      "title": "Nettleie- og avgiftssatsene kan være utdaterte",
+      "description": "Satsene i Strømkalkulator er verifisert for {aar}. Kalenderen har rullet videre, og integrasjonen regner fortsatt med {aar}-satser. Sjekk om det finnes en oppdatert versjon i HACS, ellers kan nettleie, avgifter og strømstøtte være feil for inneværende år."
+    },
+    "norgespris_utlopt": {
+      "title": "Norgespris-ordningen kan ha opphørt",
+      "description": "Norgespris-ordningen var vedtatt ut {aar}. Du har Norgespris aktivert, men ordningen kan ha opphørt eller endret vilkår. Sjekk gjeldende regler og skru av Norgespris i innstillingene hvis den ikke lenger gjelder for deg."
+    },
     "tso_migrated": {
       "title": "Nettselskapet ditt har fusjonert",
       "fix_flow": {

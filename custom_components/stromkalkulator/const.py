@@ -142,6 +142,14 @@ NORGESPRIS_MAX_KWH_FRITID: Final[int] = 1000  # Maks 1000 kWh/mnd for fritidsbol
 # Config key for Norgespris
 CONF_HAR_NORGESPRIS: Final[str] = "har_norgespris"
 
+# === SATSVAKT ===
+# Året satsene i const.py og dso.py er verifisert for. Ruller kalenderen over til
+# et senere år uten at satsene er oppdatert, trigges et repair-varsel (__init__.py).
+SATSER_GJELDER_AAR: Final[int] = 2026
+# Året Norgespris-ordningen er vedtatt ut. Etter dette varsles Norgespris-kunder om
+# at ordningen kan ha opphørt. Oppdater når/hvis ordningen forlenges.
+NORGESPRIS_SLUTT_AAR: Final[int] = 2026
+
 
 def get_norgespris_inkl_mva(avgiftssone: str) -> float:
     """Returnerer Norgespris inkl. mva basert på avgiftssone.

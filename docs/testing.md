@@ -3,45 +3,28 @@
 ## Unit-tester
 
 ```bash
-pipx run pytest tests/ -v
+pipx run --with hypothesis pytest tests/ -v
 ```
 
 Eller i venv: `python -m pytest tests/ -v`.
 
 ### Hva som dekkes
 
-| Område                              | Testfil                                                     |
-| ----------------------------------- | ----------------------------------------------------------- |
-| Strømstøtte (formel, tak)           | `test_stromstotte_tak.py`                                   |
-| Dag/natt-tariff og helligdager      | `test_energiledd.py`                                        |
-| Kapasitetstrinn, topp-3, varsel     | `test_kapasitetstrinn.py`                                   |
-| Norgespris og akkumulert besparelse | `test_norgespris.py`, `test_norgespris_akkumulert.py`       |
-| Faktura-verifisering 2026           | `test_faktura_februar_2026.py`, `test_faktura_mars_2026.py` |
-| Validering av nye fakturafelter     | `test_faktura_validering_nye_felter.py`                     |
-| Månedsskifte                        | `test_month_transition_integration.py`                      |
-| DSO-migrering ved fusjoner          | `test_dso_migration.py`                                     |
-| DSO-data validering                 | `test_dso_data_validation.py`                               |
-| Property-baserte tester             | `test_property.py`                                          |
-| Lagringsnøkkel-isolasjon            | `test_storage_key.py`                                       |
-| Config flow struktur                | `test_config_flow.py`                                       |
-| Setup/unload                        | `test_init_setup.py`                                        |
-| Diagnostics                         | `test_diagnostics.py`                                       |
-| Sensor None-håndtering, units       | `test_sensor_classes.py`                                    |
-| Lagring (save/load, korrupsjon)     | `test_persistens.py`                                        |
-| Coordinator end-to-end              | `test_coordinator_update.py`                                |
-| Robustness (cache, clamping)        | `test_coordinator_robustness.py`                            |
-| Månedlige sensorer, estimat         | `test_monthly_sensors.py`                                   |
-| Passthrough-sensorer                | `test_passthrough_sensors.py`                               |
-| Bugfiks-dekning                     | `test_coverage_gaps.py`                                     |
-| Strømpris per kWh                   | `test_strompris_per_kwh.py`                                 |
-| DST, helligdager 2031+              | `test_edge_cases.py`                                        |
-| Solcelle-eksport                    | `test_eksport.py`                                           |
-| Akkumulert kostnad                  | `test_akkumulert_kostnad.py`                                |
-| Boligtype-avhengige tak             | `test_boligtype.py`                                         |
+Testsuiten (`ls tests/test_*.py` for aktuell liste) er organisert i nivåer i stedet for en fil-per-fil-tabell — filnavn endres oftere enn testnivåene gjør:
+
+- **Golden faktura**: beregninger verifisert mot ekte fakturafelt og publiserte tall. `test_faktura_bkk.py` (BKK 2025 og 2026), `test_research_reproducibility.py` (research-rapportene skal reproduseres eksakt ved regenerering).
+- **Hourly replay**: en hel måneds fixtur-data mates time for time gjennom `NettleieCoordinator`, og de akkumulerte sluttverdiene sjekkes mot fasit. `test_coordinator_replay.py`.
+- **Property-baserte tester**: Hypothesis genererer tilfeldige input og sjekker invarianter som ikke-negativitet og monotonisitet. `test_property.py`.
+- **Kontrakt**: kjører en reell coordinator-oppdatering og fôrer resultatet inn i sensorklassene, for å fange typemismatch mellom coordinator og sensor før det når produksjon. `test_coordinator_sensor_contract.py`.
+- **Migrering**: config entry-migrering (v1→v2→v3), lagringsnøkkel-isolasjon mellom entries (se [incident 001](incidents/001-delt-data-mellom-instanser.md)), og lagring/gjenoppretting av persistert data. `test_config_migration.py`, `test_storage_key.py`, `test_persistens.py`.
+- **DST og kalender**: sommertid-overgang, helligdager langt fram i tid, sesongstyrte energiledd-perioder. `test_dst_overgang.py`, `test_edge_cases.py`, `test_energiledd_perioder.py`.
+- **Unit**: resten — beregningslogikk per komponent (energiledd, kapasitetstrinn, strømstøtte inkl. tak, Norgespris-kompensasjon inkl. tak, spotpris/mva, solcelle-eksport, energisensor-delta), DSO-datavalidering og 2026-tariffer, entity-oppsett (config flow, options flow, setup/unload, diagnostics, button, sensorklasser, månedlige og passthrough-sensorer) og robusthet/coverage-gap-regresjoner.
+
+Nye tester legges i nivået de hører til. Denne listen skal ikke oppdateres for hver ny eller slettet testfil.
 
 ### Begrensninger
 
-Kjører uten Home Assistant installert (HA mockes i `conftest.py`). Krever `pytest-homeassistant-custom-component` for: config flow multi-step, options flow med reload, end-to-end setup, repair flow. Lav prioritet, statiske tester + coordinator-tester dekker beregningslogikken.
+Kjører uten Home Assistant installert (HA mockes i `conftest.py`). `pytest-homeassistant-custom-component` er ikke en avhengighet i dette prosjektet — options flow med reload, end-to-end setup/unload og repair-issue-flows er allerede dekket via mock-basert HA (`test_config_flow_options.py`, `test_init_setup.py`, `test_config_migration.py`). Unntaket er ekte multi-step config-flow-kjøring: `test_config_flow.py` bruker regex mot kildekoden (bevisst skjørt, se filens docstring) fordi vi ikke kjører en reell `ConfigFlow`-instans.
 
 ## Live-tester i Home Assistant
 

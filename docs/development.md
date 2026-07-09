@@ -14,13 +14,14 @@ custom_components/stromkalkulator/
 ├── dso.py           # nettselskap-data
 ├── coordinator.py   # DataUpdateCoordinator, beregningslogikk
 ├── sensor.py        # alle sensorer
+├── button.py        # "Lag fakturarapport"-knapp
 ├── diagnostics.py   # HA diagnostikk
 ├── strings.json     # oversettbare strenger
 ├── translations/    # nb.json, en.json
 └── manifest.json    # HACS-metadata
 ```
 
-Coordinator oppdateres hvert minutt, leser effekt og spotpris fra brukerens sensorer, beregner alle verdier og lagrer topp-3 effektdager til disk. Sensorer er gruppert i fem devices, arver fra `CoordinatorEntity` + `SensorEntity` og leser fra `coordinator.data["key"]`.
+Coordinator oppdateres hvert minutt, leser effekt og spotpris fra brukerens sensorer, beregner alle verdier og lagrer topp-3 effektdager til disk. Sensorer er gruppert i seks devices, arver fra `CoordinatorEntity` + `SensorEntity` og leser fra `coordinator.data["key"]`.
 
 DSO-data (`dso.py`) er en dict med alle nettselskaper, energiledd dag/natt og kapasitetstrinn. Tidligere kalt `tso.py`. `CONF_DSO` beholder strengverdien `"tso"` for bakoverkompatibilitet.
 
@@ -48,19 +49,19 @@ Effektsensor (W) + Spotpris (NOK/kWh)
 git clone https://github.com/fredrik-lindseth/Stromkalkulator.git
 cd Stromkalkulator
 pip install ruff pytest
-pipx run pytest tests/ -v
+pipx run --with hypothesis pytest tests/ -v
 ruff check custom_components/stromkalkulator/
 ```
 
 ## Deploy til HA (utvikling)
 
 ```bash
-for f in __init__.py config_flow.py const.py dso.py coordinator.py sensor.py manifest.json; do
-  ssh ha-local "cat > /config/custom_components/stromkalkulator/$f" < custom_components/stromkalkulator/$f
-done
+rsync -av --delete custom_components/stromkalkulator/ ha-local:/config/custom_components/stromkalkulator/
 ssh ha-local "ha core restart"
 ssh ha-local "ha core logs" | grep -i stromkalkulator
 ```
+
+`rsync` speiler hele katalogen (inkl. `button.py`, `diagnostics.py`, `strings.json`, `translations/`), så en ny fil i `custom_components/stromkalkulator/` havner automatisk på HA-instansen. En fillistet loop råtner hver gang det legges til en fil — det er nettopp det som skjedde med `button.py` og `translations/` her.
 
 Tilbake til HACS:
 

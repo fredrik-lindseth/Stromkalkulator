@@ -29,41 +29,7 @@ if "voluptuous" not in sys.modules:
     _vol.Optional = lambda name, **kw: name
     sys.modules["voluptuous"] = _vol
 
-# ---- HA module mocks (same pattern as other test files) ----
-_sensor_mod = sys.modules["homeassistant.components.sensor"]
-_sensor_mod.SensorDeviceClass = type("SensorDeviceClass", (), {
-    "MONETARY": "monetary",
-    "POWER": "power",
-    "ENERGY": "energy",
-})
-_sensor_mod.SensorEntity = type("SensorEntity", (), {})
-_sensor_mod.SensorStateClass = type("SensorStateClass", (), {
-    "MEASUREMENT": "measurement",
-    "TOTAL": "total",
-    "TOTAL_INCREASING": "total_increasing",
-})
-
-_const_mod = sys.modules["homeassistant.const"]
-_const_mod.EntityCategory = type("EntityCategory", (), {
-    "DIAGNOSTIC": "diagnostic",
-    "CONFIG": "config",
-})
-
-_entity_mod = sys.modules["homeassistant.helpers.entity"]
-_entity_mod.EntityCategory = _const_mod.EntityCategory
-
-_coord_mod = sys.modules["homeassistant.helpers.update_coordinator"]
-
-
-class FakeCoordinatorEntity:
-    """Minimal CoordinatorEntity stub."""
-
-    def __init__(self, coordinator):
-        self.coordinator = coordinator
-
-
-_coord_mod.CoordinatorEntity = FakeCoordinatorEntity
-
+# ---- HA sensor/entity/coordinator stubs live in conftest._install_ha_class_stubs ----
 
 # ---- Provide real base classes for ConfigFlow / OptionsFlow ----
 # config_entries is a MagicMock. Inheriting from a MagicMock attribute
@@ -215,6 +181,36 @@ def _make_config_flow(existing_entries: list[MagicMock] | None = None):
     return flow
 
 
+def _make_reconfigure_flow(config_entry: MagicMock, existing_entries: list[MagicMock] | None = None):
+    """Set up a config flow instance for async_step_reconfigure.
+
+    conftest stubber HA, så _get_reconfigure_entry og async_update_reload_and_abort
+    finnes ikke på baseklassen. Vi stubber dem på instansen (samme mønster som
+    _make_options_flow stubber async_create_entry) slik at den delte skjema-,
+    validerings- og DSO-avlednings-logikken kan drives. Full HA-integrasjon
+    (menyoppføring, faktisk reload) gjenstår å verifisere mot ekte HA.
+    """
+    cf_mod = _reload_config_flow()
+
+    flow = cf_mod.NettleieConfigFlow()
+    flow.hass = MagicMock()
+    flow.hass.config_entries.async_entries.return_value = existing_entries or [config_entry]
+
+    def get_state(entity_id):
+        state = MagicMock()
+        state.state = "1.2"
+        state.attributes = {"unit_of_measurement": "NOK/kWh"}
+        return state
+
+    flow.hass.states.get = MagicMock(side_effect=get_state)
+    flow._get_reconfigure_entry = MagicMock(return_value=config_entry)
+    flow.async_update_reload_and_abort = MagicMock(
+        return_value={"type": "abort", "reason": "reconfigure_successful"}
+    )
+    flow.async_show_form = MagicMock(return_value={"type": "form", "step_id": "reconfigure"})
+    return flow
+
+
 def _make_sensor_entry() -> MagicMock:
     """Create a mock config entry for sensor tests."""
     entry = MagicMock()
@@ -356,6 +352,82 @@ class TestConfigFlowSensorsDuplicateGuard:
         flow.async_show_form.assert_called_once()
         call_kwargs = flow.async_show_form.call_args[1]
         assert call_kwargs["errors"][CONF_POWER_SENSOR] == "already_configured"
+
+
+# ===========================================================================
+# 4b. NettleieConfigFlow.async_step_reconfigure
+# ===========================================================================
+
+
+class TestReconfigureFlow:
+    """Reconfigure-steget deler skjema/validering/DSO-avledning med options-flowen,
+    men persisterer via async_update_reload_and_abort og holder unique_id i takt.
+    """
+
+    def test_initial_step_shows_reconfigure_form(self):
+        entry = _make_entry()
+        flow = _make_reconfigure_flow(entry)
+
+        asyncio.run(flow.async_step_reconfigure(None))
+
+        flow.async_update_reload_and_abort.assert_not_called()
+        flow.async_show_form.assert_called_once()
+        assert flow.async_show_form.call_args[1]["step_id"] == "reconfigure"
+
+    def test_valid_reconfigure_persists_via_reload_and_abort(self):
+        entry = _make_entry()
+        flow = _make_reconfigure_flow(entry)
+
+        # Bytt til custom (beholder brukerens energiledd) og endre flere felter.
+        user_input = {
+            CONF_DSO: "custom",
+            CONF_BOLIGTYPE: "bolig",
+            CONF_AVGIFTSSONE: "nord_norge",
+            CONF_HAR_NORGESPRIS: True,
+            CONF_POWER_SENSOR: "sensor.power_1",
+            CONF_SPOT_PRICE_SENSOR: "sensor.spot_price",
+            CONF_ENERGILEDD_DAG: 0.3500,
+            CONF_ENERGILEDD_NATT: 0.1500,
+            CONF_KAPASITET_VARSEL_TERSKEL: 3.0,
+        }
+
+        asyncio.run(flow.async_step_reconfigure(user_input))
+
+        flow.async_show_form.assert_not_called()
+        flow.async_update_reload_and_abort.assert_called_once()
+        call = flow.async_update_reload_and_abort.call_args
+        updated = call.kwargs["data"]
+        assert updated[CONF_DSO] == "custom"
+        assert updated[CONF_AVGIFTSSONE] == "nord_norge"
+        assert updated[CONF_HAR_NORGESPRIS] is True
+        # custom beholder brukerens energiledd (ingen DSO-avledning)
+        assert updated[CONF_ENERGILEDD_DAG] == 0.3500
+        assert updated[CONF_ENERGILEDD_NATT] == 0.1500
+        # unique_id følger power-sensoren
+        assert call.kwargs["unique_id"] == f"{DOMAIN}_sensor.power_1"
+
+    def test_reconfigure_rejects_duplicate_power_sensor(self):
+        entry1 = _make_entry(entry_id="entry1", power_sensor="sensor.power_1")
+        entry2 = _make_entry(entry_id="entry2", power_sensor="sensor.power_2")
+        flow = _make_reconfigure_flow(entry2, existing_entries=[entry1, entry2])
+
+        user_input = {
+            CONF_DSO: "bkk",
+            CONF_BOLIGTYPE: "bolig",
+            CONF_AVGIFTSSONE: "standard",
+            CONF_HAR_NORGESPRIS: False,
+            CONF_POWER_SENSOR: "sensor.power_1",  # allerede brukt av entry1
+            CONF_SPOT_PRICE_SENSOR: "sensor.spot_price",
+            CONF_ENERGILEDD_DAG: 0.4613,
+            CONF_ENERGILEDD_NATT: 0.2329,
+            CONF_KAPASITET_VARSEL_TERSKEL: 2.0,
+        }
+
+        asyncio.run(flow.async_step_reconfigure(user_input))
+
+        flow.async_update_reload_and_abort.assert_not_called()
+        flow.async_show_form.assert_called_once()
+        assert flow.async_show_form.call_args[1]["errors"][CONF_POWER_SENSOR] == "already_configured"
 
 
 # ===========================================================================

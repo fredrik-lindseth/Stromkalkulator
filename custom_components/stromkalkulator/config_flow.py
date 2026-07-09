@@ -93,6 +93,188 @@ def _dso_options() -> list[selector.SelectOptionDict]:
     ]
 
 
+def _config_data_schema(current: dict[str, Any]) -> vol.Schema:
+    """Bygg konfigurasjons-skjemaet med defaults fra ``current`` (typisk entry.data).
+
+    Delt mellom options-flowen og reconfigure-steget slik at de to inngangene
+    alltid viser og validerer de samme feltene.
+    """
+    avgiftssone_options: list[selector.SelectOptionDict] = [
+        selector.SelectOptionDict(value=key, label=label) for key, label in AVGIFTSSONE_OPTIONS.items()
+    ]
+
+    return vol.Schema(
+        {
+            vol.Required(
+                CONF_DSO,
+                default=current.get(CONF_DSO, DEFAULT_DSO),
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=_dso_options(),
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                ),
+            ),
+            vol.Required(
+                CONF_BOLIGTYPE,
+                default=current.get(CONF_BOLIGTYPE, BOLIGTYPE_BOLIG),
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[
+                        selector.SelectOptionDict(value=key, label=label)
+                        for key, label in BOLIGTYPE_OPTIONS.items()
+                    ],
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                ),
+            ),
+            vol.Required(
+                CONF_AVGIFTSSONE,
+                default=current.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD),
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=avgiftssone_options,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                ),
+            ),
+            vol.Optional(
+                CONF_HAR_NORGESPRIS,
+                default=current.get(CONF_HAR_NORGESPRIS, False),
+            ): selector.BooleanSelector(),
+            vol.Required(
+                CONF_POWER_SENSOR,
+                default=current.get(CONF_POWER_SENSOR),
+            ): selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    domain="sensor",
+                    device_class="power",
+                ),
+            ),
+            vol.Required(
+                CONF_SPOT_PRICE_SENSOR,
+                default=current.get(CONF_SPOT_PRICE_SENSOR),
+            ): selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    domain="sensor",
+                ),
+            ),
+            vol.Optional(
+                CONF_SPOTPRIS_INKL_MVA,
+                default=current.get(CONF_SPOTPRIS_INKL_MVA, False),
+            ): selector.BooleanSelector(),
+            vol.Optional(
+                CONF_ENERGY_SENSOR,
+                description={"suggested_value": current.get(CONF_ENERGY_SENSOR)},
+            ): selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    domain="sensor",
+                    device_class="energy",
+                ),
+            ),
+            vol.Optional(
+                CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
+                description={"suggested_value": current.get(CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR)},
+            ): selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    domain="sensor",
+                ),
+            ),
+            vol.Optional(
+                CONF_EXPORT_POWER_SENSOR,
+                description={"suggested_value": current.get(CONF_EXPORT_POWER_SENSOR)},
+            ): selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    domain="sensor",
+                    device_class="power",
+                ),
+            ),
+            vol.Required(
+                CONF_ENERGILEDD_DAG,
+                default=current.get(CONF_ENERGILEDD_DAG, DEFAULT_ENERGILEDD_DAG),
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0,
+                    max=2,
+                    step="any",
+                    unit_of_measurement="NOK/kWh",
+                    mode=selector.NumberSelectorMode.BOX,
+                ),
+            ),
+            vol.Required(
+                CONF_ENERGILEDD_NATT,
+                default=current.get(CONF_ENERGILEDD_NATT, DEFAULT_ENERGILEDD_NATT),
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0,
+                    max=2,
+                    step="any",
+                    unit_of_measurement="NOK/kWh",
+                    mode=selector.NumberSelectorMode.BOX,
+                ),
+            ),
+            vol.Optional(
+                CONF_KAPASITET_VARSEL_TERSKEL,
+                default=current.get(CONF_KAPASITET_VARSEL_TERSKEL, DEFAULT_KAPASITET_VARSEL_TERSKEL),
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0,
+                    max=20,
+                    step=0.5,
+                    unit_of_measurement="kW",
+                    mode=selector.NumberSelectorMode.BOX,
+                ),
+            ),
+        }
+    )
+
+
+def _apply_dso_derivation(user_input: dict[str, Any], old_dso: str | None) -> None:
+    """Re-avled energiledd og avgiftssone ved bytte til et kjent nettselskap.
+
+    Skjemaets energiledd-felter defaulter til forrige DSOs lagrede verdier, så
+    uten dette ville et bytte f.eks. gi BKK-energiledd med Elvia-kapasitetstrinn.
+    Egendefinert DSO beholder brukerens felter (samme som ved oppsett).
+    """
+    new_dso = user_input.get(CONF_DSO)
+    if new_dso != old_dso and new_dso != "custom" and new_dso in DSO_LIST:
+        dso: DSOEntry = DSO_LIST[new_dso]
+        user_input[CONF_ENERGILEDD_DAG] = dso["energiledd_dag_eks_mva"]
+        user_input[CONF_ENERGILEDD_NATT] = dso["energiledd_natt_eks_mva"]
+        user_input[CONF_AVGIFTSSONE] = resolve_avgiftssone(dso)
+
+
+def _validate_options_input(
+    hass: Any,
+    user_input: dict[str, Any],
+    entry_id: str,
+    current_data: dict[str, Any],
+) -> dict[str, str]:
+    """Valider power-sensor-unikhet og at spot-sensoren ser ut som en pris.
+
+    Delt mellom options-flowen og reconfigure-steget. Returnerer en error-dict
+    (tom hvis alt er gyldig).
+    """
+    errors: dict[str, str] = {}
+
+    new_power = user_input.get(CONF_POWER_SENSOR)
+    if new_power and new_power != current_data.get(CONF_POWER_SENSOR):
+        new_unique_id = f"{DOMAIN}_{new_power}"
+        for entry in hass.config_entries.async_entries(DOMAIN):
+            if entry.entry_id != entry_id and entry.unique_id == new_unique_id:
+                errors[CONF_POWER_SENSOR] = "already_configured"
+                break
+
+    new_spot = user_input.get(CONF_SPOT_PRICE_SENSOR)
+    if new_spot:
+        spot_state = hass.states.get(new_spot)
+        if spot_state is None:
+            errors[CONF_SPOT_PRICE_SENSOR] = "sensor_not_found"
+        else:
+            spot_error = _validate_spot_sensor(spot_state)
+            if spot_error:
+                errors[CONF_SPOT_PRICE_SENSOR] = spot_error
+
+    return errors
+
+
 class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
     """Handle a config flow for Nettleie."""
 
@@ -279,6 +461,39 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
             data=self._data,
         )
 
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Reconfigure an existing entry via the standard HA entry menu.
+
+        Reuses the same schema, validation and DSO-derivation as the options
+        flow. Unlike the options flow (which writes to entry.data via
+        async_update_entry), this persists via async_update_reload_and_abort,
+        the idiomatic reconfigure API, and keeps unique_id consistent with the
+        stored power sensor.
+        """
+        entry: config_entries.ConfigEntry = self._get_reconfigure_entry()
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            errors = _validate_options_input(
+                self.hass, user_input, entry.entry_id, entry.data
+            )
+            if not errors:
+                _apply_dso_derivation(user_input, entry.data.get(CONF_DSO))
+                new_data: dict[str, Any] = {**entry.data, **user_input}
+                return self.async_update_reload_and_abort(
+                    entry,
+                    data=new_data,
+                    unique_id=f"{DOMAIN}_{new_data[CONF_POWER_SENSOR]}",
+                )
+
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=_config_data_schema(entry.data),
+            errors=errors,
+        )
+
     @staticmethod
     @callback
     def async_get_options_flow(
@@ -294,178 +509,29 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Manage the options."""
         errors: dict[str, str] = {}
-
-        # Get current values from config entry
         current: dict[str, Any] = self.config_entry.data
-        avgiftssone_options: list[selector.SelectOptionDict] = [
-            selector.SelectOptionDict(value=key, label=label) for key, label in AVGIFTSSONE_OPTIONS.items()
-        ]
-
-        # Build schema with defaults from current config
-        options_schema: vol.Schema = vol.Schema(
-            {
-                vol.Required(
-                    CONF_DSO,
-                    default=current.get(CONF_DSO, DEFAULT_DSO),
-                ): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=_dso_options(),
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    ),
-                ),
-                vol.Required(
-                    CONF_BOLIGTYPE,
-                    default=current.get(CONF_BOLIGTYPE, BOLIGTYPE_BOLIG),
-                ): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=[
-                            selector.SelectOptionDict(value=key, label=label)
-                            for key, label in BOLIGTYPE_OPTIONS.items()
-                        ],
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    ),
-                ),
-                vol.Required(
-                    CONF_AVGIFTSSONE,
-                    default=current.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD),
-                ): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=avgiftssone_options,
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    ),
-                ),
-                vol.Optional(
-                    CONF_HAR_NORGESPRIS,
-                    default=current.get(CONF_HAR_NORGESPRIS, False),
-                ): selector.BooleanSelector(),
-                vol.Required(
-                    CONF_POWER_SENSOR,
-                    default=current.get(CONF_POWER_SENSOR),
-                ): selector.EntitySelector(
-                    selector.EntitySelectorConfig(
-                        domain="sensor",
-                        device_class="power",
-                    ),
-                ),
-                vol.Required(
-                    CONF_SPOT_PRICE_SENSOR,
-                    default=current.get(CONF_SPOT_PRICE_SENSOR),
-                ): selector.EntitySelector(
-                    selector.EntitySelectorConfig(
-                        domain="sensor",
-                    ),
-                ),
-                vol.Optional(
-                    CONF_SPOTPRIS_INKL_MVA,
-                    default=current.get(CONF_SPOTPRIS_INKL_MVA, False),
-                ): selector.BooleanSelector(),
-                vol.Optional(
-                    CONF_ENERGY_SENSOR,
-                    description={"suggested_value": current.get(CONF_ENERGY_SENSOR)},
-                ): selector.EntitySelector(
-                    selector.EntitySelectorConfig(
-                        domain="sensor",
-                        device_class="energy",
-                    ),
-                ),
-                vol.Optional(
-                    CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
-                    description={"suggested_value": current.get(CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR)},
-                ): selector.EntitySelector(
-                    selector.EntitySelectorConfig(
-                        domain="sensor",
-                    ),
-                ),
-                vol.Optional(
-                    CONF_EXPORT_POWER_SENSOR,
-                    description={"suggested_value": current.get(CONF_EXPORT_POWER_SENSOR)},
-                ): selector.EntitySelector(
-                    selector.EntitySelectorConfig(
-                        domain="sensor",
-                        device_class="power",
-                    ),
-                ),
-                vol.Required(
-                    CONF_ENERGILEDD_DAG,
-                    default=current.get(CONF_ENERGILEDD_DAG, DEFAULT_ENERGILEDD_DAG),
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        min=0,
-                        max=2,
-                        step="any",
-                        unit_of_measurement="NOK/kWh",
-                        mode=selector.NumberSelectorMode.BOX,
-                    ),
-                ),
-                vol.Required(
-                    CONF_ENERGILEDD_NATT,
-                    default=current.get(CONF_ENERGILEDD_NATT, DEFAULT_ENERGILEDD_NATT),
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        min=0,
-                        max=2,
-                        step="any",
-                        unit_of_measurement="NOK/kWh",
-                        mode=selector.NumberSelectorMode.BOX,
-                    ),
-                ),
-                vol.Optional(
-                    CONF_KAPASITET_VARSEL_TERSKEL,
-                    default=current.get(CONF_KAPASITET_VARSEL_TERSKEL, DEFAULT_KAPASITET_VARSEL_TERSKEL),
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        min=0,
-                        max=20,
-                        step=0.5,
-                        unit_of_measurement="kW",
-                        mode=selector.NumberSelectorMode.BOX,
-                    ),
-                ),
-            }
-        )
 
         if user_input is not None:
-            # Validate power sensor uniqueness
-            new_power = user_input.get(CONF_POWER_SENSOR)
-            if new_power and new_power != self.config_entry.data.get(CONF_POWER_SENSOR):
-                new_unique_id = f"{DOMAIN}_{new_power}"
-                for entry in self.hass.config_entries.async_entries(DOMAIN):
-                    if entry.entry_id != self.config_entry.entry_id and entry.unique_id == new_unique_id:
-                        errors[CONF_POWER_SENSOR] = "already_configured"
-                        break
-
-            # Validate spot sensor looks like a price sensor
-            new_spot = user_input.get(CONF_SPOT_PRICE_SENSOR)
-            if new_spot:
-                spot_state = self.hass.states.get(new_spot)
-                if spot_state is None:
-                    errors[CONF_SPOT_PRICE_SENSOR] = "sensor_not_found"
-                else:
-                    spot_error = _validate_spot_sensor(spot_state)
-                    if spot_error:
-                        errors[CONF_SPOT_PRICE_SENSOR] = spot_error
-
+            errors = _validate_options_input(
+                self.hass, user_input, self.config_entry.entry_id, current
+            )
             if not errors:
-                # Ved bytte til et kjent nettselskap er energiledd og avgiftssone
-                # avledet av DSO-en, ikke brukervalg. Skjemaets energiledd-felter
-                # defaulter til forrige DSOs lagrede verdier, så uten dette ville
-                # et bytte f.eks. gi BKK-energiledd med Elvia-kapasitetstrinn.
-                # Egendefinert DSO beholder brukerens felter (samme som oppsettet).
-                new_dso = user_input.get(CONF_DSO)
-                old_dso = self.config_entry.data.get(CONF_DSO)
-                if new_dso != old_dso and new_dso != "custom" and new_dso in DSO_LIST:
-                    dso: DSOEntry = DSO_LIST[new_dso]
-                    user_input[CONF_ENERGILEDD_DAG] = dso["energiledd_dag_eks_mva"]
-                    user_input[CONF_ENERGILEDD_NATT] = dso["energiledd_natt_eks_mva"]
-                    user_input[CONF_AVGIFTSSONE] = resolve_avgiftssone(dso)
+                _apply_dso_derivation(user_input, current.get(CONF_DSO))
 
-                # Update config entry data
-                new_data: dict[str, Any] = {**self.config_entry.data, **user_input}
-                self.hass.config_entries.async_update_entry(self.config_entry, data=new_data)
+                new_data: dict[str, Any] = {**current, **user_input}
+                update_kwargs: dict[str, Any] = {"data": new_data}
+                # Hold unique_id i takt med power-sensoren. Uten dette blir den
+                # hengende igjen på gammel sensor og duplikatvernet blokkerer
+                # feil entry senere. Se _create_entry for skjemaet.
+                new_power = new_data.get(CONF_POWER_SENSOR)
+                if new_power and new_power != current.get(CONF_POWER_SENSOR):
+                    update_kwargs["unique_id"] = f"{DOMAIN}_{new_power}"
+
+                self.hass.config_entries.async_update_entry(self.config_entry, **update_kwargs)
                 return self.async_create_entry(title="", data={})
 
         return self.async_show_form(
             step_id="init",
-            data_schema=options_schema,
+            data_schema=_config_data_schema(current),
             errors=errors,
         )

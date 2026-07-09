@@ -467,15 +467,20 @@ def test_exhaustive_every_boundary_of_every_kapasitetstrinn() -> None:
             if threshold == float("inf"):
                 continue
 
-            # At boundary: should be this tier
-            price_at, _, _ = coord._get_kapasitetsledd(threshold)
-            assert price_at == expected_price, (
-                f"{dso_id}: at {threshold} kW expected {expected_price}, got {price_at}"
+            # Just below boundary: still this tier
+            price_below, _, _ = coord._get_kapasitetsledd(threshold - 0.001)
+            assert price_below == expected_price, (
+                f"{dso_id}: at {threshold}-e expected {expected_price}, got {price_below}"
             )
 
-            # Just above: should be next tier
+            # Exact boundary and just above both belong to the next (higher) tier:
+            # snitt på nøyaktig terskelen hører til trinnet over.
             if i + 1 < len(trinn):
                 next_price = trinn[i + 1][1]
+                price_at, _, _ = coord._get_kapasitetsledd(threshold)
+                assert price_at == next_price, (
+                    f"{dso_id}: at {threshold} kW expected {next_price}, got {price_at}"
+                )
                 price_above, _, _ = coord._get_kapasitetsledd(threshold + 0.001)
                 assert price_above == next_price, (
                     f"{dso_id}: at {threshold}+e expected {next_price}, got {price_above}"
@@ -547,7 +552,7 @@ def test_differential_day_rate_two_implementations(dt: datetime) -> None:
 def _alt_kapasitetsledd(avg_power: float, trinn: list) -> int:
     """Alternative kapasitetsledd: linear scan with explicit boundary check."""
     for threshold, price in trinn:
-        if avg_power <= threshold:
+        if avg_power < threshold:
             return price
     return trinn[-1][1]
 

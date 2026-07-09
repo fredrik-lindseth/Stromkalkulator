@@ -29,8 +29,8 @@ jobs:
 
       - name: Run type checker (mypy)
         run: |
-          mypy custom_components/stromkalkulator/ --ignore-missing-imports || true
-          echo "ℹ️ Type checking complete (warnings only)"
+          mypy custom_components/stromkalkulator/ --ignore-missing-imports
+          echo "✅ Type checking passed"
 
       - name: Run unit tests with coverage
         run: |

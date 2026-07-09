@@ -51,6 +51,7 @@ from .const import (
     get_norgespris_inkl_mva,
     get_norgespris_max_kwh,
     get_stromstotte_max_kwh,
+    get_stromstotte_terskel,
 )
 
 if TYPE_CHECKING:
@@ -296,6 +297,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
 
         # Cache last known prices (survives brief sensor outages, max 2 timer)
         self._last_electricity_company_price: float | None = None
+        self._last_electricity_company_price_time: datetime | None = None
         self._last_spot_price: float | None = None
         self._last_spot_price_time: datetime | None = None
 
@@ -465,18 +467,26 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
         await self._save_stored_data()
 
     @staticmethod
-    def _calculate_stromstotte(spot_price: float, monthly_total_kwh: float, boligtype: str) -> float:
+    def _calculate_stromstotte(
+        spot_price: float,
+        monthly_total_kwh: float,
+        boligtype: str,
+        terskel: float = STROMSTOTTE_LEVEL,
+    ) -> float:
         """Calculate strømstøtte per kWh.
 
-        Forskrift § 5: 90% av spotpris over 96,25 øre inkl. mva (2026).
-        Norgespris-kunder mottar ikke strømstøtte, men vi beregner den
-        alltid slik at sammenligning mellom Norgespris og spot+støtte fungerer.
+        Forskrift § 5: 90 % av spotpris over terskel. Terskelen er sonebevisst
+        (se get_stromstotte_terskel / incident 005): 96,25 øre inkl. mva i
+        standard-sonen, 77 øre i mva-frie soner. Default holdes på standard-sonens
+        verdi for bakoverkompatible kall. Norgespris-kunder mottar ikke
+        strømstøtte, men vi beregner den alltid slik at sammenligning mellom
+        Norgespris og spot+støtte fungerer.
         """
         stromstotte_max = get_stromstotte_max_kwh(boligtype)
         if stromstotte_max == 0 or monthly_total_kwh >= stromstotte_max:
             return 0.0
-        if spot_price > STROMSTOTTE_LEVEL:
-            return (spot_price - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE
+        if spot_price > terskel:
+            return (spot_price - terskel) * STROMSTOTTE_RATE
         return 0.0
 
     async def _async_update_data(self) -> dict[str, Any]:
@@ -636,9 +646,12 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             spot_price_eks_mva = spot_price_raw
             spot_price = spot_price_raw * (1 + mva_sats_for_spot)
 
-        # Calculate strømstøtte
+        # Calculate strømstøtte (sonebevisst terskel, se incident 005)
         monthly_total_kwh = self._monthly_consumption.total
-        stromstotte = self._calculate_stromstotte(spot_price, monthly_total_kwh, self.boligtype)
+        stromstotte_terskel = get_stromstotte_terskel(self.avgiftssone)
+        stromstotte = self._calculate_stromstotte(
+            spot_price, monthly_total_kwh, self.boligtype, stromstotte_terskel
+        )
         stromstotte_max = get_stromstotte_max_kwh(self.boligtype)
         stromstotte_gjenstaaende = max(0.0, stromstotte_max - monthly_total_kwh)
 
@@ -764,7 +777,14 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             if raw_ec is not None:
                 electricity_company_price = raw_ec
                 self._last_electricity_company_price = raw_ec
-            elif self._last_electricity_company_price is not None:
+                self._last_electricity_company_price_time = now
+            elif (
+                self._last_electricity_company_price is not None
+                and self._last_electricity_company_price_time is not None
+                and (now - self._last_electricity_company_price_time) < _SPOT_CACHE_MAX_AGE
+            ):
+                # Samme maks-alder som spot: en død leverandørsensor skal ikke
+                # gi evig gammel pris i electricity_company_total.
                 electricity_company_price = self._last_electricity_company_price
             if electricity_company_price is not None:
                 electricity_company_total = electricity_company_price + energiledd + fastledd_per_kwh
@@ -780,7 +800,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             trinn_intervall=trinn_intervall,
             fastledd_per_kwh=fastledd_per_kwh,
             spot_price=spot_price,
+            spot_price_valid=spot_price_valid,
             stromstotte=stromstotte,
+            stromstotte_terskel=stromstotte_terskel,
             spotpris_etter_stotte=spotpris_etter_stotte,
             norgespris=norgespris,
             strompris_norgespris=strompris_norgespris,
@@ -831,7 +853,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignor
             "kapasitetstrinn_intervall": kw["trinn_intervall"],
             "kapasitetsledd_per_kwh": round(kw["fastledd_per_kwh"], 4),
             "spot_price": round(kw["spot_price"], 4),
+            "spot_price_valid": kw["spot_price_valid"],
             "stromstotte": round(kw["stromstotte"], 4),
+            "stromstotte_terskel": round(kw["stromstotte_terskel"], 4),
             "spotpris_etter_stotte": round(kw["spotpris_etter_stotte"], 4),
             "norgespris": round(kw["norgespris"], 4),
             "strompris_norgespris": round(kw["strompris_norgespris"], 4),

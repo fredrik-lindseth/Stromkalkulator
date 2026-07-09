@@ -208,68 +208,6 @@ def _replay_month(
     }
 
 
-class TestReplayAprilThroughCoordinator:
-    """April 2026 replay som ville fanget Norgespris-36%-bugen.
-
-    Disse testene asserter på `previous_month_*`-feltene etter at en
-    full måned er kjørt gjennom coordinatoren og månedsskifte er trigget.
-    """
-
-    @pytest.fixture
-    def replay(self, coord_module):
-        return _replay_month(coord_module, "bkk_april_2026_hourly.json", FAKTURA_APRIL_2026)
-
-    def test_total_kwh_matcher_faktura(self, replay):
-        """Akkumulert forbruk gjennom coordinator matcher faktura."""
-        result = replay["result"]
-        faktura = replay["faktura"]
-        total = result["previous_month_consumption_total_kwh"]
-        assert total == pytest.approx(faktura["forbruk_total_kwh"], abs=0.05)
-
-    def test_dag_natt_split_matcher_faktura(self, replay):
-        """Dag/natt-fordeling matcher faktura.
-
-        Toleranse: 2 kWh hver vei. Fixture-data (kWh per klokke-time) og
-        fakturaens dag/natt-split er begge avrundet, og BKKs klassifisering
-        av enkelt-timer rundt DST-overgangen avviker noen tideler fra naiv
-        lokaltid. 2 kWh fanger fortsatt grov mis-klassifisering.
-        """
-        result = replay["result"]
-        faktura = replay["faktura"]
-        assert result["previous_month_consumption_dag_kwh"] == pytest.approx(
-            faktura["forbruk_dag_kwh"], abs=2.0
-        )
-        assert result["previous_month_consumption_natt_kwh"] == pytest.approx(
-            faktura["forbruk_natt_kwh"], abs=2.0
-        )
-
-    def test_norgespris_compensation_matcher_faktura(self, replay):
-        """Norgespris-kompensasjon matcher faktura innen 5 kr.
-
-        Dette er testen som ville fanget Norgespris-bug-en. Coordinator
-        akkumulerer `(norgespris - spot_price) * energy_kwh` per poll;
-        ved replay må sluttsummen matche fakturaens `forventet_norgespris_kr`.
-        """
-        coord = replay["coord"]
-        faktura = replay["faktura"]
-        komp = coord._previous_month_norgespris_compensation
-        assert komp == pytest.approx(faktura["forventet_norgespris_kr"], abs=5.0)
-
-    def test_topp_3_kapasitet_matcher_faktura(self, replay):
-        """Snitt topp 3 timesnitt-kW etter replay matcher faktura."""
-        result = replay["result"]
-        faktura = replay["faktura"]
-        assert result["previous_month_avg_top_3_kw"] == pytest.approx(
-            faktura["maks_effekt_snitt"], abs=0.10
-        )
-
-    def test_kapasitetsledd_matcher_faktura(self, replay):
-        """Kapasitetstrinn-beløp for forrige måned matcher faktura."""
-        result = replay["result"]
-        faktura = replay["faktura"]
-        assert result["previous_month_kapasitetsledd"] == faktura["forventet_kapasitet_kr"]
-
-
 class TestReplayDesember2025:
     """Desember 2025 replay (pre-Norgespris, strømstøtte-kunde).
 
@@ -299,7 +237,8 @@ class TestReplayDesember2025:
     def test_dag_natt_split_matcher_faktura(self, replay):
         result = replay["result"]
         faktura = replay["faktura"]
-        # 2 kWh-toleranse; se kommentar på TestReplayAprilThroughCoordinator.
+        # 2 kWh-toleranse; se docstring på
+        # TestReplayParametrized.test_dag_natt_split_matcher_faktura.
         assert result["previous_month_consumption_dag_kwh"] == pytest.approx(
             faktura["forbruk_dag_kwh"], abs=2.0
         )
@@ -356,7 +295,12 @@ class TestReplayDesember2025:
     ids=["februar", "mars", "april", "mai", "juni"],
 )
 class TestReplayParametrized:
-    """Samme replay for feb-juni, parametrisert via indirect fixture."""
+    """Samme replay for feb-juni, parametrisert via indirect fixture.
+
+    April-caset er samme fixture/faktura som ville fanget Norgespris-36%-bugen
+    (tidligere en egen TestReplayAprilThroughCoordinator, slått sammen hit for
+    å unngå duplisert replay av samme måned).
+    """
 
     @pytest.fixture
     def replay(self, coord_module, request):
@@ -371,9 +315,15 @@ class TestReplayParametrized:
         )
 
     def test_dag_natt_split_matcher_faktura(self, replay):
+        """Dag/natt-fordeling matcher faktura.
+
+        Toleranse: 2 kWh hver vei. Fixture-data (kWh per klokke-time) og
+        fakturaens dag/natt-split er begge avrundet, og BKKs klassifisering
+        av enkelt-timer rundt DST-overgangen avviker noen tideler fra naiv
+        lokaltid. 2 kWh fanger fortsatt grov mis-klassifisering.
+        """
         result = replay["result"]
         faktura = replay["faktura"]
-        # 2 kWh-toleranse; se kommentar på TestReplayAprilThroughCoordinator.
         assert result["previous_month_consumption_dag_kwh"] == pytest.approx(
             faktura["forbruk_dag_kwh"], abs=2.0
         )
@@ -382,6 +332,13 @@ class TestReplayParametrized:
         )
 
     def test_norgespris_compensation_matcher_faktura(self, replay):
+        """Norgespris-kompensasjon matcher faktura innen 5 kr.
+
+        Dette er testen som ville fanget Norgespris-bug-en (april 2026:
+        kompensasjonen kom ut 36% for lav). Coordinator akkumulerer
+        `(norgespris - spot_price) * energy_kwh` per poll; ved replay må
+        sluttsummen matche fakturaens `forventet_norgespris_kr`.
+        """
         coord = replay["coord"]
         faktura = replay["faktura"]
         komp = coord._previous_month_norgespris_compensation

@@ -17,8 +17,6 @@ import json
 import re
 from pathlib import Path
 
-import pytest
-
 COMPONENTS_DIR = Path(__file__).parent.parent / "custom_components" / "stromkalkulator"
 
 
@@ -98,54 +96,8 @@ class TestEnergileddPrecision:
         assert float(dag_str) == DEFAULT_ENERGILEDD_DAG, "DAG default lost precision"
         assert float(natt_str) == DEFAULT_ENERGILEDD_NATT, "NATT default lost precision"
 
-    @pytest.mark.parametrize(
-        "value",
-        [
-            0.4613,
-            0.2329,
-            0.2123,
-            0.0001,
-            0.9999,
-            1.0000,
-            0.0,
-        ],
-        ids=lambda v: f"{v}",
-    )
-    def test_energiledd_roundtrip_preserves_precision(self, value):
-        """Values must survive float→store→float without precision loss."""
-        # Simulate what happens: user enters value → stored as float → loaded back
-        stored = float(value)
-        assert stored == value
-
-    def test_all_dso_energiledd_are_valid_floats(self):
-        """Every DSO energiledd_*_eks_mva must be a valid non-negative float."""
-        from stromkalkulator.dso import DSO_LIST
-
-        for key, dso in DSO_LIST.items():
-            if not dso.get("supported"):
-                continue
-            dag = dso["energiledd_dag_eks_mva"]
-            natt = dso["energiledd_natt_eks_mva"]
-            assert isinstance(dag, (int, float)), f"{key}: energiledd_dag_eks_mva is not numeric"
-            assert isinstance(natt, (int, float)), f"{key}: energiledd_natt_eks_mva is not numeric"
-            assert dag >= 0, f"{key}: energiledd_dag_eks_mva is negative: {dag}"
-            assert natt >= 0, f"{key}: energiledd_natt_eks_mva is negative: {natt}"
-            # Eks-mva-verdier ligger typisk under 0.6 NOK/kWh
-            assert dag < 1, f"{key}: energiledd_dag_eks_mva suspiciously high: {dag}"
-            assert natt < 1, f"{key}: energiledd_natt_eks_mva suspiciously high: {natt}"
-
-    def test_energiledd_dag_ge_natt_for_all_dso(self):
-        """Day rate should be >= night rate for all grid companies."""
-        from stromkalkulator.dso import DSO_LIST
-
-        for key, dso in DSO_LIST.items():
-            if not dso.get("supported"):
-                continue
-            dag = dso["energiledd_dag_eks_mva"]
-            natt = dso["energiledd_natt_eks_mva"]
-            assert dag >= natt, (
-                f"{key}: dag_eks_mva ({dag}) < natt_eks_mva ({natt})"
-            )
+    # DSO-datasjekker (positiv/numerisk energiledd, dag >= natt) dekkes av
+    # tests/test_dso_data_validation.py for hele DSO_LIST; ikke duplisert her.
 
 
 # ---------------------------------------------------------------------------
@@ -239,78 +191,7 @@ class TestDSOList:
 
 
 # ---------------------------------------------------------------------------
-# 5. Coordinator robustness, non-numeric sensor states
-# ---------------------------------------------------------------------------
-
-
-class TestCoordinatorRobustness:
-    """Coordinator must handle non-numeric sensor states gracefully."""
-
-    @pytest.mark.parametrize(
-        "bad_state",
-        [
-            "Ja",
-            "Nei",
-            "on",
-            "off",
-            "",
-            "N/A",
-            "none",
-            "null",
-            "abc",
-            "1.2.3",
-            "NOK",
-            "true",
-            "false",
-            " ",
-            "0,4613",  # Norwegian decimal comma
-        ],
-        ids=lambda v: f"state={v!r}",
-    )
-    def test_float_conversion_handles_bad_states(self, bad_state):
-        """float() on non-numeric states must not raise."""
-        # This is the pattern used in coordinator.py for spot_price and power
-        try:
-            result = (
-                float(bad_state)
-                if bad_state not in ("unknown", "unavailable")
-                else 0
-            )
-        except (ValueError, TypeError):
-            result = 0
-        assert isinstance(result, (int, float))
-
-    def test_unavailable_and_unknown_return_zero(self):
-        for state in ("unknown", "unavailable"):
-            result = float(state) if state not in ("unknown", "unavailable") else 0
-            assert result == 0
-
-    @pytest.mark.parametrize(
-        "good_state,expected",
-        [
-            ("0", 0.0),
-            ("1.5", 1.5),
-            ("0.4613", 0.4613),
-            ("-0.5", -0.5),
-            ("100", 100.0),
-            ("0.001", 0.001),
-        ],
-    )
-    def test_valid_numeric_states_parse_correctly(self, good_state, expected):
-        """Valid numeric strings must parse to correct float values."""
-        try:
-            result = (
-                float(good_state)
-                if good_state not in ("unknown", "unavailable")
-                else 0
-            )
-        except (ValueError, TypeError):
-            result = 0
-        assert result == expected
-
-
-# ---------------------------------------------------------------------------
-# 6. Config flow error keys exist in strings.json
+# 5. Config flow error keys exist in strings.json
 # ---------------------------------------------------------------------------
 
 
@@ -331,7 +212,7 @@ class TestConfigFlowErrorKeys:
 
 
 # ---------------------------------------------------------------------------
-# 7. Coordinator float() calls are all protected
+# 6. Coordinator float() calls are all protected
 # ---------------------------------------------------------------------------
 
 
@@ -360,7 +241,7 @@ class TestCoordinatorFloatProtection:
 
 
 # ---------------------------------------------------------------------------
-# 8. Config flow avgiftssone auto-detection (incident 003)
+# 7. Config flow avgiftssone auto-detection (incident 003)
 # ---------------------------------------------------------------------------
 
 

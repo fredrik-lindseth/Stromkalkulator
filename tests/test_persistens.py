@@ -518,6 +518,7 @@ class TestMigrationFromDSOStorage:
 
         # Data should be loaded from old store (migrated from float to dict format)
         assert coordinator._daily_max_power == {"2026-04-01": coord.DailyMaxEntry(kw=5.0)}
+        assert coordinator._monthly_consumption == coord.ConsumptionData(dag=100.0, natt=50.0)
 
         # New store should be saved to
         entry_store = stores["stromkalkulator_entry_new"]

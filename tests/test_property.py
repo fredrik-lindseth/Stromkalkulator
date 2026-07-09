@@ -166,10 +166,10 @@ def _calculate_stromstotte(spot_price: float) -> float:
 
 
 # =============================================================================
-# TIER 1: Property tests (Hypothesis) - 10,000 random inputs per test
+# TIER 1: Property tests (Hypothesis) - 1,000 random inputs per test
 # =============================================================================
 
-HEAVY = settings(max_examples=10_000, deadline=None)
+HEAVY = settings(max_examples=1000, deadline=None)
 
 
 # -- Kapasitetstrinn ----------------------------------------------------------

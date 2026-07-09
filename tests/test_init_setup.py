@@ -106,17 +106,9 @@ class TestDSOMigrationInSetup:
 
         # Config entry should be updated with new DSO key
         hass.config_entries.async_update_entry.assert_called_once()
-        call_kwargs = hass.config_entries.async_update_entry.call_args
-        new_data = call_kwargs[1]["data"] if "data" in call_kwargs[1] else call_kwargs[0][1] if len(call_kwargs[0]) > 1 else None
-        # The update call should contain the new DSO key
-        if new_data is None:
-            # Check positional args
-            for arg in call_kwargs[0]:
-                if isinstance(arg, dict) and "tso" in arg:
-                    new_data = arg
-                    break
-        if new_data:
-            assert new_data["tso"] == "vevig"
+        # __init__.py kaller alltid async_update_entry(entry, data=new_data)
+        new_data = hass.config_entries.async_update_entry.call_args.kwargs["data"]
+        assert new_data["tso"] == "vevig"
 
     def test_current_dso_no_migration(self, init_module):
         """Setup with current DSO key should not trigger migration."""

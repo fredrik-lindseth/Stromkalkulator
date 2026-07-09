@@ -15,6 +15,10 @@ dev = [
     "pytest-cov>=4.1.0",
     "hypothesis>=6.0.0",
     "mypy>=1.8.0",
+    # Kun for tests/test_smoke_ha.py (ekte-HA røyktest). Trekker inn homeassistant
+    # og et helt pytest-oppsett. Kjøres isolert i CI-jobben `smoke-ha`, ikke i
+    # den ordinære pipx-suiten (som mocker bort HA).
+    "pytest-homeassistant-custom-component>=0.13.0",
 ]
 
 [tool.pytest.ini_options]
@@ -48,6 +52,13 @@ ignore = [
 
 [tool.ruff.lint.isort]
 known-first-party = ["custom_components.stromkalkulator"]
+
+[tool.ruff.lint.per-file-ignores]
+# Røyktesten må legge repo-roten på sys.path FØR den importerer homeassistant og
+# custom_components (kjøres med --noconftest, så tests/conftest.py setter det
+# ikke). Det tvinger imports under en kodelinje (E402). HomeAssistant importeres
+# kun for type-hints (TC002), men holdes som vanlig import for lesbarhet.
+"tests/test_smoke_ha.py" = ["E402", "TC002"]
 
 [tool.vulture]
 min_confidence = 80

@@ -43,6 +43,12 @@ Effektsensor (W) + Spotpris (NOK/kWh)
     total_strompris_etter_stotte
 ```
 
+### Hvorfor polling, ikke event-drevet
+
+Coordinator poller hvert minutt i stedet for å abonnere på state-endringer. Ikke fordi matematikken krever det. Akkumuleringen antar ikke jevne tidssteg, `elapsed_hours` er faktisk `now - _last_update` (`coordinator.py:513-517`), så event-drevet oppdatering ville fungert regnemessig.
+
+Grunnen er broadcast-frekvensen på kildesensoren. Effektsensoren (`p` fra Kaifa/Aidon HAN) kringkaster hvert ~2,5 sek, et rått event-abonnement på den ville gitt rundt 24x recorder- og Store-skrivelast mot dagens 1-min-intervall. Den kumulative tpi/OBIS-1.8.0-sensoren (brukt når `energy_sensor` er konfigurert) oppdateres derimot bare 1x/time, event-abonnement mot DEN kunne vært en reell gevinst, men forutsetter debounce av `_save_stored_data` og dedup på entitetsnivå først (egne, uløste oppgaver). For rene effekt/Riemann-oppsett er et fast 1-min-intervall et fornuftig kompromiss.
+
 ## Lokalt oppsett
 
 ```bash

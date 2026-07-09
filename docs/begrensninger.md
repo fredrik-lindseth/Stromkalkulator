@@ -57,6 +57,16 @@ Selve HA-integrasjonen leser `p`-strømmen kontinuerlig og er ikke påvirket. De
 
 Se [research/klokke-og-tidsstempling.md](research/klokke-og-tidsstempling.md) og [research/elhub-vs-han-vs-faktura.md](research/elhub-vs-han-vs-faktura.md) for full kontekst.
 
+## 7. Gap-bucket ved lang nedetid (energy_sensor)
+
+Med `energy_sensor` konfigurert (kumulativ kWh-teller) leser coordinator forbruket som differansen mot forrige avlesning, uavhengig av hvor lenge det er siden forrige poll. Er HA nede lenger enn noen få minutter, krediteres hele backlog-deltaet i sin helhet til klokketimen og dag/natt-tariffen som gjelder når HA er tilbake og poller igjen, ikke til timene det egentlig ble brukt i. Deltaet er bundet oppad av `MAX_ENERGY_DELTA_KWH` (100 kWh), og verdien det måles mot (`_last_tpi_kwh`) bundet av `TPI_STALE_HOURS` (24 timer, eldre verdi forkastes ved omstart).
+
+Dette kan forbigående blåse opp vist døgnmaks og kapasitetstrinn, og skjeve dag/natt-split-attributtet for den dagen (og måneden fram til neste månedsskifte). DSO-fakturaen er upåvirket, nettselskapet måler timesforbruk uavhengig av hvordan HA bokfører det.
+
+Bevisst valg. En fiks krever et nytt persistert tidsstempel og en time-for-time-loop som fordeler backlogget på riktige klokketimer. Det er samme filosofi som den aksepterte forenklingen i `coordinator.py:714` (Norgespris-taket som nås midt i en time, teller hele timen i feil bucket). Mekanisme: `_compute_energy_delta` (`coordinator.py:340-380`) beregner deltaet, bucket-logikken (`coordinator.py:547-580`) avgjør hvilken dag og klokketime det crediteres til.
+
+Gjelder kun oppsett med `energy_sensor` satt. Uten den faller coordinator tilbake på Riemann-sum (`p * elapsed_hours`), der `elapsed_hours` er begrenset til `MAX_ELAPSED_HOURS` (6 min), så et langt gap bare mister de manglende minuttene i stedet for å dumpe et stort delta i én bucket.
+
 ## Sammendrag
 
 Reelle avvik som påvirker brukeren:

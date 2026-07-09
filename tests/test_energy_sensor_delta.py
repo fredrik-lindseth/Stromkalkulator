@@ -80,7 +80,8 @@ class TestComputeEnergyDelta:
 
         delta = coordinator_with_energy_sensor._compute_energy_delta()
 
-        # _last_tpi_kwh oppdateres uansett (linje 353), neste poll får riktig baseline
+        # _compute_energy_delta oppdaterer _last_tpi_kwh selv når delta forkastes
+        # som outlier, så neste poll får riktig baseline
         assert delta == 0.0
         assert coordinator_with_energy_sensor._last_tpi_kwh == 1101.0
 
@@ -168,11 +169,12 @@ class TestComputeEnergyDelta:
         delta = coordinator_with_energy_sensor._compute_energy_delta()
 
         assert delta == 0.0
-        # Linje 331 returnerer før _last_tpi_kwh oppdateres
+        # current < 0 treffer ``current_tpi <= 0``-guarden i _compute_energy_delta,
+        # som returnerer før _last_tpi_kwh oppdateres
         assert coordinator_with_energy_sensor._last_tpi_kwh == 1000.0
 
     def test_zero_current_treated_as_invalid(self, coordinator_with_energy_sensor):
-        """current == 0: behandles som ugyldig (linje 331: ``current_tpi <= 0``)."""
+        """current == 0: behandles som ugyldig (``current_tpi <= 0``-guarden i _compute_energy_delta)."""
         coordinator_with_energy_sensor._last_tpi_kwh = 1000.0
         coordinator_with_energy_sensor.hass = _hass_with_energy(0.0)
 
@@ -183,7 +185,7 @@ class TestComputeEnergyDelta:
         assert coordinator_with_energy_sensor._last_tpi_kwh == 1000.0
 
     def test_baseline_zero_then_real_value_reseeds(self, coordinator_with_energy_sensor):
-        """Baseline 0 fra storage behandles som "ikke seedet" (linje 335: ``> 0``).
+        """Baseline 0 fra storage behandles som "ikke seedet" (``_last_tpi_kwh > 0``-guarden i _compute_energy_delta).
 
         Med last = 0 og current = 1000 skal vi IKKE rapportere 1000 kWh forbruk
         i én poll, vi setter heller ny baseline og returnerer 0.

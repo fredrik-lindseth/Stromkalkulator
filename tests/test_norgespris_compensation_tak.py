@@ -234,15 +234,12 @@ class TestNorgesprisCompensationBoundaryCrossing:
         # konservative tolkningen. Verifiser at kompensasjonen er 0 eller
         # negativ med liten verdi, IKKE de fulle -1.50 kr som bugen ga.
         compensation = result["monthly_norgespris_compensation_kr"]
-        # Aksepter både 0 (syklus utelatt fordi over_tak) og ca -1.5 (syklus
-        # inkludert fordi monthly_total_kwh ble lest før akkumulering (dette
-        # avhenger av leserekkefølge i koden). Det viktige er at vi ikke
-        # akkumulerer mer enn ÉN syklus.
-        # Med fixen: monthly_total_kwh leses linje ~596 før akkumulering
-        # på linje 487, men akkumuleringen er ETTER (linje 487-493) og
-        # monthly_total_kwh leses linje 596. Så monthly_total_kwh = 5000 i
-        # akkurat denne syklusen, og norgespris_over_tak = True → bidraget
-        # skipper. Forventet: compensation = 0.
+        # Rekkefølgen i _async_update_data avgjør: energien akkumuleres i
+        # _monthly_consumption FØRST, deretter leses monthly_total_kwh =
+        # _monthly_consumption.total og norgespris_over_tak = total >= tak, og
+        # til slutt legges kompensasjonen til kun `if not norgespris_over_tak`.
+        # Den syklusen som tipper total til 5000 ser derfor over_tak = True og
+        # hopper over bidraget. Forventet: compensation = 0.
         assert abs(compensation) < 0.001, (
             f"Forventet at den tippende syklusen ble skipped (compensation=0), "
             f"fikk {compensation}."

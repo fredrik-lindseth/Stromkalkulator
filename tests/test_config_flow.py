@@ -26,7 +26,16 @@ COMPONENTS_DIR = Path(__file__).parent.parent / "custom_components" / "stromkalk
 
 
 class TestNumberSelectorStep:
-    """NumberSelectorConfig step must be >= 0.001 or "any" (HA constraint)."""
+    """NumberSelectorConfig step must be >= 0.001 or "any" (HA constraint).
+
+    Source-guard, ikke atferdstest: en ekte atferdstest måtte instansiere
+    HA-selectorene og lese NumberSelectorConfig.step, men selector-modulen er
+    en MagicMock i denne suiten (ingen pytest-homeassistant-custom-component),
+    så konfig-verdiene finnes ikke å inspisere. Vi skanner kilden i stedet.
+    step < 0.001 krasjer HA og step=0.001 avrunder bort presisjon (begge er
+    ekte bugs vi har hatt), så guarden fanger noe reelt. Kosmetiske renames
+    her betyr som regel en faktisk endring av skjemaet.
+    """
 
     MIN_STEP = 0.001
 
@@ -196,7 +205,13 @@ class TestDSOList:
 
 
 class TestConfigFlowErrorKeys:
-    """Every error key used in config_flow.py must have a translation."""
+    """Every error key used in config_flow.py must have a translation.
+
+    Source-guard: driver config-flowen mot mock-HA ville aldri nå
+    oversettelses-oppslaget (HA gjør det, ikke koden vår), så vi krysssjekker
+    i stedet at hver literal `errors[...] = "key"` finnes i strings.json.
+    Fanger den ekte bugen «feilkode uten oversettelse».
+    """
 
     def test_all_error_keys_have_translations(self):
         source = (COMPONENTS_DIR / "config_flow.py").read_text()
@@ -217,7 +232,14 @@ class TestConfigFlowErrorKeys:
 
 
 class TestCoordinatorFloatProtection:
-    """Every float(state) in coordinator sensor-reading helpers must be wrapped in try/except."""
+    """Every float(state) in coordinator sensor-reading helpers must be wrapped in try/except.
+
+    Source-guard: robusthetstestene i test_coordinator_robustness.py dekker
+    at ugyldige sensorverdier ikke krasjer coordinatoren, men de kjører kun de
+    stiene testdataene treffer. Denne skanner _read_sensor_float/_read_price_sensor
+    strukturelt for å sikre at ingen fremtidig float(state)-linje sniker seg inn
+    uten ValueError-vern. Fanget en ekte krasj-bug (kr-total-sensor).
+    """
 
     def test_all_float_state_conversions_are_protected(self):
         """float(.*state) calls in sensor-reading helpers must have except ValueError."""

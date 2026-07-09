@@ -37,6 +37,49 @@ sys.modules["homeassistant.util.dt"] = _dt_util_mock
 
 
 # ---------------------------------------------------------------------------
+# Delte HA-klasse-stubs
+#
+# sensor.py leser SensorDeviceClass/SensorStateClass/EntityCategory som klasse-
+# attributter ved import, og NettleieBaseSensor arver CoordinatorEntity. Med rene
+# MagicMock-moduler blir disse MagicMock-verdier i stedet for de streng-verdiene
+# testene asserter mot (f.eks. _attr_state_class == "total"). Vi bytter dem ut med
+# reelle typer FØR noen testfil importerer stromkalkulator.sensor. conftest lastes
+# før alle testmoduler, så module-nivå her er tidlig nok og gjør oss uavhengige av
+# import-rekkefølgen mellom testfiler. Tidligere var blokken copy-pastet i 7+ filer.
+# ---------------------------------------------------------------------------
+
+
+class FakeCoordinatorEntity:
+    """Minimal CoordinatorEntity-stub: lagrer bare coordinator-referansen."""
+
+    def __init__(self, coordinator):
+        self.coordinator = coordinator
+
+
+def _install_ha_class_stubs() -> None:
+    """Erstatt MagicMock-attributter med reelle typer på HA-mock-modulene."""
+    sensor_mod = sys.modules["homeassistant.components.sensor"]
+    sensor_mod.SensorDeviceClass = type(
+        "SensorDeviceClass", (), {"MONETARY": "monetary", "POWER": "power", "ENERGY": "energy"}
+    )
+    sensor_mod.SensorEntity = type("SensorEntity", (), {})
+    sensor_mod.SensorStateClass = type(
+        "SensorStateClass",
+        (),
+        {"MEASUREMENT": "measurement", "TOTAL": "total", "TOTAL_INCREASING": "total_increasing"},
+    )
+
+    entity_category = type("EntityCategory", (), {"DIAGNOSTIC": "diagnostic", "CONFIG": "config"})
+    sys.modules["homeassistant.const"].EntityCategory = entity_category
+    sys.modules["homeassistant.helpers.entity"].EntityCategory = entity_category
+
+    sys.modules["homeassistant.helpers.update_coordinator"].CoordinatorEntity = FakeCoordinatorEntity
+
+
+_install_ha_class_stubs()
+
+
+# ---------------------------------------------------------------------------
 # Delte test-helpers (importeres av testfiler som module-level callables)
 # ---------------------------------------------------------------------------
 

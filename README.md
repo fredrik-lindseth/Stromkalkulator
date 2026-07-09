@@ -16,18 +16,7 @@
   <a href="SECURITY.md"><img src="https://slsa.dev/images/gh-badge-level1.svg" alt="SLSA 1"></a>
 </p>
 
-Home Assistant-integrasjon som beregner faktisk strømpris i Norge, inkludert nettleie, avgifter og strømstøtte.
-
-## Hva du får
-
-Sensorer som viser hva strømmen faktisk koster, ikke bare spotprisen:
-
-- Nettleie: energiledd (dag/natt) og kapasitetsledd fra ditt nettselskap
-- Strømstøtte: automatisk (90 % over 96,25 øre/kWh)
-- Totalpris: alt inkludert, kan brukes i Energy Dashboard
-- Månedlig forbruk og kostnad
-- Faktura-sjekk mot forrige måned
-- Solcelle-eksport (deaktivert som standard)
+Home Assistant-integrasjon som beregner faktisk strømpris i Norge, inkludert nettleie, avgifter og strømstøtte. Du får sensorer for hva strømmen faktisk koster (ikke bare spotprisen): energiledd dag/natt, kapasitetsledd, strømstøtte, totalpris til Energy Dashboard, månedlig forbruk og kostnad, faktura-sjekk mot forrige måned, og solcelle-eksport for plusskunder.
 
 ## Verifisert mot ekte fakturaer
 
@@ -37,9 +26,7 @@ Sensorer som viser hva strømmen faktisk koster, ikke bare spotprisen:
 
 Hver rapport matcher integrasjonens beregninger linje for linje mot en ekte faktura. Se [docs/fakturaer/referanse.md](docs/fakturaer/referanse.md).
 
-**Presisjon:** Integrasjonen treffer fakturaen på øret: innenfor 50 Wh på månedsforbruk, 1-2 øre på nettleielinjene (BKKs interne avrunding), og Norgespris-linjen er reprodusert eksakt mot publiserte Final-priser (juni 2026, se [docs/research/norgespris-eksakt-match.md](docs/research/norgespris-eksakt-match.md)). Den løpende sensoren kan avvike 0,04-0,05 % fordi Nord Pool kan korrigere valutakursen etter publisering. Ingen konfigurasjon trengs. Detaljer per målermerke og HAN-leser: [docs/begrensninger.md](docs/begrensninger.md).
-
-Verifiseringen er gjort på Kaifa MA304H3E (3-fase, Nuri Telecom-importert) med Pow-U HAN-leser (AMSleser.no) og offisiell `nordpool`-integrasjon i HA. Aidon-målere har samme broadcast-timing (HH:00:10) og forventes å gi samme presisjon. Andre HAN-lesere og spot-integrasjoner kan ha andre presisjons-karakteristikker.
+**Presisjon:** Integrasjonen treffer fakturaen på øret, innenfor 50 Wh på månedsforbruk og 1-2 øre på nettleielinjene (BKKs interne avrunding), uten konfigurasjon. Verifisert på Kaifa MA304H3E med Pow-U HAN-leser og offisiell `nordpool`-integrasjon. Presisjon per målermerke og HAN-leser, og hvorfor Norgespris-linjen treffer eksakt: [begrensninger.md](docs/begrensninger.md).
 
 Bruker du et annet nettselskap, [send inn din faktura](docs/fakturaer/verifiser-din-faktura.md) så bekrefter vi det.
 
@@ -66,17 +53,15 @@ Kopier `custom_components/stromkalkulator` til `/config/custom_components/`
 
 ### Steg 1: Velg nettselskap
 
-Velg nettselskapet ditt fra nedtrekkslisten. Avgiftssone (mva og forbruksavgift) settes automatisk basert på nettselskapet.
+Velg nettselskapet ditt fra nedtrekkslisten. Avgiftssone (mva og forbruksavgift) settes automatisk basert på nettselskapet. Er ikke nettselskapet ditt i listen, velg **Egendefinert** nederst, så får du et ekstra steg der du legger inn energiledd dag/natt (eks. mva) og avgiftssone selv.
 
 ### Boligtype
 
-| Boligtype                  | Strømstøtte  | Norgespris-tak | Kilde                                                                      |
-| -------------------------- | ------------ | -------------- | -------------------------------------------------------------------------- |
-| Bolig (standard)           | 5000 kWh/mnd | 5000 kWh/mnd   | [Forskrift § 5](https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791)  |
-| Fritidsbolig               | Ingen        | 1000 kWh/mnd   | [Forskrift § 3](https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791)  |
-| Fritidsbolig (fast bosted) | 5000 kWh/mnd | 5000 kWh/mnd   | [Forskrift § 11](https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791) |
+- **Bolig (standard)**: 5000 kWh/mnd strømstøtte, 5000 kWh/mnd Norgespris-tak
+- **Fritidsbolig**: ingen strømstøtte, 1000 kWh/mnd Norgespris-tak
+- **Fritidsbolig (fast bosted)**: 5000 kWh/mnd på begge
 
-Over kWh-taket for Norgespris betaler du spotpris for resten av måneden. Fritidsboliger har ikke rett på strømstøtte med mindre du bor der fast (§ 11).
+Over kWh-taket for Norgespris betaler du spotpris resten av måneden. Detaljer og forskriftskilder: [beregninger.md](docs/beregninger.md#strømstøtte).
 
 ### Steg 2: Velg sensorer
 
@@ -84,101 +69,47 @@ Over kWh-taket for Norgespris betaler du spotpris for resten av måneden. Fritid
 - Spotpris-sensor (NOK/kWh): vanligvis "Current price" fra [Nord Pool-integrasjonen](https://www.home-assistant.io/integrations/nordpool/). Den leverer eks. mva, som er det integrasjonen forventer. Har du en sensor som allerede inkluderer mva, kryss av "Spotpris-sensor leverer priser inkl. mva".
 - Strømleverandør-sensor (valgfri): totalpris fra strømselskapet (f.eks. Tibber), for å se hva du faktisk betaler.
 
-Alle norske nettselskap er støttet.
+Legger du også til en energimåler (kWh), treffer forbruket fakturaen eksakt. Hva integrasjonen trenger, og hvorfor: [input-sensorer.md](docs/input-sensorer.md).
 
 ### Avgiftssoner
 
-Avgiftssonen bestemmer mva og forbruksavgift, og settes automatisk fra nettselskapet ditt. Du kan overstyre i innstillingene hvis nødvendig.
-
-| Avgiftssone  | Strømsoner          | Forbruksavgift | MVA |
-| ------------ | ------------------- | -------------- | --- |
-| Sør-Norge    | NO1, NO2, NO5       | 7,13 øre/kWh   | 25% |
-| Nord-Norge   | Nordland, Troms     | 7,13 øre/kWh   | 0%  |
-| Tiltakssonen | Finnmark/Nord-Troms | 0 øre          | 0%  |
+Avgiftssonen bestemmer mva og forbruksavgift, og settes automatisk fra nettselskapet ditt. Du kan overstyre i innstillingene hvis nødvendig. Se [beregninger.md](docs/beregninger.md#offentlige-avgifter-2026) for satsene per sone.
 
 ## Devices og sensorer
 
-Integrasjonen oppretter seks devices med sensorer:
+Integrasjonen oppretter seks devices med til sammen 35 aktive sensorer. Diagnostikk-sensorer er deaktivert som standard og kan slås på under Settings > Devices > Entities uten at det påvirker beregningene. Blant sensorene er et kapasitetsvarsel som utløses når du nærmer deg neste (dyrere) kapasitetstrinn, med en terskel (standard 2,0 kW) du kan endre under Configure. Komplett oversikt: [sensorer.md](docs/sensorer.md).
 
-### Nettleie
-
-Priser og beregninger for nettleie, strømstøtte og totalpris.
+**Nettleie**: priser og beregninger for nettleie, strømstøtte og totalpris.
 
 ![Nettleie](images/nettleie.png)
 
-### Strømstøtte
-
-Hvor mye du får i strømstøtte (90 % over 96,25 øre/kWh).
+**Strømstøtte**: hvor mye du får i strømstøtte (90 % over 96,25 øre/kWh).
 
 ![Strømstøtte](images/strømstøtte.png)
 
-### Norgespris
-
-Sammenligner spotprisavtalen din med Norgespris.
+**Norgespris**: sammenligner spotprisavtalen din med Norgespris.
 
 ![Norgespris](images/norgespris.png)
 
-### Månedlig forbruk
-
-Forbruk og kostnader for inneværende måned, fordelt på dag og natt/helg.
+**Månedlig forbruk**: forbruk og kostnader for inneværende måned, fordelt på dag og natt/helg.
 
 ![Månedlig forbruk](images/månedlig_forbruk.png)
 
-### Forrige måned
-
-Forrige måneds data for faktura-verifisering.
+**Forrige måned**: forrige måneds data for faktura-verifisering.
 
 ![Forrige måned](images/forrige_måned.png)
 
-### Eksport
-
-Solcelle-eksport for plusskunder (deaktivert som standard).
+**Eksport**: solcelle-eksport for plusskunder (deaktivert som standard).
 
 ## Bruk med Energy Dashboard
 
-Energy Dashboard trenger en forbruksmåler (kWh) og en kostnadskilde. Forbruksmåleren kommer fra din strømmåler-integrasjon (AMS-leser via HAN, f.eks. Tibber Pulse). For kostnaden har du to alternativer.
+Energy Dashboard trenger en forbruksmåler (kWh) fra AMS-leseren din og en kostnadskilde fra integrasjonen. Anbefalt kostnadskilde er **Akkumulert strømkostnad** (fordeler kapasitetsleddet lineært, så månedstotalen matcher fakturaen). **Totalpris inkl. avgifter** er enklere, men gir feil kapasitetsledd ved avvikende forbruk.
 
-### Alternativ 1: prissensor (kr/kWh)
-
-Bruk **Totalpris inkl. avgifter**. Enklest å sette opp, men kapasitetsleddet fordeles per kWh, så månedstotalen blir unøyaktig.
-
-1. **Settings > Dashboards > Energy**
-2. Under **Electricity grid**, klikk **Add consumption**
-3. Velg din kWh-forbrukssensor under **Consumed energy**
-4. Slå på **Use an entity with current price**
-5. Velg `sensor.totalpris_inkl_avgifter_*`
-
-### Alternativ 2: akkumulert kostnad (anbefalt)
-
-Bruk **Akkumulert strømkostnad**. Kapasitetsleddet fordeles lineært over tid, så månedstotalen matcher fakturaen uavhengig av forbruk. Sensoren er deaktivert som standard.
-
-1. Aktiver sensoren: **Settings > Devices > Månedlig forbruk > Entities > Akkumulert strømkostnad**
-2. **Settings > Dashboards > Energy > Add consumption**
-3. Velg din kWh-forbrukssensor under **Consumed energy**
-4. Slå på **Use an entity tracking total costs**
-5. Velg `sensor.akkumulert_stromkostnad_*`
-
-> Har du ikke en kWh-sensor? Du trenger noe som leser strømmåleren via HAN-porten, f.eks. en [Tibber Pulse](https://www.home-assistant.io/integrations/tibber/) eller annen AMS-leser.
-
-Vil du se priskomponentene (spotpris, nettleie, avgifter) separat? Bruk et custom dashboard-kort som ApexCharts.
+Steg for steg for begge alternativene: [sensorer.md](docs/sensorer.md#energy-dashboard).
 
 ## Strømavtaler
 
-### Spotpris
-
-Strømstøtten (90 % over 96,25 øre) trekkes automatisk fra. Sensoren "Strømstøtte" viser beløpet.
-
-### Norgespris
-
-Har du [Norgespris](https://www.regjeringen.no/no/tema/energi/strom/regjeringens-stromtiltak/) hos nettselskapet:
-
-1. Kryss av "Jeg har Norgespris" i oppsett
-2. Fast pris er 50 øre i Sør-Norge eller 40 øre i Nord-Norge
-3. Du får ingen strømstøtte (Norgespris erstatter spotpris og støtte)
-
-### Sammenligne avtalene
-
-Sensoren "Prisforskjell Norgespris" viser om Norgespris eller spotpris er billigst akkurat nå. Positiv verdi betyr at du sparer med Norgespris.
+Med spotpris trekkes strømstøtten (90 % over 96,25 øre) automatisk fra, og sensoren "Strømstøtte" viser beløpet. Har du [Norgespris](https://www.regjeringen.no/no/tema/energi/strom/regjeringens-stromtiltak/), kryss av "Jeg har Norgespris" i oppsettet: da regnes fast 50 øre (Sør-Norge) eller 40 øre (Nord-Norge) uten strømstøtte. Sensoren "Prisforskjell Norgespris" viser hvilken avtale som er billigst akkurat nå. Formler: [beregninger.md](docs/beregninger.md#norgespris).
 
 ## Sjekke mot faktura
 
@@ -186,7 +117,7 @@ Når nettleie-fakturaen kommer:
 
 1. Gå til Settings > Devices & Services > Strømkalkulator
 2. Klikk på "Forrige måned"-devicen
-3. Sammenlign verdiene med fakturaen
+3. Trykk på knappen **Lag fakturarapport**. Den lager en varsling (persistent notification) med en ferdig utfylt rapport du kan sammenligne linje for linje med fakturaen, og lime rett inn i et issue.
 
 Klikk på en sensor for detaljer som topp-3 effektdager og kostnader fordelt på dag/natt.
 
@@ -194,17 +125,11 @@ Klikk på en sensor for detaljer som topp-3 effektdager og kostnader fordelt på
 
 ## Støttede nettselskap
 
-Alle norske nettselskap er støttet. Prisene oppdateres årlig ved nyttår. Finner du feil, [lag en PR](docs/contributing.md) eller åpne et issue.
+73 nettselskap er lagt inn med satser, og Egendefinert dekker resten (du legger inn energiledd og avgiftssone selv). Prisene oppdateres årlig ved nyttår. Finner du feil, [lag en PR](docs/contributing.md) eller åpne et issue.
 
 ## Fusjon av nettselskap
 
 Integrasjonen håndterer fusjoner automatisk. Konfigurasjonen oppdateres ved neste oppstart, forbruksdata og historikk bevares. Du får en melding under Settings > Repairs.
-
-## Sensorer
-
-35 aktive sensorer fordelt på 6 devices. Diagnostikk-sensorer er deaktivert som standard og kan slås på under Settings > Devices > Entities. Å deaktivere en sensor påvirker ikke beregningene.
-
-Se [sensorer.md](docs/sensorer.md) for komplett oversikt.
 
 ## Begrensninger
 
@@ -217,13 +142,7 @@ Laget for privatbolig med eget strømabonnement. Ikke støttet:
 
 **Hvorfor viser sensoren "natt" midt på dagen?**
 
-"Natt"-tariffen heter egentlig "natt/helg" og brukes på:
-
-- Netter (22:00-06:00) alle dager
-- Hele helger (lør og søn, hele døgnet)
-- Helligdager (hele døgnet)
-
-Så på en lørdag kl. 14:00 er "natt"-tariff riktig.
+"Natt"-tariffen heter egentlig "natt/helg" og gjelder netter (22:00-06:00), hele helger og helligdager. Så på en lørdag kl. 14:00 er "natt" riktig. Full regel: [beregninger.md](docs/beregninger.md#energiledd).
 
 **Hvorfor er "Totalpris inkl. avgifter" høyere enn spotprisen?**
 
@@ -237,33 +156,24 @@ Nei. Strømstøtte utbetales kun når spotprisen er over 96,25 øre/kWh (2026). 
 
 Du mangler sannsynligvis en energi-sensor (kWh-måler) i konfigurasjonen. Med energi-sensor leser integrasjonen forbruket direkte fra meter-registeret og treffer fakturaen til siste watt-time. Uten den estimeres forbruket via Riemann-sum av effektsensoren, og du får typisk 1-5 % avvik over en måned. Se [input-sensorer.md](docs/input-sensorer.md) for hvordan du legger til en, og [beregninger.md](docs/beregninger.md#nøyaktighet) for detaljer.
 
-<a id="kapasitetsledd-i-energy-dashboard"></a>
 **Hvorfor viser Energy Dashboard feil kapasitetsledd?**
 
-Dette gjelder kun hvis du bruker **Totalpris inkl. avgifter** (prissensor-metoden). Totalpris-sensoren fordeler kapasitetsleddet over forventet kWh. Energy Dashboard ganger denne prisen med faktisk forbruk. Bruker du mer eller mindre enn fordelingen forutsetter, blir kapasitetsleddet feil.
-
-Eksempel: Mars, kapasitetsledd 250 kr/mnd, fordelt på 744 kWh (31 dager × 24):
-
-- Du bruker 1553 kWh → Dashboard beregner (250/744) × 1553 = **522 kr** for kapasitetsledd
-- Fakturaen sier **250 kr**
-- Avvik: +272 kr bare på kapasitetsleddet
-
-**Løsning:** Bruk **Akkumulert strømkostnad** i stedet. Denne sensoren fordeler kapasitetsleddet lineært over tid, ikke per kWh, og gir korrekte månedstotaler uavhengig av forbruk. Se [oppsett](#alternativ-2-akkumulert-kostnad-anbefalt).
-
-Sensoren «Månedlig nettleie total» er også nyttig for faktura-verifisering, men kan ikke brukes direkte i Energy Dashboard.
+Det skjer bare med prissensor-metoden (**Totalpris inkl. avgifter**): kapasitetsleddet fordeles per kWh, så Energy Dashboard ganger det opp feil ved avvikende forbruk. Løsningen er **Akkumulert strømkostnad**, som fordeler kapasitetsleddet lineært over tid. Regneeksempel og detaljer: [beregninger.md](docs/beregninger.md#totalpris).
 
 ## Dokumentasjon
 
-| Dokument                                | Innhold                            |
-| --------------------------------------- | ---------------------------------- |
-| [sensorer.md](docs/sensorer.md)         | Alle sensorer og attributter       |
-| [beregninger.md](docs/beregninger.md)   | Formler og avgiftssoner            |
-| [contributing.md](docs/contributing.md) | Oppdatere priser / rapportere feil |
-| [testing.md](docs/testing.md)           | Validere beregninger               |
+| Dokument                                      | Innhold                                     |
+| --------------------------------------------- | ------------------------------------------- |
+| [sensorer.md](docs/sensorer.md)               | Alle sensorer og attributter                |
+| [beregninger.md](docs/beregninger.md)         | Formler og avgiftssoner                     |
+| [input-sensorer.md](docs/input-sensorer.md)   | Hva integrasjonen trenger som input         |
+| [begrensninger.md](docs/begrensninger.md)     | Kjente begrensninger og avvik               |
+| [contributing.md](docs/contributing.md)       | Oppdatere priser / rapportere feil          |
+| [testing.md](docs/testing.md)                 | Validere beregninger                        |
 
 ## Verifisering av releases
 
-Alle releases har en kryptografisk attestasjon som beviser at ZIP-filen ble bygd fra kildekoden i dette repoet. Se [SECURITY.md](SECURITY.md) for detaljer.
+Alle releases har en kryptografisk attestasjon som beviser at ZIP-filen ble bygd fra kildekoden i dette repoet. Se [SECURITY.md](SECURITY.md) for detaljer. Dette er nøyaktig filen HACS laster ned og installerer, ikke bare et vedlegg til release-siden.
 
 ```bash
 gh attestation verify stromkalkulator.zip --repo fredrik-lindseth/Stromkalkulator

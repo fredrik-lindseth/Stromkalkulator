@@ -256,9 +256,8 @@ def _validate_options_input(
 
     new_power = user_input.get(CONF_POWER_SENSOR)
     if new_power and new_power != current_data.get(CONF_POWER_SENSOR):
-        new_unique_id = f"{DOMAIN}_{new_power}"
         for entry in hass.config_entries.async_entries(DOMAIN):
-            if entry.entry_id != entry_id and entry.unique_id == new_unique_id:
+            if entry.entry_id != entry_id and entry.data.get(CONF_POWER_SENSOR) == new_power:
                 errors[CONF_POWER_SENSOR] = "already_configured"
                 break
 
@@ -279,9 +278,13 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
     """Handle a config flow for Nettleie."""
 
     # VERSION 3: spotpris_inkl_mva-felt lagt til. Default False (eks. mva, riktig
-    # for HA-core nordpool). Eksisterende konfig migreres til True for å bevare
-    # gjeldende oppførsel. Se incident 004.
-    VERSION: int = 3
+    # for HA-core nordpool). Eksisterende konfig migreres også til False; den
+    # gamle koden antok inkl. mva, men det var feil. Se incident 004.
+    # VERSION 4: entry unique_id gikk fra "{DOMAIN}_{power_sensor}" til entry_id.
+    # Det gamle skjemaet brakk ved rename av power-sensoren og bandt
+    # duplikatvernet til sensornavnet. entry_id er stabilt og kollisjonsfritt;
+    # duplikatvernet er nå en eksplisitt sjekk mot eksisterende entries' data.
+    VERSION: int = 4
 
     def __init__(self) -> None:
         """Initialize the config flow."""
@@ -341,11 +344,12 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
                 if spot_error:
                     errors[CONF_SPOT_PRICE_SENSOR] = spot_error
 
-            # Check if this power sensor is already used by another instance
+            # Duplikatvern: samme power-sensor skal ikke kunne legges til to
+            # ganger. Sammenlign mot eksisterende entries' data, ikke unique_id
+            # (som nå er entry_id og dermed alltid unik).
             if not errors:
-                unique_id = f"{DOMAIN}_{power_sensor}"
                 for entry in self._async_current_entries():
-                    if entry.unique_id == unique_id:
+                    if entry.data.get(CONF_POWER_SENSOR) == power_sensor:
                         errors[CONF_POWER_SENSOR] = "already_configured"
                         break
 
@@ -364,7 +368,7 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
                 self._data[CONF_ENERGILEDD_DAG] = dso["energiledd_dag_eks_mva"]
                 self._data[CONF_ENERGILEDD_NATT] = dso["energiledd_natt_eks_mva"]
 
-                return await self._create_entry()
+                return self._create_entry()
 
         return self.async_show_form(
             step_id="sensors",
@@ -410,7 +414,7 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
 
         if user_input is not None:
             self._data.update(user_input)
-            return await self._create_entry()
+            return self._create_entry()
 
         return self.async_show_form(
             step_id="pricing",
@@ -448,11 +452,14 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
             errors=errors,
         )
 
-    async def _create_entry(self) -> FlowResult:
-        """Create the config entry."""
-        await self.async_set_unique_id(f"{DOMAIN}_{self._data[CONF_POWER_SENSOR]}")
-        self._abort_if_unique_id_configured()
+    def _create_entry(self) -> FlowResult:
+        """Create the config entry.
 
+        Setter ikke unique_id her: config-flowen kjenner ikke entry_id før
+        entryet er opprettet. async_setup_entry setter unique_id = entry_id ved
+        første oppstart. Duplikatvern mot samme power-sensor gjøres i
+        async_step_sensors (eksplisitt data-sjekk), ikke via unique_id.
+        """
         dso_name: str = DSO_LIST[self._data[CONF_DSO]]["name"]
         title: str = f"{DEFAULT_NAME} ({dso_name})"
 
@@ -469,8 +476,8 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
         Reuses the same schema, validation and DSO-derivation as the options
         flow. Unlike the options flow (which writes to entry.data via
         async_update_entry), this persists via async_update_reload_and_abort,
-        the idiomatic reconfigure API, and keeps unique_id consistent with the
-        stored power sensor.
+        the idiomatic reconfigure API. unique_id is entry_id and stays put
+        regardless of which power sensor is chosen.
         """
         entry: config_entries.ConfigEntry = self._get_reconfigure_entry()
         errors: dict[str, str] = {}
@@ -485,7 +492,6 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
                 return self.async_update_reload_and_abort(
                     entry,
                     data=new_data,
-                    unique_id=f"{DOMAIN}_{new_data[CONF_POWER_SENSOR]}",
                 )
 
         return self.async_show_form(
@@ -519,15 +525,10 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):
                 _apply_dso_derivation(user_input, current.get(CONF_DSO))
 
                 new_data: dict[str, Any] = {**current, **user_input}
-                update_kwargs: dict[str, Any] = {"data": new_data}
-                # Hold unique_id i takt med power-sensoren. Uten dette blir den
-                # hengende igjen på gammel sensor og duplikatvernet blokkerer
-                # feil entry senere. Se _create_entry for skjemaet.
-                new_power = new_data.get(CONF_POWER_SENSOR)
-                if new_power and new_power != current.get(CONF_POWER_SENSOR):
-                    update_kwargs["unique_id"] = f"{DOMAIN}_{new_power}"
-
-                self.hass.config_entries.async_update_entry(self.config_entry, **update_kwargs)
+                # unique_id er entry_id (stabil) og skal ikke røres når power-
+                # sensoren endres. Duplikatvern håndteres av
+                # _validate_options_input over.
+                self.hass.config_entries.async_update_entry(self.config_entry, data=new_data)
                 return self.async_create_entry(title="", data={})
 
         return self.async_show_form(

@@ -361,7 +361,8 @@ class TestConfigFlowSensorsDuplicateGuard:
 
 class TestReconfigureFlow:
     """Reconfigure-steget deler skjema/validering/DSO-avledning med options-flowen,
-    men persisterer via async_update_reload_and_abort og holder unique_id i takt.
+    men persisterer via async_update_reload_and_abort. unique_id er entry_id og
+    røres ikke ved reconfigure.
     """
 
     def test_initial_step_shows_reconfigure_form(self):
@@ -403,8 +404,8 @@ class TestReconfigureFlow:
         # custom beholder brukerens energiledd (ingen DSO-avledning)
         assert updated[CONF_ENERGILEDD_DAG] == 0.3500
         assert updated[CONF_ENERGILEDD_NATT] == 0.1500
-        # unique_id følger power-sensoren
-        assert call.kwargs["unique_id"] == f"{DOMAIN}_sensor.power_1"
+        # unique_id er entry_id og skal ikke sendes med (uendret ved reconfigure)
+        assert "unique_id" not in call.kwargs
 
     def test_reconfigure_rejects_duplicate_power_sensor(self):
         entry1 = _make_entry(entry_id="entry1", power_sensor="sensor.power_1")

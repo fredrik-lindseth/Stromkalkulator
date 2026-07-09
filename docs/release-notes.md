@@ -54,3 +54,14 @@ gh release view vX.Y.Z --json body -q .body
 - Bare de viktigste
 
 Se [v1.3.0](https://github.com/fredrik-lindseth/Stromkalkulator/releases/tag/v1.3.0) for eksempel.
+
+## Publisering
+
+Release-workflowen bygger releasen fra bunnen ved push til main når `manifest.json`-versjonen er ny: den lager zip, SHA256 og attestasjon og publiserer. Den sjekker `gh release view vX.Y.Z` og **hopper stille over hvis releasen (eller en draft med samme tag) allerede finnes**.
+
+Har du en håndskrevet draft liggende som forhåndsvisning, MÅ den slettes før du bumper versjonen og pusher. Ellers bygger workflowen ingenting, og du sitter igjen med en draft uten zip og attestasjon.
+
+```bash
+gh release delete vX.Y.Z --repo fredrik-lindseth/Stromkalkulator --yes   # slett draften først
+# bump manifest.json (+ pyproject.toml), commit, push -> workflowen bygger og publiserer
+```

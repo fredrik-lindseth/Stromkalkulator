@@ -60,7 +60,7 @@ async def async_setup_entry(
     async_add_entities([FakturaRapportButton(coordinator, entry)])
 
 
-class FakturaRapportButton(CoordinatorEntity, ButtonEntity):  # type: ignore[misc]
+class FakturaRapportButton(CoordinatorEntity, ButtonEntity):
     """Knapp som genererer fakturaverifiserings-rapport."""
 
     _attr_has_entity_name = True

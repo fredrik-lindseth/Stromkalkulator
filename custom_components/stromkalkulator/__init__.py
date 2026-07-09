@@ -6,7 +6,6 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from homeassistant import data_entry_flow
 from homeassistant.const import Platform
 from homeassistant.helpers import issue_registry as ir
 
@@ -90,8 +89,11 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     (kode antok inkl. mva fra spotpris-sensor). Nye konfigurasjoner får default
     False (riktig for HA-core nordpool). Se incident 004.
     """
-    if entry.version >= 3:
-        return True
+    # Nedgraderingsvern: en entry med høyere versjon enn koden kjenner kommer
+    # fra en nyere installasjon som er rullet tilbake. Ikke last den med et
+    # ukjent skjema. Gjeldende versjon er 3 (config_flow VERSION).
+    if entry.version > 3:
+        return False
 
     if entry.version == 1:
         new_data = {**entry.data}
@@ -236,24 +238,3 @@ async def async_unload_entry(hass: HomeAssistant, entry: StromkalkulatorConfigEn
     unload_ok: bool = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
     return unload_ok
-
-
-class DsoMigrationRepairFlow(data_entry_flow.FlowHandler):
-    """Handler for DSO migration repair flow."""
-
-    async def async_step_confirm(
-        self, user_input: dict[str, str] | None = None
-    ) -> data_entry_flow.FlowResult:
-        """Handle the confirm step."""
-        if user_input is not None:
-            return self.async_create_entry(data={})
-        return self.async_show_form(step_id="confirm")
-
-
-async def async_create_fix_flow(
-    hass: HomeAssistant,
-    issue_id: str,
-    data: dict[str, str] | None,
-) -> DsoMigrationRepairFlow:
-    """Create flow to fix a repair issue."""
-    return DsoMigrationRepairFlow()

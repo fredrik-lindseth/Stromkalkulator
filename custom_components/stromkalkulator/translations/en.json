@@ -43,7 +43,7 @@
           "energiledd_natt": "Energy tariff night/weekend (NOK/kWh)"
         },
         "data_description": {
-          "avgiftssone": "Determines VAT and consumption tax. Most in Southern Norway (NO1, NO2, NO5) select 'Sør-Norge'. Northern Norway (NO3, NO4) has VAT exemption."
+          "avgiftssone": "Determines VAT and consumption tax. The VAT exemption follows county, not price area: 'Nord-Norge' covers Nordland and Troms, 'Tiltakssonen' covers Finnmark and Nord-Troms (VAT Act § 6-6). Everyone else, including NO3 (Trøndelag and Møre og Romsdal), selects 'Sør-Norge' and pays 25% VAT."
         }
       }
     },

@@ -301,7 +301,7 @@ class EnergileddSensor(NettleieBaseSensor):
 class KapasitetstrinnSensor(NettleieBaseSensor):
     """Sensor for kapasitetstrinn."""
 
-    _attr_native_unit_of_measurement: str = "kr/mnd"
+    _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
     _attr_icon: str = "mdi:transmission-tower"
 
@@ -1178,7 +1178,7 @@ class MaanedligNettleieSensor(MaanedligBaseSensor):
 
     _attr_entity_registry_enabled_default: bool = False
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
-    _attr_native_unit_of_measurement: str = "kr"
+    _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
     _attr_icon: str = "mdi:transmission-tower"
     _attr_suggested_display_precision: int = 0
@@ -1222,7 +1222,7 @@ class MaanedligAvgifterSensor(MaanedligBaseSensor):
 
     _attr_entity_registry_enabled_default: bool = False
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
-    _attr_native_unit_of_measurement: str = "kr"
+    _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
     _attr_icon: str = "mdi:bank"
     _attr_suggested_display_precision: int = 0
@@ -1276,7 +1276,7 @@ class MaanedligStromstotteSensor(MaanedligBaseSensor):
 
     _attr_entity_registry_enabled_default: bool = False
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
-    _attr_native_unit_of_measurement: str = "kr"
+    _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
     _attr_icon: str = "mdi:cash-plus"
     _attr_suggested_display_precision: int = 0
@@ -1310,7 +1310,7 @@ class MaanedligTotalSensor(MaanedligBaseSensor):
     """Sensor for total monthly cost (nettleie + avgifter - strømstøtte)."""
 
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
-    _attr_native_unit_of_measurement: str = "kr"
+    _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
     _attr_icon: str = "mdi:receipt-text"
     _attr_suggested_display_precision: int = 0
@@ -1378,7 +1378,7 @@ class MaanedligNorgesprisDifferanseSensor(MaanedligBaseSensor):
     """Sensor for accumulated monthly Norgespris savings/loss."""
 
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
-    _attr_native_unit_of_measurement: str = "kr"
+    _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
     _attr_icon: str = "mdi:scale-balance"
     _attr_suggested_display_precision: int = 0
@@ -1407,7 +1407,7 @@ class MaanedligNorgesprisKompensasjonSensor(MaanedligBaseSensor):
     """Sensor for accumulated monthly Norgespris compensation (norgespris - spot) * kWh."""
 
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
-    _attr_native_unit_of_measurement: str = "kr"
+    _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
     _attr_icon: str = "mdi:cash-sync"
     _attr_suggested_display_precision: int = 0
@@ -1435,7 +1435,7 @@ class DagskostnadSensor(MaanedligBaseSensor):
     """Sensor for today's accumulated cost."""
 
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
-    _attr_native_unit_of_measurement: str = "kr"
+    _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
     _attr_icon: str = "mdi:calendar-today"
     _attr_suggested_display_precision: int = 0
@@ -1460,7 +1460,7 @@ class AkkumulertKostnadSensor(MaanedligBaseSensor):
 
     _attr_entity_registry_enabled_default: bool = False
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
-    _attr_native_unit_of_measurement: str = "kr"
+    _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
     _attr_icon: str = "mdi:cash-register"
     _attr_suggested_display_precision: int = 2
@@ -1494,7 +1494,7 @@ class EstimertMaanedskostnadSensor(MaanedligBaseSensor):
     """Sensor for estimated total monthly cost."""
 
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
-    _attr_native_unit_of_measurement: str = "kr"
+    _attr_native_unit_of_measurement: str = "NOK"
     _attr_icon: str = "mdi:crystal-ball"
     _attr_suggested_display_precision: int = 0
     _avgiftssone: str
@@ -1642,7 +1642,7 @@ class ForrigeMaanedNettleieSensor(ForrigeMaanedBaseSensor):
     """Sensor for previous month grid rent cost."""
 
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
-    _attr_native_unit_of_measurement: str = "kr"
+    _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
     _attr_icon: str = "mdi:transmission-tower"
     _attr_suggested_display_precision: int = 0
@@ -1733,7 +1733,7 @@ class ForrigeMaanedNorgesprisKompensasjonSensor(ForrigeMaanedBaseSensor):
     """Sensor for previous month Norgespris compensation."""
 
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
-    _attr_native_unit_of_measurement: str = "kr"
+    _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
     _attr_icon: str = "mdi:cash-sync"
     _attr_suggested_display_precision: int = 0
@@ -1816,7 +1816,7 @@ class MaanedligEksportInntektSensor(EksportBaseSensor):
     """Sensor for monthly export revenue."""
 
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
-    _attr_native_unit_of_measurement: str = "kr"
+    _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
     _attr_icon: str = "mdi:cash-plus"
     _attr_suggested_display_precision: int = 0
@@ -1850,7 +1850,7 @@ class MaanedligNettokostnadSensor(EksportBaseSensor):
     """Sensor for net monthly cost (consumption - export revenue)."""
 
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
-    _attr_native_unit_of_measurement: str = "kr"
+    _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
     _attr_icon: str = "mdi:scale-balance"
     _attr_suggested_display_precision: int = 0
@@ -1909,7 +1909,7 @@ class ForrigeMaanedEksportInntektSensor(EksportBaseSensor):
     """Sensor for previous month export revenue."""
 
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
-    _attr_native_unit_of_measurement: str = "kr"
+    _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
     _attr_icon: str = "mdi:cash-plus"
     _attr_suggested_display_precision: int = 0

@@ -93,7 +93,7 @@ def _dso_options() -> list[selector.SelectOptionDict]:
     ]
 
 
-class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,misc]
+class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
     """Handle a config flow for Nettleie."""
 
     # VERSION 3: spotpris_inkl_mva-felt lagt til. Default False (eks. mva, riktig
@@ -280,7 +280,7 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
         )
 
     @staticmethod
-    @callback  # type: ignore[untyped-decorator]
+    @callback
     def async_get_options_flow(
         config_entry: config_entries.ConfigEntry,
     ) -> NettleieOptionsFlow:
@@ -288,7 +288,7 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
         return NettleieOptionsFlow()
 
 
-class NettleieOptionsFlow(config_entries.OptionsFlow):  # type: ignore[misc]
+class NettleieOptionsFlow(config_entries.OptionsFlow):
     """Handle options flow for Nettleie."""
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:

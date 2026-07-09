@@ -2,6 +2,47 @@
 
 Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.0]
+
+### Endret
+
+- Kapasitetsvarsel er nå en `binary_sensor` (var tekst-sensor med "on"/"off"). Automasjoner som peker på den gamle `sensor.*`-entiteten må oppdateres.
+- Strømstøtte-aktiv, Norgespris-aktiv og tariff-sensoren bruker nå enum-device_class med oversatte tilstander. Tilstandsverdiene er uendret, så utility_meter og automasjoner matcher fortsatt.
+- Pris-sensorer (NOK/kWh) har ikke lenger `MONETARY` device_class. MONETARY er ment for pengebeløp med valuta, ikke enhetspris. Beløpssensorene (kr/mnd) beholder MONETARY. Kan påvirke visning og langtidsstatistikk for prissensorene.
+
+### Lagt til
+
+- Reconfigure-steg: endre nettselskap, sensorer og innstillinger via standard HA-UI uten å fjerne og legge til integrasjonen på nytt.
+- Per-DSO `terskel_inkludert`: nettselskap som legger eksakt kapasitetsgrense i lavere trinn (Alut, Bindal, Føre, Stram) håndteres separat.
+
+### Fikset
+
+- Strømstøtte-terskelen var feil i mva-frie soner (NO4, tiltakssonen). Spotprisen ble målt mot 96,25 øre inkl. mva selv der mva ikke betales, så brukere i nord fikk beregnet for lite støtte. Nå sonebevisst: 77 øre eks. mva der mva ikke gjelder. Se [incident 005](docs/incidents/005-stromstotte-terskel-mva-sone.md).
+- Kapasitetstrinn ved eksakt grensetreff (snitt på nøyaktig f.eks. 5,0 kW) havnet i lavere trinn. For BKK og de fleste nettselskap skal det høyere trinnet gjelde. Rettet, verifisert mot fri-nettleies terskeldata.
+- Bytte av nettselskap i innstillingene beholdt forrige selskaps energiledd og avgiftssone. Nå avledes de på nytt ved bytte.
+- Ved spotpris-bortfall eller kaldstart publiserte prissensorene priser basert på spot lik 0. De viser nå unavailable til en ekte pris finnes, så recorderen ikke fylles med nullpriser.
+- Repairs-«Fix»-knappen lastet aldri fordi fix-flowen lå i `__init__.py` i stedet for en `repairs.py`-plattform. Flyttet, med nedgraderingsvern i config-migreringen.
+- Config-flow avviste ikke spotsensorer i øre/kWh, som ga 100x feil pris. Avvises nå med tydelig melding.
+- Norske brukere fikk engelsk tekst på repair-varsler (`nb.json` manglet issues-seksjonen).
+- Leverandørpris ble cachet uten aldersgrense. Nå 2 timer, som spotprisen.
+- Negativ effekt fra en feilkonfigurert sensor klippes nå til 0. Fjernet døde og misvisende sensor-attributter.
+
+### Verifisert
+
+- Ny røyktest mot ekte Home Assistant (pytest-homeassistant-custom-component) i egen CI-jobb: verifiserer at oppsett laster og at alle entiteter opprettes.
+- mypy er nå blokkerende i CI, kildekoden er typerent. Release kjører kun etter grønn CI, og versjonssjekken feiler ved avvik mellom manifest og pyproject.
+- HACS henter nå den kryptografisk attesterte release-zipen, ikke git-tag-arkivet. Attestasjonen dekker filen brukerne faktisk installerer.
+- Fjernet rundt 170 tester som testet lokale kopier av logikken i stedet for produksjonskoden, pluss tautologier. Testsuiten er tre ganger raskere med uendret dekning.
+
+### Dokumentert
+
+- README slanket fra 278 til 188 linjer, detaljer flyttet til docs/. Dokumentert egendefinert nettselskap, kapasitetsvarsel-terskel, fakturarapport-knappen, diagnostikk og sesongprising.
+- Rettet NO3-avgiftssone-teksten flere steder: mva-fritak er fylkesbasert (Nordland, Troms, Finnmark), ikke prisområde.
+
+### Rensket
+
+- Ryddet i innsjekkede researchfiler og redusert demodata til én måned.
+
 ## [1.13.0]
 
 ### Lagt til

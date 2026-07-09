@@ -157,8 +157,8 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "Elvia",
         "prisomrade": "NO1",
         "supported": True,
-        "energiledd_dag_eks_mva": 0.2099,  # 20,99 øre/kWh ren energiledd (2026)
-        "energiledd_natt_eks_mva": 0.1299,  # 12,99 øre/kWh ren energiledd (2026)
+        "energiledd_dag_eks_mva": 0.2899,  # 28,99 øre/kWh ren energiledd (per 01.07.2026)
+        "energiledd_natt_eks_mva": 0.1699,  # 16,99 øre/kWh ren energiledd (per 01.07.2026)
         "url": "https://www.elvia.no/nettleie/alt-om-nettleiepriser/nettleie-pris/",
         # Kilde: tariffblad_1_0_standard-tariff_privat_20260101.pdf (verifisert 2026-05-23)
         "kapasitetstrinn": [
@@ -178,8 +178,8 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "Glitre Nett",
         "prisomrade": "NO1",
         "supported": True,
-        "energiledd_dag_eks_mva": 0.24598,  # 24,60 øre/kWh ren energiledd (2026)
-        "energiledd_natt_eks_mva": 0.12598,  # 12,60 øre/kWh ren energiledd (2026)
+        "energiledd_dag_eks_mva": 0.256,  # 25,60 øre/kWh ren energiledd (per 01.07.2026)
+        "energiledd_natt_eks_mva": 0.136,  # 13,60 øre/kWh ren energiledd (per 01.07.2026)
         "url": "https://www.glitrenett.no/kunde/nettleie-og-priser/nettleiepriser-privatkunde",
         "helg_som_natt": False,
         "kapasitetstrinn": [
@@ -222,8 +222,8 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "prisomrade": "NO3",
         "supported": True,
         # Tidligere NTE Nett - Nord-Trøndelag
-        "energiledd_dag_eks_mva": 0.25902,  # 25,90 øre/kWh ren energiledd (2026, dag 06-22)
-        "energiledd_natt_eks_mva": 0.13006,  # 13,01 øre/kWh ren energiledd (2026, natt 22-06)
+        "energiledd_dag_eks_mva": 0.27198,  # 27,20 øre/kWh ren energiledd (per 01.07.2026, dag 06-22)
+        "energiledd_natt_eks_mva": 0.13702,  # 13,70 øre/kWh ren energiledd (per 01.07.2026, natt 22-06)
         "url": "https://www.tensio.no/no/kunde/nettleie/nettleiepriser-for-privat",
         "helg_som_natt": False,
         "kapasitetstrinn": [
@@ -249,8 +249,8 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "prisomrade": "NO3",
         "supported": True,
         # Tidligere Trønderenergi Nett - Sør-Trøndelag
-        "energiledd_dag_eks_mva": 0.20702,  # 20,70 øre/kWh ren energiledd (2026, dag 06-22)
-        "energiledd_natt_eks_mva": 0.10206,  # 10,21 øre/kWh ren energiledd (2026, natt 22-06)
+        "energiledd_dag_eks_mva": 0.22102,  # 22,10 øre/kWh ren energiledd (per 01.07.2026, dag 06-22)
+        "energiledd_natt_eks_mva": 0.10902,  # 10,90 øre/kWh ren energiledd (per 01.07.2026, natt 22-06)
         "url": "https://www.tensio.no/no/kunde/nettleie/nettleiepriser-for-privat",
         "helg_som_natt": False,
         "kapasitetstrinn": [
@@ -482,8 +482,8 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "Linja",
         "prisomrade": "NO5",
         "supported": True,
-        "energiledd_dag_eks_mva": 0.22382,  # 22,38 øre/kWh ren energiledd (2026, dag 06-22)
-        "energiledd_natt_eks_mva": 0.15382,  # 15,38 øre/kWh ren energiledd (2026, natt 22-06)
+        "energiledd_dag_eks_mva": 0.22808,  # 22,81 øre/kWh ren energiledd (per 01.07.2026, dag 06-22)
+        "energiledd_natt_eks_mva": 0.14808,  # 14,81 øre/kWh ren energiledd (per 01.07.2026, natt 22-06)
         "url": "https://www.linja.no/nettleige",
         "kapasitetstrinn": [
             (2, 275),  # 0-2 kW: 275 kr/mnd
@@ -899,8 +899,8 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "prisomrade": "NO5",
         "supported": True,
         # Flat sats - ingen dag/natt-differensiering.
-        "energiledd_dag_eks_mva": 0.28558,  # 28,56 øre/kWh ren energiledd (2026)
-        "energiledd_natt_eks_mva": 0.28558,  # Flat sats - ingen dag/natt-differensiering
+        "energiledd_dag_eks_mva": 0.29,  # 29,00 øre/kWh ren energiledd (per 01.06.2026)
+        "energiledd_natt_eks_mva": 0.29,  # Flat sats - ingen dag/natt-differensiering
         "url": "https://ihk.no/prisar/nettleige",
         "kapasitetstrinn": [
             (2, 240),
@@ -975,8 +975,8 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "prisomrade": "NO4",
         "supported": True,
         # NO4 mva-fritak. Coordinator legger på forbruksavgift 7,13 + Enova 1,0.
-        "energiledd_dag_eks_mva": 0.17,  # 17,00 øre/kWh ren energiledd (2026, nord_norge)
-        "energiledd_natt_eks_mva": 0.17,  # Flat sats - ingen dag/natt-differensiering
+        "energiledd_dag_eks_mva": 0.18,  # 18,00 øre/kWh ren energiledd (nord_norge)
+        "energiledd_natt_eks_mva": 0.18,  # Flat sats - ingen dag/natt-differensiering
         "url": "https://kystnett.no/nettleie",
         "kapasitetstrinn": [
             (5, 493),
@@ -1183,8 +1183,8 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "prisomrade": "NO1",
         "supported": True,
         # Coordinator legger på forbruksavgift 7,13 + Enova 1,0 + 25% mva.
-        "energiledd_dag_eks_mva": 0.2567,  # 25,67 øre/kWh ren energiledd (2026)
-        "energiledd_natt_eks_mva": 0.1607,  # 16,07 øre/kWh ren energiledd (2026)
+        "energiledd_dag_eks_mva": 0.2647,  # 26,47 øre/kWh ren energiledd (per 01.06.2026)
+        "energiledd_natt_eks_mva": 0.1687,  # 16,87 øre/kWh ren energiledd (per 01.06.2026)
         "url": "https://r-nett.no/overforingspriser/",
         "kapasitetstrinn": [
             (2, 200),
@@ -1204,8 +1204,8 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "prisomrade": "NO1",
         "supported": True,
         # Nå del av Elvia - bruker Elvia-priser fra sept 2025.
-        "energiledd_dag_eks_mva": 0.2099,  # 20,99 øre/kWh ren energiledd (2026)
-        "energiledd_natt_eks_mva": 0.1299,  # 12,99 øre/kWh ren energiledd (2026)
+        "energiledd_dag_eks_mva": 0.2899,  # 28,99 øre/kWh ren energiledd (per 01.07.2026)
+        "energiledd_natt_eks_mva": 0.1699,  # 16,99 øre/kWh ren energiledd (per 01.07.2026)
         # Rakkestad Energi er na del av Elvia
         "url": "https://www.elvia.no/nettleie/alt-om-nettleiepriser/nettleie-pris/",
         "kapasitetstrinn": [

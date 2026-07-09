@@ -188,3 +188,35 @@ class TestAvgiftssoneMigration:
         asyncio.run(init_module.async_setup_entry(hass, entry))
 
         hass.config_entries.async_update_entry.assert_not_called()
+
+
+class TestUniqueIdSetup:
+    """async_setup_entry setter unique_id = entry_id for nye entries (v4-skjema).
+
+    Nye entries opprettes av config-flowen uten unique_id (entry_id finnes ikke
+    før entryet er laget). Migrerte entries har fått den via async_migrate_entry.
+    bkk/standard er valgt fordi de ikke trigger DSO- eller avgiftssone-migrering,
+    så det eneste async_update_entry-kallet kommer fra unique_id-logikken.
+    """
+
+    def test_new_entry_without_unique_id_gets_entry_id(self, init_module):
+        """Ny entry (unique_id=None) skal få unique_id = entry_id ved oppstart."""
+        hass = _make_hass()
+        entry = _make_entry(dso_id="bkk")
+        entry.unique_id = None
+
+        asyncio.run(init_module.async_setup_entry(hass, entry))
+
+        hass.config_entries.async_update_entry.assert_called_once_with(
+            entry, unique_id=entry.entry_id
+        )
+
+    def test_entry_with_unique_id_not_touched(self, init_module):
+        """Entry som allerede har unique_id (migrert v4) skal ikke oppdateres."""
+        hass = _make_hass()
+        entry = _make_entry(dso_id="bkk")
+        entry.unique_id = entry.entry_id
+
+        asyncio.run(init_module.async_setup_entry(hass, entry))
+
+        hass.config_entries.async_update_entry.assert_not_called()

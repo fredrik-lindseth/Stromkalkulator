@@ -85,14 +85,21 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     eks-mva. Reverserer formelen `inkl = (eks + forbruksavgift + Enova) * (1+mva)`
     basert på avgiftssonen som er lagret på entry-en.
 
-    v2 -> v3: Setter `spotpris_inkl_mva = True` for å bevare gjeldende oppførsel
-    (kode antok inkl. mva fra spotpris-sensor). Nye konfigurasjoner får default
-    False (riktig for HA-core nordpool). Se incident 004.
+    v2 -> v3: Setter `spotpris_inkl_mva = False` for eksisterende konfig. Den
+    gamle koden antok inkl. mva fra spotpris-sensoren, men HA-core nordpool
+    leverer eks. mva. Nye konfigurasjoner får samme default. Se incident 004.
+
+    v3 -> v4: Setter entry unique_id = entry_id. Tidligere var den utledet fra
+    power-sensorens entity_id ("{DOMAIN}_{power_sensor}"), som brakk ved rename
+    og bandt duplikatvernet til sensornavnet. entry_id er stabilt og
+    kollisjonsfritt. Endringen er på entry-nivå: entitetene har egne unique_id-er
+    i entity-registeret (utledet fra entry_id, ikke entry.unique_id), så de
+    beholdes uendret.
     """
     # Nedgraderingsvern: en entry med høyere versjon enn koden kjenner kommer
     # fra en nyere installasjon som er rullet tilbake. Ikke last den med et
-    # ukjent skjema. Gjeldende versjon er 3 (config_flow VERSION).
-    if entry.version > 3:
+    # ukjent skjema. Gjeldende versjon er 4 (config_flow VERSION).
+    if entry.version > 4:
         return False
 
     if entry.version == 1:
@@ -154,11 +161,27 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             sone,
         )
 
+    if entry.version == 3:
+        # Bytt til stabil, kollisjonsfri unique_id. Rører kun entry-nivå;
+        # entitetene ligger i entity-registeret koblet via config_entry_id og
+        # beholdes uendret (se docstring).
+        hass.config_entries.async_update_entry(entry, unique_id=entry.entry_id, version=4)
+        _LOGGER.info(
+            "Migrerte config entry %s fra v3 til v4 (unique_id -> entry_id)",
+            entry.entry_id,
+        )
+
     return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: StromkalkulatorConfigEntry) -> bool:
     """Set up Nettleie from a config entry."""
+    # Nye entries opprettes uten unique_id (config-flowen kjenner ikke entry_id
+    # før entryet finnes). Sett den til entry_id her: stabil og kollisjonsfri.
+    # Migrerte entries (v3->v4) har den allerede, så guarden hopper over dem.
+    if entry.unique_id is None:
+        hass.config_entries.async_update_entry(entry, unique_id=entry.entry_id)
+
     # Check for DSO migration (merger)
     dso_id = entry.data.get(CONF_DSO, DEFAULT_DSO)
     migration = _MIGRATION_INDEX.get(dso_id)

@@ -182,6 +182,39 @@ class NettleieBaseSensor(CoordinatorEntity, SensorEntity):  # type: ignore[misc]
             model=DEFAULT_NAME,
         )
 
+    def _spot_price_valid(self) -> bool:
+        """True hvis coordinator har gyldig spotpris (ikke kaldstart/bortfall).
+
+        Mangler nøkkelen (eldre data eller test-stub) antas spot gyldig, slik at
+        gatingen ikke gjør ellers fungerende sensorer utilgjengelige.
+        """
+        return bool(self.coordinator.data and self.coordinator.data.get("spot_price_valid", True))
+
+    def _norgespris_fastpris_aktiv(self) -> bool:
+        """True når aktiv pris er Norgespris under taket (uavhengig av spot).
+
+        Da kan spot-avhengige sensorer publisere fastprisen selv uten gyldig spot.
+        """
+        data = self.coordinator.data
+        return bool(
+            data and data.get("har_norgespris", False) and not data.get("norgespris_over_tak", False)
+        )
+
+    def _spot_dependent(self, key: str, *, spot_free: bool = False) -> Any:
+        """Coordinator-verdi, eller None hvis verdien er spot-avhengig og spot mangler.
+
+        Ved kaldstart/bortfall (spot_price_valid=False) settes spot til 0,0. Uten
+        gating ville spot-avhengige pris-sensorer publisere 0-baserte priser til
+        recorderen. `spot_free=True` markerer at den aktive verdien ikke avhenger
+        av spot (f.eks. Norgespris under taket) og publiseres uansett.
+        """
+        data = self.coordinator.data
+        if not data:
+            return None
+        if not spot_free and not data.get("spot_price_valid", True):
+            return None
+        return data.get(key)
+
     def _get_forbruksavgift(self) -> float:
         avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
         return get_forbruksavgift(avgiftssone)
@@ -356,10 +389,8 @@ class TotalPriceSensor(NettleieBaseSensor):
 
     @property
     def native_value(self) -> float | None:
-        """Return the state."""
-        if self.coordinator.data:
-            return cast("float | None", self.coordinator.data.get("total_price_uten_stotte"))
-        return None
+        """Return the state (None ved manglende spotdata)."""
+        return cast("float | None", self._spot_dependent("total_price_uten_stotte"))
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
@@ -575,10 +606,11 @@ class StromprisPerKwhSensor(NettleieBaseSensor):
 
     @property
     def native_value(self) -> float | None:
-        """Return the state."""
-        if self.coordinator.data:
-            return cast("float | None", self.coordinator.data.get("strompris_per_kwh"))
-        return None
+        """Return the state (None ved manglende spotdata, med mindre Norgespris under tak)."""
+        return cast(
+            "float | None",
+            self._spot_dependent("strompris_per_kwh", spot_free=self._norgespris_fastpris_aktiv()),
+        )
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
@@ -606,10 +638,8 @@ class StromstotteSensor(NettleieBaseSensor):
 
     @property
     def native_value(self) -> float | None:
-        """Return the state."""
-        if self.coordinator.data:
-            return cast("float | None", self.coordinator.data.get("stromstotte"))
-        return None
+        """Return the state (None ved manglende spotdata)."""
+        return cast("float | None", self._spot_dependent("stromstotte"))
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
@@ -617,7 +647,7 @@ class StromstotteSensor(NettleieBaseSensor):
         if self.coordinator.data:
             return {
                 "spotpris": self.coordinator.data.get("spot_price"),
-                "terskel": STROMSTOTTE_LEVEL,
+                "terskel": self.coordinator.data.get("stromstotte_terskel", STROMSTOTTE_LEVEL),
                 "dekningsgrad": f"{int(STROMSTOTTE_RATE * 100)}%",
                 "tak_naadd": self.coordinator.data.get("stromstotte_tak_naadd", False),
                 "boligtype": self.coordinator.data.get("boligtype", "bolig"),
@@ -640,10 +670,8 @@ class SpotprisEtterStotteSensor(NettleieBaseSensor):
 
     @property
     def native_value(self) -> float | None:
-        """Return the state."""
-        if self.coordinator.data:
-            return cast("float | None", self.coordinator.data.get("spotpris_etter_stotte"))
-        return None
+        """Return the state (None ved manglende spotdata)."""
+        return cast("float | None", self._spot_dependent("spotpris_etter_stotte"))
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
@@ -671,10 +699,11 @@ class TotalPrisEtterStotteSensor(NettleieBaseSensor):
 
     @property
     def native_value(self) -> float | None:
-        """Return the state."""
-        if self.coordinator.data:
-            return cast("float | None", self.coordinator.data.get("total_price"))
-        return None
+        """Return the state (None ved manglende spotdata, med mindre Norgespris under tak)."""
+        return cast(
+            "float | None",
+            self._spot_dependent("total_price", spot_free=self._norgespris_fastpris_aktiv()),
+        )
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
@@ -705,10 +734,11 @@ class TotalPrisInklAvgifterSensor(NettleieBaseSensor):
 
     @property
     def native_value(self) -> float | None:
-        """Return the state."""
-        if self.coordinator.data:
-            return cast("float | None", self.coordinator.data.get("total_price_inkl_avgifter"))
-        return None
+        """Return the state (None ved manglende spotdata, med mindre Norgespris under tak)."""
+        return cast(
+            "float | None",
+            self._spot_dependent("total_price_inkl_avgifter", spot_free=self._norgespris_fastpris_aktiv()),
+        )
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
@@ -743,10 +773,10 @@ class TotalPrisNorgesprisSensor(NettleieBaseSensor):
 
     @property
     def native_value(self) -> float | None:
-        """Return the state."""
-        if self.coordinator.data:
-            return cast("float | None", self.coordinator.data.get("total_pris_norgespris"))
-        return None
+        """Return the state (None ved manglende spotdata når man er over Norgespris-taket)."""
+        data = self.coordinator.data
+        spot_free = not (data and data.get("norgespris_over_tak", False))
+        return cast("float | None", self._spot_dependent("total_pris_norgespris", spot_free=spot_free))
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
@@ -754,7 +784,6 @@ class TotalPrisNorgesprisSensor(NettleieBaseSensor):
         if self.coordinator.data:
             return {
                 "norgespris": self.coordinator.data.get("norgespris"),
-                "norgespris_stromstotte": self.coordinator.data.get("norgespris_stromstotte"),
                 "energiledd": self.coordinator.data.get("energiledd"),
                 "kapasitetsledd_per_kwh": self.coordinator.data.get("kapasitetsledd_per_kwh"),
                 "norgespris_over_tak": self.coordinator.data.get("norgespris_over_tak", False),
@@ -778,10 +807,10 @@ class StromprisNorgesprisSensor(NettleieBaseSensor):
 
     @property
     def native_value(self) -> float | None:
-        """Return the state."""
-        if self.coordinator.data:
-            return cast("float | None", self.coordinator.data.get("strompris_norgespris"))
-        return None
+        """Return the state (None ved manglende spotdata når man er over Norgespris-taket)."""
+        data = self.coordinator.data
+        spot_free = not (data and data.get("norgespris_over_tak", False))
+        return cast("float | None", self._spot_dependent("strompris_norgespris", spot_free=spot_free))
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
@@ -814,20 +843,22 @@ class PrisforskjellNorgesprisSensor(NettleieBaseSensor):
 
     @property
     def native_value(self) -> float | None:
-        """Return the state."""
-        if self.coordinator.data:
-            return cast("float | None", self.coordinator.data.get("kroner_spart_per_kwh"))
-        return None
+        """Return the state (None ved manglende spotdata; sammenligningen krever spot)."""
+        return cast("float | None", self._spot_dependent("kroner_spart_per_kwh"))
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return extra attributes."""
         if self.coordinator.data:
             norgespris = self.coordinator.data.get("norgespris")
-            norgespris_etter_stotte = norgespris
+            spotpris_etter_stotte = self.coordinator.data.get("spotpris_etter_stotte")
+            # "Din pris" er det kunden faktisk betaler: Norgespris for
+            # Norgespris-kunder, ellers spotpris etter strømstøtte.
+            har_norgespris = self.coordinator.data.get("har_norgespris", False)
+            din_pris_etter_stotte = norgespris if har_norgespris else spotpris_etter_stotte
             return {
-                "din_pris_etter_stotte": self.coordinator.data.get("spotpris_etter_stotte"),
-                "norgespris_etter_stotte": norgespris_etter_stotte,
+                "din_pris_etter_stotte": din_pris_etter_stotte,
+                "norgespris_etter_stotte": norgespris,
                 "differens_per_kwh": self.coordinator.data.get("kroner_spart_per_kwh"),
                 "note": f"Norgespris er fast {get_norgespris_inkl_mva(self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)) * 100:.0f} øre/kWh",
             }
@@ -998,8 +1029,8 @@ class StromstotteAktivSensor(NettleieBaseSensor):
 
     @property
     def native_value(self) -> str | None:
-        """Return 'Ja' if strømstøtte is active, 'Nei' otherwise."""
-        if self.coordinator.data:
+        """Return 'Ja' if strømstøtte is active, 'Nei' otherwise (None ved manglende spotdata)."""
+        if self.coordinator.data and self._spot_price_valid():
             stromstotte = self.coordinator.data.get("stromstotte", 0)
             return "Ja" if stromstotte > 0 else "Nei"
         return None
@@ -1009,15 +1040,16 @@ class StromstotteAktivSensor(NettleieBaseSensor):
         """Return attributes."""
         if self.coordinator.data:
             spot_price = self.coordinator.data.get("spot_price", 0)
+            terskel = self.coordinator.data.get("stromstotte_terskel", STROMSTOTTE_LEVEL)
             stromstotte = self.coordinator.data.get("stromstotte", 0)
             boligtype = self.coordinator.data.get("boligtype", "bolig")
             return {
                 "spotpris": spot_price,
-                "terskel": STROMSTOTTE_LEVEL,
-                "over_terskel": spot_price > STROMSTOTTE_LEVEL,
+                "terskel": terskel,
+                "over_terskel": spot_price > terskel,
                 "stromstotte_per_kwh": stromstotte,
                 "boligtype": boligtype,
-                "note": f"Timer hvor spotpris > {STROMSTOTTE_LEVEL * 100:.2f} øre/kWh gir strømstøtte på fakturaen",
+                "note": f"Timer hvor spotpris > {terskel * 100:.2f} øre/kWh gir strømstøtte på fakturaen",
             }
         return None
 
@@ -1058,10 +1090,11 @@ class StromprisPerKwhEtterStotteSensor(NettleieBaseSensor):
 
     @property
     def native_value(self) -> float | None:
-        """Return the state."""
-        if self.coordinator.data:
-            return cast("float | None", self.coordinator.data.get("strompris_per_kwh_etter_stotte"))
-        return None
+        """Return the state (None ved manglende spotdata, med mindre Norgespris under tak)."""
+        return cast(
+            "float | None",
+            self._spot_dependent("strompris_per_kwh_etter_stotte", spot_free=self._norgespris_fastpris_aktiv()),
+        )
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:

@@ -81,12 +81,38 @@ DEFAULT_KAPASITET_VARSEL_TERSKEL: Final[float] = 2.0
 # Ordningen gjelder til 31. desember 2029 (Forskrift § 2).
 # Maks 5000 kWh/mnd per målepunkt (Forskrift § 5).
 #
-# STROMSTOTTE_LEVEL er inkl. mva. Spotpris-sensoren konverteres til samme enhet i
-# coordinator (se CONF_SPOTPRIS_INKL_MVA og incident 004). Default-antagelsen er
-# at spotpris-sensoren leverer eks. mva (HA-core nordpool-integrasjon).
-STROMSTOTTE_LEVEL: Final[float] = 0.9625  # 77 øre * 1.25 = 96,25 øre inkl. mva (2026)
+# Terskelen er 77 øre/kWh EKS. mva (Forskrift § 5). mva-kompensasjonen (x1,25)
+# legges KUN på der mva faktisk betales. I standard-sonen blir terskelen derfor
+# 96,25 øre inkl. mva; i mva-frie soner (nord_norge, tiltakssonen) forblir den
+# 77 øre. Spotprisen normaliseres til samme enhet i coordinator (se
+# CONF_SPOTPRIS_INKL_MVA og incident 004/005). Default-antagelsen er at
+# spotpris-sensoren leverer eks. mva (HA-core nordpool-integrasjon).
+STROMSTOTTE_TERSKEL_EKS_MVA: Final[float] = 0.77  # 77 øre/kWh eks. mva (2026)
+# STROMSTOTTE_LEVEL er standard-sonens terskel (77 øre x 1,25). Beholdt som
+# navngitt konstant; sonebevisst verdi hentes via get_stromstotte_terskel.
+STROMSTOTTE_LEVEL: Final[float] = 0.9625  # 77 øre * 1.25 = 96,25 øre inkl. mva (2026, standard)
 STROMSTOTTE_RATE: Final[float] = 0.90  # 90% kompensasjon over terskel
 STROMSTOTTE_MAX_KWH: Final[int] = 5000  # Maks 5000 kWh/mnd per målepunkt
+
+
+def get_stromstotte_terskel(avgiftssone: str) -> float:
+    """Returnerer strømstøtte-terskel i NOK/kWh basert på avgiftssone.
+
+    Forskrift § 5: 90 % av spotpris over 77 øre/kWh eks. mva. Terskelen
+    sammenlignes mot spotpris normalisert til samme enhet (inkl. mva der mva
+    betales, se incident 004). mva-kompensasjonen legges kun på i soner med mva:
+
+    - standard: 77 øre x 1,25 = 96,25 øre inkl. mva
+    - nord_norge / tiltakssone: 77 øre (mva-fritak)
+
+    Args:
+        avgiftssone: One of 'standard', 'nord_norge', 'tiltakssone'
+
+    Returns:
+        Strømstøtte-terskel i NOK/kWh, sonebevisst.
+    """
+    return STROMSTOTTE_TERSKEL_EKS_MVA * (1 + get_mva_sats(avgiftssone))
+
 
 # === NORGESPRIS ===
 # Kilde: Regjeringens strømtiltak

@@ -48,10 +48,10 @@ class EnergileddPeriode(TypedDict):
     i DSOEntry. Coordinator legger på forbruksavgift, Enova og mva basert
     på avgiftssone.
 
-    Brukes for nettselskaper som bytter pris mellom sommer og vinter
-    (Tensio, De Nett, Netera, Nettselskapet, m.fl.). Tensio publiserer
-    nye priser uten varsel, så satsene må oppdateres manuelt når
-    DSO-en endrer prislisten. Krever bekreftelse fra DSO-prisliste.
+    Brukes av nettselskaper som bytter pris mellom sommer og vinter
+    (Nettselskapet, De Nett, Sør Aurdal Energi). Disse publiserer nye
+    priser uten varsel, så satsene må oppdateres manuelt når DSO-en
+    endrer prislisten. Krever bekreftelse fra DSO-prisliste.
     """
 
     fra: str

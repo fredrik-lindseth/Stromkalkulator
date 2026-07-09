@@ -34,13 +34,15 @@ Glitre Nett, Tensio TN/TS og Stannum bruker `helg_som_natt: false`, der kun klok
 
 ## Avgiftssoner
 
-| Sone         | Strømsoner          | Forbruksavgift | MVA |
-| ------------ | ------------------- | -------------- | --- |
-| Sør-Norge    | NO1, NO2, NO5       | 7,13 øre/kWh   | 25% |
-| Nord-Norge   | NO3, NO4            | 7,13 øre/kWh   | 0%  |
-| Tiltakssonen | Finnmark/Nord-Troms | 0 øre/kWh      | 0%  |
+Mva-fritak er fylkesbasert (mval. § 6-6), ikke prisområdebasert. NO4 faller i sin helhet i fritaksfylkene, men NO3 dekker i hovedsak Trøndelag og Møre og Romsdal, som betaler 25% mva. Se [incident 003](incidents/003-no3-mva-feilklassifisering.md).
 
-Settes automatisk fra nettselskap. Kan overstyres i innstillinger.
+| Sone         | Fylker                                | Forbruksavgift | MVA |
+| ------------ | -------------------------------------- | -------------- | --- |
+| Sør-Norge    | Resten av landet (inkl. NO3-fylkene)  | 7,13 øre/kWh   | 25% |
+| Nord-Norge   | Nordland, Troms                       | 7,13 øre/kWh   | 0%  |
+| Tiltakssonen | Finnmark/Nord-Troms                    | 0 øre/kWh      | 0%  |
+
+Default settes fra prisområde (NO4 → Nord-Norge, NO3 → Sør-Norge), med DSO-spesifikk `avgiftssone`-override for unntak (f.eks. Bindal Kraftnett i NO3 som ligger i Nordland). Kan overstyres i innstillinger.
 
 ## Endre satser
 
@@ -62,7 +64,7 @@ Settes automatisk fra nettselskap. Kan overstyres i innstillinger.
 
 - [ ] Finn offisiell kilde
 - [ ] Oppdater `const.py` (avgifter, terskel) og `dso.py` (energiledd, kapasitetstrinn)
-- [ ] Kjør `pipx run pytest tests/ -v`
+- [ ] Kjør `pipx run --with hypothesis pytest tests/ -v`
 - [ ] Verifiser mot faktura
 
 Helligdager beregnes fra påskeformelen, ingen oppdatering nødvendig.

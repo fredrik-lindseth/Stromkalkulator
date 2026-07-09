@@ -384,29 +384,33 @@ class TestSensorDeviceClassAndUnit:
 
 
 class TestEnumStateSensors:
-    """Tilstandssensorer bruker ENUM device_class med definerte options."""
+    """Tariff-sensoren bruker ENUM device_class med definerte options.
 
-    @pytest.mark.parametrize("sensor_class,options", [
-        (NorgesprisAktivSensor, ["Ja", "Nei"]),
-        (StromstotteAktivSensor, ["Ja", "Nei"]),
-        (TariffSensor, ["dag", "natt"]),
-    ])
-    def test_enum_device_class_and_options(self, sensor_class, options, mock_coordinator, mock_entry):
-        sensor = sensor_class(mock_coordinator, mock_entry)
+    Strømstøtte-aktiv og Norgespris-aktiv kan ikke være ENUM: hassfest krever
+    at enum-state-nøkler er [a-z0-9-_]+, og "Ja"/"Nei" er ugyldige. De beholder
+    "Ja"/"Nei" som ren tekst for bakoverkompatibilitet. Idiomatisk løsning er
+    binary_sensor (egen oppfølging).
+    """
+
+    def test_tariff_enum_device_class_and_options(self, mock_coordinator, mock_entry):
+        sensor = TariffSensor(mock_coordinator, mock_entry)
         assert sensor._attr_device_class == "enum"
-        assert sensor._attr_options == options
-        # ENUM-sensorer skal ikke ha unit eller state_class.
+        assert sensor._attr_options == ["dag", "natt"]
         assert getattr(sensor, "_attr_native_unit_of_measurement", None) is None
         assert getattr(sensor, "_attr_state_class", None) is None
 
-    @pytest.mark.parametrize("sensor_class", [
-        NorgesprisAktivSensor,
-        StromstotteAktivSensor,
-        TariffSensor,
-    ])
-    def test_native_value_is_a_declared_option(self, sensor_class, mock_coordinator, mock_entry):
-        sensor = sensor_class(mock_coordinator, mock_entry)
+    def test_tariff_native_value_is_a_declared_option(self, mock_coordinator, mock_entry):
+        sensor = TariffSensor(mock_coordinator, mock_entry)
         assert sensor.native_value in sensor._attr_options
+
+    @pytest.mark.parametrize("sensor_class,expected", [
+        (NorgesprisAktivSensor, ("Ja", "Nei")),
+        (StromstotteAktivSensor, ("Ja", "Nei")),
+    ])
+    def test_aktiv_sensors_return_plain_text(self, sensor_class, expected, mock_coordinator, mock_entry):
+        sensor = sensor_class(mock_coordinator, mock_entry)
+        assert not hasattr(sensor, "_attr_options")
+        assert sensor.native_value in expected
 
 
 class TestHandleCoordinatorUpdateDedup:

@@ -120,18 +120,12 @@
       "total_pris_norgespris": { "name": "Total strømpris (Norgespris)" },
       "strompris_norgespris": { "name": "Strømpris (Norgespris, uten nettleie)" },
       "prisforskjell_norgespris": { "name": "Prisforskjell (Norgespris)" },
-      "norgespris_aktiv": {
-        "name": "Norgespris aktiv nå",
-        "state": { "Ja": "Ja", "Nei": "Nei" }
-      },
+      "norgespris_aktiv": { "name": "Norgespris aktiv nå" },
       "energiledd_dag": { "name": "Energiledd dag" },
       "energiledd_natt": { "name": "Energiledd natt/helg" },
       "forbruksavgift": { "name": "Forbruksavgift" },
       "enovaavgift": { "name": "Enovaavgift" },
-      "stromstotte_kwh": {
-        "name": "Strømstøtte aktiv nå",
-        "state": { "Ja": "Ja", "Nei": "Nei" }
-      },
+      "stromstotte_kwh": { "name": "Strømstøtte aktiv nå" },
       "tariff": {
         "name": "Tariff",
         "state": { "dag": "Dag", "natt": "Natt" }

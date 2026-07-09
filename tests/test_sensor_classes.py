@@ -20,6 +20,7 @@ _sensor_mod.SensorDeviceClass = type("SensorDeviceClass", (), {
     "MONETARY": "monetary",
     "POWER": "power",
     "ENERGY": "energy",
+    "ENUM": "enum",
 })
 _sensor_mod.SensorEntity = type("SensorEntity", (), {})
 _sensor_mod.SensorStateClass = type("SensorStateClass", (), {
@@ -63,7 +64,6 @@ from stromkalkulator.sensor import (  # noqa: E402
     ForrigeMaanedForbrukDagSensor,
     ForrigeMaanedToppforbrukSensor,
     KapasitetstrinnSensor,
-    KapasitetVarselSensor,
     MaanedligForbrukDagSensor,
     MaanedligForbrukNattSensor,
     MaanedligForbrukTotalSensor,
@@ -198,7 +198,6 @@ class TestSensorNoneWhenNoData:
         StromprisPerKwhEtterStotteSensor,
         StromstotteGjenstaaendeSensor,
         StromstotteAktivSensor,
-        KapasitetVarselSensor,
         ElectricityCompanyTotalSensor,
     ])
     def test_returns_none_without_data(self, sensor_class, mock_entry):
@@ -382,3 +381,89 @@ class TestSensorDeviceClassAndUnit:
         sensor = sensor_class(mock_coordinator, mock_entry)
         assert sensor._attr_device_class == "monetary"
         assert sensor._attr_native_unit_of_measurement == "kr"
+
+
+class TestEnumStateSensors:
+    """Tilstandssensorer bruker ENUM device_class med definerte options."""
+
+    @pytest.mark.parametrize("sensor_class,options", [
+        (NorgesprisAktivSensor, ["Ja", "Nei"]),
+        (StromstotteAktivSensor, ["Ja", "Nei"]),
+        (TariffSensor, ["dag", "natt"]),
+    ])
+    def test_enum_device_class_and_options(self, sensor_class, options, mock_coordinator, mock_entry):
+        sensor = sensor_class(mock_coordinator, mock_entry)
+        assert sensor._attr_device_class == "enum"
+        assert sensor._attr_options == options
+        # ENUM-sensorer skal ikke ha unit eller state_class.
+        assert getattr(sensor, "_attr_native_unit_of_measurement", None) is None
+        assert getattr(sensor, "_attr_state_class", None) is None
+
+    @pytest.mark.parametrize("sensor_class", [
+        NorgesprisAktivSensor,
+        StromstotteAktivSensor,
+        TariffSensor,
+    ])
+    def test_native_value_is_a_declared_option(self, sensor_class, mock_coordinator, mock_entry):
+        sensor = sensor_class(mock_coordinator, mock_entry)
+        assert sensor.native_value in sensor._attr_options
+
+
+class TestHandleCoordinatorUpdateDedup:
+    """_handle_coordinator_update skriver kun state når noe faktisk endret seg."""
+
+    @staticmethod
+    def _parent_of_base(sensor):
+        """Klassen super()._handle_coordinator_update peker på (mocked CoordinatorEntity).
+
+        Utledes fra selve instansen for å være robust mot modul-reload i suiten:
+        NettleieBaseSensor er mro[1], og super-kallet treffer mro[2].
+        """
+        return type(sensor).__mro__[2]
+
+    def test_dedups_unchanged_and_writes_on_change(self, mock_entry, monkeypatch):
+        coordinator = MagicMock()
+        coordinator.data = {"energiledd": 0.5}
+        sensor = EnergileddSensor(coordinator, mock_entry)
+
+        writes: list[int] = []
+        monkeypatch.setattr(
+            self._parent_of_base(sensor),
+            "_handle_coordinator_update",
+            lambda self: writes.append(1),
+            raising=False,
+        )
+        # available finnes ikke i test-stubben; sett den som instans-attributt.
+        sensor.available = True
+
+        sensor._handle_coordinator_update()
+        assert len(writes) == 1  # første refresh skriver
+
+        sensor._handle_coordinator_update()
+        assert len(writes) == 1  # uendret verdi -> ingen ny skriv
+
+        coordinator.data = {"energiledd": 0.9}
+        sensor._handle_coordinator_update()
+        assert len(writes) == 2  # endret verdi -> ny skriv
+
+    def test_write_when_availability_changes(self, mock_entry, monkeypatch):
+        coordinator = MagicMock()
+        coordinator.data = {"energiledd": 0.5}
+        sensor = EnergileddSensor(coordinator, mock_entry)
+
+        writes: list[int] = []
+        monkeypatch.setattr(
+            self._parent_of_base(sensor),
+            "_handle_coordinator_update",
+            lambda self: writes.append(1),
+            raising=False,
+        )
+
+        sensor.available = True
+        sensor._handle_coordinator_update()
+        assert len(writes) == 1
+
+        # Kun tilgjengeligheten endres; verdi/attributter er like -> skal skrive.
+        sensor.available = False
+        sensor._handle_coordinator_update()
+        assert len(writes) == 2

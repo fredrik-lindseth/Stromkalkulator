@@ -93,12 +93,12 @@ Avgiftssonen bestemmer mva og forbruksavgift, og settes automatisk fra nettselsk
 | Avgiftssone  | Strømsoner          | Forbruksavgift | MVA |
 | ------------ | ------------------- | -------------- | --- |
 | Sør-Norge    | NO1, NO2, NO5       | 7,13 øre/kWh   | 25% |
-| Nord-Norge   | NO3, NO4            | 7,13 øre/kWh   | 0%  |
+| Nord-Norge   | Nordland, Troms     | 7,13 øre/kWh   | 0%  |
 | Tiltakssonen | Finnmark/Nord-Troms | 0 øre          | 0%  |
 
 ## Devices og sensorer
 
-Integrasjonen oppretter fem devices med sensorer:
+Integrasjonen oppretter seks devices med sensorer:
 
 ### Nettleie
 
@@ -129,6 +129,10 @@ Forbruk og kostnader for inneværende måned, fordelt på dag og natt/helg.
 Forrige måneds data for faktura-verifisering.
 
 ![Forrige måned](images/forrige_måned.png)
+
+### Eksport
+
+Solcelle-eksport for plusskunder (deaktivert som standard).
 
 ## Bruk med Energy Dashboard
 
@@ -198,7 +202,7 @@ Integrasjonen håndterer fusjoner automatisk. Konfigurasjonen oppdateres ved nes
 
 ## Sensorer
 
-34 aktive sensorer fordelt på 6 devices. Diagnostikk-sensorer er deaktivert som standard og kan slås på under Settings > Devices > Entities. Å deaktivere en sensor påvirker ikke beregningene.
+35 aktive sensorer fordelt på 6 devices. Diagnostikk-sensorer er deaktivert som standard og kan slås på under Settings > Devices > Entities. Å deaktivere en sensor påvirker ikke beregningene.
 
 Se [sensorer.md](docs/sensorer.md) for komplett oversikt.
 

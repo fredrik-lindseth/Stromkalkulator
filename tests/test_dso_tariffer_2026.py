@@ -182,21 +182,21 @@ class TestElvia2026:
     def elvia(self):
         return DSO_LIST["elvia"]
 
-    def test_energiledd_uendret(self, elvia):
-        """Elvia energiledd var allerede korrekt, bekreftet av PDF."""
-        assert elvia["energiledd_dag_eks_mva"] == pytest.approx(0.2099)
-        assert elvia["energiledd_natt_eks_mva"] == pytest.approx(0.1299)
+    def test_energiledd_per_01_07_2026(self, elvia):
+        """Elvia hevet energiledd 01.07.2026. Verifisert mot elvia.no + fri-nettleie."""
+        assert elvia["energiledd_dag_eks_mva"] == pytest.approx(0.2899)
+        assert elvia["energiledd_natt_eks_mva"] == pytest.approx(0.1699)
 
-    def test_dag_inkl_alt_matcher_pdf_36_40_ore(self, elvia):
-        """Elvia PDF: dag 36,40 øre/kWh inkl. alt."""
+    def test_dag_inkl_alt_matcher_elvia_46_40_ore(self, elvia):
+        """Elvia per 01.07.2026: dag 46,40 øre/kWh inkl. alt (elvia.no viser ~46,60, visnings-avrunding)."""
         inkl = energiledd_inkl_mva(elvia["energiledd_dag_eks_mva"])
-        # (0,2099 + 0,0713 + 0,01) * 1,25 = 0,3640
-        assert inkl == pytest.approx(0.3640, abs=0.001)
+        # (0,2899 + 0,0713 + 0,01) * 1,25 = 0,4640
+        assert inkl == pytest.approx(0.4640, abs=0.001)
 
-    def test_natt_inkl_alt_matcher_pdf_26_40_ore(self, elvia):
-        """Elvia PDF: natt/helg 26,40 øre/kWh inkl. alt."""
+    def test_natt_inkl_alt_matcher_elvia_31_40_ore(self, elvia):
+        """Elvia per 01.07.2026: natt/helg 31,40 øre/kWh inkl. alt (matcher elvia.no eksakt)."""
         inkl = energiledd_inkl_mva(elvia["energiledd_natt_eks_mva"])
-        assert inkl == pytest.approx(0.2640, abs=0.001)
+        assert inkl == pytest.approx(0.3140, abs=0.001)
 
     @pytest.mark.parametrize(
         ("avg_power", "expected_kr_mnd"),

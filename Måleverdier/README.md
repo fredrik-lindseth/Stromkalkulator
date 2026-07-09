@@ -26,17 +26,13 @@ Time-for-time forbruksdata for målepunkt 707000000000000000 (<adresse>), ekspor
 
 ## Filer
 
-CSV-innholdet (timestamps + kWh) inneholder ikke personlig info, men vi committer kun det som trengs for å reprodusere verifiseringen.
+CSV-innholdet (timestamps + kWh) inneholder ikke personlig info, men vi committer kun én demo-måned for å reprodusere verifiseringen (se [neste-maaned-prosedyre.md](../docs/fakturaer/neste-maaned-prosedyre.md)). Øvrige måneder ligger kun lokalt i `_private/Måleverdier/` (gitignored).
 
-| Fil                      | Periode                 | Rader (data) | Total kWh (m/ekstra dager) |
-| ------------------------ | ----------------------- | ------------ | -------------------------- |
-| `elhub_desember_2025.csv`| 01.12.2025 – 01.01.2026 | 767          | 1617,681                   |
-| `elhub_januar_2026.csv`  | 01.01.2026 – 01.02.2026 | 767          | 2005,907                   |
-| `elhub_februar_2026.csv` | 01.02.2026 – 01.03.2026 | 695          | 1723,544                   |
-| `elhub_mars_2026.csv`    | 01.03.2026 – 01.04.2026 | 766          | 1596,222                   |
-| `elhub_april.csv`        | 01.04.2026 – 01.05.2026 | 743          | 1423,885                   |
+| Fil               | Periode                 | Rader (data) | Total kWh (m/ekstra dager) |
+| ------------------ | ----------------------- | ------------ | -------------------------- |
+| `elhub_april.csv` | 01.04.2026 – 01.05.2026 | 743          | 1423,885                   |
 
-Filtrer på "Fra"-kolonne for å plukke kun den tilsiktede måneden (Elhub-eksporten inkluderer alltid noen ekstra dager fra påfølgende måned). Tabellen over inkluderer disse ekstra dagene, så summene ligger noen kWh høyere enn den filtrerte måneds-summen i `tests/fixtures/README.md`.
+Filtrer på "Fra"-kolonne for å plukke kun den tilsiktede måneden (Elhub-eksporten inkluderer alltid noen ekstra dager fra påfølgende måned). Totalen over inkluderer disse ekstra dagene, så summen ligger noen kWh høyere enn den filtrerte måneds-summen i `tests/fixtures/README.md`.
 
 ## Format
 

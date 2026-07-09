@@ -28,7 +28,11 @@ Hoveddevicen, navngis "Nettleie ({nettselskap})".
 | Energiledd | kr/kWh | Det du betaler per kWh nå (bytter mellom dag- og nattsats) |
 | Tariff     | -      | "dag" eller "natt" (styrer utility_meter)                  |
 
-Dag: man-fre 06-22 (ikke helligdager). Natt: 22-06, helger, helligdager.
+Dag: man-fre 06-22 (ikke helligdager). Natt: 22-06, helger, helligdager. Full regel: [beregninger.md](beregninger.md#energiledd).
+
+En ferdig `utility_meter`-pakke som splitter forbruket på dag/natt-tariff ligger i [`packages/stromkalkulator_utility.yaml`](../packages/stromkalkulator_utility.yaml). Kopier den til `/config/packages/`, bytt ut sensornavnene, og aktiver `packages` i `configuration.yaml`.
+
+Hos nettselskap med sesongpriser bærer Energiledd-sensoren attributtene `sesongprising`, `aktiv_periode` og `perioder`. Se [beregninger.md](beregninger.md#energiledd).
 
 ### Kapasitet
 
@@ -43,6 +47,8 @@ Dag: man-fre 06-22 (ikke helligdager). Natt: 22-06, helger, helligdager.
 | _(valgfri)_ Kapasitetstrinn (intervall) | -      | kW-intervallet for ditt trinn (f.eks. "2-5 kW")             |
 
 **Toppforbruk #1-3** har attributter `dato` (YYYY-MM-DD) og `time` (0-23).
+
+**Kapasitetsvarsel** slår til når margin til neste trinn er under terskelen. Terskelen settes i options (Configure), default 2,0 kW. Bruk varselet i automasjoner som skrur ned last før du bikker over i et dyrere trinn.
 
 ### Strømpris
 
@@ -128,6 +134,8 @@ Attributter på "Månedlig nettleie total": `nettleie_kr`, `stromstotte_kr`, `fo
 ## Forrige måned
 
 Lagres ved månedsskifte. Brukes til faktura-verifisering.
+
+Devicen har også knappen **Lag fakturarapport**. Den lager en varsling (persistent notification) med en ferdig utfylt rapport, oppsett, forbruk, integrasjonens beregninger og en tom faktura-kolonne, som du kan sammenligne linje for linje og lime rett inn i et issue.
 
 | Sensor                                | Enhet | Beskrivelse                               |
 | ------------------------------------- | ----- | ----------------------------------------- |

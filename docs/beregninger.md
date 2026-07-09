@@ -31,6 +31,8 @@ Bevegelige helligdager (påske, pinse, Kristi himmelfartsdag) regnes fra påskef
 
 Noen DSO-er (Glitre Nett, Tensio TN/TS, Stannum) bruker `helg_som_natt: false`: kun klokkeslett styrer dag/natt. Helger og helligdager er som vanlige hverdager der.
 
+Noen nettselskap (Tensio, Netera, Nettselskapet, SAE m.fl.) bytter energiledd mellom sommer og vinter. Da har DSO-en `energiledd_perioder` i `dso.py`, og coordinator velger sats etter dato. Energiledd-sensoren får attributtene `sesongprising`, `aktiv_periode` og `perioder`, så du ser hvilken sats som gjelder nå. Bidra med sesongpriser: [contributing.md](contributing.md#sesongpriser).
+
 DSO-en lagrer ren energiledd. Coordinator legger på offentlige avgifter og mva basert på avgiftssone.
 
 ## Offentlige avgifter (2026)
@@ -79,8 +81,15 @@ Summen av kraftpris (spot etter strømstøtte eller Norgespris), nettleie og kap
 
 To Energy Dashboard-strategier:
 
-- **Prissensor (kr/kWh)**: kapasitetsleddet fordeles per forventet kWh, månedstotalen blir [unøyaktig ved avvikende forbruk](../README.md#kapasitetsledd-i-energy-dashboard).
+- **Prissensor (kr/kWh)**: kapasitetsleddet fordeles per forventet kWh, månedstotalen blir unøyaktig ved avvikende forbruk (regneeksempel under).
 - **Akkumulert kostnad (anbefalt)**: kapasitetsleddet tikker lineært over tid uavhengig av forbruk, månedstotalen treffer fakturaen.
+
+Prissensor-metoden ganger totalprisen med faktisk forbruk i Energy Dashboard, mens kapasitetsleddet er fordelt over forventet kWh. Bruker du mer eller mindre enn fordelingen forutsetter, blir kapasitetsleddet feil. Mars, kapasitetsledd 250 kr/mnd fordelt på 744 kWh (31 dager × 24):
+
+- Faktisk forbruk 1553 kWh gir Dashboard-beregning (250/744) × 1553 = **522 kr** kapasitetsledd
+- Fakturaen sier **250 kr**, altså +272 kr for mye bare på kapasitetsleddet
+
+Akkumulert strømkostnad fordeler kapasitetsleddet lineært over tid og gir korrekt månedstotal uansett forbruk. Oppsett: [sensorer.md](sensorer.md#energy-dashboard).
 
 ## Norgespris-besparelse
 
@@ -100,7 +109,7 @@ Netto månedskostnad = brutto kostnad minus eksportinntekt.
 
 Standard (med energi-sensor konfigurert): delta fra meter-registeret. Forbruk = `energy_sensor.state - forrige_avlesning`. Identisk med Elhub og fakturaen.
 
-Fallback (kun effektsensor): Riemann-sum, forbruk = effekt × tid mellom oppdateringer. Gir 1-5 % avvik over en måned. Se [Nøyaktighet](#nøyaktighet).
+Fallback (kun effektsensor): Riemann-sum, forbruk = effekt × tid mellom oppdateringer. Gir 1-5 % avvik over en måned. Se [Nøyaktighet](#nøyaktighet). Forskjellen på de to metodene er forklart i [input-sensorer.md](input-sensorer.md).
 
 Klassifiseres som dag eller natt/helg ved hver oppdatering. Kostnaden akkumuleres parallelt. Estimert månedstotal projiserer fra forbruket hittil og legger til kapasitetsleddet (fast).
 

@@ -67,6 +67,14 @@ Bevisst valg. En fiks krever et nytt persistert tidsstempel og en time-for-time-
 
 Gjelder kun oppsett med `energy_sensor` satt. Uten den faller coordinator tilbake på Riemann-sum (`p * elapsed_hours`), der `elapsed_hours` er begrenset til `MAX_ELAPSED_HOURS` (6 min), så et langt gap bare mister de manglende minuttene i stedet for å dumpe et stort delta i én bucket.
 
+## 8. Øyeblikks-prising av gap-forbruk ved HA-nedetid (energy_sensor)
+
+Beslektet med punkt 7, men om prisingen. Med `energy_sensor` konfigurert: er HA nede mellom 6 minutter og 24 timer, fanges alt forbruk i nedetiden i første poll etter oppstart (delta på kWh-telleren, kappet til 100 kWh). Hele deltaet prises til én øyeblikksverdi av spotpris og energiledd fra oppstartstidspunktet, ikke time-for-time faktiske satser. Rammer `monthly_cost_kr`, `monthly_accumulated_cost_strom_kr` og `monthly_accumulated_cost_energiledd_kr`. Kapasitetsleddet rammes ikke (akkumuleres tidsbasert og hopper bare over gap-sekundene).
+
+Konsekvens: for spot-kunder gir et enkelt flertimers-avbrudd typisk et avvik på 15-25 kr, som nullstilles ved månedsskifte. For Norgespris-kunder er strømdelen fast pris og dermed korrekt uansett; kun energiledd dag/natt bommer marginalt. Forbruket i kWh fanges korrekt uansett.
+
+Bevisst valg. En tidsriktig spot-korreksjon krever historiske timespriser for gap-vinduet, som coordinatoren ikke har tilgang til. Riemann-stien (uten `energy_sensor`) rammes ikke: der forkastes gap-forbruk over 6 minutter helt.
+
 ## Sammendrag
 
 Reelle avvik som påvirker brukeren:

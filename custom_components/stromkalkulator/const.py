@@ -1,7 +1,8 @@
 """Constants for Strømkalkulator integration."""
 
+from collections.abc import Mapping
 from datetime import date, timedelta
-from typing import Final
+from typing import Any, Final, cast
 
 from .dso import DSO_LIST
 
@@ -262,7 +263,7 @@ def get_default_avgiftssone(prisomrade: str) -> str:
     return AVGIFTSSONE_STANDARD
 
 
-def resolve_avgiftssone(dso: dict) -> str:
+def resolve_avgiftssone(dso: Mapping[str, Any]) -> str:
     """Resolve avgiftssone for a DSO entry.
 
     Priority: tiltakssone flag > explicit avgiftssone field > default from prisomrade.
@@ -270,7 +271,7 @@ def resolve_avgiftssone(dso: dict) -> str:
     if dso.get("tiltakssone"):
         return AVGIFTSSONE_TILTAKSSONE
     if "avgiftssone" in dso:
-        return dso["avgiftssone"]
+        return cast("str", dso["avgiftssone"])
     return get_default_avgiftssone(dso["prisomrade"])
 
 

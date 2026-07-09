@@ -43,7 +43,7 @@
           "energiledd_natt": "Energiledd natt/helg (NOK/kWh)"
         },
         "data_description": {
-          "avgiftssone": "Bestemmer mva og forbruksavgift. De fleste i Sør-Norge (NO1, NO2, NO5) velger «Sør-Norge». Nord-Norge (NO3, NO4) har mva-fritak."
+          "avgiftssone": "Bestemmer mva og forbruksavgift. Mva-fritaket følger fylke, ikke prisområde: «Nord-Norge» gjelder Nordland og Troms, «Tiltakssonen» gjelder Finnmark og Nord-Troms (mval. § 6-6). Alle andre, inkludert NO3 (Trøndelag og Møre og Romsdal), velger «Sør-Norge» og betaler 25 % mva."
         }
       }
     },
@@ -150,6 +150,23 @@
       "maanedlig_nettokostnad": { "name": "Månedlig nettokostnad" },
       "forrige_maaned_eksport_kwh": { "name": "Forrige måned eksport" },
       "forrige_maaned_eksport_inntekt": { "name": "Forrige måned eksportinntekt" }
+    }
+  },
+  "issues": {
+    "tso_migrated": {
+      "title": "Nettselskapet ditt har fusjonert",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Nettselskapet ditt har fusjonert",
+            "description": "{old_name} er nå en del av {new_name}. Integrasjonen er automatisk oppdatert, og forbruksdata og historikk er bevart."
+          }
+        }
+      }
+    },
+    "spotpris_mva_check": {
+      "title": "Spotpris-håndtering oppdatert",
+      "description": "Strømkalkulator behandler nå spotpris-sensoren som eks. mva (riktig for HA-core Nord Pool-integrasjonen). Tidligere antok koden inkl. mva, noe som ga 25 % feil i strømstøtte og totalpris i Sør-Norge. De fleste brukere trenger ikke gjøre noe.\n\nDu trenger KUN å handle hvis spotpris-sensoren din allerede leverer priser inkl. mva. Det gjelder hvis du har en egendefinert template-sensor som legger på 25 %, eller bruker den eldre custom_components/nordpool med VAT=true. I så fall: åpne Strømkalkulator-innstillinger (Settings > Devices & Services > Strømkalkulator > Configure) og slå PÅ «Spotpris-sensor leverer priser inkl. mva»."
     }
   }
 }

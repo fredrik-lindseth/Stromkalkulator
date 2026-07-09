@@ -52,7 +52,7 @@ from stromkalkulator.const import (  # noqa: E402
     STROMSTOTTE_RATE,
     get_stromstotte_terskel,
 )
-from stromkalkulator.sensor import StromstotteAktivSensor, StromstotteSensor  # noqa: E402
+from stromkalkulator.sensor import StromstotteSensor  # noqa: E402
 
 # Terskler per sone (NOK/kWh, samme enhet som normalisert spotpris)
 TERSKEL = {
@@ -171,15 +171,6 @@ class TestSensorTerskelAttributt:
         attrs = sensor.extra_state_attributes
         assert attrs["terskel"] == pytest.approx(0.77)
 
-    def test_stromstotte_aktiv_note_og_over_terskel_i_nord(self):
-        sensor = StromstotteAktivSensor(self._coord_stub(0.77, 0.87), self._entry("nord_norge"))
-        attrs = sensor.extra_state_attributes
-        assert attrs["terskel"] == pytest.approx(0.77)
-        assert attrs["over_terskel"] is True
-        assert "77.00" in attrs["note"]
-
-    def test_stromstotte_aktiv_standard_uendret(self):
-        sensor = StromstotteAktivSensor(self._coord_stub(0.9625, 1.20), self._entry("standard"))
-        attrs = sensor.extra_state_attributes
-        assert attrs["terskel"] == pytest.approx(0.9625)
-        assert "96.25" in attrs["note"]
+    # Strømstøtte-aktiv-attributtene (terskel/over_terskel/note) er flyttet til
+    # binary_sensor; sonebevisst terskel dekkes av
+    # tests/test_binary_sensor.py::TestStromstotteAktivBinarySensor.

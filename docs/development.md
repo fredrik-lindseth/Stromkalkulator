@@ -69,6 +69,8 @@ ssh ha-local "ha core logs" | grep -i stromkalkulator
 
 `rsync` speiler hele katalogen (inkl. `button.py`, `diagnostics.py`, `strings.json`, `translations/`), så en ny fil i `custom_components/stromkalkulator/` havner automatisk på HA-instansen. En fillistet loop råtner hver gang det legges til en fil — det er nettopp det som skjedde med `button.py` og `translations/` her.
 
+Etter en rsync kjører HA-en din arbeidstreet, ikke den publiserte releasen, og HACS vet ingenting om det. Usluppet arbeid, som en enhetsendring på en sensor, slår da ut som repairs hos deg alene. Kjør `git log v$(git describe --tags --abbrev=0)..HEAD` før du konkluderer med at en release er skyld i noe du ser lokalt.
+
 Tilbake til HACS:
 
 ```bash

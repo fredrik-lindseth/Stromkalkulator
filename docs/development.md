@@ -79,6 +79,8 @@ ssh ha-local "ha core restart"
 # I HA UI: HACS > Integrations > Stromkalkulator > Download, restart igjen
 ```
 
+Har dev-builden bumpet `config_flow.VERSION` (f.eks. 3→4), er nedgraderingen enveis: migreringen løftet config-entry-en din til det nye nummeret, og en eldre release med lavere VERSION nekter å laste den (`Config entry ... has version 4 which is higher than the current version 3`, vises som «Migreringsfeil» i UI-et). Deploy da en build med minst like høy VERSION i stedet for å gå tilbake til releasen. Dette treffer bare deg — ingen utgitt versjon kan produsere en entry som er nyere enn seg selv.
+
 ## Vanlige oppgaver
 
 - Oppdatere nettleiepriser: sjekkliste i [domain-rules.md](domain-rules.md#oppdatere-satser-årlig-ved-nyttår)
@@ -100,6 +102,7 @@ Diagnostikk-nedlasting: Settings > Devices & Services > Strømkalkulator > tre-p
 | `Entity unavailable` | kildesensor mangler       | sjekk effekt/spotpris-sensor finnes |
 | Feil kapasitetstrinn | data bygges over tid      | vent eller opprett testdata         |
 | Feil dag/natt        | helligdag ikke registrert | beregnes fra påskeformelen          |
+| `has version N higher than current M` | dev-build bumpet `config_flow.VERSION` og migrerte entry-en; du kjører nå en eldre release | deploy build med VERSION ≥ N |
 
 ### Testdata for kapasitetstrinn
 

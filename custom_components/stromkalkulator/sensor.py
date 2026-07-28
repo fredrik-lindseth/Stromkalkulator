@@ -866,8 +866,13 @@ class PrisforskjellNorgesprisSensor(NettleieBaseSensor):
             # Norgespris-kunder, ellers spotpris etter strømstøtte.
             har_norgespris = self.coordinator.data.get("har_norgespris", False)
             din_pris_etter_stotte = norgespris if har_norgespris else spotpris_etter_stotte
+            # Differansen måles mot ordningen du IKKE har. For en Norgespris-kunde
+            # er begge de to feltene over Norgespris-satsen, så uten dette så
+            # attributtene ut som 0,50 mot 0,50 med en differanse på 0,51.
+            alternativ_etter_stotte = spotpris_etter_stotte if har_norgespris else norgespris
             return {
                 "din_pris_etter_stotte": din_pris_etter_stotte,
+                "alternativ_etter_stotte": alternativ_etter_stotte,
                 "norgespris_etter_stotte": norgespris,
                 "differens_per_kwh": self.coordinator.data.get("kroner_spart_per_kwh"),
                 "note": f"Norgespris er fast {get_norgespris_inkl_mva(self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)) * 100:.0f} øre/kWh",

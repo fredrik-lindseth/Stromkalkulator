@@ -34,6 +34,8 @@ Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), [Sem
 - **Drift-vakten sjekket bare halve nettleien.** `scripts/sjekk_mot_fri_nettleie.py` sammenlignet energiledd, aldri kapasitetsledd, og var derfor grønn i fire måneder mens 44 nettselskap hadde feil fastledd. Den sammenligner nå fastledd og fastledd-metode i tillegg, alle fem metodene hver på sin akse, og kjøres ukentlig i CI.
 - Testene hadde en egen kopi av trinnoppslaget som brukte `<=` der produksjonskoden bruker `<`. Tre påstander beskrev derfor motsatt oppførsel av integrasjonen ved eksakt grensetreff, og var grønne fordi de testet kopien. Oppslaget ligger nå ett sted, brukt av både coordinator og tester.
 - Ny regresjonstest: to nettselskap kan ikke ha identiske kapasitetstrinn uten begrunnelse. Ville fanget mal-feilen i april.
+- Live-testsensorene i `packages/stromkalkulator_test.yaml` var delvis utdaterte: strømstøtte-testen brukte 2024-terskelen, totalpris-testen antok at alle er spotkunder og feilet for alle med Norgespris, Norgespris-testen sammenlignet to totalpriser som er identiske for en Norgespris-kunde, og åtte entitets-ID-er pekte på sensorer som ikke finnes. Alle tolv tester er grønne nå.
+- `prisforskjell_norgespris` viste `din_pris_etter_stotte` og `norgespris_etter_stotte` som samme tall for Norgespris-kunder, så attributtene så ut som 0,50 mot 0,50 med en differanse på 0,51. Nytt attributt `alternativ_etter_stotte` viser ordningen differansen faktisk måles mot.
 - Paritetstestene for oversettelser dekket bare sensor- og feilnøkler, aldri config-flow-stegene eller repair-varslene. Et nytt steg uten oversettelse ville vist en rå nøkkel i UI-et.
 
 ### Dokumentert

@@ -98,7 +98,8 @@ def _dso_options() -> list[selector.SelectOptionDict]:
 def _bruker_sikringstrinn(dso_id: str | None) -> bool:
     """Om nettselskapet fakturerer fastledd etter sikringsstørrelse."""
     dso = DSO_LIST.get(dso_id or "")
-    return bool(dso) and hent_fastledd_metode(dso) == FASTLEDD_OV_TREFASE
+    # `is not None` og ikke `bool(dso)`: sistnevnte smalner ikke typen for mypy.
+    return dso is not None and hent_fastledd_metode(dso) == FASTLEDD_OV_TREFASE
 
 
 def _sikringstrinn_selector(dso_id: str) -> selector.SelectSelector:

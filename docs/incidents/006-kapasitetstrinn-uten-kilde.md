@@ -12,7 +12,7 @@ Nettselskapet AS og [#12](https://github.com/fredrik-lindseth/Stromkalkulator/is
 om Elvia. Begge meldingene handlet om kapasitetsleddet.
 
 En full gjennomgang mot fri-nettleie viste at problemet var langt større enn de
-to. Av 73 nettselskap hadde 44 feil kapasitetstrinn. Energileddene var derimot
+to. Av de 72 nettselskapene i `DSO_LIST` hadde 44 feil kapasitetstrinn. Energileddene var derimot
 nesten helt riktige: bare Elvia (og Rakkestad, som følger Elvia) måtte rettes,
 og etter det matcher alle 73 fri-nettleie innenfor 0,1 øre/kWh.
 

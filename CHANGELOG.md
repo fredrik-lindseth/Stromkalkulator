@@ -20,7 +20,7 @@ Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), [Sem
 
 ### Fikset
 
-- **Kapasitetstrinn rettet for 44 av 73 nettselskap.** Fjorten av dem hadde en kopiert mal (200/300/450/... kr/mnd) i stedet for priser, resten hadde trinn fra før prisøkningene 1. juli 2026. Avvikene gikk begge veier, opptil 281 kr/mnd for Klive. Kapasitetsleddet er et fast månedsbeløp, så feilen slo rett inn i månedskostnad og fakturaestimat. Se [incident 006](docs/incidents/006-kapasitetstrinn-uten-kilde.md).
+- **Kapasitetstrinn rettet for 44 av 72 nettselskap.** Fjorten av dem hadde en kopiert mal (200/300/450/... kr/mnd) i stedet for priser, resten hadde trinn fra før prisøkningene 1. juli 2026. Avvikene gikk begge veier, opptil 281 kr/mnd for Klive. Kapasitetsleddet er et fast månedsbeløp, så feilen slo rett inn i månedskostnad og fakturaestimat. Se [incident 006](docs/incidents/006-kapasitetstrinn-uten-kilde.md).
 - **Alut la på 7,13 øre/kWh forbruksavgift som ikke skal betales.** De leverer til Alta, Loppa og Kvænangen, som alle ligger i tiltakssonen med fritak for både forbruksavgift og mva. Energileddet var 54 % for høyt.
 - **Area Nett hadde priser som ikke fantes i noe av de tre prisområdene.** Laveste trinn lå på 250 kr/mnd der riktig er 525, 390 eller 358 avhengig av kommune. Energileddet manglet også sesong, så vintersatsen ble brukt hele året.
 - **Elvia hevet nettleien 1. juli 2026 uten at fastleddet fulgte med:** trinn 1 lå på 125 kr/mnd der riktig pris er 150, og øverste trinn på 4570 mot 6800. Dag-energileddet er 28,99 øre (46,40 inkl. alle avgifter). Gjelder også Rakkestad Energi, som er del av Elvia. Rapportert av @Luxomona i [#12](https://github.com/fredrik-lindseth/Stromkalkulator/issues/12).

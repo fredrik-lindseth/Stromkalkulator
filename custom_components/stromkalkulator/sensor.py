@@ -32,6 +32,7 @@ from .const import (
     get_norgespris_max_kwh,
 )
 from .coordinator import days_in_month
+from .dso import FASTLEDD_UKJENT
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -312,23 +313,39 @@ class KapasitetstrinnSensor(NettleieBaseSensor):
 
     @property
     def native_value(self) -> float | int | None:
-        """Return the state."""
-        if self.coordinator.data:
-            return cast("float | int | None", self.coordinator.data.get("kapasitetsledd"))
-        return None
+        """Return the state.
+
+        Ukjent (None) når nettselskapet fakturerer etter sikringsstørrelse og
+        brukeren ikke har oppgitt den. Et tall her ville sett riktig ut og vært
+        gjetning, og det er nettopp feilen incident 006 handler om.
+        """
+        if not self.coordinator.data:
+            return None
+        if self.coordinator.data.get("fastledd_mangler_sikringsvalg"):
+            return None
+        return cast("float | int | None", self.coordinator.data.get("kapasitetsledd"))
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return extra attributes."""
         if self.coordinator.data:
             top_3 = self.coordinator.data.get("top_3_days", {})
+            metode = self.coordinator.data.get("fastledd_metode")
             attrs: dict[str, Any] = {
                 "trinn": self.coordinator.data.get("kapasitetstrinn_nummer"),
                 "intervall": self.coordinator.data.get("kapasitetstrinn_intervall"),
                 "gjennomsnitt_kw": self.coordinator.data.get("avg_top_3_kw"),
+                "fastledd_metode": metode,
+                "fastledd_grunnlag_kw": self.coordinator.data.get("fastledd_grunnlag_kw"),
                 "current_power_kw": self.coordinator.data.get("current_power_kw"),
                 "dso": self.coordinator.data.get("dso"),
             }
+            if self.coordinator.data.get("fastledd_mangler_sikringsvalg"):
+                attrs["mangler_sikringsstorrelse"] = True
+            if metode == FASTLEDD_UKJENT:
+                # Nettselskapet publiserer ikke metoden sin, så beløpet er
+                # regnet med NVE-modellen og kan avvike fra fakturaen.
+                attrs["metode_uverifisert"] = True
             for i, (date, entry) in enumerate(top_3.items(), 1):
                 attrs[f"maks_{i}_dato"] = date
                 attrs[f"maks_{i}_kw"] = round(entry.kw, 2)

@@ -14,7 +14,7 @@ from stromkalkulator.const import (
     FORBRUKSAVGIFT_ALMINNELIG,
     MVA_SATS,
 )
-from stromkalkulator.dso import DSO_LIST
+from stromkalkulator.dso import DSO_LIST, finn_kapasitetstrinn
 
 
 def energiledd_inkl_mva(eks_mva: float) -> float:
@@ -22,14 +22,18 @@ def energiledd_inkl_mva(eks_mva: float) -> float:
     return (eks_mva + FORBRUKSAVGIFT_ALMINNELIG + ENOVA_AVGIFT) * (1 + MVA_SATS)
 
 
-def kapasitetsledd_for_power(
-    avg_power_kw: float, trinn: list[tuple[float, int]]
-) -> int:
-    """Replikerer coordinator._get_kapasitetsledd: første terskel >= avg."""
-    for threshold, price in trinn:
-        if avg_power_kw <= threshold:
-            return price
-    return trinn[-1][1]
+def kapasitetsledd_for_power(avg_power_kw: float, dso: dict) -> int:
+    """Fastledd i kr/mnd, via produksjonskodens eget grenseoppslag.
+
+    Tidligere var dette en lokal kopi med `<=` for alle nettselskap. Den
+    bekreftet motsatt oppførsel av produksjonen ved eksakt grensetreff, så
+    testene var grønne mens BKK-kunden på nøyaktig 5,0 kW fikk feil trinn i
+    påstandene våre. Nå kalles `finn_kapasitetstrinn` direkte.
+    """
+    pris, _, _ = finn_kapasitetstrinn(
+        dso["kapasitetstrinn"], avg_power_kw, dso.get("terskel_inkludert", True)
+    )
+    return pris
 
 
 # ============================================================================
@@ -67,9 +71,9 @@ class TestLnett2026:
         ("avg_power", "expected_kr_mnd"),
         [
             (1.0, 150),     # trinn 1: 0-2 kW
-            (2.0, 150),     # boundary
+            (2.0, 250),     # eksakt grensetreff -> høyere trinn (terskel_inkludert)
             (2.5, 250),     # trinn 2: 2-5 kW
-            (5.0, 250),
+            (5.0, 400),     # eksakt grensetreff -> høyere trinn
             (7.0, 400),     # trinn 3: 5-10 kW
             (12.0, 650),    # trinn 4: 10-15 kW
             (17.5, 900),    # trinn 5: 15-20 kW
@@ -82,7 +86,7 @@ class TestLnett2026:
     )
     def test_kapasitetsledd_per_trinn(self, lnett, avg_power, expected_kr_mnd):
         assert (
-            kapasitetsledd_for_power(avg_power, lnett["kapasitetstrinn"])
+            kapasitetsledd_for_power(avg_power, lnett)
             == expected_kr_mnd
         )
 
@@ -100,7 +104,7 @@ class TestLnett2026:
     def test_husstand_pa_30_kw_far_trinn_7(self, lnett):
         """Stor husholdning med snitt-effekt 30 kW skal lande på trinn 7
         (25-50 kW = 2150 kr/mnd), ikke det gamle taket på 1150."""
-        pris = kapasitetsledd_for_power(30.0, lnett["kapasitetstrinn"])
+        pris = kapasitetsledd_for_power(30.0, lnett)
         assert pris == 2150
         assert pris != 1150  # gammelt feil tak
 
@@ -153,7 +157,7 @@ class TestLede2026:
         ("avg_power", "expected_kr_mnd"),
         [
             (3.0, 269),    # 0-5 kW
-            (5.0, 269),    # boundary
+            (5.0, 459),    # eksakt grensetreff -> høyere trinn
             (7.5, 459),    # 5-10 kW
             (12.0, 648),   # 10-15 kW
             (17.0, 838),   # 15-20 kW
@@ -165,7 +169,7 @@ class TestLede2026:
     )
     def test_kapasitetsledd_per_trinn(self, lede, avg_power, expected_kr_mnd):
         assert (
-            kapasitetsledd_for_power(avg_power, lede["kapasitetstrinn"])
+            kapasitetsledd_for_power(avg_power, lede)
             == expected_kr_mnd
         )
 
@@ -176,48 +180,108 @@ class TestLede2026:
 
 
 class TestElvia2026:
-    """Elvia: rettet kapasitetstrinn 6-10 mot 2026-PDF."""
+    """Elvia hevet både energiledd og fastledd 01.07.2026 (GitHub-issue #12).
+
+    Kilde: tariffblad_1_0_standard-tariff_privat_20260701.pdf, som stemmer
+    eksakt med fri-nettleie og elvia.no. Alle priser der er oppgitt inkl.
+    Enova, elavgift og mva - vi lagrer den rene nettleiedelen.
+    """
 
     @pytest.fixture
     def elvia(self):
         return DSO_LIST["elvia"]
 
     def test_energiledd_per_01_07_2026(self, elvia):
-        """Elvia hevet energiledd 01.07.2026. Dag-sats fra elvia.no (46,60 inkl), natt matcher fri-nettleie."""
-        assert elvia["energiledd_dag_eks_mva"] == pytest.approx(0.2915)
+        """Elvia hevet energiledd 01.07.2026: dag 36,40 -> 46,40, natt 26,40 -> 31,40 inkl. alt."""
+        assert elvia["energiledd_dag_eks_mva"] == pytest.approx(0.2899)
         assert elvia["energiledd_natt_eks_mva"] == pytest.approx(0.1699)
 
-    def test_dag_inkl_alt_matcher_elvia_46_60_ore(self, elvia):
-        """Elvia per 01.07.2026: dag 46,60 øre/kWh inkl. alt (elvia.no primærkilde, fri-nettleie #384)."""
+    def test_dag_inkl_alt_matcher_elvia_46_40_ore(self, elvia):
+        """Elvia per 01.07.2026: dag 46,40 øre/kWh inkl. alt."""
         inkl = energiledd_inkl_mva(elvia["energiledd_dag_eks_mva"])
-        # (0,2915 + 0,0713 + 0,01) * 1,25 = 0,4660
-        assert inkl == pytest.approx(0.4660, abs=0.001)
+        # (0,2899 + 0,0713 + 0,01) * 1,25 = 0,4640
+        assert inkl == pytest.approx(0.4640, abs=0.001)
 
     def test_natt_inkl_alt_matcher_elvia_31_40_ore(self, elvia):
-        """Elvia per 01.07.2026: natt/helg 31,40 øre/kWh inkl. alt (matcher elvia.no + fri-nettleie eksakt)."""
+        """Elvia per 01.07.2026: natt/helg 31,40 øre/kWh inkl. alt."""
         inkl = energiledd_inkl_mva(elvia["energiledd_natt_eks_mva"])
         assert inkl == pytest.approx(0.3140, abs=0.001)
 
     @pytest.mark.parametrize(
         ("avg_power", "expected_kr_mnd"),
         [
-            # Trinn 1-5 var korrekte (sanity-check)
-            (1.0, 125),
-            (3.0, 190),
-            (7.0, 300),
-            (12.0, 410),
-            (17.0, 520),
-            # Trinn 6-10: rettet mot PDF
-            (22.0, 630),    # var 655, skal være 630
-            (30.0, 1175),   # var 1135, skal være 1175
-            (60.0, 1720),   # var 1750, skal være 1720
-            (85.0, 2270),   # var 2370, skal være 2270
-            (150.0, 4570),  # var 4225, skal være 4570
+            (1.0, 150),     # trinn 1: 0-2 kW   (var 125)
+            (3.0, 250),     # trinn 2: 2-5 kW   (var 190)
+            (7.0, 420),     # trinn 3: 5-10 kW  (var 300)
+            (12.0, 585),    # trinn 4: 10-15 kW (var 410)
+            (17.0, 755),    # trinn 5: 15-20 kW (var 520)
+            (22.0, 925),    # trinn 6: 20-25 kW (var 630)
+            (30.0, 1760),   # trinn 7: 25-50 kW (var 1175)
+            (60.0, 2600),   # trinn 8: 50-75 kW (var 1720)
+            (85.0, 3440),   # trinn 9: 75-100 kW (var 2270)
+            (150.0, 6800),  # trinn 10: over 100 kW (var 4570)
         ],
     )
     def test_kapasitetsledd_per_trinn(self, elvia, avg_power, expected_kr_mnd):
         assert (
-            kapasitetsledd_for_power(avg_power, elvia["kapasitetstrinn"])
+            kapasitetsledd_for_power(avg_power, elvia)
+            == expected_kr_mnd
+        )
+
+    def test_rakkestad_folger_elvia(self):
+        """Rakkestad Energi er del av Elvia og skal ha identisk tariff."""
+        rakkestad = DSO_LIST["rakkestad_energi"]
+        elvia = DSO_LIST["elvia"]
+        assert rakkestad["energiledd_dag_eks_mva"] == elvia["energiledd_dag_eks_mva"]
+        assert rakkestad["energiledd_natt_eks_mva"] == elvia["energiledd_natt_eks_mva"]
+        assert rakkestad["kapasitetstrinn"] == elvia["kapasitetstrinn"]
+
+
+# ============================================================================
+# Nettselskapet: kapasitetsledd hevet 01.07.2026 + ingen helgetariff
+# ============================================================================
+
+
+class TestNettselskapet2026:
+    """Nettselskapet AS hevet kapasitetsleddet 01.07.2026 (GitHub-issue #11).
+
+    Energileddet står stille, men fastleddet gikk opp ~18%. Prislisten deres
+    skiller kun på klokkeslett, ikke ukedag.
+    Kilde: nettselskapet.as/strompris (priser inkl. mva i egen kolonne).
+    """
+
+    @pytest.fixture
+    def nettselskapet(self):
+        return DSO_LIST["nettselskapet"]
+
+    def test_energiledd_uendret_ved_prisendringen(self, nettselskapet):
+        """Sesongsatsene sto stille 01.07.2026: vinter 12,70/2,70, sommer 11,60/1,60."""
+        perioder = {p["fra"]: p for p in nettselskapet["energiledd_perioder"]}
+        assert perioder["11-01"]["dag_eks_mva"] == pytest.approx(0.127)
+        assert perioder["11-01"]["natt_eks_mva"] == pytest.approx(0.027)
+        assert perioder["05-01"]["dag_eks_mva"] == pytest.approx(0.116)
+        assert perioder["05-01"]["natt_eks_mva"] == pytest.approx(0.016)
+
+    def test_ingen_helgetariff(self, nettselskapet):
+        """Prislisten har kun dag 06-22 og natt 22-06, ingen helgepris."""
+        assert nettselskapet["helg_som_natt"] is False
+
+    @pytest.mark.parametrize(
+        ("avg_power", "expected_kr_mnd"),
+        [
+            (1.0, 163),    # 0-2 kW: 162,50   (var 137,50)
+            (3.0, 300),    # 2-5 kW: 300      (var 250)
+            (7.0, 513),    # 5-10 kW: 512,50  (var 425)
+            (12.0, 763),   # 10-15 kW: 762,50 (var 625)
+            (17.0, 988),   # 15-20 kW: 987,50 (var 812,50)
+            (22.0, 1238),  # 20-25 kW: 1237,50 (var 1025)
+            (30.0, 2125),  # 25-50 kW: 2125   (var 1750)
+            (60.0, 3325),  # 50-75 kW: 3325   (var 2750)
+        ],
+    )
+    def test_kapasitetsledd_per_trinn(self, nettselskapet, avg_power, expected_kr_mnd):
+        assert (
+            kapasitetsledd_for_power(avg_power, nettselskapet)
             == expected_kr_mnd
         )
 
@@ -266,3 +330,88 @@ class TestAskerNett2026Uendret:
         inkl = energiledd_inkl_mva(asker["energiledd_natt_eks_mva"])
         # (0,1587 + 0,0713 + 0,01) * 1,25 = 0,30
         assert inkl == pytest.approx(0.30, abs=0.001)
+
+
+# ============================================================================
+# Grensetreff: eksakt terskel hører til det høyere trinnet
+# ============================================================================
+
+
+class TestEksaktGrensetreff:
+    """Snitt på nøyaktig en terskel skal gi trinnet over, ikke under.
+
+    Testfilen hadde en lokal kopi av oppslaget med `<=` for alle nettselskap,
+    som bekreftet motsatt oppførsel av produksjonen. Testene var grønne mens
+    påstandene beskrev feil trinn. Nå kalles `finn_kapasitetstrinn` direkte.
+    """
+
+    def test_bkk_paa_eksakt_5_kw_gir_hoyere_trinn(self):
+        """BKK: 5,0 kW er 5-10 kW-trinnet (415 kr/mnd), ikke 2-5 (250)."""
+        bkk = DSO_LIST["bkk"]
+        assert kapasitetsledd_for_power(5.0, bkk) == 415
+        assert kapasitetsledd_for_power(4.99, bkk) == 250
+
+    def test_terskel_inkludert_false_gir_lavere_trinn(self):
+        """Sør Aurdal skriver trinnene "til og med", så 5,0 kW hører til trinn 1."""
+        sae = DSO_LIST["sor_aurdal_energi"]
+        assert sae["terskel_inkludert"] is False
+        assert kapasitetsledd_for_power(5.0, sae) == sae["kapasitetstrinn"][0][1]
+
+
+# ============================================================================
+# Area Nett: tre prisområder, kilde area.no prisblad 2026
+# ============================================================================
+
+
+class TestAreaNettOmrader:
+    """Area Nett har tre områder med ulik pris, delt etter kommune.
+
+    Én oppføring lagret tidligere 250/350/500/... kr/mnd, tall som ikke finnes
+    i noe område. Kilde: area.no "Nettleietariffer 2026 inkl enovavgift",
+    kryssjekket mot fri-nettleie. Prisbladet er inkl. Enova, og tiltakssonen
+    har verken mva eller forbruksavgift, så ren sats = publisert minus 1,00 øre.
+    """
+
+    @pytest.mark.parametrize(
+        ("dso_id", "laveste_trinn", "vinter_dag", "sommer_dag"),
+        [
+            ("area_nett_omrade1", 525, 0.2989, 0.2689),
+            ("area_nett_omrade2", 390, 0.2989, 0.2689),
+            ("area_nett_omrade3", 358, 0.269, 0.239),
+        ],
+    )
+    def test_omrade_har_egen_tariff(self, dso_id, laveste_trinn, vinter_dag, sommer_dag):
+        dso = DSO_LIST[dso_id]
+        assert kapasitetsledd_for_power(1.0, dso) == laveste_trinn
+        perioder = {p["fra"]: p for p in dso["energiledd_perioder"]}
+        assert perioder["01-01"]["dag_eks_mva"] == pytest.approx(vinter_dag)
+        assert perioder["04-01"]["dag_eks_mva"] == pytest.approx(sommer_dag)
+
+    def test_publisert_sats_er_ren_pluss_enova(self):
+        """Område 1 vinter dag: 29,89 + 1,00 Enova = 30,89 øre, som prisbladet."""
+        dso = DSO_LIST["area_nett_omrade1"]
+        assert dso["energiledd_dag_eks_mva"] + ENOVA_AVGIFT == pytest.approx(0.3089)
+
+    def test_omradene_har_ulikt_fastledd(self):
+        """Hele grunnen til splitten: prisene spriker med 167 kr/mnd."""
+        laveste = [
+            kapasitetsledd_for_power(1.0, DSO_LIST[d])
+            for d in ("area_nett_omrade1", "area_nett_omrade2", "area_nett_omrade3")
+        ]
+        assert len(set(laveste)) == 3
+        assert max(laveste) - min(laveste) == 167
+
+    def test_gammel_oppforing_er_utfaset_og_peker_videre(self):
+        gammel = DSO_LIST["area_nett"]
+        assert gammel["supported"] is False
+        assert gammel["delt_i"] == [
+            "area_nett_omrade1",
+            "area_nett_omrade2",
+            "area_nett_omrade3",
+        ]
+        assert all(nytt in DSO_LIST for nytt in gammel["delt_i"])
+
+    def test_alle_omrader_er_tiltakssone(self):
+        """Finnmark og Nord-Troms: fritak for både forbruksavgift og mva."""
+        for d in ("area_nett_omrade1", "area_nett_omrade2", "area_nett_omrade3"):
+            assert DSO_LIST[d]["tiltakssone"] is True

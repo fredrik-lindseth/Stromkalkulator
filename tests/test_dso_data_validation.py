@@ -13,7 +13,12 @@ from stromkalkulator.const import (
     MVA_SATS,
     resolve_avgiftssone,
 )
-from stromkalkulator.dso import DSO_LIST, DSOEntry
+from stromkalkulator.dso import (
+    DSO_LIST,
+    FASTLEDD_TRINNBASERTE,
+    DSOEntry,
+    hent_fastledd_metode,
+)
 
 VALID_PRISOMRADER = {"NO1", "NO2", "NO3", "NO4", "NO5"}
 REQUIRED_FIELDS = {
@@ -110,10 +115,21 @@ class TestDSOEnergiledd:
 
 
 class TestDSOKapasitetstrinn:
-    """Kapasitetstrinn must be sorted, with valid structure."""
+    """Kapasitetstrinn must be sorted, with valid structure.
+
+    Gjelder bare nettselskap som faktisk har kW-trinn. Alut og Netera fakturerer
+    etter sikringsstørrelse og Fjellnett etter en lineær sats, så de har tomme
+    lister med vilje. Strukturen deres testes i test_fastledd_metoder.py.
+    """
+
+    @staticmethod
+    def _krev_trinn(dso_id, data):
+        if hent_fastledd_metode(data) not in FASTLEDD_TRINNBASERTE:
+            pytest.skip(f"{dso_id} har ikke kW-trinn ({hent_fastledd_metode(data)})")
 
     def test_has_at_least_one_trinn(self, dso_entry):
         dso_id, data = dso_entry
+        self._krev_trinn(dso_id, data)
         assert len(data["kapasitetstrinn"]) >= 1, (
             f"{dso_id}: kapasitetstrinn skal ha minst ett trinn"
         )
@@ -121,6 +137,7 @@ class TestDSOKapasitetstrinn:
     def test_last_trinn_has_inf_or_high_max(self, dso_entry):
         """Last tier must have float('inf') threshold (tuple) or high max (dict)."""
         dso_id, data = dso_entry
+        self._krev_trinn(dso_id, data)
         last = data["kapasitetstrinn"][-1]
         if isinstance(last, dict):
             # Dict format: check max is very high (catch-all)
@@ -314,3 +331,45 @@ class TestDSOListIntegrity:
         names = [entry["name"] for entry in DSO_LIST.values()]
         duplicates = [n for n in names if names.count(n) > 1]
         assert not duplicates, f"Dupliserte DSO-navn: {set(duplicates)}"
+
+    def test_ingen_utilsiktet_delte_kapasitetstrinn(self):
+        """Identiske trinn-lister på tvers av nettselskap er et mal-symptom.
+
+        Fjorten nettselskap delte én oppdiktet mal (200/300/450/... kr/mnd) fra
+        april til juli 2026 uten at noen test fanget det. Se incident 006. Ekte
+        deling må føres opp i TILLATT_DELT med begrunnelse.
+        """
+        # Nettselskap som med rette har samme tariff, med grunn.
+        TILLATT_DELT = {
+            frozenset({"elvia", "rakkestad_energi"}): "Rakkestad er del av Elvia",
+            frozenset({"area_nett", "area_nett_omrade2"}): (
+                "Utfaset area_nett bruker område 2 som interim til brukeren "
+                "velger område, se delt_i i dso.py"
+            ),
+        }
+
+        etter_trinn: dict[tuple, set[str]] = {}
+        for dso_id, data in DSO_LIST.items():
+            if dso_id == "custom":
+                continue
+            trinn = data["kapasitetstrinn"]
+            if not trinn:
+                # Sikringsbasert og lineært fastledd har ingen trinn å dele.
+                # Prisene deres sammenlignes i test_fastledd_metoder.py.
+                continue
+            if isinstance(trinn[0], dict):
+                nøkkel = tuple((t["min"], t["max"], t["pris"]) for t in trinn)
+            else:
+                nøkkel = tuple((g, p) for g, p in trinn)
+            etter_trinn.setdefault(nøkkel, set()).add(dso_id)
+
+        uventet = [
+            gruppe
+            for gruppe in etter_trinn.values()
+            if len(gruppe) > 1 and frozenset(gruppe) not in TILLATT_DELT
+        ]
+        assert not uventet, (
+            f"Nettselskap deler identiske kapasitetstrinn uten begrunnelse: {uventet}. "
+            "Hent trinnene fra nettselskapets prisliste eller fri-nettleie, eller "
+            "før opp delingen i TILLATT_DELT."
+        )

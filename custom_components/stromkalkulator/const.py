@@ -25,6 +25,11 @@ CONF_BOLIGTYPE: Final[str] = "boligtype"
 CONF_EXPORT_POWER_SENSOR: Final[str] = "export_power_sensor"
 CONF_ENERGY_SENSOR: Final[str] = "energy_sensor"
 CONF_SPOTPRIS_INKL_MVA: Final[str] = "spotpris_inkl_mva"
+# Sikringsstørrelse (overbelastningsvern) for nettselskap som fakturerer
+# fastledd etter sikring i stedet for målt effekt. Verdien er `id`-en til en rad
+# i DSO-ens `fastledd_sikringstrinn`. Fravær betyr "ikke valgt", og skal aldri
+# tolkes som laveste trinn. Se docs/beregninger.md#kapasitetsledd.
+CONF_SIKRINGSTRINN: Final[str] = "sikringstrinn"
 
 # Avgiftssoner for forbruksavgift og mva
 # Kilde: merverdiavgiftsloven § 6-6 (mva-fritak for Nordland, Troms, Finnmark)

@@ -34,6 +34,16 @@
           "export_power_sensor": "Power sensor for export to the grid (OBIS 2.7.0), for prosumers with solar panels only. Used to calculate export revenue and net monthly cost. Skip if you don't have solar panels."
         }
       },
+      "sikring": {
+        "title": "Main fuse size",
+        "description": "{dso} charges the fixed grid fee by the size of your main fuse (overcurrent protection), not by the power you draw. Pick the row printed on your grid invoice or in your fuse box. If in doubt, ask {dso}; this cannot be read from the meter.",
+        "data": {
+          "sikringstrinn": "Main fuse"
+        },
+        "data_description": {
+          "sikringstrinn": "The rows are quoted verbatim from the grid company price list. Note that the rate can depend on system voltage (230 V or 400 V)."
+        }
+      },
       "pricing": {
         "title": "Custom pricing",
         "description": "Select your tax zone and enter energy tariff prices in NOK/kWh (incl. taxes).",
@@ -51,6 +61,7 @@
         "description": "Change grid company, sensors, or Norgespris settings.",
         "data": {
           "tso": "Grid company",
+          "sikringstrinn": "Main fuse",
           "boligtype": "Property type",
           "avgiftssone": "Tax zone",
           "har_norgespris": "I have Norgespris",
@@ -66,6 +77,7 @@
         },
         "data_description": {
           "boligtype": "Residence: Subsidy up to 5000 kWh/month, Norgespris up to 5000 kWh/month. Holiday home: No subsidy, Norgespris up to 1000 kWh/month. Holiday home (permanent residence): Same as residence (Regulation § 11).",
+          "sikringstrinn": "The rows are quoted verbatim from the grid company price list. Note that the rate can depend on system voltage (230 V or 400 V).",
           "avgiftssone": "Set automatically from grid company. Override only if you know you belong to a different zone.",
           "har_norgespris": "Enable if you have opted for Norgespris from your grid company. Fixed price (50 øre/kWh in southern Norway, 40 øre in northern Norway) for the first 5000 kWh per month (1000 kWh for holiday homes). Consumption above the limit is billed at spot price.",
           "power_sensor": "Sensor showing current power consumption in watts, e.g. from HAN port, Tibber Pulse, or P1 meter.",
@@ -97,6 +109,7 @@
         "description": "Change grid company, sensors, or Norgespris settings.",
         "data": {
           "tso": "Grid company",
+          "sikringstrinn": "Main fuse",
           "boligtype": "Property type",
           "avgiftssone": "Tax zone",
           "har_norgespris": "I have Norgespris",
@@ -112,6 +125,7 @@
         },
         "data_description": {
           "boligtype": "Residence: Subsidy up to 5000 kWh/month, Norgespris up to 5000 kWh/month. Holiday home: No subsidy, Norgespris up to 1000 kWh/month. Holiday home (permanent residence): Same as residence (Regulation § 11).",
+          "sikringstrinn": "The rows are quoted verbatim from the grid company price list. Note that the rate can depend on system voltage (230 V or 400 V).",
           "avgiftssone": "Set automatically from grid company. Override only if you know you belong to a different zone.",
           "har_norgespris": "Enable if you have opted for Norgespris from your grid company. Fixed price (50 øre/kWh in southern Norway, 40 øre in northern Norway) for the first 5000 kWh per month (1000 kWh for holiday homes). Consumption above the limit is billed at spot price.",
           "power_sensor": "Sensor showing current power consumption in watts, e.g. from HAN port, Tibber Pulse, or P1 meter.",
@@ -129,65 +143,170 @@
   },
   "entity": {
     "button": {
-      "lag_fakturarapport": { "name": "Generate invoice verification report" }
+      "lag_fakturarapport": {
+        "name": "Generate invoice verification report"
+      }
     },
     "binary_sensor": {
-      "kapasitet_varsel": { "name": "Capacity warning" },
-      "norgespris_aktiv": { "name": "Norgespris active now" },
-      "stromstotte_aktiv": { "name": "Electricity subsidy active now" }
+      "kapasitet_varsel": {
+        "name": "Capacity warning"
+      },
+      "norgespris_aktiv": {
+        "name": "Norgespris active now"
+      },
+      "stromstotte_aktiv": {
+        "name": "Electricity subsidy active now"
+      }
     },
     "sensor": {
-      "energiledd": { "name": "Energy tariff" },
-      "kapasitetstrinn": { "name": "Capacity tier" },
-      "total_price": { "name": "Total price (before subsidy)" },
-      "strompris_per_kwh": { "name": "Electricity price per kWh" },
-      "maks_forbruk": { "name": "Peak demand" },
-      "gjs_forbruk": { "name": "Average peak demand" },
-      "trinn_nummer": { "name": "Capacity tier (number)" },
-      "trinn_intervall": { "name": "Capacity tier (range)" },
-      "offentlige_avgifter": { "name": "Government fees" },
-      "electricity_company_total": { "name": "Total price (provider)" },
-      "stromstotte": { "name": "Electricity subsidy" },
-      "spotpris_etter_stotte": { "name": "Spot price after subsidy" },
-      "total_pris_etter_stotte": { "name": "Total price after subsidy" },
-      "total_pris_inkl_avgifter": { "name": "Total price incl. fees" },
-      "strompris_per_kwh_etter_stotte": { "name": "Electricity price per kWh (after subsidy)" },
-      "total_pris_norgespris": { "name": "Total price (Norgespris)" },
-      "strompris_norgespris": { "name": "Electricity price (Norgespris scheme)" },
-      "prisforskjell_norgespris": { "name": "Price difference (Norgespris)" },
-      "energiledd_dag": { "name": "Energy tariff day" },
-      "energiledd_natt": { "name": "Energy tariff night/weekend" },
-      "forbruksavgift": { "name": "Consumption tax" },
-      "enovaavgift": { "name": "Enova fee" },
+      "energiledd": {
+        "name": "Energy tariff"
+      },
+      "kapasitetstrinn": {
+        "name": "Capacity tier"
+      },
+      "total_price": {
+        "name": "Total price (before subsidy)"
+      },
+      "strompris_per_kwh": {
+        "name": "Electricity price per kWh"
+      },
+      "maks_forbruk": {
+        "name": "Peak demand"
+      },
+      "gjs_forbruk": {
+        "name": "Average peak demand"
+      },
+      "trinn_nummer": {
+        "name": "Capacity tier (number)"
+      },
+      "trinn_intervall": {
+        "name": "Capacity tier (range)"
+      },
+      "offentlige_avgifter": {
+        "name": "Government fees"
+      },
+      "electricity_company_total": {
+        "name": "Total price (provider)"
+      },
+      "stromstotte": {
+        "name": "Electricity subsidy"
+      },
+      "spotpris_etter_stotte": {
+        "name": "Spot price after subsidy"
+      },
+      "total_pris_etter_stotte": {
+        "name": "Total price after subsidy"
+      },
+      "total_pris_inkl_avgifter": {
+        "name": "Total price incl. fees"
+      },
+      "strompris_per_kwh_etter_stotte": {
+        "name": "Electricity price per kWh (after subsidy)"
+      },
+      "total_pris_norgespris": {
+        "name": "Total price (Norgespris)"
+      },
+      "strompris_norgespris": {
+        "name": "Electricity price (Norgespris scheme)"
+      },
+      "prisforskjell_norgespris": {
+        "name": "Price difference (Norgespris)"
+      },
+      "energiledd_dag": {
+        "name": "Energy tariff day"
+      },
+      "energiledd_natt": {
+        "name": "Energy tariff night/weekend"
+      },
+      "forbruksavgift": {
+        "name": "Consumption tax"
+      },
+      "enovaavgift": {
+        "name": "Enova fee"
+      },
       "tariff": {
         "name": "Tariff",
-        "state": { "dag": "Day", "natt": "Night" }
+        "state": {
+          "dag": "Day",
+          "natt": "Night"
+        }
       },
-      "maanedlig_forbruk_dag": { "name": "Monthly consumption day tariff" },
-      "maanedlig_forbruk_natt": { "name": "Monthly consumption night/weekend" },
-      "maanedlig_forbruk_total": { "name": "Monthly consumption total" },
-      "maanedlig_nettleie": { "name": "Monthly grid tariff" },
-      "maanedlig_avgifter": { "name": "Monthly fees" },
-      "maanedlig_stromstotte": { "name": "Monthly electricity subsidy" },
-      "maanedlig_total": { "name": "Monthly grid tariff total" },
-      "forrige_maaned_forbruk_dag": { "name": "Last month consumption day tariff" },
-      "forrige_maaned_forbruk_natt": { "name": "Last month consumption night/weekend" },
-      "forrige_maaned_forbruk_total": { "name": "Last month consumption total" },
-      "forrige_maaned_nettleie": { "name": "Last month grid tariff" },
-      "forrige_maaned_toppforbruk": { "name": "Last month peak demand" },
-      "margin_neste_trinn": { "name": "Margin to next tier" },
-      "stromstotte_gjenstaaende": { "name": "Electricity subsidy remaining" },
-      "maanedlig_norgespris_diff": { "name": "Norgespris savings" },
-      "maanedlig_norgespris_kompensasjon": { "name": "Norgespris compensation" },
-      "forrige_maaned_norgespris_kompensasjon": { "name": "Last month Norgespris compensation" },
-      "estimert_maanedskostnad": { "name": "Estimated monthly cost" },
-      "dagskostnad": { "name": "Today's cost" },
-      "akkumulert_kostnad": { "name": "Accumulated electricity cost" },
-      "maanedlig_eksport_kwh": { "name": "Monthly export" },
-      "maanedlig_eksport_inntekt": { "name": "Monthly export revenue" },
-      "maanedlig_nettokostnad": { "name": "Monthly net cost" },
-      "forrige_maaned_eksport_kwh": { "name": "Last month export" },
-      "forrige_maaned_eksport_inntekt": { "name": "Last month export revenue" }
+      "maanedlig_forbruk_dag": {
+        "name": "Monthly consumption day tariff"
+      },
+      "maanedlig_forbruk_natt": {
+        "name": "Monthly consumption night/weekend"
+      },
+      "maanedlig_forbruk_total": {
+        "name": "Monthly consumption total"
+      },
+      "maanedlig_nettleie": {
+        "name": "Monthly grid tariff"
+      },
+      "maanedlig_avgifter": {
+        "name": "Monthly fees"
+      },
+      "maanedlig_stromstotte": {
+        "name": "Monthly electricity subsidy"
+      },
+      "maanedlig_total": {
+        "name": "Monthly grid tariff total"
+      },
+      "forrige_maaned_forbruk_dag": {
+        "name": "Last month consumption day tariff"
+      },
+      "forrige_maaned_forbruk_natt": {
+        "name": "Last month consumption night/weekend"
+      },
+      "forrige_maaned_forbruk_total": {
+        "name": "Last month consumption total"
+      },
+      "forrige_maaned_nettleie": {
+        "name": "Last month grid tariff"
+      },
+      "forrige_maaned_toppforbruk": {
+        "name": "Last month peak demand"
+      },
+      "margin_neste_trinn": {
+        "name": "Margin to next tier"
+      },
+      "stromstotte_gjenstaaende": {
+        "name": "Electricity subsidy remaining"
+      },
+      "maanedlig_norgespris_diff": {
+        "name": "Norgespris savings"
+      },
+      "maanedlig_norgespris_kompensasjon": {
+        "name": "Norgespris compensation"
+      },
+      "forrige_maaned_norgespris_kompensasjon": {
+        "name": "Last month Norgespris compensation"
+      },
+      "estimert_maanedskostnad": {
+        "name": "Estimated monthly cost"
+      },
+      "dagskostnad": {
+        "name": "Today's cost"
+      },
+      "akkumulert_kostnad": {
+        "name": "Accumulated electricity cost"
+      },
+      "maanedlig_eksport_kwh": {
+        "name": "Monthly export"
+      },
+      "maanedlig_eksport_inntekt": {
+        "name": "Monthly export revenue"
+      },
+      "maanedlig_nettokostnad": {
+        "name": "Monthly net cost"
+      },
+      "forrige_maaned_eksport_kwh": {
+        "name": "Last month export"
+      },
+      "forrige_maaned_eksport_inntekt": {
+        "name": "Last month export revenue"
+      }
     }
   },
   "issues": {
@@ -210,9 +329,17 @@
         }
       }
     },
+    "sikringstrinn_mangler": {
+      "title": "Main fuse size missing",
+      "description": "{dso} charges the fixed grid fee by your main fuse size, which cannot be read from the meter. Until you pick it, the capacity tier sensor stays unknown and the fixed fee is missing from monthly cost and invoice estimates. Open Settings > Devices & Services > Strømkalkulator > Configure and pick the row printed on your grid invoice."
+    },
     "spotpris_mva_check": {
       "title": "Spot price handling updated",
       "description": "Stromkalkulator now treats the spot price sensor as excluding VAT (correct for the HA-core Nord Pool integration). The code previously assumed including VAT, which caused 25 % errors in electricity subsidy and total price in Southern Norway. Most users don't need to do anything.\n\nYou ONLY need to act if your spot price sensor already delivers prices including VAT. That applies if you have a custom template sensor that adds 25 %, or use the older custom_components/nordpool with VAT=true. In that case: open Strømkalkulator settings (Settings > Devices & Services > Strømkalkulator > Configure) and turn ON 'Spot price sensor delivers prices including VAT'."
+    },
+    "dso_delt": {
+      "title": "Your grid company is split into several price areas",
+      "description": "{dso} has several price areas with different rates, and your address decides which one applies. We cannot pick for you. Open the Strømkalkulator settings and select the right area from: {omrader}. Until you do, the integration uses the middle area, so your grid tariff may be wrong."
     }
   }
 }

@@ -75,14 +75,49 @@ Konsekvens: for spot-kunder gir et enkelt flertimers-avbrudd typisk et avvik på
 
 Bevisst valg. En tidsriktig spot-korreksjon krever historiske timespriser for gap-vinduet, som coordinatoren ikke har tilgang til. Riemann-stien (uten `energy_sensor`) rammes ikke: der forkastes gap-forbruk over 6 minutter helt.
 
+## 9. Fem nettselskap har en annen kapasitetsledd-modell
+
+Kapasitetsleddet beregnes som snittet av de tre høyeste døgnmaksene i måneden. Det er modellen NVE anbefaler, og 68 av 73 nettselskap bruker den. Fem gjør noe annet. Alle fem er nå implementert etter sin egen modell, men de har hver sin restbegrensning:
+
+| Nettselskap       | Metode          | Hva som gjelder nå                                                             |
+| ----------------- | --------------- | ------------------------------------------------------------------------------ |
+| Sør Aurdal Energi | `MND_MAX`       | Månedsmaksen bestemmer trinnet. Ingen restbegrensning.                         |
+| Alut, Netera      | `OV_TREFASE`    | Fastledd etter hovedsikring. Du må velge sikringsstørrelsen selv.              |
+| Fjellnett         | `FEM_VEKTET_ÅR` | Lineær sats fra fem sesongvektede ukestopper. Trenger tolv måneders historikk. |
+| Tinfos            | `UKJENT`        | Nettselskapet publiserer ikke metoden. Beløpet er merket uverifisert.          |
+
+**Alut og Netera** fakturerer etter størrelsen på hovedsikringen, som ingen sensor kan lese. Du velger raden fra prislisten i oppsettet, eller under Configure hvis du hadde integrasjonen fra før. Til den er valgt, står kapasitetstrinn-sensoren som Ukjent, og fastleddet mangler i månedskostnad og fakturaestimat. Det er et bevisst valg: et gjettet trinn ville sett riktig ut og vært feil, og hos Netera skiller trinnene seg med en faktor to.
+
+**Fjellnett** har ingen trinn. Fastleddet er grunnbeløp pluss en sats per kW, der kW er snittet av de fem høyeste ukestoppene over løpende tolv måneder, sesongvektet. Vi bygger opp den historikken fra dagen du installerer integrasjonen, så det første året viser sensoren for lite (i starten bare grunnbeløpet) og konvergerer mot riktig beløp over tolv måneder. Vi kan ikke hente historikk bakover, den ligger hos Fjellnett og i Elhub. Beløpet rundes til hele kroner per måned, som resten av satsene, altså opptil 50 øre/mnd unna Fjellnetts øre-eksakte beløp.
+
+**Tinfos** publiserer ikke tariffen sin, og fri-nettleie har sendt dem en forespørsel uten å få svar. Trinnprisene stemmer, men ingen av kildene vet hvilken kW-verdi de slås opp med. Vi regner med NVE-modellen og setter attributtet `metode_uverifisert` på sensoren. Har du en Tinfos-faktura, se [bidra med faktura](fakturaer/bidra-med-faktura.md).
+
+Metodenavnene er fri-nettleies. Detaljer i [beregninger.md](beregninger.md#nettselskap-med-en-annen-metode), historikken i [incident 006](incidents/006-kapasitetstrinn-uten-kilde.md).
+
+To ting til om Fjellnett: energiledd og fastledd følger nettselskapets egen prisliste fra 01.07.2026, mens fri-nettleie fortsatt har 01.01.2026-tariffen. Avviket er ført opp i `KJENTE_AVVIK` i drift-vakten og fjernes når fri-nettleie er oppdatert.
+
+## 10. Tre nettselskap vi ikke får verifisert godt nok
+
+Drift-vakten sammenligner mot fri-nettleie hver uke, men den fanger bare det begge kildene ser. Disse tre har et hull ingen av dem dekker.
+
+**Area Nett** har tre prisområder med ulik pris, og hvilket som gjelder avgjøres av adressen. Du velger området selv i oppsettet: område 1 (Nordkapp, Måsøy), område 2 (Karasjok, Porsanger) eller område 3 (Gamvik, Lebesby). Har du integrasjonen fra før, står du på den utfasede oppføringen som regner med område 2, og et repair-varsel ber deg velge. Laveste trinn spriker fra 358 til 525 kr/mnd mellom områdene, så valget betyr noe. Kilde er Areas eget prisblad for 2026. For område 1 avviker fri-nettleie i de tre øverste trinnene, ført opp i `KJENTE_AVVIK`.
+
+**Arva** publiserer prisene med JavaScript, så siden er ikke lesbar uten nettleser, og fri-nettleies `arva.yml` er sist oppdatert 22. oktober 2024. Satsene våre matcher fri-nettleie eksakt, men begge kan ha stått stille siden 2024. En tidligere kommentar i `dso.py` påsto at Arva har sesongpriser, uten kilde på sommersatsen og uten at det var implementert, altså brukte vi vintersatsen hele året på en ubekreftet påstand. Påstanden er fjernet. Har du en Arva-faktura, er den spesielt nyttig.
+
+**Tinfos** er dekket i punkt 9. Ingen kilde finnes for metoden.
+
+Felles for alle tre: se [bidra med faktura](fakturaer/bidra-med-faktura.md).
+
+Area Nett mangler fortsatt kapasitetstrinn vi kan verifisere maskinelt: fri-nettleie deler selskapet i fire regioner med ulik pris.
+
 ## Sammendrag
 
 Reelle avvik som påvirker brukeren:
 
-| Type                   | Worst case | Typisk       | Konsekvens                   |
-| ---------------------- | ---------- | ------------ | ---------------------------- |
+| Type                   | Worst case | Typisk         | Konsekvens                                      |
+| ---------------------- | ---------- | -------------- | ----------------------------------------------- |
 | Norgespris prisårgang  | ~1 kr/mnd  | 0,1-0,6 kr/mnd | Kun løpende sensor, verifisering treffer eksakt |
-| Strømstøtte-beregning  | 30 kr/mnd  | 30 kr/mnd    | Kun for teoretisk visning    |
-| Kapasitetstrinn-grense | 165 kr/mnd | 0            | Kun hvis permanent på grense |
+| Strømstøtte-beregning  | 30 kr/mnd  | 30 kr/mnd      | Kun for teoretisk visning                       |
+| Kapasitetstrinn-grense | 165 kr/mnd | 0              | Kun hvis permanent på grense                    |
 
 Total typisk ukjent feil: under 5 kr/mnd for vanlig bruker. Under 0,1 % av total fakturasum. Integrasjonen kan trygt brukes for fakturakontroll og fanger reelle feil i størrelsesorden 50 kr+.

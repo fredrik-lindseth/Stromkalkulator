@@ -55,7 +55,7 @@ Grunnen er broadcast-frekvensen på kildesensoren. Effektsensoren (`p` fra Kaifa
 git clone https://github.com/fredrik-lindseth/Stromkalkulator.git
 cd Stromkalkulator
 pip install ruff pytest
-pipx run --with hypothesis pytest tests/ -v
+pipx run --with hypothesis --with pyyaml pytest tests/ -v
 ruff check custom_components/stromkalkulator/
 ```
 
@@ -67,7 +67,7 @@ ssh ha-local "ha core restart"
 ssh ha-local "ha core logs" | grep -i stromkalkulator
 ```
 
-`rsync` speiler hele katalogen (inkl. `button.py`, `diagnostics.py`, `strings.json`, `translations/`), så en ny fil i `custom_components/stromkalkulator/` havner automatisk på HA-instansen. En fillistet loop råtner hver gang det legges til en fil — det er nettopp det som skjedde med `button.py` og `translations/` her.
+`rsync` speiler hele katalogen (inkl. `button.py`, `diagnostics.py`, `strings.json`, `translations/`), så en ny fil i `custom_components/stromkalkulator/` havner automatisk på HA-instansen. En fillistet loop råtner hver gang det legges til en fil, det er nettopp det som skjedde med `button.py` og `translations/` her.
 
 Etter en rsync kjører HA-en din arbeidstreet, ikke den publiserte releasen, og HACS vet ingenting om det. Usluppet arbeid, som en enhetsendring på en sensor, slår da ut som repairs hos deg alene. Kjør `git log v$(git describe --tags --abbrev=0)..HEAD` før du konkluderer med at en release er skyld i noe du ser lokalt.
 
@@ -79,7 +79,7 @@ ssh ha-local "ha core restart"
 # I HA UI: HACS > Integrations > Stromkalkulator > Download, restart igjen
 ```
 
-Har dev-builden bumpet `config_flow.VERSION` (f.eks. 3→4), er nedgraderingen enveis: migreringen løftet config-entry-en din til det nye nummeret, og en eldre release med lavere VERSION nekter å laste den (`Config entry ... has version 4 which is higher than the current version 3`, vises som «Migreringsfeil» i UI-et). Deploy da en build med minst like høy VERSION i stedet for å gå tilbake til releasen. Dette treffer bare deg — ingen utgitt versjon kan produsere en entry som er nyere enn seg selv.
+Har dev-builden bumpet `config_flow.VERSION` (f.eks. 3→4), er nedgraderingen enveis: migreringen løftet config-entry-en din til det nye nummeret, og en eldre release med lavere VERSION nekter å laste den (`Config entry ... has version 4 which is higher than the current version 3`, vises som «Migreringsfeil» i UI-et). Deploy da en build med minst like høy VERSION i stedet for å gå tilbake til releasen. Dette treffer bare deg, ingen utgitt versjon kan produsere en entry som er nyere enn seg selv.
 
 ## Vanlige oppgaver
 
@@ -96,13 +96,13 @@ ssh ha-local "ha core logs" | grep -i stromkalkulator
 
 Diagnostikk-nedlasting: Settings > Devices & Services > Strømkalkulator > tre-prikk-menyen > **Last ned diagnostikk**. JSON-en (`diagnostics.py`) inneholder integrasjons-versjon, konfigurasjon, sensor-entitets-ID-er, DSO-data og coordinator-data. Legg den gjerne ved i issues.
 
-| Feil                 | Årsak                     | Løsning                             |
-| -------------------- | ------------------------- | ----------------------------------- |
-| `ImportError`        | fil på HA er utdatert     | kopier oppdatert fil                |
-| `Entity unavailable` | kildesensor mangler       | sjekk effekt/spotpris-sensor finnes |
-| Feil kapasitetstrinn | data bygges over tid      | vent eller opprett testdata         |
-| Feil dag/natt        | helligdag ikke registrert | beregnes fra påskeformelen          |
-| `has version N higher than current M` | dev-build bumpet `config_flow.VERSION` og migrerte entry-en; du kjører nå en eldre release | deploy build med VERSION ≥ N |
+| Feil                                  | Årsak                                                                                      | Løsning                             |
+| ------------------------------------- | ------------------------------------------------------------------------------------------ | ----------------------------------- |
+| `ImportError`                         | fil på HA er utdatert                                                                      | kopier oppdatert fil                |
+| `Entity unavailable`                  | kildesensor mangler                                                                        | sjekk effekt/spotpris-sensor finnes |
+| Feil kapasitetstrinn                  | data bygges over tid                                                                       | vent eller opprett testdata         |
+| Feil dag/natt                         | helligdag ikke registrert                                                                  | beregnes fra påskeformelen          |
+| `has version N higher than current M` | dev-build bumpet `config_flow.VERSION` og migrerte entry-en; du kjører nå en eldre release | deploy build med VERSION ≥ N        |
 
 ### Testdata for kapasitetstrinn
 

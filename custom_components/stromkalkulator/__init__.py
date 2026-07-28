@@ -18,6 +18,7 @@ from .const import (
     CONF_ENERGILEDD_DAG,
     CONF_ENERGILEDD_NATT,
     CONF_HAR_NORGESPRIS,
+    CONF_SIKRINGSTRINN,
     CONF_SPOTPRIS_INKL_MVA,
     DEFAULT_DSO,
     DOMAIN,
@@ -29,7 +30,14 @@ from .const import (
     resolve_avgiftssone,
 )
 from .coordinator import NettleieCoordinator
-from .dso import DSO_LIST, DSO_MIGRATIONS, DSOFusjon
+from .dso import (
+    DSO_LIST,
+    DSO_MIGRATIONS,
+    FASTLEDD_OV_TREFASE,
+    DSOFusjon,
+    finn_sikringstrinn,
+    hent_fastledd_metode,
+)
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -253,8 +261,74 @@ async def async_setup_entry(hass: HomeAssistant, entry: StromkalkulatorConfigEnt
     entry.async_on_unload(entry.add_update_listener(_async_update_options))
 
     _check_stale_rates(hass, entry)
+    _check_sikringstrinn(hass, entry)
+    _check_delt_dso(hass, entry)
 
     return True
+
+
+def _check_delt_dso(hass: HomeAssistant, entry: StromkalkulatorConfigEntry) -> None:
+    """Varsle hvis nettselskapet er delt i flere prisområder.
+
+    Area Nett har tre områder med ulik pris, og hvilket som gjelder avgjøres av
+    adressen. En fusjon kan migreres automatisk (DSO_MIGRATIONS), men en splitt
+    kan ikke: bare brukeren vet hvor anlegget står. Vi regner videre med det
+    midterste området i mellomtiden, så sensorene ikke blir utilgjengelige, og
+    varselet forteller at valget må tas.
+    """
+    issue_id = f"dso_delt_{entry.entry_id}"
+    dso_id = entry.data.get(CONF_DSO, DEFAULT_DSO)
+    dso = DSO_LIST.get(dso_id)
+    delt_i = dso.get("delt_i") if dso else None
+    if dso is not None and delt_i:
+        ir.async_create_issue(
+            hass,
+            DOMAIN,
+            issue_id,
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="dso_delt",
+            translation_placeholders={
+                "dso": dso["name"],
+                "omrader": ", ".join(
+                    DSO_LIST[nytt]["name"] for nytt in delt_i if nytt in DSO_LIST
+                ),
+            },
+        )
+    else:
+        ir.async_delete_issue(hass, DOMAIN, issue_id)
+
+
+def _check_sikringstrinn(hass: HomeAssistant, entry: StromkalkulatorConfigEntry) -> None:
+    """Varsle hvis et sikringsbasert fastledd står uten gyldig valg.
+
+    Alut og Netera fakturerer fastledd etter overbelastningsvernets størrelse,
+    som ikke kan leses av en effektsensor. Nye oppsett spør om det i
+    config-flowen, men to grupper kan havne uten valg: brukere som hadde et av
+    nettselskapene fra før feltet fantes, og brukere som bytter til et av dem i
+    innstillingene (der feltet først dukker opp neste gang skjemaet åpnes).
+    Kapasitetsledd-sensoren står som Ukjent i mellomtiden, framfor å vise et
+    plausibelt gjettet beløp.
+    """
+    issue_id = f"sikringstrinn_mangler_{entry.entry_id}"
+    dso = DSO_LIST.get(entry.data.get(CONF_DSO, DEFAULT_DSO))
+    mangler = (
+        dso is not None
+        and hent_fastledd_metode(dso) == FASTLEDD_OV_TREFASE
+        and finn_sikringstrinn(dso, entry.data.get(CONF_SIKRINGSTRINN)) is None
+    )
+    if mangler and dso is not None:
+        ir.async_create_issue(
+            hass,
+            DOMAIN,
+            issue_id,
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="sikringstrinn_mangler",
+            translation_placeholders={"dso": dso["name"]},
+        )
+    else:
+        ir.async_delete_issue(hass, DOMAIN, issue_id)
 
 
 def _check_stale_rates(hass: HomeAssistant, entry: StromkalkulatorConfigEntry) -> None:

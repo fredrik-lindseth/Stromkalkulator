@@ -20,6 +20,28 @@ Bestemmes av snittet av maks timesforbruk på de tre dagene med høyest forbruk 
 
 Trinn-tabell og priser ligger per nettselskap i [`dso.py`](../custom_components/stromkalkulator/dso.py).
 
+#### Nettselskap med en annen metode
+
+Modellen over er NVE-modellen, og 68 av 73 nettselskap bruker den. Fem gjør noe annet, og for dem er det ikke tallene men modellen som avgjør om beløpet stemmer. Metoden ligger i `fastledd_metode` per nettselskap, med fri-nettleies navn slik at drift-vakten kan sammenligne dem direkte. Er feltet ikke satt, gjelder NVE-modellen.
+
+| Metode            | Grunnlag                                             | Nettselskap        |
+| ----------------- | ---------------------------------------------------- | ------------------ |
+| `TRE_DØGNMAX_MND` | Snitt av tre høyeste døgnmakser i måneden (default)  | 68 nettselskap     |
+| `MND_MAX`         | Månedens enkeltstående høyeste time                  | Sør Aurdal Energi  |
+| `OV_TREFASE`      | Hovedsikringens størrelse, ikke målt effekt          | Alut, Netera       |
+| `FEM_VEKTET_ÅR`   | Fem sesongvektede ukestopper, løpende tolv måneder   | Fjellnett          |
+| `UKJENT`          | Ikke publisert, regnes som NVE-modellen              | Tinfos             |
+
+**`MND_MAX`** slår opp i samme trinn-tabell, men med månedsmaksen i stedet for snittet. Sør Aurdal skriver trinnene som "fra [kW] - til og med [kW]", så eksakt grensetreff hører til det lavere trinnet (`terskel_inkludert: False`).
+
+**`OV_TREFASE`** kan ikke utledes fra effektsensoren. Brukeren velger raden fra nettselskapets egen prisliste i oppsettet (`sikringstrinn` i config). Vi ber ikke om et amperetall, fordi satsen hos Netera også avhenger av systemspenning (3x230 V IT mot 3x400 V TN), og å utlede raden fra ampere alene ville vært en tolkning vi ikke har grunnlag for. Mangler valget, står kapasitetsledd-sensoren som Ukjent og et repair-varsel ber om at det settes. Vi gjetter ikke på et trinn.
+
+**`FEM_VEKTET_ÅR`** har ingen trinn. Fjellnett regner `grunnbeløp + sats per kW`, der kW er snittet av de fem høyeste ukestoppene over løpende tolv måneder, vektet mot en sesongfaktor per måned (januar 100 %, juni 25 %). Vi holder høyeste time per uke i `weekly_max_power`, nøklet på mandagens dato, og kutter uker eldre enn 52 uker. Vektingen skjer før ukestoppen plukkes ut, slik nettselskapet gjør det, så uker som krysser et månedsskifte blir riktige. Beløpet rundes til hele kroner per måned, som resten av `dso.py`, altså opptil 50 øre/mnd unna nettselskapets øre-eksakte beløp. Nye brukere bygger opp historikk: uten målinger vises bare grunnbeløpet, og verdien konvergerer over tolv måneder.
+
+**`UKJENT`** betyr at nettselskapet ikke publiserer metoden. Tinfos gjør ikke det, og fri-nettleie har en åpen forespørsel til dem. Vi regner med NVE-modellen og setter `metode_uverifisert` på sensoren, framfor å gjette på en annen modell.
+
+Metoden er en sats på lik linje med prisene: `scripts/sjekk_mot_fri_nettleie.py` sammenligner den mot fri-nettleie og feller exit-koden hvis et nettselskap har byttet modell.
+
 ### Energiledd
 
 Skiller mellom dag og natt/helg:
@@ -29,7 +51,7 @@ Skiller mellom dag og natt/helg:
 
 Bevegelige helligdager (påske, pinse, Kristi himmelfartsdag) regnes fra påskeformelen.
 
-Noen DSO-er (Glitre Nett, Tensio TN/TS, Stannum) bruker `helg_som_natt: false`: kun klokkeslett styrer dag/natt. Helger og helligdager er som vanlige hverdager der.
+Noen DSO-er (Glitre Nett, Tensio TN/TS, Nettselskapet, Stannum) bruker `helg_som_natt: false`: kun klokkeslett styrer dag/natt. Helger og helligdager er som vanlige hverdager der.
 
 Noen nettselskap (Tensio, Netera, Nettselskapet, SAE m.fl.) bytter energiledd mellom sommer og vinter. Da har DSO-en `energiledd_perioder` i `dso.py`, og coordinator velger sats etter dato. Energiledd-sensoren får attributtene `sesongprising`, `aktiv_periode` og `perioder`, så du ser hvilken sats som gjelder nå. Bidra med sesongpriser: [contributing.md](contributing.md#sesongpriser).
 

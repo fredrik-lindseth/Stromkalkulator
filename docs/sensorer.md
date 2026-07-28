@@ -50,6 +50,15 @@ Hos nettselskap med sesongpriser bærer Energiledd-sensoren attributtene `sesong
 
 **Kapasitetsvarsel** er en `binary_sensor` som slår til (on) når margin til neste trinn er under terskelen. Terskelen settes i options (Configure), default 2,0 kW. Bruk varselet i automasjoner som skrur ned last før du bikker over i et dyrere trinn.
 
+**Kapasitetstrinn** bærer `fastledd_metode` (nettselskapets modell) og `fastledd_grunnlag_kw` (kW-verdien den modellen faktisk slår opp med). For de 68 nettselskapene som bruker NVE-modellen er `fastledd_grunnlag_kw` det samme som `gjennomsnitt_kw`. To attributter dukker opp bare når de gjelder:
+
+| Attributt                    | Når                                                          |
+| ---------------------------- | ------------------------------------------------------------ |
+| `mangler_sikringsstorrelse`  | Alut og Netera uten valgt hovedsikring. Sensoren er Ukjent.  |
+| `metode_uverifisert`         | Tinfos, som ikke publiserer metoden sin.                     |
+
+Hos Alut og Netera fakturerer nettselskapet etter hovedsikringens størrelse, ikke målt effekt. Den velges i oppsettet eller under Configure. Til den er valgt står sensoren som Ukjent i stedet for å vise et gjettet beløp, og "Margin til neste trinn" og "Kapasitetsvarsel" ligger i ro, siden fastleddet ikke endrer seg med forbruket. Det samme gjelder Fjellnett, som ikke har trinn i det hele tatt. Se [beregninger.md](beregninger.md#nettselskap-med-en-annen-metode).
+
 ### Strømpris
 
 | Sensor                                    | Enhet  | Beskrivelse                                      |
@@ -270,6 +279,7 @@ Finn `entry_id` i URL-en under Settings > Devices & Services > Strømkalkulator.
 | Felt                             | Type   | Beskrivelse                                        |
 | -------------------------------- | ------ | -------------------------------------------------- |
 | `daily_max_power`                | dict   | `{"YYYY-MM-DD": {"kw": float, "hour": int}}`       |
+| `weekly_max_power`               | dict   | Kun Fjellnett: ukestopper, nøklet på mandagsdato   |
 | `monthly_consumption`            | dict   | `{"dag": float, "natt": float}` (kWh)              |
 | `current_month`                  | string | `"YYYY-MM"`                                        |
 | `daily_cost`                     | float  | Dagens akkumulerte kostnad (kr)                    |

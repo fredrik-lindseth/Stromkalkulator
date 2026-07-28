@@ -26,6 +26,7 @@ from .const import (
     CONF_HAR_NORGESPRIS,
     CONF_KAPASITET_VARSEL_TERSKEL,
     CONF_POWER_SENSOR,
+    CONF_SIKRINGSTRINN,
     CONF_SPOT_PRICE_SENSOR,
     CONF_SPOTPRIS_INKL_MVA,
     DEFAULT_DSO,
@@ -37,6 +38,7 @@ from .const import (
     DSO_LIST,
     resolve_avgiftssone,
 )
+from .dso import FASTLEDD_OV_TREFASE, finn_sikringstrinn, hent_fastledd_metode
 
 if TYPE_CHECKING:
     from homeassistant.data_entry_flow import FlowResult
@@ -93,6 +95,30 @@ def _dso_options() -> list[selector.SelectOptionDict]:
     ]
 
 
+def _bruker_sikringstrinn(dso_id: str | None) -> bool:
+    """Om nettselskapet fakturerer fastledd etter sikringsstørrelse."""
+    dso = DSO_LIST.get(dso_id or "")
+    return bool(dso) and hent_fastledd_metode(dso) == FASTLEDD_OV_TREFASE
+
+
+def _sikringstrinn_selector(dso_id: str) -> selector.SelectSelector:
+    """Nedtrekk med nettselskapets egne fastledd-rader, ordrett fra prislisten.
+
+    Vi ber ikke om ampere som et tall, fordi satsen hos flere nettselskap også
+    avhenger av systemspenning (3x230 V IT mot 3x400 V TN). Å utlede raden fra
+    et amperetall alene ville vært en tolkning vi ikke har grunnlag for.
+    """
+    trinn = DSO_LIST[dso_id].get("fastledd_sikringstrinn", [])
+    return selector.SelectSelector(
+        selector.SelectSelectorConfig(
+            options=[
+                selector.SelectOptionDict(value=t["id"], label=t["label"]) for t in trinn
+            ],
+            mode=selector.SelectSelectorMode.LIST,
+        ),
+    )
+
+
 def _config_data_schema(current: dict[str, Any]) -> vol.Schema:
     """Bygg konfigurasjons-skjemaet med defaults fra ``current`` (typisk entry.data).
 
@@ -103,17 +129,34 @@ def _config_data_schema(current: dict[str, Any]) -> vol.Schema:
         selector.SelectOptionDict(value=key, label=label) for key, label in AVGIFTSSONE_OPTIONS.items()
     ]
 
-    return vol.Schema(
-        {
-            vol.Required(
-                CONF_DSO,
-                default=current.get(CONF_DSO, DEFAULT_DSO),
-            ): selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=_dso_options(),
-                    mode=selector.SelectSelectorMode.DROPDOWN,
-                ),
+    felter: dict[Any, Any] = {
+        vol.Required(
+            CONF_DSO,
+            default=current.get(CONF_DSO, DEFAULT_DSO),
+        ): selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=_dso_options(),
+                mode=selector.SelectSelectorMode.DROPDOWN,
             ),
+        ),
+    }
+
+    # Sikringsstørrelse vises kun for nettselskap som fakturerer etter den.
+    # Bytter brukeren til et slikt nettselskap i denne submiten, finnes ikke
+    # feltet ennå; da tømmes valget og et repair-varsel ber om at
+    # innstillingene åpnes på nytt (se __init__.py).
+    dso_id: str = current.get(CONF_DSO, DEFAULT_DSO)
+    if _bruker_sikringstrinn(dso_id):
+        lagret = finn_sikringstrinn(DSO_LIST[dso_id], current.get(CONF_SIKRINGSTRINN))
+        nokkel = (
+            vol.Required(CONF_SIKRINGSTRINN, default=lagret[1]["id"])
+            if lagret
+            else vol.Required(CONF_SIKRINGSTRINN)
+        )
+        felter[nokkel] = _sikringstrinn_selector(dso_id)
+
+    felter.update(
+        {
             vol.Required(
                 CONF_BOLIGTYPE,
                 default=current.get(CONF_BOLIGTYPE, BOLIGTYPE_BOLIG),
@@ -225,6 +268,8 @@ def _config_data_schema(current: dict[str, Any]) -> vol.Schema:
         }
     )
 
+    return vol.Schema(felter)
+
 
 def _apply_dso_derivation(user_input: dict[str, Any], old_dso: str | None) -> None:
     """Re-avled energiledd og avgiftssone ved bytte til et kjent nettselskap.
@@ -234,11 +279,22 @@ def _apply_dso_derivation(user_input: dict[str, Any], old_dso: str | None) -> No
     Egendefinert DSO beholder brukerens felter (samme som ved oppsett).
     """
     new_dso = user_input.get(CONF_DSO)
-    if new_dso != old_dso and new_dso != "custom" and new_dso in DSO_LIST:
+    if new_dso == old_dso:
+        return
+
+    if new_dso != "custom" and new_dso in DSO_LIST:
         dso: DSOEntry = DSO_LIST[new_dso]
         user_input[CONF_ENERGILEDD_DAG] = dso["energiledd_dag_eks_mva"]
         user_input[CONF_ENERGILEDD_NATT] = dso["energiledd_natt_eks_mva"]
         user_input[CONF_AVGIFTSSONE] = resolve_avgiftssone(dso)
+
+    # Et sikringstrinn hører til ett nettselskaps prisliste. Overlever id-en et
+    # bytte, ville den enten peke i tomme luften eller, verre, treffe en rad med
+    # samme id og helt annen pris. Tømmes med vilje, også ved bytte til
+    # Egendefinert, som ikke har sikringstrinn i det hele tatt.
+    ny_dso: DSOEntry | dict[str, Any] = DSO_LIST.get(new_dso or "", {})
+    if finn_sikringstrinn(ny_dso, user_input.get(CONF_SIKRINGSTRINN)) is None:
+        user_input[CONF_SIKRINGSTRINN] = None
 
 
 def _validate_options_input(
@@ -368,6 +424,12 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
                 self._data[CONF_ENERGILEDD_DAG] = dso["energiledd_dag_eks_mva"]
                 self._data[CONF_ENERGILEDD_NATT] = dso["energiledd_natt_eks_mva"]
 
+                # Sikringsbasert fastledd kan ikke måles, og et gjettet trinn
+                # ville gitt et plausibelt men feil beløp. Spør nå, i oppsettet,
+                # så nye brukere aldri havner i "ikke valgt"-tilstanden.
+                if _bruker_sikringstrinn(self._data[CONF_DSO]):
+                    return await self.async_step_sikring()
+
                 return self._create_entry()
 
         return self.async_show_form(
@@ -406,6 +468,22 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
                 }
             ),
             errors=errors,
+        )
+
+    async def async_step_sikring(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+        """Velg fastledd-rad for nettselskap som fakturerer etter sikringsstørrelse."""
+        dso_id: str = self._data[CONF_DSO]
+
+        if user_input is not None:
+            self._data.update(user_input)
+            return self._create_entry()
+
+        return self.async_show_form(
+            step_id="sikring",
+            data_schema=vol.Schema(
+                {vol.Required(CONF_SIKRINGSTRINN): _sikringstrinn_selector(dso_id)}
+            ),
+            description_placeholders={"dso": DSO_LIST[dso_id]["name"]},
         )
 
     async def async_step_pricing(self, user_input: dict[str, Any] | None = None) -> FlowResult:

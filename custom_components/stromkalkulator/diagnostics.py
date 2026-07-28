@@ -18,6 +18,7 @@ from .const import (
     CONF_ENERGILEDD_NATT,
     CONF_HAR_NORGESPRIS,
     CONF_POWER_SENSOR,
+    CONF_SIKRINGSTRINN,
     CONF_SPOT_PRICE_SENSOR,
 )
 
@@ -44,6 +45,7 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
                 "har_norgespris": entry.data.get(CONF_HAR_NORGESPRIS),
                 "energiledd_dag_eks_mva_override": entry.data.get(CONF_ENERGILEDD_DAG),
                 "energiledd_natt_eks_mva_override": entry.data.get(CONF_ENERGILEDD_NATT),
+                "sikringstrinn": entry.data.get(CONF_SIKRINGSTRINN),
             },
         },
         "sensor_entity_ids": {
@@ -59,6 +61,10 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
             "energiledd_dag_inkl_mva": coordinator.energiledd_dag,
             "energiledd_natt_inkl_mva": coordinator.energiledd_natt,
             "kapasitetstrinn_count": len(coordinator.kapasitetstrinn),
+            # Metoden er halve svaret på "hvorfor stemmer ikke fastleddet".
+            # Uten den i diagnostikken må man gjette fra DSO-id-en.
+            "fastledd_metode": coordinator.fastledd_metode,
+            "ukesmaks_count": len(coordinator._weekly_max_power),
         },
         "coordinator_data": coordinator.data if coordinator.data else {},
     }

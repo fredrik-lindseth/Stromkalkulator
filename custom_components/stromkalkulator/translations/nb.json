@@ -34,6 +34,16 @@
           "export_power_sensor": "Effektmåler for eksport til nettet (OBIS 2.7.0), kun for plusskunder med solceller. Brukes til å beregne salgsinntekt og netto månedskostnad. Hopp over hvis du ikke har solceller."
         }
       },
+      "sikring": {
+        "title": "Sikringsstørrelse",
+        "description": "{dso} fakturerer fastleddet etter størrelsen på hovedsikringen (overbelastningsvernet), ikke etter hvor mye effekt du bruker. Velg raden som står på nettleiefakturaen eller i sikringsskapet. Er du i tvil, spør {dso}, vi kan ikke lese den av strømmåleren.",
+        "data": {
+          "sikringstrinn": "Hovedsikring"
+        },
+        "data_description": {
+          "sikringstrinn": "Radene er gjengitt ordrett fra nettselskapets prisliste. Merk at satsen kan avhenge av systemspenning (230 V eller 400 V)."
+        }
+      },
       "pricing": {
         "title": "Egendefinerte priser",
         "description": "Velg avgiftssone og angi energiledd-priser i NOK/kWh (inkl. avgifter).",
@@ -51,6 +61,7 @@
         "description": "Endre nettselskap, sensorer eller Norgespris-innstillinger.",
         "data": {
           "tso": "Nettselskap",
+          "sikringstrinn": "Hovedsikring",
           "boligtype": "Boligtype",
           "avgiftssone": "Avgiftssone",
           "har_norgespris": "Jeg har Norgespris",
@@ -66,6 +77,7 @@
         },
         "data_description": {
           "boligtype": "Bolig: Strømstøtte opptil 5000 kWh/mnd, Norgespris opptil 5000 kWh/mnd. Fritidsbolig: Ingen strømstøtte, Norgespris opptil 1000 kWh/mnd. Fritidsbolig (fast bosted): Samme som bolig (Forskrift § 11).",
+          "sikringstrinn": "Radene er gjengitt ordrett fra nettselskapets prisliste. Merk at satsen kan avhenge av systemspenning (230 V eller 400 V).",
           "avgiftssone": "Settes automatisk fra nettselskap. Overstyr kun hvis du vet du tilhører en annen sone.",
           "har_norgespris": "Aktiver hvis du har valgt Norgespris hos nettselskapet. Bruker fast pris (40-50 øre/kWh) i stedet for spotpris.",
           "power_sensor": "Sensor som viser nåværende strømforbruk i watt, f.eks. fra HAN-port, Tibber Pulse eller P1-måler.",
@@ -97,6 +109,7 @@
         "description": "Endre nettselskap, sensorer eller Norgespris-innstillinger.",
         "data": {
           "tso": "Nettselskap",
+          "sikringstrinn": "Hovedsikring",
           "boligtype": "Boligtype",
           "avgiftssone": "Avgiftssone",
           "har_norgespris": "Jeg har Norgespris",
@@ -112,6 +125,7 @@
         },
         "data_description": {
           "boligtype": "Bolig: Strømstøtte opptil 5000 kWh/mnd, Norgespris opptil 5000 kWh/mnd. Fritidsbolig: Ingen strømstøtte, Norgespris opptil 1000 kWh/mnd. Fritidsbolig (fast bosted): Samme som bolig (Forskrift § 11).",
+          "sikringstrinn": "Radene er gjengitt ordrett fra nettselskapets prisliste. Merk at satsen kan avhenge av systemspenning (230 V eller 400 V).",
           "avgiftssone": "Settes automatisk fra nettselskap. Overstyr kun hvis du vet du tilhører en annen sone.",
           "har_norgespris": "Aktiver hvis du har valgt Norgespris hos nettselskapet. Bruker fast pris (40-50 øre/kWh) i stedet for spotpris.",
           "power_sensor": "Sensor som viser nåværende strømforbruk i watt, f.eks. fra HAN-port, Tibber Pulse eller P1-måler.",
@@ -129,65 +143,170 @@
   },
   "entity": {
     "button": {
-      "lag_fakturarapport": { "name": "Lag fakturaverifiserings-rapport" }
+      "lag_fakturarapport": {
+        "name": "Lag fakturaverifiserings-rapport"
+      }
     },
     "binary_sensor": {
-      "kapasitet_varsel": { "name": "Kapasitetsvarsel" },
-      "norgespris_aktiv": { "name": "Norgespris aktiv nå" },
-      "stromstotte_aktiv": { "name": "Strømstøtte aktiv nå" }
+      "kapasitet_varsel": {
+        "name": "Kapasitetsvarsel"
+      },
+      "norgespris_aktiv": {
+        "name": "Norgespris aktiv nå"
+      },
+      "stromstotte_aktiv": {
+        "name": "Strømstøtte aktiv nå"
+      }
     },
     "sensor": {
-      "energiledd": { "name": "Energiledd" },
-      "kapasitetstrinn": { "name": "Kapasitetstrinn" },
-      "total_price": { "name": "Total strømpris (før støtte)" },
-      "strompris_per_kwh": { "name": "Strømpris per kWh" },
-      "maks_forbruk": { "name": "Toppforbruk" },
-      "gjs_forbruk": { "name": "Snitt toppforbruk" },
-      "trinn_nummer": { "name": "Kapasitetstrinn (nummer)" },
-      "trinn_intervall": { "name": "Kapasitetstrinn (intervall)" },
-      "offentlige_avgifter": { "name": "Offentlige avgifter" },
-      "electricity_company_total": { "name": "Total strømpris (strømavtale)" },
-      "stromstotte": { "name": "Strømstøtte" },
-      "spotpris_etter_stotte": { "name": "Spotpris etter støtte" },
-      "total_pris_etter_stotte": { "name": "Total strømpris etter støtte" },
-      "total_pris_inkl_avgifter": { "name": "Totalpris inkl. avgifter" },
-      "strompris_per_kwh_etter_stotte": { "name": "Strømpris per kWh (etter støtte)" },
-      "total_pris_norgespris": { "name": "Total strømpris (Norgespris)" },
-      "strompris_norgespris": { "name": "Strømpris (Norgespris, uten nettleie)" },
-      "prisforskjell_norgespris": { "name": "Prisforskjell (Norgespris)" },
-      "energiledd_dag": { "name": "Energiledd dag" },
-      "energiledd_natt": { "name": "Energiledd natt/helg" },
-      "forbruksavgift": { "name": "Forbruksavgift" },
-      "enovaavgift": { "name": "Enovaavgift" },
+      "energiledd": {
+        "name": "Energiledd"
+      },
+      "kapasitetstrinn": {
+        "name": "Kapasitetstrinn"
+      },
+      "total_price": {
+        "name": "Total strømpris (før støtte)"
+      },
+      "strompris_per_kwh": {
+        "name": "Strømpris per kWh"
+      },
+      "maks_forbruk": {
+        "name": "Toppforbruk"
+      },
+      "gjs_forbruk": {
+        "name": "Snitt toppforbruk"
+      },
+      "trinn_nummer": {
+        "name": "Kapasitetstrinn (nummer)"
+      },
+      "trinn_intervall": {
+        "name": "Kapasitetstrinn (intervall)"
+      },
+      "offentlige_avgifter": {
+        "name": "Offentlige avgifter"
+      },
+      "electricity_company_total": {
+        "name": "Total strømpris (strømavtale)"
+      },
+      "stromstotte": {
+        "name": "Strømstøtte"
+      },
+      "spotpris_etter_stotte": {
+        "name": "Spotpris etter støtte"
+      },
+      "total_pris_etter_stotte": {
+        "name": "Total strømpris etter støtte"
+      },
+      "total_pris_inkl_avgifter": {
+        "name": "Totalpris inkl. avgifter"
+      },
+      "strompris_per_kwh_etter_stotte": {
+        "name": "Strømpris per kWh (etter støtte)"
+      },
+      "total_pris_norgespris": {
+        "name": "Total strømpris (Norgespris)"
+      },
+      "strompris_norgespris": {
+        "name": "Strømpris (Norgespris, uten nettleie)"
+      },
+      "prisforskjell_norgespris": {
+        "name": "Prisforskjell (Norgespris)"
+      },
+      "energiledd_dag": {
+        "name": "Energiledd dag"
+      },
+      "energiledd_natt": {
+        "name": "Energiledd natt/helg"
+      },
+      "forbruksavgift": {
+        "name": "Forbruksavgift"
+      },
+      "enovaavgift": {
+        "name": "Enovaavgift"
+      },
       "tariff": {
         "name": "Tariff",
-        "state": { "dag": "Dag", "natt": "Natt" }
+        "state": {
+          "dag": "Dag",
+          "natt": "Natt"
+        }
       },
-      "maanedlig_forbruk_dag": { "name": "Månedlig forbruk dagtariff" },
-      "maanedlig_forbruk_natt": { "name": "Månedlig forbruk natt/helg" },
-      "maanedlig_forbruk_total": { "name": "Månedlig forbruk totalt" },
-      "maanedlig_nettleie": { "name": "Månedlig nettleie" },
-      "maanedlig_avgifter": { "name": "Månedlig avgifter" },
-      "maanedlig_stromstotte": { "name": "Månedlig strømstøtte" },
-      "maanedlig_total": { "name": "Månedlig nettleie total" },
-      "forrige_maaned_forbruk_dag": { "name": "Forrige måned forbruk dagtariff" },
-      "forrige_maaned_forbruk_natt": { "name": "Forrige måned forbruk natt/helg" },
-      "forrige_maaned_forbruk_total": { "name": "Forrige måned forbruk totalt" },
-      "forrige_maaned_nettleie": { "name": "Forrige måned nettleie" },
-      "forrige_maaned_toppforbruk": { "name": "Forrige måned toppforbruk" },
-      "margin_neste_trinn": { "name": "Margin til neste trinn" },
-      "stromstotte_gjenstaaende": { "name": "Strømstøtte gjenstående" },
-      "maanedlig_norgespris_diff": { "name": "Norgespris besparelse" },
-      "maanedlig_norgespris_kompensasjon": { "name": "Norgespris-kompensasjon" },
-      "forrige_maaned_norgespris_kompensasjon": { "name": "Forrige måned Norgespris-kompensasjon" },
-      "estimert_maanedskostnad": { "name": "Estimert månedskostnad" },
-      "dagskostnad": { "name": "Dagens kostnad" },
-      "akkumulert_kostnad": { "name": "Akkumulert strømkostnad" },
-      "maanedlig_eksport_kwh": { "name": "Månedlig eksport" },
-      "maanedlig_eksport_inntekt": { "name": "Månedlig eksportinntekt" },
-      "maanedlig_nettokostnad": { "name": "Månedlig nettokostnad" },
-      "forrige_maaned_eksport_kwh": { "name": "Forrige måned eksport" },
-      "forrige_maaned_eksport_inntekt": { "name": "Forrige måned eksportinntekt" }
+      "maanedlig_forbruk_dag": {
+        "name": "Månedlig forbruk dagtariff"
+      },
+      "maanedlig_forbruk_natt": {
+        "name": "Månedlig forbruk natt/helg"
+      },
+      "maanedlig_forbruk_total": {
+        "name": "Månedlig forbruk totalt"
+      },
+      "maanedlig_nettleie": {
+        "name": "Månedlig nettleie"
+      },
+      "maanedlig_avgifter": {
+        "name": "Månedlig avgifter"
+      },
+      "maanedlig_stromstotte": {
+        "name": "Månedlig strømstøtte"
+      },
+      "maanedlig_total": {
+        "name": "Månedlig nettleie total"
+      },
+      "forrige_maaned_forbruk_dag": {
+        "name": "Forrige måned forbruk dagtariff"
+      },
+      "forrige_maaned_forbruk_natt": {
+        "name": "Forrige måned forbruk natt/helg"
+      },
+      "forrige_maaned_forbruk_total": {
+        "name": "Forrige måned forbruk totalt"
+      },
+      "forrige_maaned_nettleie": {
+        "name": "Forrige måned nettleie"
+      },
+      "forrige_maaned_toppforbruk": {
+        "name": "Forrige måned toppforbruk"
+      },
+      "margin_neste_trinn": {
+        "name": "Margin til neste trinn"
+      },
+      "stromstotte_gjenstaaende": {
+        "name": "Strømstøtte gjenstående"
+      },
+      "maanedlig_norgespris_diff": {
+        "name": "Norgespris besparelse"
+      },
+      "maanedlig_norgespris_kompensasjon": {
+        "name": "Norgespris-kompensasjon"
+      },
+      "forrige_maaned_norgespris_kompensasjon": {
+        "name": "Forrige måned Norgespris-kompensasjon"
+      },
+      "estimert_maanedskostnad": {
+        "name": "Estimert månedskostnad"
+      },
+      "dagskostnad": {
+        "name": "Dagens kostnad"
+      },
+      "akkumulert_kostnad": {
+        "name": "Akkumulert strømkostnad"
+      },
+      "maanedlig_eksport_kwh": {
+        "name": "Månedlig eksport"
+      },
+      "maanedlig_eksport_inntekt": {
+        "name": "Månedlig eksportinntekt"
+      },
+      "maanedlig_nettokostnad": {
+        "name": "Månedlig nettokostnad"
+      },
+      "forrige_maaned_eksport_kwh": {
+        "name": "Forrige måned eksport"
+      },
+      "forrige_maaned_eksport_inntekt": {
+        "name": "Forrige måned eksportinntekt"
+      }
     }
   },
   "issues": {
@@ -210,9 +329,17 @@
         }
       }
     },
+    "sikringstrinn_mangler": {
+      "title": "Sikringsstørrelse mangler",
+      "description": "{dso} fakturerer fastleddet etter størrelsen på hovedsikringen din, og den kan ikke leses av strømmåleren. Til den er valgt, står «Kapasitetstrinn» som Ukjent, og fastleddet mangler i månedskostnad og fakturaestimat. Åpne Innstillinger > Enheter og tjenester > Strømkalkulator > Konfigurer og velg raden som står på nettleiefakturaen din."
+    },
     "spotpris_mva_check": {
       "title": "Spotpris-håndtering oppdatert",
       "description": "Strømkalkulator behandler nå spotpris-sensoren som eks. mva (riktig for HA-core Nord Pool-integrasjonen). Tidligere antok koden inkl. mva, noe som ga 25 % feil i strømstøtte og totalpris i Sør-Norge. De fleste brukere trenger ikke gjøre noe.\n\nDu trenger KUN å handle hvis spotpris-sensoren din allerede leverer priser inkl. mva. Det gjelder hvis du har en egendefinert template-sensor som legger på 25 %, eller bruker den eldre custom_components/nordpool med VAT=true. I så fall: åpne Strømkalkulator-innstillinger (Settings > Devices & Services > Strømkalkulator > Configure) og slå PÅ «Spotpris-sensor leverer priser inkl. mva»."
+    },
+    "dso_delt": {
+      "title": "Nettselskapet ditt er delt i flere prisområder",
+      "description": "{dso} har flere prisområder med ulik pris, og hvilket som gjelder avgjøres av adressen din. Vi kan ikke velge for deg. Gå til innstillingene for Strømkalkulator og velg riktig område blant: {omrader}. Fram til du gjør det regner integrasjonen med det midterste området, så nettleien kan være feil."
     }
   }
 }

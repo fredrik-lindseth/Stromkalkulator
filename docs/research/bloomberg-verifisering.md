@@ -14,19 +14,19 @@ Bank-kursen.
 
 Hentet fra Bloomberg-terminal via BDH-formler, ticker `EURNOK Curncy`:
 
-| Felt                       | Beskrivelse                                  |
-| -------------------------- | -------------------------------------------- |
-| PX_LAST (12:00)            | siste tick ved snapshot 12:00 Europe/Berlin  |
-| PX_BID / PX_ASK (12:00)    | bid og ask ved samme snapshot                |
-| PX_MID (12:00)             | mid-pris ved samme snapshot (brukt som kurs) |
-| PX_LAST (daglig)           | vanlig daglig close, uten tid-override       |
+| Felt                    | Beskrivelse                                  |
+| ----------------------- | -------------------------------------------- |
+| PX_LAST (12:00)         | siste tick ved snapshot 12:00 Europe/Berlin  |
+| PX_BID / PX_ASK (12:00) | bid og ask ved samme snapshot                |
+| PX_MID (12:00)          | mid-pris ved samme snapshot (brukt som kurs) |
+| PX_LAST (daglig)        | vanlig daglig close, uten tid-override       |
 
-- **Periode:** 02.01.2026 – 30.04.2026, daglig, 85 bankdager (jan 21, feb 20, mar 22, apr 22).
+- **Periode:** 02.01.2026 - 30.04.2026, daglig, 85 bankdager (jan 21, feb 20, mar 22, apr 22).
 - **Snapshot:** 12:00 Europe/Berlin (= 12:00 CET/CEST = 12:00 Oslo).
 - **Kurs brukt i analysen:** PX_MID @ 12:00, same-day forward-fill for helg/helligdag.
 - **Dekning:** treffer de Norgespris-verifiserte månedene februar, mars og april. Dekker **ikke** mai (mai-fakturaen kom først nå, og Bloomberg-serien stopper 30.04).
 
-Råfila (`fredrik_xr_data.xlsx`) og den genererte fixturen
+Råfilen (`fredrik_xr_data.xlsx`) og den genererte fixturen
 (`bloomberg_eur_nok_1200cet_2026.json`) ligger under `_private/Måleverdier/`
 og er gitignorert. Bloomberg-data er lisensiert og kan ikke redistribueres,
 så de holdes utenfor repoet med vilje. Bare avledede aggregater (kurssnitt,
@@ -37,7 +37,7 @@ avvik) er gjengitt her.
 Samme forbruksvektede beregning som NB-variantene i `nok-omregning.md`, men med
 12:00-kursen som kurskilde:
 
-```
+```text
 snitt_eks_mva = sum(eur_mwh/1000 * kurs_dag * kwh) / sum(kwh)
 komp          = (0,50 - snitt_eks_mva * 1,25) * forbruk
 avvik         = komp - fakturaens Norgespris-linje
@@ -52,13 +52,13 @@ sammenligningsgrunnlaget er riktig.
 
 | Måned   | NB 14:15 avvik | BBG 12:00 avvik | NB vektet | BBG vektet | implisitt match |
 | ------- | -------------: | --------------: | --------: | ---------: | --------------: |
-| 2026-02 |        +2,07 kr |        +3,15 kr |   11,3303 |    11,3251 |         11,3426 |
-| 2026-03 |        +0,70 kr |        +0,46 kr |   11,1605 |    11,1613 |         11,1616 |
-| 2026-04 |        +0,78 kr |        −1,97 kr |   11,0614 |    11,0748 |         11,0705 |
+| 2026-02 |       +2,07 kr |        +3,15 kr |   11,3303 |    11,3251 |         11,3426 |
+| 2026-03 |       +0,70 kr |        +0,46 kr |   11,1605 |    11,1613 |         11,1616 |
+| 2026-04 |       +0,78 kr |        -1,97 kr |   11,0614 |    11,0748 |         11,0705 |
 
 Prediksjonen var at alle tre avvikene skulle krympe mot null med den ekte
 12:00-kursen. I stedet vokste februar (+2,07 → +3,15), mars krympet litt
-(+0,70 → +0,46), og april bommet over til andre siden (+0,78 → −1,97).
+(+0,70 → +0,46), og april bommet over til andre siden (+0,78 → -1,97).
 
 ## Hvorfor det ikke løste seg
 
@@ -85,7 +85,7 @@ close. Et BFIX-12:00-uttrekk (se appendiks) ville vært skarpere.
 Krever den private Bloomberg-fixturen:
 
 ```bash
-# Lag fixturen fra råfila (xlsx -> json under _private/)
+# Lag fixturen fra råfilen (xlsx -> json under _private/)
 uv run --with openpyxl python scripts/research/snapshot_bloomberg_eur_nok.py
 
 # Kjør 12:00-kursen mot fakturaene, side om side med NB
@@ -107,7 +107,7 @@ leveringsdøgnet, og svaret er merket `state: Final` (altså etter
 to-banks-hedge, ikke den preliminære 12:00-kursen). Dette er kursen forskrift
 om kraftomsetning forankrer som fasit, ikke Norges Bank eller Bloomberg.
 
-To ting jeg bekreftet med egne kall (51 leveringsdøgn, 30.04–19.06.2026):
+To ting jeg bekreftet med egne kall (51 leveringsdøgn, 30.04-19.06.2026):
 
 1. **Nord Pool-kursen sporer Norges Bank dagen FØR (D-1), ikke same-day.**
    Snittavvik mot NB D-1: abs 0,0166 (stdev 0,024). Mot NB same-day: abs 0,0275
@@ -128,7 +128,7 @@ Nord Pools faktiske hedge-kurs (~0,02 i kurs, ~0,2 % i sum).
 ### Haken, og hva vi faktisk kan gjøre
 
 Det gratis anonyme API-et serverer om lag de siste to månedene (tilgjengelig tilbake
-til ~19.04 da jeg sjekket 20.06); eldre datoer gir 401. Fixturemånedene jan–mars
+til ~19.04 da jeg sjekket 20.06); eldre datoer gir 401. Fixturemånedene jan-mars
 og første halvdel av april er altså ikke gratis tilgjengelige lenger. Men **mai (den
 nye fakturaen) ligger innenfor vinduet akkurat nå** og faller ut utover sommeren.
 Det betyr at vi for første gang kan teste med Nord Pools EKTE kurs, mot
@@ -142,7 +142,7 @@ Dette er det mest lovende sporet, og nå sjekket mot primærkilden. Forskrift om
 Norgespris ([FOR-2025-09-08-1790](https://lovdata.no/dokument/SF/forskrift/2025-09-08-1790)):
 
 - **§ 11:** nettselskapet (BKK) skal beregne prissikringsverdi *time for time* =
-  elspotpris i budområde − referansepris (40 øre/kWh eks. mva, § 10), og
+  elspotpris i budområde - referansepris (40 øre/kWh eks. mva, § 10), og
   beregningen skal ta hensyn til mva.
 - **§ 23 fjerde ledd:** prissikringsverdier time for time *offentliggjøres av
   Reguleringsmyndigheten for energi (RME)*.
@@ -185,7 +185,7 @@ med RMEs publiserte (eller marginalt avrundet/kildet annerledes) er nettopp det
 et BKK-spørsmål kan avklare.
 
 Vær ærlig om gulvet: faktura rundes til øre (prisopplysningsforskriften, 2
-desimaler). Et restavvik på under 3 kr / 0,05–0,2 % per måned er sannsynligvis
+desimaler). Et restavvik på under 3 kr / 0,05-0,2 % per måned er sannsynligvis
 avrundings- og kildepresisjonsstøy, ikke en feil i integrasjonen. Det kan vise
 seg umulig å lukke til null utenfra.
 
@@ -238,13 +238,13 @@ Uttrekket vi fikk var fallback-varianten (vanlig spot med tid-override), som
 ga PX_MID ≈ daglig close. For en ren 12:00-fixing er Bloomberg BFIX det riktige
 produktet (mid-snapshot hvert 30. minutt, inkludert 12:00 CET).
 
-```
+```text
 # BFIX, bekreft ticker i terminalen først (BFIX <GO>)
 =BDH("EURNOK 12:00 BFIX Curncy","PX_LAST","2026-01-02","2026-05-31","Per","D")
 ```
 
 Velg EUR/NOK, 12:00 CET, periode etter behov. «Save As → CSV» og kjør samme
-analyse. Merk DST: april–oktober er CEST (UTC+2), november–mars er CET (UTC+1);
+analyse. Merk DST: april-oktober er CEST (UTC+2), november-mars er CET (UTC+1);
 12:00 Oslo håndteres av terminalen hvis du oppgir Europe/Oslo eller Europe/Berlin.
 
 Men vurder om det er verdt det: analysen over viser at selv en perfekt

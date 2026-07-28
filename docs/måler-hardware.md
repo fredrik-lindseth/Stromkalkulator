@@ -6,7 +6,7 @@ Hvordan strøm-data flyter fra måleren i sikringsskapet til BKKs faktura, og ti
 
 ## Kjeden i ett bilde
 
-```
+```text
 [AMS-måler i sikringsskap]
   (Kaifa / Aidon / Kamstrup)
         │
@@ -219,7 +219,7 @@ For kapasitetsledd er det bekreftet at BKK bruker timesnitt-effekt (= kWh-diff p
 
 ## Empiriske observasjoner (april 2026)
 
-Tallene under gjelder Kaifa MA304H3E i eget oppsett. Aidon- og Kamstrup-målere bruker samme NEK HAN-spek og skal gi tilsvarende sample-skift, men firmware-detaljer kan flytte avviket noen Wh.
+Tallene under gjelder Kaifa MA304H3E i eget oppsett. Aidon- og Kamstrup-målere bruker samme NEK HAN-spec og skal gi tilsvarende sample-skift, men firmware-detaljer kan flytte avviket noen Wh.
 
 Fra `tests/fixtures/bkk_april_2026_hourly.json` mot BKK-faktura 000000000:
 
@@ -237,7 +237,7 @@ Forklaring per linje:
 
 **Topp 3 (3-8 W):** Samme sample-skifte i hourly aggregat. Vår "13:00-time" er teknisk 13:00:13 til 14:00:13. Time-snittet inneholder altså 13 sek av "neste" time og mangler 13 sek av "denne" time, som gir det observerte avviket på topp-3.
 
-**Norgespris-komp (+2,92 kr):** Bekreftet at Nord Pool-integrasjonen returnerer **eks. mva** (vektet snitt 1,2284 × 1,25 = 1,5355, matcher fakturas implisitte 1,5333). Restavvik ~2 øre/kWh skyldes trolig EUR/NOK-vekslingskurs eller MVA-håndteringsforskjell mellom HA-cache og BKKs prisberegning.
+**Norgespris-komp (+2,92 kr):** Bekreftet at Nord Pool-integrasjonen returnerer **eks. mva** (vektet snitt 1,2284 × 1,25 = 1,5355, matcher fakturaens implisitte 1,5333). Restavvik ~2 øre/kWh skyldes trolig EUR/NOK-vekslingskurs eller MVA-håndteringsforskjell mellom HA-cache og BKKs prisberegning.
 
 ## Hva vi kan gjøre bedre
 

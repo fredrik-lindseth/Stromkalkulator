@@ -78,7 +78,7 @@ Gjennomsnittlig spotpris i april utledet fra kompensasjonen: 50 + 103.34 = 153.3
 | Norgespris-kompensasjon | -1550.68 kr     | -1427.89 kr     | +122.79 kr         |
 | Total                   | -749.02 kr      | -714.31 kr      | +34.71 kr          |
 
-Påsken (2.–6. april) ga 5 ekstra natt/helg-dager, som forklarer hvorfor natt-forbruket gikk opp mens dag-forbruket falt kraftig, selv om totalt forbruk gikk ned.
+Påsken (2.-6. april) ga 5 ekstra natt/helg-dager, som forklarer hvorfor natt-forbruket gikk opp mens dag-forbruket falt kraftig, selv om totalt forbruk gikk ned.
 
 ## Konklusjon
 

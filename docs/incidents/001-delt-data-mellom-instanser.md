@@ -18,7 +18,7 @@ Bruker med to strømmålere hos samme nettselskap (Elvia):
 
 Lagringsnøkkelen var basert på nettselskap-ID (`stromkalkulator_{dso_id}`), ikke config entry-ID. Begge instanser delte samme fil:
 
-```
+```python
 # Før: begge instanser brukte samme fil
 Store(hass, 1, f"{DOMAIN}_{dso_id}")
 

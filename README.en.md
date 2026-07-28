@@ -34,8 +34,8 @@ Sensors showing what electricity actually costs, not just the spot price:
 ## Verified against real invoices
 
 | Grid company | Price area | Verified months | Latest verification |
-| ------------ | ---------- | ---------------- | -------------------- |
-| BKK          | NO5        | 8                 | June 2026            |
+| ------------ | ---------- | --------------- | ------------------- |
+| BKK          | NO5        | 8               | June 2026           |
 
 Each report matches the integration's calculations line by line against a real invoice. See [docs/fakturaer/referanse.md](docs/fakturaer/referanse.md) (Norwegian).
 
@@ -73,10 +73,10 @@ Select your grid company from the dropdown. Tax zone (VAT and consumption tax) i
 ### Property type
 
 | Property type                      | Electricity subsidy | Norgespris cap | Source                                                                      |
-| ----------------------------------- | -------------------- | ---------------- | ----------------------------------------------------------------------------- |
-| Residence (default)                 | 5000 kWh/month        | 5000 kWh/month    | [Regulation § 5](https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791)   |
-| Holiday home                        | None                  | 1000 kWh/month    | [Regulation § 3](https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791)   |
-| Holiday home (permanent residence)  | 5000 kWh/month        | 5000 kWh/month    | [Regulation § 11](https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791)  |
+| ---------------------------------- | ------------------- | -------------- | --------------------------------------------------------------------------- |
+| Residence (default)                | 5000 kWh/month      | 5000 kWh/month | [Regulation § 5](https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791)  |
+| Holiday home                       | None                | 1000 kWh/month | [Regulation § 3](https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791)  |
+| Holiday home (permanent residence) | 5000 kWh/month      | 5000 kWh/month | [Regulation § 11](https://lovdata.no/dokument/SF/forskrift/2025-09-08-1791) |
 
 Above the Norgespris kWh cap, you pay spot price for the rest of the month. Holiday homes are not entitled to electricity subsidy unless you live there permanently (§ 11).
 
@@ -92,11 +92,11 @@ All Norwegian grid companies are supported.
 
 The tax zone determines VAT and consumption tax, and is set automatically from your grid company. You can override it in settings if needed.
 
-| Tax zone         | Price areas          | Consumption tax | VAT |
-| ----------------- | --------------------- | ----------------- | ----- |
-| Southern Norway    | NO1, NO2, NO5          | 7.13 øre/kWh        | 25% |
-| Northern Norway    | Nordland, Troms       | 7.13 øre/kWh        | 0%  |
-| Tiltakssonen       | Finnmark/Nord-Troms   | 0 øre               | 0%  |
+| Tax zone        | Price areas         | Consumption tax | VAT |
+| --------------- | ------------------- | --------------- | --- |
+| Southern Norway | NO1, NO2, NO5       | 7.13 øre/kWh    | 25% |
+| Northern Norway | Nordland, Troms     | 7.13 øre/kWh    | 0%  |
+| Tiltakssonen    | Finnmark/Nord-Troms | 0 øre           | 0%  |
 
 ## Devices and Sensors
 
@@ -196,7 +196,7 @@ Click on a sensor for details like the top-3 power days and costs split by day/n
 
 ## Supported grid companies
 
-All Norwegian grid companies are supported. Prices are updated annually at the start of the year. Found an error, [create a PR](docs/contributing.md) or open an issue.
+All Norwegian grid companies are supported. Prices are updated annually at the start of the year. Found an error? [Create a PR](docs/contributing.md) or open an issue.
 
 ## Grid company mergers
 
@@ -256,12 +256,12 @@ The "Månedlig nettleie total" sensor is also useful for invoice verification, b
 
 ## Documentation
 
-| Document                                     | Content                                    |
-| --------------------------------------------- | ------------------------------------------- |
-| [sensors.en.md](docs/sensors.en.md)           | All sensors and attributes                  |
-| [beregninger.md](docs/beregninger.md)         | Formulas and tax zones (Norwegian)          |
-| [contributing.md](docs/contributing.md)       | Update prices / report errors (Norwegian)   |
-| [testing.md](docs/testing.md)                 | Validating calculations (Norwegian)         |
+| Document                                | Content                                   |
+| --------------------------------------- | ----------------------------------------- |
+| [sensors.en.md](docs/sensors.en.md)     | All sensors and attributes                |
+| [beregninger.md](docs/beregninger.md)   | Formulas and tax zones (Norwegian)        |
+| [contributing.md](docs/contributing.md) | Update prices / report errors (Norwegian) |
+| [testing.md](docs/testing.md)           | Validating calculations (Norwegian)       |
 
 ## Verifying releases
 

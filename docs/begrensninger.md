@@ -27,7 +27,7 @@ Følgende har ikke blitt verifisert mot ekte faktura:
 - Næringskunde (ikke husholdning)
 - Andre nettselskaper enn BKK
 
-Vil du validere noen av disse: send faktura + Elhub-data, så kan vi utvide verifiserings-suiten.
+Vil du validere noen av disse, send faktura + Elhub-data, så kan vi utvide verifiserings-suiten.
 
 ## 3. Norgespris-kompensasjon (prisårgang i den løpende sensoren)
 
@@ -39,9 +39,9 @@ Det som gjenstår er den løpende sensoren i HA. Den akkumulerer med prisen slik
 
 Vår "spot etter strømstøtte" avviker ~30 kr/mnd fra BKKs egen "Uten Norgespris"-visning (april 2026: vi beregner 1408,52 kr, BKK viser 1377 kr). Vi bruker 2026-terskel fra forskrift 2025-09-08-1791 §5: 90 % refusjon når spotpris overstiger 77 øre/kWh eks. mva (0,9625 kr/kWh inkl. mva), time-for-time.
 
-Avviket ser ut til å skyldes at BKKs visning fortsatt bruker 2025-terskelen (75 øre eks. mva / 0,9375 inkl. mva). Med lavere terskel blir refusjonen større, så BKK trekker fra mer enn vi gjør, vi gir altså mer strømstøtte i vår beregning enn det BKK viser. Dette er anekdotisk basert på én faktura (april 2026); det kan også være avrundingsregler eller andre detaljer i forskriften som spiller inn.
+Avviket ser ut til å skyldes at BKKs visning fortsatt bruker 2025-terskelen (75 øre eks. mva / 0,9375 inkl. mva). Med lavere terskel blir refusjonen større, så BKK trekker fra mer enn vi gjør. Vi gir altså mer strømstøtte i vår beregning enn det BKK viser. Dette er anekdotisk basert på én faktura (april 2026); det kan også være avrundingsregler eller andre detaljer i forskriften som spiller inn.
 
-Kun relevant for Norgespris-kunder som vil sammenligne mot BKKs "Uten Norgespris"-tall i kundeportalen. Tallet er en hypotetisk visning, ikke en faktisk fakturalinje, Norgespris-kunder mottar ikke strømstøtte uansett.
+Kun relevant for Norgespris-kunder som vil sammenligne mot BKKs "Uten Norgespris"-tall i kundeportalen. Tallet er en hypotetisk visning, ikke en faktisk fakturalinje. Norgespris-kunder mottar ikke strømstøtte uansett.
 
 ## 5. Momentan-effekt sample-frekvens (2,5 sek)
 
@@ -59,11 +59,11 @@ Se [research/klokke-og-tidsstempling.md](research/klokke-og-tidsstempling.md) og
 
 ## 7. Gap-bucket ved lang nedetid (energy_sensor)
 
-Med `energy_sensor` konfigurert (kumulativ kWh-teller) leser coordinator forbruket som differansen mot forrige avlesning, uavhengig av hvor lenge det er siden forrige poll. Er HA nede lenger enn noen få minutter, krediteres hele backlog-deltaet i sin helhet til klokketimen og dag/natt-tariffen som gjelder når HA er tilbake og poller igjen, ikke til timene det egentlig ble brukt i. Deltaet er bundet oppad av `MAX_ENERGY_DELTA_KWH` (100 kWh), og verdien det måles mot (`_last_tpi_kwh`) bundet av `TPI_STALE_HOURS` (24 timer, eldre verdi forkastes ved omstart).
+Med `energy_sensor` konfigurert (kumulativ kWh-teller) leser coordinator forbruket som differansen mot forrige avlesning, uavhengig av hvor lenge det er siden forrige poll. Er HA nede lenger enn noen få minutter, krediteres hele backlog-deltaet til klokketimen og dag/natt-tariffen som gjelder når HA er tilbake og poller igjen, ikke til timene det egentlig ble brukt i. Deltaet er bundet oppad av `MAX_ENERGY_DELTA_KWH` (100 kWh), og verdien det måles mot (`_last_tpi_kwh`) bundet av `TPI_STALE_HOURS` (24 timer, eldre verdi forkastes ved omstart).
 
 Dette kan forbigående blåse opp vist døgnmaks og kapasitetstrinn, og skjeve dag/natt-split-attributtet for den dagen (og måneden fram til neste månedsskifte). DSO-fakturaen er upåvirket, nettselskapet måler timesforbruk uavhengig av hvordan HA bokfører det.
 
-Bevisst valg. En fiks krever et nytt persistert tidsstempel og en time-for-time-loop som fordeler backlogget på riktige klokketimer. Det er samme filosofi som den aksepterte forenklingen i `coordinator.py:714` (Norgespris-taket som nås midt i en time, teller hele timen i feil bucket). Mekanisme: `_compute_energy_delta` (`coordinator.py:340-380`) beregner deltaet, bucket-logikken (`coordinator.py:547-580`) avgjør hvilken dag og klokketime det crediteres til.
+Bevisst valg. En fiks krever et nytt persistert tidsstempel og en time-for-time-loop som fordeler backlogget på riktige klokketimer. Det er samme filosofi som den aksepterte forenklingen i `coordinator.py:714` (Norgespris-taket som nås midt i en time, teller hele timen i feil bucket). Mekanisme: `_compute_energy_delta` (`coordinator.py:340-380`) beregner deltaet, bucket-logikken (`coordinator.py:547-580`) avgjør hvilken dag og klokketime det krediteres til.
 
 Gjelder kun oppsett med `energy_sensor` satt. Uten den faller coordinator tilbake på Riemann-sum (`p * elapsed_hours`), der `elapsed_hours` er begrenset til `MAX_ELAPSED_HOURS` (6 min), så et langt gap bare mister de manglende minuttene i stedet for å dumpe et stort delta i én bucket.
 
@@ -94,7 +94,7 @@ Kapasitetsleddet beregnes som snittet av de tre høyeste døgnmaksene i måneden
 
 Metodenavnene er fri-nettleies. Detaljer i [beregninger.md](beregninger.md#nettselskap-med-en-annen-metode), historikken i [incident 006](incidents/006-kapasitetstrinn-uten-kilde.md).
 
-To ting til om Fjellnett: energiledd og fastledd følger nettselskapets egen prisliste fra 01.07.2026, mens fri-nettleie fortsatt har 01.01.2026-tariffen. Avviket er ført opp i `KJENTE_AVVIK` i drift-vakten og fjernes når fri-nettleie er oppdatert.
+Én ting til om Fjellnett: energiledd og fastledd følger nettselskapets egen prisliste fra 01.07.2026, mens fri-nettleie fortsatt har 01.01.2026-tariffen. Avviket er ført opp i `KJENTE_AVVIK` i drift-vakten og fjernes når fri-nettleie er oppdatert.
 
 ## 10. Tre nettselskap vi ikke får verifisert godt nok
 
@@ -108,7 +108,6 @@ Drift-vakten sammenligner mot fri-nettleie hver uke, men den fanger bare det beg
 
 Felles for alle tre: se [bidra med faktura](fakturaer/bidra-med-faktura.md).
 
-Area Nett mangler fortsatt kapasitetstrinn vi kan verifisere maskinelt: fri-nettleie deler selskapet i fire regioner med ulik pris.
 
 ## Sammendrag
 
@@ -120,4 +119,4 @@ Reelle avvik som påvirker brukeren:
 | Strømstøtte-beregning  | 30 kr/mnd  | 30 kr/mnd      | Kun for teoretisk visning                       |
 | Kapasitetstrinn-grense | 165 kr/mnd | 0              | Kun hvis permanent på grense                    |
 
-Total typisk ukjent feil: under 5 kr/mnd for vanlig bruker. Under 0,1 % av total fakturasum. Integrasjonen kan trygt brukes for fakturakontroll og fanger reelle feil i størrelsesorden 50 kr+.
+Total typisk ukjent feil er under 5 kr/mnd for en vanlig bruker, altså under 0,1 % av fakturasummen. Integrasjonen kan trygt brukes for fakturakontroll og fanger reelle feil i størrelsesorden 50 kr+.

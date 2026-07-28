@@ -70,7 +70,7 @@ For 24 påfølgende timer sammenlignet vi `sensor.pow_u_ams_rtc` (målerens egen
 
 Splittingen er altså 10 sekunder internt i måleren, pluss 3 sekunder transmisjon HAN → Pow-U → MQTT → HA.
 
-```
+```text
 HH:00:00  måler-snapshot ──► Elhub ──► BKK ──► faktura        (0 sek lag, 0 avvik)
    │
    │ 10 sek internt i måleren

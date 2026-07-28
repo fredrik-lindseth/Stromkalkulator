@@ -8,7 +8,7 @@
 
 Bruker oppdaget at integrasjonens "spart med Norgespris hittil i mai" (168 kr) avvek kraftig fra BKK sitt tilsvarende tall (319 kr) på samme periode.
 
-Sammenligning på BKK-instansens egne data 1.–9. mai 2026:
+Sammenligning på BKK-instansens egne data 1.-9. mai 2026:
 
 | Måling                            | Verdi      |
 | --------------------------------- | ---------- |

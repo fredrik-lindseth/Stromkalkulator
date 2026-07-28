@@ -8,17 +8,17 @@
 
 ## Fakturadata
 
-| Priselement           | Forbruk     | Pris             | Faktura (kr) | Vår beregning (kr) | Avvik    |
-| --------------------- | ----------- | ---------------- | ------------ | ------------------ | -------- |
-| Energiledd dag        | 518.142 kWh | 35.963 øre/kWh   | 186.34       | 186.34             | 0.00     |
-| Energiledd natt/helg  | 661.161 kWh | 13.125 øre/kWh   | 86.77        | 86.78              | 0.01     |
-| Kapasitet 2-5 kW      | 31 dager    | 250 kr/mnd       | 250.00       | 250.00             | 0.00     |
-| Forbruksavgift        | 1179.303 kWh | 8.913 øre/kWh   | 105.10       | 105.11             | 0.01     |
-| Enovaavgift           | 1179.303 kWh | 1.25 øre/kWh    | 14.74        | 14.74              | 0.00     |
-| **Nettleie subtotal** |             |                  | **642.95**   | **642.97**         | **0.02** |
-| Norgespris            | 1179.303 kWh | -0.87557 kr/kWh\* | -1032.56    | -1032.56           | 0.00     |
-| **Total**             |             |                  | **-389.61**  | **-389.59**        | **0.02** |
-| Herav MVA             |             |                  | 128.59       | 128.59             | 0.00     |
+| Priselement           | Forbruk      | Pris              | Faktura (kr) | Vår beregning (kr) | Avvik    |
+| --------------------- | ------------ | ----------------- | ------------ | ------------------ | -------- |
+| Energiledd dag        | 518.142 kWh  | 35.963 øre/kWh    | 186.34       | 186.34             | 0.00     |
+| Energiledd natt/helg  | 661.161 kWh  | 13.125 øre/kWh    | 86.77        | 86.78              | 0.01     |
+| Kapasitet 2-5 kW      | 31 dager     | 250 kr/mnd        | 250.00       | 250.00             | 0.00     |
+| Forbruksavgift        | 1179.303 kWh | 8.913 øre/kWh     | 105.10       | 105.11             | 0.01     |
+| Enovaavgift           | 1179.303 kWh | 1.25 øre/kWh      | 14.74        | 14.74              | 0.00     |
+| **Nettleie subtotal** |              |                   | **642.95**   | **642.97**         | **0.02** |
+| Norgespris            | 1179.303 kWh | -0.87557 kr/kWh\* | -1032.56     | -1032.56           | 0.00     |
+| **Total**             |              |                   | **-389.61**  | **-389.59**        | **0.02** |
+| Herav MVA             |              |                   | 128.59       | 128.59             | 0.00     |
 
 \* Fakturaen oppgir Norgespris-snittrate direkte som -87,557 øre/kWh. Til
 forskjell fra april-fakturaen (som viste avrundet -1,03 kr/kWh) er denne

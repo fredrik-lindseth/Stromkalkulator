@@ -113,12 +113,12 @@ faktisk kapasitetsledd. Sjekk en gang etter høst-DST 2026 mot ekte faktura.
 
 ### Forventet adferd vs implementert
 
-| Scenario                          | Forventet              | Implementert | Korrekt? |
-| --------------------------------- | ---------------------- | ------------ | -------- |
-| Strømstøtte ved spot < 0          | 0 kr/kWh               | 0 kr/kWh     | Ja       |
-| Norgespris-komp ved spot < 0      | Negativ for kunden     | Positiv tap-verdi | Ja, fortegnet er konsistent med rest av kjeden |
-| `spotpris_etter_stotte` ved spot < 0 | = spot (ingen støtte) | spot - 0 = spot | Ja  |
-| `total_price` for spot-kunde ved spot < 0 | spot + energiledd + fastledd | Samme | Ja, kan bli negativ |
+| Scenario                                  | Forventet                    | Implementert      | Korrekt?                                       |
+| ----------------------------------------- | ---------------------------- | ----------------- | ---------------------------------------------- |
+| Strømstøtte ved spot < 0                  | 0 kr/kWh                     | 0 kr/kWh          | Ja                                             |
+| Norgespris-komp ved spot < 0              | Negativ for kunden           | Positiv tap-verdi | Ja, fortegnet er konsistent med rest av kjeden |
+| `spotpris_etter_stotte` ved spot < 0      | = spot (ingen støtte)        | spot - 0 = spot   | Ja                                             |
+| `total_price` for spot-kunde ved spot < 0 | spot + energiledd + fastledd | Samme             | Ja, kan bli negativ                            |
 
 ### Negative tall i koden
 
@@ -171,7 +171,7 @@ total fakturasum er liten.
 ### Hvor håndteres det
 
 - `coordinator.py:611-614`:
-  ```
+  ```python
   norgespris_max = get_norgespris_max_kwh(self.boligtype)
   norgespris_over_tak = monthly_total_kwh >= norgespris_max
   ```

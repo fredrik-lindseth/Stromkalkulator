@@ -22,15 +22,15 @@ Trinn-tabell og priser ligger per nettselskap i [`dso.py`](../custom_components/
 
 #### Nettselskap med en annen metode
 
-Modellen over er NVE-modellen, og 68 av 73 nettselskap bruker den. Fem gjør noe annet, og for dem er det ikke tallene men modellen som avgjør om beløpet stemmer. Metoden ligger i `fastledd_metode` per nettselskap, med fri-nettleies navn slik at drift-vakten kan sammenligne dem direkte. Er feltet ikke satt, gjelder NVE-modellen.
+Modellen over er NVE-modellen, og 68 av 73 nettselskap bruker den. Fem gjør noe annet, og for dem er det ikke tallene, men modellen som avgjør om beløpet stemmer. Metoden ligger i `fastledd_metode` per nettselskap, med fri-nettleies navn slik at drift-vakten kan sammenligne dem direkte. Er feltet ikke satt, gjelder NVE-modellen.
 
-| Metode            | Grunnlag                                             | Nettselskap        |
-| ----------------- | ---------------------------------------------------- | ------------------ |
-| `TRE_DØGNMAX_MND` | Snitt av tre høyeste døgnmakser i måneden (default)  | 68 nettselskap     |
-| `MND_MAX`         | Månedens enkeltstående høyeste time                  | Sør Aurdal Energi  |
-| `OV_TREFASE`      | Hovedsikringens størrelse, ikke målt effekt          | Alut, Netera       |
-| `FEM_VEKTET_ÅR`   | Fem sesongvektede ukestopper, løpende tolv måneder   | Fjellnett          |
-| `UKJENT`          | Ikke publisert, regnes som NVE-modellen              | Tinfos             |
+| Metode            | Grunnlag                                            | Nettselskap       |
+| ----------------- | --------------------------------------------------- | ----------------- |
+| `TRE_DØGNMAX_MND` | Snitt av tre høyeste døgnmakser i måneden (default) | 68 nettselskap    |
+| `MND_MAX`         | Månedens enkeltstående høyeste time                 | Sør Aurdal Energi |
+| `OV_TREFASE`      | Hovedsikringens størrelse, ikke målt effekt         | Alut, Netera      |
+| `FEM_VEKTET_ÅR`   | Fem sesongvektede ukestopper, løpende tolv måneder  | Fjellnett         |
+| `UKJENT`          | Ikke publisert, regnes som NVE-modellen             | Tinfos            |
 
 **`MND_MAX`** slår opp i samme trinn-tabell, men med månedsmaksen i stedet for snittet. Sør Aurdal skriver trinnene som "fra [kW] - til og med [kW]", så eksakt grensetreff hører til det lavere trinnet (`terskel_inkludert: False`).
 

@@ -11,7 +11,7 @@ Vi lukker hullet ved å validere mot to ekte datakilder:
 - Time-for-time-forbruk fra AMS-måleren (Kaifa MA304H3E + Pow-U + AMSleser.no)
 - Time-for-time-spotpriser fra Nord Pool-integrasjonen i HA
 
-Utforskingen 2026-05-22 viste at dette fungerer veldig bra. Avvikene mot april 2026-fakturaen er små nok til å forklares av sample-presisjon, ikke logiske feil.
+Utforskingen 2026-05-22 viste at dette fungerer godt. Avvikene mot april 2026-fakturaen er små nok til å forklares av sample-presisjon, ikke logiske feil.
 
 ## Det vi har bekreftet
 
@@ -30,18 +30,18 @@ Totalavviket forklares av sample-presisjon i HAN-broadcast, ikke av logiske feil
 
 Med Elhub-data og NOK-omregningsanalyse (oppdatert 2026-05-22 kveld) er flere spørsmål besvart:
 
-| Spørsmål                                         | Svar                                                                  | Kilde                                                                      |
-| ------------------------------------------------ | --------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| Sender Elhub presis HH:00:00 til BKK?            | Ja, 0 avvik mellom Elhub og faktura                                   | [research/elhub-vs-han-vs-faktura.md](research/elhub-vs-han-vs-faktura.md) |
-| Bruker BKK timesnitt-effekt for kapasitetstrinn? | Ja, kWh-diff per time                                                 | Topp 3 i Elhub = faktura eksakt                                            |
+| Spørsmål                                         | Svar                                                                                                    | Kilde                                                                      |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Sender Elhub presis HH:00:00 til BKK?            | Ja, 0 avvik mellom Elhub og faktura                                                                     | [research/elhub-vs-han-vs-faktura.md](research/elhub-vs-han-vs-faktura.md) |
+| Bruker BKK timesnitt-effekt for kapasitetstrinn? | Ja, kWh-diff per time                                                                                   | Topp 3 i Elhub = faktura eksakt                                            |
 | Hvor stort er kurs-avviket på Norgespris?        | Løst 2026-07-06: eksakt match med publiserte Final-priser. Recorder-avviket (0,04-0,05 %) er prisårgang | [research/norgespris-eksakt-match.md](research/norgespris-eksakt-match.md) |
-| Hvor er 13-sek-laget?                            | Ikke mellom Elhub og BKK. 10 sek i selve måleren (Kaifa/Aidon-spec) + 3 sek Pow-U-transmisjon. | Elhub-totaler matcher faktura presis                                       |
+| Hvor er 13-sek-laget?                            | Ikke mellom Elhub og BKK. 10 sek i selve måleren (Kaifa/Aidon-spec) + 3 sek Pow-U-transmisjon.          | Elhub-totaler matcher faktura presis                                       |
 
 ## Det vi mangler
 
 Se [måler-hardware.md](måler-hardware.md). Gjenstående:
 
-1. ~~Hvilken EUR/NOK-kurs bruker BKK eksakt?~~ Besvart 2026-07-06: Nord Pools publiserte Final-pris. Med Elhub-kWh x Final-priser treffer både mai og juni fakturaen innenfor 0,005 kr. Mai-restavviket på 0,35 kr var en recorder-aggregatglipp 2. pinsedag, ikke pris. Ingenting gjenstår på Norgespris-sporet.
+1. ~~Hvilken EUR/NOK-kurs bruker BKK eksakt?~~ Besvart 2026-07-06: Nord Pools publiserte Final-pris. Med Elhub-kWh × Final-priser treffer både mai og juni fakturaen innenfor 0,005 kr. Mai-restavviket på 0,35 kr var en recorder-aggregatglipp 2. pinsedag, ikke pris. Ingenting gjenstår på Norgespris-sporet.
 
 ## Plan
 

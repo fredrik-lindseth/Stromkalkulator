@@ -146,7 +146,7 @@ Laget for privatbolig med eget strømabonnement. Ikke støttet:
 
 **Hvorfor er "Totalpris inkl. avgifter" høyere enn spotprisen?**
 
-Spotprisen er bare strømmen. Totalpris inkluderer også nettleie (energiledd + kapasitetsledd), forbruksavgift, Enova-avgift og mva. For de fleste utgjør nettleie og avgifter 30-50% av totalprisen.
+Spotprisen er bare strømmen. Totalpris inkluderer også nettleie (energiledd + kapasitetsledd), forbruksavgift, Enova-avgift og mva. For de fleste utgjør nettleie og avgifter 30-50 % av totalprisen.
 
 **Strømstøtte viser 0. Er det feil?**
 
@@ -162,14 +162,14 @@ Det skjer bare med prissensor-metoden (**Totalpris inkl. avgifter**): kapasitets
 
 ## Dokumentasjon
 
-| Dokument                                      | Innhold                                     |
-| --------------------------------------------- | ------------------------------------------- |
-| [sensorer.md](docs/sensorer.md)               | Alle sensorer og attributter                |
-| [beregninger.md](docs/beregninger.md)         | Formler og avgiftssoner                     |
-| [input-sensorer.md](docs/input-sensorer.md)   | Hva integrasjonen trenger som input         |
-| [begrensninger.md](docs/begrensninger.md)     | Kjente begrensninger og avvik               |
-| [contributing.md](docs/contributing.md)       | Oppdatere priser / rapportere feil          |
-| [testing.md](docs/testing.md)                 | Validere beregninger                        |
+| Dokument                                    | Innhold                             |
+| ------------------------------------------- | ----------------------------------- |
+| [sensorer.md](docs/sensorer.md)             | Alle sensorer og attributter        |
+| [beregninger.md](docs/beregninger.md)       | Formler og avgiftssoner             |
+| [input-sensorer.md](docs/input-sensorer.md) | Hva integrasjonen trenger som input |
+| [begrensninger.md](docs/begrensninger.md)   | Kjente begrensninger og avvik       |
+| [contributing.md](docs/contributing.md)     | Oppdatere priser / rapportere feil  |
+| [testing.md](docs/testing.md)               | Validere beregninger                |
 
 ## Verifisering av releases
 

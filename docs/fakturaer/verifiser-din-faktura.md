@@ -8,10 +8,10 @@ Denne guiden tar deg gjennom verifiseringen steg for steg, uansett hvilken AMS-m
 
 Integrasjonen treffer fakturaen innenfor disse toleransene:
 
-| Linje                                             | Forventet avvik                |
-| ------------------------------------------------- | ------------------------------ |
-| Månedstotal forbruk                               | 0 til 50 Wh                    |
-| Energiledd, avgifter, kapasitetsledd, strømstøtte | inntil 0,02 kr                 |
+| Linje                                             | Forventet avvik                        |
+| ------------------------------------------------- | -------------------------------------- |
+| Månedstotal forbruk                               | 0 til 50 Wh                            |
+| Energiledd, avgifter, kapasitetsledd, strømstøtte | inntil 0,02 kr                         |
 | Norgespris-kompensasjon                           | inntil 0,05 % (foreløpige priser i HA) |
 
 Større avvik enn dette tyder på reell feil i satser, konfigurasjon eller hardware-oppsett.
@@ -153,15 +153,20 @@ Ikke ta med:
 
 ## 8. Vanlige avvik og hva de betyr
 
-| Avvik                                   | Sannsynlig årsak                                                                                        |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Energiledd avviker i sats               | `dso.py`-verdier er utdatert, send inn for å få fikset                                                  |
-| Energiledd avviker i forbruk            | Tariff-bytte (dag/natt) skjer feil, sjekk helligdager og `helg_som_natt`                                |
-| Forbruksavgift avviker                  | Avgiftssone er feil konfigurert (Nord-Norge vs Sør-Norge)                                               |
-| Kapasitetsledd avviker                  | Trinn-grenser i `dso.py` er feil, eller forbruksmønster brytes ned annerledes                           |
-| Strømstøtte avviker (2025-fakturaer)    | Terskel eller dekningsgrad har endret seg                                                               |
-| Månedstotal avviker med > 50 Wh         | HAN-leser-shift, prøv andre `--shift-seconds`-verdier                                                   |
-| Norgespris-kompensasjon avviker > 0,2 % | Spotpris-håndtering (eks/inkl. mva), se [incident 004](../incidents/004-spotpris-mva-feilbehandling.md). Avvik på 0,04-0,05 % er normalt: HA-recorderen kan ha foreløpige priser, se [research/norgespris-eksakt-match.md](../research/norgespris-eksakt-match.md) |
+| Avvik                                   | Sannsynlig årsak                                                              |
+| --------------------------------------- | ----------------------------------------------------------------------------- |
+| Energiledd avviker i sats               | `dso.py`-verdier er utdatert, send inn for å få fikset                        |
+| Energiledd avviker i forbruk            | Tariff-bytte (dag/natt) skjer feil, sjekk helligdager og `helg_som_natt`      |
+| Forbruksavgift avviker                  | Avgiftssone er feil konfigurert (Nord-Norge vs Sør-Norge)                     |
+| Kapasitetsledd avviker                  | Trinn-grenser i `dso.py` er feil, eller forbruksmønster brytes ned annerledes |
+| Strømstøtte avviker (2025-fakturaer)    | Terskel eller dekningsgrad har endret seg                                     |
+| Månedstotal avviker med > 50 Wh         | HAN-leser-shift, prøv andre `--shift-seconds`-verdier                         |
+| Norgespris-kompensasjon avviker > 0,2 % | Spotpris-håndtering (eks/inkl. mva), se note under                            |
+
+Om Norgespris-raden: se
+[incident 004](../incidents/004-spotpris-mva-feilbehandling.md). Avvik på
+0,04-0,05 % er normalt: HA-recorderen kan ha foreløpige priser, se
+[research/norgespris-eksakt-match.md](../research/norgespris-eksakt-match.md).
 
 ## Eksisterende verifikasjoner
 

@@ -77,11 +77,11 @@ To regler som er lette å bryte:
 
 Skill mellom **satser** og **pengebeløp**. De behandles ulikt, og å blande dem koster brukerne statistikk.
 
-| Type       | Eksempel                       | Enhet             | device_class | state_class   |
-| ---------- | ------------------------------ | ----------------- | ------------ | ------------- |
-| Sats       | Energiledd, totalpris          | `NOK/kWh`         | ingen        | `MEASUREMENT` |
-| Sats       | Kapasitetstrinn                | `kr/mnd`          | ingen        | `MEASUREMENT` |
-| Pengebeløp | Månedskostnad, differanse      | `NOK`             | `MONETARY`   | `TOTAL`       |
+| Type       | Eksempel                  | Enhet     | device_class | state_class   |
+| ---------- | ------------------------- | --------- | ------------ | ------------- |
+| Sats       | Energiledd, totalpris     | `NOK/kWh` | ingen        | `MEASUREMENT` |
+| Sats       | Kapasitetstrinn           | `kr/mnd`  | ingen        | `MEASUREMENT` |
+| Pengebeløp | Månedskostnad, differanse | `NOK`     | `MONETARY`   | `TOTAL`       |
 
 `MONETARY` skal ha ISO 4217-kode (`NOK`), ikke `kr`. Ikke fordi HA validerer det, for det gjør den ikke: `SensorDeviceClass.MONETARY` står ikke i `DEVICE_CLASS_UNITS`. Grunnen er frontenden, som i `compute_state_display.ts` formaterer `MONETARY`-sensorer med `Intl.NumberFormat` og `style: "currency"`. `currency: "kr"` er ikke en gyldig trebokstavskode, så kallet kaster og faller tilbake til rått tall uten valutaformatering.
 

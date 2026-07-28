@@ -2,16 +2,18 @@ name: Sjekk fri-nettleie
 
 # Ukentlig delta-detektor: sammenligner dso.py mot publiserte satser i
 # kraftsystemet/fri-nettleie (CC-BY-4.0) via scripts/sjekk_mot_fri_nettleie.py.
-# fri-nettleie er IKKE vår datakilde (vi er fakturaverifisert, de er ikke) -
-# se dcat-oppgaven stromkalkulator-xdhj og AGENTS.md for begrunnelse. Dette
-# er kun et varslingssystem for å fange pris-drift tidlig.
+# BKK er fakturaverifisert og Elvia, Nettselskapet og Glitre er verifisert mot
+# nettselskapenes egne prislister. For de øvrige er fri-nettleie kilden vi
+# lener oss på for kapasitetstrinn (incident 006), fordi 70+ nettselskap er for
+# mange å følge manuelt. Se AGENTS.md og docs/domain-rules.md.
 #
-# Scriptets exit-kode er den autoritative "avvik funnet"-signalen (1 hvis
-# noe DSO har dag/natt-avvik > 0,1 øre/kWh eks. mva, 0 ellers). DSO-er uten
-# match i fri-nettleie (f.eks. area_nett, som fri-nettleie splitter i fire
-# regioner) eller med mislykket henting rapporteres i output, men påvirker
-# ikke exit-koden - det er en kjent, vedvarende tilstand som må verifiseres
-# manuelt og ikke bør trigge et nytt issue hver uke.
+# Scriptets exit-kode er den autoritative "avvik funnet"-signalen: 1 hvis noe
+# DSO har dag/natt-avvik > 0,1 øre/kWh eks. mva, eller fastledd-avvik > 1 kr/mnd
+# inkl. mva. DSO-er uten match i fri-nettleie (f.eks. area_nett, som fri-nettleie
+# splitter i fire regioner) eller med en annen fastledd-metode enn
+# TRE_DØGNMAX_MND rapporteres i output, men påvirker ikke exit-koden - det er en
+# kjent, vedvarende tilstand som må verifiseres manuelt og ikke bør trigge et
+# nytt issue hver uke.
 on:
   schedule:
     - cron: "0 6 * * 1" # mandag 06:00 UTC (ca. 07-08 norsk tid)
@@ -88,7 +90,7 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           {
-            echo "Ukentlig sjekk mot [fri-nettleie](https://github.com/kraftsystemet/fri-nettleie) fant avvik mellom \`dso.py\` og publiserte nettleiesatser (dag/natt-energiledd, eks. mva)."
+            echo "Ukentlig sjekk mot [fri-nettleie](https://github.com/kraftsystemet/fri-nettleie) fant avvik mellom \`dso.py\` og publiserte nettleiesatser (dag/natt-energiledd eks. mva, og/eller fastledd inkl. mva)."
             echo
             echo "Kjøring: $RUN_URL"
             echo
@@ -96,7 +98,7 @@ jobs:
             cat avvik.txt
             echo '```'
             echo
-            echo "Verifiser mot ekte faktura før du endrer satser i \`dso.py\` - fri-nettleie er en delta-detektor, ikke fasit (se AGENTS.md). Kjør lokalt:"
+            echo "Sjekk nettselskapets egen prisliste først. Stemmer den med fri-nettleie, adopter tallene og skriv kilde med tariffdato i \`dso.py\` (se AGENTS.md). Kjør lokalt:"
             echo
             echo '```'
             echo "uv run --with pyyaml python scripts/sjekk_mot_fri_nettleie.py"

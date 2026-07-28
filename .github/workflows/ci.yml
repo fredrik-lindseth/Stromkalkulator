@@ -23,9 +23,11 @@ jobs:
       - name: Set up just
         uses: extractions/setup-just@v3
 
+      # pyyaml trengs av tests/test_fri_nettleie_sjekk.py, som ellers skipper i
+      # sin helhet via importorskip. Samme fella som just-steget over.
       - name: Install dependencies
         run: |
-          pip install pytest pytest-cov hypothesis vulture ruff mypy
+          pip install pytest pytest-cov hypothesis vulture ruff mypy pyyaml
 
       - name: Run linter (ruff)
         run: |

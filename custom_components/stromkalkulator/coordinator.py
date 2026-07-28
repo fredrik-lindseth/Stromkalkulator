@@ -5,7 +5,8 @@ from __future__ import annotations
 import logging
 import math
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
+from decimal import ROUND_HALF_UP, Decimal
 from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.helpers.storage import Store
@@ -26,6 +27,7 @@ from .const import (
     CONF_HAR_NORGESPRIS,
     CONF_KAPASITET_VARSEL_TERSKEL,
     CONF_POWER_SENSOR,
+    CONF_SIKRINGSTRINN,
     CONF_SPOT_PRICE_SENSOR,
     CONF_SPOTPRIS_INKL_MVA,
     DAY_RATE_END_HOUR,
@@ -53,14 +55,29 @@ from .const import (
     get_stromstotte_max_kwh,
     get_stromstotte_terskel,
 )
+from .dso import (
+    FASTLEDD_FEM_VEKTET_AR,
+    FASTLEDD_MND_MAX,
+    FASTLEDD_OV_TREFASE,
+    FASTLEDD_TRINNBASERTE,
+    finn_kapasitetstrinn,
+    finn_sikringstrinn,
+    grunnlag_i_lavere_trinn,
+    hent_fastledd_metode,
+)
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
 
-    from .dso import DSOEntry, EnergileddPeriode, KapasitetstrinnDict
+    from .dso import DSOEntry, EnergileddPeriode, FastleddLineaer, KapasitetstrinnDict
 
 _LOGGER = logging.getLogger(__name__)
+
+# FEM_VEKTET_ÅR ser tolv måneder bakover. 52 uker holder vinduet i takt med
+# ukesnøklene (mandagsdatoer) uten å måtte regne på månedslengder.
+FEM_VEKTET_VINDU_DAGER = 364
+FEM_VEKTET_ANTALL_TOPPER = 5
 
 
 @dataclass
@@ -68,6 +85,20 @@ class DailyMaxEntry:
     """One day's maximum hourly average power."""
 
     kw: float
+    hour: int | None = None
+
+
+@dataclass
+class WeeklyMaxEntry:
+    """Én ukes høyeste timessnitt, for nettselskap som avregner årstopper.
+
+    `dato` er dagen toppen falt på, og avgjør hvilken sesongvekt den får.
+    Uken identifiseres av mandagens dato, som både sorterer kronologisk og lar
+    oss kutte vinduet uten å regne ISO-uker om til datoer igjen.
+    """
+
+    kw: float
+    dato: str
     hour: int | None = None
 
 
@@ -116,8 +147,13 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     energiledd_natt: float
     _energiledd_perioder_inkl: list[tuple[str, str, float, float]]  # (fra, til, dag_inkl, natt_inkl)
     kapasitetstrinn: list[tuple[float, int]]
+    fastledd_metode: str
+    fastledd_lineaer: FastleddLineaer | None
+    fastledd_sesongfaktor: dict[int, float]
+    sikringstrinn_valg: str | None
     kapasitet_varsel_terskel: float
     _daily_max_power: dict[str, DailyMaxEntry]
+    _weekly_max_power: dict[str, WeeklyMaxEntry]
     _current_hour_utcoffset: timedelta | None
     _current_month: str  # "YYYY-MM" format for year-aware month tracking
     _monthly_consumption: ConsumptionData
@@ -238,6 +274,17 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         else:
             self.kapasitetstrinn = cast("list[tuple[float, int]]", raw_trinn)
 
+        # Fastledd-metode. Nettselskap uten `fastledd_metode` bruker NVE-modellen
+        # (snitt av tre døgnmakser) og er upåvirket av alt under.
+        self.fastledd_metode = hent_fastledd_metode(self.dso)
+        self.fastledd_lineaer = self.dso.get("fastledd_lineaer")
+        self.fastledd_sesongfaktor = self.dso.get("fastledd_sesongfaktor", {})
+        # Sikringsstørrelse er brukerdata og kan ikke leses av effektsensoren.
+        # Tom verdi holdes som None, slik at manglende valg blir synlig i stedet
+        # for å bli tolket som det billigste trinnet.
+        sikring_raw = entry.data.get(CONF_SIKRINGSTRINN)
+        self.sikringstrinn_valg = str(sikring_raw) if sikring_raw else None
+
         try:
             self.kapasitet_varsel_terskel = float(
                 entry.data.get(CONF_KAPASITET_VARSEL_TERSKEL, DEFAULT_KAPASITET_VARSEL_TERSKEL)
@@ -250,6 +297,10 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # ikke instantan effekt. Vi akkumulerer energi per klokke-time og bruker den
         # høyeste timen som dagens topp.
         self._daily_max_power: dict[str, DailyMaxEntry] = {}
+        # Ukestopper over løpende tolv måneder. Vedlikeholdes kun for
+        # nettselskap som avregner årstopper; ellers ville 72 av 73 brukere
+        # lagre data ingen leser.
+        self._weekly_max_power: dict[str, WeeklyMaxEntry] = {}
         self._current_hour_energy: float = 0.0
         self._current_hour: int = dt_util.now().hour
         # Sporing av aware-tidssone for hour-bucket: ved høst-DST skjer time
@@ -335,14 +386,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return value
 
     def _avg_in_lower_tier(self, avg_power: float, threshold: float) -> bool:
-        """Om avg_power hører til trinnet under denne terskelen.
-
-        De fleste DSO-er inkluderer terskelen i trinnet over (eksakt treff = høyere
-        trinn), så `<`. DSO-er med terskel_inkludert=False bruker `<=`.
-        """
-        if self._terskel_inkludert:
-            return avg_power < threshold
-        return avg_power <= threshold
+        """Om avg_power hører til trinnet under denne terskelen."""
+        return grunnlag_i_lavere_trinn(avg_power, threshold, self._terskel_inkludert)
 
     def _read_price_sensor(self, entity_id: str | None) -> float | None:
         """Read a price sensor, caching last known value. Returns None if never available."""
@@ -438,25 +483,21 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # Flush siste times akkumulator til daily_max_power før arkivering
             if self._current_hour_energy > 0:
                 yesterday = (now.replace(hour=0, minute=0, second=0) - timedelta(seconds=1)).strftime("%Y-%m-%d")
-                old_entry = self._daily_max_power.get(yesterday)
-                old_max = old_entry.kw if old_entry else 0
-                if self._current_hour_energy > old_max:
-                    self._daily_max_power[yesterday] = DailyMaxEntry(
-                        kw=round(self._current_hour_energy, 3), hour=self._current_hour
-                    )
+                self._registrer_timesmaks(yesterday, self._current_hour_energy, self._current_hour)
 
-            # Compute kapasitetsledd for previous month from top_3 before reset
+            # Compute kapasitetsledd for previous month before reset
             prev_top_3 = self._get_top_3_days()
             self._previous_month_top_3 = prev_top_3
-            if prev_top_3:
-                kw_values = [entry.kw for entry in prev_top_3.values()]
-                prev_avg = sum(kw_values) / len(kw_values)
-                prev_kap, _, prev_trinn = self._get_kapasitetsledd(prev_avg)
-                self._previous_month_kapasitetsledd = prev_kap
-                self._previous_month_kapasitetstrinn = prev_trinn
-            else:
+            # TRE_DØGNMAX_MND, MND_MAX og UKJENT leser bare inneværende måned, så
+            # uten målinger finnes det ikke noe grunnlag å arkivere. OV_TREFASE og
+            # FEM_VEKTET_ÅR har et beløp uansett (sikringsstørrelse, grunnbeløp).
+            if not prev_top_3 and self.fastledd_metode in FASTLEDD_TRINNBASERTE:
                 self._previous_month_kapasitetsledd = 0
                 self._previous_month_kapasitetstrinn = ""
+            else:
+                prev_kap, _, prev_trinn = self._get_kapasitetsledd(self._fastledd_grunnlag())
+                self._previous_month_kapasitetsledd = prev_kap
+                self._previous_month_kapasitetstrinn = prev_trinn
 
         # Archive energiledd rates for accurate previous-month calculations.
         # For sesong-DSO-er bruker vi forrige måneds siste dag (now - 1 dag) for å fange
@@ -467,7 +508,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._previous_month_energiledd_dag = forrige_dag_dag
         self._previous_month_energiledd_natt = forrige_dag_natt
 
-        # Reset current month data
+        # Reset current month data. _weekly_max_power står bevisst igjen: det er
+        # et rullerende tolvmånedersvindu og hører ikke til kalendermåneden.
         self._daily_max_power = {}
         self._current_hour_energy = 0.0
         self._current_hour = now.hour
@@ -594,12 +636,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 prev_date = self._current_date if current_hour != 0 else (
                     (now.replace(hour=0, minute=0, second=0) - timedelta(seconds=1)).strftime("%Y-%m-%d")
                 )
-                old_entry = self._daily_max_power.get(prev_date)
-                old_max = old_entry.kw if old_entry else 0
-                if self._current_hour_energy > old_max:
-                    self._daily_max_power[prev_date] = DailyMaxEntry(
-                        kw=round(self._current_hour_energy, 3), hour=previous_hour
-                    )
+                if self._registrer_timesmaks(prev_date, self._current_hour_energy, previous_hour):
                     dirty = True
             self._current_hour_energy = 0.0
             self._current_hour = current_hour
@@ -608,23 +645,32 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Legg til denne oppdateringens energi i timens akkumulator
         self._current_hour_energy += energy_kwh
 
+        if self._trenger_ukesmaks and self._prune_ukesmaks(now):
+            dirty = True
+
         # Get top 3 days
         top_3 = self._get_top_3_days()
         top_3_kw_values = [entry.kw for entry in top_3.values()]
         avg_power = sum(top_3_kw_values) / 3 if len(top_3) >= 3 else sum(top_3_kw_values) / max(len(top_3), 1)
 
-        # Calculate capacity tier
-        kapasitetsledd, trinn_nummer, trinn_intervall = self._get_kapasitetsledd(avg_power)
+        # Effektgrunnlaget nettselskapets fastledd-metode bruker. Sammenfaller med
+        # snittet av topp-3 for NVE-modellen, men ikke for de fem som avviker.
+        fastledd_grunnlag = self._fastledd_grunnlag()
 
-        # Calculate margin to next tier
+        # Calculate capacity tier
+        kapasitetsledd, trinn_nummer, trinn_intervall = self._get_kapasitetsledd(fastledd_grunnlag)
+
+        # Calculate margin to next tier. Bare meningsfullt der trinnet følger målt
+        # effekt: sikringsbasert og lineært fastledd endrer seg ikke med forbruket.
         margin_neste_trinn = 0.0
         neste_trinn_pris = kapasitetsledd
-        for i, (threshold, _price) in enumerate(self.kapasitetstrinn):
-            if self._avg_in_lower_tier(avg_power, threshold):
-                if i + 1 < len(self.kapasitetstrinn):
-                    margin_neste_trinn = round(threshold - avg_power, 2)
-                    neste_trinn_pris = self.kapasitetstrinn[i + 1][1]
-                break
+        if self.fastledd_metode in FASTLEDD_TRINNBASERTE:
+            for i, (threshold, _price) in enumerate(self.kapasitetstrinn):
+                if self._avg_in_lower_tier(fastledd_grunnlag, threshold):
+                    if i + 1 < len(self.kapasitetstrinn):
+                        margin_neste_trinn = round(threshold - fastledd_grunnlag, 2)
+                        neste_trinn_pris = self.kapasitetstrinn[i + 1][1]
+                    break
 
         # If in the highest tier (no next tier), don't warn
         if margin_neste_trinn == 0.0 and neste_trinn_pris == kapasitetsledd:
@@ -839,6 +885,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             electricity_company_total=electricity_company_total,
             current_power_kw=current_power_kw,
             avg_power=avg_power,
+            fastledd_grunnlag=fastledd_grunnlag,
             top_3=top_3,
             now=now,
             stromstotte_max=stromstotte_max,
@@ -871,6 +918,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "kapasitetstrinn_nummer": kw["trinn_nummer"],
             "kapasitetstrinn_intervall": kw["trinn_intervall"],
             "kapasitetsledd_per_kwh": round(kw["fastledd_per_kwh"], 4),
+            "fastledd_metode": self.fastledd_metode,
+            "fastledd_grunnlag_kw": round(kw["fastledd_grunnlag"], 2),
+            "fastledd_mangler_sikringsvalg": self._mangler_sikringsvalg(),
             "spot_price": round(kw["spot_price"], 4),
             "spot_price_valid": kw["spot_price_valid"],
             "stromstotte": round(kw["stromstotte"], 4),
@@ -946,23 +996,132 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         sorted_days = sorted(self._daily_max_power.items(), key=lambda x: x[1].kw, reverse=True)
         return dict(sorted_days[:3])
 
-    def _get_kapasitetsledd(self, avg_power: float) -> tuple[int, int, str]:
-        """Get kapasitetsledd based on average power.
+    @property
+    def _trenger_ukesmaks(self) -> bool:
+        """Om nettselskapet avregner ukestopper over et rullerende år."""
+        return self.fastledd_metode == FASTLEDD_FEM_VEKTET_AR
 
-        Returns: (price, tier_number, tier_range)
+    def _sesongvekt(self, maaned: int) -> float:
+        """Vektfaktor for en måned. 1,0 når nettselskapet ikke sesongvekter."""
+        return self.fastledd_sesongfaktor.get(maaned, 1.0)
+
+    def _registrer_timesmaks(self, dato: str, kwh: float, hour: int | None) -> bool:
+        """Bokfør en fullført times snitteffekt. True hvis noe ble endret.
+
+        En fullført klokketimes kWh er samme tall som timens snitt-kW, og er det
+        nettselskapene måler. Skrives til døgnmaks alltid, og til ukesmaks for
+        nettselskap som avregner årstopper.
         """
-        for i, (threshold, price) in enumerate(self.kapasitetstrinn, 1):
-            if self._avg_in_lower_tier(avg_power, threshold):
-                prev_threshold = self.kapasitetstrinn[i - 2][0] if i > 1 else 0.0
-                if threshold == float("inf"):
-                    tier_range = f">{prev_threshold:.0f} kW"
-                else:
-                    tier_range = f"{prev_threshold:.0f}-{threshold:.0f} kW"
-                return price, i, tier_range
-        last_idx = len(self.kapasitetstrinn)
-        prev = self.kapasitetstrinn[-2][0] if last_idx > 1 else 0.0
-        last_price = self.kapasitetstrinn[-1][1]
-        return last_price, last_idx, f">{prev:.0f} kW"
+        kw = round(kwh, 3)
+        endret = False
+        forrige = self._daily_max_power.get(dato)
+        if kw > (forrige.kw if forrige else 0):
+            self._daily_max_power[dato] = DailyMaxEntry(kw=kw, hour=hour)
+            endret = True
+        if self._trenger_ukesmaks and self._registrer_ukesmaks(dato, kw, hour):
+            endret = True
+        return endret
+
+    def _registrer_ukesmaks(self, dato: str, kw: float, hour: int | None) -> bool:
+        """Hold ukens høyeste sesongvektede time. Nøkkelen er mandagens dato.
+
+        Sammenligningen skjer på vektet verdi, ikke rå kW, fordi nettselskapet
+        vekter før det plukker ukestoppen. Det gir bare utslag i uker som krysser
+        et månedsskifte, men det er de ukene som ellers ville blitt feil.
+        """
+        try:
+            dag = date.fromisoformat(dato)
+        except ValueError:
+            _LOGGER.warning("Ugyldig dato for ukesmaks: %s", dato)
+            return False
+        nokkel = (dag - timedelta(days=dag.weekday())).isoformat()
+        forrige = self._weekly_max_power.get(nokkel)
+        if forrige is not None and kw * self._sesongvekt(dag.month) <= self._vektet(forrige):
+            return False
+        self._weekly_max_power[nokkel] = WeeklyMaxEntry(kw=kw, dato=dato, hour=hour)
+        return True
+
+    def _vektet(self, entry: WeeklyMaxEntry) -> float:
+        """Ukestoppens sesongvektede effekt."""
+        try:
+            maaned = date.fromisoformat(entry.dato).month
+        except ValueError:
+            return entry.kw
+        return entry.kw * self._sesongvekt(maaned)
+
+    def _prune_ukesmaks(self, now: datetime) -> bool:
+        """Kast ukestopper som har falt ut av tolvmånedersvinduet."""
+        grense = (now.date() - timedelta(days=FEM_VEKTET_VINDU_DAGER)).isoformat()
+        utgaatt = [nokkel for nokkel in self._weekly_max_power if nokkel < grense]
+        for nokkel in utgaatt:
+            del self._weekly_max_power[nokkel]
+        return bool(utgaatt)
+
+    def _fastledd_grunnlag(self) -> float:
+        """Effektverdien i kW som nettselskapets fastledd-metode legger til grunn.
+
+        NVE-modellen bruker snittet av de tre høyeste døgnmaksene i måneden. De
+        fem nettselskapene som avviker, er dokumentert i docs/beregninger.md.
+        """
+        if self.fastledd_metode == FASTLEDD_MND_MAX:
+            return max((e.kw for e in self._daily_max_power.values()), default=0.0)
+        if self.fastledd_metode == FASTLEDD_FEM_VEKTET_AR:
+            vektet = sorted(
+                (self._vektet(e) for e in self._weekly_max_power.values()), reverse=True
+            )[:FEM_VEKTET_ANTALL_TOPPER]
+            if not vektet:
+                return 0.0
+            # Nettselskapet fakturerer effekten med to desimaler.
+            return round(sum(vektet) / len(vektet), 2)
+        top_3 = [e.kw for e in self._get_top_3_days().values()]
+        if not top_3:
+            return 0.0
+        return sum(top_3) / 3 if len(top_3) >= 3 else sum(top_3) / len(top_3)
+
+    def _mangler_sikringsvalg(self) -> bool:
+        """Om et sikringsbasert fastledd står uten gyldig brukervalg."""
+        if self.fastledd_metode != FASTLEDD_OV_TREFASE:
+            return False
+        return finn_sikringstrinn(self.dso, self.sikringstrinn_valg) is None
+
+    def _lineart_fastledd(self, grunnlag_kw: float) -> int:
+        """Fastledd i kr/mnd inkl. mva for grunnbeløp + sats per kW."""
+        if self.fastledd_lineaer is None:
+            return 0
+        aar_eks_mva = (
+            self.fastledd_lineaer["grunnbelop_aar_eks_mva"]
+            + self.fastledd_lineaer["sats_kw_aar_eks_mva"] * grunnlag_kw
+        )
+        maaned = aar_eks_mva / 12 * (1 + get_mva_sats(self.avgiftssone))
+        # Halve kroner rundes opp, som i dso.py. Innebygd round() gjør bankers
+        # rounding og ville gitt 453 der nettselskapet fakturerer 453,75.
+        return int(Decimal(maaned).quantize(Decimal(1), ROUND_HALF_UP))
+
+    def _get_kapasitetsledd(self, grunnlag_kw: float) -> tuple[int, int | None, str]:
+        """Fastledd i kr/mnd for et effektgrunnlag.
+
+        Returns: (pris, trinnummer, trinnbeskrivelse). Trinnummer er None der
+        nettselskapet ikke har trinn, eller der sikringsstørrelsen mangler.
+        """
+        if self.fastledd_metode == FASTLEDD_OV_TREFASE:
+            valgt = finn_sikringstrinn(self.dso, self.sikringstrinn_valg)
+            if valgt is None:
+                # Ingen gjetning: sikringsstørrelse kan ikke leses av en
+                # effektsensor, og et plausibelt beløp ville skjult feilen.
+                return 0, None, "sikringsstørrelse ikke valgt"
+            nummer, trinn = valgt
+            return trinn["kr_mnd"], nummer, trinn["label"]
+
+        if self.fastledd_metode == FASTLEDD_FEM_VEKTET_AR:
+            return (
+                self._lineart_fastledd(grunnlag_kw),
+                None,
+                f"{grunnlag_kw:.2f} kW vektet årstopp",
+            )
+
+        return finn_kapasitetstrinn(
+            self.kapasitetstrinn, grunnlag_kw, self._terskel_inkludert
+        )
 
     def _serialize_perioder(self) -> list[dict[str, Any]] | None:
         """Returner energiledd-periodene som dict-liste for sensor-attributter.
@@ -1075,6 +1234,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if data:
             try:
                 self._daily_max_power = self._validate_daily_max_power(data.get("daily_max_power", {}))
+                self._weekly_max_power = self._validate_weekly_max_power(
+                    data.get("weekly_max_power", {})
+                )
                 self._monthly_consumption = self._validate_consumption(
                     data.get("monthly_consumption", {"dag": 0.0, "natt": 0.0})
                 )
@@ -1237,6 +1399,41 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return result
 
     @staticmethod
+    def _validate_weekly_max_power(data: Any) -> dict[str, WeeklyMaxEntry]:
+        """Valider lagrede ukestopper. Poster uten gyldig dato forkastes.
+
+        Datoen bærer sesongvekten, så en post uten den er ubrukelig og skal ut
+        heller enn å bli vektet feil.
+        """
+        if not isinstance(data, dict):
+            return {}
+        result: dict[str, WeeklyMaxEntry] = {}
+        for key, val in data.items():
+            if not isinstance(val, dict):
+                continue
+            try:
+                kw = float(val.get("kw", 0))
+            except (ValueError, TypeError):
+                continue
+            if not math.isfinite(kw) or kw < 0:
+                continue
+            dato = str(val.get("dato", ""))
+            try:
+                date.fromisoformat(dato)
+            except ValueError:
+                continue
+            hour = val.get("hour")
+            if hour is not None:
+                try:
+                    hour = int(hour)
+                    if not 0 <= hour <= 23:
+                        hour = None
+                except (ValueError, TypeError):
+                    hour = None
+            result[str(key)] = WeeklyMaxEntry(kw=kw, dato=dato, hour=hour)
+        return result
+
+    @staticmethod
     def _validate_consumption(data: Any) -> ConsumptionData:
         """Validate consumption dict has dag/natt keys with finite floats."""
         if not isinstance(data, dict):
@@ -1261,6 +1458,10 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Save data to disk."""
         data: dict[str, Any] = {
             "daily_max_power": self._serialize_daily_max(self._daily_max_power),
+            "weekly_max_power": {
+                k: {"kw": v.kw, "dato": v.dato, "hour": v.hour}
+                for k, v in self._weekly_max_power.items()
+            },
             "monthly_consumption": {"dag": self._monthly_consumption.dag, "natt": self._monthly_consumption.natt},
             "current_month": self._current_month,
             "previous_month_consumption": {

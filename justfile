@@ -51,5 +51,5 @@ verify-norgespris:
 
 # Kjør hele testpakken + linting.
 test:
-    pipx run --with hypothesis pytest tests/ -v
+    pipx run --with hypothesis --with pyyaml pytest tests/ -v
     ruff check custom_components/stromkalkulator/ tests/

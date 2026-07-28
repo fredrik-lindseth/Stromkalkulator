@@ -705,6 +705,7 @@ class TestSaveDataStructure:
             "previous_month_cost",
             "last_update",
             "last_tpi_kwh",
+            "weekly_max_power",
         }
         assert expected_keys == set(saved_data.keys())
 

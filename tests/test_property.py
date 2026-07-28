@@ -509,9 +509,9 @@ def test_terskel_inkludert_true_boundary_goes_to_higher_tier() -> None:
 def test_terskel_inkludert_false_boundary_stays_in_lower_tier() -> None:
     """DSO med terskel_inkludert=False: eksakt grensetreff -> lavere trinn.
 
-    Alut/Bindal/Føre/Stram publiserer grensene inklusivt i lavere trinn.
+    Bindal/Føre/Stram/Sør Aurdal publiserer grensene inklusivt i lavere trinn.
     """
-    coord = _make_coordinator("alut")
+    coord = _make_coordinator("sor_aurdal_energi")
     assert coord._terskel_inkludert is False
     trinn = coord.kapasitetstrinn
     # Finn en endelig grense der trinnet under og over har ulik pris.

@@ -144,6 +144,42 @@ class TestTranslationCompleteness:
         if "issues" in strings:
             assert "issues" in en, "en.json missing issues section"
 
+    def test_alle_steg_finnes_i_begge_spraak(self):
+        """Et nytt config-flow-steg uten oversettelse vises som en rå nøkkel.
+
+        Sikring-steget avdekket at paritetstestene bare dekket sensor- og
+        error-nøkler, aldri stegene. Samme halvdekning som drift-vakten hadde
+        (incident 006, lærdom 1).
+        """
+        strings = self._load_json(COMPONENTS_DIR / "strings.json")
+        for fil in ("en.json", "nb.json"):
+            oversatt = self._load_json(COMPONENTS_DIR / "translations" / fil)
+            for seksjon in ("config", "options"):
+                if seksjon not in strings:
+                    continue
+                forventet = set(strings[seksjon]["step"])
+                faktisk = set(oversatt[seksjon]["step"])
+                assert not forventet - faktisk, (
+                    f"{fil} mangler {seksjon}-steg: {forventet - faktisk}"
+                )
+
+    def test_alle_issue_noekler_finnes_i_begge_spraak(self):
+        strings = self._load_json(COMPONENTS_DIR / "strings.json")
+        for fil in ("en.json", "nb.json"):
+            oversatt = self._load_json(COMPONENTS_DIR / "translations" / fil)
+            mangler = set(strings["issues"]) - set(oversatt.get("issues", {}))
+            assert not mangler, f"{fil} mangler issue-nøkler: {mangler}"
+
+    def test_translation_keys_i_koden_finnes_i_strings(self):
+        """Hver translation_key= i integrasjonen må ha en tekst å vise."""
+        strings = self._load_json(COMPONENTS_DIR / "strings.json")
+        kjent = set(strings["issues"])
+        brukt: set[str] = set()
+        for fil in ("__init__.py", "coordinator.py", "config_flow.py"):
+            kilde = (COMPONENTS_DIR / fil).read_text()
+            brukt |= set(re.findall(r'translation_key="([a-z_]+)"', kilde))
+        assert not brukt - kjent, f"translation_key uten tekst i strings.json: {brukt - kjent}"
+
     def test_no_extra_sensor_keys_in_translations(self):
         """Translation files should not have sensor keys that strings.json doesn't."""
         strings = self._load_json(COMPONENTS_DIR / "strings.json")

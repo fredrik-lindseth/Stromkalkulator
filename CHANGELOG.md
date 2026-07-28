@@ -2,6 +2,45 @@
 
 Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.15.0]
+
+### Endret
+
+- **Strømstøtte aktiv og Norgespris aktiv er nå `binary_sensor`** i stedet for tekstsensorer med «Ja»/«Nei». Automasjoner og kort som peker på de gamle `sensor.*`-entitetene må endres til `binary_sensor.*`.
+- **Beløpssensorene bruker «NOK» i stedet for «kr».** Gjelder månedskostnader, differanser og inntekter. Verdiene er uendret, bare enheten heter noe annet, og Home Assistant ber deg bekrefte byttet. Kapasitetstrinn beholder `kr/mnd`, siden det er en sats og ikke et pengebeløp.
+- Integrasjonen bruker en stabil intern id i stedet for effektsensorens navn, så det å døpe om målersensoren bryter ikke lenger oppsettet. Skjer automatisk.
+
+### Lagt til
+
+- **Støtte for de fire fastledd-modellene som ikke er NVEs snitt av tre døgnmakser.** Sør Aurdal Energi bruker månedsmaksen, Fjellnett en lineær sats fra fem sesongvektede ukestopper over løpende tolv måneder, og Alut og Netera fakturerer etter hovedsikringens størrelse. Tinfos publiserer ikke metoden sin og er merket uverifisert. For disse fem var beløpet feil uansett hvor riktige trinnprisene var.
+- **Nytt felt «Hovedsikring» for Alut og Netera**, med radene ordrett fra nettselskapets prisliste. Sikringsstørrelse kan ikke leses av en effektsensor. Har du et av selskapene fra før, står kapasitetstrinn-sensoren som Ukjent til du velger raden, og et repair-varsel forteller hvor. Vi gjetter ikke på et trinn.
+- **Area Nett er delt i tre oppføringer**, én per prisområde, siden prisen avgjøres av hvilken kommune du bor i. Har du Area Nett fra før, ber et repair-varsel deg velge område.
+- Repair-varsel når nettleie- og avgiftssatsene kan være utdaterte, for eksempel ved årsskifte uten oppdatering, og når Norgespris-ordningen kan ha opphørt. Varselet forsvinner av seg selv når satsene er oppdatert.
+- Per-DSO `terskel_inkludert` utvidet til Sør Aurdal, som skriver trinnene sine «til og med».
+
+### Fikset
+
+- **Kapasitetstrinn rettet for 44 av 73 nettselskap.** Fjorten av dem hadde en kopiert mal (200/300/450/... kr/mnd) i stedet for priser, resten hadde trinn fra før prisøkningene 1. juli 2026. Avvikene gikk begge veier, opptil 281 kr/mnd for Klive. Kapasitetsleddet er et fast månedsbeløp, så feilen slo rett inn i månedskostnad og fakturaestimat. Se [incident 006](docs/incidents/006-kapasitetstrinn-uten-kilde.md).
+- **Alut la på 7,13 øre/kWh forbruksavgift som ikke skal betales.** De leverer til Alta, Loppa og Kvænangen, som alle ligger i tiltakssonen med fritak for både forbruksavgift og mva. Energileddet var 54 % for høyt.
+- **Area Nett hadde priser som ikke fantes i noe av de tre prisområdene.** Laveste trinn lå på 250 kr/mnd der riktig er 525, 390 eller 358 avhengig av kommune. Energileddet manglet også sesong, så vintersatsen ble brukt hele året.
+- **Elvia hevet nettleien 1. juli 2026 uten at fastleddet fulgte med:** trinn 1 lå på 125 kr/mnd der riktig pris er 150, og øverste trinn på 4570 mot 6800. Dag-energileddet er 28,99 øre (46,40 inkl. alle avgifter). Gjelder også Rakkestad Energi, som er del av Elvia. Rapportert av @Luxomona i [#12](https://github.com/fredrik-lindseth/Stromkalkulator/issues/12).
+- **Nettselskapet AS hevet kapasitetsleddet 1. juli 2026** (trinn 1 fra 137,50 til 162,50 kr/mnd). De har heller ikke helgetariff, så helger og helligdager ble regnet som natt i stedet for å følge klokkeslettet. Rapportert av @tbergo i [#11](https://github.com/fredrik-lindseth/Stromkalkulator/issues/11).
+- Oppdaterte energiledd for ni nettselskap som hevet prisene 1. juni og 1. juli 2026: Elvia, Glitre, Indre Hordaland, Kystnett, Linja, R-Nett, Rakkestad Energi, Tensio TN og Tensio TS.
+- Fjellnett hevet prisene 1. juli 2026: energiledd fra 12,90 til 14,80 øre/kWh og effektsatsen fra 534 til 589 kr/kW/år.
+- `loggers` i manifestet pekte på feil namespace, så lognivå satt på integrasjonen traff ikke.
+
+### Verifisert
+
+- **Drift-vakten sjekket bare halve nettleien.** `scripts/sjekk_mot_fri_nettleie.py` sammenlignet energiledd, aldri kapasitetsledd, og var derfor grønn i fire måneder mens 44 nettselskap hadde feil fastledd. Den sammenligner nå fastledd og fastledd-metode i tillegg, alle fem metodene hver på sin akse, og kjøres ukentlig i CI.
+- Testene hadde en egen kopi av trinnoppslaget som brukte `<=` der produksjonskoden bruker `<`. Tre påstander beskrev derfor motsatt oppførsel av integrasjonen ved eksakt grensetreff, og var grønne fordi de testet kopien. Oppslaget ligger nå ett sted, brukt av både coordinator og tester.
+- Ny regresjonstest: to nettselskap kan ikke ha identiske kapasitetstrinn uten begrunnelse. Ville fanget mal-feilen i april.
+- Paritetstestene for oversettelser dekket bare sensor- og feilnøkler, aldri config-flow-stegene eller repair-varslene. Et nytt steg uten oversettelse ville vist en rå nøkkel i UI-et.
+
+### Dokumentert
+
+- [Incident 006](docs/incidents/006-kapasitetstrinn-uten-kilde.md): hvorfor 44 nettselskap fikk feil kapasitetstrinn, og hvorfor ingen test fanget det.
+- `begrensninger.md` har to nye punkter: nettselskapene med en annen kapasitetsledd-modell, og de tre vi ikke får verifisert godt nok (Area Nett, Arva, Tinfos).
+
 ## [1.14.0]
 
 ### Endret

@@ -34,17 +34,17 @@ Julaften (24.12) og nyttårsaften (31.12) er **ikke** offisielle helligdager ett
 
 BKK er verifisert mot ekte fakturaer. Andre DSO-er starter uten `helligdager_ekstra` (alle desember-hverdager teller som dag) inntil faktura-data bekrefter at lavtariff er riktig. Se [bidra med faktura](fakturaer/bidra-med-faktura.md) hvis du har en faktura fra et annet prisområde og kan dokumentere hva som gjelder.
 
-Glitre Nett, Tensio TN/TS og Stannum bruker `helg_som_natt: false`, der kun klokkeslett styrer dag/natt. Helger og helligdager teller som vanlige hverdager.
+Glitre Nett, Tensio TN/TS, Nettselskapet og Stannum bruker `helg_som_natt: false`, der kun klokkeslett styrer dag/natt. Helger og helligdager teller som vanlige hverdager.
 
 ## Avgiftssoner
 
 Mva-fritak er fylkesbasert (mval. § 6-6), ikke prisområdebasert. NO4 faller i sin helhet i fritaksfylkene, men NO3 dekker i hovedsak Trøndelag og Møre og Romsdal, som betaler 25% mva. Se [incident 003](incidents/003-no3-mva-feilklassifisering.md).
 
-| Sone         | Fylker                                | Forbruksavgift | MVA |
-| ------------ | -------------------------------------- | -------------- | --- |
-| Sør-Norge    | Resten av landet (inkl. NO3-fylkene)  | 7,13 øre/kWh   | 25% |
-| Nord-Norge   | Nordland, Troms                       | 7,13 øre/kWh   | 0%  |
-| Tiltakssonen | Finnmark/Nord-Troms                    | 0 øre/kWh      | 0%  |
+| Sone         | Fylker                               | Forbruksavgift | MVA |
+| ------------ | ------------------------------------ | -------------- | --- |
+| Sør-Norge    | Resten av landet (inkl. NO3-fylkene) | 7,13 øre/kWh   | 25% |
+| Nord-Norge   | Nordland, Troms                      | 7,13 øre/kWh   | 0%  |
+| Tiltakssonen | Finnmark/Nord-Troms                  | 0 øre/kWh      | 0%  |
 
 Default settes fra prisområde (NO4 → Nord-Norge, NO3 → Sør-Norge), med DSO-spesifikk `avgiftssone`-override for unntak (f.eks. Bindal Kraftnett i NO3 som ligger i Nordland). Kan overstyres i innstillinger.
 
@@ -53,6 +53,25 @@ Default settes fra prisområde (NO4 → Nord-Norge, NO3 → Sør-Norge), med DSO
 1. Finn offisiell kilde (lovdata.no, regjeringen.no, skatteetaten.no)
 2. Verifiser mot fakturaer i `docs/fakturaer/`. Beregnet total bør stemme innenfor ±2%.
 3. Dokumenter kilden i koden: `# Kilde: [URL] YYYY-MM-DD`
+
+### Kapasitetstrinn krever kilde per nettselskap
+
+Aldri fyll ut kapasitetstrinn med en mal, en gjetning eller trinnene fra et annet nettselskap. Har du ikke en kilde, la `supported` stå på `False`. Fjorten nettselskap fikk en kopiert mal i april 2026 og leverte oppdiktede beløp til brukerne i fire måneder før noen fanget det, se [incident 006](incidents/006-kapasitetstrinn-uten-kilde.md).
+
+Rekkefølge på kilder: nettselskapets egen prisliste, så fri-nettleie. Fri-nettleie oppgir kr/år eks. mva, vi lagrer kr/mnd inkl. mva, så konverteringen er `pris / 12 * mva-faktor` med halve kroner rundet opp. Skriv kilden i en kommentar over `"kapasitetstrinn"` med tariffdato.
+
+`scripts/sjekk_mot_fri_nettleie.py` sammenligner både energiledd og fastledd, og avvik i begge feller exit-koden. Kjør den før du committer satsendringer.
+
+### Fastledd-metoden krever kilde på lik linje med prisene
+
+`fastledd_metode` avgjør hvilken kW-verdi trinnene slås opp med. Er den feil, blir beløpet feil uansett hvor riktige trinnprisene er, og feilen er usynlig i en trinn-tabell som ser pen ut. Behandle metoden som en sats: kilde og tariffdato i kommentaren, aldri gjettet.
+
+Verdiene er fri-nettleies egne navn (`fastledd.metode` i tariff-YAML-en), fordi drift-vakten sammenligner strengene direkte. Default er `TRE_DØGNMAX_MND`, så et nettselskap som følger NVE-modellen skal ikke ha feltet i det hele tatt. Metodene og hva de betyr: [beregninger.md](beregninger.md#nettselskap-med-en-annen-metode).
+
+To regler som er lette å bryte:
+
+- **Sikringsstørrelse er brukerdata.** `OV_TREFASE` kan ikke utledes fra effektsensoren. Gjengi radene ordrett fra prislisten i `fastledd_sikringstrinn` og la brukeren velge. Ikke oversett dem til et amperetall vi tolker selv: satsen kan avhenge av systemspenning. Mangler valget, skal beløpet være Ukjent, ikke laveste trinn. `id` er lagret i brukerens config og kan ikke endres etter en release.
+- **Nettselskap uten trinn har tom `kapasitetstrinn`.** `FEM_VEKTET_ÅR` er en lineær sats, ikke trinn. Å samle fri-nettleies punktvise tabell i en trinn-liste ville løyet om hva tersklene betyr. La listen stå tom og legg satsen i `fastledd_lineaer`.
 
 ## Sensor-enheter og device_class
 
@@ -92,7 +111,7 @@ Sjekk før du bytter enhet:
 
 - [ ] Finn offisiell kilde
 - [ ] Oppdater `const.py` (avgifter, terskel) og `dso.py` (energiledd, kapasitetstrinn)
-- [ ] Kjør `pipx run --with hypothesis pytest tests/ -v`
+- [ ] Kjør `pipx run --with hypothesis --with pyyaml pytest tests/ -v`
 - [ ] Verifiser mot faktura
 
 Helligdager beregnes fra påskeformelen, ingen oppdatering nødvendig.

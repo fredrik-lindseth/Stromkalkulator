@@ -22,7 +22,7 @@ Custom integrasjoner i Home Assistant kjører med full tilgang til systemet ditt
 
 3. Du skal se noe som:
 
-   ```
+   ```text
    ✓ Verification succeeded!
    ```
 

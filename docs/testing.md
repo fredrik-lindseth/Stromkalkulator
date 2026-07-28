@@ -10,7 +10,7 @@ Eller i venv: `python -m pytest tests/ -v`.
 
 ### Hva som dekkes
 
-Testsuiten (`ls tests/test_*.py` for aktuell liste) er organisert i nivåer i stedet for en fil-per-fil-tabell, filnavn endres oftere enn testnivåene gjør:
+Testsuiten (`ls tests/test_*.py` for aktuell liste) er organisert i nivåer i stedet for en fil-per-fil-tabell, siden filnavn endres oftere enn testnivåene gjør:
 
 - **Golden faktura**: beregninger verifisert mot ekte fakturafelt og publiserte tall. `test_faktura_bkk.py` (BKK 2025 og 2026), `test_research_reproducibility.py` (research-rapportene skal reproduseres eksakt ved regenerering).
 - **Hourly replay**: en hel måneds fixtur-data mates time for time gjennom `NettleieCoordinator`, og de akkumulerte sluttverdiene sjekkes mot fasit. `test_coordinator_replay.py`.
@@ -42,20 +42,23 @@ homeassistant:
   packages: !include_dir_named packages
 ```
 
-I Developer Tools > States, filtrer på `test_`. `sensor.test_alle_tester_ok` viser samlet status. Resultater: `OK`, `FEIL` eller `MANGLER DATA`. Ved FEIL, sjekk attributtene `forventet`, `faktisk`, `differanse`.
+I Developer Tools > States, filtrer på `test_`. `sensor.test_alle_tester_ok` viser samlet status. Den teller de åtte kjernetestene, mens de tre forrige-måned-testene leses hver for seg. Resultater: `OK`, `FEIL` eller `MANGLER DATA`. Ved FEIL, sjekk attributtene `forventet`, `faktisk`, `differanse`.
 
-| Sensor                                 | Sjekker                      |
-| -------------------------------------- | ---------------------------- |
-| `sensor.test_stromstotte_beregning`    | strømstøtte-formelen         |
-| `sensor.test_spotpris_etter_stotte`    | spotpris - strømstøtte       |
-| `sensor.test_tariff_korrekt`           | dag/natt/helg-tariff         |
-| `sensor.test_energiledd_korrekt`       | energiledd-valg              |
-| `sensor.test_total_pris_etter_stotte`  | totalpris                    |
-| `sensor.test_forbruksavgift`           | forbruksavgift (7,13 øre)    |
-| `sensor.test_enova_avgift`             | Enova-avgift (1,0 øre)       |
-| `sensor.test_norgespris_sammenligning` | prisforskjell mot Norgespris |
-| `sensor.test_kapasitetstrinn`          | kapasitetstrinn              |
-| `sensor.test_alle_tester_ok`           | samlet status (X/8 OK)       |
+| Sensor                                         | Sjekker                           |
+| ---------------------------------------------- | --------------------------------- |
+| `sensor.test_stromstotte_beregning`            | strømstøtte-formelen              |
+| `sensor.test_spotpris_etter_stotte`            | spotpris - strømstøtte            |
+| `sensor.test_tariff_korrekt`                   | dag/natt/helg-tariff              |
+| `sensor.test_energiledd_korrekt`               | energiledd-valg                   |
+| `sensor.test_total_pris_etter_stotte`          | totalpris                         |
+| `sensor.test_forbruksavgift`                   | forbruksavgift (7,13 øre)         |
+| `sensor.test_enova_avgift`                     | Enova-avgift (1,0 øre)            |
+| `sensor.test_norgespris_sammenligning`         | prisforskjell mot Norgespris      |
+| `sensor.test_kapasitetstrinn`                  | kapasitetstrinn                   |
+| `sensor.test_forrige_maned_data`               | dag + natt = totalt forrige måned |
+| `sensor.test_forrige_maned_nettleie_beregning` | forrige måneds nettleie           |
+| `sensor.test_forrige_maned_toppforbruk`        | topp-3 og snitt forrige måned     |
+| `sensor.test_alle_tester_ok`                   | samlet status (X/8 OK)            |
 
 ## Manuell sjekk
 

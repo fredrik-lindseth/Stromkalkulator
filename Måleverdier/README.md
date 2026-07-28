@@ -29,8 +29,8 @@ Time-for-time forbruksdata for målepunkt 707000000000000000 (<adresse>), ekspor
 CSV-innholdet (timestamps + kWh) inneholder ikke personlig info, men vi committer kun én demo-måned for å reprodusere verifiseringen (se [neste-maaned-prosedyre.md](../docs/fakturaer/neste-maaned-prosedyre.md)). Øvrige måneder ligger kun lokalt i `_private/Måleverdier/` (gitignored).
 
 | Fil               | Periode                 | Rader (data) | Total kWh (m/ekstra dager) |
-| ------------------ | ----------------------- | ------------ | -------------------------- |
-| `elhub_april.csv` | 01.04.2026 – 01.05.2026 | 743          | 1423,885                   |
+| ----------------- | ----------------------- | ------------ | -------------------------- |
+| `elhub_april.csv` | 01.04.2026 - 01.05.2026 | 743          | 1423,885                   |
 
 Filtrer på "Fra"-kolonne for å plukke kun den tilsiktede måneden (Elhub-eksporten inkluderer alltid noen ekstra dager fra påfølgende måned). Totalen over inkluderer disse ekstra dagene, så summen ligger noen kWh høyere enn den filtrerte måneds-summen i `tests/fixtures/README.md`.
 

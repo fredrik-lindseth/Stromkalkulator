@@ -21,7 +21,7 @@ pipx run mypy custom_components/stromkalkulator/ --ignore-missing-imports
 
 `mypy` er blokkerende i CI, men sto lenge ikke her. Da gikk en `bool(dso)` som
 ikke smalner typen rett gjennom lokal grønn testsuite og feilet i CI etter push,
-med release hoppet over som følge.
+så releasen ble hoppet over.
 
 `--with hypothesis` trengs fordi `tests/test_property.py` bruker den; uten
 flagget feiler `pipx run pytest` allerede på collection. `--with pyyaml` trengs
@@ -35,6 +35,7 @@ egen CI-jobb med `--noconftest`. Kjøres også via pre-commit hooks.
 - **Lagring**: bruk `entry.entry_id` som lagringsnøkkel, aldri DSO-id eller brukervalgt konfigurasjon. Se [incident 001](docs/incidents/001-delt-data-mellom-instanser.md).
 - **Sensor-enheter**: `MONETARY` krever ISO 4217 (`NOK`), satser skal ikke ha `device_class` og beholder `NOK/kWh` eller `kr/mnd`. Å bytte enhet på en sensor med `state_class` gir én repair hos hver bruker, så gjør det bare når gevinsten er reell. Se [domain-rules.md](docs/domain-rules.md#sensor-enheter-og-device_class).
 - **Satser**: endringer i `const.py` (avgifter, terskel) eller `dso.py` (energiledd, kapasitetstrinn) krever offisiell kilde og bestått testsuite. Kjør `uv run --with pyyaml python scripts/sjekk_mot_fri_nettleie.py --bare-avvik` for å fange pris-drift mot fri-nettleie før du endrer eller committer satser. Den sjekker både energiledd og fastledd; avvik i begge feller exit-koden.
+- **CHANGELOG**: en sluppet seksjon er historikk. Sjekk `gh release list` før du skriver, og lag en ny seksjon hvis den øverste allerede er publisert. Versjonen i `manifest.json` er bumpet ved release, så filen ser ut som om den gjelder det du jobber med. Se [release-notes.md](docs/release-notes.md#changelogmd).
 - **Kapasitetstrinn**: aldri mal, gjetning eller gjenbruk fra et annet nettselskap. Mangler kilde, la `supported` stå `False`. Se [incident 006](docs/incidents/006-kapasitetstrinn-uten-kilde.md) og [domain-rules.md](docs/domain-rules.md#kapasitetstrinn-krever-kilde-per-nettselskap).
 - **DSO-helligdager**: `helligdager_ekstra` i `dso.py` (f.eks. `["12-24", "12-31"]` for BKK) skal kun legges til når en ekte faktura fra DSO-en bekrefter at hele dagen behandles som natt-tariff. Default er kun offisielle norske helligdager.
 - **Månedsskifte**: ikke nullstill `_daily_max_power`, `_monthly_consumption` eller `_previous_month_*` manuelt. Skjer automatisk.

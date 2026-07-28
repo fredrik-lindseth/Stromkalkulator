@@ -6,7 +6,7 @@ Home Assistant viser bare spotpris. Norske strømfakturaer har flere komponenter
 
 ### Filstruktur
 
-```
+```text
 custom_components/stromkalkulator/
 ├── __init__.py      # oppsett, registrer platforms
 ├── config_flow.py   # UI-konfigurasjon
@@ -27,7 +27,7 @@ DSO-data (`dso.py`) er en dict med alle nettselskaper, energiledd dag/natt og ka
 
 ### Beregningsflyt
 
-```
+```text
 Effektsensor (W) + Spotpris (NOK/kWh)
               │
               ▼
@@ -47,7 +47,7 @@ Effektsensor (W) + Spotpris (NOK/kWh)
 
 Coordinator poller hvert minutt i stedet for å abonnere på state-endringer. Ikke fordi matematikken krever det. Akkumuleringen antar ikke jevne tidssteg, `elapsed_hours` er faktisk `now - _last_update` (`coordinator.py:513-517`), så event-drevet oppdatering ville fungert regnemessig.
 
-Grunnen er broadcast-frekvensen på kildesensoren. Effektsensoren (`p` fra Kaifa/Aidon HAN) kringkaster hvert ~2,5 sek, et rått event-abonnement på den ville gitt rundt 24x recorder- og Store-skrivelast mot dagens 1-min-intervall. Den kumulative tpi/OBIS-1.8.0-sensoren (brukt når `energy_sensor` er konfigurert) oppdateres derimot bare 1x/time, event-abonnement mot DEN kunne vært en reell gevinst, men forutsetter debounce av `_save_stored_data` og dedup på entitetsnivå først (egne, uløste oppgaver). For rene effekt/Riemann-oppsett er et fast 1-min-intervall et fornuftig kompromiss.
+Grunnen er broadcast-frekvensen på kildesensoren. Effektsensoren (`p` fra Kaifa/Aidon HAN) kringkaster hvert ~2,5 sek. Et rått event-abonnement på den ville gitt rundt 24x recorder- og Store-skrivelast mot dagens 1-min-intervall. Den kumulative tpi/OBIS-1.8.0-sensoren (brukt når `energy_sensor` er konfigurert) oppdateres derimot bare 1x/time. Et event-abonnement mot _den_ kunne vært en reell gevinst, men forutsetter debounce av `_save_stored_data` og dedup på entitetsnivå først (egne, uløste oppgaver). For rene effekt/Riemann-oppsett er et fast 1-min-intervall et fornuftig kompromiss.
 
 ## Lokalt oppsett
 
@@ -67,7 +67,7 @@ ssh ha-local "ha core restart"
 ssh ha-local "ha core logs" | grep -i stromkalkulator
 ```
 
-`rsync` speiler hele katalogen (inkl. `button.py`, `diagnostics.py`, `strings.json`, `translations/`), så en ny fil i `custom_components/stromkalkulator/` havner automatisk på HA-instansen. En fillistet loop råtner hver gang det legges til en fil, det er nettopp det som skjedde med `button.py` og `translations/` her.
+`rsync` speiler hele katalogen (inkl. `button.py`, `diagnostics.py`, `strings.json`, `translations/`), så en ny fil i `custom_components/stromkalkulator/` havner automatisk på HA-instansen. En fillistet loop råtner hver gang det legges til en fil. Det er nettopp det som skjedde med `button.py` og `translations/` her.
 
 Etter en rsync kjører HA-en din arbeidstreet, ikke den publiserte releasen, og HACS vet ingenting om det. Usluppet arbeid, som en enhetsendring på en sensor, slår da ut som repairs hos deg alene. Kjør `git log v$(git describe --tags --abbrev=0)..HEAD` før du konkluderer med at en release er skyld i noe du ser lokalt.
 

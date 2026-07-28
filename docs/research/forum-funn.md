@@ -6,15 +6,29 @@ Tråder gjennomgått mai 2026. Norsk forum: hjemmeautomasjon.no. Internasjonalt 
 
 ## Eksisterende HACS-integrasjoner
 
-| Integrasjon | Scope | Overlapp |
-|---|---|---|
-| [EnergyTariff (epaulsen)](https://github.com/epaulsen/energytariff) | Kapasitetstrinn-tracking via Jinja-templates. Norsk. ~35 stars. | Overlapper kun på kapasitetstrinn. Vi har dette pluss spot, nettleie, avgifter, Norgespris, ferdig per DSO. |
-| [Dynamic Energy Cost (martinarva)](https://community.home-assistant.io/t/custom-integration-dynamic-energy-cost-track-real-time-and-interval-electricity-costs-per-device/726931) | Per-device kostnadstracking (15min/time/dag/uke/mnd/år) mot vilkårlig pris-sensor. | Komplementær. Vi gir totalpris-sensor, den bryter ned per enhet. Vi kan dokumentere kjeding fra vår sensor inn i denne. |
-| [Grid Tariff (community)](https://community.home-assistant.io/t/custom-component-grid-tariff/884393) | Generisk dynamisk nettleie per kWh via templates. | Ikke DSO-spesifikk. Vi er ferdig oppsatt for alle 50+ norske DSO-er. |
-| [ENTSO-e Day Ahead](https://community.home-assistant.io/t/custom-component-entso-e-day-ahead-energy-prices/467127) | Råpriser fra ENTSO-e for hele EU. | Alternativ pris-input til Nordpool. Kunne være fallback hos oss. |
-| [EMHASS](https://community.home-assistant.io/t/emhass-an-energy-management-for-home-assistant/338126) | Linear-programming-optimering av batteri/PV/last mot dynamisk pris. | Stort scope-skille. Konsumerer pris-sensorer. Vi kan mate den. |
-| [AMSHAN](https://community.home-assistant.io/t/norway-sweden-electric-meter-reading-ams-han/384646) | Leser Aidon/Kamstrup/Kaifa via HAN-port. Norsk. | Input-data. Komplementær. |
-| [Tibber Pulse MQTT](https://community.home-assistant.io/t/tibber-pulse-mqtt-local-mqtt-integration-with-optional-aws-iot-bridge-hacs/1006458) | Lokal Tibber Pulse uten sky-API. | Input-data. Komplementær. |
+Scope først, så overlappet med oss.
+
+- [EnergyTariff (epaulsen)](https://github.com/epaulsen/energytariff):
+  kapasitetstrinn-tracking via Jinja-templates. Norsk. ~35 stars.
+  Overlapper kun på kapasitetstrinn. Vi har dette pluss spot, nettleie,
+  avgifter, Norgespris, ferdig per DSO.
+- [Dynamic Energy Cost (martinarva)](https://community.home-assistant.io/t/custom-integration-dynamic-energy-cost-track-real-time-and-interval-electricity-costs-per-device/726931):
+  per-device kostnadstracking (15min/time/dag/uke/mnd/år) mot vilkårlig
+  pris-sensor. Komplementær. Vi gir totalpris-sensor, den bryter ned per
+  enhet. Vi kan dokumentere kjeding fra vår sensor inn i denne.
+- [Grid Tariff (community)](https://community.home-assistant.io/t/custom-component-grid-tariff/884393):
+  generisk dynamisk nettleie per kWh via templates. Ikke DSO-spesifikk. Vi er
+  ferdig oppsatt for alle 50+ norske DSO-er.
+- [ENTSO-e Day Ahead](https://community.home-assistant.io/t/custom-component-entso-e-day-ahead-energy-prices/467127):
+  råpriser fra ENTSO-e for hele EU. Alternativ pris-input til Nordpool. Kunne
+  være fallback hos oss.
+- [EMHASS](https://community.home-assistant.io/t/emhass-an-energy-management-for-home-assistant/338126):
+  linear-programming-optimering av batteri/PV/last mot dynamisk pris. Stort
+  scope-skille. Konsumerer pris-sensorer. Vi kan mate den.
+- [AMSHAN](https://community.home-assistant.io/t/norway-sweden-electric-meter-reading-ams-han/384646):
+  leser Aidon/Kamstrup/Kaifa via HAN-port. Norsk. Input-data. Komplementær.
+- [Tibber Pulse MQTT](https://community.home-assistant.io/t/tibber-pulse-mqtt-local-mqtt-integration-with-optional-aws-iot-bridge-hacs/1006458):
+  lokal Tibber Pulse uten sky-API. Input-data. Komplementær.
 
 ## Funksjoner andre har bygd
 
@@ -48,7 +62,7 @@ Status hos oss: coordinator leser gjeldende pris hvert minutt. Ikke verifisert m
 
 Aktivt regulere forbrukere for å unngå å overskride neste effekttrinn.
 
-- [Tråd 9253: Prediktiv reduksjon av strømbruk effektariff-nivå (hjemmeautomasjon)](https://www.hjemmeautomasjon.no/forums/topic/9253-prediktiv-reduksjon-av-strømbruk-effektariff-nivå/): PID-regulator basert på Tibber Pulse 2,5s-effekt. Integrerer opp forventet timesforbruk, styrer 0–100 %-utgang som slår av/på forbrukere.
+- [Tråd 9253: Prediktiv reduksjon av strømbruk effektariff-nivå (hjemmeautomasjon)](https://www.hjemmeautomasjon.no/forums/topic/9253-prediktiv-reduksjon-av-strømbruk-effektariff-nivå/): PID-regulator basert på Tibber Pulse 2,5s-effekt. Integrerer opp forventet timesforbruk, styrer 0-100 %-utgang som slår av/på forbrukere.
 
 Status hos oss: vi har `kapasitet_varsel` (binær). Ikke prediktiv styring. Bevisst utenfor scope, egen integrasjon (Effektvakt) tar dette.
 
@@ -123,7 +137,7 @@ Status hos oss: alle nettselskap innebygd i `dso.py`.
 
 - Norgespris-håndtering (50 øre-tak + 5000 kWh-grense + per-DSO sammenligning)
 - Alle norske nettselskap dekket og verifisert
-- Faktura-verifisert presisjon (0,01–0,02 kr per linje, 6 BKK-måneder)
+- Faktura-verifisert presisjon (0,01-0,02 kr per linje, 6 BKK-måneder)
 - Fritidsbolig/hytte med korrekte kWh-tak
 - Solcelle-eksport for plusskunder
 - Per-DSO `helligdager_ekstra` (jul/nyttår-lavtariff)

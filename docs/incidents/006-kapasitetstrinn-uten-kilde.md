@@ -14,7 +14,7 @@ om Elvia. Begge meldingene handlet om kapasitetsleddet.
 En full gjennomgang mot fri-nettleie viste at problemet var langt større enn de
 to. Av de 72 nettselskapene i `DSO_LIST` hadde 44 feil kapasitetstrinn. Energileddene var derimot
 nesten helt riktige: bare Elvia (og Rakkestad, som følger Elvia) måtte rettes,
-og etter det matcher alle 73 fri-nettleie innenfor 0,1 øre/kWh.
+og etter det matcher alle fri-nettleie innenfor 0,1 øre/kWh.
 
 ## Rotårsak
 
@@ -71,8 +71,8 @@ husstander over det høyeste publiserte trinnet.
    energiledd. Fri-nettleie oppgir kr/år eks. mva, vi lagrer kr/mnd inkl. mva,
    så sammenligningen deler på 12 og ganger med mva-faktoren for nettselskapets
    avgiftssone. Avvik teller i exit-koden på lik linje med energiledd.
-2. Kapasitetstrinn for 40 nettselskap hentet fra fri-nettleie, med
-   kilde-kommentar og tariffdato per oppføring.
+2. Kapasitetstrinn for 40 av de 44 hentet fra fri-nettleie, med kilde-kommentar
+   og tariffdato per oppføring. De fire siste står i punktet under.
 3. Elvia, Nettselskapet og Glitre verifisert direkte mot nettselskapenes egne
    prislister, ikke bare fri-nettleie. BKK står uendret på faktura-verifiserte
    tall. Alle fire stemmer med fri-nettleie, som er en uavhengig bekreftelse på

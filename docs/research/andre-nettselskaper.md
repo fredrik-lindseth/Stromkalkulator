@@ -31,18 +31,19 @@ Kilde: [Tariffblad 1.0 standard tariff privat 2026-01-01 (PDF)](https://www.elvi
 søndag/helligdager hele døgnet. Match med `_is_day_rate()`.
 
 **Kapasitetstrinn:** AVVIK på trinn 6-10
-| Trinn | kW | Elvia 2026 | Vår dso.py | Diff   |
-|-------|----|------------|------------|--------|
-| 1     | 0-2 | 125       | 125        | 0      |
-| 2     | 2-5 | 190       | 190        | 0      |
-| 3     | 5-10 | 300      | 300        | 0      |
-| 4     | 10-15 | 410     | 410        | 0      |
-| 5     | 15-20 | 520     | 520        | 0      |
-| 6     | 20-25 | 630     | 655        | +25    |
-| 7     | 25-50 | 1 175   | 1 135      | -40    |
-| 8     | 50-75 | 1 720   | 1 750      | +30    |
-| 9     | 75-100 | 2 270  | 2 370      | +100   |
-| 10    | 100+ | 4 570    | 4 225      | -345   |
+
+| Trinn | kW     | Elvia 2026 | Vår dso.py | Diff |
+| ----- | ------ | ---------- | ---------- | ---- |
+| 1     | 0-2    | 125        | 125        | 0    |
+| 2     | 2-5    | 190        | 190        | 0    |
+| 3     | 5-10   | 300        | 300        | 0    |
+| 4     | 10-15  | 410        | 410        | 0    |
+| 5     | 15-20  | 520        | 520        | 0    |
+| 6     | 20-25  | 630        | 655        | +25  |
+| 7     | 25-50  | 1 175      | 1 135      | -40  |
+| 8     | 50-75  | 1 720      | 1 750      | +30  |
+| 9     | 75-100 | 2 270      | 2 370      | +100 |
+| 10    | 100+   | 4 570      | 4 225      | -345 |
 
 Kommentaren i dso.py:108 sier trinn 6-10 er "fra PDF
 tariffblad_1_0_standard-tariff_privat_20260101.pdf", men tallene
@@ -107,28 +108,30 @@ Kilde: [Lnett tariffhefte 2026 (PDF)](https://www.l-nett.no/getfile.php/13156920
 [Lnett priser privat](https://www.l-nett.no/nettleie/priser-og-vilkar-privat/)
 
 **Energiledd:** STORT AVVIK
-| | Lnett 2026 | Vår dso.py | Diff       |
-|-|-----------|------------|------------|
-| Dag eks. mva | 25,60 øre | 17,47 øre | +8,13 øre (~46% feil) |
-| Natt eks. mva | 13,60 øre | 5,47 øre | +8,13 øre (~149% feil) |
+
+|               | Lnett 2026 | Vår dso.py | Diff                   |
+| ------------- | ---------- | ---------- | ---------------------- |
+| Dag eks. mva  | 25,60 øre  | 17,47 øre  | +8,13 øre (~46% feil)  |
+| Natt eks. mva | 13,60 øre  | 5,47 øre   | +8,13 øre (~149% feil) |
 
 Avviket på nøyaktig 8,13 øre = forbruksavgift (7,13) + Enova (1,0).
 Mistanke: gamle tall, eller avgifter trukket fra to ganger. Datoen i
-kommentaren stemmer heller ikke. Eller vi har gamle tall.
+kommentaren stemmer heller ikke.
 
 **Kapasitetstrinn:** AVVIK på høyere trinn
-| Trinn | kW | Lnett 2026 | Vår dso.py |
-|-------|----|----|------------|
-| 1 | 0-2 | 150 | 150 |
-| 2 | 2-5 | 250 | 250 |
-| 3 | 5-10 | 400 | 400 |
-| 4 | 10-15 | 650 | 650 |
-| 5 | 15-20 | 900 | 900 |
-| 6 | 20-25 | 1 150 | 1 150 |
-| 7 | 25-50 | 2 150 | --- (mangler, slutter på 1150) |
-| 8 | 50-75 | 3 150 | --- |
-| 9 | 75-100 | 4 150 | --- |
-| 10 | 100+ | 7 000 | --- |
+
+| Trinn | kW     | Lnett 2026 | Vår dso.py                     |
+| ----- | ------ | ---------- | ------------------------------ |
+| 1     | 0-2    | 150        | 150                            |
+| 2     | 2-5    | 250        | 250                            |
+| 3     | 5-10   | 400        | 400                            |
+| 4     | 10-15  | 650        | 650                            |
+| 5     | 15-20  | 900        | 900                            |
+| 6     | 20-25  | 1 150      | 1 150                          |
+| 7     | 25-50  | 2 150      | --- (mangler, slutter på 1150) |
+| 8     | 50-75  | 3 150      | ---                            |
+| 9     | 75-100 | 4 150      | ---                            |
+| 10    | 100+   | 7 000      | ---                            |
 
 Vår dso.py:248 har `(float("inf"), 1150)`: alle kunder over 25 kW
 faktureres feil i vår implementasjon. Mistolket "20-25 kW" som siste
@@ -149,14 +152,15 @@ Vi har antakelig 2025-tall eller eldre. Verdt å notere: Lede har ikke
 dag/natt-differensiering for husholdning (kun for effekttariff på næring).
 
 **Kapasitetstrinn:** AVVIK
-| kW | Lede 2026 | Vår dso.py |
-|-|-|-|
-| 0-5 | 268,75 | 294 |
-| 5-10 | 458,75 | 503 |
-| 10-15 | 647,50 | 708 |
-| 15-20 | 837,50 | 916 |
-| 20-25 | 1 027,50 | 1 124 |
-| 25-50 | 1 596,25 | 1 746 |
+
+| kW    | Lede 2026 | Vår dso.py |
+| ----- | --------- | ---------- |
+| 0-5   | 268,75    | 294        |
+| 5-10  | 458,75    | 503        |
+| 10-15 | 647,50    | 708        |
+| 15-20 | 837,50    | 916        |
+| 20-25 | 1 027,50  | 1 124      |
+| 25-50 | 1 596,25  | 1 746      |
 
 Alle våre tall er ~9-10% for høye. Match med kraftsystemet 2025?
 Nettsiden har endret seg ifølge dso.py-kommentaren ("Kilde:
@@ -253,17 +257,17 @@ Ingen krise i mai 2026.
 dso.py, og brukere har valgt dem i config. Å fjerne støtte for alle
 utenom BKK ville bryte eksisterende oppsett.
 
-**Bør fikse de fem konkrete buggene** i prioritert rekkefølge:
+**Bør fikse de sju konkrete buggene** i prioritert rekkefølge:
 
-| Prioritet | Bug | Konsekvens for bruker |
-|-----------|-----|-----------------------|
-| P1 | Lnett: trinn over 25 kW mangler | Helt feil pris for store husholdninger |
-| P1 | Lnett: energiledd er ~46% for lavt | Konsistent for lav nettleie hver måned |
-| P1 | Lede: energiledd ~70% for høyt | Konsistent for høy nettleie hver måned |
-| P2 | Lede: kapasitetstrinn ~10% for høyt | Mindre, men systematisk feil |
-| P2 | Norgesnett: energiledd ~30% for lavt | Konsistent for lav nettleie |
-| P3 | Elvia: kapasitetstrinn 6-10 har små avvik | Kun for husholdninger med >20 kW snitt |
-| P3 | Asker Nett: verifiseres mot 2026 | Sannsynligvis lignende feil |
+| Prioritet | Bug                                       | Konsekvens for bruker                  |
+| --------- | ----------------------------------------- | -------------------------------------- |
+| P1        | Lnett: trinn over 25 kW mangler           | Helt feil pris for store husholdninger |
+| P1        | Lnett: energiledd er ~46% for lavt        | Konsistent for lav nettleie hver måned |
+| P1        | Lede: energiledd ~70% for høyt            | Konsistent for høy nettleie hver måned |
+| P2        | Lede: kapasitetstrinn ~10% for høyt       | Mindre, men systematisk feil           |
+| P2        | Norgesnett: energiledd ~30% for lavt      | Konsistent for lav nettleie            |
+| P3        | Elvia: kapasitetstrinn 6-10 har små avvik | Kun for husholdninger med >20 kW snitt |
+| P3        | Asker Nett: verifiseres mot 2026          | Sannsynligvis lignende feil            |
 
 Bør også **legge til disclaimer** i `docs/begrensninger.md` om at kun
 BKK er faktura-verifisert og at andre DSO-er er sjekket mot publiserte

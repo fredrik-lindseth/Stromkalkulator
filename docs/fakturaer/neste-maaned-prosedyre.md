@@ -67,15 +67,15 @@ just verify-norgespris
 
 Forventede avvik (basert på april 2026):
 
-| Linje                              | Forventet avvik |
-| ---------------------------------- | --------------- |
-| Total kWh                          | ±50 Wh          |
-| Dag/natt-split                     | ±100 Wh hver    |
-| Topp 3 maks effekt                 | 3-8 W per topp  |
-| Norgespris (HAN x HA-recorder)     | 0,1-0,6 kr      |
-| Norgespris (HAN x publisert Final) | ±0,4 kr         |
-| Norgespris (Elhub x publisert Final) | ±0,01 kr      |
-| Avgiftslinjer (forbruk/enova)      | ±2 øre          |
+| Linje                                | Forventet avvik |
+| ------------------------------------ | --------------- |
+| Total kWh                            | ±50 Wh          |
+| Dag/natt-split                       | ±100 Wh hver    |
+| Topp 3 maks effekt                   | 3-8 W per topp  |
+| Norgespris (HAN x HA-recorder)       | 0,1-0,6 kr      |
+| Norgespris (HAN x publisert Final)   | ±0,4 kr         |
+| Norgespris (Elhub x publisert Final) | ±0,01 kr        |
+| Avgiftslinjer (forbruk/enova)        | ±2 øre          |
 
 Recorder-avviket på Norgespris skyldes at HA lagret en foreløpig valutakurs
 på søndager, ikke logikkfeil. Eksakt-sjekken er Elhub-kWh x Final-priser og

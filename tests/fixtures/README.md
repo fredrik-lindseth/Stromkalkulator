@@ -9,15 +9,15 @@ integrasjonen slettes eller sensorer får nye entity-IDer i Home Assistant.
 
 Time-for-time forbruk + spotpris + maks effekt, eksportert fra HA recorder.
 
-| Fil                              | Periode             | Timer | Total kWh | Faktura  | Status                         |
-| -------------------------------- | ------------------- | ----- | --------- | -------- | ------------------------------ |
-| `bkk_desember_2025_hourly.json`  | 01.12.25 - 01.01.26 | 744   | 1554,723  | 1554,721 | Gammel strømstøtte (ikke Norgespris) |
-| `bkk_januar_2026_hourly.json`    | 01.01.26 - 01.02.26 | 744   | 1936,106  | -        | Ingen faktura mottatt (overgangsmåned) |
-| `bkk_februar_2026_hourly.json`   | 01.02.26 - 01.03.26 | 672   | 1673,783  | 1673,786 | Norgespris, verifisert         |
-| `bkk_mars_2026_hourly.json`      | 01.03.26 - 01.04.26 | 743   | 1553,224  | 1553,217 | Norgespris, verifisert         |
-| `bkk_april_2026_hourly.json`     | 01.04.26 - 01.05.26 | 720   | 1381,827  | 1381,827 | Norgespris, verifisert         |
-| `bkk_mai_2026_hourly.json`       | 01.05.26 - 01.06.26 | 744   | 1179,306  | 1179,303 | Norgespris, verifisert         |
-| `bkk_juni_2026_hourly.json`      | 01.06.26 - 01.07.26 | 720   | 1033,626  | 1033,628 | Norgespris, verifisert         |
+| Fil                             | Periode             | Timer | Total kWh | Faktura  | Status                                 |
+| ------------------------------- | ------------------- | ----- | --------- | -------- | -------------------------------------- |
+| `bkk_desember_2025_hourly.json` | 01.12.25 - 01.01.26 | 744   | 1554,723  | 1554,721 | Gammel strømstøtte (ikke Norgespris)   |
+| `bkk_januar_2026_hourly.json`   | 01.01.26 - 01.02.26 | 744   | 1936,106  | -        | Ingen faktura mottatt (overgangsmåned) |
+| `bkk_februar_2026_hourly.json`  | 01.02.26 - 01.03.26 | 672   | 1673,783  | 1673,786 | Norgespris, verifisert                 |
+| `bkk_mars_2026_hourly.json`     | 01.03.26 - 01.04.26 | 743   | 1553,224  | 1553,217 | Norgespris, verifisert                 |
+| `bkk_april_2026_hourly.json`    | 01.04.26 - 01.05.26 | 720   | 1381,827  | 1381,827 | Norgespris, verifisert                 |
+| `bkk_mai_2026_hourly.json`      | 01.05.26 - 01.06.26 | 744   | 1179,306  | 1179,303 | Norgespris, verifisert                 |
+| `bkk_juni_2026_hourly.json`     | 01.06.26 - 01.07.26 | 720   | 1033,626  | 1033,628 | Norgespris, verifisert                 |
 
 Februar har 28 dager (672 timer), mars 31 dager med DST-overgang 29.03 (kun
 23 timer den dagen, total 743 timer i måneden).

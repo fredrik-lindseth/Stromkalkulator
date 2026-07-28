@@ -87,15 +87,15 @@ Når dokumentasjonen sier «OBIS 1.8.0», menes altså bare «kumulativ kWh-tell
 
 ## Riemann-summering vs delta-akkumulering (forklart enkelt)
 
-Tenk på effektmåleren (W) som speedometer i bilen. Den viser hvor fort du går nå.
+Tenk på effektmåleren (W) som speedometeret i bilen. Den viser hvor fort du går nå.
 
-Tenk på energimåleren (kWh) som tripteller. Den viser totalt antall kWh siden den ble nullstilt.
+Tenk på energimåleren (kWh) som triptelleren. Den viser totalt antall kWh siden den ble nullstilt.
 
 Integrasjonen kan regne ut totalt forbruk på to måter:
 
 **Riemann-summering (når energi-sensor mangler):** Les speedometeret hvert minutt, regn ut «hvor langt har jeg kjørt i dette minuttet» som hastighet × tid. Summer over en hel måned.
 
-Problem: hvis du leser speedometeret midt under en akselerasjon, får du for høyt estimat for forrige minutt. Hvis du leser mens du står stille, men brukte mye effekt for 2 sekunder før, mister du forbruk.
+Problem: hvis du leser speedometeret midt under en akselerasjon, får du for høyt estimat for forrige minutt. Hvis du leser mens du står stille, men brukte mye effekt for 2 sekunder siden, mister du forbruk.
 
 Over en hel måned: summeringen kan avvike fra «ekte» forbruk med flere prosent. Avviket er typisk størst hvis du har mye av/på-utstyr (varmtvannsbereder, induksjonstopp, varmepumpe i defrost).
 
@@ -118,7 +118,7 @@ Forbruk akkumuleres via Riemann-summering. Kan avvike fra faktura med 1-5 %.
 - Energimåler (kWh) for eksakt månedsforbruk via delta-akkumulering
 - Spotpris-sensor (NOK/kWh)
 
-Kombinerer det beste av begge: instantan effekt for kapasitetstrinn-beregning, eksakt forbruk fra meter-register.
+Effektmåleren gir kapasitetstrinn-beregningen, energimåleren gir eksakt forbruk fra meter-registeret.
 
 ### Plusskunde med solceller
 
@@ -159,7 +159,7 @@ Avhenger av firmware. Vanlige prosjekter er `esphome-han-port` og `AMS2MQTT`. Se
 
 Tilsvarende oppsett. Effekt og energi eksponeres som separate sensorer.
 
-## Hvorfor 'eks. mva' for spotpris-sensor?
+## Hvorfor «eks. mva» for spotpris-sensor?
 
 Nord Pool publiserer spotpriser eks. mva. HAs offisielle nordpool-integrasjon leverer eks. mva. Integrasjonen forventer dette og legger på mva selv basert på avgiftssone (25 % i Sør-Norge, 0 % i Nord-Norge).
 
@@ -172,7 +172,7 @@ Verifiser ved å sammenligne med Nord Pool sin nettside (som viser eks. mva).
 ### Forbruks-totaler matcher ikke fakturaen
 
 1. Sjekk at `energy_sensor` er konfigurert (anbefales)
-2. Hvis ikke: forskjell på 1-5 % er forventet pga Riemann-summering
+2. Hvis ikke: forskjell på 1-5 % er forventet på grunn av Riemann-summering
 3. Sjekk at HA ikke har vært nede over lengre tid (forbruk i nedetid mistes)
 4. Sjekk at `power_sensor` faktisk publiserer hvert 2-3 sekund
 
@@ -184,6 +184,6 @@ Verifiser ved å sammenligne med Nord Pool sin nettside (som viser eks. mva).
 
 ### Kapasitetstrinn-beregning ser rar ut
 
-1. Bruker integrasjonen `power_sensor` (W) til dette, ikke `energy_sensor`
+1. Integrasjonen bruker `power_sensor` (W) til dette, ikke `energy_sensor`
 2. Sjekk at effektmåleren oppdaterer ofte nok (helst hvert 2-3 sekund)
 3. Sjekk at det er den riktige sensoren som er valgt (HAN-port, ikke f.eks. enkeltapparat)

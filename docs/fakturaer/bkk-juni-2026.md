@@ -8,17 +8,17 @@
 
 ## Fakturadata
 
-| Priselement           | Forbruk      | Pris             | Faktura (kr) | Vår beregning (kr) | Avvik    |
-| --------------------- | ------------ | ---------------- | ------------ | ------------------ | -------- |
-| Energiledd dag        | 590.646 kWh  | 35.963 øre/kWh   | 212.41       | 212.41             | 0.00     |
-| Energiledd natt/helg  | 442.982 kWh  | 13.125 øre/kWh   | 58.14        | 58.14              | 0.00     |
-| Kapasitet 2-5 kW      | 30 dager     | 250 kr/mnd       | 250.00       | 250.00             | 0.00     |
-| Forbruksavgift        | 1033.628 kWh | 8.913 øre/kWh    | 92.11        | 92.13              | 0.02     |
-| Enovaavgift           | 1033.628 kWh | 1.25 øre/kWh     | 12.93        | 12.92              | 0.01     |
-| **Nettleie subtotal** |              |                  | **625.59**   | **625.60**         | **0.01** |
-| Norgespris            | 1033.628 kWh | -0.35171 kr/kWh  | -363.54      | -363.54            | 0.00     |
-| **Total**             |              |                  | **262.05**   | **262.07**         | **0.02** |
-| Herav MVA             |              |                  | 125.12       | 125.12             | 0.00     |
+| Priselement           | Forbruk      | Pris            | Faktura (kr) | Vår beregning (kr) | Avvik    |
+| --------------------- | ------------ | --------------- | ------------ | ------------------ | -------- |
+| Energiledd dag        | 590.646 kWh  | 35.963 øre/kWh  | 212.41       | 212.41             | 0.00     |
+| Energiledd natt/helg  | 442.982 kWh  | 13.125 øre/kWh  | 58.14        | 58.14              | 0.00     |
+| Kapasitet 2-5 kW      | 30 dager     | 250 kr/mnd      | 250.00       | 250.00             | 0.00     |
+| Forbruksavgift        | 1033.628 kWh | 8.913 øre/kWh   | 92.11        | 92.13              | 0.02     |
+| Enovaavgift           | 1033.628 kWh | 1.25 øre/kWh    | 12.93        | 12.92              | 0.01     |
+| **Nettleie subtotal** |              |                 | **625.59**   | **625.60**         | **0.01** |
+| Norgespris            | 1033.628 kWh | -0.35171 kr/kWh | -363.54      | -363.54            | 0.00     |
+| **Total**             |              |                 | **262.05**   | **262.07**         | **0.02** |
+| Herav MVA             |              |                 | 125.12       | 125.12             | 0.00     |
 
 **Resultat:** Alle linjer matcher innenfor avrundingsfeil (< 0.02 kr). Avviket
 sitter i forbruksavgift og Enova, der BKK runder hver linje før summering.
@@ -33,15 +33,15 @@ dekker nettleien.
 Utført med HAN-eksport fra HA-recorder (`tests/fixtures/bkk_juni_2026_hourly.json`,
 720 timer) via `scripts/research/verify_invoice_hourly.py`:
 
-| Linje                  | Beregnet | Faktura  | Avvik    |
-| ---------------------- | -------- | -------- | -------- |
-| Total kWh              | 1033.628 | 1033.628 | 0.000    |
-| Forbruk dag kWh        | 590.626  | 590.646  | -0.020   |
-| Forbruk natt kWh       | 443.002  | 442.982  | +0.020   |
-| Nettleie sum           | 625.60   | 625.59   | +0.01    |
-| Norgespris-komp        | -363.39  | -363.54  | +0.15    |
-| Norgespris-komp (publisert Final-pris) | **-363.54** | -363.54 | **0.00** |
-| Total inkl. Norgespris | 262.21   | 262.05   | +0.16    |
+| Linje                                  | Beregnet    | Faktura  | Avvik    |
+| -------------------------------------- | ----------- | -------- | -------- |
+| Total kWh                              | 1033.628    | 1033.628 | 0.000    |
+| Forbruk dag kWh                        | 590.626     | 590.646  | -0.020   |
+| Forbruk natt kWh                       | 443.002     | 442.982  | +0.020   |
+| Nettleie sum                           | 625.60      | 625.59   | +0.01    |
+| Norgespris-komp                        | -363.39     | -363.54  | +0.15    |
+| Norgespris-komp (publisert Final-pris) | **-363.54** | -363.54  | **0.00** |
+| Total inkl. Norgespris                 | 262.21      | 262.05   | +0.16    |
 
 Alt innenfor toleranse. Norgespris-linjen reproduseres **eksakt** når
 beregningen bruker Nord Pools publiserte Final-priser i stedet for

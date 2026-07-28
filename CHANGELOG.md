@@ -1,6 +1,6 @@
 # Changelog
 
-Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) og [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [1.15.0]
 
@@ -251,14 +251,14 @@ Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), [Sem
 - Pre-commit hooks
 - Ruff linting
 
-[0.31.0]: https://github.com/elden1337/hacs-stromkalkulator/compare/v0.23.0...v0.31.0
-[0.23.0]: https://github.com/elden1337/hacs-stromkalkulator/compare/v0.22.0...v0.23.0
-[0.22.0]: https://github.com/elden1337/hacs-stromkalkulator/compare/v0.21.0...v0.22.0
-[0.21.0]: https://github.com/elden1337/hacs-stromkalkulator/compare/v0.20.0...v0.21.0
-[0.20.0]: https://github.com/elden1337/hacs-stromkalkulator/compare/v0.19.0...v0.20.0
-[0.19.0]: https://github.com/elden1337/hacs-stromkalkulator/compare/v0.17.0...v0.19.0
-[0.17.0]: https://github.com/elden1337/hacs-stromkalkulator/compare/v0.16.0...v0.17.0
-[0.16.0]: https://github.com/elden1337/hacs-stromkalkulator/compare/v0.15.0...v0.16.0
-[0.15.0]: https://github.com/elden1337/hacs-stromkalkulator/compare/v0.14.0...v0.15.0
-[0.14.0]: https://github.com/elden1337/hacs-stromkalkulator/compare/v0.13.0...v0.14.0
-[0.13.0]: https://github.com/elden1337/hacs-stromkalkulator/releases/tag/v0.13.0
+[0.31.0]: https://github.com/fredrik-lindseth/Stromkalkulator/compare/v0.23.0...v0.31.0
+[0.23.0]: https://github.com/fredrik-lindseth/Stromkalkulator/compare/v0.22.0...v0.23.0
+[0.22.0]: https://github.com/fredrik-lindseth/Stromkalkulator/compare/v0.21.0...v0.22.0
+[0.21.0]: https://github.com/fredrik-lindseth/Stromkalkulator/compare/v0.20.0...v0.21.0
+[0.20.0]: https://github.com/fredrik-lindseth/Stromkalkulator/compare/v0.19.0...v0.20.0
+[0.19.0]: https://github.com/fredrik-lindseth/Stromkalkulator/compare/v0.17.0...v0.19.0
+[0.17.0]: https://github.com/fredrik-lindseth/Stromkalkulator/compare/v0.16.0...v0.17.0
+[0.16.0]: https://github.com/fredrik-lindseth/Stromkalkulator/compare/v0.15.0...v0.16.0
+[0.15.0]: https://github.com/fredrik-lindseth/Stromkalkulator/compare/v0.14.0...v0.15.0
+[0.14.0]: https://github.com/fredrik-lindseth/Stromkalkulator/compare/v0.13.0...v0.14.0
+[0.13.0]: https://github.com/fredrik-lindseth/Stromkalkulator/releases/tag/v0.13.0

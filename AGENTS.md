@@ -50,3 +50,4 @@ egen CI-jobb med `--noconftest`. Kjøres også via pre-commit hooks.
 - [docs/development.md](docs/development.md): arkitektur
 - [docs/testing.md](docs/testing.md): test-guide
 - [docs/contributing.md](docs/contributing.md): oppdatere priser, rapportere feil
+- [docs/galskapen.md](docs/galskapen.md): hvorfor 75 nettselskap tolker samme NVE-regel på 75 måter, og hva det betyr for koden

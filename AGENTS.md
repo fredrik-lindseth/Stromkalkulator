@@ -16,7 +16,12 @@ Home Assistant-integrasjon for nettleie, strømstøtte og Norgespris-sammenligni
 ```bash
 pipx run --with hypothesis --with pyyaml pytest tests/ --ignore=tests/test_smoke_ha.py -v
 ruff check custom_components/stromkalkulator/ tests/
+pipx run mypy custom_components/stromkalkulator/ --ignore-missing-imports
 ```
+
+`mypy` er blokkerende i CI, men sto lenge ikke her. Da gikk en `bool(dso)` som
+ikke smalner typen rett gjennom lokal grønn testsuite og feilet i CI etter push,
+med release hoppet over som følge.
 
 `--with hypothesis` trengs fordi `tests/test_property.py` bruker den; uten
 flagget feiler `pipx run pytest` allerede på collection. `--with pyyaml` trengs

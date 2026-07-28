@@ -53,3 +53,4 @@ verify-norgespris:
 test:
     pipx run --with hypothesis --with pyyaml pytest tests/ -v
     ruff check custom_components/stromkalkulator/ tests/
+    pipx run mypy custom_components/stromkalkulator/ --ignore-missing-imports

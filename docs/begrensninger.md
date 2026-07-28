@@ -77,7 +77,7 @@ Bevisst valg. En tidsriktig spot-korreksjon krever historiske timespriser for ga
 
 ## 9. Fem nettselskap har en annen kapasitetsledd-modell
 
-Kapasitetsleddet beregnes som snittet av de tre høyeste døgnmaksene i måneden. Det er modellen NVE anbefaler, og 68 av 73 nettselskap bruker den. Fem gjør noe annet. Alle fem er nå implementert etter sin egen modell, men de har hver sin restbegrensning:
+Kapasitetsleddet beregnes som snittet av de tre høyeste døgnmaksene i måneden. Det er modellen NVE anbefaler, og 70 av 75 nettselskap bruker den. Fem gjør noe annet. Alle fem er nå implementert etter sin egen modell, men de har hver sin restbegrensning:
 
 | Nettselskap       | Metode          | Hva som gjelder nå                                                             |
 | ----------------- | --------------- | ------------------------------------------------------------------------------ |

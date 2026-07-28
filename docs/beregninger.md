@@ -22,7 +22,7 @@ Trinn-tabell og priser ligger per nettselskap i [`dso.py`](../custom_components/
 
 #### Nettselskap med en annen metode
 
-Modellen over er NVE-modellen, og 68 av 73 nettselskap bruker den. Fem gjør noe annet, og for dem er det ikke tallene, men modellen som avgjør om beløpet stemmer. Metoden ligger i `fastledd_metode` per nettselskap, med fri-nettleies navn slik at drift-vakten kan sammenligne dem direkte. Er feltet ikke satt, gjelder NVE-modellen.
+Modellen over er NVE-modellen, og 70 av 75 nettselskap bruker den. Fem gjør noe annet, og for dem er det ikke tallene, men modellen som avgjør om beløpet stemmer. Metoden ligger i `fastledd_metode` per nettselskap, med fri-nettleies navn slik at drift-vakten kan sammenligne dem direkte. Er feltet ikke satt, gjelder NVE-modellen.
 
 | Metode            | Grunnlag                                            | Nettselskap       |
 | ----------------- | --------------------------------------------------- | ----------------- |

@@ -125,7 +125,7 @@ Klikk på en sensor for detaljer som topp-3 effektdager og kostnader fordelt på
 
 ## Støttede nettselskap
 
-73 nettselskap er lagt inn med satser, og Egendefinert dekker resten (du legger inn energiledd og avgiftssone selv). Prisene oppdateres årlig ved nyttår. Finner du feil, [lag en PR](docs/contributing.md) eller åpne et issue.
+74 nettselskap er lagt inn med satser, og Egendefinert dekker resten (du legger inn energiledd og avgiftssone selv). Prisene oppdateres årlig ved nyttår. Finner du feil, [lag en PR](docs/contributing.md) eller åpne et issue.
 
 ## Fusjon av nettselskap
 

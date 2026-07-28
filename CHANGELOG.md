@@ -7,7 +7,7 @@ Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), [Sem
 ### Endret
 
 - **Strømstøtte aktiv og Norgespris aktiv er nå `binary_sensor`** i stedet for tekstsensorer med «Ja»/«Nei». Automasjoner og kort som peker på de gamle `sensor.*`-entitetene må endres til `binary_sensor.*`.
-- **Beløpssensorene bruker «NOK» i stedet for «kr».** Gjelder månedskostnader, differanser og inntekter. Verdiene er uendret, bare enheten heter noe annet, og Home Assistant ber deg bekrefte byttet. Kapasitetstrinn beholder `kr/mnd`, siden det er en sats og ikke et pengebeløp.
+- **Beløpssensorene bruker «NOK» i stedet for «kr».** Gjelder månedskostnader, differanser og inntekter. «kr» er ikke en gyldig ISO 4217-kode, så frontenden klarte ikke formatere dem som valuta og falt tilbake til rått tall. Verdiene er uendret, bare enheten heter noe annet, og Home Assistant ber deg bekrefte byttet. Kapasitetstrinn beholder `kr/mnd`, siden det er en sats og ikke et pengebeløp.
 - Integrasjonen bruker en stabil intern id i stedet for effektsensorens navn, så det å døpe om målersensoren bryter ikke lenger oppsettet. Skjer automatisk.
 
 ### Lagt til

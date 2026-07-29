@@ -226,7 +226,7 @@ prisliste gjør. Se [bidra med faktura](fakturaer/bidra-med-faktura.md).
     Energiverk 24,4 %, Barents Nett 16,6 %, Vestall 14,5 %, Noranett 14,4 %. 73,9
     delt på 14,4 er 5,1.
 
-[^metoder]: Fri-nettleies navn, som vi har tatt inn i `fastledd_metode`:
+[^metoder]: Fri-nettleies navn, som jeg har tatt inn i `fastledd_metode`:
     `TRE_DØGNMAX_MND` (68 oppføringer, inkludert `Egendefinert`), `OV_TREFASE`
     (Alut, Netera), `FEM_VEKTET_ÅR` (Fjellnett), `MND_MAX` (Sør Aurdal Energi) og
     `UKJENT` (Tinfos, som ikke publiserer metoden sin, og der fri-nettleie har en
@@ -237,7 +237,7 @@ prisliste gjør. Se [bidra med faktura](fakturaer/bidra-med-faktura.md).
 [^alut]: «For husholdning og hytter med etterspurt effekt/- overbelastningsvern
     inntil 3 x 125 A betales 3 500 kr årlig, mens over denne størrelsen betales
     4 500 kr årlig» ([alut.no](https://alut.no/nettleie/)). Alut er i NO4 uten
-    mva, så vi lagrer 292 og 375 kr/mnd. Fri-nettleie koder de samme to satsene
+    mva, så `dso.py` lagrer 292 og 375 kr/mnd. Fri-nettleie koder de samme to satsene
     som terskler 0 og 125, uten å oppgi at enheten er ampere.
 
 [^netera]: Prisliste gyldig fra 1. januar 2026
@@ -290,7 +290,7 @@ prisliste gjør. Se [bidra med faktura](fakturaer/bidra-med-faktura.md).
 
 [^grunnpris]: Nettselskapet har `grunnpris` 1,6 øre pluss tre unntak: «Høylast
     sommer» 11,6, «Høylast vinter» 12,7 og «Lavlast vinter» 2,7. De Nett har samme
-    mønster med `grunnpris` 23,6 og tre unntak. Heuristikken vår i
+    mønster med `grunnpris` 23,6 og tre unntak. Heuristikken i
     `scripts/sjekk_mot_fri_nettleie.py` sorterer unntak uten `timer` først, slik at
     en sesongpris kan sette grunnlinjen før tidsstyrte unntak legges oppå den.
 
@@ -331,7 +331,7 @@ prisliste gjør. Se [bidra med faktura](fakturaer/bidra-med-faktura.md).
     november 2024, januar, mars, april, juli, august, september, oktober og
     november 2025, 1. januar 2026 (30 selskap), mai, juni og 1. juli 2026 (Elvia,
     Glitre, Linja, Nettselskapet, Tensio TN, Tensio TS). Arvas fil er sist
-    oppdatert 22. oktober 2024, og der står det også en sesongprising vi aldri har
+    oppdatert 22. oktober 2024, og der står det også en sesongprising jeg aldri har
     fått verifisert sommersatsen på, så Arva-kunder får vintersats i juli.
 
 [^identitet]: `DSO_MIGRATIONS` i `dso.py` mapper `skiakernett` til `vevig`
@@ -354,6 +354,6 @@ prisliste gjør. Se [bidra med faktura](fakturaer/bidra-med-faktura.md).
     fem energiledd-formene er flat, dag/natt, og tre sesongvarianter med ulike
     månedsgrenser: Nettselskapet bytter 1. mai og 1. november, De Nett og Sør
     Aurdal 1. april og 1. oktober, og Area Nett 1. januar og 1. april.
-    Terskelregelen har to verdier hos oss, satt eller ikke satt, selv om
+    Terskelregelen har to verdier i `dso.py`, satt eller ikke satt, selv om
     fri-nettleies skjema også tillater `null`. Aksene ganges som uavhengige fordi
     de er det i datamodellen: enhver `DSOEntry` kan sette enhver kombinasjon.

@@ -12,7 +12,7 @@ Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) og [S
 
 ### Lagt til
 
-- **Støtte for de fire fastledd-modellene som ikke er NVEs snitt av tre døgnmakser.** Sør Aurdal Energi bruker månedsmaksen, Fjellnett en lineær sats fra fem sesongvektede ukestopper over løpende tolv måneder, og Alut og Netera fakturerer etter hovedsikringens størrelse. Tinfos publiserer ikke metoden sin og er merket uverifisert. For disse fem var beløpet feil uansett hvor riktige trinnprisene var.
+- **Støtte for de fire fastledd-modellene som ikke er snitt av de tre høyeste døgnmaksene.** Sør Aurdal Energi bruker månedsmaksen, Fjellnett en lineær sats fra fem sesongvektede ukestopper over løpende tolv måneder, og Alut og Netera fakturerer etter hovedsikringens størrelse. Tinfos publiserer ikke metoden sin og er merket uverifisert. For disse fem var beløpet feil uansett hvor riktige trinnprisene var.
 - **Nytt felt «Hovedsikring» for Alut og Netera**, med radene ordrett fra nettselskapets prisliste. Sikringsstørrelse kan ikke leses av en effektsensor. Har du et av selskapene fra før, står kapasitetstrinn-sensoren som Ukjent til du velger raden, og et repair-varsel forteller hvor. Vi gjetter ikke på et trinn.
 - **Area Nett er delt i tre oppføringer**, én per prisområde, siden prisen avgjøres av hvilken kommune du bor i. Har du Area Nett fra før, ber et repair-varsel deg velge område.
 - Repair-varsel når nettleie- og avgiftssatsene kan være utdaterte, for eksempel ved årsskifte uten oppdatering, og når Norgespris-ordningen kan ha opphørt. Varselet forsvinner av seg selv når satsene er oppdatert.

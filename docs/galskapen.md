@@ -7,12 +7,8 @@ og nevner døgnmaks i løpet av en måned, snitt av flere døgnmakser over en pe
 og sikringsstørrelse som eksempler på lovlige innretninger.[^rme]
 
 Sammenligner man prislistene til alle nettselskapene, er det åpenbart at de har
-brukt den friheten hver på sin måte. Denne integrasjonen skal regne ut nettleien
-din og dekker 75 nettselskap,[^antall] og oppgaven har ingen generell løsning.
-
-Vil du ha modellen vi faktisk regner med, står den i
-[beregninger.md](beregninger.md). Dette dokumentet handler om hvorfor den ikke kan
-bli riktig for alle samtidig.
+brukt den friheten hver på sin måte. Denne integrasjonen skal regne ut nettleien og
+dekker alle nettselskapene, men oppgaven har ingen generell løsning.
 
 ## Én husholdning, 69 priser
 
@@ -29,19 +25,21 @@ Ta én husholdning. Snitt av tre døgnmakser på eksakt 5,0 kW, 600 kWh på dagt
 | Vang Energiverk  | 264,12 kr  | 819 kr   | 1083,12 kr |
 | Elmea            | 411,10 kr  | 747 kr   | 1158,10 kr |
 
-Dyreste er 2,26 ganger billigste, og 69 av de 72 selskapene jeg kunne regne på
-gir sin egen unike sum. At prisene varierer er greit nok. Mer interessant er
+Dyreste er 2,26 ganger billigste, og 69 av de 72 selskapene med
+kW-trinn gir sin egen unike sum. At prisene varierer er greit nok. Mer interessant er
 fordelingen mellom de to leddene: hos Modalen er 74 % av nettleien energiledd,
 hos Noranett 14 %.
 
 Det gjør at «flytt forbruket til natten» er verdt fem ganger så mye hos den ene
 som hos den andre, mens «hold effekttoppen nede» er verdt fem ganger så mye
-motsatt vei.[^andel] Det finnes altså ikke ett spareråd som er riktig for norske strømkunder.
+motsatt vei.[^andel] Det finnes altså ikke ett spareråd som er riktig for norske
+strømkunder.
 
 ## Fastleddet måler fem forskjellige ting
 
 Snitt av de tre høyeste døgnmaksene i måneden er den vanligste innretningen, og
-70 av 76 oppføringer bruker den. De fem andre måler noe annet, og to av dem måler
+70 av 76 oppføringer bruker den.[^antall] De fem andre måler noe annet, og to av dem
+måler
 ikke effekt i det hele tatt.[^metoder]
 
 Alut og Netera setter fastleddet etter hovedsikringen. Alut har to satser, over og
@@ -80,7 +78,7 @@ måneden.
 Ingen av de fem bryter regelverket. Sikringsstørrelse står oppført hos RME som et
 gyldig alternativ, på linje med døgnmaks. Problemet er at ingen av selskapene
 mener de gjør noe spesielt. Hver av dem har en helt vanlig prisliste med helt vanlige
-tall, og ingen skriver at de måler noe annet enn naboen.
+tall, og ingen skriver at de måler noe annet enn noen andre.
 
 ## Hva «natt» betyr
 
@@ -97,26 +95,29 @@ regne ut påskedagen med heltallsdivisjon og modulo 19, og så legge til femti
 dager.[^helligdager] Derfor ligger det en påskeformel i `const.py`.
 
 BKK regner hele julaften og hele nyttårsaften som lavtariff, selv om ingen av dem
-er helligdag etter loven. Det er verifisert mot fakturaer.[^bkkjul] For de 74
-andre har vi ingen slik regel, rett og slett fordi ingen har sendt oss en faktura
-som viser hva som gjelder. De kan godt gjøre det samme.
+er helligdag etter loven.[^bkkjul] Om noen av de andre gjør det samme, er ikke
+mulig å slå opp. Ingen av dem skriver det i prislisten, og fri-nettleies skjema har
+egne verdier for helligdager og fridager som ikke er i bruk i en eneste fil. Det
+viser seg først på fakturaen i desember.
 
 ## Forsøket på å standardisere
 
-[kraftsystemet/fri-nettleie](https://github.com/kraftsystemet/fri-nettleie) gjør
-den jobben man skulle tro NVE gjorde, og samler alle norske nettleietariffer i
-maskinlesbar YAML med et CUE-skjema over. Vi bruker det som fasit. Samtidig viser
+[fri-nettleie](https://github.com/kraftsystemet/fri-nettleie) på Github gjør
+den jobben jeg trodde NVE gjorde, samler alle norske nettleietariffer, delt opp i ledd
+og nivå og trinn, i
+maskinlesbar format. Samtidig viser
 det hvor lite av problemet som lar seg normalisere bort.
 
 Spørsmålet «har dette selskapet helgerabatt?» besvares der på fire måter. Åtte
 selskap skriver `dager: [virkedag]`, seks skriver `dager: [ukedag]`, åtte skriver
-`dager: [alle]`, og 28 skriver ingenting.[^dager] Skjemaet sier ikke om «virkedag»
+`dager: [alle]`, og 29 har et dag/natt-skille uten å si hvilke dager det
+gjelder.[^dager] Skjemaet sier ikke om «virkedag»
 og «ukedag» betyr det samme. Tensio TN skriver `[alle]` og Tensio TS skriver
 ingenting, enda de er søsterselskap med samme prisside som kilde. TS hadde
 `[alle]` i en tidligere utgave og mistet det underveis.
 
-Vi må derfor gjette, og gjettingen skjer i et Python-script som ser om navnet på
-unntaket inneholder «natt» eller «høylast».
+Den som skal lese datasettet maskinelt må altså gjette, og gjettingen må bygge på
+hva unntaket tilfeldigvis heter.
 
 Feltet `grunnpris` er heller ikke en grunnpris. Hos Nettselskapet står den til 1,6
 øre, som er sommernattprisen, mens de tre andre satsene ligger over som
@@ -125,11 +126,9 @@ En parser som antar at det er den vanligste eller den laveste satsen, får rikti
 svar for nesten alle og feil for denne.
 
 Klokkegrensen oppgis av 52 selskap som `6-21` og av fem som `22-5`, altså samme
-grense sett fra hver sin ende, uten at noe sier hvilken retning som er riktig. Vår
-egen kode har 06-22 som en global konstant for alle 75. Det sto lenge en kommentar
-i `dso.py` om at Elvenett bytter klokken 05, uten at den hadde noen virkning, for
-det finnes ikke noe felt å skrive den inn i. Vi fjernet kommentaren framfor å la
-den se ut som en regel.[^timer]
+grense sett fra hver sin ende, uten at noe sier hvilken retning som er riktig. Skal du
+lagre dette i ett felt, må du velge én retning og skrive om alle de
+andre.[^timer]
 
 ## Hva prislistene faktisk oppgir
 
@@ -148,24 +147,22 @@ det:[^konvensjon]
 | Føre            | Ren nettleie, avgifter separat          | 19,29 øre  | 19,29 øre    |
 
 Samme ord, ingen merking. Eneste måte å finne ut hvilken variant du har foran deg,
-er å regne baklengs og se om resultatet ser fornuftig ut. To av konvensjonene
-skiller seg med 8,13 øre, som er lett å trekke fra to ganger. Vi har gjort nettopp
-det, og seks oppføringer i `dso.py` bærer fortsatt en kommentar om det.
+er å regne baklengs og se om resultatet ser fornuftig ut. To av konvensjonene skiller
+seg med nøyaktig 8,13 øre, avgiftene, som gjør det lett å trekke dem fra to ganger
+uten å merke det.
 
 Så kommer avgiftene, som er fritatt i Nordland og Troms og dobbelt fritatt i
 tiltakssonen, etter fylkesgrenser og ikke etter prisområder. Én ren nettleiesats på
 29,00 øre blir 30,00 øre i tiltakssonen, 37,13 i Nord-Norge og 46,41 i
 Sør-Norge.[^soner] Prisområde NO3 spriker internt, fordi Bindal Kraftnett ligger i
-Nordland mens resten av området ligger i Trøndelag og Møre og Romsdal. Den regelen
-har vi bommet på før.
+Nordland mens resten av området ligger i Trøndelag og Møre og Romsdal. Fylkesgrensen går
+altså tvers gjennom
+prisområdet.
 
-Og selv med riktig konvensjon i riktig kilde kan kilden ta feil. 9. juli i år satte
-vi Elvias dagsats til 29,15 øre, fordi elvia.no oppgav 46,60 øre inkludert alt
-mens fri-nettleie hadde 46,40. Vi valgte Elvia, siden Elvia burde vite hva Elvia
-koster, la inn et unntak i drift-vakten så CI ikke skulle klage, og meldte avviket
-videre. Tre uker senere fant vi Elvias eget tariffblad, som sa 46,40.[^elvia]
-Norges største nettselskap hadde en skrivefeil på sin egen prisside, og vi hadde
-bygget en regel som sa at vi skulle stole på den.
+Og selv med riktig konvensjon i riktig kilde kan kilden ta feil. I tre uker i juli
+oppgav elvia.no 46,60 øre der selskapets eget tariffblad sa 46,40.[^elvia] Norges
+største nettselskap hadde en skrivefeil på sin egen prisside, og den eneste måten
+å oppdage den på var at et annet datasett var uenig.
 
 ## «2026-priser» finnes ikke
 
@@ -177,16 +174,14 @@ har priser som har stått urørt siden 1. januar 2024.
 
 Underveis flytter selskapene på seg. Skiakernett fusjonerte inn i Vevig. Rakkestad
 Energi er blitt Elvia. Norgesnett eies av Glitre Nett og har egne, lavere priser.
-Noranett er tre separate tariffsett. Area Nett er tre prisområder delt etter
-kommune, og vi hadde lenge én oppføring med ett laveste trinn som stemte med ingen
-av dem. Nå er den tre, og eksisterende brukere får et varsel om å velge hvilket
-område adressen deres ligger i, siden det er det eneste som avgjør
-prisen.[^identitet] Selv «hvor mange nettselskap finnes det» har ikke et stabilt
+Noranett er tre separate tariffsett. Area Nett er tre prisområder delt etter kommune,
+med 358, 390 og 525 kr/mnd i laveste trinn, så adressen avgjør prisen innenfor
+samme selskap.[^identitet] Selv «hvor mange nettselskap finnes det» har ikke et stabilt
 svar.
 
 ## Regnestykket
 
-Vi kan telle hvor stort problemet er. Fastledd-metode: fem observerte verdier.
+Rommet av mulige tariffer lar seg telle. Fastledd-metode: fem observerte verdier.
 Trinnsekvenser: 24. Terskelregel ved eksakt grensetreff: to.
 Energiledd-form: fem. Helgeregel: to. Ekstra helligdager: to. Avgiftssone:
 tre. Ganget sammen blir det 14 400 kombinasjoner, og 41 av dem er
@@ -197,25 +192,9 @@ med 41 punkter spredt utover. Det finnes ingen struktur å generalisere fra, ing
 regel som dekker de resterende 14 359, og ingen garanti mot at et selskap flytter
 seg til et av dem i morgen. Koden kan derfor ikke bli generell, den blir en liste.
 
-Og lister råtner. Førtifire nettselskap hadde feil fastledd i fire måneder uten at
-noen merket det, fordi drift-vakten vår bare sjekket energileddet og alt var grønt
-hele veien.[^incident]
-
-## Hva vi gjør i stedet
-
-Vi har sluttet å prøve å ha rett overalt. Én kombinasjon er verifisert mot ekte
-fakturaer på øret, og det er min egen: BKK i NO5, med energimåler og
-timesoppløsning.
-
-For de 74 andre gjør vi tre ting. Vi sammenligner alle satser, alle trinn og selve
-fastledd-metoden mot fri-nettleie hver uke, og feller CI hvis noe har flyttet seg.
-Vi krever kilde med dato per felt og ikke per selskap, siden et selskap godt kan ha
-riktig energiledd og oppdiktet fastledd i samme oppføring. Og vi sier tydelig hva
-vi ikke vet, i [begrensninger.md](begrensninger.md), framfor å pynte på
-usikkerheten.
-
-Har du en faktura fra et annet selskap enn BKK, er den mer nyttig enn noen
-prisliste. Se [bidra med faktura](fakturaer/bidra-med-faktura.md).
+Fakturaen er det eneste stedet alle leddene står samlet med tall som faktisk er
+brukt. Har du en, sier den mer om hva som gjelder hos nettselskapet ditt enn noen
+prisliste gjør. Se [bidra med faktura](fakturaer/bidra-med-faktura.md).
 
 [^rme]: [Nettleie for forbruk](https://www.nve.no/reguleringsmyndigheten/regulering/nettvirksomhet/nettleie/nettleie-for-forbruk/),
     Reguleringsmyndigheten for energi (RME), lest 29. juli 2026. Ordrett:
@@ -226,13 +205,12 @@ prisliste. Se [bidra med faktura](fakturaer/bidra-med-faktura.md).
     NVE-modellen i kode og dokumentasjon, fordi det er navnet bransjen bruker,
     men navnet er upresist.
 
-[^antall]: `DSO_LIST` i `dso.py` har 76 oppføringer: 75 nettselskap og én
-    `Egendefinert` for dem som vil legge inn tall manuelt. Én av de 75 er den
-    utfasede Area Nett-oppføringen, som er skjult for nye oppsett fram til
-    eksisterende brukere har valgt prisområde. Fri-nettleie har 74 tarifffiler,
-    hvorav 73 har en aktiv husholdningstariff (den fjerde Area-filen dekker bare
-    fritidsbolig). Alle tall i dette dokumentet er lest ut
-    av `dso.py` eller fri-nettleie 28. juli 2026, eller fra nettselskapets egen
+[^antall]: `DSO_LIST` i `dso.py` har 76 oppføringer: 75 nettselskap, der Area
+    Nett teller som tre siden prisområdene har hver sin tariff, og én
+    `Egendefinert` for dem som vil legge inn tall manuelt. Fri-nettleie har 74
+    tarifffiler, hvorav 73 har en aktiv husholdningstariff (den fjerde
+    Area-filen dekker bare fritidsbolig). Alle tall i dette dokumentet er lest ut
+    av `dso.py` eller fri-nettleie 29. juli 2026, eller fra nettselskapets egen
     side der det står i teksten.
 
 [^husholdning]: Regnet med satsene i `dso.py`: `600 × dagsats + 400 × nattsats`
@@ -300,7 +278,7 @@ prisliste. Se [bidra med faktura](fakturaer/bidra-med-faktura.md).
 
 [^bkkjul]: `helligdager_ekstra: ["12-24", "12-31"]`, verifisert mot BKK-fakturaer
     fra oktober 2025 til april 2026. Begge datoene er torsdager i 2026, altså 32
-    timer lavtariff som ingen av de andre 71 oppføringene har. Julaften og
+    timer lavtariff som ingen av de andre 74 oppføringene har. Julaften og
     nyttårsaften er ikke helligdager etter helligdagsfredsloven § 2.
 
 [^dager]: Av de 50 selskapene med tidsstyrt energiledd i fri-nettleie oppgir 8
@@ -335,18 +313,18 @@ prisliste. Se [bidra med faktura](fakturaer/bidra-med-faktura.md).
 [^soner]: Mva-fritaket følger av merverdiavgiftsloven § 6-6 og gjelder Nordland,
     Troms og Finnmark. Tiltakssonen har i tillegg fritak for forbruksavgift.
     Enova-avgiften på 1,00 øre gjelder overalt, også der alt annet er fritatt. Av
-    våre 72 selskap ligger 56 i standardsonen, 12 i Nord-Norge og 4 i
+    de 75 selskapene ligger 56 i standardsonen, 11 i Nord-Norge og 8 i
     tiltakssonen. Sonen flytter mer enn nettleien: strømstøtte-terskelen er 96,25
     øre inkl. mva i sør og 77 øre der det ikke er mva, og Norgespris er 50 øre mot
     40. NO3-bommen står i
     [incident 003](incidents/003-no3-mva-feilklassifisering.md).
 
-[^elvia]: Commiten 9. juli 2026 satte `energiledd_dag_eks_mva` til 0.2915 med
-    begrunnelsen at elvia.no oppgav 46,60 øre inkl. alt mot fri-nettleies 46,40, la
-    Elvia og Rakkestad i `KJENTE_AVVIK` i drift-vakten og meldte
-    fri-nettleie-issue #384. 28. juli ble verdien satt tilbake til 0.2899 mot
-    `tariffblad_1_0_standard-tariff_privat_20260701.pdf`. Nattsatsen 16,99 øre
-    (31,40 inkl. alt) stemte hele veien.
+[^elvia]: elvia.no oppgav 46,60 øre inkl. alt for dagsatsen fra 1. juli 2026,
+    mens fri-nettleie hadde 46,40. Fasiten er Elvias eget
+    `tariffblad_1_0_standard-tariff_privat_20260701.pdf`, som sier 46,40, altså
+    28,99 øre ren nettleie. Prissiden ble rettet i slutten av juli etter at
+    avviket ble meldt fri-nettleie. Nattsatsen 16,99 øre (31,40 inkl. alt) stemte
+    hele veien.
 
 [^datoer]: Ikrafttredelsesdatoer for de 73 aktive husholdningstariffene: 1. januar
     2024 (Arva, Kystnett, Tinfos), februar, april, august, september, oktober og
@@ -379,11 +357,3 @@ prisliste. Se [bidra med faktura](fakturaer/bidra-med-faktura.md).
     Terskelregelen har to verdier hos oss, satt eller ikke satt, selv om
     fri-nettleies skjema også tillater `null`. Aksene ganges som uavhengige fordi
     de er det i datamodellen: enhver `DSOEntry` kan sette enhver kombinasjon.
-
-[^incident]: [incident 006](incidents/006-kapasitetstrinn-uten-kilde.md).
-    Kortversjonen: en mal med pene, stigende tall ble kopiert inn i stedet for
-    priser, og strukturtestene godtok den fordi tallene var sortert, positive og
-    stigende. Fjorten selskap fikk identisk prisliste. Feilen gikk i begge
-    retninger, fra 281 kr/mnd for lavt hos Klive til 90 kr/mnd for høyt hos Stram,
-    så den så ikke ut som et systematisk skjevt estimat. Oppskriften for å legge
-    inn et selskap uten å gjenta det står i [contributing.md](contributing.md).

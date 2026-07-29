@@ -22,7 +22,7 @@ Trinn-tabell og priser ligger per nettselskap i [`dso.py`](../custom_components/
 
 #### Nettselskap med en annen metode
 
-Modellen over er NVE-modellen, og 70 av 75 nettselskap bruker den. Fem gjør noe annet, og for dem er det ikke tallene, men modellen som avgjør om beløpet stemmer. Metoden ligger i `fastledd_metode` per nettselskap, med fri-nettleies navn slik at drift-vakten kan sammenligne dem direkte. Er feltet ikke satt, gjelder NVE-modellen.
+Modellen over kalles NVE-modellen i bransjen, og 70 av 75 nettselskap bruker den. Navnet er upresist: RME påbyr ingen bestemt modell, bare at fastleddet differensieres etter kundens etterspørsel etter effekt, og nevner selv sikringsstørrelse som et lovlig alternativ ([RME: Nettleie for forbruk](https://www.nve.no/reguleringsmyndigheten/regulering/nettvirksomhet/nettleie/nettleie-for-forbruk/)). Fem gjør noe annet, og for dem er det ikke tallene, men modellen som avgjør om beløpet stemmer. Metoden ligger i `fastledd_metode` per nettselskap, med fri-nettleies navn slik at drift-vakten kan sammenligne dem direkte. Er feltet ikke satt, gjelder NVE-modellen.
 
 | Metode            | Grunnlag                                            | Nettselskap       |
 | ----------------- | --------------------------------------------------- | ----------------- |

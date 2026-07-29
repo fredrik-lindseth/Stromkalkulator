@@ -1,14 +1,14 @@
 # Galskapen
 
-Nettleien i Norge er kapasitetsbasert, og NVE anbefaler en modell alle kan følge:
-snittet av de tre høyeste døgnmaksene i måneden avgjør hvilket trinn du havner i.
-Regelen er klar, og den ble laget for at nettleien skulle bli mulig å forstå og
-mulig å sammenligne.
+Nettleien i Norge er kapasitetsbasert. Fastleddet skal settes ut fra hvor mye
+effekt kunden etterspør, men regelverket sier ikke hvordan. RME slår fast at
+nettselskapene «har en viss frihet til å bestemme hvordan de vil differensiere»,
+og nevner døgnmaks i løpet av en måned, snitt av flere døgnmakser over en periode,
+og sikringsstørrelse som eksempler på lovlige innretninger.[^rme]
 
-Denne integrasjonen skal regne ut nettleien din, og dekker 75
-nettselskap.[^antall] Jeg har lest prislisten til hvert enkelt av dem, og
-oppgaven har ingen generell løsning. Ingen har gjort noe galt. Det var bare
-ingenting som hindret 75 selskap i å tolke den samme regelen på 72 måter.
+Sammenligner man prislistene til alle nettselskapene, er det åpenbart at de har
+brukt den friheten hver på sin måte. Denne integrasjonen skal regne ut nettleien
+din og dekker 75 nettselskap,[^antall] og oppgaven har ingen generell løsning.
 
 Vil du ha modellen vi faktisk regner med, står den i
 [beregninger.md](beregninger.md). Dette dokumentet handler om hvorfor den ikke kan
@@ -36,13 +36,13 @@ hos Noranett 14 %.
 
 Det gjør at «flytt forbruket til natten» er verdt fem ganger så mye hos den ene
 som hos den andre, mens «hold effekttoppen nede» er verdt fem ganger så mye
-motsatt vei.[^andel] Det finnes altså ikke ett spareråd som er riktig for norske
-strømkunder, bare råd som er riktige for noen av dem.
+motsatt vei.[^andel] Det finnes altså ikke ett spareråd som er riktig for norske strømkunder.
 
 ## Fastleddet måler fem forskjellige ting
 
-Regelen sier tre døgnmakser i måneden. 70 av 76 oppføringer følger den. De fem
-andre måler noe annet, og to av dem måler ikke effekt i det hele tatt.[^metoder]
+Snitt av de tre høyeste døgnmaksene i måneden er den vanligste innretningen, og
+70 av 76 oppføringer bruker den. De fem andre måler noe annet, og to av dem måler
+ikke effekt i det hele tatt.[^metoder]
 
 Alut og Netera setter fastleddet etter hovedsikringen. Alut har to satser, over og
 under 3 x 125 A, og skriver det rett ut i prislisten.[^alut] Netera har fem rader,
@@ -77,8 +77,9 @@ Sør Aurdal Energi bruker månedens enkeltstående høyeste time, ikke snittet a
 tre.[^soraurdal] Da avgjør én glipp med badstuen og induksjonstoppen hele
 måneden.
 
-Fem modeller er håndterbart i seg selv. Problemet er at ingen av selskapene mener
-de gjør noe spesielt. Hver av dem har en helt vanlig prisliste med helt vanlige
+Ingen av de fem bryter regelverket. Sikringsstørrelse står oppført hos RME som et
+gyldig alternativ, på linje med døgnmaks. Problemet er at ingen av selskapene
+mener de gjør noe spesielt. Hver av dem har en helt vanlig prisliste med helt vanlige
 tall, og ingen skriver at de måler noe annet enn naboen.
 
 ## Hva «natt» betyr
@@ -215,6 +216,15 @@ usikkerheten.
 
 Har du en faktura fra et annet selskap enn BKK, er den mer nyttig enn noen
 prisliste. Se [bidra med faktura](fakturaer/bidra-med-faktura.md).
+
+[^rme]: [Nettleie for forbruk](https://www.nve.no/reguleringsmyndigheten/regulering/nettvirksomhet/nettleie/nettleie-for-forbruk/),
+    Reguleringsmyndigheten for energi (RME), lest 29. juli 2026. Ordrett:
+    «Fastleddet skal differensieres, eller settes, på grunnlag av kundens
+    etterspørsel etter effekt [...] Nettselskapene har en viss frihet til å
+    bestemme hvordan de vil differensiere.» Det finnes altså ingen NVE-anbefalt
+    modell å avvike fra. Vi kaller likevel snitt-av-tre-døgnmakser for
+    NVE-modellen i kode og dokumentasjon, fordi det er navnet bransjen bruker,
+    men navnet er upresist.
 
 [^antall]: `DSO_LIST` i `dso.py` har 76 oppføringer: 75 nettselskap og én
     `Egendefinert` for dem som vil legge inn tall manuelt. Én av de 75 er den

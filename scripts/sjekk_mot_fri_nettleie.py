@@ -82,6 +82,12 @@ KJENTE_AVVIK: dict[str, str] = {
         "fortsatt 01.01.2026-tariffen (12,90 øre, 2000 + 534). Fjern når "
         "fjellnett.yml er oppdatert."
     ),
+    "norgesnett": (
+        "Vi følger norgesnett.no sin egen tabell fra 01.07.2026 (energiledd "
+        "42,16/27,16 øre inkl. alt, alle ti kapasitetstrinn hevet). fri-nettleie "
+        "har fortsatt 01.01.2026-tariffen. Fjern når norgesnett.yml er "
+        "oppdatert (fri-nettleie #383)."
+    ),
 }
 
 # Mapping mellom våre DSO-IDer og fri-nettleie sine filnavn. Hvis vår ID kan

@@ -287,29 +287,47 @@ class TestNettselskapet2026:
 
 
 # ============================================================================
-# Regresjon: verifiserte at Norgesnett og Asker Nett ER korrekte allerede
+# Norgesnett: ny tariff 01.07.2026. Asker Nett: verifisert uendret.
 # ============================================================================
 
 
-class TestNorgesnett2026Uendret:
-    """Norgesnett: forrige agent meldte feil, men trippelsjekk bekrefter
-    eksisterende verdier matcher Norgesnetts egen tabell."""
+class TestNorgesnett2026:
+    """Norgesnett hevet energiledd og alle ti kapasitetstrinn 01.07.2026.
+    Satsene er verifisert mot norgesnett.no 2026-08-07."""
 
     @pytest.fixture
     def norgesnett(self):
         return DSO_LIST["norgesnett"]
 
-    def test_dag_inkl_alt_matcher_norgesnett_35_49_ore(self, norgesnett):
-        """Norgesnett 2026: dag 35,49 øre/kWh inkl. alle avgifter."""
+    def test_dag_inkl_alt_matcher_norgesnett_42_16_ore(self, norgesnett):
+        """Norgesnett per 01.07.2026: dag 42,16 øre/kWh inkl. alle avgifter."""
         inkl = energiledd_inkl_mva(norgesnett["energiledd_dag_eks_mva"])
-        # (0,20262 + 0,0713 + 0,01) * 1,25 = 0,3549
-        assert inkl == pytest.approx(0.3549, abs=0.001)
+        # (0,25598 + 0,0713 + 0,01) * 1,25 = 0,4216
+        assert inkl == pytest.approx(0.4216, abs=0.001)
 
-    def test_natt_inkl_alt_matcher_norgesnett_26_77_ore(self, norgesnett):
-        """Norgesnett 2026: natt 26,77 øre/kWh inkl. alle avgifter."""
+    def test_natt_inkl_alt_matcher_norgesnett_27_16_ore(self, norgesnett):
+        """Norgesnett per 01.07.2026: natt 27,16 øre/kWh inkl. alle avgifter."""
         inkl = energiledd_inkl_mva(norgesnett["energiledd_natt_eks_mva"])
-        # (0,13286 + 0,0713 + 0,01) * 1,25 = 0,2677
-        assert inkl == pytest.approx(0.2677, abs=0.001)
+        # (0,13598 + 0,0713 + 0,01) * 1,25 = 0,2716
+        assert inkl == pytest.approx(0.2716, abs=0.001)
+
+    @pytest.mark.parametrize(
+        ("avg_power", "expected_kr_mnd"),
+        [
+            (1.0, 140),
+            (3.0, 233),  # 232,50
+            (7.0, 390),
+            (12.0, 695),
+            (17.0, 935),
+            (22.0, 1145),
+            (30.0, 1813),  # 1812,50
+            (60.0, 2813),  # 2812,50
+            (80.0, 3813),  # 3812,50
+            (120.0, 6113),  # 6112,50
+        ],
+    )
+    def test_kapasitetsledd_per_trinn(self, norgesnett, avg_power, expected_kr_mnd):
+        assert kapasitetsledd_for_power(avg_power, norgesnett) == expected_kr_mnd
 
 
 class TestAskerNett2026Uendret:

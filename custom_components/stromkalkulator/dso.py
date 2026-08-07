@@ -348,21 +348,24 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "prisomrade": "NO1",
         "supported": True,
         # Norgesnett er en del av Glitre Nett, men kunder faktureres etter egne tariffer.
-        # Kilde: https://norgesnett.no/nettleie-privat/
-        "energiledd_dag_eks_mva": 0.20262,  # 20,26 øre/kWh ren energiledd (2026, dag 06-22)
-        "energiledd_natt_eks_mva": 0.13286,  # 13,29 øre/kWh ren energiledd (2026, natt 22-06)
-        "url": "https://norgesnett.no/nettleie-privat/",
+        # Kilde: norgesnett.no, tabellen "Nettleiepriser privat 1. juli 2026,
+        # kapasitetstariff" (per 01.07.2026, verifisert 2026-08-07). Publiserte
+        # energiledd er inkl. alt: 42,16 (dag) og 27,16 (natt) øre/kWh.
+        # Dag/natt-klokkeslettene under er fra tidligere kilde, ikke verifisert nå.
+        "energiledd_dag_eks_mva": 0.25598,  # 25,60 øre/kWh ren energiledd (dag 06-22)
+        "energiledd_natt_eks_mva": 0.13598,  # 13,60 øre/kWh ren energiledd (natt 22-06)
+        "url": "https://norgesnett.no/kunde/nettleie-privat/",
         "kapasitetstrinn": [
-            (2, 118),  # 0-1,99 kW: 117,89 kr/mnd
-            (5, 196),  # 2-4,99 kW: 196,49 kr/mnd
-            (10, 323),  # 5-9,99 kW: 323,12 kr/mnd
-            (15, 575),  # 10-14,99 kW: 574,63 kr/mnd
-            (20, 763),  # 15-19,99 kW: 763,25 kr/mnd
-            (25, 947),  # 20-24,99 kW: 946,65 kr/mnd
-            (50, 1467),  # 25-49,99 kW: 1467,13 kr/mnd
-            (75, 2297),  # 50-74,99 kW: 2296,76 kr/mnd
-            (100, 3126),  # 75-99,99 kW: 3126,38 kr/mnd
-            (float("inf"), 5067),  # >100 kW: 5066,84 kr/mnd
+            (2, 140),  # 0-1,99 kW
+            (5, 233),  # 2-4,99 kW: 232,50 kr/mnd
+            (10, 390),  # 5-9,99 kW
+            (15, 695),  # 10-14,99 kW
+            (20, 935),  # 15-19,99 kW
+            (25, 1145),  # 20-24,99 kW
+            (50, 1813),  # 25-49,99 kW: 1812,50 kr/mnd
+            (75, 2813),  # 50-74,99 kW: 2812,50 kr/mnd
+            (100, 3813),  # 75-99,99 kW: 3812,50 kr/mnd
+            (float("inf"), 6113),  # >100 kW: 6112,50 kr/mnd
         ],
     },
     "tensio_tn": {

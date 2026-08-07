@@ -5,6 +5,8 @@ _Generert av_ `scripts/research/verify_norgespris_eksakt.py --emit-markdown` (kr
 | mai_2026 | -1032.56 | -1033.11 | -0.55 | -1032.91 | -0.35 | -1032.56 | -0.001 |
 | juni_2026 | -363.54 | -363.39 | +0.15 | -363.54 | +0.00 | -363.53 | +0.005 |
 
+Utelatt fra tabellen fordi HAN-fixturen mangler timer: juli_2026 (61 timer).
+
 Prisårgang-dager (HA-recorderen har foreløpig kurs, publisert er Final):
 
 | Dag | Ukedag | HA/publisert | Timer |
@@ -18,5 +20,9 @@ Prisårgang-dager (HA-recorderen har foreløpig kurs, publisert er Final):
 | 2026-05-31 | søn | 0.99769 | 24 |
 | 2026-06-14 | søn | 0.99558 | 24 |
 | 2026-06-21 | søn | 1.00304 | 24 |
+| 2026-07-05 | søn | 1.00174 | 24 |
+| 2026-07-12 | søn | 1.00243 | 24 |
+| 2026-07-19 | søn | 1.00274 | 24 |
+| 2026-07-26 | søn | 0.99394 | 20 |
 
 Symmetri: mai_2026 har 35 timer med spot under 50 øre inkl. mva (å klippe dem ville flyttet summen -20.61 kr); juni_2026 har 83 timer med spot under 50 øre inkl. mva (å klippe dem ville flyttet summen -27.61 kr). BKK fakturerer symmetrisk.

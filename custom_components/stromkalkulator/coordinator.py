@@ -947,6 +947,11 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "dso": self.dso["name"],
             "har_norgespris": self.har_norgespris,
             "avgiftssone": self.avgiftssone,
+            # Periodemerkelappene følger med i samme oppdatering som de
+            # akkumulerte verdiene, slik at sensorene kan sette last_reset fra
+            # nøyaktig den oppdateringen som nullstiller dem.
+            "current_month": self._current_month,
+            "current_date": self._current_date,
             "monthly_consumption_dag_kwh": round(self._monthly_consumption.dag, 3),
             "monthly_consumption_natt_kwh": round(self._monthly_consumption.natt, 3),
             "monthly_consumption_total_kwh": round(self._monthly_consumption.total, 3),

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 from homeassistant.components.sensor import (
@@ -59,6 +60,27 @@ PARALLEL_UPDATES = 0
 # importen robust der SensorDeviceClass er en redusert stub uten ENUM-medlemmet;
 # i Home Assistant er ENUM uansett StrEnum-verdien "enum".
 _ENUM_DEVICE_CLASS = getattr(SensorDeviceClass, "ENUM", "enum")
+
+# Periodene TOTAL-sensorer akkumulerer over, som (coordinator-nøkkel, format).
+# Nøkkelen peker på merkelappen coordinatoren nullstiller sammen med verdien.
+PERIODE_MAANED = ("current_month", "%Y-%m")
+PERIODE_DOGN = ("current_date", "%Y-%m-%d")
+
+
+def _periodestart(merkelapp: Any, format_: str) -> datetime | None:
+    """Lokal midnatt ved starten av perioden, eller None hvis merkelappen mangler.
+
+    Månedsmerkelappen "2026-07" gir 1. juli kl. 00:00 lokal tid, døgnmerkelappen
+    "2026-07-15" gir 15. juli kl. 00:00. Ugyldige verdier gir None framfor å
+    kaste, slik at en sensor med rar lagret data fortsatt publiserer verdien sin.
+    """
+    if not isinstance(merkelapp, str):
+        return None
+    try:
+        parsed = datetime.strptime(merkelapp, format_)
+    except ValueError:
+        return None
+    return cast("datetime", dt_util.start_of_local_day(parsed))
 
 
 def _beregn_nettleie(
@@ -154,7 +176,9 @@ class NettleieBaseSensor(CoordinatorEntity, SensorEntity):
     _attr_translation_key: str
     _entry: ConfigEntry
     _dso: DSOEntry
-    _last_state_written: tuple[Any, Any, Any] | None = None
+    _last_state_written: tuple[Any, ...] | None = None
+    # Settes av TOTAL-sensorer som nullstilles ved periodeskifte. Se last_reset.
+    _reset_periode: ClassVar[tuple[str, str] | None] = None
 
     def __init__(
         self,
@@ -177,14 +201,41 @@ class NettleieBaseSensor(CoordinatorEntity, SensorEntity):
 
         Uten dette skriver hver sensor state ved hver coordinator-refresh
         (~1/min), så recorderen får ~52 identiske rader i minuttet. Signaturen
-        dekker alt som styrer entitetens HA-state: tilgjengelighet, verdi og
-        attributter. Er den uendret, hoppes skrivingen over.
+        dekker alt som styrer entitetens HA-state: tilgjengelighet, verdi,
+        attributter og last_reset. Er den uendret, hoppes skrivingen over.
         """
-        signature = (self.available, self.native_value, self.extra_state_attributes)
+        signature = (
+            self.available,
+            self.native_value,
+            self.extra_state_attributes,
+            self.last_reset,
+        )
         if signature == self._last_state_written:
             return
         self._last_state_written = signature
         super()._handle_coordinator_update()
+
+    @property
+    def last_reset(self) -> datetime | None:
+        """Starten på perioden en TOTAL-sensor akkumulerer over.
+
+        HA-statistikken trenger dette for sensorer som nullstilles: uten
+        last_reset bokføres fallet fra periodesum til 0 som et negativt delta,
+        og første time i ny periode viser hele forrige periodesum med minus
+        i Energy-dashboardet. Periodestarten leses fra samme coordinator-
+        oppdatering som verdien, slik at nullstillingen og den nye
+        last_reset ankommer statistikk-kompilatoren atomisk.
+
+        None for sensorer uten periodenullstilling (måleverdier og
+        TOTAL_INCREASING-tellere).
+        """
+        if self._reset_periode is None:
+            return None
+        data = self.coordinator.data
+        if not data:
+            return None
+        noekkel, format_ = self._reset_periode
+        return _periodestart(data.get(noekkel), format_)
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -1203,6 +1254,7 @@ class MaanedligNettleieSensor(MaanedligBaseSensor):
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
+    _reset_periode: ClassVar[tuple[str, str]] = PERIODE_MAANED
     _attr_icon: str = "mdi:transmission-tower"
     _attr_suggested_display_precision: int = 0
 
@@ -1247,6 +1299,7 @@ class MaanedligAvgifterSensor(MaanedligBaseSensor):
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
+    _reset_periode: ClassVar[tuple[str, str]] = PERIODE_MAANED
     _attr_icon: str = "mdi:bank"
     _attr_suggested_display_precision: int = 0
     _avgiftssone: str
@@ -1301,6 +1354,7 @@ class MaanedligStromstotteSensor(MaanedligBaseSensor):
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
+    _reset_periode: ClassVar[tuple[str, str]] = PERIODE_MAANED
     _attr_icon: str = "mdi:cash-plus"
     _attr_suggested_display_precision: int = 0
 
@@ -1335,6 +1389,7 @@ class MaanedligTotalSensor(MaanedligBaseSensor):
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
+    _reset_periode: ClassVar[tuple[str, str]] = PERIODE_MAANED
     _attr_icon: str = "mdi:receipt-text"
     _attr_suggested_display_precision: int = 0
     _avgiftssone: str
@@ -1403,6 +1458,7 @@ class MaanedligNorgesprisDifferanseSensor(MaanedligBaseSensor):
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
+    _reset_periode: ClassVar[tuple[str, str]] = PERIODE_MAANED
     _attr_icon: str = "mdi:scale-balance"
     _attr_suggested_display_precision: int = 0
 
@@ -1432,6 +1488,7 @@ class MaanedligNorgesprisKompensasjonSensor(MaanedligBaseSensor):
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
+    _reset_periode: ClassVar[tuple[str, str]] = PERIODE_MAANED
     _attr_icon: str = "mdi:cash-sync"
     _attr_suggested_display_precision: int = 0
 
@@ -1460,6 +1517,7 @@ class DagskostnadSensor(MaanedligBaseSensor):
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
+    _reset_periode: ClassVar[tuple[str, str]] = PERIODE_DOGN
     _attr_icon: str = "mdi:calendar-today"
     _attr_suggested_display_precision: int = 0
 
@@ -1485,6 +1543,7 @@ class AkkumulertKostnadSensor(MaanedligBaseSensor):
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
+    _reset_periode: ClassVar[tuple[str, str]] = PERIODE_MAANED
     _attr_icon: str = "mdi:cash-register"
     _attr_suggested_display_precision: int = 2
 
@@ -1841,6 +1900,7 @@ class MaanedligEksportInntektSensor(EksportBaseSensor):
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
+    _reset_periode: ClassVar[tuple[str, str]] = PERIODE_MAANED
     _attr_icon: str = "mdi:cash-plus"
     _attr_suggested_display_precision: int = 0
 
@@ -1875,6 +1935,7 @@ class MaanedligNettokostnadSensor(EksportBaseSensor):
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
+    _reset_periode: ClassVar[tuple[str, str]] = PERIODE_MAANED
     _attr_icon: str = "mdi:scale-balance"
     _attr_suggested_display_precision: int = 0
 

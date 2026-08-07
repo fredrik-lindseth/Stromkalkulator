@@ -127,17 +127,6 @@ def last_elhub(navn: str) -> dict[str, float] | None:
     return None
 
 
-def skiftede_kwh(hours: list[dict[str, Any]], shift_seconds: int) -> list[float]:
-    """Samme 13-sekunders teleskop-korreksjon som verify_invoice_hourly.beregn()."""
-    ut: list[float] = []
-    for i, h in enumerate(hours):
-        kwh = float(h["kwh"])
-        if shift_seconds and i > 0:
-            kwh -= shift_seconds / 3600 * (kwh - float(hours[i - 1]["kwh"]))
-        ut.append(kwh)
-    return ut
-
-
 def komp_sum(kwhs: list[float], priser: list[float]) -> float:
     """Norgespris-kompensasjon: sum av (0,50 - spot inkl. mva) x kWh. Negativ = tilgode."""
     return sum(
@@ -150,13 +139,19 @@ def analyser_maaned(navn: str, shift_seconds: int) -> dict[str, Any] | None:
     fixture_fil = FIXTURES / f"bkk_{navn}_hourly.json"
     if not fixture_fil.exists():
         return None
-    hours = json.loads(fixture_fil.read_text(encoding="utf-8"))["hours"]
-    dekning = publiserte_priser(hours)
+    alle = json.loads(fixture_fil.read_text(encoding="utf-8"))["hours"]
+    dekning = publiserte_priser(alle)
     if dekning is None:
         return None
     np_priser, kilder = dekning
 
-    kwhs = skiftede_kwh(hours, shift_seconds)
+    # Timer uten måling (HAN-utfall) kan ikke inngå i en kr-sum som skal
+    # sammenlignes med fakturaen. De holdes utenfor, og antallet rapporteres
+    # så resultatet ikke leses som en fullverdig månedssjekk.
+    korrigert = vih.shift_korriger(alle, shift_seconds)
+    manglende_timer = sum(1 for k in korrigert if k is None)
+    hours = [h for h, k in zip(alle, korrigert, strict=True) if k is not None]
+    kwhs = [k for k in korrigert if k is not None]
     ha = [float(h["spot_nok_kwh_eks_mva"]) for h in hours]
     np_ = [np_priser[h["start_local"]] for h in hours]
 
@@ -209,6 +204,7 @@ def analyser_maaned(navn: str, shift_seconds: int) -> dict[str, Any] | None:
         "komp_np": komp_sum(kwhs, np_),
         "komp_elhub": komp_elhub,
         "n_timer": len(hours),
+        "manglende_timer": manglende_timer,
         "kilder": kilder,
         "bitlike": bitlike,
         "naere": naere,
@@ -234,11 +230,18 @@ def print_konsoll(res: dict[str, Any]) -> None:
     rader = [("HAN-kWh x HA-recorder ", res["komp_ha"]), ("HAN-kWh x Final       ", res["komp_np"])]
     if res["komp_elhub"] is not None:
         rader.append(("Elhub-kWh x Final     ", res["komp_elhub"]))
-    for kilde, verdi in rader:
-        print(f"  Norgespris, {kilde}: {verdi:+10.2f} kr, faktura {res['faktura']:+.2f}, "
-              f"avvik {verdi - res['faktura']:+.3f}")
+    if res["manglende_timer"]:
+        print(f"  DELVIS: {res['manglende_timer']} timer mangler måling i HAN-fixturen. "
+              f"Summene under dekker bare de {res['n_timer']} målte timene og kan ikke "
+              f"sammenlignes med fakturalinjen ({res['faktura']:+.2f} kr for hele måneden).")
+        for kilde, verdi in rader:
+            print(f"  Norgespris, {kilde}: {verdi:+10.2f} kr (delvis)")
+    else:
+        for kilde, verdi in rader:
+            print(f"  Norgespris, {kilde}: {verdi:+10.2f} kr, faktura {res['faktura']:+.2f}, "
+                  f"avvik {verdi - res['faktura']:+.3f}")
     if res["komp_elhub"] is None:
-        print("  (ingen Elhub-CSV for måneden; last ned fra elhub.no for skarpeste sjekk)")
+        print("  (ingen Elhub-CSV som dekker måneden; last ned fra elhub.no for skarpeste sjekk)")
     print()
 
 
@@ -251,6 +254,8 @@ def emit_markdown(resultater: list[dict[str, Any]]) -> str:
         "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     for r in resultater:
+        if r["manglende_timer"]:
+            continue  # delvis måned: kr-summene er ikke sammenlignbare med fakturalinjen
         if r["komp_elhub"] is not None:
             elhub_celler = f"{r['komp_elhub']:+.2f} | {r['komp_elhub'] - r['faktura']:+.3f}"
         else:
@@ -260,6 +265,14 @@ def emit_markdown(resultater: list[dict[str, Any]]) -> str:
             f"{r['komp_ha'] - r['faktura']:+.2f} | {r['komp_np']:+.2f} | "
             f"{r['komp_np'] - r['faktura']:+.2f} | {elhub_celler} |"
         )
+    delvis = [r for r in resultater if r["manglende_timer"]]
+    if delvis:
+        linjer += [
+            "",
+            "Utelatt fra tabellen fordi HAN-fixturen mangler timer: "
+            + "; ".join(f"{r['navn']} ({r['manglende_timer']} timer)" for r in delvis)
+            + ".",
+        ]
     linjer += [
         "",
         "Prisårgang-dager (HA-recorderen har foreløpig kurs, publisert er Final):",
@@ -278,6 +291,7 @@ def emit_markdown(resultater: list[dict[str, Any]]) -> str:
             f"{r['navn']} har {r['betaletimer']} timer med spot under 50 øre inkl. mva "
             f"(å klippe dem ville flyttet summen {r['clamp_avvik']:+.2f} kr)"
             for r in resultater
+            if not r["manglende_timer"]
         )
         + ". BKK fakturerer symmetrisk.",
     ]

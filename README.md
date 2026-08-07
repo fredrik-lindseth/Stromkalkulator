@@ -22,7 +22,7 @@ Home Assistant-integrasjon som beregner faktisk strømpris i Norge, inkludert ne
 
 | Nettselskap | Prisområde | Verifiserte måneder | Siste verifisering |
 | ----------- | ---------- | ------------------- | ------------------ |
-| BKK         | NO5        | 8                   | juni 2026          |
+| BKK         | NO5        | 9                   | juli 2026          |
 
 Hver rapport matcher integrasjonens beregninger linje for linje mot en ekte faktura. Se [docs/fakturaer/referanse.md](docs/fakturaer/referanse.md).
 

@@ -6,7 +6,7 @@ Hver rapport her er en attest på at integrasjonen regner riktig for et gitt net
 
 | Nettselskap | Prisområde | Avgiftssone | Antall verifiserte måneder | Siste verifisering | Avtale                             |
 | ----------- | ---------- | ----------- | -------------------------- | ------------------ | ---------------------------------- |
-| BKK         | NO5        | Standard    | 8                          | juni 2026          | Spotpris (2025), Norgespris (2026) |
+| BKK         | NO5        | Standard    | 9                          | juli 2026          | Spotpris (2025), Norgespris (2026) |
 
 Vil du legge til ditt nettselskap? Se [verifiser-din-faktura.md](verifiser-din-faktura.md).
 
@@ -16,6 +16,7 @@ Hver lenke er en verifiseringsrapport med full gjennomgang: forbruk, priser, eff
 
 ### 2026 (Norgespris, 2026-satser)
 
+- [Juli 2026](bkk-juli-2026.md) (linje for linje verifisert; time-for-time delvis, HAN-utfall 29.-31. juli)
 - [Juni 2026](bkk-juni-2026.md)
 - [Mai 2026](bkk-mai-2026.md)
 - [April 2026](bkk-april-2026.md)

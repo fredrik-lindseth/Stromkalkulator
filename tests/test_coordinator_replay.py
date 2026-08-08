@@ -25,6 +25,7 @@ from tests.test_faktura_bkk import (
     FAKTURA_APRIL_2026,
     FAKTURA_DESEMBER_2025,
     FAKTURA_FEBRUAR_2026,
+    FAKTURA_JULI_2026,
     FAKTURA_JUNI_2026,
     FAKTURA_MAI_2026,
     FAKTURA_MARS_2026,
@@ -64,6 +65,14 @@ FAKTURA_MAP: dict[str, tuple[str, dict, datetime]] = {
         "bkk_juni_2026_hourly.json",
         FAKTURA_JUNI_2026,
         datetime(2026, 6, 1),
+    ),
+    # Juli har 62 timer med Elhub-fylt kwh etter HAN-utfallet 29.07-31.07
+    # (se metadata.datahull i fixturen). p_max_w er null i de timene, men
+    # alle fakturaens tre effekttopper ligger før utfallet.
+    "juli_2026": (
+        "bkk_juli_2026_hourly.json",
+        FAKTURA_JULI_2026,
+        datetime(2026, 7, 1),
     ),
 }
 

@@ -34,8 +34,12 @@ direkte, så ingen EUR→NOK-omregning trengs for månedssjekken.
 ### 3. Last ned Elhub-data
 
 1. Logg inn på [minside.elhub.no/metering-points](https://minside.elhub.no/metering-points)
-2. Velg ditt målepunkt
-3. Eksporter timesverdier som CSV for hele måneden
+2. Velg ditt målepunkt. Direktelenke til måleverdiene (bytt inn din målepunkt-ID):
+   `https://minside.elhub.no/metering-points/<målepunkt-id>/metering-values?start=<ISO-tidspunkt>&granularity=MONTHLY`
+   (den utfylte lenken ligger i `_private/Måleverdier/README.md`)
+3. Eksporter timesverdier som CSV for hele måneden. Vent til måneden er
+   omme: en eksport tatt midt i måneden dekker bare dagene så langt (juli
+   2026-eksporten tatt 6. juli dekket bare 1.-5. juli)
 4. Lagre originalen i `_private/Måleverdier/elhub_<måned>.csv` (gitignored, beholder rådata). `verify_norgespris_eksakt.py` plukker den opp automatisk på det navnet, og Elhub-kWh er fasiten for eksakt-sjekken (HAN-serien kan ha aggregatglipper, jf. 2. pinsedag 2026).
 5. Kopier også til `Måleverdier/elhub_<måned>.csv` om du vil ha den committet. CSV-innholdet har ingen personlig info, men kun én demo-måned committes vanligvis.
 
@@ -71,7 +75,7 @@ Forventede avvik (basert på april 2026):
 | ------------------------------------ | --------------- |
 | Total kWh                            | ±50 Wh          |
 | Dag/natt-split                       | ±100 Wh hver    |
-| Topp 3 maks effekt                   | 3-8 W per topp  |
+| Topp 3 maks effekt                   | 3-20 W per topp (11.07.2026 målte 20 W) |
 | Norgespris (HAN x HA-recorder)       | 0,1-0,6 kr      |
 | Norgespris (HAN x publisert Final)   | ±0,4 kr         |
 | Norgespris (Elhub x publisert Final) | ±0,01 kr        |

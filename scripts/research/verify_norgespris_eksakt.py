@@ -145,10 +145,14 @@ def analyser_maaned(navn: str, shift_seconds: int) -> dict[str, Any] | None:
         return None
     np_priser, kilder = dekning
 
-    # Timer uten måling (HAN-utfall) kan ikke inngå i en kr-sum som skal
-    # sammenlignes med fakturaen. De holdes utenfor, og antallet rapporteres
-    # så resultatet ikke leses som en fullverdig månedssjekk.
-    korrigert = vih.shift_korriger(alle, shift_seconds)
+    # Timer uten HAN-måling kan ikke inngå i en HAN-kr-sum som skal
+    # sammenlignes med fakturaen. Det gjelder også timer som senere er fylt
+    # fra Elhub (kwh_kilde == "elhub", se fyll_datahull_fra_elhub.py): de er
+    # ikke HAN-data, og Elhub-varianten leser uansett CSV-en direkte.
+    alle_han = [
+        {**h, "kwh": None} if h.get("kwh_kilde") == "elhub" else h for h in alle
+    ]
+    korrigert = vih.shift_korriger(alle_han, shift_seconds)
     manglende_timer = sum(1 for k in korrigert if k is None)
     hours = [h for h, k in zip(alle, korrigert, strict=True) if k is not None]
     kwhs = [k for k in korrigert if k is not None]
@@ -190,11 +194,20 @@ def analyser_maaned(navn: str, shift_seconds: int) -> dict[str, Any] | None:
         if vih.NORGESPRIS_INKL_MVA - p * vih.MVA_SATS <= 0
     )
 
-    # Elhub-kWh x Final: skarpeste sjekk, når CSV-en finnes og dekker måneden
+    # Elhub-kWh x Final: skarpeste sjekk, når CSV-en finnes. Elhub-målingen
+    # er uavhengig av HAN-utfall, så dekker CSV-en alle timene regnes hele
+    # måneden og kan sammenlignes med fakturalinjen selv om HAN-fixturen
+    # har hull (som juli 2026).
     komp_elhub = None
+    elhub_full = False
     elhub = last_elhub(navn)
-    if elhub is not None and all(h["start_local"] in elhub for h in hours):
-        komp_elhub = komp_sum([elhub[h["start_local"]] for h in hours], np_)
+    if elhub is not None:
+        if all(h["start_local"] in elhub for h in alle):
+            np_alle = [np_priser[h["start_local"]] for h in alle]
+            komp_elhub = komp_sum([elhub[h["start_local"]] for h in alle], np_alle)
+            elhub_full = True
+        elif all(h["start_local"] in elhub for h in hours):
+            komp_elhub = komp_sum([elhub[h["start_local"]] for h in hours], np_)
 
     faktura = vih.FAKTURAER[navn]["forventet_norgespris_kr"]
     return {
@@ -203,6 +216,7 @@ def analyser_maaned(navn: str, shift_seconds: int) -> dict[str, Any] | None:
         "komp_ha": komp_sum(kwhs, ha),
         "komp_np": komp_sum(kwhs, np_),
         "komp_elhub": komp_elhub,
+        "elhub_full": elhub_full,
         "n_timer": len(hours),
         "manglende_timer": manglende_timer,
         "kilder": kilder,
@@ -227,17 +241,24 @@ def print_konsoll(res: dict[str, Any]) -> None:
             print(f"    {a['dag']} {a['ukedag']}: HA/publisert = {a['ratio']:.5f} ({merke}, {a['timer']} timer)")
     print(f"  symmetri: {res['betaletimer']} timer med spot < 50 øre inkl. mva; "
           f"å klippe dem ville flyttet summen {res['clamp_avvik']:+.2f} kr")
-    rader = [("HAN-kWh x HA-recorder ", res["komp_ha"]), ("HAN-kWh x Final       ", res["komp_np"])]
+    rader = [
+        ("HAN-kWh x HA-recorder ", res["komp_ha"], False),
+        ("HAN-kWh x Final       ", res["komp_np"], False),
+    ]
     if res["komp_elhub"] is not None:
-        rader.append(("Elhub-kWh x Final     ", res["komp_elhub"]))
+        rader.append(("Elhub-kWh x Final     ", res["komp_elhub"], res["elhub_full"]))
     if res["manglende_timer"]:
         print(f"  DELVIS: {res['manglende_timer']} timer mangler måling i HAN-fixturen. "
-              f"Summene under dekker bare de {res['n_timer']} målte timene og kan ikke "
+              f"HAN-summene under dekker bare de {res['n_timer']} målte timene og kan ikke "
               f"sammenlignes med fakturalinjen ({res['faktura']:+.2f} kr for hele måneden).")
-        for kilde, verdi in rader:
-            print(f"  Norgespris, {kilde}: {verdi:+10.2f} kr (delvis)")
+        for kilde, verdi, hel_maaned in rader:
+            if hel_maaned:
+                print(f"  Norgespris, {kilde}: {verdi:+10.2f} kr, faktura {res['faktura']:+.2f}, "
+                      f"avvik {verdi - res['faktura']:+.3f} (hele måneden, uavhengig av HAN)")
+            else:
+                print(f"  Norgespris, {kilde}: {verdi:+10.2f} kr (delvis)")
     else:
-        for kilde, verdi in rader:
+        for kilde, verdi, _hel_maaned in rader:
             print(f"  Norgespris, {kilde}: {verdi:+10.2f} kr, faktura {res['faktura']:+.2f}, "
                   f"avvik {verdi - res['faktura']:+.3f}")
     if res["komp_elhub"] is None:
@@ -254,24 +275,28 @@ def emit_markdown(resultater: list[dict[str, Any]]) -> str:
         "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     for r in resultater:
-        if r["manglende_timer"]:
-            continue  # delvis måned: kr-summene er ikke sammenlignbare med fakturalinjen
+        if r["manglende_timer"] and not r["elhub_full"]:
+            continue  # delvis måned uten full Elhub: ingen sum er sammenlignbar med fakturaen
         if r["komp_elhub"] is not None:
             elhub_celler = f"{r['komp_elhub']:+.2f} | {r['komp_elhub'] - r['faktura']:+.3f}"
         else:
             elhub_celler = "(mangler CSV) | "
-        linjer.append(
-            f"| {r['navn']} | {r['faktura']:+.2f} | {r['komp_ha']:+.2f} | "
-            f"{r['komp_ha'] - r['faktura']:+.2f} | {r['komp_np']:+.2f} | "
-            f"{r['komp_np'] - r['faktura']:+.2f} | {elhub_celler} |"
-        )
+        if r["manglende_timer"]:
+            han_celler = "(delvis) |  | (delvis) | "
+        else:
+            han_celler = (
+                f"{r['komp_ha']:+.2f} | {r['komp_ha'] - r['faktura']:+.2f} | "
+                f"{r['komp_np']:+.2f} | {r['komp_np'] - r['faktura']:+.2f}"
+            )
+        linjer.append(f"| {r['navn']} | {r['faktura']:+.2f} | {han_celler} | {elhub_celler} |")
     delvis = [r for r in resultater if r["manglende_timer"]]
     if delvis:
         linjer += [
             "",
-            "Utelatt fra tabellen fordi HAN-fixturen mangler timer: "
+            "HAN-fixturen mangler timer i: "
             + "; ".join(f"{r['navn']} ({r['manglende_timer']} timer)" for r in delvis)
-            + ".",
+            + ". Måneder med full Elhub-CSV står likevel i tabellen; HAN-kolonnene deres"
+            " er merket (delvis) og Elhub-kolonnen dekker hele måneden.",
         ]
     linjer += [
         "",

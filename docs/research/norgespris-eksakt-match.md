@@ -21,8 +21,9 @@ _Generert av_ `scripts/research/verify_norgespris_eksakt.py --emit-markdown` (kr
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | mai_2026 | -1032.56 | -1033.11 | -0.55 | -1032.91 | -0.35 | -1032.56 | -0.001 |
 | juni_2026 | -363.54 | -363.39 | +0.15 | -363.54 | +0.00 | -363.53 | +0.005 |
+| juli_2026 | -807.50 | (delvis) |  | (delvis) |  | -807.50 | +0.003 |
 
-Utelatt fra tabellen fordi HAN-fixturen mangler timer: juli_2026 (61 timer).
+HAN-fixturen mangler timer i: juli_2026 (62 timer). Måneder med full Elhub-CSV står likevel i tabellen; HAN-kolonnene deres er merket (delvis) og Elhub-kolonnen dekker hele måneden.
 
 Prisårgang-dager (HA-recorderen har foreløpig kurs, publisert er Final):
 

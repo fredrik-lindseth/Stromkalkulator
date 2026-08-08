@@ -41,6 +41,14 @@ egen CI-jobb med `--noconftest`. Kjøres også via pre-commit hooks.
 - **Månedsskifte**: ikke nullstill `_daily_max_power`, `_monthly_consumption` eller `_previous_month_*` manuelt. Skjer automatisk.
 - **Kursarkiv (kjør månedlig)**: `just snapshot-kurs` arkiverer Nord Pools daglige `exchangeRate` og de publiserte NOK-kvarterprisene i `_private/Måleverdier/`. Gratis-API-et rekker bare ~2 måneder bakover, så kjør den hver gang du er i repoet (minst månedlig) før fakturamånedene faller ut. Kvarterprisene er fasiten BKK fakturerer fra; med dem reproduseres Norgespris-linjen eksakt (verifisert juni 2026). HA-recorderen lagrer prisene slik de så ut ved publisering og kan ha foreløpig valutakurs på søndager, så den duger ikke som fasit. Bakgrunn: [docs/research/norgespris-eksakt-match.md](docs/research/norgespris-eksakt-match.md).
 
+## Issue-tracking
+
+Egne funn og oppgaver spores i dcat (dogcat), aldri som GitHub-issues. Kjør
+`dcat prime` ved sesjonsstart og etter compaction/clear, og sjekk `dcat list`
+før du oppretter noe nytt så du ikke dupliserer. GitHub Issues er kun for
+eksterne brukerrapporter; de besvares og lukkes der, men arbeidet de utløser
+registreres i dcat.
+
 ## Dokumentasjon
 
 - [docs/domain-rules.md](docs/domain-rules.md): domene-regler, avgifter, sjekklister, kilder

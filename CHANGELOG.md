@@ -2,6 +2,13 @@
 
 Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) og [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Ikke sluppet]
+
+### Fikset
+
+- **Kostnadssensorene melder nå nullstillingen sin til Home Assistant (`last_reset`)**, så Energy-dashboardet og statistikkgrafene ikke lenger bokfører hele månedssummen som en negativ kostnad i første time av ny måned. Gjelder akkumulert kostnad, dagskostnad og månedssensorene. Hopp som allerede ligger i statistikken må rettes manuelt under Developer tools > Statistics. Rapportert av @kujeger i [#14](https://github.com/fredrik-lindseth/Stromkalkulator/issues/14).
+- **Norgesnett hevet nettleien 1. juli 2026**: energiledd dag fra 20,26 til 25,60 øre/kWh og natt fra 13,29 til 13,60 (rene energiledd eks. avgifter), og alle ti kapasitetstrinn, trinn 1 fra 118 til 140 kr/mnd og øverste trinn fra 5067 til 6113. Rapportert av @johannes-tangseth i [#13](https://github.com/fredrik-lindseth/Stromkalkulator/issues/13).
+
 ## [1.15.0]
 
 ### Endret

@@ -2,7 +2,7 @@
 
 Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) og [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Ikke sluppet]
+## [1.16.0]
 
 ### Fikset
 

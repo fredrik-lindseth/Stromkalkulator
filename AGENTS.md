@@ -49,6 +49,12 @@ før du oppretter noe nytt så du ikke dupliserer. GitHub Issues er kun for
 eksterne brukerrapporter; de besvares og lukkes der, men arbeidet de utløser
 registreres i dcat.
 
+Issue-dataene ligger i den sentrale dogcat-basen (`~/dev/issues/.dogcats/`),
+ikke i repoet. Oppkoblingen er to gitignorede filer: `.dogcatrc` i repo-roten
+med stien til basen, og `.dogcats/config.local.toml` med
+`namespace = "stromkalkulator"`. Mangler de (fersk klone), gjenskap dem etter
+mønsteret i leirnes.no-repoet. Issue-data skal aldri committes hit.
+
 ## Dokumentasjon
 
 - [docs/domain-rules.md](docs/domain-rules.md): domene-regler, avgifter, sjekklister, kilder

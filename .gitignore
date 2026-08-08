@@ -24,9 +24,6 @@ Fakturaer/
 
 .dogcats/
 .dogcatrc
-.dogcats/config.local.toml
-.dogcats/.issues.lock
-.dogcats/*.bak-*
 
 .claude/
 

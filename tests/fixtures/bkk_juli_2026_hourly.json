@@ -1,1 +1,4562 @@
-{"metadata":{"navn":"juli_2026","fakturanr":"012345686","periode_start_local":"2026-07-01T00:00:00+02:00","periode_end_local":"2026-08-01T00:00:00+02:00","tidssone":"Europe/Oslo","kilde_forbruk":"sensor.pow_u_ams_tpi (Akkumulert meter, delta per time, fallback-kjede)","kilde_spotpris":"sensor.nord_pool_no5_current_price (eks. mva, multipliser med 1.25 for inkl. mva)","kilde_p_max":"sensor.pow_u_ams_p (Active import i watt, max per time, fallback-kjede)","tpi_start_kwh":133282.18,"tpi_end_kwh":null,"datahull":{"timer_uten_maaling":61,"fra_og_med":"2026-07-29T11:00:00+02:00","til_og_med":"2026-07-31T23:00:00+02:00","aarsak":"sensor.pow_u_ams_tpi og sensor.pow_u_ams_p var nede fra 29.07.2026 ca. kl. 11 og ut fakturaperioden. kwh og p_max_w er null for disse timene.","ikke_fylt_fordi":"Elhub-CSV er kWh-fasiten, men _private/Måleverdier/elhub_juli.csv dekker bare 01.07-05.07.2026 (120 timer). Ingen tilgjengelig kilde dekker hullet, og å fordele restforbruket fra fakturaen utover timene ville gjort verifiseringen sirkulær. Verdiene står som null; scripts/research/verify_invoice_hourly.py holder dem utenfor summene og rapporterer restanalyse i stedet.","loses_ved":"Ny eksport av hele juli fra minside.elhub.no til _private/Måleverdier/elhub_juli.csv, deretter fylle kwh for de 61 timene fra CSV-en (p_max_w forblir null).","spotpris_er_komplett":true}},"hours":[{"start_local":"2026-07-01T00:00:00+02:00","kwh":1.248,"spot_nok_kwh_eks_mva":1.035954,"p_max_w":3362.0},{"start_local":"2026-07-01T01:00:00+02:00","kwh":0.452,"spot_nok_kwh_eks_mva":1.025898,"p_max_w":1453.0},{"start_local":"2026-07-01T02:00:00+02:00","kwh":0.444,"spot_nok_kwh_eks_mva":1.020218,"p_max_w":1212.0},{"start_local":"2026-07-01T03:00:00+02:00","kwh":0.6,"spot_nok_kwh_eks_mva":0.993235,"p_max_w":2071.0},{"start_local":"2026-07-01T04:00:00+02:00","kwh":1.237,"spot_nok_kwh_eks_mva":1.01061,"p_max_w":3366.0},{"start_local":"2026-07-01T05:00:00+02:00","kwh":0.533,"spot_nok_kwh_eks_mva":0.99835,"p_max_w":1040.0},{"start_local":"2026-07-01T06:00:00+02:00","kwh":0.6,"spot_nok_kwh_eks_mva":0.899658,"p_max_w":1505.0},{"start_local":"2026-07-01T07:00:00+02:00","kwh":1.146,"spot_nok_kwh_eks_mva":1.002532,"p_max_w":3883.0},{"start_local":"2026-07-01T08:00:00+02:00","kwh":1.514,"spot_nok_kwh_eks_mva":1.006373,"p_max_w":3867.0},{"start_local":"2026-07-01T09:00:00+02:00","kwh":2.017,"spot_nok_kwh_eks_mva":0.969138,"p_max_w":4386.0},{"start_local":"2026-07-01T10:00:00+02:00","kwh":2.369,"spot_nok_kwh_eks_mva":0.994847,"p_max_w":3929.0},{"start_local":"2026-07-01T11:00:00+02:00","kwh":1.0,"spot_nok_kwh_eks_mva":0.983967,"p_max_w":1659.0},{"start_local":"2026-07-01T12:00:00+02:00","kwh":1.52,"spot_nok_kwh_eks_mva":1.019822,"p_max_w":3987.0},{"start_local":"2026-07-01T13:00:00+02:00","kwh":0.765,"spot_nok_kwh_eks_mva":1.01739,"p_max_w":1507.0},{"start_local":"2026-07-01T14:00:00+02:00","kwh":0.89,"spot_nok_kwh_eks_mva":1.001767,"p_max_w":2490.0},{"start_local":"2026-07-01T15:00:00+02:00","kwh":0.929,"spot_nok_kwh_eks_mva":0.97114,"p_max_w":2977.0},{"start_local":"2026-07-01T16:00:00+02:00","kwh":1.761,"spot_nok_kwh_eks_mva":0.980207,"p_max_w":3215.0},{"start_local":"2026-07-01T17:00:00+02:00","kwh":2.513,"spot_nok_kwh_eks_mva":0.993123,"p_max_w":3668.0},{"start_local":"2026-07-01T18:00:00+02:00","kwh":3.057,"spot_nok_kwh_eks_mva":0.980295,"p_max_w":3529.0},{"start_local":"2026-07-01T19:00:00+02:00","kwh":3.053,"spot_nok_kwh_eks_mva":1.015275,"p_max_w":3864.0},{"start_local":"2026-07-01T20:00:00+02:00","kwh":0.961,"spot_nok_kwh_eks_mva":0.968655,"p_max_w":3019.0},{"start_local":"2026-07-01T21:00:00+02:00","kwh":0.946,"spot_nok_kwh_eks_mva":1.017562,"p_max_w":1916.0},{"start_local":"2026-07-01T22:00:00+02:00","kwh":1.336,"spot_nok_kwh_eks_mva":1.019935,"p_max_w":3053.0},{"start_local":"2026-07-01T23:00:00+02:00","kwh":0.556,"spot_nok_kwh_eks_mva":1.015387,"p_max_w":1164.0},{"start_local":"2026-07-02T00:00:00+02:00","kwh":1.303,"spot_nok_kwh_eks_mva":1.064975,"p_max_w":3052.0},{"start_local":"2026-07-02T01:00:00+02:00","kwh":0.596,"spot_nok_kwh_eks_mva":1.049988,"p_max_w":1969.0},{"start_local":"2026-07-02T02:00:00+02:00","kwh":0.651,"spot_nok_kwh_eks_mva":1.02657,"p_max_w":1402.0},{"start_local":"2026-07-02T03:00:00+02:00","kwh":0.545,"spot_nok_kwh_eks_mva":0.917238,"p_max_w":1624.0},{"start_local":"2026-07-02T04:00:00+02:00","kwh":0.649,"spot_nok_kwh_eks_mva":0.922472,"p_max_w":3046.0},{"start_local":"2026-07-02T05:00:00+02:00","kwh":1.413,"spot_nok_kwh_eks_mva":0.92892,"p_max_w":3097.0},{"start_local":"2026-07-02T06:00:00+02:00","kwh":0.594,"spot_nok_kwh_eks_mva":0.996592,"p_max_w":1732.0},{"start_local":"2026-07-02T07:00:00+02:00","kwh":0.694,"spot_nok_kwh_eks_mva":1.075635,"p_max_w":2007.0},{"start_local":"2026-07-02T08:00:00+02:00","kwh":2.134,"spot_nok_kwh_eks_mva":0.92739,"p_max_w":5092.0},{"start_local":"2026-07-02T09:00:00+02:00","kwh":1.263,"spot_nok_kwh_eks_mva":0.736503,"p_max_w":3313.0},{"start_local":"2026-07-02T10:00:00+02:00","kwh":3.317,"spot_nok_kwh_eks_mva":0.839327,"p_max_w":4914.0},{"start_local":"2026-07-02T11:00:00+02:00","kwh":1.631,"spot_nok_kwh_eks_mva":0.70146,"p_max_w":4209.0},{"start_local":"2026-07-02T12:00:00+02:00","kwh":2.58,"spot_nok_kwh_eks_mva":0.78978,"p_max_w":5578.0},{"start_local":"2026-07-02T13:00:00+02:00","kwh":0.887,"spot_nok_kwh_eks_mva":0.790967,"p_max_w":2086.0},{"start_local":"2026-07-02T14:00:00+02:00","kwh":0.896,"spot_nok_kwh_eks_mva":0.643405,"p_max_w":1615.0},{"start_local":"2026-07-02T15:00:00+02:00","kwh":1.69,"spot_nok_kwh_eks_mva":0.809605,"p_max_w":3615.0},{"start_local":"2026-07-02T16:00:00+02:00","kwh":1.123,"spot_nok_kwh_eks_mva":0.814102,"p_max_w":3579.0},{"start_local":"2026-07-02T17:00:00+02:00","kwh":1.034,"spot_nok_kwh_eks_mva":0.665749,"p_max_w":2604.0},{"start_local":"2026-07-02T18:00:00+02:00","kwh":1.56,"spot_nok_kwh_eks_mva":0.541453,"p_max_w":4295.0},{"start_local":"2026-07-02T19:00:00+02:00","kwh":0.826,"spot_nok_kwh_eks_mva":0.788422,"p_max_w":2110.0},{"start_local":"2026-07-02T20:00:00+02:00","kwh":1.254,"spot_nok_kwh_eks_mva":0.874848,"p_max_w":2645.0},{"start_local":"2026-07-02T21:00:00+02:00","kwh":1.349,"spot_nok_kwh_eks_mva":0.87646,"p_max_w":3461.0},{"start_local":"2026-07-02T22:00:00+02:00","kwh":0.683,"spot_nok_kwh_eks_mva":0.87547,"p_max_w":1373.0},{"start_local":"2026-07-02T23:00:00+02:00","kwh":0.831,"spot_nok_kwh_eks_mva":0.8488,"p_max_w":2495.0},{"start_local":"2026-07-03T00:00:00+02:00","kwh":1.001,"spot_nok_kwh_eks_mva":0.872063,"p_max_w":3409.0},{"start_local":"2026-07-03T01:00:00+02:00","kwh":0.542,"spot_nok_kwh_eks_mva":0.791163,"p_max_w":1254.0},{"start_local":"2026-07-03T02:00:00+02:00","kwh":0.569,"spot_nok_kwh_eks_mva":0.751728,"p_max_w":1925.0},{"start_local":"2026-07-03T03:00:00+02:00","kwh":0.618,"spot_nok_kwh_eks_mva":0.664123,"p_max_w":1969.0},{"start_local":"2026-07-03T04:00:00+02:00","kwh":1.146,"spot_nok_kwh_eks_mva":0.66243,"p_max_w":2492.0},{"start_local":"2026-07-03T05:00:00+02:00","kwh":0.435,"spot_nok_kwh_eks_mva":0.69899,"p_max_w":1458.0},{"start_local":"2026-07-03T06:00:00+02:00","kwh":0.499,"spot_nok_kwh_eks_mva":0.775572,"p_max_w":1302.0},{"start_local":"2026-07-03T07:00:00+02:00","kwh":0.65,"spot_nok_kwh_eks_mva":0.878287,"p_max_w":1444.0},{"start_local":"2026-07-03T08:00:00+02:00","kwh":2.278,"spot_nok_kwh_eks_mva":0.686221,"p_max_w":5904.0},{"start_local":"2026-07-03T09:00:00+02:00","kwh":2.379,"spot_nok_kwh_eks_mva":0.678354,"p_max_w":4493.0},{"start_local":"2026-07-03T10:00:00+02:00","kwh":3.037,"spot_nok_kwh_eks_mva":0.73335,"p_max_w":6285.0},{"start_local":"2026-07-03T11:00:00+02:00","kwh":1.834,"spot_nok_kwh_eks_mva":0.740593,"p_max_w":4652.0},{"start_local":"2026-07-03T12:00:00+02:00","kwh":1.026,"spot_nok_kwh_eks_mva":0.766525,"p_max_w":1846.0},{"start_local":"2026-07-03T13:00:00+02:00","kwh":0.83,"spot_nok_kwh_eks_mva":0.73893,"p_max_w":2566.0},{"start_local":"2026-07-03T14:00:00+02:00","kwh":1.022,"spot_nok_kwh_eks_mva":0.718975,"p_max_w":2753.0},{"start_local":"2026-07-03T15:00:00+02:00","kwh":1.172,"spot_nok_kwh_eks_mva":0.701495,"p_max_w":3226.0},{"start_local":"2026-07-03T16:00:00+02:00","kwh":1.325,"spot_nok_kwh_eks_mva":0.688023,"p_max_w":6227.0},{"start_local":"2026-07-03T17:00:00+02:00","kwh":2.005,"spot_nok_kwh_eks_mva":0.49531,"p_max_w":5026.0},{"start_local":"2026-07-03T18:00:00+02:00","kwh":2.527,"spot_nok_kwh_eks_mva":0.583335,"p_max_w":4885.0},{"start_local":"2026-07-03T19:00:00+02:00","kwh":0.701,"spot_nok_kwh_eks_mva":0.817575,"p_max_w":2122.0},{"start_local":"2026-07-03T20:00:00+02:00","kwh":0.842,"spot_nok_kwh_eks_mva":0.88325,"p_max_w":1784.0},{"start_local":"2026-07-03T21:00:00+02:00","kwh":2.177,"spot_nok_kwh_eks_mva":0.857068,"p_max_w":5126.0},{"start_local":"2026-07-03T22:00:00+02:00","kwh":0.761,"spot_nok_kwh_eks_mva":0.881925,"p_max_w":1746.0},{"start_local":"2026-07-03T23:00:00+02:00","kwh":0.551,"spot_nok_kwh_eks_mva":0.893255,"p_max_w":1346.0},{"start_local":"2026-07-04T00:00:00+02:00","kwh":1.342,"spot_nok_kwh_eks_mva":0.871085,"p_max_w":3566.0},{"start_local":"2026-07-04T01:00:00+02:00","kwh":0.513,"spot_nok_kwh_eks_mva":0.860028,"p_max_w":1210.0},{"start_local":"2026-07-04T02:00:00+02:00","kwh":0.442,"spot_nok_kwh_eks_mva":0.785498,"p_max_w":1209.0},{"start_local":"2026-07-04T03:00:00+02:00","kwh":0.448,"spot_nok_kwh_eks_mva":0.844975,"p_max_w":1740.0},{"start_local":"2026-07-04T04:00:00+02:00","kwh":1.09,"spot_nok_kwh_eks_mva":0.829418,"p_max_w":2498.0},{"start_local":"2026-07-04T05:00:00+02:00","kwh":1.082,"spot_nok_kwh_eks_mva":0.820133,"p_max_w":3045.0},{"start_local":"2026-07-04T06:00:00+02:00","kwh":1.831,"spot_nok_kwh_eks_mva":0.80944,"p_max_w":3876.0},{"start_local":"2026-07-04T07:00:00+02:00","kwh":0.83,"spot_nok_kwh_eks_mva":0.707105,"p_max_w":1448.0},{"start_local":"2026-07-04T08:00:00+02:00","kwh":1.955,"spot_nok_kwh_eks_mva":0.324839,"p_max_w":4538.0},{"start_local":"2026-07-04T09:00:00+02:00","kwh":1.503,"spot_nok_kwh_eks_mva":0.463977,"p_max_w":3346.0},{"start_local":"2026-07-04T10:00:00+02:00","kwh":3.333,"spot_nok_kwh_eks_mva":0.50199,"p_max_w":5610.0},{"start_local":"2026-07-04T11:00:00+02:00","kwh":3.352,"spot_nok_kwh_eks_mva":0.479565,"p_max_w":4804.0},{"start_local":"2026-07-04T12:00:00+02:00","kwh":2.501,"spot_nok_kwh_eks_mva":0.467578,"p_max_w":5166.0},{"start_local":"2026-07-04T13:00:00+02:00","kwh":2.94,"spot_nok_kwh_eks_mva":0.327429,"p_max_w":5290.0},{"start_local":"2026-07-04T14:00:00+02:00","kwh":1.367,"spot_nok_kwh_eks_mva":0.677392,"p_max_w":3485.0},{"start_local":"2026-07-04T15:00:00+02:00","kwh":1.33,"spot_nok_kwh_eks_mva":0.441465,"p_max_w":2779.0},{"start_local":"2026-07-04T16:00:00+02:00","kwh":3.08,"spot_nok_kwh_eks_mva":0.619262,"p_max_w":7842.0},{"start_local":"2026-07-04T17:00:00+02:00","kwh":2.116,"spot_nok_kwh_eks_mva":0.768277,"p_max_w":4551.0},{"start_local":"2026-07-04T18:00:00+02:00","kwh":1.967,"spot_nok_kwh_eks_mva":0.77244,"p_max_w":3812.0},{"start_local":"2026-07-04T19:00:00+02:00","kwh":1.837,"spot_nok_kwh_eks_mva":0.820103,"p_max_w":4388.0},{"start_local":"2026-07-04T20:00:00+02:00","kwh":1.106,"spot_nok_kwh_eks_mva":0.90032,"p_max_w":2739.0},{"start_local":"2026-07-04T21:00:00+02:00","kwh":1.324,"spot_nok_kwh_eks_mva":0.876098,"p_max_w":3017.0},{"start_local":"2026-07-04T22:00:00+02:00","kwh":1.415,"spot_nok_kwh_eks_mva":0.88524,"p_max_w":3706.0},{"start_local":"2026-07-04T23:00:00+02:00","kwh":0.694,"spot_nok_kwh_eks_mva":0.87632,"p_max_w":2176.0},{"start_local":"2026-07-05T00:00:00+02:00","kwh":1.166,"spot_nok_kwh_eks_mva":0.890842,"p_max_w":3419.0},{"start_local":"2026-07-05T01:00:00+02:00","kwh":0.485,"spot_nok_kwh_eks_mva":0.87482,"p_max_w":2263.0},{"start_local":"2026-07-05T02:00:00+02:00","kwh":0.551,"spot_nok_kwh_eks_mva":0.8724,"p_max_w":2488.0},{"start_local":"2026-07-05T03:00:00+02:00","kwh":0.437,"spot_nok_kwh_eks_mva":0.8724,"p_max_w":1202.0},{"start_local":"2026-07-05T04:00:00+02:00","kwh":0.519,"spot_nok_kwh_eks_mva":0.75031,"p_max_w":2531.0},{"start_local":"2026-07-05T05:00:00+02:00","kwh":1.1,"spot_nok_kwh_eks_mva":0.7471,"p_max_w":3497.0},{"start_local":"2026-07-05T06:00:00+02:00","kwh":0.951,"spot_nok_kwh_eks_mva":0.708725,"p_max_w":2771.0},{"start_local":"2026-07-05T07:00:00+02:00","kwh":1.266,"spot_nok_kwh_eks_mva":0.499328,"p_max_w":2632.0},{"start_local":"2026-07-05T08:00:00+02:00","kwh":1.545,"spot_nok_kwh_eks_mva":0.184258,"p_max_w":3753.0},{"start_local":"2026-07-05T09:00:00+02:00","kwh":1.816,"spot_nok_kwh_eks_mva":0.223223,"p_max_w":5052.0},{"start_local":"2026-07-05T10:00:00+02:00","kwh":3.217,"spot_nok_kwh_eks_mva":0.274324,"p_max_w":5288.0},{"start_local":"2026-07-05T11:00:00+02:00","kwh":3.08,"spot_nok_kwh_eks_mva":0.26664,"p_max_w":6446.0},{"start_local":"2026-07-05T12:00:00+02:00","kwh":1.241,"spot_nok_kwh_eks_mva":0.197938,"p_max_w":3230.0},{"start_local":"2026-07-05T13:00:00+02:00","kwh":2.494,"spot_nok_kwh_eks_mva":0.132955,"p_max_w":5465.0},{"start_local":"2026-07-05T14:00:00+02:00","kwh":2.976,"spot_nok_kwh_eks_mva":0.106883,"p_max_w":4693.0},{"start_local":"2026-07-05T15:00:00+02:00","kwh":1.191,"spot_nok_kwh_eks_mva":0.20878,"p_max_w":3270.0},{"start_local":"2026-07-05T16:00:00+02:00","kwh":1.216,"spot_nok_kwh_eks_mva":0.230092,"p_max_w":4019.0},{"start_local":"2026-07-05T17:00:00+02:00","kwh":1.616,"spot_nok_kwh_eks_mva":0.16697,"p_max_w":3450.0},{"start_local":"2026-07-05T18:00:00+02:00","kwh":1.133,"spot_nok_kwh_eks_mva":0.711761,"p_max_w":2792.0},{"start_local":"2026-07-05T19:00:00+02:00","kwh":1.662,"spot_nok_kwh_eks_mva":0.883435,"p_max_w":4804.0},{"start_local":"2026-07-05T20:00:00+02:00","kwh":2.051,"spot_nok_kwh_eks_mva":0.938905,"p_max_w":3953.0},{"start_local":"2026-07-05T21:00:00+02:00","kwh":1.447,"spot_nok_kwh_eks_mva":0.94856,"p_max_w":3014.0},{"start_local":"2026-07-05T22:00:00+02:00","kwh":1.688,"spot_nok_kwh_eks_mva":0.962105,"p_max_w":3923.0},{"start_local":"2026-07-05T23:00:00+02:00","kwh":1.693,"spot_nok_kwh_eks_mva":0.974887,"p_max_w":4160.0},{"start_local":"2026-07-06T00:00:00+02:00","kwh":0.846,"spot_nok_kwh_eks_mva":0.963259,"p_max_w":1846.0},{"start_local":"2026-07-06T01:00:00+02:00","kwh":0.494,"spot_nok_kwh_eks_mva":0.939748,"p_max_w":1604.0},{"start_local":"2026-07-06T02:00:00+02:00","kwh":1.097,"spot_nok_kwh_eks_mva":0.947237,"p_max_w":4286.0},{"start_local":"2026-07-06T03:00:00+02:00","kwh":0.786,"spot_nok_kwh_eks_mva":0.938113,"p_max_w":3379.0},{"start_local":"2026-07-06T04:00:00+02:00","kwh":0.565,"spot_nok_kwh_eks_mva":0.940167,"p_max_w":1653.0},{"start_local":"2026-07-06T05:00:00+02:00","kwh":0.61,"spot_nok_kwh_eks_mva":0.930178,"p_max_w":1847.0},{"start_local":"2026-07-06T06:00:00+02:00","kwh":0.803,"spot_nok_kwh_eks_mva":1.036716,"p_max_w":3149.0},{"start_local":"2026-07-06T07:00:00+02:00","kwh":1.931,"spot_nok_kwh_eks_mva":1.03804,"p_max_w":4433.0},{"start_local":"2026-07-06T08:00:00+02:00","kwh":1.021,"spot_nok_kwh_eks_mva":0.990063,"p_max_w":3000.0},{"start_local":"2026-07-06T09:00:00+02:00","kwh":2.542,"spot_nok_kwh_eks_mva":0.939013,"p_max_w":5130.0},{"start_local":"2026-07-06T10:00:00+02:00","kwh":2.266,"spot_nok_kwh_eks_mva":0.946808,"p_max_w":4505.0},{"start_local":"2026-07-06T11:00:00+02:00","kwh":2.631,"spot_nok_kwh_eks_mva":0.826504,"p_max_w":6717.0},{"start_local":"2026-07-06T12:00:00+02:00","kwh":1.105,"spot_nok_kwh_eks_mva":0.57899,"p_max_w":2691.0},{"start_local":"2026-07-06T13:00:00+02:00","kwh":1.24,"spot_nok_kwh_eks_mva":0.542167,"p_max_w":3336.0},{"start_local":"2026-07-06T14:00:00+02:00","kwh":1.345,"spot_nok_kwh_eks_mva":0.491348,"p_max_w":3785.0},{"start_local":"2026-07-06T15:00:00+02:00","kwh":0.849,"spot_nok_kwh_eks_mva":0.60392,"p_max_w":1853.0},{"start_local":"2026-07-06T16:00:00+02:00","kwh":0.676,"spot_nok_kwh_eks_mva":0.535168,"p_max_w":1961.0},{"start_local":"2026-07-06T17:00:00+02:00","kwh":1.556,"spot_nok_kwh_eks_mva":0.755587,"p_max_w":3629.0},{"start_local":"2026-07-06T18:00:00+02:00","kwh":1.122,"spot_nok_kwh_eks_mva":0.915548,"p_max_w":2559.0},{"start_local":"2026-07-06T19:00:00+02:00","kwh":2.835,"spot_nok_kwh_eks_mva":0.941772,"p_max_w":5146.0},{"start_local":"2026-07-06T20:00:00+02:00","kwh":1.333,"spot_nok_kwh_eks_mva":1.001642,"p_max_w":4162.0},{"start_local":"2026-07-06T21:00:00+02:00","kwh":0.587,"spot_nok_kwh_eks_mva":1.005465,"p_max_w":1391.0},{"start_local":"2026-07-06T22:00:00+02:00","kwh":1.391,"spot_nok_kwh_eks_mva":0.988208,"p_max_w":3690.0},{"start_local":"2026-07-06T23:00:00+02:00","kwh":0.74,"spot_nok_kwh_eks_mva":0.939075,"p_max_w":2287.0},{"start_local":"2026-07-07T00:00:00+02:00","kwh":1.085,"spot_nok_kwh_eks_mva":0.99349,"p_max_w":4455.0},{"start_local":"2026-07-07T01:00:00+02:00","kwh":1.827,"spot_nok_kwh_eks_mva":0.973625,"p_max_w":5545.0},{"start_local":"2026-07-07T02:00:00+02:00","kwh":0.491,"spot_nok_kwh_eks_mva":0.956685,"p_max_w":1694.0},{"start_local":"2026-07-07T03:00:00+02:00","kwh":0.532,"spot_nok_kwh_eks_mva":0.926543,"p_max_w":1162.0},{"start_local":"2026-07-07T04:00:00+02:00","kwh":0.582,"spot_nok_kwh_eks_mva":0.901343,"p_max_w":1772.0},{"start_local":"2026-07-07T05:00:00+02:00","kwh":1.173,"spot_nok_kwh_eks_mva":0.937947,"p_max_w":3706.0},{"start_local":"2026-07-07T06:00:00+02:00","kwh":0.559,"spot_nok_kwh_eks_mva":1.032482,"p_max_w":1845.0},{"start_local":"2026-07-07T07:00:00+02:00","kwh":1.631,"spot_nok_kwh_eks_mva":1.058497,"p_max_w":4913.0},{"start_local":"2026-07-07T08:00:00+02:00","kwh":1.452,"spot_nok_kwh_eks_mva":1.028465,"p_max_w":5202.0},{"start_local":"2026-07-07T09:00:00+02:00","kwh":2.139,"spot_nok_kwh_eks_mva":0.986554,"p_max_w":4040.0},{"start_local":"2026-07-07T10:00:00+02:00","kwh":2.046,"spot_nok_kwh_eks_mva":0.771133,"p_max_w":4063.0},{"start_local":"2026-07-07T11:00:00+02:00","kwh":0.89,"spot_nok_kwh_eks_mva":0.641847,"p_max_w":3350.0},{"start_local":"2026-07-07T12:00:00+02:00","kwh":1.26,"spot_nok_kwh_eks_mva":0.569115,"p_max_w":3026.0},{"start_local":"2026-07-07T13:00:00+02:00","kwh":0.685,"spot_nok_kwh_eks_mva":0.59965,"p_max_w":2232.0},{"start_local":"2026-07-07T14:00:00+02:00","kwh":0.569,"spot_nok_kwh_eks_mva":0.548715,"p_max_w":1248.0},{"start_local":"2026-07-07T15:00:00+02:00","kwh":0.642,"spot_nok_kwh_eks_mva":0.572344,"p_max_w":2531.0},{"start_local":"2026-07-07T16:00:00+02:00","kwh":1.229,"spot_nok_kwh_eks_mva":0.54054,"p_max_w":2551.0},{"start_local":"2026-07-07T17:00:00+02:00","kwh":0.615,"spot_nok_kwh_eks_mva":0.55057,"p_max_w":1326.0},{"start_local":"2026-07-07T18:00:00+02:00","kwh":0.549,"spot_nok_kwh_eks_mva":0.627519,"p_max_w":1251.0},{"start_local":"2026-07-07T19:00:00+02:00","kwh":0.55,"spot_nok_kwh_eks_mva":0.872519,"p_max_w":1963.0},{"start_local":"2026-07-07T20:00:00+02:00","kwh":1.332,"spot_nok_kwh_eks_mva":0.936403,"p_max_w":3365.0},{"start_local":"2026-07-07T21:00:00+02:00","kwh":0.54,"spot_nok_kwh_eks_mva":0.95003,"p_max_w":1541.0},{"start_local":"2026-07-07T22:00:00+02:00","kwh":0.474,"spot_nok_kwh_eks_mva":0.96812,"p_max_w":1749.0},{"start_local":"2026-07-07T23:00:00+02:00","kwh":0.715,"spot_nok_kwh_eks_mva":0.95705,"p_max_w":1278.0},{"start_local":"2026-07-08T00:00:00+02:00","kwh":1.178,"spot_nok_kwh_eks_mva":1.00768,"p_max_w":3403.0},{"start_local":"2026-07-08T01:00:00+02:00","kwh":0.463,"spot_nok_kwh_eks_mva":0.986845,"p_max_w":1759.0},{"start_local":"2026-07-08T02:00:00+02:00","kwh":0.698,"spot_nok_kwh_eks_mva":0.969795,"p_max_w":2185.0},{"start_local":"2026-07-08T03:00:00+02:00","kwh":0.453,"spot_nok_kwh_eks_mva":0.96254,"p_max_w":2200.0},{"start_local":"2026-07-08T04:00:00+02:00","kwh":1.22,"spot_nok_kwh_eks_mva":0.946193,"p_max_w":2955.0},{"start_local":"2026-07-08T05:00:00+02:00","kwh":0.607,"spot_nok_kwh_eks_mva":0.94269,"p_max_w":2094.0},{"start_local":"2026-07-08T06:00:00+02:00","kwh":0.643,"spot_nok_kwh_eks_mva":0.966827,"p_max_w":2127.0},{"start_local":"2026-07-08T07:00:00+02:00","kwh":0.687,"spot_nok_kwh_eks_mva":1.025768,"p_max_w":1431.0},{"start_local":"2026-07-08T08:00:00+02:00","kwh":1.456,"spot_nok_kwh_eks_mva":1.013755,"p_max_w":3009.0},{"start_local":"2026-07-08T09:00:00+02:00","kwh":0.736,"spot_nok_kwh_eks_mva":0.987268,"p_max_w":1706.0},{"start_local":"2026-07-08T10:00:00+02:00","kwh":0.597,"spot_nok_kwh_eks_mva":0.929195,"p_max_w":2260.0},{"start_local":"2026-07-08T11:00:00+02:00","kwh":0.874,"spot_nok_kwh_eks_mva":0.869695,"p_max_w":1771.0},{"start_local":"2026-07-08T12:00:00+02:00","kwh":1.002,"spot_nok_kwh_eks_mva":0.822762,"p_max_w":3636.0},{"start_local":"2026-07-08T13:00:00+02:00","kwh":0.942,"spot_nok_kwh_eks_mva":0.81652,"p_max_w":2645.0},{"start_local":"2026-07-08T14:00:00+02:00","kwh":0.808,"spot_nok_kwh_eks_mva":0.814563,"p_max_w":1964.0},{"start_local":"2026-07-08T15:00:00+02:00","kwh":0.594,"spot_nok_kwh_eks_mva":0.827522,"p_max_w":2080.0},{"start_local":"2026-07-08T16:00:00+02:00","kwh":0.9,"spot_nok_kwh_eks_mva":0.829375,"p_max_w":3242.0},{"start_local":"2026-07-08T17:00:00+02:00","kwh":1.24,"spot_nok_kwh_eks_mva":0.927432,"p_max_w":2691.0},{"start_local":"2026-07-08T18:00:00+02:00","kwh":0.668,"spot_nok_kwh_eks_mva":1.016162,"p_max_w":1658.0},{"start_local":"2026-07-08T19:00:00+02:00","kwh":0.668,"spot_nok_kwh_eks_mva":1.030835,"p_max_w":1420.0},{"start_local":"2026-07-08T20:00:00+02:00","kwh":0.706,"spot_nok_kwh_eks_mva":1.049762,"p_max_w":2114.0},{"start_local":"2026-07-08T21:00:00+02:00","kwh":1.438,"spot_nok_kwh_eks_mva":1.040633,"p_max_w":3259.0},{"start_local":"2026-07-08T22:00:00+02:00","kwh":0.571,"spot_nok_kwh_eks_mva":1.045395,"p_max_w":1647.0},{"start_local":"2026-07-08T23:00:00+02:00","kwh":0.716,"spot_nok_kwh_eks_mva":1.03929,"p_max_w":1642.0},{"start_local":"2026-07-09T00:00:00+02:00","kwh":0.703,"spot_nok_kwh_eks_mva":1.095027,"p_max_w":2207.0},{"start_local":"2026-07-09T01:00:00+02:00","kwh":1.125,"spot_nok_kwh_eks_mva":1.081105,"p_max_w":2994.0},{"start_local":"2026-07-09T02:00:00+02:00","kwh":0.629,"spot_nok_kwh_eks_mva":1.064615,"p_max_w":2126.0},{"start_local":"2026-07-09T03:00:00+02:00","kwh":0.554,"spot_nok_kwh_eks_mva":1.064615,"p_max_w":1530.0},{"start_local":"2026-07-09T04:00:00+02:00","kwh":0.541,"spot_nok_kwh_eks_mva":1.065005,"p_max_w":2084.0},{"start_local":"2026-07-09T05:00:00+02:00","kwh":1.168,"spot_nok_kwh_eks_mva":1.078987,"p_max_w":3192.0},{"start_local":"2026-07-09T06:00:00+02:00","kwh":0.67,"spot_nok_kwh_eks_mva":1.11196,"p_max_w":2091.0},{"start_local":"2026-07-09T07:00:00+02:00","kwh":0.695,"spot_nok_kwh_eks_mva":1.138698,"p_max_w":1390.0},{"start_local":"2026-07-09T08:00:00+02:00","kwh":0.621,"spot_nok_kwh_eks_mva":1.135103,"p_max_w":1752.0},{"start_local":"2026-07-09T09:00:00+02:00","kwh":1.117,"spot_nok_kwh_eks_mva":1.087818,"p_max_w":3075.0},{"start_local":"2026-07-09T10:00:00+02:00","kwh":1.047,"spot_nok_kwh_eks_mva":1.073443,"p_max_w":3652.0},{"start_local":"2026-07-09T11:00:00+02:00","kwh":0.698,"spot_nok_kwh_eks_mva":1.005823,"p_max_w":1834.0},{"start_local":"2026-07-09T12:00:00+02:00","kwh":0.778,"spot_nok_kwh_eks_mva":0.901663,"p_max_w":1669.0},{"start_local":"2026-07-09T13:00:00+02:00","kwh":0.65,"spot_nok_kwh_eks_mva":0.857182,"p_max_w":1865.0},{"start_local":"2026-07-09T14:00:00+02:00","kwh":1.356,"spot_nok_kwh_eks_mva":0.841755,"p_max_w":3731.0},{"start_local":"2026-07-09T15:00:00+02:00","kwh":0.725,"spot_nok_kwh_eks_mva":0.836852,"p_max_w":1780.0},{"start_local":"2026-07-09T16:00:00+02:00","kwh":0.662,"spot_nok_kwh_eks_mva":0.985549,"p_max_w":2199.0},{"start_local":"2026-07-09T17:00:00+02:00","kwh":0.69,"spot_nok_kwh_eks_mva":1.053557,"p_max_w":2566.0},{"start_local":"2026-07-09T18:00:00+02:00","kwh":1.287,"spot_nok_kwh_eks_mva":1.079125,"p_max_w":2583.0},{"start_local":"2026-07-09T19:00:00+02:00","kwh":0.661,"spot_nok_kwh_eks_mva":1.131689,"p_max_w":1743.0},{"start_local":"2026-07-09T20:00:00+02:00","kwh":0.676,"spot_nok_kwh_eks_mva":1.147302,"p_max_w":1648.0},{"start_local":"2026-07-09T21:00:00+02:00","kwh":0.622,"spot_nok_kwh_eks_mva":1.154322,"p_max_w":2331.0},{"start_local":"2026-07-09T22:00:00+02:00","kwh":1.334,"spot_nok_kwh_eks_mva":1.144018,"p_max_w":4195.0},{"start_local":"2026-07-09T23:00:00+02:00","kwh":0.562,"spot_nok_kwh_eks_mva":1.145468,"p_max_w":1734.0},{"start_local":"2026-07-10T00:00:00+02:00","kwh":0.653,"spot_nok_kwh_eks_mva":1.205373,"p_max_w":1902.0},{"start_local":"2026-07-10T01:00:00+02:00","kwh":0.537,"spot_nok_kwh_eks_mva":1.178606,"p_max_w":1448.0},{"start_local":"2026-07-10T02:00:00+02:00","kwh":1.161,"spot_nok_kwh_eks_mva":1.15056,"p_max_w":4047.0},{"start_local":"2026-07-10T03:00:00+02:00","kwh":0.503,"spot_nok_kwh_eks_mva":1.147185,"p_max_w":1591.0},{"start_local":"2026-07-10T04:00:00+02:00","kwh":0.506,"spot_nok_kwh_eks_mva":1.152007,"p_max_w":1210.0},{"start_local":"2026-07-10T05:00:00+02:00","kwh":0.569,"spot_nok_kwh_eks_mva":1.16843,"p_max_w":1539.0},{"start_local":"2026-07-10T06:00:00+02:00","kwh":1.221,"spot_nok_kwh_eks_mva":1.162155,"p_max_w":3567.0},{"start_local":"2026-07-10T07:00:00+02:00","kwh":0.671,"spot_nok_kwh_eks_mva":1.17091,"p_max_w":1824.0},{"start_local":"2026-07-10T08:00:00+02:00","kwh":0.618,"spot_nok_kwh_eks_mva":1.13974,"p_max_w":2273.0},{"start_local":"2026-07-10T09:00:00+02:00","kwh":0.797,"spot_nok_kwh_eks_mva":1.104775,"p_max_w":2557.0},{"start_local":"2026-07-10T10:00:00+02:00","kwh":1.003,"spot_nok_kwh_eks_mva":1.08643,"p_max_w":3585.0},{"start_local":"2026-07-10T11:00:00+02:00","kwh":0.898,"spot_nok_kwh_eks_mva":0.951563,"p_max_w":2649.0},{"start_local":"2026-07-10T12:00:00+02:00","kwh":0.824,"spot_nok_kwh_eks_mva":0.938485,"p_max_w":1916.0},{"start_local":"2026-07-10T13:00:00+02:00","kwh":0.611,"spot_nok_kwh_eks_mva":0.916962,"p_max_w":1819.0},{"start_local":"2026-07-10T14:00:00+02:00","kwh":0.599,"spot_nok_kwh_eks_mva":0.89895,"p_max_w":1240.0},{"start_local":"2026-07-10T15:00:00+02:00","kwh":1.243,"spot_nok_kwh_eks_mva":0.89711,"p_max_w":4044.0},{"start_local":"2026-07-10T16:00:00+02:00","kwh":0.803,"spot_nok_kwh_eks_mva":1.00571,"p_max_w":1397.0},{"start_local":"2026-07-10T17:00:00+02:00","kwh":0.616,"spot_nok_kwh_eks_mva":1.090805,"p_max_w":1626.0},{"start_local":"2026-07-10T18:00:00+02:00","kwh":2.602,"spot_nok_kwh_eks_mva":1.132547,"p_max_w":3328.0},{"start_local":"2026-07-10T19:00:00+02:00","kwh":2.852,"spot_nok_kwh_eks_mva":1.17387,"p_max_w":3279.0},{"start_local":"2026-07-10T20:00:00+02:00","kwh":2.981,"spot_nok_kwh_eks_mva":1.177383,"p_max_w":4633.0},{"start_local":"2026-07-10T21:00:00+02:00","kwh":1.84,"spot_nok_kwh_eks_mva":1.176378,"p_max_w":4432.0},{"start_local":"2026-07-10T22:00:00+02:00","kwh":0.759,"spot_nok_kwh_eks_mva":1.162993,"p_max_w":1530.0},{"start_local":"2026-07-10T23:00:00+02:00","kwh":1.748,"spot_nok_kwh_eks_mva":1.16196,"p_max_w":4232.0},{"start_local":"2026-07-11T00:00:00+02:00","kwh":0.741,"spot_nok_kwh_eks_mva":1.183445,"p_max_w":2741.0},{"start_local":"2026-07-11T01:00:00+02:00","kwh":0.586,"spot_nok_kwh_eks_mva":1.174693,"p_max_w":1998.0},{"start_local":"2026-07-11T02:00:00+02:00","kwh":0.459,"spot_nok_kwh_eks_mva":1.160868,"p_max_w":1201.0},{"start_local":"2026-07-11T03:00:00+02:00","kwh":1.139,"spot_nok_kwh_eks_mva":1.156295,"p_max_w":3031.0},{"start_local":"2026-07-11T04:00:00+02:00","kwh":0.592,"spot_nok_kwh_eks_mva":1.153897,"p_max_w":1331.0},{"start_local":"2026-07-11T05:00:00+02:00","kwh":0.509,"spot_nok_kwh_eks_mva":1.145258,"p_max_w":1658.0},{"start_local":"2026-07-11T06:00:00+02:00","kwh":0.605,"spot_nok_kwh_eks_mva":1.1321,"p_max_w":2120.0},{"start_local":"2026-07-11T07:00:00+02:00","kwh":1.3,"spot_nok_kwh_eks_mva":1.118442,"p_max_w":3130.0},{"start_local":"2026-07-11T08:00:00+02:00","kwh":0.866,"spot_nok_kwh_eks_mva":1.13497,"p_max_w":2051.0},{"start_local":"2026-07-11T09:00:00+02:00","kwh":0.921,"spot_nok_kwh_eks_mva":0.964219,"p_max_w":2747.0},{"start_local":"2026-07-11T10:00:00+02:00","kwh":1.757,"spot_nok_kwh_eks_mva":0.826825,"p_max_w":4202.0},{"start_local":"2026-07-11T11:00:00+02:00","kwh":1.355,"spot_nok_kwh_eks_mva":0.851297,"p_max_w":3770.0},{"start_local":"2026-07-11T12:00:00+02:00","kwh":2.083,"spot_nok_kwh_eks_mva":0.867828,"p_max_w":4169.0},{"start_local":"2026-07-11T13:00:00+02:00","kwh":3.689,"spot_nok_kwh_eks_mva":0.818578,"p_max_w":5919.0},{"start_local":"2026-07-11T14:00:00+02:00","kwh":0.875,"spot_nok_kwh_eks_mva":0.802238,"p_max_w":2908.0},{"start_local":"2026-07-11T15:00:00+02:00","kwh":1.14,"spot_nok_kwh_eks_mva":0.809152,"p_max_w":5497.0},{"start_local":"2026-07-11T16:00:00+02:00","kwh":4.573,"spot_nok_kwh_eks_mva":0.810158,"p_max_w":6175.0},{"start_local":"2026-07-11T17:00:00+02:00","kwh":3.799,"spot_nok_kwh_eks_mva":1.027154,"p_max_w":6041.0},{"start_local":"2026-07-11T18:00:00+02:00","kwh":2.871,"spot_nok_kwh_eks_mva":1.12541,"p_max_w":3986.0},{"start_local":"2026-07-11T19:00:00+02:00","kwh":1.828,"spot_nok_kwh_eks_mva":1.174219,"p_max_w":3709.0},{"start_local":"2026-07-11T20:00:00+02:00","kwh":0.938,"spot_nok_kwh_eks_mva":1.20856,"p_max_w":1729.0},{"start_local":"2026-07-11T21:00:00+02:00","kwh":0.834,"spot_nok_kwh_eks_mva":1.194678,"p_max_w":1956.0},{"start_local":"2026-07-11T22:00:00+02:00","kwh":1.518,"spot_nok_kwh_eks_mva":1.186343,"p_max_w":4055.0},{"start_local":"2026-07-11T23:00:00+02:00","kwh":0.727,"spot_nok_kwh_eks_mva":1.178398,"p_max_w":1461.0},{"start_local":"2026-07-12T00:00:00+02:00","kwh":0.717,"spot_nok_kwh_eks_mva":1.177027,"p_max_w":1487.0},{"start_local":"2026-07-12T01:00:00+02:00","kwh":0.872,"spot_nok_kwh_eks_mva":1.15994,"p_max_w":3001.0},{"start_local":"2026-07-12T02:00:00+02:00","kwh":1.243,"spot_nok_kwh_eks_mva":1.159855,"p_max_w":3051.0},{"start_local":"2026-07-12T03:00:00+02:00","kwh":0.467,"spot_nok_kwh_eks_mva":1.159772,"p_max_w":1763.0},{"start_local":"2026-07-12T04:00:00+02:00","kwh":0.587,"spot_nok_kwh_eks_mva":1.158847,"p_max_w":1749.0},{"start_local":"2026-07-12T05:00:00+02:00","kwh":0.689,"spot_nok_kwh_eks_mva":1.156923,"p_max_w":1887.0},{"start_local":"2026-07-12T06:00:00+02:00","kwh":1.208,"spot_nok_kwh_eks_mva":1.133745,"p_max_w":3456.0},{"start_local":"2026-07-12T07:00:00+02:00","kwh":0.754,"spot_nok_kwh_eks_mva":1.082788,"p_max_w":2216.0},{"start_local":"2026-07-12T08:00:00+02:00","kwh":0.667,"spot_nok_kwh_eks_mva":0.769271,"p_max_w":1350.0},{"start_local":"2026-07-12T09:00:00+02:00","kwh":1.689,"spot_nok_kwh_eks_mva":0.71915,"p_max_w":6521.0},{"start_local":"2026-07-12T10:00:00+02:00","kwh":3.401,"spot_nok_kwh_eks_mva":0.78033,"p_max_w":5359.0},{"start_local":"2026-07-12T11:00:00+02:00","kwh":1.436,"spot_nok_kwh_eks_mva":0.819588,"p_max_w":5794.0},{"start_local":"2026-07-12T12:00:00+02:00","kwh":2.524,"spot_nok_kwh_eks_mva":0.874457,"p_max_w":5376.0},{"start_local":"2026-07-12T13:00:00+02:00","kwh":1.868,"spot_nok_kwh_eks_mva":0.848485,"p_max_w":6053.0},{"start_local":"2026-07-12T14:00:00+02:00","kwh":1.149,"spot_nok_kwh_eks_mva":0.7963,"p_max_w":3248.0},{"start_local":"2026-07-12T15:00:00+02:00","kwh":3.3,"spot_nok_kwh_eks_mva":0.777787,"p_max_w":5225.0},{"start_local":"2026-07-12T16:00:00+02:00","kwh":3.627,"spot_nok_kwh_eks_mva":0.894142,"p_max_w":4695.0},{"start_local":"2026-07-12T17:00:00+02:00","kwh":3.337,"spot_nok_kwh_eks_mva":0.930217,"p_max_w":4867.0},{"start_local":"2026-07-12T18:00:00+02:00","kwh":1.599,"spot_nok_kwh_eks_mva":1.066676,"p_max_w":3618.0},{"start_local":"2026-07-12T19:00:00+02:00","kwh":0.8,"spot_nok_kwh_eks_mva":1.194005,"p_max_w":1458.0},{"start_local":"2026-07-12T20:00:00+02:00","kwh":1.573,"spot_nok_kwh_eks_mva":1.21341,"p_max_w":3292.0},{"start_local":"2026-07-12T21:00:00+02:00","kwh":1.518,"spot_nok_kwh_eks_mva":1.218772,"p_max_w":3547.0},{"start_local":"2026-07-12T22:00:00+02:00","kwh":0.774,"spot_nok_kwh_eks_mva":1.190153,"p_max_w":1674.0},{"start_local":"2026-07-12T23:00:00+02:00","kwh":2.392,"spot_nok_kwh_eks_mva":1.178367,"p_max_w":4063.0},{"start_local":"2026-07-13T00:00:00+02:00","kwh":2.322,"spot_nok_kwh_eks_mva":1.170157,"p_max_w":4003.0},{"start_local":"2026-07-13T01:00:00+02:00","kwh":0.726,"spot_nok_kwh_eks_mva":1.160915,"p_max_w":1843.0},{"start_local":"2026-07-13T02:00:00+02:00","kwh":0.552,"spot_nok_kwh_eks_mva":1.16022,"p_max_w":2125.0},{"start_local":"2026-07-13T03:00:00+02:00","kwh":0.791,"spot_nok_kwh_eks_mva":1.173035,"p_max_w":1332.0},{"start_local":"2026-07-13T04:00:00+02:00","kwh":1.294,"spot_nok_kwh_eks_mva":1.17725,"p_max_w":3859.0},{"start_local":"2026-07-13T05:00:00+02:00","kwh":0.631,"spot_nok_kwh_eks_mva":1.200595,"p_max_w":1650.0},{"start_local":"2026-07-13T06:00:00+02:00","kwh":0.63,"spot_nok_kwh_eks_mva":1.19529,"p_max_w":1170.0},{"start_local":"2026-07-13T07:00:00+02:00","kwh":1.411,"spot_nok_kwh_eks_mva":1.210757,"p_max_w":3041.0},{"start_local":"2026-07-13T08:00:00+02:00","kwh":1.947,"spot_nok_kwh_eks_mva":1.21101,"p_max_w":4546.0},{"start_local":"2026-07-13T09:00:00+02:00","kwh":0.91,"spot_nok_kwh_eks_mva":1.190543,"p_max_w":2750.0},{"start_local":"2026-07-13T10:00:00+02:00","kwh":2.451,"spot_nok_kwh_eks_mva":1.163565,"p_max_w":4610.0},{"start_local":"2026-07-13T11:00:00+02:00","kwh":1.264,"spot_nok_kwh_eks_mva":1.106625,"p_max_w":4634.0},{"start_local":"2026-07-13T12:00:00+02:00","kwh":1.341,"spot_nok_kwh_eks_mva":1.120048,"p_max_w":3797.0},{"start_local":"2026-07-13T13:00:00+02:00","kwh":2.118,"spot_nok_kwh_eks_mva":1.118545,"p_max_w":3300.0},{"start_local":"2026-07-13T14:00:00+02:00","kwh":1.642,"spot_nok_kwh_eks_mva":1.129325,"p_max_w":4710.0},{"start_local":"2026-07-13T15:00:00+02:00","kwh":3.933,"spot_nok_kwh_eks_mva":1.14314,"p_max_w":6524.0},{"start_local":"2026-07-13T16:00:00+02:00","kwh":3.483,"spot_nok_kwh_eks_mva":1.155315,"p_max_w":5829.0},{"start_local":"2026-07-13T17:00:00+02:00","kwh":4.998,"spot_nok_kwh_eks_mva":1.150913,"p_max_w":7447.0},{"start_local":"2026-07-13T18:00:00+02:00","kwh":2.981,"spot_nok_kwh_eks_mva":1.196177,"p_max_w":5788.0},{"start_local":"2026-07-13T19:00:00+02:00","kwh":1.577,"spot_nok_kwh_eks_mva":1.224617,"p_max_w":3136.0},{"start_local":"2026-07-13T20:00:00+02:00","kwh":1.648,"spot_nok_kwh_eks_mva":1.231915,"p_max_w":4324.0},{"start_local":"2026-07-13T21:00:00+02:00","kwh":1.081,"spot_nok_kwh_eks_mva":1.23217,"p_max_w":2368.0},{"start_local":"2026-07-13T22:00:00+02:00","kwh":1.534,"spot_nok_kwh_eks_mva":1.230467,"p_max_w":3338.0},{"start_local":"2026-07-13T23:00:00+02:00","kwh":0.569,"spot_nok_kwh_eks_mva":1.183668,"p_max_w":1783.0},{"start_local":"2026-07-14T00:00:00+02:00","kwh":0.669,"spot_nok_kwh_eks_mva":1.189133,"p_max_w":2137.0},{"start_local":"2026-07-14T01:00:00+02:00","kwh":0.798,"spot_nok_kwh_eks_mva":1.175798,"p_max_w":2456.0},{"start_local":"2026-07-14T02:00:00+02:00","kwh":0.748,"spot_nok_kwh_eks_mva":1.164913,"p_max_w":3257.0},{"start_local":"2026-07-14T03:00:00+02:00","kwh":0.548,"spot_nok_kwh_eks_mva":1.164888,"p_max_w":1865.0},{"start_local":"2026-07-14T04:00:00+02:00","kwh":0.583,"spot_nok_kwh_eks_mva":1.168962,"p_max_w":1927.0},{"start_local":"2026-07-14T05:00:00+02:00","kwh":0.493,"spot_nok_kwh_eks_mva":1.180735,"p_max_w":1555.0},{"start_local":"2026-07-14T06:00:00+02:00","kwh":1.174,"spot_nok_kwh_eks_mva":1.275051,"p_max_w":3055.0},{"start_local":"2026-07-14T07:00:00+02:00","kwh":0.676,"spot_nok_kwh_eks_mva":1.289867,"p_max_w":1055.0},{"start_local":"2026-07-14T08:00:00+02:00","kwh":0.597,"spot_nok_kwh_eks_mva":1.238133,"p_max_w":1869.0},{"start_local":"2026-07-14T09:00:00+02:00","kwh":0.996,"spot_nok_kwh_eks_mva":1.206433,"p_max_w":1985.0},{"start_local":"2026-07-14T10:00:00+02:00","kwh":2.06,"spot_nok_kwh_eks_mva":1.18269,"p_max_w":5226.0},{"start_local":"2026-07-14T11:00:00+02:00","kwh":2.545,"spot_nok_kwh_eks_mva":1.09669,"p_max_w":4201.0},{"start_local":"2026-07-14T12:00:00+02:00","kwh":0.841,"spot_nok_kwh_eks_mva":0.942713,"p_max_w":1919.0},{"start_local":"2026-07-14T13:00:00+02:00","kwh":1.1,"spot_nok_kwh_eks_mva":0.896228,"p_max_w":2686.0},{"start_local":"2026-07-14T14:00:00+02:00","kwh":1.977,"spot_nok_kwh_eks_mva":0.955689,"p_max_w":4492.0},{"start_local":"2026-07-14T15:00:00+02:00","kwh":1.518,"spot_nok_kwh_eks_mva":0.981058,"p_max_w":3746.0},{"start_local":"2026-07-14T16:00:00+02:00","kwh":3.174,"spot_nok_kwh_eks_mva":1.131959,"p_max_w":5223.0},{"start_local":"2026-07-14T17:00:00+02:00","kwh":3.645,"spot_nok_kwh_eks_mva":1.179397,"p_max_w":4539.0},{"start_local":"2026-07-14T18:00:00+02:00","kwh":4.104,"spot_nok_kwh_eks_mva":1.19756,"p_max_w":6110.0},{"start_local":"2026-07-14T19:00:00+02:00","kwh":4.049,"spot_nok_kwh_eks_mva":1.216925,"p_max_w":5696.0},{"start_local":"2026-07-14T20:00:00+02:00","kwh":1.889,"spot_nok_kwh_eks_mva":1.215783,"p_max_w":3747.0},{"start_local":"2026-07-14T21:00:00+02:00","kwh":1.311,"spot_nok_kwh_eks_mva":1.211013,"p_max_w":3012.0},{"start_local":"2026-07-14T22:00:00+02:00","kwh":2.815,"spot_nok_kwh_eks_mva":1.222364,"p_max_w":4301.0},{"start_local":"2026-07-14T23:00:00+02:00","kwh":1.965,"spot_nok_kwh_eks_mva":1.225242,"p_max_w":3166.0},{"start_local":"2026-07-15T00:00:00+02:00","kwh":0.496,"spot_nok_kwh_eks_mva":1.245077,"p_max_w":1290.0},{"start_local":"2026-07-15T01:00:00+02:00","kwh":0.571,"spot_nok_kwh_eks_mva":1.213488,"p_max_w":2514.0},{"start_local":"2026-07-15T02:00:00+02:00","kwh":0.468,"spot_nok_kwh_eks_mva":1.195947,"p_max_w":1298.0},{"start_local":"2026-07-15T03:00:00+02:00","kwh":1.25,"spot_nok_kwh_eks_mva":1.190735,"p_max_w":3661.0},{"start_local":"2026-07-15T04:00:00+02:00","kwh":0.447,"spot_nok_kwh_eks_mva":1.20002,"p_max_w":1251.0},{"start_local":"2026-07-15T05:00:00+02:00","kwh":0.517,"spot_nok_kwh_eks_mva":1.21155,"p_max_w":1696.0},{"start_local":"2026-07-15T06:00:00+02:00","kwh":0.677,"spot_nok_kwh_eks_mva":1.241447,"p_max_w":3054.0},{"start_local":"2026-07-15T07:00:00+02:00","kwh":1.785,"spot_nok_kwh_eks_mva":1.285842,"p_max_w":3710.0},{"start_local":"2026-07-15T08:00:00+02:00","kwh":1.3,"spot_nok_kwh_eks_mva":1.25733,"p_max_w":2884.0},{"start_local":"2026-07-15T09:00:00+02:00","kwh":1.067,"spot_nok_kwh_eks_mva":1.19991,"p_max_w":2764.0},{"start_local":"2026-07-15T10:00:00+02:00","kwh":3.17,"spot_nok_kwh_eks_mva":1.183003,"p_max_w":3917.0},{"start_local":"2026-07-15T11:00:00+02:00","kwh":2.352,"spot_nok_kwh_eks_mva":1.158893,"p_max_w":4771.0},{"start_local":"2026-07-15T12:00:00+02:00","kwh":0.911,"spot_nok_kwh_eks_mva":1.07459,"p_max_w":1820.0},{"start_local":"2026-07-15T13:00:00+02:00","kwh":1.291,"spot_nok_kwh_eks_mva":1.026535,"p_max_w":3343.0},{"start_local":"2026-07-15T14:00:00+02:00","kwh":2.074,"spot_nok_kwh_eks_mva":1.032522,"p_max_w":4412.0},{"start_local":"2026-07-15T15:00:00+02:00","kwh":1.19,"spot_nok_kwh_eks_mva":1.123172,"p_max_w":2215.0},{"start_local":"2026-07-15T16:00:00+02:00","kwh":1.05,"spot_nok_kwh_eks_mva":1.19337,"p_max_w":2711.0},{"start_local":"2026-07-15T17:00:00+02:00","kwh":1.513,"spot_nok_kwh_eks_mva":1.198553,"p_max_w":3929.0},{"start_local":"2026-07-15T18:00:00+02:00","kwh":0.795,"spot_nok_kwh_eks_mva":1.20559,"p_max_w":2004.0},{"start_local":"2026-07-15T19:00:00+02:00","kwh":0.988,"spot_nok_kwh_eks_mva":1.20437,"p_max_w":2129.0},{"start_local":"2026-07-15T20:00:00+02:00","kwh":1.948,"spot_nok_kwh_eks_mva":1.217895,"p_max_w":5353.0},{"start_local":"2026-07-15T21:00:00+02:00","kwh":0.838,"spot_nok_kwh_eks_mva":1.234797,"p_max_w":1930.0},{"start_local":"2026-07-15T22:00:00+02:00","kwh":3.227,"spot_nok_kwh_eks_mva":1.230473,"p_max_w":6301.0},{"start_local":"2026-07-15T23:00:00+02:00","kwh":2.178,"spot_nok_kwh_eks_mva":1.23718,"p_max_w":3787.0},{"start_local":"2026-07-16T00:00:00+02:00","kwh":0.592,"spot_nok_kwh_eks_mva":1.332814,"p_max_w":1579.0},{"start_local":"2026-07-16T01:00:00+02:00","kwh":0.451,"spot_nok_kwh_eks_mva":1.307015,"p_max_w":1343.0},{"start_local":"2026-07-16T02:00:00+02:00","kwh":1.134,"spot_nok_kwh_eks_mva":1.292798,"p_max_w":2971.0},{"start_local":"2026-07-16T03:00:00+02:00","kwh":0.461,"spot_nok_kwh_eks_mva":1.286743,"p_max_w":2933.0},{"start_local":"2026-07-16T04:00:00+02:00","kwh":0.482,"spot_nok_kwh_eks_mva":1.27908,"p_max_w":1375.0},{"start_local":"2026-07-16T05:00:00+02:00","kwh":0.619,"spot_nok_kwh_eks_mva":1.289243,"p_max_w":1475.0},{"start_local":"2026-07-16T06:00:00+02:00","kwh":0.553,"spot_nok_kwh_eks_mva":1.320237,"p_max_w":1531.0},{"start_local":"2026-07-16T07:00:00+02:00","kwh":1.37,"spot_nok_kwh_eks_mva":1.329123,"p_max_w":3542.0},{"start_local":"2026-07-16T08:00:00+02:00","kwh":2.021,"spot_nok_kwh_eks_mva":1.426511,"p_max_w":4523.0},{"start_local":"2026-07-16T09:00:00+02:00","kwh":0.761,"spot_nok_kwh_eks_mva":1.316682,"p_max_w":1692.0},{"start_local":"2026-07-16T10:00:00+02:00","kwh":2.651,"spot_nok_kwh_eks_mva":1.30077,"p_max_w":4933.0},{"start_local":"2026-07-16T11:00:00+02:00","kwh":1.766,"spot_nok_kwh_eks_mva":1.284828,"p_max_w":3426.0},{"start_local":"2026-07-16T12:00:00+02:00","kwh":0.58,"spot_nok_kwh_eks_mva":1.210848,"p_max_w":1216.0},{"start_local":"2026-07-16T13:00:00+02:00","kwh":0.58,"spot_nok_kwh_eks_mva":1.172523,"p_max_w":1405.0},{"start_local":"2026-07-16T14:00:00+02:00","kwh":1.105,"spot_nok_kwh_eks_mva":1.232812,"p_max_w":3661.0},{"start_local":"2026-07-16T15:00:00+02:00","kwh":3.598,"spot_nok_kwh_eks_mva":1.31707,"p_max_w":4296.0},{"start_local":"2026-07-16T16:00:00+02:00","kwh":3.918,"spot_nok_kwh_eks_mva":1.355642,"p_max_w":5130.0},{"start_local":"2026-07-16T17:00:00+02:00","kwh":3.068,"spot_nok_kwh_eks_mva":1.362168,"p_max_w":4455.0},{"start_local":"2026-07-16T18:00:00+02:00","kwh":1.285,"spot_nok_kwh_eks_mva":1.396107,"p_max_w":2352.0},{"start_local":"2026-07-16T19:00:00+02:00","kwh":1.747,"spot_nok_kwh_eks_mva":1.510578,"p_max_w":3804.0},{"start_local":"2026-07-16T20:00:00+02:00","kwh":1.377,"spot_nok_kwh_eks_mva":1.61947,"p_max_w":3203.0},{"start_local":"2026-07-16T21:00:00+02:00","kwh":2.116,"spot_nok_kwh_eks_mva":1.538515,"p_max_w":4198.0},{"start_local":"2026-07-16T22:00:00+02:00","kwh":1.013,"spot_nok_kwh_eks_mva":1.543487,"p_max_w":3208.0},{"start_local":"2026-07-16T23:00:00+02:00","kwh":3.396,"spot_nok_kwh_eks_mva":1.462313,"p_max_w":5217.0},{"start_local":"2026-07-17T00:00:00+02:00","kwh":1.281,"spot_nok_kwh_eks_mva":1.533817,"p_max_w":4822.0},{"start_local":"2026-07-17T01:00:00+02:00","kwh":0.438,"spot_nok_kwh_eks_mva":1.482856,"p_max_w":1668.0},{"start_local":"2026-07-17T02:00:00+02:00","kwh":0.485,"spot_nok_kwh_eks_mva":1.413975,"p_max_w":1350.0},{"start_local":"2026-07-17T03:00:00+02:00","kwh":1.218,"spot_nok_kwh_eks_mva":1.354705,"p_max_w":3573.0},{"start_local":"2026-07-17T04:00:00+02:00","kwh":0.485,"spot_nok_kwh_eks_mva":1.354625,"p_max_w":1762.0},{"start_local":"2026-07-17T05:00:00+02:00","kwh":0.501,"spot_nok_kwh_eks_mva":1.41871,"p_max_w":1191.0},{"start_local":"2026-07-17T06:00:00+02:00","kwh":0.458,"spot_nok_kwh_eks_mva":1.44919,"p_max_w":1341.0},{"start_local":"2026-07-17T07:00:00+02:00","kwh":1.016,"spot_nok_kwh_eks_mva":1.47726,"p_max_w":2530.0},{"start_local":"2026-07-17T08:00:00+02:00","kwh":0.854,"spot_nok_kwh_eks_mva":1.448943,"p_max_w":2963.0},{"start_local":"2026-07-17T09:00:00+02:00","kwh":1.458,"spot_nok_kwh_eks_mva":1.378403,"p_max_w":3904.0},{"start_local":"2026-07-17T10:00:00+02:00","kwh":2.086,"spot_nok_kwh_eks_mva":1.357115,"p_max_w":4670.0},{"start_local":"2026-07-17T11:00:00+02:00","kwh":1.276,"spot_nok_kwh_eks_mva":1.288155,"p_max_w":3240.0},{"start_local":"2026-07-17T12:00:00+02:00","kwh":0.756,"spot_nok_kwh_eks_mva":1.207455,"p_max_w":2640.0},{"start_local":"2026-07-17T13:00:00+02:00","kwh":0.84,"spot_nok_kwh_eks_mva":1.150398,"p_max_w":1590.0},{"start_local":"2026-07-17T14:00:00+02:00","kwh":0.692,"spot_nok_kwh_eks_mva":1.132958,"p_max_w":1500.0},{"start_local":"2026-07-17T15:00:00+02:00","kwh":0.983,"spot_nok_kwh_eks_mva":1.19198,"p_max_w":2719.0},{"start_local":"2026-07-17T16:00:00+02:00","kwh":0.954,"spot_nok_kwh_eks_mva":1.25106,"p_max_w":2694.0},{"start_local":"2026-07-17T17:00:00+02:00","kwh":2.323,"spot_nok_kwh_eks_mva":1.314903,"p_max_w":5918.0},{"start_local":"2026-07-17T18:00:00+02:00","kwh":1.77,"spot_nok_kwh_eks_mva":1.366999,"p_max_w":3732.0},{"start_local":"2026-07-17T19:00:00+02:00","kwh":1.618,"spot_nok_kwh_eks_mva":1.449635,"p_max_w":3818.0},{"start_local":"2026-07-17T20:00:00+02:00","kwh":0.919,"spot_nok_kwh_eks_mva":1.450542,"p_max_w":2931.0},{"start_local":"2026-07-17T21:00:00+02:00","kwh":0.935,"spot_nok_kwh_eks_mva":1.450548,"p_max_w":2126.0},{"start_local":"2026-07-17T22:00:00+02:00","kwh":0.924,"spot_nok_kwh_eks_mva":1.433383,"p_max_w":2163.0},{"start_local":"2026-07-17T23:00:00+02:00","kwh":2.019,"spot_nok_kwh_eks_mva":1.375883,"p_max_w":3577.0},{"start_local":"2026-07-18T00:00:00+02:00","kwh":1.039,"spot_nok_kwh_eks_mva":1.452032,"p_max_w":3309.0},{"start_local":"2026-07-18T01:00:00+02:00","kwh":0.434,"spot_nok_kwh_eks_mva":1.393248,"p_max_w":1632.0},{"start_local":"2026-07-18T02:00:00+02:00","kwh":0.436,"spot_nok_kwh_eks_mva":1.38026,"p_max_w":2286.0},{"start_local":"2026-07-18T03:00:00+02:00","kwh":1.143,"spot_nok_kwh_eks_mva":1.352378,"p_max_w":3387.0},{"start_local":"2026-07-18T04:00:00+02:00","kwh":0.634,"spot_nok_kwh_eks_mva":1.324435,"p_max_w":1543.0},{"start_local":"2026-07-18T05:00:00+02:00","kwh":0.546,"spot_nok_kwh_eks_mva":1.25667,"p_max_w":1848.0},{"start_local":"2026-07-18T06:00:00+02:00","kwh":0.524,"spot_nok_kwh_eks_mva":1.21961,"p_max_w":1794.0},{"start_local":"2026-07-18T07:00:00+02:00","kwh":1.42,"spot_nok_kwh_eks_mva":1.191476,"p_max_w":3232.0},{"start_local":"2026-07-18T08:00:00+02:00","kwh":1.109,"spot_nok_kwh_eks_mva":1.11293,"p_max_w":3642.0},{"start_local":"2026-07-18T09:00:00+02:00","kwh":0.0,"spot_nok_kwh_eks_mva":1.114974,"p_max_w":2751.0},{"start_local":"2026-07-18T10:00:00+02:00","kwh":2.563,"spot_nok_kwh_eks_mva":1.094911,"p_max_w":4207.0},{"start_local":"2026-07-18T11:00:00+02:00","kwh":1.237,"spot_nok_kwh_eks_mva":1.097153,"p_max_w":3025.0},{"start_local":"2026-07-18T12:00:00+02:00","kwh":0.828,"spot_nok_kwh_eks_mva":1.10912,"p_max_w":1553.0},{"start_local":"2026-07-18T13:00:00+02:00","kwh":1.635,"spot_nok_kwh_eks_mva":1.109008,"p_max_w":3363.0},{"start_local":"2026-07-18T14:00:00+02:00","kwh":2.834,"spot_nok_kwh_eks_mva":1.101051,"p_max_w":5230.0},{"start_local":"2026-07-18T15:00:00+02:00","kwh":3.049,"spot_nok_kwh_eks_mva":1.17541,"p_max_w":4411.0},{"start_local":"2026-07-18T16:00:00+02:00","kwh":3.018,"spot_nok_kwh_eks_mva":1.14344,"p_max_w":4251.0},{"start_local":"2026-07-18T17:00:00+02:00","kwh":2.962,"spot_nok_kwh_eks_mva":1.165222,"p_max_w":3888.0},{"start_local":"2026-07-18T18:00:00+02:00","kwh":2.966,"spot_nok_kwh_eks_mva":1.23489,"p_max_w":4500.0},{"start_local":"2026-07-18T19:00:00+02:00","kwh":2.739,"spot_nok_kwh_eks_mva":1.170133,"p_max_w":5108.0},{"start_local":"2026-07-18T20:00:00+02:00","kwh":0.971,"spot_nok_kwh_eks_mva":1.292927,"p_max_w":1763.0},{"start_local":"2026-07-18T21:00:00+02:00","kwh":1.32,"spot_nok_kwh_eks_mva":1.35815,"p_max_w":3185.0},{"start_local":"2026-07-18T22:00:00+02:00","kwh":1.055,"spot_nok_kwh_eks_mva":1.396205,"p_max_w":2954.0},{"start_local":"2026-07-18T23:00:00+02:00","kwh":1.144,"spot_nok_kwh_eks_mva":1.411156,"p_max_w":4203.0},{"start_local":"2026-07-19T00:00:00+02:00","kwh":0.683,"spot_nok_kwh_eks_mva":1.420687,"p_max_w":2475.0},{"start_local":"2026-07-19T01:00:00+02:00","kwh":0.44,"spot_nok_kwh_eks_mva":1.369713,"p_max_w":1506.0},{"start_local":"2026-07-19T02:00:00+02:00","kwh":1.091,"spot_nok_kwh_eks_mva":1.30613,"p_max_w":3026.0},{"start_local":"2026-07-19T03:00:00+02:00","kwh":0.445,"spot_nok_kwh_eks_mva":1.27377,"p_max_w":1431.0},{"start_local":"2026-07-19T04:00:00+02:00","kwh":0.486,"spot_nok_kwh_eks_mva":1.289027,"p_max_w":2091.0},{"start_local":"2026-07-19T05:00:00+02:00","kwh":0.612,"spot_nok_kwh_eks_mva":1.2466,"p_max_w":1537.0},{"start_local":"2026-07-19T06:00:00+02:00","kwh":0.92,"spot_nok_kwh_eks_mva":1.170997,"p_max_w":3689.0},{"start_local":"2026-07-19T07:00:00+02:00","kwh":0.806,"spot_nok_kwh_eks_mva":1.106663,"p_max_w":2661.0},{"start_local":"2026-07-19T08:00:00+02:00","kwh":1.452,"spot_nok_kwh_eks_mva":1.113225,"p_max_w":3300.0},{"start_local":"2026-07-19T09:00:00+02:00","kwh":2.427,"spot_nok_kwh_eks_mva":1.117612,"p_max_w":5246.0},{"start_local":"2026-07-19T10:00:00+02:00","kwh":1.806,"spot_nok_kwh_eks_mva":1.11866,"p_max_w":4468.0},{"start_local":"2026-07-19T11:00:00+02:00","kwh":2.259,"spot_nok_kwh_eks_mva":1.11874,"p_max_w":3943.0},{"start_local":"2026-07-19T12:00:00+02:00","kwh":0.932,"spot_nok_kwh_eks_mva":1.117998,"p_max_w":1812.0},{"start_local":"2026-07-19T13:00:00+02:00","kwh":1.285,"spot_nok_kwh_eks_mva":1.11353,"p_max_w":2948.0},{"start_local":"2026-07-19T14:00:00+02:00","kwh":1.305,"spot_nok_kwh_eks_mva":1.103713,"p_max_w":2918.0},{"start_local":"2026-07-19T15:00:00+02:00","kwh":2.32,"spot_nok_kwh_eks_mva":0.963795,"p_max_w":4825.0},{"start_local":"2026-07-19T16:00:00+02:00","kwh":1.483,"spot_nok_kwh_eks_mva":1.09331,"p_max_w":5001.0},{"start_local":"2026-07-19T17:00:00+02:00","kwh":3.063,"spot_nok_kwh_eks_mva":0.985785,"p_max_w":5023.0},{"start_local":"2026-07-19T18:00:00+02:00","kwh":3.309,"spot_nok_kwh_eks_mva":1.09135,"p_max_w":4152.0},{"start_local":"2026-07-19T19:00:00+02:00","kwh":2.634,"spot_nok_kwh_eks_mva":1.258307,"p_max_w":5586.0},{"start_local":"2026-07-19T20:00:00+02:00","kwh":2.028,"spot_nok_kwh_eks_mva":1.396302,"p_max_w":3749.0},{"start_local":"2026-07-19T21:00:00+02:00","kwh":0.949,"spot_nok_kwh_eks_mva":1.42714,"p_max_w":1427.0},{"start_local":"2026-07-19T22:00:00+02:00","kwh":1.048,"spot_nok_kwh_eks_mva":1.426315,"p_max_w":2438.0},{"start_local":"2026-07-19T23:00:00+02:00","kwh":2.67,"spot_nok_kwh_eks_mva":1.387503,"p_max_w":3543.0},{"start_local":"2026-07-20T00:00:00+02:00","kwh":1.415,"spot_nok_kwh_eks_mva":1.419117,"p_max_w":3064.0},{"start_local":"2026-07-20T01:00:00+02:00","kwh":0.611,"spot_nok_kwh_eks_mva":1.395863,"p_max_w":1936.0},{"start_local":"2026-07-20T02:00:00+02:00","kwh":0.495,"spot_nok_kwh_eks_mva":1.336748,"p_max_w":1758.0},{"start_local":"2026-07-20T03:00:00+02:00","kwh":0.915,"spot_nok_kwh_eks_mva":1.308668,"p_max_w":3017.0},{"start_local":"2026-07-20T04:00:00+02:00","kwh":1.737,"spot_nok_kwh_eks_mva":1.365657,"p_max_w":3528.0},{"start_local":"2026-07-20T05:00:00+02:00","kwh":1.499,"spot_nok_kwh_eks_mva":1.433567,"p_max_w":3450.0},{"start_local":"2026-07-20T06:00:00+02:00","kwh":0.645,"spot_nok_kwh_eks_mva":1.484933,"p_max_w":1719.0},{"start_local":"2026-07-20T07:00:00+02:00","kwh":0.728,"spot_nok_kwh_eks_mva":1.450563,"p_max_w":1638.0},{"start_local":"2026-07-20T08:00:00+02:00","kwh":1.447,"spot_nok_kwh_eks_mva":1.337603,"p_max_w":3249.0},{"start_local":"2026-07-20T09:00:00+02:00","kwh":1.003,"spot_nok_kwh_eks_mva":1.191015,"p_max_w":2634.0},{"start_local":"2026-07-20T10:00:00+02:00","kwh":1.939,"spot_nok_kwh_eks_mva":1.138468,"p_max_w":5700.0},{"start_local":"2026-07-20T11:00:00+02:00","kwh":2.995,"spot_nok_kwh_eks_mva":1.144235,"p_max_w":7914.0},{"start_local":"2026-07-20T12:00:00+02:00","kwh":1.481,"spot_nok_kwh_eks_mva":1.113783,"p_max_w":3522.0},{"start_local":"2026-07-20T13:00:00+02:00","kwh":1.368,"spot_nok_kwh_eks_mva":1.12421,"p_max_w":4914.0},{"start_local":"2026-07-20T14:00:00+02:00","kwh":1.779,"spot_nok_kwh_eks_mva":1.143662,"p_max_w":4006.0},{"start_local":"2026-07-20T15:00:00+02:00","kwh":0.904,"spot_nok_kwh_eks_mva":1.18066,"p_max_w":2136.0},{"start_local":"2026-07-20T16:00:00+02:00","kwh":3.093,"spot_nok_kwh_eks_mva":1.135681,"p_max_w":5540.0},{"start_local":"2026-07-20T17:00:00+02:00","kwh":1.602,"spot_nok_kwh_eks_mva":1.18275,"p_max_w":3992.0},{"start_local":"2026-07-20T18:00:00+02:00","kwh":0.984,"spot_nok_kwh_eks_mva":1.282862,"p_max_w":1533.0},{"start_local":"2026-07-20T19:00:00+02:00","kwh":1.928,"spot_nok_kwh_eks_mva":1.438342,"p_max_w":3992.0},{"start_local":"2026-07-20T20:00:00+02:00","kwh":1.178,"spot_nok_kwh_eks_mva":1.530747,"p_max_w":3286.0},{"start_local":"2026-07-20T21:00:00+02:00","kwh":1.268,"spot_nok_kwh_eks_mva":1.51798,"p_max_w":2626.0},{"start_local":"2026-07-20T22:00:00+02:00","kwh":2.86,"spot_nok_kwh_eks_mva":1.494683,"p_max_w":4377.0},{"start_local":"2026-07-20T23:00:00+02:00","kwh":2.934,"spot_nok_kwh_eks_mva":1.439775,"p_max_w":4039.0},{"start_local":"2026-07-21T00:00:00+02:00","kwh":0.823,"spot_nok_kwh_eks_mva":1.442982,"p_max_w":2544.0},{"start_local":"2026-07-21T01:00:00+02:00","kwh":0.45,"spot_nok_kwh_eks_mva":1.4405,"p_max_w":1242.0},{"start_local":"2026-07-21T02:00:00+02:00","kwh":0.534,"spot_nok_kwh_eks_mva":1.431668,"p_max_w":2945.0},{"start_local":"2026-07-21T03:00:00+02:00","kwh":1.256,"spot_nok_kwh_eks_mva":1.390768,"p_max_w":3035.0},{"start_local":"2026-07-21T04:00:00+02:00","kwh":0.418,"spot_nok_kwh_eks_mva":1.403597,"p_max_w":1368.0},{"start_local":"2026-07-21T05:00:00+02:00","kwh":0.453,"spot_nok_kwh_eks_mva":1.431973,"p_max_w":1676.0},{"start_local":"2026-07-21T06:00:00+02:00","kwh":0.518,"spot_nok_kwh_eks_mva":1.456837,"p_max_w":1264.0},{"start_local":"2026-07-21T07:00:00+02:00","kwh":1.633,"spot_nok_kwh_eks_mva":1.467465,"p_max_w":3076.0},{"start_local":"2026-07-21T08:00:00+02:00","kwh":1.015,"spot_nok_kwh_eks_mva":1.443728,"p_max_w":2482.0},{"start_local":"2026-07-21T09:00:00+02:00","kwh":1.375,"spot_nok_kwh_eks_mva":1.29194,"p_max_w":3864.0},{"start_local":"2026-07-21T10:00:00+02:00","kwh":1.425,"spot_nok_kwh_eks_mva":1.227222,"p_max_w":4694.0},{"start_local":"2026-07-21T11:00:00+02:00","kwh":0.923,"spot_nok_kwh_eks_mva":1.147497,"p_max_w":2584.0},{"start_local":"2026-07-21T12:00:00+02:00","kwh":1.118,"spot_nok_kwh_eks_mva":1.14357,"p_max_w":3614.0},{"start_local":"2026-07-21T13:00:00+02:00","kwh":0.552,"spot_nok_kwh_eks_mva":1.14249,"p_max_w":1968.0},{"start_local":"2026-07-21T14:00:00+02:00","kwh":0.714,"spot_nok_kwh_eks_mva":1.144534,"p_max_w":1922.0},{"start_local":"2026-07-21T15:00:00+02:00","kwh":0.541,"spot_nok_kwh_eks_mva":1.138823,"p_max_w":1744.0},{"start_local":"2026-07-21T16:00:00+02:00","kwh":1.226,"spot_nok_kwh_eks_mva":1.142024,"p_max_w":3024.0},{"start_local":"2026-07-21T17:00:00+02:00","kwh":0.706,"spot_nok_kwh_eks_mva":1.179255,"p_max_w":2565.0},{"start_local":"2026-07-21T18:00:00+02:00","kwh":0.509,"spot_nok_kwh_eks_mva":1.347217,"p_max_w":1251.0},{"start_local":"2026-07-21T19:00:00+02:00","kwh":0.624,"spot_nok_kwh_eks_mva":1.45924,"p_max_w":1698.0},{"start_local":"2026-07-21T20:00:00+02:00","kwh":1.219,"spot_nok_kwh_eks_mva":1.513275,"p_max_w":3164.0},{"start_local":"2026-07-21T21:00:00+02:00","kwh":0.687,"spot_nok_kwh_eks_mva":1.506238,"p_max_w":1288.0},{"start_local":"2026-07-21T22:00:00+02:00","kwh":0.547,"spot_nok_kwh_eks_mva":1.465976,"p_max_w":1794.0},{"start_local":"2026-07-21T23:00:00+02:00","kwh":0.523,"spot_nok_kwh_eks_mva":1.415413,"p_max_w":1303.0},{"start_local":"2026-07-22T00:00:00+02:00","kwh":1.379,"spot_nok_kwh_eks_mva":1.410305,"p_max_w":3381.0},{"start_local":"2026-07-22T01:00:00+02:00","kwh":0.432,"spot_nok_kwh_eks_mva":1.333135,"p_max_w":1939.0},{"start_local":"2026-07-22T02:00:00+02:00","kwh":0.565,"spot_nok_kwh_eks_mva":1.289905,"p_max_w":2047.0},{"start_local":"2026-07-22T03:00:00+02:00","kwh":0.488,"spot_nok_kwh_eks_mva":1.243572,"p_max_w":1388.0},{"start_local":"2026-07-22T04:00:00+02:00","kwh":0.992,"spot_nok_kwh_eks_mva":1.19342,"p_max_w":3024.0},{"start_local":"2026-07-22T05:00:00+02:00","kwh":0.796,"spot_nok_kwh_eks_mva":1.195478,"p_max_w":3400.0},{"start_local":"2026-07-22T06:00:00+02:00","kwh":0.57,"spot_nok_kwh_eks_mva":1.204022,"p_max_w":1903.0},{"start_local":"2026-07-22T07:00:00+02:00","kwh":0.72,"spot_nok_kwh_eks_mva":1.219209,"p_max_w":1797.0},{"start_local":"2026-07-22T08:00:00+02:00","kwh":0.657,"spot_nok_kwh_eks_mva":1.252742,"p_max_w":2569.0},{"start_local":"2026-07-22T09:00:00+02:00","kwh":1.262,"spot_nok_kwh_eks_mva":1.205232,"p_max_w":3069.0},{"start_local":"2026-07-22T10:00:00+02:00","kwh":0.679,"spot_nok_kwh_eks_mva":1.12174,"p_max_w":1398.0},{"start_local":"2026-07-22T11:00:00+02:00","kwh":0.697,"spot_nok_kwh_eks_mva":1.104848,"p_max_w":1720.0},{"start_local":"2026-07-22T12:00:00+02:00","kwh":0.572,"spot_nok_kwh_eks_mva":1.158155,"p_max_w":1739.0},{"start_local":"2026-07-22T13:00:00+02:00","kwh":1.313,"spot_nok_kwh_eks_mva":1.121243,"p_max_w":3877.0},{"start_local":"2026-07-22T14:00:00+02:00","kwh":0.67,"spot_nok_kwh_eks_mva":1.120938,"p_max_w":2459.0},{"start_local":"2026-07-22T15:00:00+02:00","kwh":0.69,"spot_nok_kwh_eks_mva":1.11814,"p_max_w":1450.0},{"start_local":"2026-07-22T16:00:00+02:00","kwh":0.541,"spot_nok_kwh_eks_mva":1.088973,"p_max_w":1706.0},{"start_local":"2026-07-22T17:00:00+02:00","kwh":1.378,"spot_nok_kwh_eks_mva":1.110175,"p_max_w":3185.0},{"start_local":"2026-07-22T18:00:00+02:00","kwh":0.613,"spot_nok_kwh_eks_mva":1.182932,"p_max_w":2185.0},{"start_local":"2026-07-22T19:00:00+02:00","kwh":0.559,"spot_nok_kwh_eks_mva":1.279242,"p_max_w":1345.0},{"start_local":"2026-07-22T20:00:00+02:00","kwh":0.61,"spot_nok_kwh_eks_mva":1.360735,"p_max_w":1300.0},{"start_local":"2026-07-22T21:00:00+02:00","kwh":1.427,"spot_nok_kwh_eks_mva":1.39501,"p_max_w":4245.0},{"start_local":"2026-07-22T22:00:00+02:00","kwh":0.518,"spot_nok_kwh_eks_mva":1.385318,"p_max_w":1784.0},{"start_local":"2026-07-22T23:00:00+02:00","kwh":0.635,"spot_nok_kwh_eks_mva":1.327364,"p_max_w":1397.0},{"start_local":"2026-07-23T00:00:00+02:00","kwh":0.591,"spot_nok_kwh_eks_mva":1.365245,"p_max_w":1458.0},{"start_local":"2026-07-23T01:00:00+02:00","kwh":1.218,"spot_nok_kwh_eks_mva":1.381429,"p_max_w":2964.0},{"start_local":"2026-07-23T02:00:00+02:00","kwh":0.523,"spot_nok_kwh_eks_mva":1.364915,"p_max_w":1751.0},{"start_local":"2026-07-23T03:00:00+02:00","kwh":0.433,"spot_nok_kwh_eks_mva":1.372939,"p_max_w":1985.0},{"start_local":"2026-07-23T04:00:00+02:00","kwh":0.697,"spot_nok_kwh_eks_mva":1.410872,"p_max_w":1291.0},{"start_local":"2026-07-23T05:00:00+02:00","kwh":0.625,"spot_nok_kwh_eks_mva":1.43911,"p_max_w":2523.0},{"start_local":"2026-07-23T06:00:00+02:00","kwh":1.059,"spot_nok_kwh_eks_mva":1.472465,"p_max_w":3073.0},{"start_local":"2026-07-23T07:00:00+02:00","kwh":0.675,"spot_nok_kwh_eks_mva":1.497962,"p_max_w":1267.0},{"start_local":"2026-07-23T08:00:00+02:00","kwh":0.673,"spot_nok_kwh_eks_mva":1.500893,"p_max_w":1847.0},{"start_local":"2026-07-23T09:00:00+02:00","kwh":0.603,"spot_nok_kwh_eks_mva":1.382668,"p_max_w":1357.0},{"start_local":"2026-07-23T10:00:00+02:00","kwh":1.292,"spot_nok_kwh_eks_mva":1.233188,"p_max_w":3178.0},{"start_local":"2026-07-23T11:00:00+02:00","kwh":0.77,"spot_nok_kwh_eks_mva":1.116215,"p_max_w":1744.0},{"start_local":"2026-07-23T12:00:00+02:00","kwh":0.558,"spot_nok_kwh_eks_mva":1.131935,"p_max_w":1430.0},{"start_local":"2026-07-23T13:00:00+02:00","kwh":0.686,"spot_nok_kwh_eks_mva":1.142752,"p_max_w":1890.0},{"start_local":"2026-07-23T14:00:00+02:00","kwh":1.337,"spot_nok_kwh_eks_mva":1.15201,"p_max_w":4204.0},{"start_local":"2026-07-23T15:00:00+02:00","kwh":0.673,"spot_nok_kwh_eks_mva":1.155652,"p_max_w":1316.0},{"start_local":"2026-07-23T16:00:00+02:00","kwh":0.561,"spot_nok_kwh_eks_mva":1.105421,"p_max_w":2036.0},{"start_local":"2026-07-23T17:00:00+02:00","kwh":0.668,"spot_nok_kwh_eks_mva":1.198154,"p_max_w":1842.0},{"start_local":"2026-07-23T18:00:00+02:00","kwh":2.611,"spot_nok_kwh_eks_mva":1.367482,"p_max_w":6152.0},{"start_local":"2026-07-23T19:00:00+02:00","kwh":0.0,"spot_nok_kwh_eks_mva":1.515847,"p_max_w":4241.0},{"start_local":"2026-07-23T20:00:00+02:00","kwh":4.106,"spot_nok_kwh_eks_mva":1.553727,"p_max_w":5137.0},{"start_local":"2026-07-23T21:00:00+02:00","kwh":3.066,"spot_nok_kwh_eks_mva":1.559035,"p_max_w":4028.0},{"start_local":"2026-07-23T22:00:00+02:00","kwh":0.829,"spot_nok_kwh_eks_mva":1.544088,"p_max_w":3286.0},{"start_local":"2026-07-23T23:00:00+02:00","kwh":0.544,"spot_nok_kwh_eks_mva":1.502073,"p_max_w":1575.0},{"start_local":"2026-07-24T00:00:00+02:00","kwh":1.246,"spot_nok_kwh_eks_mva":1.44582,"p_max_w":2932.0},{"start_local":"2026-07-24T01:00:00+02:00","kwh":0.533,"spot_nok_kwh_eks_mva":1.404547,"p_max_w":1300.0},{"start_local":"2026-07-24T02:00:00+02:00","kwh":0.525,"spot_nok_kwh_eks_mva":1.386578,"p_max_w":1189.0},{"start_local":"2026-07-24T03:00:00+02:00","kwh":0.436,"spot_nok_kwh_eks_mva":1.382689,"p_max_w":1266.0},{"start_local":"2026-07-24T04:00:00+02:00","kwh":1.235,"spot_nok_kwh_eks_mva":1.389399,"p_max_w":3724.0},{"start_local":"2026-07-24T05:00:00+02:00","kwh":0.441,"spot_nok_kwh_eks_mva":1.377378,"p_max_w":1069.0},{"start_local":"2026-07-24T06:00:00+02:00","kwh":0.445,"spot_nok_kwh_eks_mva":1.4046,"p_max_w":1271.0},{"start_local":"2026-07-24T07:00:00+02:00","kwh":0.751,"spot_nok_kwh_eks_mva":1.432365,"p_max_w":1478.0},{"start_local":"2026-07-24T08:00:00+02:00","kwh":1.672,"spot_nok_kwh_eks_mva":1.457317,"p_max_w":7908.0},{"start_local":"2026-07-24T09:00:00+02:00","kwh":3.783,"spot_nok_kwh_eks_mva":1.391755,"p_max_w":6337.0},{"start_local":"2026-07-24T10:00:00+02:00","kwh":1.293,"spot_nok_kwh_eks_mva":1.261705,"p_max_w":4056.0},{"start_local":"2026-07-24T11:00:00+02:00","kwh":0.903,"spot_nok_kwh_eks_mva":1.179495,"p_max_w":2166.0},{"start_local":"2026-07-24T12:00:00+02:00","kwh":2.454,"spot_nok_kwh_eks_mva":1.165307,"p_max_w":4475.0},{"start_local":"2026-07-24T13:00:00+02:00","kwh":3.173,"spot_nok_kwh_eks_mva":1.245165,"p_max_w":4443.0},{"start_local":"2026-07-24T14:00:00+02:00","kwh":2.18,"spot_nok_kwh_eks_mva":1.146224,"p_max_w":4604.0},{"start_local":"2026-07-24T15:00:00+02:00","kwh":1.338,"spot_nok_kwh_eks_mva":0.75056,"p_max_w":2744.0},{"start_local":"2026-07-24T16:00:00+02:00","kwh":0.598,"spot_nok_kwh_eks_mva":0.868427,"p_max_w":1299.0},{"start_local":"2026-07-24T17:00:00+02:00","kwh":0.721,"spot_nok_kwh_eks_mva":1.27085,"p_max_w":1388.0},{"start_local":"2026-07-24T18:00:00+02:00","kwh":1.221,"spot_nok_kwh_eks_mva":1.43064,"p_max_w":3123.0},{"start_local":"2026-07-24T19:00:00+02:00","kwh":0.727,"spot_nok_kwh_eks_mva":1.458272,"p_max_w":2627.0},{"start_local":"2026-07-24T20:00:00+02:00","kwh":0.683,"spot_nok_kwh_eks_mva":1.450358,"p_max_w":2292.0},{"start_local":"2026-07-24T21:00:00+02:00","kwh":0.708,"spot_nok_kwh_eks_mva":1.443675,"p_max_w":1332.0},{"start_local":"2026-07-24T22:00:00+02:00","kwh":0.787,"spot_nok_kwh_eks_mva":1.451043,"p_max_w":3100.0},{"start_local":"2026-07-24T23:00:00+02:00","kwh":1.07,"spot_nok_kwh_eks_mva":1.44877,"p_max_w":3108.0},{"start_local":"2026-07-25T00:00:00+02:00","kwh":0.474,"spot_nok_kwh_eks_mva":1.46284,"p_max_w":1815.0},{"start_local":"2026-07-25T01:00:00+02:00","kwh":0.64,"spot_nok_kwh_eks_mva":1.454667,"p_max_w":1600.0},{"start_local":"2026-07-25T02:00:00+02:00","kwh":0.501,"spot_nok_kwh_eks_mva":1.453222,"p_max_w":1335.0},{"start_local":"2026-07-25T03:00:00+02:00","kwh":1.118,"spot_nok_kwh_eks_mva":1.449735,"p_max_w":3079.0},{"start_local":"2026-07-25T04:00:00+02:00","kwh":0.689,"spot_nok_kwh_eks_mva":1.420038,"p_max_w":1582.0},{"start_local":"2026-07-25T05:00:00+02:00","kwh":0.47,"spot_nok_kwh_eks_mva":1.407118,"p_max_w":1777.0},{"start_local":"2026-07-25T06:00:00+02:00","kwh":0.584,"spot_nok_kwh_eks_mva":1.350283,"p_max_w":2287.0},{"start_local":"2026-07-25T07:00:00+02:00","kwh":1.404,"spot_nok_kwh_eks_mva":1.234375,"p_max_w":3424.0},{"start_local":"2026-07-25T08:00:00+02:00","kwh":0.86,"spot_nok_kwh_eks_mva":0.903492,"p_max_w":1888.0},{"start_local":"2026-07-25T09:00:00+02:00","kwh":0.776,"spot_nok_kwh_eks_mva":1.101783,"p_max_w":1961.0},{"start_local":"2026-07-25T10:00:00+02:00","kwh":0.701,"spot_nok_kwh_eks_mva":1.078769,"p_max_w":1125.0},{"start_local":"2026-07-25T11:00:00+02:00","kwh":1.598,"spot_nok_kwh_eks_mva":1.106142,"p_max_w":3595.0},{"start_local":"2026-07-25T12:00:00+02:00","kwh":0.693,"spot_nok_kwh_eks_mva":0.452278,"p_max_w":1818.0},{"start_local":"2026-07-25T13:00:00+02:00","kwh":0.819,"spot_nok_kwh_eks_mva":0.572922,"p_max_w":1791.0},{"start_local":"2026-07-25T14:00:00+02:00","kwh":0.793,"spot_nok_kwh_eks_mva":0.224327,"p_max_w":2080.0},{"start_local":"2026-07-25T15:00:00+02:00","kwh":1.368,"spot_nok_kwh_eks_mva":0.604339,"p_max_w":3929.0},{"start_local":"2026-07-25T16:00:00+02:00","kwh":0.872,"spot_nok_kwh_eks_mva":1.085168,"p_max_w":3216.0},{"start_local":"2026-07-25T17:00:00+02:00","kwh":0.793,"spot_nok_kwh_eks_mva":1.139742,"p_max_w":1969.0},{"start_local":"2026-07-25T18:00:00+02:00","kwh":0.845,"spot_nok_kwh_eks_mva":1.19955,"p_max_w":1773.0},{"start_local":"2026-07-25T19:00:00+02:00","kwh":0.756,"spot_nok_kwh_eks_mva":1.299412,"p_max_w":1552.0},{"start_local":"2026-07-25T20:00:00+02:00","kwh":1.43,"spot_nok_kwh_eks_mva":1.423957,"p_max_w":3186.0},{"start_local":"2026-07-25T21:00:00+02:00","kwh":0.862,"spot_nok_kwh_eks_mva":1.455456,"p_max_w":2199.0},{"start_local":"2026-07-25T22:00:00+02:00","kwh":0.773,"spot_nok_kwh_eks_mva":1.456793,"p_max_w":2005.0},{"start_local":"2026-07-25T23:00:00+02:00","kwh":0.672,"spot_nok_kwh_eks_mva":1.441916,"p_max_w":1497.0},{"start_local":"2026-07-26T00:00:00+02:00","kwh":1.563,"spot_nok_kwh_eks_mva":1.261746,"p_max_w":2635.0},{"start_local":"2026-07-26T01:00:00+02:00","kwh":0.483,"spot_nok_kwh_eks_mva":1.265205,"p_max_w":1179.0},{"start_local":"2026-07-26T02:00:00+02:00","kwh":0.576,"spot_nok_kwh_eks_mva":1.257415,"p_max_w":972.0},{"start_local":"2026-07-26T03:00:00+02:00","kwh":0.467,"spot_nok_kwh_eks_mva":1.268855,"p_max_w":1351.0},{"start_local":"2026-07-26T04:00:00+02:00","kwh":1.391,"spot_nok_kwh_eks_mva":1.24269,"p_max_w":3991.0},{"start_local":"2026-07-26T05:00:00+02:00","kwh":0.481,"spot_nok_kwh_eks_mva":1.18498,"p_max_w":1203.0},{"start_local":"2026-07-26T06:00:00+02:00","kwh":0.688,"spot_nok_kwh_eks_mva":1.081752,"p_max_w":1798.0},{"start_local":"2026-07-26T07:00:00+02:00","kwh":0.827,"spot_nok_kwh_eks_mva":1.018872,"p_max_w":1791.0},{"start_local":"2026-07-26T08:00:00+02:00","kwh":1.107,"spot_nok_kwh_eks_mva":1.028529,"p_max_w":3281.0},{"start_local":"2026-07-26T09:00:00+02:00","kwh":1.074,"spot_nok_kwh_eks_mva":0.723106,"p_max_w":3287.0},{"start_local":"2026-07-26T10:00:00+02:00","kwh":0.956,"spot_nok_kwh_eks_mva":1.163981,"p_max_w":2324.0},{"start_local":"2026-07-26T11:00:00+02:00","kwh":0.666,"spot_nok_kwh_eks_mva":0.585028,"p_max_w":1859.0},{"start_local":"2026-07-26T12:00:00+02:00","kwh":0.806,"spot_nok_kwh_eks_mva":0.005963,"p_max_w":2442.0},{"start_local":"2026-07-26T13:00:00+02:00","kwh":1.493,"spot_nok_kwh_eks_mva":0.006155,"p_max_w":2828.0},{"start_local":"2026-07-26T14:00:00+02:00","kwh":0.791,"spot_nok_kwh_eks_mva":0.009205,"p_max_w":1863.0},{"start_local":"2026-07-26T15:00:00+02:00","kwh":0.704,"spot_nok_kwh_eks_mva":0.01307,"p_max_w":1451.0},{"start_local":"2026-07-26T16:00:00+02:00","kwh":0.812,"spot_nok_kwh_eks_mva":0.135042,"p_max_w":1953.0},{"start_local":"2026-07-26T17:00:00+02:00","kwh":1.485,"spot_nok_kwh_eks_mva":0.836899,"p_max_w":3229.0},{"start_local":"2026-07-26T18:00:00+02:00","kwh":0.679,"spot_nok_kwh_eks_mva":1.113465,"p_max_w":1950.0},{"start_local":"2026-07-26T19:00:00+02:00","kwh":0.829,"spot_nok_kwh_eks_mva":1.319017,"p_max_w":2409.0},{"start_local":"2026-07-26T20:00:00+02:00","kwh":0.788,"spot_nok_kwh_eks_mva":1.424348,"p_max_w":1852.0},{"start_local":"2026-07-26T21:00:00+02:00","kwh":1.492,"spot_nok_kwh_eks_mva":1.421276,"p_max_w":3566.0},{"start_local":"2026-07-26T22:00:00+02:00","kwh":0.652,"spot_nok_kwh_eks_mva":1.38323,"p_max_w":1602.0},{"start_local":"2026-07-26T23:00:00+02:00","kwh":0.922,"spot_nok_kwh_eks_mva":1.285465,"p_max_w":1609.0},{"start_local":"2026-07-27T00:00:00+02:00","kwh":0.668,"spot_nok_kwh_eks_mva":1.064776,"p_max_w":1474.0},{"start_local":"2026-07-27T01:00:00+02:00","kwh":1.248,"spot_nok_kwh_eks_mva":0.791203,"p_max_w":3229.0},{"start_local":"2026-07-27T02:00:00+02:00","kwh":0.624,"spot_nok_kwh_eks_mva":0.697468,"p_max_w":1735.0},{"start_local":"2026-07-27T03:00:00+02:00","kwh":0.505,"spot_nok_kwh_eks_mva":0.703406,"p_max_w":1909.0},{"start_local":"2026-07-27T04:00:00+02:00","kwh":0.609,"spot_nok_kwh_eks_mva":0.793727,"p_max_w":2096.0},{"start_local":"2026-07-27T05:00:00+02:00","kwh":0.773,"spot_nok_kwh_eks_mva":0.928271,"p_max_w":3009.0},{"start_local":"2026-07-27T06:00:00+02:00","kwh":1.273,"spot_nok_kwh_eks_mva":1.190286,"p_max_w":3031.0},{"start_local":"2026-07-27T07:00:00+02:00","kwh":0.815,"spot_nok_kwh_eks_mva":1.20167,"p_max_w":2293.0},{"start_local":"2026-07-27T08:00:00+02:00","kwh":0.867,"spot_nok_kwh_eks_mva":1.115568,"p_max_w":2227.0},{"start_local":"2026-07-27T09:00:00+02:00","kwh":0.737,"spot_nok_kwh_eks_mva":0.863355,"p_max_w":1449.0},{"start_local":"2026-07-27T10:00:00+02:00","kwh":1.623,"spot_nok_kwh_eks_mva":0.440198,"p_max_w":3138.0},{"start_local":"2026-07-27T11:00:00+02:00","kwh":0.761,"spot_nok_kwh_eks_mva":0.790223,"p_max_w":2236.0},{"start_local":"2026-07-27T12:00:00+02:00","kwh":0.788,"spot_nok_kwh_eks_mva":1.043717,"p_max_w":2015.0},{"start_local":"2026-07-27T13:00:00+02:00","kwh":0.762,"spot_nok_kwh_eks_mva":0.768936,"p_max_w":2052.0},{"start_local":"2026-07-27T14:00:00+02:00","kwh":2.802,"spot_nok_kwh_eks_mva":1.123467,"p_max_w":5360.0},{"start_local":"2026-07-27T15:00:00+02:00","kwh":2.136,"spot_nok_kwh_eks_mva":1.152511,"p_max_w":4617.0},{"start_local":"2026-07-27T16:00:00+02:00","kwh":3.119,"spot_nok_kwh_eks_mva":0.660572,"p_max_w":7217.0},{"start_local":"2026-07-27T17:00:00+02:00","kwh":4.56,"spot_nok_kwh_eks_mva":0.602791,"p_max_w":8120.0},{"start_local":"2026-07-27T18:00:00+02:00","kwh":2.308,"spot_nok_kwh_eks_mva":1.047957,"p_max_w":5481.0},{"start_local":"2026-07-27T19:00:00+02:00","kwh":0.845,"spot_nok_kwh_eks_mva":1.358847,"p_max_w":1758.0},{"start_local":"2026-07-27T20:00:00+02:00","kwh":1.35,"spot_nok_kwh_eks_mva":1.428847,"p_max_w":3866.0},{"start_local":"2026-07-27T21:00:00+02:00","kwh":3.029,"spot_nok_kwh_eks_mva":1.473425,"p_max_w":4085.0},{"start_local":"2026-07-27T22:00:00+02:00","kwh":0.964,"spot_nok_kwh_eks_mva":1.478002,"p_max_w":2869.0},{"start_local":"2026-07-27T23:00:00+02:00","kwh":0.63,"spot_nok_kwh_eks_mva":1.474413,"p_max_w":2552.0},{"start_local":"2026-07-28T00:00:00+02:00","kwh":0.587,"spot_nok_kwh_eks_mva":1.42885,"p_max_w":1508.0},{"start_local":"2026-07-28T01:00:00+02:00","kwh":1.145,"spot_nok_kwh_eks_mva":1.416055,"p_max_w":3769.0},{"start_local":"2026-07-28T02:00:00+02:00","kwh":0.696,"spot_nok_kwh_eks_mva":1.397549,"p_max_w":1576.0},{"start_local":"2026-07-28T03:00:00+02:00","kwh":0.47,"spot_nok_kwh_eks_mva":1.397988,"p_max_w":2178.0},{"start_local":"2026-07-28T04:00:00+02:00","kwh":0.482,"spot_nok_kwh_eks_mva":1.397,"p_max_w":1446.0},{"start_local":"2026-07-28T05:00:00+02:00","kwh":1.347,"spot_nok_kwh_eks_mva":1.407705,"p_max_w":3253.0},{"start_local":"2026-07-28T06:00:00+02:00","kwh":0.537,"spot_nok_kwh_eks_mva":1.44126,"p_max_w":2077.0},{"start_local":"2026-07-28T07:00:00+02:00","kwh":0.756,"spot_nok_kwh_eks_mva":1.452845,"p_max_w":1899.0},{"start_local":"2026-07-28T08:00:00+02:00","kwh":0.772,"spot_nok_kwh_eks_mva":1.424345,"p_max_w":1419.0},{"start_local":"2026-07-28T09:00:00+02:00","kwh":1.896,"spot_nok_kwh_eks_mva":1.308588,"p_max_w":4364.0},{"start_local":"2026-07-28T10:00:00+02:00","kwh":3.03,"spot_nok_kwh_eks_mva":1.11848,"p_max_w":5109.0},{"start_local":"2026-07-28T11:00:00+02:00","kwh":2.415,"spot_nok_kwh_eks_mva":1.091573,"p_max_w":5151.0},{"start_local":"2026-07-28T12:00:00+02:00","kwh":0.712,"spot_nok_kwh_eks_mva":1.424785,"p_max_w":1808.0},{"start_local":"2026-07-28T13:00:00+02:00","kwh":1.361,"spot_nok_kwh_eks_mva":1.441342,"p_max_w":3606.0},{"start_local":"2026-07-28T14:00:00+02:00","kwh":1.496,"spot_nok_kwh_eks_mva":1.432253,"p_max_w":3321.0},{"start_local":"2026-07-28T15:00:00+02:00","kwh":2.814,"spot_nok_kwh_eks_mva":1.379788,"p_max_w":6616.0},{"start_local":"2026-07-28T16:00:00+02:00","kwh":2.265,"spot_nok_kwh_eks_mva":1.16068,"p_max_w":5072.0},{"start_local":"2026-07-28T17:00:00+02:00","kwh":1.217,"spot_nok_kwh_eks_mva":1.274589,"p_max_w":2629.0},{"start_local":"2026-07-28T18:00:00+02:00","kwh":1.395,"spot_nok_kwh_eks_mva":1.432942,"p_max_w":4019.0},{"start_local":"2026-07-28T19:00:00+02:00","kwh":1.651,"spot_nok_kwh_eks_mva":1.444326,"p_max_w":3549.0},{"start_local":"2026-07-28T20:00:00+02:00","kwh":0.784,"spot_nok_kwh_eks_mva":1.439228,"p_max_w":2172.0},{"start_local":"2026-07-28T21:00:00+02:00","kwh":0.966,"spot_nok_kwh_eks_mva":1.417485,"p_max_w":2575.0},{"start_local":"2026-07-28T22:00:00+02:00","kwh":0.944,"spot_nok_kwh_eks_mva":1.438872,"p_max_w":2716.0},{"start_local":"2026-07-28T23:00:00+02:00","kwh":1.533,"spot_nok_kwh_eks_mva":1.442113,"p_max_w":3957.0},{"start_local":"2026-07-29T00:00:00+02:00","kwh":0.49,"spot_nok_kwh_eks_mva":1.470152,"p_max_w":1686.0},{"start_local":"2026-07-29T01:00:00+02:00","kwh":0.449,"spot_nok_kwh_eks_mva":1.455998,"p_max_w":1729.0},{"start_local":"2026-07-29T02:00:00+02:00","kwh":1.193,"spot_nok_kwh_eks_mva":1.43986,"p_max_w":3327.0},{"start_local":"2026-07-29T03:00:00+02:00","kwh":0.49,"spot_nok_kwh_eks_mva":1.43292,"p_max_w":1808.0},{"start_local":"2026-07-29T04:00:00+02:00","kwh":0.509,"spot_nok_kwh_eks_mva":1.423725,"p_max_w":1897.0},{"start_local":"2026-07-29T05:00:00+02:00","kwh":0.513,"spot_nok_kwh_eks_mva":1.44669,"p_max_w":1717.0},{"start_local":"2026-07-29T06:00:00+02:00","kwh":1.07,"spot_nok_kwh_eks_mva":1.441512,"p_max_w":2530.0},{"start_local":"2026-07-29T07:00:00+02:00","kwh":1.666,"spot_nok_kwh_eks_mva":1.459607,"p_max_w":4561.0},{"start_local":"2026-07-29T08:00:00+02:00","kwh":1.928,"spot_nok_kwh_eks_mva":1.436778,"p_max_w":4160.0},{"start_local":"2026-07-29T09:00:00+02:00","kwh":3.661,"spot_nok_kwh_eks_mva":1.364907,"p_max_w":6942.0},{"start_local":"2026-07-29T10:00:00+02:00","kwh":0.0,"spot_nok_kwh_eks_mva":1.160262,"p_max_w":4623.0},{"start_local":"2026-07-29T11:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.074635,"p_max_w":null},{"start_local":"2026-07-29T12:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":0.802108,"p_max_w":null},{"start_local":"2026-07-29T13:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.007329,"p_max_w":null},{"start_local":"2026-07-29T14:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":0.997709,"p_max_w":null},{"start_local":"2026-07-29T15:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.075207,"p_max_w":null},{"start_local":"2026-07-29T16:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.114877,"p_max_w":null},{"start_local":"2026-07-29T17:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.3435,"p_max_w":null},{"start_local":"2026-07-29T18:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.387231,"p_max_w":null},{"start_local":"2026-07-29T19:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.415954,"p_max_w":null},{"start_local":"2026-07-29T20:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.413808,"p_max_w":null},{"start_local":"2026-07-29T21:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.411303,"p_max_w":null},{"start_local":"2026-07-29T22:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.40552,"p_max_w":null},{"start_local":"2026-07-29T23:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.344412,"p_max_w":null},{"start_local":"2026-07-30T00:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.363885,"p_max_w":null},{"start_local":"2026-07-30T01:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.289885,"p_max_w":null},{"start_local":"2026-07-30T02:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.272108,"p_max_w":null},{"start_local":"2026-07-30T03:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.261925,"p_max_w":null},{"start_local":"2026-07-30T04:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.263965,"p_max_w":null},{"start_local":"2026-07-30T05:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.2491,"p_max_w":null},{"start_local":"2026-07-30T06:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.323347,"p_max_w":null},{"start_local":"2026-07-30T07:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.434225,"p_max_w":null},{"start_local":"2026-07-30T08:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.423298,"p_max_w":null},{"start_local":"2026-07-30T09:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.344787,"p_max_w":null},{"start_local":"2026-07-30T10:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.209036,"p_max_w":null},{"start_local":"2026-07-30T11:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.18985,"p_max_w":null},{"start_local":"2026-07-30T12:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.23683,"p_max_w":null},{"start_local":"2026-07-30T13:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.289825,"p_max_w":null},{"start_local":"2026-07-30T14:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.300807,"p_max_w":null},{"start_local":"2026-07-30T15:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.410475,"p_max_w":null},{"start_local":"2026-07-30T16:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.246899,"p_max_w":null},{"start_local":"2026-07-30T17:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.331467,"p_max_w":null},{"start_local":"2026-07-30T18:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.405795,"p_max_w":null},{"start_local":"2026-07-30T19:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.43062,"p_max_w":null},{"start_local":"2026-07-30T20:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.422831,"p_max_w":null},{"start_local":"2026-07-30T21:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.432105,"p_max_w":null},{"start_local":"2026-07-30T22:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.403755,"p_max_w":null},{"start_local":"2026-07-30T23:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.36212,"p_max_w":null},{"start_local":"2026-07-31T00:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.442309,"p_max_w":null},{"start_local":"2026-07-31T01:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.409245,"p_max_w":null},{"start_local":"2026-07-31T02:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.348833,"p_max_w":null},{"start_local":"2026-07-31T03:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.269281,"p_max_w":null},{"start_local":"2026-07-31T04:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.27087,"p_max_w":null},{"start_local":"2026-07-31T05:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.29081,"p_max_w":null},{"start_local":"2026-07-31T06:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.38302,"p_max_w":null},{"start_local":"2026-07-31T07:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.452577,"p_max_w":null},{"start_local":"2026-07-31T08:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.473007,"p_max_w":null},{"start_local":"2026-07-31T09:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.47589,"p_max_w":null},{"start_local":"2026-07-31T10:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.373173,"p_max_w":null},{"start_local":"2026-07-31T11:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.163344,"p_max_w":null},{"start_local":"2026-07-31T12:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.066794,"p_max_w":null},{"start_local":"2026-07-31T13:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":0.943871,"p_max_w":null},{"start_local":"2026-07-31T14:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":0.97806,"p_max_w":null},{"start_local":"2026-07-31T15:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.155265,"p_max_w":null},{"start_local":"2026-07-31T16:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.330297,"p_max_w":null},{"start_local":"2026-07-31T17:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.418665,"p_max_w":null},{"start_local":"2026-07-31T18:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.421247,"p_max_w":null},{"start_local":"2026-07-31T19:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.422147,"p_max_w":null},{"start_local":"2026-07-31T20:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.41696,"p_max_w":null},{"start_local":"2026-07-31T21:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.41471,"p_max_w":null},{"start_local":"2026-07-31T22:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.409628,"p_max_w":null},{"start_local":"2026-07-31T23:00:00+02:00","kwh":null,"spot_nok_kwh_eks_mva":1.378848,"p_max_w":null}]}
+{
+ "metadata": {
+  "navn": "juli_2026",
+  "fakturanr": "012345686",
+  "periode_start_local": "2026-07-01T00:00:00+02:00",
+  "periode_end_local": "2026-08-01T00:00:00+02:00",
+  "tidssone": "Europe/Oslo",
+  "kilde_forbruk": "sensor.pow_u_ams_tpi (Akkumulert meter, delta per time, fallback-kjede)",
+  "kilde_spotpris": "sensor.nord_pool_no5_current_price (eks. mva, multipliser med 1.25 for inkl. mva)",
+  "kilde_p_max": "sensor.pow_u_ams_p (Active import i watt, max per time, fallback-kjede)",
+  "tpi_start_kwh": 133282.18,
+  "tpi_end_kwh": null,
+  "datahull": {
+   "timer_uten_maaling": 61,
+   "fra_og_med": "2026-07-29T11:00:00+02:00",
+   "til_og_med": "2026-07-31T23:00:00+02:00",
+   "aarsak": "sensor.pow_u_ams_tpi og sensor.pow_u_ams_p var nede fra 29.07.2026 ca. kl. 11 og ut fakturaperioden. kwh og p_max_w er null for disse timene.",
+   "spotpris_er_komplett": true,
+   "fylt_fra_elhub": {
+    "kilde": "elhub_juli.csv",
+    "dato": "2026-08-08",
+    "fylte_timer": 61,
+    "p_max_w": "forblir null for de fylte timene; Elhub har ikke effektdata",
+    "overstyrte_timer": {
+     "2026-07-29T10:00:00+02:00": {
+      "han_kwh": 0.0,
+      "elhub_kwh": 1.635,
+      "begrunnelse": "HAN målte 0,0 kWh med p_max 4623 W; tpi-måleren frøs i denne timen, bekreftet av at totalsummen treffer fakturaen først med Elhub-verdien"
+     }
+    }
+   }
+  }
+ },
+ "hours": [
+  {
+   "start_local": "2026-07-01T00:00:00+02:00",
+   "kwh": 1.248,
+   "spot_nok_kwh_eks_mva": 1.035954,
+   "p_max_w": 3362.0
+  },
+  {
+   "start_local": "2026-07-01T01:00:00+02:00",
+   "kwh": 0.452,
+   "spot_nok_kwh_eks_mva": 1.025898,
+   "p_max_w": 1453.0
+  },
+  {
+   "start_local": "2026-07-01T02:00:00+02:00",
+   "kwh": 0.444,
+   "spot_nok_kwh_eks_mva": 1.020218,
+   "p_max_w": 1212.0
+  },
+  {
+   "start_local": "2026-07-01T03:00:00+02:00",
+   "kwh": 0.6,
+   "spot_nok_kwh_eks_mva": 0.993235,
+   "p_max_w": 2071.0
+  },
+  {
+   "start_local": "2026-07-01T04:00:00+02:00",
+   "kwh": 1.237,
+   "spot_nok_kwh_eks_mva": 1.01061,
+   "p_max_w": 3366.0
+  },
+  {
+   "start_local": "2026-07-01T05:00:00+02:00",
+   "kwh": 0.533,
+   "spot_nok_kwh_eks_mva": 0.99835,
+   "p_max_w": 1040.0
+  },
+  {
+   "start_local": "2026-07-01T06:00:00+02:00",
+   "kwh": 0.6,
+   "spot_nok_kwh_eks_mva": 0.899658,
+   "p_max_w": 1505.0
+  },
+  {
+   "start_local": "2026-07-01T07:00:00+02:00",
+   "kwh": 1.146,
+   "spot_nok_kwh_eks_mva": 1.002532,
+   "p_max_w": 3883.0
+  },
+  {
+   "start_local": "2026-07-01T08:00:00+02:00",
+   "kwh": 1.514,
+   "spot_nok_kwh_eks_mva": 1.006373,
+   "p_max_w": 3867.0
+  },
+  {
+   "start_local": "2026-07-01T09:00:00+02:00",
+   "kwh": 2.017,
+   "spot_nok_kwh_eks_mva": 0.969138,
+   "p_max_w": 4386.0
+  },
+  {
+   "start_local": "2026-07-01T10:00:00+02:00",
+   "kwh": 2.369,
+   "spot_nok_kwh_eks_mva": 0.994847,
+   "p_max_w": 3929.0
+  },
+  {
+   "start_local": "2026-07-01T11:00:00+02:00",
+   "kwh": 1.0,
+   "spot_nok_kwh_eks_mva": 0.983967,
+   "p_max_w": 1659.0
+  },
+  {
+   "start_local": "2026-07-01T12:00:00+02:00",
+   "kwh": 1.52,
+   "spot_nok_kwh_eks_mva": 1.019822,
+   "p_max_w": 3987.0
+  },
+  {
+   "start_local": "2026-07-01T13:00:00+02:00",
+   "kwh": 0.765,
+   "spot_nok_kwh_eks_mva": 1.01739,
+   "p_max_w": 1507.0
+  },
+  {
+   "start_local": "2026-07-01T14:00:00+02:00",
+   "kwh": 0.89,
+   "spot_nok_kwh_eks_mva": 1.001767,
+   "p_max_w": 2490.0
+  },
+  {
+   "start_local": "2026-07-01T15:00:00+02:00",
+   "kwh": 0.929,
+   "spot_nok_kwh_eks_mva": 0.97114,
+   "p_max_w": 2977.0
+  },
+  {
+   "start_local": "2026-07-01T16:00:00+02:00",
+   "kwh": 1.761,
+   "spot_nok_kwh_eks_mva": 0.980207,
+   "p_max_w": 3215.0
+  },
+  {
+   "start_local": "2026-07-01T17:00:00+02:00",
+   "kwh": 2.513,
+   "spot_nok_kwh_eks_mva": 0.993123,
+   "p_max_w": 3668.0
+  },
+  {
+   "start_local": "2026-07-01T18:00:00+02:00",
+   "kwh": 3.057,
+   "spot_nok_kwh_eks_mva": 0.980295,
+   "p_max_w": 3529.0
+  },
+  {
+   "start_local": "2026-07-01T19:00:00+02:00",
+   "kwh": 3.053,
+   "spot_nok_kwh_eks_mva": 1.015275,
+   "p_max_w": 3864.0
+  },
+  {
+   "start_local": "2026-07-01T20:00:00+02:00",
+   "kwh": 0.961,
+   "spot_nok_kwh_eks_mva": 0.968655,
+   "p_max_w": 3019.0
+  },
+  {
+   "start_local": "2026-07-01T21:00:00+02:00",
+   "kwh": 0.946,
+   "spot_nok_kwh_eks_mva": 1.017562,
+   "p_max_w": 1916.0
+  },
+  {
+   "start_local": "2026-07-01T22:00:00+02:00",
+   "kwh": 1.336,
+   "spot_nok_kwh_eks_mva": 1.019935,
+   "p_max_w": 3053.0
+  },
+  {
+   "start_local": "2026-07-01T23:00:00+02:00",
+   "kwh": 0.556,
+   "spot_nok_kwh_eks_mva": 1.015387,
+   "p_max_w": 1164.0
+  },
+  {
+   "start_local": "2026-07-02T00:00:00+02:00",
+   "kwh": 1.303,
+   "spot_nok_kwh_eks_mva": 1.064975,
+   "p_max_w": 3052.0
+  },
+  {
+   "start_local": "2026-07-02T01:00:00+02:00",
+   "kwh": 0.596,
+   "spot_nok_kwh_eks_mva": 1.049988,
+   "p_max_w": 1969.0
+  },
+  {
+   "start_local": "2026-07-02T02:00:00+02:00",
+   "kwh": 0.651,
+   "spot_nok_kwh_eks_mva": 1.02657,
+   "p_max_w": 1402.0
+  },
+  {
+   "start_local": "2026-07-02T03:00:00+02:00",
+   "kwh": 0.545,
+   "spot_nok_kwh_eks_mva": 0.917238,
+   "p_max_w": 1624.0
+  },
+  {
+   "start_local": "2026-07-02T04:00:00+02:00",
+   "kwh": 0.649,
+   "spot_nok_kwh_eks_mva": 0.922472,
+   "p_max_w": 3046.0
+  },
+  {
+   "start_local": "2026-07-02T05:00:00+02:00",
+   "kwh": 1.413,
+   "spot_nok_kwh_eks_mva": 0.92892,
+   "p_max_w": 3097.0
+  },
+  {
+   "start_local": "2026-07-02T06:00:00+02:00",
+   "kwh": 0.594,
+   "spot_nok_kwh_eks_mva": 0.996592,
+   "p_max_w": 1732.0
+  },
+  {
+   "start_local": "2026-07-02T07:00:00+02:00",
+   "kwh": 0.694,
+   "spot_nok_kwh_eks_mva": 1.075635,
+   "p_max_w": 2007.0
+  },
+  {
+   "start_local": "2026-07-02T08:00:00+02:00",
+   "kwh": 2.134,
+   "spot_nok_kwh_eks_mva": 0.92739,
+   "p_max_w": 5092.0
+  },
+  {
+   "start_local": "2026-07-02T09:00:00+02:00",
+   "kwh": 1.263,
+   "spot_nok_kwh_eks_mva": 0.736503,
+   "p_max_w": 3313.0
+  },
+  {
+   "start_local": "2026-07-02T10:00:00+02:00",
+   "kwh": 3.317,
+   "spot_nok_kwh_eks_mva": 0.839327,
+   "p_max_w": 4914.0
+  },
+  {
+   "start_local": "2026-07-02T11:00:00+02:00",
+   "kwh": 1.631,
+   "spot_nok_kwh_eks_mva": 0.70146,
+   "p_max_w": 4209.0
+  },
+  {
+   "start_local": "2026-07-02T12:00:00+02:00",
+   "kwh": 2.58,
+   "spot_nok_kwh_eks_mva": 0.78978,
+   "p_max_w": 5578.0
+  },
+  {
+   "start_local": "2026-07-02T13:00:00+02:00",
+   "kwh": 0.887,
+   "spot_nok_kwh_eks_mva": 0.790967,
+   "p_max_w": 2086.0
+  },
+  {
+   "start_local": "2026-07-02T14:00:00+02:00",
+   "kwh": 0.896,
+   "spot_nok_kwh_eks_mva": 0.643405,
+   "p_max_w": 1615.0
+  },
+  {
+   "start_local": "2026-07-02T15:00:00+02:00",
+   "kwh": 1.69,
+   "spot_nok_kwh_eks_mva": 0.809605,
+   "p_max_w": 3615.0
+  },
+  {
+   "start_local": "2026-07-02T16:00:00+02:00",
+   "kwh": 1.123,
+   "spot_nok_kwh_eks_mva": 0.814102,
+   "p_max_w": 3579.0
+  },
+  {
+   "start_local": "2026-07-02T17:00:00+02:00",
+   "kwh": 1.034,
+   "spot_nok_kwh_eks_mva": 0.665749,
+   "p_max_w": 2604.0
+  },
+  {
+   "start_local": "2026-07-02T18:00:00+02:00",
+   "kwh": 1.56,
+   "spot_nok_kwh_eks_mva": 0.541453,
+   "p_max_w": 4295.0
+  },
+  {
+   "start_local": "2026-07-02T19:00:00+02:00",
+   "kwh": 0.826,
+   "spot_nok_kwh_eks_mva": 0.788422,
+   "p_max_w": 2110.0
+  },
+  {
+   "start_local": "2026-07-02T20:00:00+02:00",
+   "kwh": 1.254,
+   "spot_nok_kwh_eks_mva": 0.874848,
+   "p_max_w": 2645.0
+  },
+  {
+   "start_local": "2026-07-02T21:00:00+02:00",
+   "kwh": 1.349,
+   "spot_nok_kwh_eks_mva": 0.87646,
+   "p_max_w": 3461.0
+  },
+  {
+   "start_local": "2026-07-02T22:00:00+02:00",
+   "kwh": 0.683,
+   "spot_nok_kwh_eks_mva": 0.87547,
+   "p_max_w": 1373.0
+  },
+  {
+   "start_local": "2026-07-02T23:00:00+02:00",
+   "kwh": 0.831,
+   "spot_nok_kwh_eks_mva": 0.8488,
+   "p_max_w": 2495.0
+  },
+  {
+   "start_local": "2026-07-03T00:00:00+02:00",
+   "kwh": 1.001,
+   "spot_nok_kwh_eks_mva": 0.872063,
+   "p_max_w": 3409.0
+  },
+  {
+   "start_local": "2026-07-03T01:00:00+02:00",
+   "kwh": 0.542,
+   "spot_nok_kwh_eks_mva": 0.791163,
+   "p_max_w": 1254.0
+  },
+  {
+   "start_local": "2026-07-03T02:00:00+02:00",
+   "kwh": 0.569,
+   "spot_nok_kwh_eks_mva": 0.751728,
+   "p_max_w": 1925.0
+  },
+  {
+   "start_local": "2026-07-03T03:00:00+02:00",
+   "kwh": 0.618,
+   "spot_nok_kwh_eks_mva": 0.664123,
+   "p_max_w": 1969.0
+  },
+  {
+   "start_local": "2026-07-03T04:00:00+02:00",
+   "kwh": 1.146,
+   "spot_nok_kwh_eks_mva": 0.66243,
+   "p_max_w": 2492.0
+  },
+  {
+   "start_local": "2026-07-03T05:00:00+02:00",
+   "kwh": 0.435,
+   "spot_nok_kwh_eks_mva": 0.69899,
+   "p_max_w": 1458.0
+  },
+  {
+   "start_local": "2026-07-03T06:00:00+02:00",
+   "kwh": 0.499,
+   "spot_nok_kwh_eks_mva": 0.775572,
+   "p_max_w": 1302.0
+  },
+  {
+   "start_local": "2026-07-03T07:00:00+02:00",
+   "kwh": 0.65,
+   "spot_nok_kwh_eks_mva": 0.878287,
+   "p_max_w": 1444.0
+  },
+  {
+   "start_local": "2026-07-03T08:00:00+02:00",
+   "kwh": 2.278,
+   "spot_nok_kwh_eks_mva": 0.686221,
+   "p_max_w": 5904.0
+  },
+  {
+   "start_local": "2026-07-03T09:00:00+02:00",
+   "kwh": 2.379,
+   "spot_nok_kwh_eks_mva": 0.678354,
+   "p_max_w": 4493.0
+  },
+  {
+   "start_local": "2026-07-03T10:00:00+02:00",
+   "kwh": 3.037,
+   "spot_nok_kwh_eks_mva": 0.73335,
+   "p_max_w": 6285.0
+  },
+  {
+   "start_local": "2026-07-03T11:00:00+02:00",
+   "kwh": 1.834,
+   "spot_nok_kwh_eks_mva": 0.740593,
+   "p_max_w": 4652.0
+  },
+  {
+   "start_local": "2026-07-03T12:00:00+02:00",
+   "kwh": 1.026,
+   "spot_nok_kwh_eks_mva": 0.766525,
+   "p_max_w": 1846.0
+  },
+  {
+   "start_local": "2026-07-03T13:00:00+02:00",
+   "kwh": 0.83,
+   "spot_nok_kwh_eks_mva": 0.73893,
+   "p_max_w": 2566.0
+  },
+  {
+   "start_local": "2026-07-03T14:00:00+02:00",
+   "kwh": 1.022,
+   "spot_nok_kwh_eks_mva": 0.718975,
+   "p_max_w": 2753.0
+  },
+  {
+   "start_local": "2026-07-03T15:00:00+02:00",
+   "kwh": 1.172,
+   "spot_nok_kwh_eks_mva": 0.701495,
+   "p_max_w": 3226.0
+  },
+  {
+   "start_local": "2026-07-03T16:00:00+02:00",
+   "kwh": 1.325,
+   "spot_nok_kwh_eks_mva": 0.688023,
+   "p_max_w": 6227.0
+  },
+  {
+   "start_local": "2026-07-03T17:00:00+02:00",
+   "kwh": 2.005,
+   "spot_nok_kwh_eks_mva": 0.49531,
+   "p_max_w": 5026.0
+  },
+  {
+   "start_local": "2026-07-03T18:00:00+02:00",
+   "kwh": 2.527,
+   "spot_nok_kwh_eks_mva": 0.583335,
+   "p_max_w": 4885.0
+  },
+  {
+   "start_local": "2026-07-03T19:00:00+02:00",
+   "kwh": 0.701,
+   "spot_nok_kwh_eks_mva": 0.817575,
+   "p_max_w": 2122.0
+  },
+  {
+   "start_local": "2026-07-03T20:00:00+02:00",
+   "kwh": 0.842,
+   "spot_nok_kwh_eks_mva": 0.88325,
+   "p_max_w": 1784.0
+  },
+  {
+   "start_local": "2026-07-03T21:00:00+02:00",
+   "kwh": 2.177,
+   "spot_nok_kwh_eks_mva": 0.857068,
+   "p_max_w": 5126.0
+  },
+  {
+   "start_local": "2026-07-03T22:00:00+02:00",
+   "kwh": 0.761,
+   "spot_nok_kwh_eks_mva": 0.881925,
+   "p_max_w": 1746.0
+  },
+  {
+   "start_local": "2026-07-03T23:00:00+02:00",
+   "kwh": 0.551,
+   "spot_nok_kwh_eks_mva": 0.893255,
+   "p_max_w": 1346.0
+  },
+  {
+   "start_local": "2026-07-04T00:00:00+02:00",
+   "kwh": 1.342,
+   "spot_nok_kwh_eks_mva": 0.871085,
+   "p_max_w": 3566.0
+  },
+  {
+   "start_local": "2026-07-04T01:00:00+02:00",
+   "kwh": 0.513,
+   "spot_nok_kwh_eks_mva": 0.860028,
+   "p_max_w": 1210.0
+  },
+  {
+   "start_local": "2026-07-04T02:00:00+02:00",
+   "kwh": 0.442,
+   "spot_nok_kwh_eks_mva": 0.785498,
+   "p_max_w": 1209.0
+  },
+  {
+   "start_local": "2026-07-04T03:00:00+02:00",
+   "kwh": 0.448,
+   "spot_nok_kwh_eks_mva": 0.844975,
+   "p_max_w": 1740.0
+  },
+  {
+   "start_local": "2026-07-04T04:00:00+02:00",
+   "kwh": 1.09,
+   "spot_nok_kwh_eks_mva": 0.829418,
+   "p_max_w": 2498.0
+  },
+  {
+   "start_local": "2026-07-04T05:00:00+02:00",
+   "kwh": 1.082,
+   "spot_nok_kwh_eks_mva": 0.820133,
+   "p_max_w": 3045.0
+  },
+  {
+   "start_local": "2026-07-04T06:00:00+02:00",
+   "kwh": 1.831,
+   "spot_nok_kwh_eks_mva": 0.80944,
+   "p_max_w": 3876.0
+  },
+  {
+   "start_local": "2026-07-04T07:00:00+02:00",
+   "kwh": 0.83,
+   "spot_nok_kwh_eks_mva": 0.707105,
+   "p_max_w": 1448.0
+  },
+  {
+   "start_local": "2026-07-04T08:00:00+02:00",
+   "kwh": 1.955,
+   "spot_nok_kwh_eks_mva": 0.324839,
+   "p_max_w": 4538.0
+  },
+  {
+   "start_local": "2026-07-04T09:00:00+02:00",
+   "kwh": 1.503,
+   "spot_nok_kwh_eks_mva": 0.463977,
+   "p_max_w": 3346.0
+  },
+  {
+   "start_local": "2026-07-04T10:00:00+02:00",
+   "kwh": 3.333,
+   "spot_nok_kwh_eks_mva": 0.50199,
+   "p_max_w": 5610.0
+  },
+  {
+   "start_local": "2026-07-04T11:00:00+02:00",
+   "kwh": 3.352,
+   "spot_nok_kwh_eks_mva": 0.479565,
+   "p_max_w": 4804.0
+  },
+  {
+   "start_local": "2026-07-04T12:00:00+02:00",
+   "kwh": 2.501,
+   "spot_nok_kwh_eks_mva": 0.467578,
+   "p_max_w": 5166.0
+  },
+  {
+   "start_local": "2026-07-04T13:00:00+02:00",
+   "kwh": 2.94,
+   "spot_nok_kwh_eks_mva": 0.327429,
+   "p_max_w": 5290.0
+  },
+  {
+   "start_local": "2026-07-04T14:00:00+02:00",
+   "kwh": 1.367,
+   "spot_nok_kwh_eks_mva": 0.677392,
+   "p_max_w": 3485.0
+  },
+  {
+   "start_local": "2026-07-04T15:00:00+02:00",
+   "kwh": 1.33,
+   "spot_nok_kwh_eks_mva": 0.441465,
+   "p_max_w": 2779.0
+  },
+  {
+   "start_local": "2026-07-04T16:00:00+02:00",
+   "kwh": 3.08,
+   "spot_nok_kwh_eks_mva": 0.619262,
+   "p_max_w": 7842.0
+  },
+  {
+   "start_local": "2026-07-04T17:00:00+02:00",
+   "kwh": 2.116,
+   "spot_nok_kwh_eks_mva": 0.768277,
+   "p_max_w": 4551.0
+  },
+  {
+   "start_local": "2026-07-04T18:00:00+02:00",
+   "kwh": 1.967,
+   "spot_nok_kwh_eks_mva": 0.77244,
+   "p_max_w": 3812.0
+  },
+  {
+   "start_local": "2026-07-04T19:00:00+02:00",
+   "kwh": 1.837,
+   "spot_nok_kwh_eks_mva": 0.820103,
+   "p_max_w": 4388.0
+  },
+  {
+   "start_local": "2026-07-04T20:00:00+02:00",
+   "kwh": 1.106,
+   "spot_nok_kwh_eks_mva": 0.90032,
+   "p_max_w": 2739.0
+  },
+  {
+   "start_local": "2026-07-04T21:00:00+02:00",
+   "kwh": 1.324,
+   "spot_nok_kwh_eks_mva": 0.876098,
+   "p_max_w": 3017.0
+  },
+  {
+   "start_local": "2026-07-04T22:00:00+02:00",
+   "kwh": 1.415,
+   "spot_nok_kwh_eks_mva": 0.88524,
+   "p_max_w": 3706.0
+  },
+  {
+   "start_local": "2026-07-04T23:00:00+02:00",
+   "kwh": 0.694,
+   "spot_nok_kwh_eks_mva": 0.87632,
+   "p_max_w": 2176.0
+  },
+  {
+   "start_local": "2026-07-05T00:00:00+02:00",
+   "kwh": 1.166,
+   "spot_nok_kwh_eks_mva": 0.890842,
+   "p_max_w": 3419.0
+  },
+  {
+   "start_local": "2026-07-05T01:00:00+02:00",
+   "kwh": 0.485,
+   "spot_nok_kwh_eks_mva": 0.87482,
+   "p_max_w": 2263.0
+  },
+  {
+   "start_local": "2026-07-05T02:00:00+02:00",
+   "kwh": 0.551,
+   "spot_nok_kwh_eks_mva": 0.8724,
+   "p_max_w": 2488.0
+  },
+  {
+   "start_local": "2026-07-05T03:00:00+02:00",
+   "kwh": 0.437,
+   "spot_nok_kwh_eks_mva": 0.8724,
+   "p_max_w": 1202.0
+  },
+  {
+   "start_local": "2026-07-05T04:00:00+02:00",
+   "kwh": 0.519,
+   "spot_nok_kwh_eks_mva": 0.75031,
+   "p_max_w": 2531.0
+  },
+  {
+   "start_local": "2026-07-05T05:00:00+02:00",
+   "kwh": 1.1,
+   "spot_nok_kwh_eks_mva": 0.7471,
+   "p_max_w": 3497.0
+  },
+  {
+   "start_local": "2026-07-05T06:00:00+02:00",
+   "kwh": 0.951,
+   "spot_nok_kwh_eks_mva": 0.708725,
+   "p_max_w": 2771.0
+  },
+  {
+   "start_local": "2026-07-05T07:00:00+02:00",
+   "kwh": 1.266,
+   "spot_nok_kwh_eks_mva": 0.499328,
+   "p_max_w": 2632.0
+  },
+  {
+   "start_local": "2026-07-05T08:00:00+02:00",
+   "kwh": 1.545,
+   "spot_nok_kwh_eks_mva": 0.184258,
+   "p_max_w": 3753.0
+  },
+  {
+   "start_local": "2026-07-05T09:00:00+02:00",
+   "kwh": 1.816,
+   "spot_nok_kwh_eks_mva": 0.223223,
+   "p_max_w": 5052.0
+  },
+  {
+   "start_local": "2026-07-05T10:00:00+02:00",
+   "kwh": 3.217,
+   "spot_nok_kwh_eks_mva": 0.274324,
+   "p_max_w": 5288.0
+  },
+  {
+   "start_local": "2026-07-05T11:00:00+02:00",
+   "kwh": 3.08,
+   "spot_nok_kwh_eks_mva": 0.26664,
+   "p_max_w": 6446.0
+  },
+  {
+   "start_local": "2026-07-05T12:00:00+02:00",
+   "kwh": 1.241,
+   "spot_nok_kwh_eks_mva": 0.197938,
+   "p_max_w": 3230.0
+  },
+  {
+   "start_local": "2026-07-05T13:00:00+02:00",
+   "kwh": 2.494,
+   "spot_nok_kwh_eks_mva": 0.132955,
+   "p_max_w": 5465.0
+  },
+  {
+   "start_local": "2026-07-05T14:00:00+02:00",
+   "kwh": 2.976,
+   "spot_nok_kwh_eks_mva": 0.106883,
+   "p_max_w": 4693.0
+  },
+  {
+   "start_local": "2026-07-05T15:00:00+02:00",
+   "kwh": 1.191,
+   "spot_nok_kwh_eks_mva": 0.20878,
+   "p_max_w": 3270.0
+  },
+  {
+   "start_local": "2026-07-05T16:00:00+02:00",
+   "kwh": 1.216,
+   "spot_nok_kwh_eks_mva": 0.230092,
+   "p_max_w": 4019.0
+  },
+  {
+   "start_local": "2026-07-05T17:00:00+02:00",
+   "kwh": 1.616,
+   "spot_nok_kwh_eks_mva": 0.16697,
+   "p_max_w": 3450.0
+  },
+  {
+   "start_local": "2026-07-05T18:00:00+02:00",
+   "kwh": 1.133,
+   "spot_nok_kwh_eks_mva": 0.711761,
+   "p_max_w": 2792.0
+  },
+  {
+   "start_local": "2026-07-05T19:00:00+02:00",
+   "kwh": 1.662,
+   "spot_nok_kwh_eks_mva": 0.883435,
+   "p_max_w": 4804.0
+  },
+  {
+   "start_local": "2026-07-05T20:00:00+02:00",
+   "kwh": 2.051,
+   "spot_nok_kwh_eks_mva": 0.938905,
+   "p_max_w": 3953.0
+  },
+  {
+   "start_local": "2026-07-05T21:00:00+02:00",
+   "kwh": 1.447,
+   "spot_nok_kwh_eks_mva": 0.94856,
+   "p_max_w": 3014.0
+  },
+  {
+   "start_local": "2026-07-05T22:00:00+02:00",
+   "kwh": 1.688,
+   "spot_nok_kwh_eks_mva": 0.962105,
+   "p_max_w": 3923.0
+  },
+  {
+   "start_local": "2026-07-05T23:00:00+02:00",
+   "kwh": 1.693,
+   "spot_nok_kwh_eks_mva": 0.974887,
+   "p_max_w": 4160.0
+  },
+  {
+   "start_local": "2026-07-06T00:00:00+02:00",
+   "kwh": 0.846,
+   "spot_nok_kwh_eks_mva": 0.963259,
+   "p_max_w": 1846.0
+  },
+  {
+   "start_local": "2026-07-06T01:00:00+02:00",
+   "kwh": 0.494,
+   "spot_nok_kwh_eks_mva": 0.939748,
+   "p_max_w": 1604.0
+  },
+  {
+   "start_local": "2026-07-06T02:00:00+02:00",
+   "kwh": 1.097,
+   "spot_nok_kwh_eks_mva": 0.947237,
+   "p_max_w": 4286.0
+  },
+  {
+   "start_local": "2026-07-06T03:00:00+02:00",
+   "kwh": 0.786,
+   "spot_nok_kwh_eks_mva": 0.938113,
+   "p_max_w": 3379.0
+  },
+  {
+   "start_local": "2026-07-06T04:00:00+02:00",
+   "kwh": 0.565,
+   "spot_nok_kwh_eks_mva": 0.940167,
+   "p_max_w": 1653.0
+  },
+  {
+   "start_local": "2026-07-06T05:00:00+02:00",
+   "kwh": 0.61,
+   "spot_nok_kwh_eks_mva": 0.930178,
+   "p_max_w": 1847.0
+  },
+  {
+   "start_local": "2026-07-06T06:00:00+02:00",
+   "kwh": 0.803,
+   "spot_nok_kwh_eks_mva": 1.036716,
+   "p_max_w": 3149.0
+  },
+  {
+   "start_local": "2026-07-06T07:00:00+02:00",
+   "kwh": 1.931,
+   "spot_nok_kwh_eks_mva": 1.03804,
+   "p_max_w": 4433.0
+  },
+  {
+   "start_local": "2026-07-06T08:00:00+02:00",
+   "kwh": 1.021,
+   "spot_nok_kwh_eks_mva": 0.990063,
+   "p_max_w": 3000.0
+  },
+  {
+   "start_local": "2026-07-06T09:00:00+02:00",
+   "kwh": 2.542,
+   "spot_nok_kwh_eks_mva": 0.939013,
+   "p_max_w": 5130.0
+  },
+  {
+   "start_local": "2026-07-06T10:00:00+02:00",
+   "kwh": 2.266,
+   "spot_nok_kwh_eks_mva": 0.946808,
+   "p_max_w": 4505.0
+  },
+  {
+   "start_local": "2026-07-06T11:00:00+02:00",
+   "kwh": 2.631,
+   "spot_nok_kwh_eks_mva": 0.826504,
+   "p_max_w": 6717.0
+  },
+  {
+   "start_local": "2026-07-06T12:00:00+02:00",
+   "kwh": 1.105,
+   "spot_nok_kwh_eks_mva": 0.57899,
+   "p_max_w": 2691.0
+  },
+  {
+   "start_local": "2026-07-06T13:00:00+02:00",
+   "kwh": 1.24,
+   "spot_nok_kwh_eks_mva": 0.542167,
+   "p_max_w": 3336.0
+  },
+  {
+   "start_local": "2026-07-06T14:00:00+02:00",
+   "kwh": 1.345,
+   "spot_nok_kwh_eks_mva": 0.491348,
+   "p_max_w": 3785.0
+  },
+  {
+   "start_local": "2026-07-06T15:00:00+02:00",
+   "kwh": 0.849,
+   "spot_nok_kwh_eks_mva": 0.60392,
+   "p_max_w": 1853.0
+  },
+  {
+   "start_local": "2026-07-06T16:00:00+02:00",
+   "kwh": 0.676,
+   "spot_nok_kwh_eks_mva": 0.535168,
+   "p_max_w": 1961.0
+  },
+  {
+   "start_local": "2026-07-06T17:00:00+02:00",
+   "kwh": 1.556,
+   "spot_nok_kwh_eks_mva": 0.755587,
+   "p_max_w": 3629.0
+  },
+  {
+   "start_local": "2026-07-06T18:00:00+02:00",
+   "kwh": 1.122,
+   "spot_nok_kwh_eks_mva": 0.915548,
+   "p_max_w": 2559.0
+  },
+  {
+   "start_local": "2026-07-06T19:00:00+02:00",
+   "kwh": 2.835,
+   "spot_nok_kwh_eks_mva": 0.941772,
+   "p_max_w": 5146.0
+  },
+  {
+   "start_local": "2026-07-06T20:00:00+02:00",
+   "kwh": 1.333,
+   "spot_nok_kwh_eks_mva": 1.001642,
+   "p_max_w": 4162.0
+  },
+  {
+   "start_local": "2026-07-06T21:00:00+02:00",
+   "kwh": 0.587,
+   "spot_nok_kwh_eks_mva": 1.005465,
+   "p_max_w": 1391.0
+  },
+  {
+   "start_local": "2026-07-06T22:00:00+02:00",
+   "kwh": 1.391,
+   "spot_nok_kwh_eks_mva": 0.988208,
+   "p_max_w": 3690.0
+  },
+  {
+   "start_local": "2026-07-06T23:00:00+02:00",
+   "kwh": 0.74,
+   "spot_nok_kwh_eks_mva": 0.939075,
+   "p_max_w": 2287.0
+  },
+  {
+   "start_local": "2026-07-07T00:00:00+02:00",
+   "kwh": 1.085,
+   "spot_nok_kwh_eks_mva": 0.99349,
+   "p_max_w": 4455.0
+  },
+  {
+   "start_local": "2026-07-07T01:00:00+02:00",
+   "kwh": 1.827,
+   "spot_nok_kwh_eks_mva": 0.973625,
+   "p_max_w": 5545.0
+  },
+  {
+   "start_local": "2026-07-07T02:00:00+02:00",
+   "kwh": 0.491,
+   "spot_nok_kwh_eks_mva": 0.956685,
+   "p_max_w": 1694.0
+  },
+  {
+   "start_local": "2026-07-07T03:00:00+02:00",
+   "kwh": 0.532,
+   "spot_nok_kwh_eks_mva": 0.926543,
+   "p_max_w": 1162.0
+  },
+  {
+   "start_local": "2026-07-07T04:00:00+02:00",
+   "kwh": 0.582,
+   "spot_nok_kwh_eks_mva": 0.901343,
+   "p_max_w": 1772.0
+  },
+  {
+   "start_local": "2026-07-07T05:00:00+02:00",
+   "kwh": 1.173,
+   "spot_nok_kwh_eks_mva": 0.937947,
+   "p_max_w": 3706.0
+  },
+  {
+   "start_local": "2026-07-07T06:00:00+02:00",
+   "kwh": 0.559,
+   "spot_nok_kwh_eks_mva": 1.032482,
+   "p_max_w": 1845.0
+  },
+  {
+   "start_local": "2026-07-07T07:00:00+02:00",
+   "kwh": 1.631,
+   "spot_nok_kwh_eks_mva": 1.058497,
+   "p_max_w": 4913.0
+  },
+  {
+   "start_local": "2026-07-07T08:00:00+02:00",
+   "kwh": 1.452,
+   "spot_nok_kwh_eks_mva": 1.028465,
+   "p_max_w": 5202.0
+  },
+  {
+   "start_local": "2026-07-07T09:00:00+02:00",
+   "kwh": 2.139,
+   "spot_nok_kwh_eks_mva": 0.986554,
+   "p_max_w": 4040.0
+  },
+  {
+   "start_local": "2026-07-07T10:00:00+02:00",
+   "kwh": 2.046,
+   "spot_nok_kwh_eks_mva": 0.771133,
+   "p_max_w": 4063.0
+  },
+  {
+   "start_local": "2026-07-07T11:00:00+02:00",
+   "kwh": 0.89,
+   "spot_nok_kwh_eks_mva": 0.641847,
+   "p_max_w": 3350.0
+  },
+  {
+   "start_local": "2026-07-07T12:00:00+02:00",
+   "kwh": 1.26,
+   "spot_nok_kwh_eks_mva": 0.569115,
+   "p_max_w": 3026.0
+  },
+  {
+   "start_local": "2026-07-07T13:00:00+02:00",
+   "kwh": 0.685,
+   "spot_nok_kwh_eks_mva": 0.59965,
+   "p_max_w": 2232.0
+  },
+  {
+   "start_local": "2026-07-07T14:00:00+02:00",
+   "kwh": 0.569,
+   "spot_nok_kwh_eks_mva": 0.548715,
+   "p_max_w": 1248.0
+  },
+  {
+   "start_local": "2026-07-07T15:00:00+02:00",
+   "kwh": 0.642,
+   "spot_nok_kwh_eks_mva": 0.572344,
+   "p_max_w": 2531.0
+  },
+  {
+   "start_local": "2026-07-07T16:00:00+02:00",
+   "kwh": 1.229,
+   "spot_nok_kwh_eks_mva": 0.54054,
+   "p_max_w": 2551.0
+  },
+  {
+   "start_local": "2026-07-07T17:00:00+02:00",
+   "kwh": 0.615,
+   "spot_nok_kwh_eks_mva": 0.55057,
+   "p_max_w": 1326.0
+  },
+  {
+   "start_local": "2026-07-07T18:00:00+02:00",
+   "kwh": 0.549,
+   "spot_nok_kwh_eks_mva": 0.627519,
+   "p_max_w": 1251.0
+  },
+  {
+   "start_local": "2026-07-07T19:00:00+02:00",
+   "kwh": 0.55,
+   "spot_nok_kwh_eks_mva": 0.872519,
+   "p_max_w": 1963.0
+  },
+  {
+   "start_local": "2026-07-07T20:00:00+02:00",
+   "kwh": 1.332,
+   "spot_nok_kwh_eks_mva": 0.936403,
+   "p_max_w": 3365.0
+  },
+  {
+   "start_local": "2026-07-07T21:00:00+02:00",
+   "kwh": 0.54,
+   "spot_nok_kwh_eks_mva": 0.95003,
+   "p_max_w": 1541.0
+  },
+  {
+   "start_local": "2026-07-07T22:00:00+02:00",
+   "kwh": 0.474,
+   "spot_nok_kwh_eks_mva": 0.96812,
+   "p_max_w": 1749.0
+  },
+  {
+   "start_local": "2026-07-07T23:00:00+02:00",
+   "kwh": 0.715,
+   "spot_nok_kwh_eks_mva": 0.95705,
+   "p_max_w": 1278.0
+  },
+  {
+   "start_local": "2026-07-08T00:00:00+02:00",
+   "kwh": 1.178,
+   "spot_nok_kwh_eks_mva": 1.00768,
+   "p_max_w": 3403.0
+  },
+  {
+   "start_local": "2026-07-08T01:00:00+02:00",
+   "kwh": 0.463,
+   "spot_nok_kwh_eks_mva": 0.986845,
+   "p_max_w": 1759.0
+  },
+  {
+   "start_local": "2026-07-08T02:00:00+02:00",
+   "kwh": 0.698,
+   "spot_nok_kwh_eks_mva": 0.969795,
+   "p_max_w": 2185.0
+  },
+  {
+   "start_local": "2026-07-08T03:00:00+02:00",
+   "kwh": 0.453,
+   "spot_nok_kwh_eks_mva": 0.96254,
+   "p_max_w": 2200.0
+  },
+  {
+   "start_local": "2026-07-08T04:00:00+02:00",
+   "kwh": 1.22,
+   "spot_nok_kwh_eks_mva": 0.946193,
+   "p_max_w": 2955.0
+  },
+  {
+   "start_local": "2026-07-08T05:00:00+02:00",
+   "kwh": 0.607,
+   "spot_nok_kwh_eks_mva": 0.94269,
+   "p_max_w": 2094.0
+  },
+  {
+   "start_local": "2026-07-08T06:00:00+02:00",
+   "kwh": 0.643,
+   "spot_nok_kwh_eks_mva": 0.966827,
+   "p_max_w": 2127.0
+  },
+  {
+   "start_local": "2026-07-08T07:00:00+02:00",
+   "kwh": 0.687,
+   "spot_nok_kwh_eks_mva": 1.025768,
+   "p_max_w": 1431.0
+  },
+  {
+   "start_local": "2026-07-08T08:00:00+02:00",
+   "kwh": 1.456,
+   "spot_nok_kwh_eks_mva": 1.013755,
+   "p_max_w": 3009.0
+  },
+  {
+   "start_local": "2026-07-08T09:00:00+02:00",
+   "kwh": 0.736,
+   "spot_nok_kwh_eks_mva": 0.987268,
+   "p_max_w": 1706.0
+  },
+  {
+   "start_local": "2026-07-08T10:00:00+02:00",
+   "kwh": 0.597,
+   "spot_nok_kwh_eks_mva": 0.929195,
+   "p_max_w": 2260.0
+  },
+  {
+   "start_local": "2026-07-08T11:00:00+02:00",
+   "kwh": 0.874,
+   "spot_nok_kwh_eks_mva": 0.869695,
+   "p_max_w": 1771.0
+  },
+  {
+   "start_local": "2026-07-08T12:00:00+02:00",
+   "kwh": 1.002,
+   "spot_nok_kwh_eks_mva": 0.822762,
+   "p_max_w": 3636.0
+  },
+  {
+   "start_local": "2026-07-08T13:00:00+02:00",
+   "kwh": 0.942,
+   "spot_nok_kwh_eks_mva": 0.81652,
+   "p_max_w": 2645.0
+  },
+  {
+   "start_local": "2026-07-08T14:00:00+02:00",
+   "kwh": 0.808,
+   "spot_nok_kwh_eks_mva": 0.814563,
+   "p_max_w": 1964.0
+  },
+  {
+   "start_local": "2026-07-08T15:00:00+02:00",
+   "kwh": 0.594,
+   "spot_nok_kwh_eks_mva": 0.827522,
+   "p_max_w": 2080.0
+  },
+  {
+   "start_local": "2026-07-08T16:00:00+02:00",
+   "kwh": 0.9,
+   "spot_nok_kwh_eks_mva": 0.829375,
+   "p_max_w": 3242.0
+  },
+  {
+   "start_local": "2026-07-08T17:00:00+02:00",
+   "kwh": 1.24,
+   "spot_nok_kwh_eks_mva": 0.927432,
+   "p_max_w": 2691.0
+  },
+  {
+   "start_local": "2026-07-08T18:00:00+02:00",
+   "kwh": 0.668,
+   "spot_nok_kwh_eks_mva": 1.016162,
+   "p_max_w": 1658.0
+  },
+  {
+   "start_local": "2026-07-08T19:00:00+02:00",
+   "kwh": 0.668,
+   "spot_nok_kwh_eks_mva": 1.030835,
+   "p_max_w": 1420.0
+  },
+  {
+   "start_local": "2026-07-08T20:00:00+02:00",
+   "kwh": 0.706,
+   "spot_nok_kwh_eks_mva": 1.049762,
+   "p_max_w": 2114.0
+  },
+  {
+   "start_local": "2026-07-08T21:00:00+02:00",
+   "kwh": 1.438,
+   "spot_nok_kwh_eks_mva": 1.040633,
+   "p_max_w": 3259.0
+  },
+  {
+   "start_local": "2026-07-08T22:00:00+02:00",
+   "kwh": 0.571,
+   "spot_nok_kwh_eks_mva": 1.045395,
+   "p_max_w": 1647.0
+  },
+  {
+   "start_local": "2026-07-08T23:00:00+02:00",
+   "kwh": 0.716,
+   "spot_nok_kwh_eks_mva": 1.03929,
+   "p_max_w": 1642.0
+  },
+  {
+   "start_local": "2026-07-09T00:00:00+02:00",
+   "kwh": 0.703,
+   "spot_nok_kwh_eks_mva": 1.095027,
+   "p_max_w": 2207.0
+  },
+  {
+   "start_local": "2026-07-09T01:00:00+02:00",
+   "kwh": 1.125,
+   "spot_nok_kwh_eks_mva": 1.081105,
+   "p_max_w": 2994.0
+  },
+  {
+   "start_local": "2026-07-09T02:00:00+02:00",
+   "kwh": 0.629,
+   "spot_nok_kwh_eks_mva": 1.064615,
+   "p_max_w": 2126.0
+  },
+  {
+   "start_local": "2026-07-09T03:00:00+02:00",
+   "kwh": 0.554,
+   "spot_nok_kwh_eks_mva": 1.064615,
+   "p_max_w": 1530.0
+  },
+  {
+   "start_local": "2026-07-09T04:00:00+02:00",
+   "kwh": 0.541,
+   "spot_nok_kwh_eks_mva": 1.065005,
+   "p_max_w": 2084.0
+  },
+  {
+   "start_local": "2026-07-09T05:00:00+02:00",
+   "kwh": 1.168,
+   "spot_nok_kwh_eks_mva": 1.078987,
+   "p_max_w": 3192.0
+  },
+  {
+   "start_local": "2026-07-09T06:00:00+02:00",
+   "kwh": 0.67,
+   "spot_nok_kwh_eks_mva": 1.11196,
+   "p_max_w": 2091.0
+  },
+  {
+   "start_local": "2026-07-09T07:00:00+02:00",
+   "kwh": 0.695,
+   "spot_nok_kwh_eks_mva": 1.138698,
+   "p_max_w": 1390.0
+  },
+  {
+   "start_local": "2026-07-09T08:00:00+02:00",
+   "kwh": 0.621,
+   "spot_nok_kwh_eks_mva": 1.135103,
+   "p_max_w": 1752.0
+  },
+  {
+   "start_local": "2026-07-09T09:00:00+02:00",
+   "kwh": 1.117,
+   "spot_nok_kwh_eks_mva": 1.087818,
+   "p_max_w": 3075.0
+  },
+  {
+   "start_local": "2026-07-09T10:00:00+02:00",
+   "kwh": 1.047,
+   "spot_nok_kwh_eks_mva": 1.073443,
+   "p_max_w": 3652.0
+  },
+  {
+   "start_local": "2026-07-09T11:00:00+02:00",
+   "kwh": 0.698,
+   "spot_nok_kwh_eks_mva": 1.005823,
+   "p_max_w": 1834.0
+  },
+  {
+   "start_local": "2026-07-09T12:00:00+02:00",
+   "kwh": 0.778,
+   "spot_nok_kwh_eks_mva": 0.901663,
+   "p_max_w": 1669.0
+  },
+  {
+   "start_local": "2026-07-09T13:00:00+02:00",
+   "kwh": 0.65,
+   "spot_nok_kwh_eks_mva": 0.857182,
+   "p_max_w": 1865.0
+  },
+  {
+   "start_local": "2026-07-09T14:00:00+02:00",
+   "kwh": 1.356,
+   "spot_nok_kwh_eks_mva": 0.841755,
+   "p_max_w": 3731.0
+  },
+  {
+   "start_local": "2026-07-09T15:00:00+02:00",
+   "kwh": 0.725,
+   "spot_nok_kwh_eks_mva": 0.836852,
+   "p_max_w": 1780.0
+  },
+  {
+   "start_local": "2026-07-09T16:00:00+02:00",
+   "kwh": 0.662,
+   "spot_nok_kwh_eks_mva": 0.985549,
+   "p_max_w": 2199.0
+  },
+  {
+   "start_local": "2026-07-09T17:00:00+02:00",
+   "kwh": 0.69,
+   "spot_nok_kwh_eks_mva": 1.053557,
+   "p_max_w": 2566.0
+  },
+  {
+   "start_local": "2026-07-09T18:00:00+02:00",
+   "kwh": 1.287,
+   "spot_nok_kwh_eks_mva": 1.079125,
+   "p_max_w": 2583.0
+  },
+  {
+   "start_local": "2026-07-09T19:00:00+02:00",
+   "kwh": 0.661,
+   "spot_nok_kwh_eks_mva": 1.131689,
+   "p_max_w": 1743.0
+  },
+  {
+   "start_local": "2026-07-09T20:00:00+02:00",
+   "kwh": 0.676,
+   "spot_nok_kwh_eks_mva": 1.147302,
+   "p_max_w": 1648.0
+  },
+  {
+   "start_local": "2026-07-09T21:00:00+02:00",
+   "kwh": 0.622,
+   "spot_nok_kwh_eks_mva": 1.154322,
+   "p_max_w": 2331.0
+  },
+  {
+   "start_local": "2026-07-09T22:00:00+02:00",
+   "kwh": 1.334,
+   "spot_nok_kwh_eks_mva": 1.144018,
+   "p_max_w": 4195.0
+  },
+  {
+   "start_local": "2026-07-09T23:00:00+02:00",
+   "kwh": 0.562,
+   "spot_nok_kwh_eks_mva": 1.145468,
+   "p_max_w": 1734.0
+  },
+  {
+   "start_local": "2026-07-10T00:00:00+02:00",
+   "kwh": 0.653,
+   "spot_nok_kwh_eks_mva": 1.205373,
+   "p_max_w": 1902.0
+  },
+  {
+   "start_local": "2026-07-10T01:00:00+02:00",
+   "kwh": 0.537,
+   "spot_nok_kwh_eks_mva": 1.178606,
+   "p_max_w": 1448.0
+  },
+  {
+   "start_local": "2026-07-10T02:00:00+02:00",
+   "kwh": 1.161,
+   "spot_nok_kwh_eks_mva": 1.15056,
+   "p_max_w": 4047.0
+  },
+  {
+   "start_local": "2026-07-10T03:00:00+02:00",
+   "kwh": 0.503,
+   "spot_nok_kwh_eks_mva": 1.147185,
+   "p_max_w": 1591.0
+  },
+  {
+   "start_local": "2026-07-10T04:00:00+02:00",
+   "kwh": 0.506,
+   "spot_nok_kwh_eks_mva": 1.152007,
+   "p_max_w": 1210.0
+  },
+  {
+   "start_local": "2026-07-10T05:00:00+02:00",
+   "kwh": 0.569,
+   "spot_nok_kwh_eks_mva": 1.16843,
+   "p_max_w": 1539.0
+  },
+  {
+   "start_local": "2026-07-10T06:00:00+02:00",
+   "kwh": 1.221,
+   "spot_nok_kwh_eks_mva": 1.162155,
+   "p_max_w": 3567.0
+  },
+  {
+   "start_local": "2026-07-10T07:00:00+02:00",
+   "kwh": 0.671,
+   "spot_nok_kwh_eks_mva": 1.17091,
+   "p_max_w": 1824.0
+  },
+  {
+   "start_local": "2026-07-10T08:00:00+02:00",
+   "kwh": 0.618,
+   "spot_nok_kwh_eks_mva": 1.13974,
+   "p_max_w": 2273.0
+  },
+  {
+   "start_local": "2026-07-10T09:00:00+02:00",
+   "kwh": 0.797,
+   "spot_nok_kwh_eks_mva": 1.104775,
+   "p_max_w": 2557.0
+  },
+  {
+   "start_local": "2026-07-10T10:00:00+02:00",
+   "kwh": 1.003,
+   "spot_nok_kwh_eks_mva": 1.08643,
+   "p_max_w": 3585.0
+  },
+  {
+   "start_local": "2026-07-10T11:00:00+02:00",
+   "kwh": 0.898,
+   "spot_nok_kwh_eks_mva": 0.951563,
+   "p_max_w": 2649.0
+  },
+  {
+   "start_local": "2026-07-10T12:00:00+02:00",
+   "kwh": 0.824,
+   "spot_nok_kwh_eks_mva": 0.938485,
+   "p_max_w": 1916.0
+  },
+  {
+   "start_local": "2026-07-10T13:00:00+02:00",
+   "kwh": 0.611,
+   "spot_nok_kwh_eks_mva": 0.916962,
+   "p_max_w": 1819.0
+  },
+  {
+   "start_local": "2026-07-10T14:00:00+02:00",
+   "kwh": 0.599,
+   "spot_nok_kwh_eks_mva": 0.89895,
+   "p_max_w": 1240.0
+  },
+  {
+   "start_local": "2026-07-10T15:00:00+02:00",
+   "kwh": 1.243,
+   "spot_nok_kwh_eks_mva": 0.89711,
+   "p_max_w": 4044.0
+  },
+  {
+   "start_local": "2026-07-10T16:00:00+02:00",
+   "kwh": 0.803,
+   "spot_nok_kwh_eks_mva": 1.00571,
+   "p_max_w": 1397.0
+  },
+  {
+   "start_local": "2026-07-10T17:00:00+02:00",
+   "kwh": 0.616,
+   "spot_nok_kwh_eks_mva": 1.090805,
+   "p_max_w": 1626.0
+  },
+  {
+   "start_local": "2026-07-10T18:00:00+02:00",
+   "kwh": 2.602,
+   "spot_nok_kwh_eks_mva": 1.132547,
+   "p_max_w": 3328.0
+  },
+  {
+   "start_local": "2026-07-10T19:00:00+02:00",
+   "kwh": 2.852,
+   "spot_nok_kwh_eks_mva": 1.17387,
+   "p_max_w": 3279.0
+  },
+  {
+   "start_local": "2026-07-10T20:00:00+02:00",
+   "kwh": 2.981,
+   "spot_nok_kwh_eks_mva": 1.177383,
+   "p_max_w": 4633.0
+  },
+  {
+   "start_local": "2026-07-10T21:00:00+02:00",
+   "kwh": 1.84,
+   "spot_nok_kwh_eks_mva": 1.176378,
+   "p_max_w": 4432.0
+  },
+  {
+   "start_local": "2026-07-10T22:00:00+02:00",
+   "kwh": 0.759,
+   "spot_nok_kwh_eks_mva": 1.162993,
+   "p_max_w": 1530.0
+  },
+  {
+   "start_local": "2026-07-10T23:00:00+02:00",
+   "kwh": 1.748,
+   "spot_nok_kwh_eks_mva": 1.16196,
+   "p_max_w": 4232.0
+  },
+  {
+   "start_local": "2026-07-11T00:00:00+02:00",
+   "kwh": 0.741,
+   "spot_nok_kwh_eks_mva": 1.183445,
+   "p_max_w": 2741.0
+  },
+  {
+   "start_local": "2026-07-11T01:00:00+02:00",
+   "kwh": 0.586,
+   "spot_nok_kwh_eks_mva": 1.174693,
+   "p_max_w": 1998.0
+  },
+  {
+   "start_local": "2026-07-11T02:00:00+02:00",
+   "kwh": 0.459,
+   "spot_nok_kwh_eks_mva": 1.160868,
+   "p_max_w": 1201.0
+  },
+  {
+   "start_local": "2026-07-11T03:00:00+02:00",
+   "kwh": 1.139,
+   "spot_nok_kwh_eks_mva": 1.156295,
+   "p_max_w": 3031.0
+  },
+  {
+   "start_local": "2026-07-11T04:00:00+02:00",
+   "kwh": 0.592,
+   "spot_nok_kwh_eks_mva": 1.153897,
+   "p_max_w": 1331.0
+  },
+  {
+   "start_local": "2026-07-11T05:00:00+02:00",
+   "kwh": 0.509,
+   "spot_nok_kwh_eks_mva": 1.145258,
+   "p_max_w": 1658.0
+  },
+  {
+   "start_local": "2026-07-11T06:00:00+02:00",
+   "kwh": 0.605,
+   "spot_nok_kwh_eks_mva": 1.1321,
+   "p_max_w": 2120.0
+  },
+  {
+   "start_local": "2026-07-11T07:00:00+02:00",
+   "kwh": 1.3,
+   "spot_nok_kwh_eks_mva": 1.118442,
+   "p_max_w": 3130.0
+  },
+  {
+   "start_local": "2026-07-11T08:00:00+02:00",
+   "kwh": 0.866,
+   "spot_nok_kwh_eks_mva": 1.13497,
+   "p_max_w": 2051.0
+  },
+  {
+   "start_local": "2026-07-11T09:00:00+02:00",
+   "kwh": 0.921,
+   "spot_nok_kwh_eks_mva": 0.964219,
+   "p_max_w": 2747.0
+  },
+  {
+   "start_local": "2026-07-11T10:00:00+02:00",
+   "kwh": 1.757,
+   "spot_nok_kwh_eks_mva": 0.826825,
+   "p_max_w": 4202.0
+  },
+  {
+   "start_local": "2026-07-11T11:00:00+02:00",
+   "kwh": 1.355,
+   "spot_nok_kwh_eks_mva": 0.851297,
+   "p_max_w": 3770.0
+  },
+  {
+   "start_local": "2026-07-11T12:00:00+02:00",
+   "kwh": 2.083,
+   "spot_nok_kwh_eks_mva": 0.867828,
+   "p_max_w": 4169.0
+  },
+  {
+   "start_local": "2026-07-11T13:00:00+02:00",
+   "kwh": 3.689,
+   "spot_nok_kwh_eks_mva": 0.818578,
+   "p_max_w": 5919.0
+  },
+  {
+   "start_local": "2026-07-11T14:00:00+02:00",
+   "kwh": 0.875,
+   "spot_nok_kwh_eks_mva": 0.802238,
+   "p_max_w": 2908.0
+  },
+  {
+   "start_local": "2026-07-11T15:00:00+02:00",
+   "kwh": 1.14,
+   "spot_nok_kwh_eks_mva": 0.809152,
+   "p_max_w": 5497.0
+  },
+  {
+   "start_local": "2026-07-11T16:00:00+02:00",
+   "kwh": 4.573,
+   "spot_nok_kwh_eks_mva": 0.810158,
+   "p_max_w": 6175.0
+  },
+  {
+   "start_local": "2026-07-11T17:00:00+02:00",
+   "kwh": 3.799,
+   "spot_nok_kwh_eks_mva": 1.027154,
+   "p_max_w": 6041.0
+  },
+  {
+   "start_local": "2026-07-11T18:00:00+02:00",
+   "kwh": 2.871,
+   "spot_nok_kwh_eks_mva": 1.12541,
+   "p_max_w": 3986.0
+  },
+  {
+   "start_local": "2026-07-11T19:00:00+02:00",
+   "kwh": 1.828,
+   "spot_nok_kwh_eks_mva": 1.174219,
+   "p_max_w": 3709.0
+  },
+  {
+   "start_local": "2026-07-11T20:00:00+02:00",
+   "kwh": 0.938,
+   "spot_nok_kwh_eks_mva": 1.20856,
+   "p_max_w": 1729.0
+  },
+  {
+   "start_local": "2026-07-11T21:00:00+02:00",
+   "kwh": 0.834,
+   "spot_nok_kwh_eks_mva": 1.194678,
+   "p_max_w": 1956.0
+  },
+  {
+   "start_local": "2026-07-11T22:00:00+02:00",
+   "kwh": 1.518,
+   "spot_nok_kwh_eks_mva": 1.186343,
+   "p_max_w": 4055.0
+  },
+  {
+   "start_local": "2026-07-11T23:00:00+02:00",
+   "kwh": 0.727,
+   "spot_nok_kwh_eks_mva": 1.178398,
+   "p_max_w": 1461.0
+  },
+  {
+   "start_local": "2026-07-12T00:00:00+02:00",
+   "kwh": 0.717,
+   "spot_nok_kwh_eks_mva": 1.177027,
+   "p_max_w": 1487.0
+  },
+  {
+   "start_local": "2026-07-12T01:00:00+02:00",
+   "kwh": 0.872,
+   "spot_nok_kwh_eks_mva": 1.15994,
+   "p_max_w": 3001.0
+  },
+  {
+   "start_local": "2026-07-12T02:00:00+02:00",
+   "kwh": 1.243,
+   "spot_nok_kwh_eks_mva": 1.159855,
+   "p_max_w": 3051.0
+  },
+  {
+   "start_local": "2026-07-12T03:00:00+02:00",
+   "kwh": 0.467,
+   "spot_nok_kwh_eks_mva": 1.159772,
+   "p_max_w": 1763.0
+  },
+  {
+   "start_local": "2026-07-12T04:00:00+02:00",
+   "kwh": 0.587,
+   "spot_nok_kwh_eks_mva": 1.158847,
+   "p_max_w": 1749.0
+  },
+  {
+   "start_local": "2026-07-12T05:00:00+02:00",
+   "kwh": 0.689,
+   "spot_nok_kwh_eks_mva": 1.156923,
+   "p_max_w": 1887.0
+  },
+  {
+   "start_local": "2026-07-12T06:00:00+02:00",
+   "kwh": 1.208,
+   "spot_nok_kwh_eks_mva": 1.133745,
+   "p_max_w": 3456.0
+  },
+  {
+   "start_local": "2026-07-12T07:00:00+02:00",
+   "kwh": 0.754,
+   "spot_nok_kwh_eks_mva": 1.082788,
+   "p_max_w": 2216.0
+  },
+  {
+   "start_local": "2026-07-12T08:00:00+02:00",
+   "kwh": 0.667,
+   "spot_nok_kwh_eks_mva": 0.769271,
+   "p_max_w": 1350.0
+  },
+  {
+   "start_local": "2026-07-12T09:00:00+02:00",
+   "kwh": 1.689,
+   "spot_nok_kwh_eks_mva": 0.71915,
+   "p_max_w": 6521.0
+  },
+  {
+   "start_local": "2026-07-12T10:00:00+02:00",
+   "kwh": 3.401,
+   "spot_nok_kwh_eks_mva": 0.78033,
+   "p_max_w": 5359.0
+  },
+  {
+   "start_local": "2026-07-12T11:00:00+02:00",
+   "kwh": 1.436,
+   "spot_nok_kwh_eks_mva": 0.819588,
+   "p_max_w": 5794.0
+  },
+  {
+   "start_local": "2026-07-12T12:00:00+02:00",
+   "kwh": 2.524,
+   "spot_nok_kwh_eks_mva": 0.874457,
+   "p_max_w": 5376.0
+  },
+  {
+   "start_local": "2026-07-12T13:00:00+02:00",
+   "kwh": 1.868,
+   "spot_nok_kwh_eks_mva": 0.848485,
+   "p_max_w": 6053.0
+  },
+  {
+   "start_local": "2026-07-12T14:00:00+02:00",
+   "kwh": 1.149,
+   "spot_nok_kwh_eks_mva": 0.7963,
+   "p_max_w": 3248.0
+  },
+  {
+   "start_local": "2026-07-12T15:00:00+02:00",
+   "kwh": 3.3,
+   "spot_nok_kwh_eks_mva": 0.777787,
+   "p_max_w": 5225.0
+  },
+  {
+   "start_local": "2026-07-12T16:00:00+02:00",
+   "kwh": 3.627,
+   "spot_nok_kwh_eks_mva": 0.894142,
+   "p_max_w": 4695.0
+  },
+  {
+   "start_local": "2026-07-12T17:00:00+02:00",
+   "kwh": 3.337,
+   "spot_nok_kwh_eks_mva": 0.930217,
+   "p_max_w": 4867.0
+  },
+  {
+   "start_local": "2026-07-12T18:00:00+02:00",
+   "kwh": 1.599,
+   "spot_nok_kwh_eks_mva": 1.066676,
+   "p_max_w": 3618.0
+  },
+  {
+   "start_local": "2026-07-12T19:00:00+02:00",
+   "kwh": 0.8,
+   "spot_nok_kwh_eks_mva": 1.194005,
+   "p_max_w": 1458.0
+  },
+  {
+   "start_local": "2026-07-12T20:00:00+02:00",
+   "kwh": 1.573,
+   "spot_nok_kwh_eks_mva": 1.21341,
+   "p_max_w": 3292.0
+  },
+  {
+   "start_local": "2026-07-12T21:00:00+02:00",
+   "kwh": 1.518,
+   "spot_nok_kwh_eks_mva": 1.218772,
+   "p_max_w": 3547.0
+  },
+  {
+   "start_local": "2026-07-12T22:00:00+02:00",
+   "kwh": 0.774,
+   "spot_nok_kwh_eks_mva": 1.190153,
+   "p_max_w": 1674.0
+  },
+  {
+   "start_local": "2026-07-12T23:00:00+02:00",
+   "kwh": 2.392,
+   "spot_nok_kwh_eks_mva": 1.178367,
+   "p_max_w": 4063.0
+  },
+  {
+   "start_local": "2026-07-13T00:00:00+02:00",
+   "kwh": 2.322,
+   "spot_nok_kwh_eks_mva": 1.170157,
+   "p_max_w": 4003.0
+  },
+  {
+   "start_local": "2026-07-13T01:00:00+02:00",
+   "kwh": 0.726,
+   "spot_nok_kwh_eks_mva": 1.160915,
+   "p_max_w": 1843.0
+  },
+  {
+   "start_local": "2026-07-13T02:00:00+02:00",
+   "kwh": 0.552,
+   "spot_nok_kwh_eks_mva": 1.16022,
+   "p_max_w": 2125.0
+  },
+  {
+   "start_local": "2026-07-13T03:00:00+02:00",
+   "kwh": 0.791,
+   "spot_nok_kwh_eks_mva": 1.173035,
+   "p_max_w": 1332.0
+  },
+  {
+   "start_local": "2026-07-13T04:00:00+02:00",
+   "kwh": 1.294,
+   "spot_nok_kwh_eks_mva": 1.17725,
+   "p_max_w": 3859.0
+  },
+  {
+   "start_local": "2026-07-13T05:00:00+02:00",
+   "kwh": 0.631,
+   "spot_nok_kwh_eks_mva": 1.200595,
+   "p_max_w": 1650.0
+  },
+  {
+   "start_local": "2026-07-13T06:00:00+02:00",
+   "kwh": 0.63,
+   "spot_nok_kwh_eks_mva": 1.19529,
+   "p_max_w": 1170.0
+  },
+  {
+   "start_local": "2026-07-13T07:00:00+02:00",
+   "kwh": 1.411,
+   "spot_nok_kwh_eks_mva": 1.210757,
+   "p_max_w": 3041.0
+  },
+  {
+   "start_local": "2026-07-13T08:00:00+02:00",
+   "kwh": 1.947,
+   "spot_nok_kwh_eks_mva": 1.21101,
+   "p_max_w": 4546.0
+  },
+  {
+   "start_local": "2026-07-13T09:00:00+02:00",
+   "kwh": 0.91,
+   "spot_nok_kwh_eks_mva": 1.190543,
+   "p_max_w": 2750.0
+  },
+  {
+   "start_local": "2026-07-13T10:00:00+02:00",
+   "kwh": 2.451,
+   "spot_nok_kwh_eks_mva": 1.163565,
+   "p_max_w": 4610.0
+  },
+  {
+   "start_local": "2026-07-13T11:00:00+02:00",
+   "kwh": 1.264,
+   "spot_nok_kwh_eks_mva": 1.106625,
+   "p_max_w": 4634.0
+  },
+  {
+   "start_local": "2026-07-13T12:00:00+02:00",
+   "kwh": 1.341,
+   "spot_nok_kwh_eks_mva": 1.120048,
+   "p_max_w": 3797.0
+  },
+  {
+   "start_local": "2026-07-13T13:00:00+02:00",
+   "kwh": 2.118,
+   "spot_nok_kwh_eks_mva": 1.118545,
+   "p_max_w": 3300.0
+  },
+  {
+   "start_local": "2026-07-13T14:00:00+02:00",
+   "kwh": 1.642,
+   "spot_nok_kwh_eks_mva": 1.129325,
+   "p_max_w": 4710.0
+  },
+  {
+   "start_local": "2026-07-13T15:00:00+02:00",
+   "kwh": 3.933,
+   "spot_nok_kwh_eks_mva": 1.14314,
+   "p_max_w": 6524.0
+  },
+  {
+   "start_local": "2026-07-13T16:00:00+02:00",
+   "kwh": 3.483,
+   "spot_nok_kwh_eks_mva": 1.155315,
+   "p_max_w": 5829.0
+  },
+  {
+   "start_local": "2026-07-13T17:00:00+02:00",
+   "kwh": 4.998,
+   "spot_nok_kwh_eks_mva": 1.150913,
+   "p_max_w": 7447.0
+  },
+  {
+   "start_local": "2026-07-13T18:00:00+02:00",
+   "kwh": 2.981,
+   "spot_nok_kwh_eks_mva": 1.196177,
+   "p_max_w": 5788.0
+  },
+  {
+   "start_local": "2026-07-13T19:00:00+02:00",
+   "kwh": 1.577,
+   "spot_nok_kwh_eks_mva": 1.224617,
+   "p_max_w": 3136.0
+  },
+  {
+   "start_local": "2026-07-13T20:00:00+02:00",
+   "kwh": 1.648,
+   "spot_nok_kwh_eks_mva": 1.231915,
+   "p_max_w": 4324.0
+  },
+  {
+   "start_local": "2026-07-13T21:00:00+02:00",
+   "kwh": 1.081,
+   "spot_nok_kwh_eks_mva": 1.23217,
+   "p_max_w": 2368.0
+  },
+  {
+   "start_local": "2026-07-13T22:00:00+02:00",
+   "kwh": 1.534,
+   "spot_nok_kwh_eks_mva": 1.230467,
+   "p_max_w": 3338.0
+  },
+  {
+   "start_local": "2026-07-13T23:00:00+02:00",
+   "kwh": 0.569,
+   "spot_nok_kwh_eks_mva": 1.183668,
+   "p_max_w": 1783.0
+  },
+  {
+   "start_local": "2026-07-14T00:00:00+02:00",
+   "kwh": 0.669,
+   "spot_nok_kwh_eks_mva": 1.189133,
+   "p_max_w": 2137.0
+  },
+  {
+   "start_local": "2026-07-14T01:00:00+02:00",
+   "kwh": 0.798,
+   "spot_nok_kwh_eks_mva": 1.175798,
+   "p_max_w": 2456.0
+  },
+  {
+   "start_local": "2026-07-14T02:00:00+02:00",
+   "kwh": 0.748,
+   "spot_nok_kwh_eks_mva": 1.164913,
+   "p_max_w": 3257.0
+  },
+  {
+   "start_local": "2026-07-14T03:00:00+02:00",
+   "kwh": 0.548,
+   "spot_nok_kwh_eks_mva": 1.164888,
+   "p_max_w": 1865.0
+  },
+  {
+   "start_local": "2026-07-14T04:00:00+02:00",
+   "kwh": 0.583,
+   "spot_nok_kwh_eks_mva": 1.168962,
+   "p_max_w": 1927.0
+  },
+  {
+   "start_local": "2026-07-14T05:00:00+02:00",
+   "kwh": 0.493,
+   "spot_nok_kwh_eks_mva": 1.180735,
+   "p_max_w": 1555.0
+  },
+  {
+   "start_local": "2026-07-14T06:00:00+02:00",
+   "kwh": 1.174,
+   "spot_nok_kwh_eks_mva": 1.275051,
+   "p_max_w": 3055.0
+  },
+  {
+   "start_local": "2026-07-14T07:00:00+02:00",
+   "kwh": 0.676,
+   "spot_nok_kwh_eks_mva": 1.289867,
+   "p_max_w": 1055.0
+  },
+  {
+   "start_local": "2026-07-14T08:00:00+02:00",
+   "kwh": 0.597,
+   "spot_nok_kwh_eks_mva": 1.238133,
+   "p_max_w": 1869.0
+  },
+  {
+   "start_local": "2026-07-14T09:00:00+02:00",
+   "kwh": 0.996,
+   "spot_nok_kwh_eks_mva": 1.206433,
+   "p_max_w": 1985.0
+  },
+  {
+   "start_local": "2026-07-14T10:00:00+02:00",
+   "kwh": 2.06,
+   "spot_nok_kwh_eks_mva": 1.18269,
+   "p_max_w": 5226.0
+  },
+  {
+   "start_local": "2026-07-14T11:00:00+02:00",
+   "kwh": 2.545,
+   "spot_nok_kwh_eks_mva": 1.09669,
+   "p_max_w": 4201.0
+  },
+  {
+   "start_local": "2026-07-14T12:00:00+02:00",
+   "kwh": 0.841,
+   "spot_nok_kwh_eks_mva": 0.942713,
+   "p_max_w": 1919.0
+  },
+  {
+   "start_local": "2026-07-14T13:00:00+02:00",
+   "kwh": 1.1,
+   "spot_nok_kwh_eks_mva": 0.896228,
+   "p_max_w": 2686.0
+  },
+  {
+   "start_local": "2026-07-14T14:00:00+02:00",
+   "kwh": 1.977,
+   "spot_nok_kwh_eks_mva": 0.955689,
+   "p_max_w": 4492.0
+  },
+  {
+   "start_local": "2026-07-14T15:00:00+02:00",
+   "kwh": 1.518,
+   "spot_nok_kwh_eks_mva": 0.981058,
+   "p_max_w": 3746.0
+  },
+  {
+   "start_local": "2026-07-14T16:00:00+02:00",
+   "kwh": 3.174,
+   "spot_nok_kwh_eks_mva": 1.131959,
+   "p_max_w": 5223.0
+  },
+  {
+   "start_local": "2026-07-14T17:00:00+02:00",
+   "kwh": 3.645,
+   "spot_nok_kwh_eks_mva": 1.179397,
+   "p_max_w": 4539.0
+  },
+  {
+   "start_local": "2026-07-14T18:00:00+02:00",
+   "kwh": 4.104,
+   "spot_nok_kwh_eks_mva": 1.19756,
+   "p_max_w": 6110.0
+  },
+  {
+   "start_local": "2026-07-14T19:00:00+02:00",
+   "kwh": 4.049,
+   "spot_nok_kwh_eks_mva": 1.216925,
+   "p_max_w": 5696.0
+  },
+  {
+   "start_local": "2026-07-14T20:00:00+02:00",
+   "kwh": 1.889,
+   "spot_nok_kwh_eks_mva": 1.215783,
+   "p_max_w": 3747.0
+  },
+  {
+   "start_local": "2026-07-14T21:00:00+02:00",
+   "kwh": 1.311,
+   "spot_nok_kwh_eks_mva": 1.211013,
+   "p_max_w": 3012.0
+  },
+  {
+   "start_local": "2026-07-14T22:00:00+02:00",
+   "kwh": 2.815,
+   "spot_nok_kwh_eks_mva": 1.222364,
+   "p_max_w": 4301.0
+  },
+  {
+   "start_local": "2026-07-14T23:00:00+02:00",
+   "kwh": 1.965,
+   "spot_nok_kwh_eks_mva": 1.225242,
+   "p_max_w": 3166.0
+  },
+  {
+   "start_local": "2026-07-15T00:00:00+02:00",
+   "kwh": 0.496,
+   "spot_nok_kwh_eks_mva": 1.245077,
+   "p_max_w": 1290.0
+  },
+  {
+   "start_local": "2026-07-15T01:00:00+02:00",
+   "kwh": 0.571,
+   "spot_nok_kwh_eks_mva": 1.213488,
+   "p_max_w": 2514.0
+  },
+  {
+   "start_local": "2026-07-15T02:00:00+02:00",
+   "kwh": 0.468,
+   "spot_nok_kwh_eks_mva": 1.195947,
+   "p_max_w": 1298.0
+  },
+  {
+   "start_local": "2026-07-15T03:00:00+02:00",
+   "kwh": 1.25,
+   "spot_nok_kwh_eks_mva": 1.190735,
+   "p_max_w": 3661.0
+  },
+  {
+   "start_local": "2026-07-15T04:00:00+02:00",
+   "kwh": 0.447,
+   "spot_nok_kwh_eks_mva": 1.20002,
+   "p_max_w": 1251.0
+  },
+  {
+   "start_local": "2026-07-15T05:00:00+02:00",
+   "kwh": 0.517,
+   "spot_nok_kwh_eks_mva": 1.21155,
+   "p_max_w": 1696.0
+  },
+  {
+   "start_local": "2026-07-15T06:00:00+02:00",
+   "kwh": 0.677,
+   "spot_nok_kwh_eks_mva": 1.241447,
+   "p_max_w": 3054.0
+  },
+  {
+   "start_local": "2026-07-15T07:00:00+02:00",
+   "kwh": 1.785,
+   "spot_nok_kwh_eks_mva": 1.285842,
+   "p_max_w": 3710.0
+  },
+  {
+   "start_local": "2026-07-15T08:00:00+02:00",
+   "kwh": 1.3,
+   "spot_nok_kwh_eks_mva": 1.25733,
+   "p_max_w": 2884.0
+  },
+  {
+   "start_local": "2026-07-15T09:00:00+02:00",
+   "kwh": 1.067,
+   "spot_nok_kwh_eks_mva": 1.19991,
+   "p_max_w": 2764.0
+  },
+  {
+   "start_local": "2026-07-15T10:00:00+02:00",
+   "kwh": 3.17,
+   "spot_nok_kwh_eks_mva": 1.183003,
+   "p_max_w": 3917.0
+  },
+  {
+   "start_local": "2026-07-15T11:00:00+02:00",
+   "kwh": 2.352,
+   "spot_nok_kwh_eks_mva": 1.158893,
+   "p_max_w": 4771.0
+  },
+  {
+   "start_local": "2026-07-15T12:00:00+02:00",
+   "kwh": 0.911,
+   "spot_nok_kwh_eks_mva": 1.07459,
+   "p_max_w": 1820.0
+  },
+  {
+   "start_local": "2026-07-15T13:00:00+02:00",
+   "kwh": 1.291,
+   "spot_nok_kwh_eks_mva": 1.026535,
+   "p_max_w": 3343.0
+  },
+  {
+   "start_local": "2026-07-15T14:00:00+02:00",
+   "kwh": 2.074,
+   "spot_nok_kwh_eks_mva": 1.032522,
+   "p_max_w": 4412.0
+  },
+  {
+   "start_local": "2026-07-15T15:00:00+02:00",
+   "kwh": 1.19,
+   "spot_nok_kwh_eks_mva": 1.123172,
+   "p_max_w": 2215.0
+  },
+  {
+   "start_local": "2026-07-15T16:00:00+02:00",
+   "kwh": 1.05,
+   "spot_nok_kwh_eks_mva": 1.19337,
+   "p_max_w": 2711.0
+  },
+  {
+   "start_local": "2026-07-15T17:00:00+02:00",
+   "kwh": 1.513,
+   "spot_nok_kwh_eks_mva": 1.198553,
+   "p_max_w": 3929.0
+  },
+  {
+   "start_local": "2026-07-15T18:00:00+02:00",
+   "kwh": 0.795,
+   "spot_nok_kwh_eks_mva": 1.20559,
+   "p_max_w": 2004.0
+  },
+  {
+   "start_local": "2026-07-15T19:00:00+02:00",
+   "kwh": 0.988,
+   "spot_nok_kwh_eks_mva": 1.20437,
+   "p_max_w": 2129.0
+  },
+  {
+   "start_local": "2026-07-15T20:00:00+02:00",
+   "kwh": 1.948,
+   "spot_nok_kwh_eks_mva": 1.217895,
+   "p_max_w": 5353.0
+  },
+  {
+   "start_local": "2026-07-15T21:00:00+02:00",
+   "kwh": 0.838,
+   "spot_nok_kwh_eks_mva": 1.234797,
+   "p_max_w": 1930.0
+  },
+  {
+   "start_local": "2026-07-15T22:00:00+02:00",
+   "kwh": 3.227,
+   "spot_nok_kwh_eks_mva": 1.230473,
+   "p_max_w": 6301.0
+  },
+  {
+   "start_local": "2026-07-15T23:00:00+02:00",
+   "kwh": 2.178,
+   "spot_nok_kwh_eks_mva": 1.23718,
+   "p_max_w": 3787.0
+  },
+  {
+   "start_local": "2026-07-16T00:00:00+02:00",
+   "kwh": 0.592,
+   "spot_nok_kwh_eks_mva": 1.332814,
+   "p_max_w": 1579.0
+  },
+  {
+   "start_local": "2026-07-16T01:00:00+02:00",
+   "kwh": 0.451,
+   "spot_nok_kwh_eks_mva": 1.307015,
+   "p_max_w": 1343.0
+  },
+  {
+   "start_local": "2026-07-16T02:00:00+02:00",
+   "kwh": 1.134,
+   "spot_nok_kwh_eks_mva": 1.292798,
+   "p_max_w": 2971.0
+  },
+  {
+   "start_local": "2026-07-16T03:00:00+02:00",
+   "kwh": 0.461,
+   "spot_nok_kwh_eks_mva": 1.286743,
+   "p_max_w": 2933.0
+  },
+  {
+   "start_local": "2026-07-16T04:00:00+02:00",
+   "kwh": 0.482,
+   "spot_nok_kwh_eks_mva": 1.27908,
+   "p_max_w": 1375.0
+  },
+  {
+   "start_local": "2026-07-16T05:00:00+02:00",
+   "kwh": 0.619,
+   "spot_nok_kwh_eks_mva": 1.289243,
+   "p_max_w": 1475.0
+  },
+  {
+   "start_local": "2026-07-16T06:00:00+02:00",
+   "kwh": 0.553,
+   "spot_nok_kwh_eks_mva": 1.320237,
+   "p_max_w": 1531.0
+  },
+  {
+   "start_local": "2026-07-16T07:00:00+02:00",
+   "kwh": 1.37,
+   "spot_nok_kwh_eks_mva": 1.329123,
+   "p_max_w": 3542.0
+  },
+  {
+   "start_local": "2026-07-16T08:00:00+02:00",
+   "kwh": 2.021,
+   "spot_nok_kwh_eks_mva": 1.426511,
+   "p_max_w": 4523.0
+  },
+  {
+   "start_local": "2026-07-16T09:00:00+02:00",
+   "kwh": 0.761,
+   "spot_nok_kwh_eks_mva": 1.316682,
+   "p_max_w": 1692.0
+  },
+  {
+   "start_local": "2026-07-16T10:00:00+02:00",
+   "kwh": 2.651,
+   "spot_nok_kwh_eks_mva": 1.30077,
+   "p_max_w": 4933.0
+  },
+  {
+   "start_local": "2026-07-16T11:00:00+02:00",
+   "kwh": 1.766,
+   "spot_nok_kwh_eks_mva": 1.284828,
+   "p_max_w": 3426.0
+  },
+  {
+   "start_local": "2026-07-16T12:00:00+02:00",
+   "kwh": 0.58,
+   "spot_nok_kwh_eks_mva": 1.210848,
+   "p_max_w": 1216.0
+  },
+  {
+   "start_local": "2026-07-16T13:00:00+02:00",
+   "kwh": 0.58,
+   "spot_nok_kwh_eks_mva": 1.172523,
+   "p_max_w": 1405.0
+  },
+  {
+   "start_local": "2026-07-16T14:00:00+02:00",
+   "kwh": 1.105,
+   "spot_nok_kwh_eks_mva": 1.232812,
+   "p_max_w": 3661.0
+  },
+  {
+   "start_local": "2026-07-16T15:00:00+02:00",
+   "kwh": 3.598,
+   "spot_nok_kwh_eks_mva": 1.31707,
+   "p_max_w": 4296.0
+  },
+  {
+   "start_local": "2026-07-16T16:00:00+02:00",
+   "kwh": 3.918,
+   "spot_nok_kwh_eks_mva": 1.355642,
+   "p_max_w": 5130.0
+  },
+  {
+   "start_local": "2026-07-16T17:00:00+02:00",
+   "kwh": 3.068,
+   "spot_nok_kwh_eks_mva": 1.362168,
+   "p_max_w": 4455.0
+  },
+  {
+   "start_local": "2026-07-16T18:00:00+02:00",
+   "kwh": 1.285,
+   "spot_nok_kwh_eks_mva": 1.396107,
+   "p_max_w": 2352.0
+  },
+  {
+   "start_local": "2026-07-16T19:00:00+02:00",
+   "kwh": 1.747,
+   "spot_nok_kwh_eks_mva": 1.510578,
+   "p_max_w": 3804.0
+  },
+  {
+   "start_local": "2026-07-16T20:00:00+02:00",
+   "kwh": 1.377,
+   "spot_nok_kwh_eks_mva": 1.61947,
+   "p_max_w": 3203.0
+  },
+  {
+   "start_local": "2026-07-16T21:00:00+02:00",
+   "kwh": 2.116,
+   "spot_nok_kwh_eks_mva": 1.538515,
+   "p_max_w": 4198.0
+  },
+  {
+   "start_local": "2026-07-16T22:00:00+02:00",
+   "kwh": 1.013,
+   "spot_nok_kwh_eks_mva": 1.543487,
+   "p_max_w": 3208.0
+  },
+  {
+   "start_local": "2026-07-16T23:00:00+02:00",
+   "kwh": 3.396,
+   "spot_nok_kwh_eks_mva": 1.462313,
+   "p_max_w": 5217.0
+  },
+  {
+   "start_local": "2026-07-17T00:00:00+02:00",
+   "kwh": 1.281,
+   "spot_nok_kwh_eks_mva": 1.533817,
+   "p_max_w": 4822.0
+  },
+  {
+   "start_local": "2026-07-17T01:00:00+02:00",
+   "kwh": 0.438,
+   "spot_nok_kwh_eks_mva": 1.482856,
+   "p_max_w": 1668.0
+  },
+  {
+   "start_local": "2026-07-17T02:00:00+02:00",
+   "kwh": 0.485,
+   "spot_nok_kwh_eks_mva": 1.413975,
+   "p_max_w": 1350.0
+  },
+  {
+   "start_local": "2026-07-17T03:00:00+02:00",
+   "kwh": 1.218,
+   "spot_nok_kwh_eks_mva": 1.354705,
+   "p_max_w": 3573.0
+  },
+  {
+   "start_local": "2026-07-17T04:00:00+02:00",
+   "kwh": 0.485,
+   "spot_nok_kwh_eks_mva": 1.354625,
+   "p_max_w": 1762.0
+  },
+  {
+   "start_local": "2026-07-17T05:00:00+02:00",
+   "kwh": 0.501,
+   "spot_nok_kwh_eks_mva": 1.41871,
+   "p_max_w": 1191.0
+  },
+  {
+   "start_local": "2026-07-17T06:00:00+02:00",
+   "kwh": 0.458,
+   "spot_nok_kwh_eks_mva": 1.44919,
+   "p_max_w": 1341.0
+  },
+  {
+   "start_local": "2026-07-17T07:00:00+02:00",
+   "kwh": 1.016,
+   "spot_nok_kwh_eks_mva": 1.47726,
+   "p_max_w": 2530.0
+  },
+  {
+   "start_local": "2026-07-17T08:00:00+02:00",
+   "kwh": 0.854,
+   "spot_nok_kwh_eks_mva": 1.448943,
+   "p_max_w": 2963.0
+  },
+  {
+   "start_local": "2026-07-17T09:00:00+02:00",
+   "kwh": 1.458,
+   "spot_nok_kwh_eks_mva": 1.378403,
+   "p_max_w": 3904.0
+  },
+  {
+   "start_local": "2026-07-17T10:00:00+02:00",
+   "kwh": 2.086,
+   "spot_nok_kwh_eks_mva": 1.357115,
+   "p_max_w": 4670.0
+  },
+  {
+   "start_local": "2026-07-17T11:00:00+02:00",
+   "kwh": 1.276,
+   "spot_nok_kwh_eks_mva": 1.288155,
+   "p_max_w": 3240.0
+  },
+  {
+   "start_local": "2026-07-17T12:00:00+02:00",
+   "kwh": 0.756,
+   "spot_nok_kwh_eks_mva": 1.207455,
+   "p_max_w": 2640.0
+  },
+  {
+   "start_local": "2026-07-17T13:00:00+02:00",
+   "kwh": 0.84,
+   "spot_nok_kwh_eks_mva": 1.150398,
+   "p_max_w": 1590.0
+  },
+  {
+   "start_local": "2026-07-17T14:00:00+02:00",
+   "kwh": 0.692,
+   "spot_nok_kwh_eks_mva": 1.132958,
+   "p_max_w": 1500.0
+  },
+  {
+   "start_local": "2026-07-17T15:00:00+02:00",
+   "kwh": 0.983,
+   "spot_nok_kwh_eks_mva": 1.19198,
+   "p_max_w": 2719.0
+  },
+  {
+   "start_local": "2026-07-17T16:00:00+02:00",
+   "kwh": 0.954,
+   "spot_nok_kwh_eks_mva": 1.25106,
+   "p_max_w": 2694.0
+  },
+  {
+   "start_local": "2026-07-17T17:00:00+02:00",
+   "kwh": 2.323,
+   "spot_nok_kwh_eks_mva": 1.314903,
+   "p_max_w": 5918.0
+  },
+  {
+   "start_local": "2026-07-17T18:00:00+02:00",
+   "kwh": 1.77,
+   "spot_nok_kwh_eks_mva": 1.366999,
+   "p_max_w": 3732.0
+  },
+  {
+   "start_local": "2026-07-17T19:00:00+02:00",
+   "kwh": 1.618,
+   "spot_nok_kwh_eks_mva": 1.449635,
+   "p_max_w": 3818.0
+  },
+  {
+   "start_local": "2026-07-17T20:00:00+02:00",
+   "kwh": 0.919,
+   "spot_nok_kwh_eks_mva": 1.450542,
+   "p_max_w": 2931.0
+  },
+  {
+   "start_local": "2026-07-17T21:00:00+02:00",
+   "kwh": 0.935,
+   "spot_nok_kwh_eks_mva": 1.450548,
+   "p_max_w": 2126.0
+  },
+  {
+   "start_local": "2026-07-17T22:00:00+02:00",
+   "kwh": 0.924,
+   "spot_nok_kwh_eks_mva": 1.433383,
+   "p_max_w": 2163.0
+  },
+  {
+   "start_local": "2026-07-17T23:00:00+02:00",
+   "kwh": 2.019,
+   "spot_nok_kwh_eks_mva": 1.375883,
+   "p_max_w": 3577.0
+  },
+  {
+   "start_local": "2026-07-18T00:00:00+02:00",
+   "kwh": 1.039,
+   "spot_nok_kwh_eks_mva": 1.452032,
+   "p_max_w": 3309.0
+  },
+  {
+   "start_local": "2026-07-18T01:00:00+02:00",
+   "kwh": 0.434,
+   "spot_nok_kwh_eks_mva": 1.393248,
+   "p_max_w": 1632.0
+  },
+  {
+   "start_local": "2026-07-18T02:00:00+02:00",
+   "kwh": 0.436,
+   "spot_nok_kwh_eks_mva": 1.38026,
+   "p_max_w": 2286.0
+  },
+  {
+   "start_local": "2026-07-18T03:00:00+02:00",
+   "kwh": 1.143,
+   "spot_nok_kwh_eks_mva": 1.352378,
+   "p_max_w": 3387.0
+  },
+  {
+   "start_local": "2026-07-18T04:00:00+02:00",
+   "kwh": 0.634,
+   "spot_nok_kwh_eks_mva": 1.324435,
+   "p_max_w": 1543.0
+  },
+  {
+   "start_local": "2026-07-18T05:00:00+02:00",
+   "kwh": 0.546,
+   "spot_nok_kwh_eks_mva": 1.25667,
+   "p_max_w": 1848.0
+  },
+  {
+   "start_local": "2026-07-18T06:00:00+02:00",
+   "kwh": 0.524,
+   "spot_nok_kwh_eks_mva": 1.21961,
+   "p_max_w": 1794.0
+  },
+  {
+   "start_local": "2026-07-18T07:00:00+02:00",
+   "kwh": 1.42,
+   "spot_nok_kwh_eks_mva": 1.191476,
+   "p_max_w": 3232.0
+  },
+  {
+   "start_local": "2026-07-18T08:00:00+02:00",
+   "kwh": 1.109,
+   "spot_nok_kwh_eks_mva": 1.11293,
+   "p_max_w": 3642.0
+  },
+  {
+   "start_local": "2026-07-18T09:00:00+02:00",
+   "kwh": 0.0,
+   "spot_nok_kwh_eks_mva": 1.114974,
+   "p_max_w": 2751.0
+  },
+  {
+   "start_local": "2026-07-18T10:00:00+02:00",
+   "kwh": 2.563,
+   "spot_nok_kwh_eks_mva": 1.094911,
+   "p_max_w": 4207.0
+  },
+  {
+   "start_local": "2026-07-18T11:00:00+02:00",
+   "kwh": 1.237,
+   "spot_nok_kwh_eks_mva": 1.097153,
+   "p_max_w": 3025.0
+  },
+  {
+   "start_local": "2026-07-18T12:00:00+02:00",
+   "kwh": 0.828,
+   "spot_nok_kwh_eks_mva": 1.10912,
+   "p_max_w": 1553.0
+  },
+  {
+   "start_local": "2026-07-18T13:00:00+02:00",
+   "kwh": 1.635,
+   "spot_nok_kwh_eks_mva": 1.109008,
+   "p_max_w": 3363.0
+  },
+  {
+   "start_local": "2026-07-18T14:00:00+02:00",
+   "kwh": 2.834,
+   "spot_nok_kwh_eks_mva": 1.101051,
+   "p_max_w": 5230.0
+  },
+  {
+   "start_local": "2026-07-18T15:00:00+02:00",
+   "kwh": 3.049,
+   "spot_nok_kwh_eks_mva": 1.17541,
+   "p_max_w": 4411.0
+  },
+  {
+   "start_local": "2026-07-18T16:00:00+02:00",
+   "kwh": 3.018,
+   "spot_nok_kwh_eks_mva": 1.14344,
+   "p_max_w": 4251.0
+  },
+  {
+   "start_local": "2026-07-18T17:00:00+02:00",
+   "kwh": 2.962,
+   "spot_nok_kwh_eks_mva": 1.165222,
+   "p_max_w": 3888.0
+  },
+  {
+   "start_local": "2026-07-18T18:00:00+02:00",
+   "kwh": 2.966,
+   "spot_nok_kwh_eks_mva": 1.23489,
+   "p_max_w": 4500.0
+  },
+  {
+   "start_local": "2026-07-18T19:00:00+02:00",
+   "kwh": 2.739,
+   "spot_nok_kwh_eks_mva": 1.170133,
+   "p_max_w": 5108.0
+  },
+  {
+   "start_local": "2026-07-18T20:00:00+02:00",
+   "kwh": 0.971,
+   "spot_nok_kwh_eks_mva": 1.292927,
+   "p_max_w": 1763.0
+  },
+  {
+   "start_local": "2026-07-18T21:00:00+02:00",
+   "kwh": 1.32,
+   "spot_nok_kwh_eks_mva": 1.35815,
+   "p_max_w": 3185.0
+  },
+  {
+   "start_local": "2026-07-18T22:00:00+02:00",
+   "kwh": 1.055,
+   "spot_nok_kwh_eks_mva": 1.396205,
+   "p_max_w": 2954.0
+  },
+  {
+   "start_local": "2026-07-18T23:00:00+02:00",
+   "kwh": 1.144,
+   "spot_nok_kwh_eks_mva": 1.411156,
+   "p_max_w": 4203.0
+  },
+  {
+   "start_local": "2026-07-19T00:00:00+02:00",
+   "kwh": 0.683,
+   "spot_nok_kwh_eks_mva": 1.420687,
+   "p_max_w": 2475.0
+  },
+  {
+   "start_local": "2026-07-19T01:00:00+02:00",
+   "kwh": 0.44,
+   "spot_nok_kwh_eks_mva": 1.369713,
+   "p_max_w": 1506.0
+  },
+  {
+   "start_local": "2026-07-19T02:00:00+02:00",
+   "kwh": 1.091,
+   "spot_nok_kwh_eks_mva": 1.30613,
+   "p_max_w": 3026.0
+  },
+  {
+   "start_local": "2026-07-19T03:00:00+02:00",
+   "kwh": 0.445,
+   "spot_nok_kwh_eks_mva": 1.27377,
+   "p_max_w": 1431.0
+  },
+  {
+   "start_local": "2026-07-19T04:00:00+02:00",
+   "kwh": 0.486,
+   "spot_nok_kwh_eks_mva": 1.289027,
+   "p_max_w": 2091.0
+  },
+  {
+   "start_local": "2026-07-19T05:00:00+02:00",
+   "kwh": 0.612,
+   "spot_nok_kwh_eks_mva": 1.2466,
+   "p_max_w": 1537.0
+  },
+  {
+   "start_local": "2026-07-19T06:00:00+02:00",
+   "kwh": 0.92,
+   "spot_nok_kwh_eks_mva": 1.170997,
+   "p_max_w": 3689.0
+  },
+  {
+   "start_local": "2026-07-19T07:00:00+02:00",
+   "kwh": 0.806,
+   "spot_nok_kwh_eks_mva": 1.106663,
+   "p_max_w": 2661.0
+  },
+  {
+   "start_local": "2026-07-19T08:00:00+02:00",
+   "kwh": 1.452,
+   "spot_nok_kwh_eks_mva": 1.113225,
+   "p_max_w": 3300.0
+  },
+  {
+   "start_local": "2026-07-19T09:00:00+02:00",
+   "kwh": 2.427,
+   "spot_nok_kwh_eks_mva": 1.117612,
+   "p_max_w": 5246.0
+  },
+  {
+   "start_local": "2026-07-19T10:00:00+02:00",
+   "kwh": 1.806,
+   "spot_nok_kwh_eks_mva": 1.11866,
+   "p_max_w": 4468.0
+  },
+  {
+   "start_local": "2026-07-19T11:00:00+02:00",
+   "kwh": 2.259,
+   "spot_nok_kwh_eks_mva": 1.11874,
+   "p_max_w": 3943.0
+  },
+  {
+   "start_local": "2026-07-19T12:00:00+02:00",
+   "kwh": 0.932,
+   "spot_nok_kwh_eks_mva": 1.117998,
+   "p_max_w": 1812.0
+  },
+  {
+   "start_local": "2026-07-19T13:00:00+02:00",
+   "kwh": 1.285,
+   "spot_nok_kwh_eks_mva": 1.11353,
+   "p_max_w": 2948.0
+  },
+  {
+   "start_local": "2026-07-19T14:00:00+02:00",
+   "kwh": 1.305,
+   "spot_nok_kwh_eks_mva": 1.103713,
+   "p_max_w": 2918.0
+  },
+  {
+   "start_local": "2026-07-19T15:00:00+02:00",
+   "kwh": 2.32,
+   "spot_nok_kwh_eks_mva": 0.963795,
+   "p_max_w": 4825.0
+  },
+  {
+   "start_local": "2026-07-19T16:00:00+02:00",
+   "kwh": 1.483,
+   "spot_nok_kwh_eks_mva": 1.09331,
+   "p_max_w": 5001.0
+  },
+  {
+   "start_local": "2026-07-19T17:00:00+02:00",
+   "kwh": 3.063,
+   "spot_nok_kwh_eks_mva": 0.985785,
+   "p_max_w": 5023.0
+  },
+  {
+   "start_local": "2026-07-19T18:00:00+02:00",
+   "kwh": 3.309,
+   "spot_nok_kwh_eks_mva": 1.09135,
+   "p_max_w": 4152.0
+  },
+  {
+   "start_local": "2026-07-19T19:00:00+02:00",
+   "kwh": 2.634,
+   "spot_nok_kwh_eks_mva": 1.258307,
+   "p_max_w": 5586.0
+  },
+  {
+   "start_local": "2026-07-19T20:00:00+02:00",
+   "kwh": 2.028,
+   "spot_nok_kwh_eks_mva": 1.396302,
+   "p_max_w": 3749.0
+  },
+  {
+   "start_local": "2026-07-19T21:00:00+02:00",
+   "kwh": 0.949,
+   "spot_nok_kwh_eks_mva": 1.42714,
+   "p_max_w": 1427.0
+  },
+  {
+   "start_local": "2026-07-19T22:00:00+02:00",
+   "kwh": 1.048,
+   "spot_nok_kwh_eks_mva": 1.426315,
+   "p_max_w": 2438.0
+  },
+  {
+   "start_local": "2026-07-19T23:00:00+02:00",
+   "kwh": 2.67,
+   "spot_nok_kwh_eks_mva": 1.387503,
+   "p_max_w": 3543.0
+  },
+  {
+   "start_local": "2026-07-20T00:00:00+02:00",
+   "kwh": 1.415,
+   "spot_nok_kwh_eks_mva": 1.419117,
+   "p_max_w": 3064.0
+  },
+  {
+   "start_local": "2026-07-20T01:00:00+02:00",
+   "kwh": 0.611,
+   "spot_nok_kwh_eks_mva": 1.395863,
+   "p_max_w": 1936.0
+  },
+  {
+   "start_local": "2026-07-20T02:00:00+02:00",
+   "kwh": 0.495,
+   "spot_nok_kwh_eks_mva": 1.336748,
+   "p_max_w": 1758.0
+  },
+  {
+   "start_local": "2026-07-20T03:00:00+02:00",
+   "kwh": 0.915,
+   "spot_nok_kwh_eks_mva": 1.308668,
+   "p_max_w": 3017.0
+  },
+  {
+   "start_local": "2026-07-20T04:00:00+02:00",
+   "kwh": 1.737,
+   "spot_nok_kwh_eks_mva": 1.365657,
+   "p_max_w": 3528.0
+  },
+  {
+   "start_local": "2026-07-20T05:00:00+02:00",
+   "kwh": 1.499,
+   "spot_nok_kwh_eks_mva": 1.433567,
+   "p_max_w": 3450.0
+  },
+  {
+   "start_local": "2026-07-20T06:00:00+02:00",
+   "kwh": 0.645,
+   "spot_nok_kwh_eks_mva": 1.484933,
+   "p_max_w": 1719.0
+  },
+  {
+   "start_local": "2026-07-20T07:00:00+02:00",
+   "kwh": 0.728,
+   "spot_nok_kwh_eks_mva": 1.450563,
+   "p_max_w": 1638.0
+  },
+  {
+   "start_local": "2026-07-20T08:00:00+02:00",
+   "kwh": 1.447,
+   "spot_nok_kwh_eks_mva": 1.337603,
+   "p_max_w": 3249.0
+  },
+  {
+   "start_local": "2026-07-20T09:00:00+02:00",
+   "kwh": 1.003,
+   "spot_nok_kwh_eks_mva": 1.191015,
+   "p_max_w": 2634.0
+  },
+  {
+   "start_local": "2026-07-20T10:00:00+02:00",
+   "kwh": 1.939,
+   "spot_nok_kwh_eks_mva": 1.138468,
+   "p_max_w": 5700.0
+  },
+  {
+   "start_local": "2026-07-20T11:00:00+02:00",
+   "kwh": 2.995,
+   "spot_nok_kwh_eks_mva": 1.144235,
+   "p_max_w": 7914.0
+  },
+  {
+   "start_local": "2026-07-20T12:00:00+02:00",
+   "kwh": 1.481,
+   "spot_nok_kwh_eks_mva": 1.113783,
+   "p_max_w": 3522.0
+  },
+  {
+   "start_local": "2026-07-20T13:00:00+02:00",
+   "kwh": 1.368,
+   "spot_nok_kwh_eks_mva": 1.12421,
+   "p_max_w": 4914.0
+  },
+  {
+   "start_local": "2026-07-20T14:00:00+02:00",
+   "kwh": 1.779,
+   "spot_nok_kwh_eks_mva": 1.143662,
+   "p_max_w": 4006.0
+  },
+  {
+   "start_local": "2026-07-20T15:00:00+02:00",
+   "kwh": 0.904,
+   "spot_nok_kwh_eks_mva": 1.18066,
+   "p_max_w": 2136.0
+  },
+  {
+   "start_local": "2026-07-20T16:00:00+02:00",
+   "kwh": 3.093,
+   "spot_nok_kwh_eks_mva": 1.135681,
+   "p_max_w": 5540.0
+  },
+  {
+   "start_local": "2026-07-20T17:00:00+02:00",
+   "kwh": 1.602,
+   "spot_nok_kwh_eks_mva": 1.18275,
+   "p_max_w": 3992.0
+  },
+  {
+   "start_local": "2026-07-20T18:00:00+02:00",
+   "kwh": 0.984,
+   "spot_nok_kwh_eks_mva": 1.282862,
+   "p_max_w": 1533.0
+  },
+  {
+   "start_local": "2026-07-20T19:00:00+02:00",
+   "kwh": 1.928,
+   "spot_nok_kwh_eks_mva": 1.438342,
+   "p_max_w": 3992.0
+  },
+  {
+   "start_local": "2026-07-20T20:00:00+02:00",
+   "kwh": 1.178,
+   "spot_nok_kwh_eks_mva": 1.530747,
+   "p_max_w": 3286.0
+  },
+  {
+   "start_local": "2026-07-20T21:00:00+02:00",
+   "kwh": 1.268,
+   "spot_nok_kwh_eks_mva": 1.51798,
+   "p_max_w": 2626.0
+  },
+  {
+   "start_local": "2026-07-20T22:00:00+02:00",
+   "kwh": 2.86,
+   "spot_nok_kwh_eks_mva": 1.494683,
+   "p_max_w": 4377.0
+  },
+  {
+   "start_local": "2026-07-20T23:00:00+02:00",
+   "kwh": 2.934,
+   "spot_nok_kwh_eks_mva": 1.439775,
+   "p_max_w": 4039.0
+  },
+  {
+   "start_local": "2026-07-21T00:00:00+02:00",
+   "kwh": 0.823,
+   "spot_nok_kwh_eks_mva": 1.442982,
+   "p_max_w": 2544.0
+  },
+  {
+   "start_local": "2026-07-21T01:00:00+02:00",
+   "kwh": 0.45,
+   "spot_nok_kwh_eks_mva": 1.4405,
+   "p_max_w": 1242.0
+  },
+  {
+   "start_local": "2026-07-21T02:00:00+02:00",
+   "kwh": 0.534,
+   "spot_nok_kwh_eks_mva": 1.431668,
+   "p_max_w": 2945.0
+  },
+  {
+   "start_local": "2026-07-21T03:00:00+02:00",
+   "kwh": 1.256,
+   "spot_nok_kwh_eks_mva": 1.390768,
+   "p_max_w": 3035.0
+  },
+  {
+   "start_local": "2026-07-21T04:00:00+02:00",
+   "kwh": 0.418,
+   "spot_nok_kwh_eks_mva": 1.403597,
+   "p_max_w": 1368.0
+  },
+  {
+   "start_local": "2026-07-21T05:00:00+02:00",
+   "kwh": 0.453,
+   "spot_nok_kwh_eks_mva": 1.431973,
+   "p_max_w": 1676.0
+  },
+  {
+   "start_local": "2026-07-21T06:00:00+02:00",
+   "kwh": 0.518,
+   "spot_nok_kwh_eks_mva": 1.456837,
+   "p_max_w": 1264.0
+  },
+  {
+   "start_local": "2026-07-21T07:00:00+02:00",
+   "kwh": 1.633,
+   "spot_nok_kwh_eks_mva": 1.467465,
+   "p_max_w": 3076.0
+  },
+  {
+   "start_local": "2026-07-21T08:00:00+02:00",
+   "kwh": 1.015,
+   "spot_nok_kwh_eks_mva": 1.443728,
+   "p_max_w": 2482.0
+  },
+  {
+   "start_local": "2026-07-21T09:00:00+02:00",
+   "kwh": 1.375,
+   "spot_nok_kwh_eks_mva": 1.29194,
+   "p_max_w": 3864.0
+  },
+  {
+   "start_local": "2026-07-21T10:00:00+02:00",
+   "kwh": 1.425,
+   "spot_nok_kwh_eks_mva": 1.227222,
+   "p_max_w": 4694.0
+  },
+  {
+   "start_local": "2026-07-21T11:00:00+02:00",
+   "kwh": 0.923,
+   "spot_nok_kwh_eks_mva": 1.147497,
+   "p_max_w": 2584.0
+  },
+  {
+   "start_local": "2026-07-21T12:00:00+02:00",
+   "kwh": 1.118,
+   "spot_nok_kwh_eks_mva": 1.14357,
+   "p_max_w": 3614.0
+  },
+  {
+   "start_local": "2026-07-21T13:00:00+02:00",
+   "kwh": 0.552,
+   "spot_nok_kwh_eks_mva": 1.14249,
+   "p_max_w": 1968.0
+  },
+  {
+   "start_local": "2026-07-21T14:00:00+02:00",
+   "kwh": 0.714,
+   "spot_nok_kwh_eks_mva": 1.144534,
+   "p_max_w": 1922.0
+  },
+  {
+   "start_local": "2026-07-21T15:00:00+02:00",
+   "kwh": 0.541,
+   "spot_nok_kwh_eks_mva": 1.138823,
+   "p_max_w": 1744.0
+  },
+  {
+   "start_local": "2026-07-21T16:00:00+02:00",
+   "kwh": 1.226,
+   "spot_nok_kwh_eks_mva": 1.142024,
+   "p_max_w": 3024.0
+  },
+  {
+   "start_local": "2026-07-21T17:00:00+02:00",
+   "kwh": 0.706,
+   "spot_nok_kwh_eks_mva": 1.179255,
+   "p_max_w": 2565.0
+  },
+  {
+   "start_local": "2026-07-21T18:00:00+02:00",
+   "kwh": 0.509,
+   "spot_nok_kwh_eks_mva": 1.347217,
+   "p_max_w": 1251.0
+  },
+  {
+   "start_local": "2026-07-21T19:00:00+02:00",
+   "kwh": 0.624,
+   "spot_nok_kwh_eks_mva": 1.45924,
+   "p_max_w": 1698.0
+  },
+  {
+   "start_local": "2026-07-21T20:00:00+02:00",
+   "kwh": 1.219,
+   "spot_nok_kwh_eks_mva": 1.513275,
+   "p_max_w": 3164.0
+  },
+  {
+   "start_local": "2026-07-21T21:00:00+02:00",
+   "kwh": 0.687,
+   "spot_nok_kwh_eks_mva": 1.506238,
+   "p_max_w": 1288.0
+  },
+  {
+   "start_local": "2026-07-21T22:00:00+02:00",
+   "kwh": 0.547,
+   "spot_nok_kwh_eks_mva": 1.465976,
+   "p_max_w": 1794.0
+  },
+  {
+   "start_local": "2026-07-21T23:00:00+02:00",
+   "kwh": 0.523,
+   "spot_nok_kwh_eks_mva": 1.415413,
+   "p_max_w": 1303.0
+  },
+  {
+   "start_local": "2026-07-22T00:00:00+02:00",
+   "kwh": 1.379,
+   "spot_nok_kwh_eks_mva": 1.410305,
+   "p_max_w": 3381.0
+  },
+  {
+   "start_local": "2026-07-22T01:00:00+02:00",
+   "kwh": 0.432,
+   "spot_nok_kwh_eks_mva": 1.333135,
+   "p_max_w": 1939.0
+  },
+  {
+   "start_local": "2026-07-22T02:00:00+02:00",
+   "kwh": 0.565,
+   "spot_nok_kwh_eks_mva": 1.289905,
+   "p_max_w": 2047.0
+  },
+  {
+   "start_local": "2026-07-22T03:00:00+02:00",
+   "kwh": 0.488,
+   "spot_nok_kwh_eks_mva": 1.243572,
+   "p_max_w": 1388.0
+  },
+  {
+   "start_local": "2026-07-22T04:00:00+02:00",
+   "kwh": 0.992,
+   "spot_nok_kwh_eks_mva": 1.19342,
+   "p_max_w": 3024.0
+  },
+  {
+   "start_local": "2026-07-22T05:00:00+02:00",
+   "kwh": 0.796,
+   "spot_nok_kwh_eks_mva": 1.195478,
+   "p_max_w": 3400.0
+  },
+  {
+   "start_local": "2026-07-22T06:00:00+02:00",
+   "kwh": 0.57,
+   "spot_nok_kwh_eks_mva": 1.204022,
+   "p_max_w": 1903.0
+  },
+  {
+   "start_local": "2026-07-22T07:00:00+02:00",
+   "kwh": 0.72,
+   "spot_nok_kwh_eks_mva": 1.219209,
+   "p_max_w": 1797.0
+  },
+  {
+   "start_local": "2026-07-22T08:00:00+02:00",
+   "kwh": 0.657,
+   "spot_nok_kwh_eks_mva": 1.252742,
+   "p_max_w": 2569.0
+  },
+  {
+   "start_local": "2026-07-22T09:00:00+02:00",
+   "kwh": 1.262,
+   "spot_nok_kwh_eks_mva": 1.205232,
+   "p_max_w": 3069.0
+  },
+  {
+   "start_local": "2026-07-22T10:00:00+02:00",
+   "kwh": 0.679,
+   "spot_nok_kwh_eks_mva": 1.12174,
+   "p_max_w": 1398.0
+  },
+  {
+   "start_local": "2026-07-22T11:00:00+02:00",
+   "kwh": 0.697,
+   "spot_nok_kwh_eks_mva": 1.104848,
+   "p_max_w": 1720.0
+  },
+  {
+   "start_local": "2026-07-22T12:00:00+02:00",
+   "kwh": 0.572,
+   "spot_nok_kwh_eks_mva": 1.158155,
+   "p_max_w": 1739.0
+  },
+  {
+   "start_local": "2026-07-22T13:00:00+02:00",
+   "kwh": 1.313,
+   "spot_nok_kwh_eks_mva": 1.121243,
+   "p_max_w": 3877.0
+  },
+  {
+   "start_local": "2026-07-22T14:00:00+02:00",
+   "kwh": 0.67,
+   "spot_nok_kwh_eks_mva": 1.120938,
+   "p_max_w": 2459.0
+  },
+  {
+   "start_local": "2026-07-22T15:00:00+02:00",
+   "kwh": 0.69,
+   "spot_nok_kwh_eks_mva": 1.11814,
+   "p_max_w": 1450.0
+  },
+  {
+   "start_local": "2026-07-22T16:00:00+02:00",
+   "kwh": 0.541,
+   "spot_nok_kwh_eks_mva": 1.088973,
+   "p_max_w": 1706.0
+  },
+  {
+   "start_local": "2026-07-22T17:00:00+02:00",
+   "kwh": 1.378,
+   "spot_nok_kwh_eks_mva": 1.110175,
+   "p_max_w": 3185.0
+  },
+  {
+   "start_local": "2026-07-22T18:00:00+02:00",
+   "kwh": 0.613,
+   "spot_nok_kwh_eks_mva": 1.182932,
+   "p_max_w": 2185.0
+  },
+  {
+   "start_local": "2026-07-22T19:00:00+02:00",
+   "kwh": 0.559,
+   "spot_nok_kwh_eks_mva": 1.279242,
+   "p_max_w": 1345.0
+  },
+  {
+   "start_local": "2026-07-22T20:00:00+02:00",
+   "kwh": 0.61,
+   "spot_nok_kwh_eks_mva": 1.360735,
+   "p_max_w": 1300.0
+  },
+  {
+   "start_local": "2026-07-22T21:00:00+02:00",
+   "kwh": 1.427,
+   "spot_nok_kwh_eks_mva": 1.39501,
+   "p_max_w": 4245.0
+  },
+  {
+   "start_local": "2026-07-22T22:00:00+02:00",
+   "kwh": 0.518,
+   "spot_nok_kwh_eks_mva": 1.385318,
+   "p_max_w": 1784.0
+  },
+  {
+   "start_local": "2026-07-22T23:00:00+02:00",
+   "kwh": 0.635,
+   "spot_nok_kwh_eks_mva": 1.327364,
+   "p_max_w": 1397.0
+  },
+  {
+   "start_local": "2026-07-23T00:00:00+02:00",
+   "kwh": 0.591,
+   "spot_nok_kwh_eks_mva": 1.365245,
+   "p_max_w": 1458.0
+  },
+  {
+   "start_local": "2026-07-23T01:00:00+02:00",
+   "kwh": 1.218,
+   "spot_nok_kwh_eks_mva": 1.381429,
+   "p_max_w": 2964.0
+  },
+  {
+   "start_local": "2026-07-23T02:00:00+02:00",
+   "kwh": 0.523,
+   "spot_nok_kwh_eks_mva": 1.364915,
+   "p_max_w": 1751.0
+  },
+  {
+   "start_local": "2026-07-23T03:00:00+02:00",
+   "kwh": 0.433,
+   "spot_nok_kwh_eks_mva": 1.372939,
+   "p_max_w": 1985.0
+  },
+  {
+   "start_local": "2026-07-23T04:00:00+02:00",
+   "kwh": 0.697,
+   "spot_nok_kwh_eks_mva": 1.410872,
+   "p_max_w": 1291.0
+  },
+  {
+   "start_local": "2026-07-23T05:00:00+02:00",
+   "kwh": 0.625,
+   "spot_nok_kwh_eks_mva": 1.43911,
+   "p_max_w": 2523.0
+  },
+  {
+   "start_local": "2026-07-23T06:00:00+02:00",
+   "kwh": 1.059,
+   "spot_nok_kwh_eks_mva": 1.472465,
+   "p_max_w": 3073.0
+  },
+  {
+   "start_local": "2026-07-23T07:00:00+02:00",
+   "kwh": 0.675,
+   "spot_nok_kwh_eks_mva": 1.497962,
+   "p_max_w": 1267.0
+  },
+  {
+   "start_local": "2026-07-23T08:00:00+02:00",
+   "kwh": 0.673,
+   "spot_nok_kwh_eks_mva": 1.500893,
+   "p_max_w": 1847.0
+  },
+  {
+   "start_local": "2026-07-23T09:00:00+02:00",
+   "kwh": 0.603,
+   "spot_nok_kwh_eks_mva": 1.382668,
+   "p_max_w": 1357.0
+  },
+  {
+   "start_local": "2026-07-23T10:00:00+02:00",
+   "kwh": 1.292,
+   "spot_nok_kwh_eks_mva": 1.233188,
+   "p_max_w": 3178.0
+  },
+  {
+   "start_local": "2026-07-23T11:00:00+02:00",
+   "kwh": 0.77,
+   "spot_nok_kwh_eks_mva": 1.116215,
+   "p_max_w": 1744.0
+  },
+  {
+   "start_local": "2026-07-23T12:00:00+02:00",
+   "kwh": 0.558,
+   "spot_nok_kwh_eks_mva": 1.131935,
+   "p_max_w": 1430.0
+  },
+  {
+   "start_local": "2026-07-23T13:00:00+02:00",
+   "kwh": 0.686,
+   "spot_nok_kwh_eks_mva": 1.142752,
+   "p_max_w": 1890.0
+  },
+  {
+   "start_local": "2026-07-23T14:00:00+02:00",
+   "kwh": 1.337,
+   "spot_nok_kwh_eks_mva": 1.15201,
+   "p_max_w": 4204.0
+  },
+  {
+   "start_local": "2026-07-23T15:00:00+02:00",
+   "kwh": 0.673,
+   "spot_nok_kwh_eks_mva": 1.155652,
+   "p_max_w": 1316.0
+  },
+  {
+   "start_local": "2026-07-23T16:00:00+02:00",
+   "kwh": 0.561,
+   "spot_nok_kwh_eks_mva": 1.105421,
+   "p_max_w": 2036.0
+  },
+  {
+   "start_local": "2026-07-23T17:00:00+02:00",
+   "kwh": 0.668,
+   "spot_nok_kwh_eks_mva": 1.198154,
+   "p_max_w": 1842.0
+  },
+  {
+   "start_local": "2026-07-23T18:00:00+02:00",
+   "kwh": 2.611,
+   "spot_nok_kwh_eks_mva": 1.367482,
+   "p_max_w": 6152.0
+  },
+  {
+   "start_local": "2026-07-23T19:00:00+02:00",
+   "kwh": 0.0,
+   "spot_nok_kwh_eks_mva": 1.515847,
+   "p_max_w": 4241.0
+  },
+  {
+   "start_local": "2026-07-23T20:00:00+02:00",
+   "kwh": 4.106,
+   "spot_nok_kwh_eks_mva": 1.553727,
+   "p_max_w": 5137.0
+  },
+  {
+   "start_local": "2026-07-23T21:00:00+02:00",
+   "kwh": 3.066,
+   "spot_nok_kwh_eks_mva": 1.559035,
+   "p_max_w": 4028.0
+  },
+  {
+   "start_local": "2026-07-23T22:00:00+02:00",
+   "kwh": 0.829,
+   "spot_nok_kwh_eks_mva": 1.544088,
+   "p_max_w": 3286.0
+  },
+  {
+   "start_local": "2026-07-23T23:00:00+02:00",
+   "kwh": 0.544,
+   "spot_nok_kwh_eks_mva": 1.502073,
+   "p_max_w": 1575.0
+  },
+  {
+   "start_local": "2026-07-24T00:00:00+02:00",
+   "kwh": 1.246,
+   "spot_nok_kwh_eks_mva": 1.44582,
+   "p_max_w": 2932.0
+  },
+  {
+   "start_local": "2026-07-24T01:00:00+02:00",
+   "kwh": 0.533,
+   "spot_nok_kwh_eks_mva": 1.404547,
+   "p_max_w": 1300.0
+  },
+  {
+   "start_local": "2026-07-24T02:00:00+02:00",
+   "kwh": 0.525,
+   "spot_nok_kwh_eks_mva": 1.386578,
+   "p_max_w": 1189.0
+  },
+  {
+   "start_local": "2026-07-24T03:00:00+02:00",
+   "kwh": 0.436,
+   "spot_nok_kwh_eks_mva": 1.382689,
+   "p_max_w": 1266.0
+  },
+  {
+   "start_local": "2026-07-24T04:00:00+02:00",
+   "kwh": 1.235,
+   "spot_nok_kwh_eks_mva": 1.389399,
+   "p_max_w": 3724.0
+  },
+  {
+   "start_local": "2026-07-24T05:00:00+02:00",
+   "kwh": 0.441,
+   "spot_nok_kwh_eks_mva": 1.377378,
+   "p_max_w": 1069.0
+  },
+  {
+   "start_local": "2026-07-24T06:00:00+02:00",
+   "kwh": 0.445,
+   "spot_nok_kwh_eks_mva": 1.4046,
+   "p_max_w": 1271.0
+  },
+  {
+   "start_local": "2026-07-24T07:00:00+02:00",
+   "kwh": 0.751,
+   "spot_nok_kwh_eks_mva": 1.432365,
+   "p_max_w": 1478.0
+  },
+  {
+   "start_local": "2026-07-24T08:00:00+02:00",
+   "kwh": 1.672,
+   "spot_nok_kwh_eks_mva": 1.457317,
+   "p_max_w": 7908.0
+  },
+  {
+   "start_local": "2026-07-24T09:00:00+02:00",
+   "kwh": 3.783,
+   "spot_nok_kwh_eks_mva": 1.391755,
+   "p_max_w": 6337.0
+  },
+  {
+   "start_local": "2026-07-24T10:00:00+02:00",
+   "kwh": 1.293,
+   "spot_nok_kwh_eks_mva": 1.261705,
+   "p_max_w": 4056.0
+  },
+  {
+   "start_local": "2026-07-24T11:00:00+02:00",
+   "kwh": 0.903,
+   "spot_nok_kwh_eks_mva": 1.179495,
+   "p_max_w": 2166.0
+  },
+  {
+   "start_local": "2026-07-24T12:00:00+02:00",
+   "kwh": 2.454,
+   "spot_nok_kwh_eks_mva": 1.165307,
+   "p_max_w": 4475.0
+  },
+  {
+   "start_local": "2026-07-24T13:00:00+02:00",
+   "kwh": 3.173,
+   "spot_nok_kwh_eks_mva": 1.245165,
+   "p_max_w": 4443.0
+  },
+  {
+   "start_local": "2026-07-24T14:00:00+02:00",
+   "kwh": 2.18,
+   "spot_nok_kwh_eks_mva": 1.146224,
+   "p_max_w": 4604.0
+  },
+  {
+   "start_local": "2026-07-24T15:00:00+02:00",
+   "kwh": 1.338,
+   "spot_nok_kwh_eks_mva": 0.75056,
+   "p_max_w": 2744.0
+  },
+  {
+   "start_local": "2026-07-24T16:00:00+02:00",
+   "kwh": 0.598,
+   "spot_nok_kwh_eks_mva": 0.868427,
+   "p_max_w": 1299.0
+  },
+  {
+   "start_local": "2026-07-24T17:00:00+02:00",
+   "kwh": 0.721,
+   "spot_nok_kwh_eks_mva": 1.27085,
+   "p_max_w": 1388.0
+  },
+  {
+   "start_local": "2026-07-24T18:00:00+02:00",
+   "kwh": 1.221,
+   "spot_nok_kwh_eks_mva": 1.43064,
+   "p_max_w": 3123.0
+  },
+  {
+   "start_local": "2026-07-24T19:00:00+02:00",
+   "kwh": 0.727,
+   "spot_nok_kwh_eks_mva": 1.458272,
+   "p_max_w": 2627.0
+  },
+  {
+   "start_local": "2026-07-24T20:00:00+02:00",
+   "kwh": 0.683,
+   "spot_nok_kwh_eks_mva": 1.450358,
+   "p_max_w": 2292.0
+  },
+  {
+   "start_local": "2026-07-24T21:00:00+02:00",
+   "kwh": 0.708,
+   "spot_nok_kwh_eks_mva": 1.443675,
+   "p_max_w": 1332.0
+  },
+  {
+   "start_local": "2026-07-24T22:00:00+02:00",
+   "kwh": 0.787,
+   "spot_nok_kwh_eks_mva": 1.451043,
+   "p_max_w": 3100.0
+  },
+  {
+   "start_local": "2026-07-24T23:00:00+02:00",
+   "kwh": 1.07,
+   "spot_nok_kwh_eks_mva": 1.44877,
+   "p_max_w": 3108.0
+  },
+  {
+   "start_local": "2026-07-25T00:00:00+02:00",
+   "kwh": 0.474,
+   "spot_nok_kwh_eks_mva": 1.46284,
+   "p_max_w": 1815.0
+  },
+  {
+   "start_local": "2026-07-25T01:00:00+02:00",
+   "kwh": 0.64,
+   "spot_nok_kwh_eks_mva": 1.454667,
+   "p_max_w": 1600.0
+  },
+  {
+   "start_local": "2026-07-25T02:00:00+02:00",
+   "kwh": 0.501,
+   "spot_nok_kwh_eks_mva": 1.453222,
+   "p_max_w": 1335.0
+  },
+  {
+   "start_local": "2026-07-25T03:00:00+02:00",
+   "kwh": 1.118,
+   "spot_nok_kwh_eks_mva": 1.449735,
+   "p_max_w": 3079.0
+  },
+  {
+   "start_local": "2026-07-25T04:00:00+02:00",
+   "kwh": 0.689,
+   "spot_nok_kwh_eks_mva": 1.420038,
+   "p_max_w": 1582.0
+  },
+  {
+   "start_local": "2026-07-25T05:00:00+02:00",
+   "kwh": 0.47,
+   "spot_nok_kwh_eks_mva": 1.407118,
+   "p_max_w": 1777.0
+  },
+  {
+   "start_local": "2026-07-25T06:00:00+02:00",
+   "kwh": 0.584,
+   "spot_nok_kwh_eks_mva": 1.350283,
+   "p_max_w": 2287.0
+  },
+  {
+   "start_local": "2026-07-25T07:00:00+02:00",
+   "kwh": 1.404,
+   "spot_nok_kwh_eks_mva": 1.234375,
+   "p_max_w": 3424.0
+  },
+  {
+   "start_local": "2026-07-25T08:00:00+02:00",
+   "kwh": 0.86,
+   "spot_nok_kwh_eks_mva": 0.903492,
+   "p_max_w": 1888.0
+  },
+  {
+   "start_local": "2026-07-25T09:00:00+02:00",
+   "kwh": 0.776,
+   "spot_nok_kwh_eks_mva": 1.101783,
+   "p_max_w": 1961.0
+  },
+  {
+   "start_local": "2026-07-25T10:00:00+02:00",
+   "kwh": 0.701,
+   "spot_nok_kwh_eks_mva": 1.078769,
+   "p_max_w": 1125.0
+  },
+  {
+   "start_local": "2026-07-25T11:00:00+02:00",
+   "kwh": 1.598,
+   "spot_nok_kwh_eks_mva": 1.106142,
+   "p_max_w": 3595.0
+  },
+  {
+   "start_local": "2026-07-25T12:00:00+02:00",
+   "kwh": 0.693,
+   "spot_nok_kwh_eks_mva": 0.452278,
+   "p_max_w": 1818.0
+  },
+  {
+   "start_local": "2026-07-25T13:00:00+02:00",
+   "kwh": 0.819,
+   "spot_nok_kwh_eks_mva": 0.572922,
+   "p_max_w": 1791.0
+  },
+  {
+   "start_local": "2026-07-25T14:00:00+02:00",
+   "kwh": 0.793,
+   "spot_nok_kwh_eks_mva": 0.224327,
+   "p_max_w": 2080.0
+  },
+  {
+   "start_local": "2026-07-25T15:00:00+02:00",
+   "kwh": 1.368,
+   "spot_nok_kwh_eks_mva": 0.604339,
+   "p_max_w": 3929.0
+  },
+  {
+   "start_local": "2026-07-25T16:00:00+02:00",
+   "kwh": 0.872,
+   "spot_nok_kwh_eks_mva": 1.085168,
+   "p_max_w": 3216.0
+  },
+  {
+   "start_local": "2026-07-25T17:00:00+02:00",
+   "kwh": 0.793,
+   "spot_nok_kwh_eks_mva": 1.139742,
+   "p_max_w": 1969.0
+  },
+  {
+   "start_local": "2026-07-25T18:00:00+02:00",
+   "kwh": 0.845,
+   "spot_nok_kwh_eks_mva": 1.19955,
+   "p_max_w": 1773.0
+  },
+  {
+   "start_local": "2026-07-25T19:00:00+02:00",
+   "kwh": 0.756,
+   "spot_nok_kwh_eks_mva": 1.299412,
+   "p_max_w": 1552.0
+  },
+  {
+   "start_local": "2026-07-25T20:00:00+02:00",
+   "kwh": 1.43,
+   "spot_nok_kwh_eks_mva": 1.423957,
+   "p_max_w": 3186.0
+  },
+  {
+   "start_local": "2026-07-25T21:00:00+02:00",
+   "kwh": 0.862,
+   "spot_nok_kwh_eks_mva": 1.455456,
+   "p_max_w": 2199.0
+  },
+  {
+   "start_local": "2026-07-25T22:00:00+02:00",
+   "kwh": 0.773,
+   "spot_nok_kwh_eks_mva": 1.456793,
+   "p_max_w": 2005.0
+  },
+  {
+   "start_local": "2026-07-25T23:00:00+02:00",
+   "kwh": 0.672,
+   "spot_nok_kwh_eks_mva": 1.441916,
+   "p_max_w": 1497.0
+  },
+  {
+   "start_local": "2026-07-26T00:00:00+02:00",
+   "kwh": 1.563,
+   "spot_nok_kwh_eks_mva": 1.261746,
+   "p_max_w": 2635.0
+  },
+  {
+   "start_local": "2026-07-26T01:00:00+02:00",
+   "kwh": 0.483,
+   "spot_nok_kwh_eks_mva": 1.265205,
+   "p_max_w": 1179.0
+  },
+  {
+   "start_local": "2026-07-26T02:00:00+02:00",
+   "kwh": 0.576,
+   "spot_nok_kwh_eks_mva": 1.257415,
+   "p_max_w": 972.0
+  },
+  {
+   "start_local": "2026-07-26T03:00:00+02:00",
+   "kwh": 0.467,
+   "spot_nok_kwh_eks_mva": 1.268855,
+   "p_max_w": 1351.0
+  },
+  {
+   "start_local": "2026-07-26T04:00:00+02:00",
+   "kwh": 1.391,
+   "spot_nok_kwh_eks_mva": 1.24269,
+   "p_max_w": 3991.0
+  },
+  {
+   "start_local": "2026-07-26T05:00:00+02:00",
+   "kwh": 0.481,
+   "spot_nok_kwh_eks_mva": 1.18498,
+   "p_max_w": 1203.0
+  },
+  {
+   "start_local": "2026-07-26T06:00:00+02:00",
+   "kwh": 0.688,
+   "spot_nok_kwh_eks_mva": 1.081752,
+   "p_max_w": 1798.0
+  },
+  {
+   "start_local": "2026-07-26T07:00:00+02:00",
+   "kwh": 0.827,
+   "spot_nok_kwh_eks_mva": 1.018872,
+   "p_max_w": 1791.0
+  },
+  {
+   "start_local": "2026-07-26T08:00:00+02:00",
+   "kwh": 1.107,
+   "spot_nok_kwh_eks_mva": 1.028529,
+   "p_max_w": 3281.0
+  },
+  {
+   "start_local": "2026-07-26T09:00:00+02:00",
+   "kwh": 1.074,
+   "spot_nok_kwh_eks_mva": 0.723106,
+   "p_max_w": 3287.0
+  },
+  {
+   "start_local": "2026-07-26T10:00:00+02:00",
+   "kwh": 0.956,
+   "spot_nok_kwh_eks_mva": 1.163981,
+   "p_max_w": 2324.0
+  },
+  {
+   "start_local": "2026-07-26T11:00:00+02:00",
+   "kwh": 0.666,
+   "spot_nok_kwh_eks_mva": 0.585028,
+   "p_max_w": 1859.0
+  },
+  {
+   "start_local": "2026-07-26T12:00:00+02:00",
+   "kwh": 0.806,
+   "spot_nok_kwh_eks_mva": 0.005963,
+   "p_max_w": 2442.0
+  },
+  {
+   "start_local": "2026-07-26T13:00:00+02:00",
+   "kwh": 1.493,
+   "spot_nok_kwh_eks_mva": 0.006155,
+   "p_max_w": 2828.0
+  },
+  {
+   "start_local": "2026-07-26T14:00:00+02:00",
+   "kwh": 0.791,
+   "spot_nok_kwh_eks_mva": 0.009205,
+   "p_max_w": 1863.0
+  },
+  {
+   "start_local": "2026-07-26T15:00:00+02:00",
+   "kwh": 0.704,
+   "spot_nok_kwh_eks_mva": 0.01307,
+   "p_max_w": 1451.0
+  },
+  {
+   "start_local": "2026-07-26T16:00:00+02:00",
+   "kwh": 0.812,
+   "spot_nok_kwh_eks_mva": 0.135042,
+   "p_max_w": 1953.0
+  },
+  {
+   "start_local": "2026-07-26T17:00:00+02:00",
+   "kwh": 1.485,
+   "spot_nok_kwh_eks_mva": 0.836899,
+   "p_max_w": 3229.0
+  },
+  {
+   "start_local": "2026-07-26T18:00:00+02:00",
+   "kwh": 0.679,
+   "spot_nok_kwh_eks_mva": 1.113465,
+   "p_max_w": 1950.0
+  },
+  {
+   "start_local": "2026-07-26T19:00:00+02:00",
+   "kwh": 0.829,
+   "spot_nok_kwh_eks_mva": 1.319017,
+   "p_max_w": 2409.0
+  },
+  {
+   "start_local": "2026-07-26T20:00:00+02:00",
+   "kwh": 0.788,
+   "spot_nok_kwh_eks_mva": 1.424348,
+   "p_max_w": 1852.0
+  },
+  {
+   "start_local": "2026-07-26T21:00:00+02:00",
+   "kwh": 1.492,
+   "spot_nok_kwh_eks_mva": 1.421276,
+   "p_max_w": 3566.0
+  },
+  {
+   "start_local": "2026-07-26T22:00:00+02:00",
+   "kwh": 0.652,
+   "spot_nok_kwh_eks_mva": 1.38323,
+   "p_max_w": 1602.0
+  },
+  {
+   "start_local": "2026-07-26T23:00:00+02:00",
+   "kwh": 0.922,
+   "spot_nok_kwh_eks_mva": 1.285465,
+   "p_max_w": 1609.0
+  },
+  {
+   "start_local": "2026-07-27T00:00:00+02:00",
+   "kwh": 0.668,
+   "spot_nok_kwh_eks_mva": 1.064776,
+   "p_max_w": 1474.0
+  },
+  {
+   "start_local": "2026-07-27T01:00:00+02:00",
+   "kwh": 1.248,
+   "spot_nok_kwh_eks_mva": 0.791203,
+   "p_max_w": 3229.0
+  },
+  {
+   "start_local": "2026-07-27T02:00:00+02:00",
+   "kwh": 0.624,
+   "spot_nok_kwh_eks_mva": 0.697468,
+   "p_max_w": 1735.0
+  },
+  {
+   "start_local": "2026-07-27T03:00:00+02:00",
+   "kwh": 0.505,
+   "spot_nok_kwh_eks_mva": 0.703406,
+   "p_max_w": 1909.0
+  },
+  {
+   "start_local": "2026-07-27T04:00:00+02:00",
+   "kwh": 0.609,
+   "spot_nok_kwh_eks_mva": 0.793727,
+   "p_max_w": 2096.0
+  },
+  {
+   "start_local": "2026-07-27T05:00:00+02:00",
+   "kwh": 0.773,
+   "spot_nok_kwh_eks_mva": 0.928271,
+   "p_max_w": 3009.0
+  },
+  {
+   "start_local": "2026-07-27T06:00:00+02:00",
+   "kwh": 1.273,
+   "spot_nok_kwh_eks_mva": 1.190286,
+   "p_max_w": 3031.0
+  },
+  {
+   "start_local": "2026-07-27T07:00:00+02:00",
+   "kwh": 0.815,
+   "spot_nok_kwh_eks_mva": 1.20167,
+   "p_max_w": 2293.0
+  },
+  {
+   "start_local": "2026-07-27T08:00:00+02:00",
+   "kwh": 0.867,
+   "spot_nok_kwh_eks_mva": 1.115568,
+   "p_max_w": 2227.0
+  },
+  {
+   "start_local": "2026-07-27T09:00:00+02:00",
+   "kwh": 0.737,
+   "spot_nok_kwh_eks_mva": 0.863355,
+   "p_max_w": 1449.0
+  },
+  {
+   "start_local": "2026-07-27T10:00:00+02:00",
+   "kwh": 1.623,
+   "spot_nok_kwh_eks_mva": 0.440198,
+   "p_max_w": 3138.0
+  },
+  {
+   "start_local": "2026-07-27T11:00:00+02:00",
+   "kwh": 0.761,
+   "spot_nok_kwh_eks_mva": 0.790223,
+   "p_max_w": 2236.0
+  },
+  {
+   "start_local": "2026-07-27T12:00:00+02:00",
+   "kwh": 0.788,
+   "spot_nok_kwh_eks_mva": 1.043717,
+   "p_max_w": 2015.0
+  },
+  {
+   "start_local": "2026-07-27T13:00:00+02:00",
+   "kwh": 0.762,
+   "spot_nok_kwh_eks_mva": 0.768936,
+   "p_max_w": 2052.0
+  },
+  {
+   "start_local": "2026-07-27T14:00:00+02:00",
+   "kwh": 2.802,
+   "spot_nok_kwh_eks_mva": 1.123467,
+   "p_max_w": 5360.0
+  },
+  {
+   "start_local": "2026-07-27T15:00:00+02:00",
+   "kwh": 2.136,
+   "spot_nok_kwh_eks_mva": 1.152511,
+   "p_max_w": 4617.0
+  },
+  {
+   "start_local": "2026-07-27T16:00:00+02:00",
+   "kwh": 3.119,
+   "spot_nok_kwh_eks_mva": 0.660572,
+   "p_max_w": 7217.0
+  },
+  {
+   "start_local": "2026-07-27T17:00:00+02:00",
+   "kwh": 4.56,
+   "spot_nok_kwh_eks_mva": 0.602791,
+   "p_max_w": 8120.0
+  },
+  {
+   "start_local": "2026-07-27T18:00:00+02:00",
+   "kwh": 2.308,
+   "spot_nok_kwh_eks_mva": 1.047957,
+   "p_max_w": 5481.0
+  },
+  {
+   "start_local": "2026-07-27T19:00:00+02:00",
+   "kwh": 0.845,
+   "spot_nok_kwh_eks_mva": 1.358847,
+   "p_max_w": 1758.0
+  },
+  {
+   "start_local": "2026-07-27T20:00:00+02:00",
+   "kwh": 1.35,
+   "spot_nok_kwh_eks_mva": 1.428847,
+   "p_max_w": 3866.0
+  },
+  {
+   "start_local": "2026-07-27T21:00:00+02:00",
+   "kwh": 3.029,
+   "spot_nok_kwh_eks_mva": 1.473425,
+   "p_max_w": 4085.0
+  },
+  {
+   "start_local": "2026-07-27T22:00:00+02:00",
+   "kwh": 0.964,
+   "spot_nok_kwh_eks_mva": 1.478002,
+   "p_max_w": 2869.0
+  },
+  {
+   "start_local": "2026-07-27T23:00:00+02:00",
+   "kwh": 0.63,
+   "spot_nok_kwh_eks_mva": 1.474413,
+   "p_max_w": 2552.0
+  },
+  {
+   "start_local": "2026-07-28T00:00:00+02:00",
+   "kwh": 0.587,
+   "spot_nok_kwh_eks_mva": 1.42885,
+   "p_max_w": 1508.0
+  },
+  {
+   "start_local": "2026-07-28T01:00:00+02:00",
+   "kwh": 1.145,
+   "spot_nok_kwh_eks_mva": 1.416055,
+   "p_max_w": 3769.0
+  },
+  {
+   "start_local": "2026-07-28T02:00:00+02:00",
+   "kwh": 0.696,
+   "spot_nok_kwh_eks_mva": 1.397549,
+   "p_max_w": 1576.0
+  },
+  {
+   "start_local": "2026-07-28T03:00:00+02:00",
+   "kwh": 0.47,
+   "spot_nok_kwh_eks_mva": 1.397988,
+   "p_max_w": 2178.0
+  },
+  {
+   "start_local": "2026-07-28T04:00:00+02:00",
+   "kwh": 0.482,
+   "spot_nok_kwh_eks_mva": 1.397,
+   "p_max_w": 1446.0
+  },
+  {
+   "start_local": "2026-07-28T05:00:00+02:00",
+   "kwh": 1.347,
+   "spot_nok_kwh_eks_mva": 1.407705,
+   "p_max_w": 3253.0
+  },
+  {
+   "start_local": "2026-07-28T06:00:00+02:00",
+   "kwh": 0.537,
+   "spot_nok_kwh_eks_mva": 1.44126,
+   "p_max_w": 2077.0
+  },
+  {
+   "start_local": "2026-07-28T07:00:00+02:00",
+   "kwh": 0.756,
+   "spot_nok_kwh_eks_mva": 1.452845,
+   "p_max_w": 1899.0
+  },
+  {
+   "start_local": "2026-07-28T08:00:00+02:00",
+   "kwh": 0.772,
+   "spot_nok_kwh_eks_mva": 1.424345,
+   "p_max_w": 1419.0
+  },
+  {
+   "start_local": "2026-07-28T09:00:00+02:00",
+   "kwh": 1.896,
+   "spot_nok_kwh_eks_mva": 1.308588,
+   "p_max_w": 4364.0
+  },
+  {
+   "start_local": "2026-07-28T10:00:00+02:00",
+   "kwh": 3.03,
+   "spot_nok_kwh_eks_mva": 1.11848,
+   "p_max_w": 5109.0
+  },
+  {
+   "start_local": "2026-07-28T11:00:00+02:00",
+   "kwh": 2.415,
+   "spot_nok_kwh_eks_mva": 1.091573,
+   "p_max_w": 5151.0
+  },
+  {
+   "start_local": "2026-07-28T12:00:00+02:00",
+   "kwh": 0.712,
+   "spot_nok_kwh_eks_mva": 1.424785,
+   "p_max_w": 1808.0
+  },
+  {
+   "start_local": "2026-07-28T13:00:00+02:00",
+   "kwh": 1.361,
+   "spot_nok_kwh_eks_mva": 1.441342,
+   "p_max_w": 3606.0
+  },
+  {
+   "start_local": "2026-07-28T14:00:00+02:00",
+   "kwh": 1.496,
+   "spot_nok_kwh_eks_mva": 1.432253,
+   "p_max_w": 3321.0
+  },
+  {
+   "start_local": "2026-07-28T15:00:00+02:00",
+   "kwh": 2.814,
+   "spot_nok_kwh_eks_mva": 1.379788,
+   "p_max_w": 6616.0
+  },
+  {
+   "start_local": "2026-07-28T16:00:00+02:00",
+   "kwh": 2.265,
+   "spot_nok_kwh_eks_mva": 1.16068,
+   "p_max_w": 5072.0
+  },
+  {
+   "start_local": "2026-07-28T17:00:00+02:00",
+   "kwh": 1.217,
+   "spot_nok_kwh_eks_mva": 1.274589,
+   "p_max_w": 2629.0
+  },
+  {
+   "start_local": "2026-07-28T18:00:00+02:00",
+   "kwh": 1.395,
+   "spot_nok_kwh_eks_mva": 1.432942,
+   "p_max_w": 4019.0
+  },
+  {
+   "start_local": "2026-07-28T19:00:00+02:00",
+   "kwh": 1.651,
+   "spot_nok_kwh_eks_mva": 1.444326,
+   "p_max_w": 3549.0
+  },
+  {
+   "start_local": "2026-07-28T20:00:00+02:00",
+   "kwh": 0.784,
+   "spot_nok_kwh_eks_mva": 1.439228,
+   "p_max_w": 2172.0
+  },
+  {
+   "start_local": "2026-07-28T21:00:00+02:00",
+   "kwh": 0.966,
+   "spot_nok_kwh_eks_mva": 1.417485,
+   "p_max_w": 2575.0
+  },
+  {
+   "start_local": "2026-07-28T22:00:00+02:00",
+   "kwh": 0.944,
+   "spot_nok_kwh_eks_mva": 1.438872,
+   "p_max_w": 2716.0
+  },
+  {
+   "start_local": "2026-07-28T23:00:00+02:00",
+   "kwh": 1.533,
+   "spot_nok_kwh_eks_mva": 1.442113,
+   "p_max_w": 3957.0
+  },
+  {
+   "start_local": "2026-07-29T00:00:00+02:00",
+   "kwh": 0.49,
+   "spot_nok_kwh_eks_mva": 1.470152,
+   "p_max_w": 1686.0
+  },
+  {
+   "start_local": "2026-07-29T01:00:00+02:00",
+   "kwh": 0.449,
+   "spot_nok_kwh_eks_mva": 1.455998,
+   "p_max_w": 1729.0
+  },
+  {
+   "start_local": "2026-07-29T02:00:00+02:00",
+   "kwh": 1.193,
+   "spot_nok_kwh_eks_mva": 1.43986,
+   "p_max_w": 3327.0
+  },
+  {
+   "start_local": "2026-07-29T03:00:00+02:00",
+   "kwh": 0.49,
+   "spot_nok_kwh_eks_mva": 1.43292,
+   "p_max_w": 1808.0
+  },
+  {
+   "start_local": "2026-07-29T04:00:00+02:00",
+   "kwh": 0.509,
+   "spot_nok_kwh_eks_mva": 1.423725,
+   "p_max_w": 1897.0
+  },
+  {
+   "start_local": "2026-07-29T05:00:00+02:00",
+   "kwh": 0.513,
+   "spot_nok_kwh_eks_mva": 1.44669,
+   "p_max_w": 1717.0
+  },
+  {
+   "start_local": "2026-07-29T06:00:00+02:00",
+   "kwh": 1.07,
+   "spot_nok_kwh_eks_mva": 1.441512,
+   "p_max_w": 2530.0
+  },
+  {
+   "start_local": "2026-07-29T07:00:00+02:00",
+   "kwh": 1.666,
+   "spot_nok_kwh_eks_mva": 1.459607,
+   "p_max_w": 4561.0
+  },
+  {
+   "start_local": "2026-07-29T08:00:00+02:00",
+   "kwh": 1.928,
+   "spot_nok_kwh_eks_mva": 1.436778,
+   "p_max_w": 4160.0
+  },
+  {
+   "start_local": "2026-07-29T09:00:00+02:00",
+   "kwh": 3.661,
+   "spot_nok_kwh_eks_mva": 1.364907,
+   "p_max_w": 6942.0
+  },
+  {
+   "start_local": "2026-07-29T10:00:00+02:00",
+   "kwh": 1.635,
+   "spot_nok_kwh_eks_mva": 1.160262,
+   "p_max_w": 4623.0,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-29T11:00:00+02:00",
+   "kwh": 2.601,
+   "spot_nok_kwh_eks_mva": 1.074635,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-29T12:00:00+02:00",
+   "kwh": 2.208,
+   "spot_nok_kwh_eks_mva": 0.802108,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-29T13:00:00+02:00",
+   "kwh": 1.268,
+   "spot_nok_kwh_eks_mva": 1.007329,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-29T14:00:00+02:00",
+   "kwh": 1.935,
+   "spot_nok_kwh_eks_mva": 0.997709,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-29T15:00:00+02:00",
+   "kwh": 0.656,
+   "spot_nok_kwh_eks_mva": 1.075207,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-29T16:00:00+02:00",
+   "kwh": 1.001,
+   "spot_nok_kwh_eks_mva": 1.114877,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-29T17:00:00+02:00",
+   "kwh": 1.631,
+   "spot_nok_kwh_eks_mva": 1.3435,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-29T18:00:00+02:00",
+   "kwh": 1.042,
+   "spot_nok_kwh_eks_mva": 1.387231,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-29T19:00:00+02:00",
+   "kwh": 1.05,
+   "spot_nok_kwh_eks_mva": 1.415954,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-29T20:00:00+02:00",
+   "kwh": 1.351,
+   "spot_nok_kwh_eks_mva": 1.413808,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-29T21:00:00+02:00",
+   "kwh": 0.657,
+   "spot_nok_kwh_eks_mva": 1.411303,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-29T22:00:00+02:00",
+   "kwh": 0.525,
+   "spot_nok_kwh_eks_mva": 1.40552,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-29T23:00:00+02:00",
+   "kwh": 1.361,
+   "spot_nok_kwh_eks_mva": 1.344412,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-30T00:00:00+02:00",
+   "kwh": 0.482,
+   "spot_nok_kwh_eks_mva": 1.363885,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-30T01:00:00+02:00",
+   "kwh": 0.558,
+   "spot_nok_kwh_eks_mva": 1.289885,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-30T02:00:00+02:00",
+   "kwh": 0.65,
+   "spot_nok_kwh_eks_mva": 1.272108,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-30T03:00:00+02:00",
+   "kwh": 1.368,
+   "spot_nok_kwh_eks_mva": 1.261925,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-30T04:00:00+02:00",
+   "kwh": 0.555,
+   "spot_nok_kwh_eks_mva": 1.263965,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-30T05:00:00+02:00",
+   "kwh": 0.636,
+   "spot_nok_kwh_eks_mva": 1.2491,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-30T06:00:00+02:00",
+   "kwh": 0.697,
+   "spot_nok_kwh_eks_mva": 1.323347,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-30T07:00:00+02:00",
+   "kwh": 0.956,
+   "spot_nok_kwh_eks_mva": 1.434225,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-30T08:00:00+02:00",
+   "kwh": 1.945,
+   "spot_nok_kwh_eks_mva": 1.423298,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-30T09:00:00+02:00",
+   "kwh": 0.748,
+   "spot_nok_kwh_eks_mva": 1.344787,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-30T10:00:00+02:00",
+   "kwh": 2.681,
+   "spot_nok_kwh_eks_mva": 1.209036,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-30T11:00:00+02:00",
+   "kwh": 3.019,
+   "spot_nok_kwh_eks_mva": 1.18985,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-30T12:00:00+02:00",
+   "kwh": 1.948,
+   "spot_nok_kwh_eks_mva": 1.23683,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-30T13:00:00+02:00",
+   "kwh": 1.781,
+   "spot_nok_kwh_eks_mva": 1.289825,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-30T14:00:00+02:00",
+   "kwh": 0.865,
+   "spot_nok_kwh_eks_mva": 1.300807,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-30T15:00:00+02:00",
+   "kwh": 1.931,
+   "spot_nok_kwh_eks_mva": 1.410475,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-30T16:00:00+02:00",
+   "kwh": 1.665,
+   "spot_nok_kwh_eks_mva": 1.246899,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-30T17:00:00+02:00",
+   "kwh": 1.888,
+   "spot_nok_kwh_eks_mva": 1.331467,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-30T18:00:00+02:00",
+   "kwh": 2.075,
+   "spot_nok_kwh_eks_mva": 1.405795,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-30T19:00:00+02:00",
+   "kwh": 0.649,
+   "spot_nok_kwh_eks_mva": 1.43062,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-30T20:00:00+02:00",
+   "kwh": 1.297,
+   "spot_nok_kwh_eks_mva": 1.422831,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-30T21:00:00+02:00",
+   "kwh": 0.749,
+   "spot_nok_kwh_eks_mva": 1.432105,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-30T22:00:00+02:00",
+   "kwh": 0.811,
+   "spot_nok_kwh_eks_mva": 1.403755,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-30T23:00:00+02:00",
+   "kwh": 0.771,
+   "spot_nok_kwh_eks_mva": 1.36212,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-31T00:00:00+02:00",
+   "kwh": 2.282,
+   "spot_nok_kwh_eks_mva": 1.442309,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-31T01:00:00+02:00",
+   "kwh": 0.478,
+   "spot_nok_kwh_eks_mva": 1.409245,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-31T02:00:00+02:00",
+   "kwh": 0.557,
+   "spot_nok_kwh_eks_mva": 1.348833,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-31T03:00:00+02:00",
+   "kwh": 0.446,
+   "spot_nok_kwh_eks_mva": 1.269281,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-31T04:00:00+02:00",
+   "kwh": 1.208,
+   "spot_nok_kwh_eks_mva": 1.27087,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-31T05:00:00+02:00",
+   "kwh": 0.592,
+   "spot_nok_kwh_eks_mva": 1.29081,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-31T06:00:00+02:00",
+   "kwh": 0.813,
+   "spot_nok_kwh_eks_mva": 1.38302,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-31T07:00:00+02:00",
+   "kwh": 1.906,
+   "spot_nok_kwh_eks_mva": 1.452577,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-31T08:00:00+02:00",
+   "kwh": 0.721,
+   "spot_nok_kwh_eks_mva": 1.473007,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-31T09:00:00+02:00",
+   "kwh": 1.555,
+   "spot_nok_kwh_eks_mva": 1.47589,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-31T10:00:00+02:00",
+   "kwh": 2.99,
+   "spot_nok_kwh_eks_mva": 1.373173,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-31T11:00:00+02:00",
+   "kwh": 2.931,
+   "spot_nok_kwh_eks_mva": 1.163344,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-31T12:00:00+02:00",
+   "kwh": 1.968,
+   "spot_nok_kwh_eks_mva": 1.066794,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-31T13:00:00+02:00",
+   "kwh": 0.958,
+   "spot_nok_kwh_eks_mva": 0.943871,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-31T14:00:00+02:00",
+   "kwh": 1.856,
+   "spot_nok_kwh_eks_mva": 0.97806,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-31T15:00:00+02:00",
+   "kwh": 0.628,
+   "spot_nok_kwh_eks_mva": 1.155265,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-31T16:00:00+02:00",
+   "kwh": 0.686,
+   "spot_nok_kwh_eks_mva": 1.330297,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-31T17:00:00+02:00",
+   "kwh": 0.752,
+   "spot_nok_kwh_eks_mva": 1.418665,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-31T18:00:00+02:00",
+   "kwh": 1.725,
+   "spot_nok_kwh_eks_mva": 1.421247,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-31T19:00:00+02:00",
+   "kwh": 0.988,
+   "spot_nok_kwh_eks_mva": 1.422147,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-31T20:00:00+02:00",
+   "kwh": 1.197,
+   "spot_nok_kwh_eks_mva": 1.41696,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-31T21:00:00+02:00",
+   "kwh": 1.349,
+   "spot_nok_kwh_eks_mva": 1.41471,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-31T22:00:00+02:00",
+   "kwh": 0.96,
+   "spot_nok_kwh_eks_mva": 1.409628,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  },
+  {
+   "start_local": "2026-07-31T23:00:00+02:00",
+   "kwh": 1.336,
+   "spot_nok_kwh_eks_mva": 1.378848,
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
+  }
+ ]
+}

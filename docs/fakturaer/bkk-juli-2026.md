@@ -4,7 +4,7 @@
 **Periode:** 01.07.2026 - 01.08.2026 (31 dager)
 **Nettselskap:** BKK (NO5, standard avgiftssone)
 **Avtale:** Norgespris (fast 50 øre/kWh inkl. mva)
-**Verifisert dato:** 2026-08-07
+**Verifisert dato:** 2026-08-07 (linje for linje), 2026-08-08 (time for time, etter full Elhub-eksport)
 
 ## Fakturadata
 
@@ -35,27 +35,32 @@ steg igjen: implisitt snittspot 50 + 86.017 = 136.017 øre/kWh inkl. mva, mot
 ## HAN-utfall 29.-31. juli
 
 `sensor.pow_u_ams_tpi` og `sensor.pow_u_ams_p` sluttet å rapportere 29. juli
-rundt kl. 11 og var nede ut fakturaperioden. HAN-fixturen
-(`tests/fixtures/bkk_juli_2026_hourly.json`) har derfor `kwh: null` og
-`p_max_w: null` for 61 av 744 timer, fra 29.07 kl. 11 til og med 31.07 kl. 23.
+og var nede ut fakturaperioden. HAN-fixturen
+(`tests/fixtures/bkk_juli_2026_hourly.json`) manglet derfor `kwh` og
+`p_max_w` for 61 av 744 timer, fra 29.07 kl. 11 til og med 31.07 kl. 23.
 Spotprisen er komplett for alle 744 timene.
 
-Hullet er **ikke fylt**. Elhub er kWh-fasiten, men Elhub-eksporten som ligger
-lokalt (`_private/Måleverdier/elhub_juli.csv`) dekker bare 01.07-05.07 (120
-timer), altså ingenting av hullet. Alternativet, å fordele fakturaens
-restforbruk utover de 61 timene, ville gjort verifiseringen sirkulær: vi
-hadde da bekreftet fakturaen med tall hentet fra fakturaen. Timene står som
-`null`, og `scripts/research/verify_invoice_hourly.py` holder dem utenfor
-summene og merker volumlinjene `DELVIS`. Bakgrunnen ligger i fixturens
-`metadata.datahull`.
+Utfallet startet i praksis én time tidligere: 29.07 kl. 10 har HAN-målt 0,0
+kWh med `p_max` 4623 W, som er fysisk umulig. tpi-måleren frøs midt i timen,
+så det reelle hullet er 62 timer. Beviset er totalsummen: fylles bare de 61
+null-timene fra Elhub mangler måneden 1,6 kWh mot fakturaen, men med
+Elhub-verdien for time 10 (1,635 kWh) lander totalen 10 Wh fra fakturaen.
 
-**Gjenstår:** ny eksport av hele juli fra minside.elhub.no til
-`_private/Måleverdier/elhub_juli.csv`, deretter fylle `kwh` for de 61 timene
-derfra (`p_max_w` forblir `null`, Elhub har ikke effekt). Da kan
-time-for-time-verifiseringen og Elhub x Final-sjekken kjøres fullt ut, og
-juli kan legges til i `FAKTURA_MAP` i `tests/test_coordinator_replay.py`.
+Hullet ble først stående **ufylt** (Elhub-eksporten som lå lokalt dekket bare
+01.07-05.07), og restanalysen under ble brukt som plausibilitetssjekk. Etter
+ny Elhub-eksport for hele måneden (2026-08-08) er alle 62 timene fylt med
+Elhub-kWh via `scripts/research/fyll_datahull_fra_elhub.py`, merket
+`"kwh_kilde": "elhub"` i fixturen og dokumentert i `metadata.datahull`.
+`p_max_w` er fortsatt `null` for de fylte timene (Elhub har ikke effektdata),
+men alle fakturaens tre effekttopper ligger før utfallet.
+`verify_norgespris_eksakt.py` holder de fylte timene utenfor HAN-summene,
+så proveniensen i forskningsnotatene består.
 
 ### Restanalyse: er fakturaen konsistent i hullet?
+
+Analysen under ble gjort før hullet ble fylt, og beholdes som metodikk for
+fremtidige utfall der Elhub-data ikke finnes. Elhub-fyllingen bekreftet den i
+etterkant: restforbruket fakturaen tilskrev hullet stemte med Elhub-målingene.
 
 Selv uten måling kan vi teste om fakturaen henger sammen med modellen vår i
 hullet. Fakturaen minus det vi faktisk har målt gir et restforbruk og en
@@ -81,30 +86,33 @@ også der vi mangler måling. Dette er en plausibilitetssjekk, ikke en attest.
 ## Time-for-time-verifisering
 
 Utført med HAN-eksport fra HA-recorder via
-`scripts/research/verify_invoice_hourly.py`. Volumlinjene dekker bare de 683
-målte timene og kan derfor ikke sammenlignes med fakturaen:
+`scripts/research/verify_invoice_hourly.py`, etter at de 62 utfallstimene ble
+fylt med Elhub-kWh (se over). Alle 744 timer har måling:
 
-| Linje                  | Beregnet (683 timer) | Faktura (744 timer) | Status |
-| ---------------------- | -------------------- | ------------------- | ------ |
-| Total kWh              | 858.250              | 938.763             | DELVIS |
-| Forbruk dag kWh        | 449.454              | 514.414             | DELVIS |
-| Forbruk natt kWh       | 408.796              | 424.349             | DELVIS |
-| Nettleie sum           | 552.52               | 586.10              | DELVIS |
-| Norgespris-komp        | -719.30              | -807.50             | DELVIS |
-| Total inkl. Norgespris | -166.79              | -221.40             | DELVIS |
-| Kapasitet              | 250.00               | 250.00              | OK     |
+| Linje                  | Beregnet | Faktura | Avvik  | Status |
+| ---------------------- | -------- | ------- | ------ | ------ |
+| Total kWh              | 938.773  | 938.763 | +0.010 | OK     |
+| Forbruk dag kWh        | 514.400  | 514.414 | -0.014 | OK     |
+| Forbruk natt kWh       | 424.373  | 424.349 | +0.024 | OK     |
+| Energiledd dag         | 184.99   | 185.00  | -0.01  | OK     |
+| Energiledd natt        | 55.70    | 55.70   | -0.00  | OK     |
+| Forbruksavgift         | 83.67    | 83.67   | +0.00  | OK     |
+| Enovaavgift            | 11.73    | 11.73   | +0.00  | OK     |
+| Kapasitet              | 250.00   | 250.00  | +0.00  | OK     |
+| Nettleie sum           | 586.10   | 586.10  | +0.00  | OK     |
+| Norgespris-komp        | -807.75  | -807.50 | -0.25  | OK     |
+| Total inkl. Norgespris | -221.65  | -221.40 | -0.25  | OK     |
 
-Kapasitetslinjen er den eneste volum-avhengige linjen som lar seg verifisere
-fullt ut, fordi alle tre topp-effektene ligger før utfallet. Se under.
-
-Norgespris-kompensasjonen over de 683 målte timene blir -719.30 kr med
-HA-recorderens priser og -719.10 kr med Nord Pools publiserte Final-priser.
-Differansen på 0.20 kr er den kjente prisårgang-effekten: fire søndager
-(05.07, 12.07, 19.07, 26.07) har konstant kursavvik mellom recorder og
-publisert, se [research/norgespris-eksakt-match.md](../research/norgespris-eksakt-match.md).
+Dag/natt-splitten treffer på 14/24 Wh, godt innenfor det dokumenterte
+±100 Wh-spennet. Norgespris-avviket på 0,25 kr med HA-recorderens priser er
+den kjente prisårgang-effekten: fire søndager (05.07, 12.07, 19.07, 26.07)
+har konstant kursavvik mellom recorder og publisert. Med Nord Pools
+publiserte Final-priser er avviket -0,05 kr, og den skarpeste sjekken,
+Elhub-kWh x Final for hele måneden, treffer fakturaen på **+0,003 kr**, jf.
+[research/norgespris-eksakt-match.md](../research/norgespris-eksakt-match.md).
 Juli hadde 18 timer med spot under 50 øre inkl. mva der kunden betaler
-mellomlegg. Måneden har ingen helligdager, så dag/natt-klassifiseringen er ren
-ukedag/helg.
+mellomlegg (målt over de 683 HAN-timene; alle utfallstimene lå over 50 øre).
+Måneden har ingen helligdager, så dag/natt-klassifiseringen er ren ukedag/helg.
 
 ## Kapasitetstrinn-verifisering
 
@@ -121,10 +129,10 @@ Maks effekt fra fakturaen (timesnitt-kW, topp 3 dager):
 
 Snitt topp 3 = 4,715 kW, innenfor 2-5 kW-trinnet. Replay av HAN-dataene gir
 samme tre dager og timer, med 4,993 / 4,561 / 4,555 kW, altså 11 / 20 / 6 W
-under fakturaen og snitt 4,703 kW. Avviket på 11.07 er større enn det
-dokumenterte spennet på 3-8 W per topp, men langt fra trinngrensen på 5,0 kW,
-så trinnvalget står trygt. Verdt å følge med på om spennet skal utvides i
-[begrensninger.md](../begrensninger.md) når flere måneder er målt.
+under fakturaen og snitt 4,703 kW. Avviket på 11.07 er større enn spennet på
+3-8 W som var dokumentert til og med juni, men langt fra trinngrensen på
+5,0 kW, så trinnvalget står trygt. Forventningstabellen i
+[neste-maaned-prosedyre.md](neste-maaned-prosedyre.md) er utvidet til 3-20 W.
 
 Utfallet 29.-31. juli påvirker ikke denne linjen. BKK lister selv 13.07,
 11.07 og 27.07 som de tre høyeste dagene, altså lå ingen topp i de dagene vi
@@ -171,29 +179,26 @@ Forbruket faller videre inn i sommeren, men spotprisen steg kraftig igjen i
 juli, så kompensasjonen mer enn doblet seg og fakturaen snudde fra å betale
 til å få tilbake.
 
-## Status og gjenstående
+## Status
 
 Linje-for-linje-attesten er komplett: integrasjonens satser og formler
 reproduserer fakturaen innenfor avrundingsfeil, verifisert via
 `tests/test_faktura_bkk.py` (fixture `FAKTURA_JULI_2026`).
 
-Time-for-time-verifiseringen er **delvis**. HAN-utfallet 29.-31. juli gjør at
-volumlinjene ikke lar seg reprodusere fra egne måledata, og Elhub-CSV-en som
-ligger lokalt dekker ikke perioden. Restanalysen over viser at fakturaen er
-konsistent med modellen i hullet, men det er en plausibilitetssjekk, ikke en
-reproduksjon. Juli er derfor ikke lagt til i
-`tests/test_coordinator_replay.py` og ikke tatt med i
-`docs/research/_generated/verify_norgespris_eksakt.md`-tabellen.
-
-For å lukke dette trengs en ny Elhub-eksport for hele juli. Se HAN-utfall-
-seksjonen over.
+Time-for-time-verifiseringen er også komplett etter Elhub-fyllingen: alle
+volumlinjer reproduseres, juli kjører i `tests/test_coordinator_replay.py`
+(`FAKTURA_MAP`), og eksakt-sjekken står i
+`docs/research/_generated/verify_norgespris_eksakt.md`-tabellen med
+Elhub x Final-avvik +0,003 kr. HAN-kolonnene for juli er merket delvise der,
+siden 62 av timene ikke er HAN-data.
 
 ## Konklusjon
 
 Integrasjonen beregner nettleie korrekt for juli 2026. Alle fakturaposter
 matcher på øret (maks 0.01 kr på totalen, som skyldes fakturaens
 fem-desimalers Norgespris-sats), kapasitetstrinnet treffer, og satsene i
-dso.py og const.py er
-uendret fra juni og konsistente med det BKK fakturerer. Den fulle
-time-for-time-reproduksjonen står igjen til Elhub-dataene for hele måneden er
-hentet ned.
+dso.py og const.py er uendret fra juni og konsistente med det BKK fakturerer.
+Norgespris-linjen er reprodusert eksakt med Elhub-kWh x publiserte
+Final-priser, som mai og juni. Månedens lærdom: HAN-utfall midt i en time
+etterlater en falsk 0,0-måling før hullet, og Elhub-fylling pluss
+totalsum-avstemming avslører den.

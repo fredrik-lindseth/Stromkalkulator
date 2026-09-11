@@ -203,6 +203,32 @@ FAKTURA_JULI_2026 = {
     "dobbelttelling_avvik_kr": 95,
 }
 
+FAKTURA_AUGUST_2026 = {
+    "navn": "august_2026",
+    "fakturanr": "012345687",
+    "periode_dager": 31,
+    "forbruk_dag_kwh": 475.519,
+    "forbruk_natt_kwh": 489.448,
+    "forbruk_total_kwh": 964.967,
+    "maks_effekt": [4.790, 4.299, 4.111],
+    "maks_effekt_snitt": 4.400,
+    "kapasitetstrinn_indeks": 1,  # Trinn 2: 2-5 kW
+    "kapasitetstrinn_grense": (5, 250),
+    "kapasitetstrinn_min_kw": 2.0,
+    "kapasitetstrinn_maks_kw": 5.0,
+    "norgespris_snitt_kr_per_kwh": -1.0222,
+    "forventet_energiledd_dag_kr": 171.01,
+    "forventet_energiledd_natt_kr": 64.24,
+    "forventet_norgespris_kr": -986.38,
+    "forventet_kapasitet_kr": 250.00,
+    "forventet_forbruksavgift_kr": 86.00,
+    "forventet_enovaavgift_kr": 12.06,
+    "forventet_nettleie_kr": 583.31,
+    "forventet_total_kr": -403.07,
+    "forventet_mva_kr": 116.66,
+    "dobbelttelling_avvik_kr": 98,
+}
+
 
 @pytest.fixture(
     params=[
@@ -212,8 +238,17 @@ FAKTURA_JULI_2026 = {
         FAKTURA_MAI_2026,
         FAKTURA_JUNI_2026,
         FAKTURA_JULI_2026,
+        FAKTURA_AUGUST_2026,
     ],
-    ids=["februar_2026", "mars_2026", "april_2026", "mai_2026", "juni_2026", "juli_2026"],
+    ids=[
+        "februar_2026",
+        "mars_2026",
+        "april_2026",
+        "mai_2026",
+        "juni_2026",
+        "juli_2026",
+        "august_2026",
+    ],
 )
 def faktura(request):
     """BKK-faktura for én måned. Norgespris-kunde."""

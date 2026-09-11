@@ -43,6 +43,32 @@ direkte, så ingen EUR→NOK-omregning trengs for månedssjekken.
 4. Lagre originalen i `_private/Måleverdier/elhub_<måned>.csv` (gitignored, beholder rådata). `verify_norgespris_eksakt.py` plukker den opp automatisk på det navnet, og Elhub-kWh er fasiten for eksakt-sjekken (HAN-serien kan ha aggregatglipper, jf. 2. pinsedag 2026).
 5. Kopier også til `Måleverdier/elhub_<måned>.csv` om du vil ha den committet. CSV-innholdet har ingen personlig info, men kun én demo-måned committes vanligvis.
 
+### 3b. Fyll hull i fixturen
+
+Eksporten i steg 2 har `null` i de timene HA-recorderen mangler data. To slag
+hull, hver sin kilde:
+
+```bash
+# Forbrukshull (HAN-leseren nede): Elhub-kWh er fakturagrunnlaget BKK leser
+python3 scripts/research/fyll_datahull_fra_elhub.py \
+    --fixture tests/fixtures/bkk_<måned>_2026_hourly.json \
+    --elhub "_private/Måleverdier/elhub_<måned>.csv"
+
+# Spotprishull (Nord Pool-sensoren nede): publiserte Final-kvarterpriser
+python3 scripts/research/fyll_spothull_fra_nordpool.py \
+    --fixture tests/fixtures/bkk_<måned>_2026_hourly.json
+```
+
+Begge merker de fylte timene (`kwh_kilde`, `spot_kilde`) slik at
+`verify_norgespris_eksakt.py` kan holde dem utenfor sammenligningene der de
+ellers ville målt en kilde mot seg selv. Begge har `--overstyr TIME=BEGRUNNELSE`
+for enkelttimer der recorderen har en verdi som beviselig er gal; begrunnelsen
+arkiveres i fixturens metadata.
+
+Var HAN-leseren nede ved periodestart, er `metadata.tpi_start_kwh` også `null`.
+Sett den til tpi ved første målte time minus Elhub-forbruket fram dit; ellers
+kan ikke måneden legges inn i `tests/test_coordinator_replay.py`.
+
 ### 4. Legg til fixture i `tests/test_faktura_bkk.py`
 
 Kopier `FAKTURA_APRIL_2026`-blokken, endre navn til `FAKTURA_MAI_2026` og fyll inn nye tall fra fakturaen. Legg navnet til i `@pytest.fixture(params=[...])`-blokken.
@@ -96,6 +122,10 @@ Hvis avviket er vesentlig større: undersøk. Mulige årsaker:
 - HAN-leser nedetid (sjekk `Kvalitet`-kolonnen i Elhub-CSV for "Beregnet"-rader)
 - Endret målerprosess hos BKK
 - Endret avgiftssatser (sjekk `const.py` og `dso.py`)
+- Spotpris-hull i recorderen (august 2026: Nord Pool-sensoren mistet
+  statistikk fra døgnskiftet tre ganger). Randtimen rett før et slikt hull
+  kan ha en recorder-verdi som avviker kraftig fra den publiserte prisen;
+  `verify_norgespris_eksakt.py` flagger den.
 
 ### 7. Lag faktura-rapport
 

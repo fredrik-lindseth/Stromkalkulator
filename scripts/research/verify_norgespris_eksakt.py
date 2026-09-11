@@ -159,15 +159,21 @@ def analyser_maaned(navn: str, shift_seconds: int) -> dict[str, Any] | None:
     ha = [float(h["spot_nok_kwh_eks_mva"]) for h in hours]
     np_ = [np_priser[h["start_local"]] for h in hours]
 
-    # Prisfidelitet HA-recorder mot publisert
-    diffs = [(a - b) for a, b in zip(ha, np_, strict=True)]
+    # Prisfidelitet HA-recorder mot publisert. Timer der recorder-hullet er
+    # fylt fra det publiserte arkivet (spot_kilde == "nordpool_publisert", se
+    # fyll_spothull_fra_nordpool.py) holdes utenfor: de ville målt arkivet mot
+    # seg selv og blåst opp bit-like-tellingen.
+    ekte = [h.get("spot_kilde") != "nordpool_publisert" for h in hours]
+    n_fidelitet = sum(ekte)
+    n_fylt_spot = len(hours) - n_fidelitet
+    diffs = [(a - b) for a, b, e in zip(ha, np_, ekte, strict=True) if e]
     bitlike = sum(1 for d in diffs if abs(d) < 5e-7)
     naere = sum(1 for d in diffs if abs(d) < 1e-4)
 
     # Prisårgang: hele dager der HA avviker med tilnærmet konstant faktor
     per_dag: dict[str, list[tuple[float, float]]] = {}
-    for h, a, b in zip(hours, ha, np_, strict=True):
-        if abs(a - b) > 1e-4:
+    for h, a, b, e in zip(hours, ha, np_, ekte, strict=True):
+        if e and abs(a - b) > 1e-4:
             per_dag.setdefault(h["start_local"][:10], []).append((a, b))
     aargang = []
     for dag, par in sorted(per_dag.items()):
@@ -218,6 +224,8 @@ def analyser_maaned(navn: str, shift_seconds: int) -> dict[str, Any] | None:
         "komp_elhub": komp_elhub,
         "elhub_full": elhub_full,
         "n_timer": len(hours),
+        "n_fidelitet": n_fidelitet,
+        "n_fylt_spot": n_fylt_spot,
         "manglende_timer": manglende_timer,
         "kilder": kilder,
         "bitlike": bitlike,
@@ -232,8 +240,11 @@ def print_konsoll(res: dict[str, Any]) -> None:
     print(f"=== {res['navn']}: Norgespris mot publiserte Final-priser ===")
     print(f"  priskilde: {res['kilder']['arkiv']} timer NOK-arkiv, "
           f"{res['kilder']['fallback']} timer EUR x EXR-fallback")
-    print(f"  prisfidelitet HA vs publisert: {res['bitlike']}/{res['n_timer']} bit-like, "
-          f"{res['naere']}/{res['n_timer']} innenfor 0,01 øre/kWh")
+    print(f"  prisfidelitet HA vs publisert: {res['bitlike']}/{res['n_fidelitet']} bit-like, "
+          f"{res['naere']}/{res['n_fidelitet']} innenfor 0,01 øre/kWh")
+    if res["n_fylt_spot"]:
+        print(f"    ({res['n_fylt_spot']} timer holdt utenfor: recorder-hullet er fylt "
+              f"fra det publiserte arkivet)")
     if res["aargang"]:
         print("  prisårgang (hele dager der HA-prisen er en annen kurs-årgang):")
         for a in res["aargang"]:

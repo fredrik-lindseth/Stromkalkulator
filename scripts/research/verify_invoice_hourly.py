@@ -128,6 +128,19 @@ FAKTURAER: dict[str, dict[str, Any]] = {
         "forventet_nettleie_kr": 586.10,
         "forventet_total_kr": -221.40,
     },
+    "august_2026": {
+        "forbruk_dag_kwh": 475.519,
+        "forbruk_natt_kwh": 489.448,
+        "forbruk_total_kwh": 964.967,
+        "forventet_energiledd_dag_kr": 171.01,
+        "forventet_energiledd_natt_kr": 64.24,
+        "forventet_forbruksavgift_kr": 86.00,
+        "forventet_enovaavgift_kr": 12.06,
+        "forventet_kapasitet_kr": 250.00,
+        "forventet_norgespris_kr": -986.38,
+        "forventet_nettleie_kr": 583.31,
+        "forventet_total_kr": -403.07,
+    },
 }
 
 
@@ -179,6 +192,7 @@ def beregn(hours: list[dict[str, Any]], shift_seconds: int = 13) -> dict[str, fl
     forbruk_natt = 0.0
     norgespris_sum = 0.0
     manglende = 0
+    manglende_spot = 0
 
     # Maks effekt per dato (W -> kW)
     maks_per_dato: dict[date, float] = {}
@@ -187,7 +201,6 @@ def beregn(hours: list[dict[str, Any]], shift_seconds: int = 13) -> dict[str, fl
 
     for h, kwh in zip(hours, korrigert, strict=True):
         ts = datetime.fromisoformat(h["start_local"])
-        spot_eks = float(h["spot_nok_kwh_eks_mva"])
 
         if kwh is None:
             manglende += 1
@@ -199,8 +212,15 @@ def beregn(hours: list[dict[str, Any]], shift_seconds: int = 13) -> dict[str, fl
         else:
             forbruk_natt += kwh
 
-        # Norgespris-kompensasjon per time
-        norgespris_sum += (NORGESPRIS_INKL_MVA - spot_eks * MVA_SATS) * kwh
+        # Norgespris-kompensasjon per time. Recorderen kan mangle spotpris for
+        # enkelttimer (august 2026: Nord Pool-sensoren falt ut ved dognskifte),
+        # og da er timen bare uten Norgespris-bidrag, ikke uten forbruk.
+        # Volumlinjene teller den fortsatt.
+        spot_raa = h.get("spot_nok_kwh_eks_mva")
+        if spot_raa is None:
+            manglende_spot += 1
+        else:
+            norgespris_sum += (NORGESPRIS_INKL_MVA - float(spot_raa) * MVA_SATS) * kwh
 
         # Kapasitetsledd bruker timesgjennomsnitt av effekt (kWh/h = kW),
         # ikke øyeblikkstopp p_max_w. BKK regner snitt av topp 3 dager.
@@ -234,6 +254,7 @@ def beregn(hours: list[dict[str, Any]], shift_seconds: int = 13) -> dict[str, fl
         "nettleie_kr": nettleie,
         "total_kr": total,
         "manglende_timer": float(manglende),
+        "manglende_spot_timer": float(manglende_spot),
         "dekkede_timer": float(len(hours) - manglende),
     }
 
@@ -299,6 +320,7 @@ def print_datahull(hours: list[dict[str, Any]], f: dict[str, Any], beregnet: dic
         satser = [
             (NORGESPRIS_INKL_MVA - float(h["spot_nok_kwh_eks_mva"]) * MVA_SATS) * 100
             for h in manglende
+            if h.get("spot_nok_kwh_eks_mva") is not None
         ]
         print(f"Implisitt Norgespris-sats for hullet: {implisitt:.3f} øre/kWh "
               f"({rest_np:.2f} kr / {rest_total:.3f} kWh)")
@@ -344,6 +366,9 @@ def main() -> int:
     print(f"=== BKK {args.faktura} verifikasjon (shift={args.shift_seconds}s) ===\n")
     print(f"Antall timer: {len(hours)} "
           f"({int(beregnet['dekkede_timer'])} med måling, {int(beregnet['manglende_timer'])} uten)")
+    if beregnet["manglende_spot_timer"]:
+        print(f"Spotpris mangler for {int(beregnet['manglende_spot_timer'])} timer "
+              f"med måling -> Norgespris-linjen er underestimert tilsvarende.")
     print(f"Kapasitet: snitt topp 3 = {beregnet['kapasitet_snitt_kw']:.3f} kW "
           f"-> trinn {beregnet['kapasitet_grense_kw']} kW, "
           f"{int(beregnet['kapasitet_kr'])} kr\n")

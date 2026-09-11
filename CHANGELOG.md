@@ -2,6 +2,24 @@
 
 Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) og [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Ikke sluppet]
+
+### Fikset
+
+- **Sju nettselskap hevet nettleien 1. august og 1. september 2026**, og satsene våre lå igjen på de gamle. Alle sju er verifisert mot nettselskapets egen prisliste, ikke bare mot fri-nettleie:
+  - **Elinett** (01.08): energiledd dag 22,64 → 25,50 og natt 14,64 → 17,50 øre/kWh, alle ti kapasitetstrinn hevet, trinn 1 fra 251 til 281 kr/mnd.
+  - **Elvenett** (01.09): nattsatsen var 11,00 der den skal være 5,00 øre/kWh, og de tre laveste kapasitetstrinnene var for høye, trinn 1 fra 194 til 160 kr/mnd.
+  - **Høland og Setskog Elverk** (01.08): energiledd dag 22,50 → 27,50 og natt 17,50 → 23,50 øre/kWh, alle ti trinn hevet, trinn 1 fra 200 til 265 kr/mnd.
+  - **Lysna** (01.08): nattsatsen 24,03 → 26,03 øre/kWh, og kapasitetstabellen har fått et trinn til (25-50 kW). Trinn 1 fra 388 til 375 kr/mnd.
+  - **Mellom** (20.08): kapasitetstabellen gikk fra åtte til tolv trinn og alle satsene er hevet, trinn 1 fra 254 til 281 kr/mnd. Energileddet var riktig.
+  - **Nordvest Nett** (01.07): energiledd dag 26,03 → 31,23 og natt 20,03 → 25,23 øre/kWh, alle ti trinn hevet, trinn 1 fra 158 til 190 kr/mnd.
+  - **Norefjell Nett** (01.08): energiledd dag 22,53 → 23,53 og natt 15,08 → 18,58 øre/kWh, alle ti trinn hevet, trinn 1 fra 243 til 266 kr/mnd.
+- **Sør Aurdal Energi hevet energileddet 1. september 2026** med 5,00 øre/kWh inkl. mva i alle tariffgrupper: vinter (okt-mar) 25,52 → 29,52 og sommer (apr-sep) 21,52 → 25,52 øre/kWh eks. mva. Fastleddet er uendret.
+
+### Endret
+
+- Prisside-lenkene for Mellom og Lysna pekte på adresser som er flyttet. Rettet.
+
 ## [1.16.0]
 
 ### Fikset

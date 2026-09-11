@@ -602,20 +602,27 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "supported": True,
         # Molde-området (Møre og Romsdal) - HAR 25% mva
         # Coordinator legger på forbruksavgift 7,13 + Enova 1,0 + 25% mva.
-        "energiledd_dag_eks_mva": 0.22638,  # 22,64 øre/kWh ren energiledd (2026, dag 06-22)
-        "energiledd_natt_eks_mva": 0.14638,  # 14,64 øre/kWh ren energiledd (2026, natt 22-06)
+        # Oppdatert 2026-09-12 til tariffen fra 01.08.2026. Kilde:
+        # elinett.no/kunde/nettleie-2/nettleie, som oppgir dag 42,04 og
+        # natt/helg/helligdag 32,04 øre/kWh inkl. alle avgifter, og selv gjengir
+        # eks-avgift-tallene 31,88/21,88 (fortsatt inkl. mva). Delt på 1,25.
+        "energiledd_dag_eks_mva": 0.25502,  # 25,50 øre/kWh ren energiledd (01.08.2026, dag 06-22)
+        "energiledd_natt_eks_mva": 0.17502,  # 17,50 øre/kWh ren energiledd (01.08.2026, natt 22-06)
         "url": "https://www.elinett.no/kunde/nettleie-2/nettleie",
+        # Kapasitetsledd i kr/mnd inkl. mva, ordrett fra elinett.no sin egen
+        # tabell gjeldende 01.08.2026. Identisk med fri-nettleie elinett.yml
+        # omregnet fra kr/år eks. mva.
         "kapasitetstrinn": [
-            (2, 251),  # 0-2 kW: 251 kr/mnd
-            (5, 314),  # 2-5 kW: 314 kr/mnd
-            (10, 376),  # 5-10 kW: 376 kr/mnd
-            (15, 627),  # 10-15 kW: 627 kr/mnd
-            (20, 753),  # 15-20 kW: 753 kr/mnd
-            (25, 878),  # 20-25 kW: 878 kr/mnd
-            (50, 1254),  # 25-50 kW: 1254 kr/mnd
-            (75, 1379),  # 50-75 kW: 1379 kr/mnd
-            (100, 1505),  # 75-100 kW: 1505 kr/mnd
-            (float("inf"), 1881),  # >100 kW: 1881 kr/mnd
+            (2, 281),  # 0-2 kW: 281 kr/mnd
+            (5, 350),  # 2-5 kW: 350 kr/mnd
+            (10, 419),  # 5-10 kW: 419 kr/mnd
+            (15, 688),  # 10-15 kW: 688 kr/mnd
+            (20, 831),  # 15-20 kW: 831 kr/mnd
+            (25, 969),  # 20-25 kW: 969 kr/mnd
+            (50, 1381),  # 25-50 kW: 1381 kr/mnd
+            (75, 1519),  # 50-75 kW: 1519 kr/mnd
+            (100, 1656),  # 75-100 kW: 1656 kr/mnd
+            (float("inf"), 2069),  # >100 kW: 2069 kr/mnd
         ],
     },
     "mellom": {
@@ -627,16 +634,24 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         # i tillegg). 37,21/29,34 inkl. mva ÷1,25 = 29,77/23,47 ren netteierandel.
         "energiledd_dag_eks_mva": 0.2977,  # 29,77 øre/kWh ren energiledd (2026, dag)
         "energiledd_natt_eks_mva": 0.2347,  # 23,47 øre/kWh ren energiledd (2026, natt)
-        "url": "https://mellom.no/nettleiepriser/",
+        "url": "https://mellom.no/nettleie/nettleiepriser/",
+        # Kapasitetsledd i kr/mnd inkl. mva, ordrett fra mellom.no/nettleie/
+        # nettleiepriser/ (gjeldende 20.08.2026). Tabellen har tolv trinn der vi
+        # hadde åtte, og alle satsene er hevet. Energileddet vårt sto riktig.
+        # Identisk med fri-nettleie mellom.yml omregnet fra kr/år eks. mva.
         "kapasitetstrinn": [
-            (2, 254),  # 0-2 kW: 254 kr/mnd
-            (5, 380),  # 2-5 kW: 380 kr/mnd
-            (10, 631),  # 5-10 kW: 631 kr/mnd
-            (15, 834),  # 10-15 kW: 834 kr/mnd
-            (20, 1056),  # 15-20 kW: 1056 kr/mnd
-            (25, 1323),  # 20-25 kW: 1323 kr/mnd
-            (50, 1666),  # 25-50 kW: 1666 kr/mnd
-            (float("inf"), 2226),  # >50 kW: 2226 kr/mnd
+            (2, 281),  # 0-2 kW: 281 kr/mnd
+            (5, 418),  # 2-5 kW: 418 kr/mnd
+            (10, 694),  # 5-10 kW: 694 kr/mnd
+            (15, 919),  # 10-15 kW: 919 kr/mnd
+            (20, 1162),  # 15-20 kW: 1162 kr/mnd
+            (25, 1455),  # 20-25 kW: 1455 kr/mnd
+            (50, 1833),  # 25-50 kW: 1833 kr/mnd
+            (75, 2449),  # 50-75 kW: 2449 kr/mnd
+            (100, 3272),  # 75-100 kW: 3272 kr/mnd
+            (150, 4372),  # 100-150 kW: 4372 kr/mnd
+            (200, 5841),  # 150-200 kW: 5841 kr/mnd
+            (float("inf"), 7804),  # >200 kW: 7804 kr/mnd
         ],
     },
     "linja": {
@@ -1189,21 +1204,27 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "prisomrade": "NO1",
         "supported": True,
         # Coordinator legger på forbruksavgift 7,13 + Enova 1,0 + 25% mva.
-        "energiledd_dag_eks_mva": 0.22502,  # 22,50 øre/kWh ren energiledd (2026)
-        "energiledd_natt_eks_mva": 0.17502,  # 17,50 øre/kWh ren energiledd (2026)
+        # Oppdatert 2026-09-12 til tariffen fra 01.08.2026. Kilde: HSEV sin
+        # prisliste hsev.no/uploads/2026-07-06-HSEV-nettleie-privatkunder-
+        # 2026-08-01-1.pdf, som oppgir dag 44,54 og natt/helg 39,54 øre/kWh
+        # inkl. alle avgifter.
+        "energiledd_dag_eks_mva": 0.27502,  # 27,50 øre/kWh ren energiledd (01.08.2026)
+        "energiledd_natt_eks_mva": 0.23502,  # 23,50 øre/kWh ren energiledd (01.08.2026)
         "url": "https://hsev.no/nettleie",
-        # Kapasitetstrinn: fri-nettleie holandogsetskogelverk.yml, tariff gyldig fra 2025-07-01 (hentet 2026-07-28)
+        # Kapasitetsledd i kr/mnd, ordrett fra HSEV sin prisliste gjeldende
+        # 01.08.2026 (samme PDF som energileddet over). Identisk med fri-nettleie
+        # holandogsetskogelverk.yml omregnet fra kr/år eks. mva.
         "kapasitetstrinn": [
-            (2, 200),
-            (5, 240),
-            (10, 350),
-            (15, 440),
-            (20, 590),
-            (25, 690),
-            (50, 1450),
-            (75, 2200),
-            (100, 3000),
-            (float("inf"), 5900),
+            (2, 265),  # 0-2 kW: 265 kr/mnd
+            (5, 300),  # 2-5 kW: 300 kr/mnd
+            (10, 470),  # 5-10 kW: 470 kr/mnd
+            (15, 590),  # 10-15 kW: 590 kr/mnd
+            (20, 760),  # 15-20 kW: 760 kr/mnd
+            (25, 925),  # 20-25 kW: 925 kr/mnd
+            (50, 1800),  # 25-50 kW: 1800 kr/mnd
+            (75, 2700),  # 50-75 kW: 2700 kr/mnd
+            (100, 3500),  # 75-100 kW: 3500 kr/mnd
+            (float("inf"), 7000),  # >100 kW: 7000 kr/mnd
         ],
     },
     "indre_hordaland": {
@@ -1348,16 +1369,23 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "prisomrade": "NO5",
         "supported": True,
         "energiledd_dag_eks_mva": 0.3203,  # 32,03 øre/kWh ren energiledd (2026)
-        "energiledd_natt_eks_mva": 0.2403,  # 24,03 øre/kWh ren energiledd (2026)
-        "url": "https://lysna.no/prisar-for-private-kundar-2024",
-        # Kapasitetstrinn: fri-nettleie lysna.yml, tariff gyldig fra 2024-02-01 (hentet 2026-07-28)
+        # Natt oppdatert 2026-09-12 til tariffen fra 01.08.2026. Kilde:
+        # lysna.no/prisar-for-private-kundar, som oppgir dag kl. 06-22 til 50,2
+        # og natt til 42,7 øre/kWh inkl. alle avgifter. Dagsatsen vår på 32,03
+        # stemte alt; natten lå 2 øre for lavt.
+        "energiledd_natt_eks_mva": 0.2603,  # 26,03 øre/kWh ren energiledd (01.08.2026)
+        "url": "https://lysna.no/prisar-for-private-kundar",
+        # Kapasitetsledd i kr/mnd inkl. mva, ordrett fra lysna.no sin egen tabell
+        # gjeldende 01.08.2026. Tabellen har fått et trinn til (25-50 kW), og siste
+        # trinn dekker alt over 25 kW slik fri-nettleie lysna.yml modellerer det.
         "kapasitetstrinn": [
-            (2, 388),
-            (5, 494),
-            (10, 596),
-            (15, 725),
-            (20, 856),
-            (float("inf"), 981),
+            (2, 375),  # 0-2 kW: 375 kr/mnd
+            (5, 456),  # 2-5 kW: 456 kr/mnd
+            (10, 550),  # 5-10 kW: 550 kr/mnd
+            (15, 725),  # 10-15 kW: 725 kr/mnd
+            (20, 944),  # 15-20 kW: 944 kr/mnd
+            (25, 1225),  # 20-25 kW: 1225 kr/mnd
+            (float("inf"), 1875),  # >25 kW: 1875 kr/mnd
         ],
     },
     "meloy_energi": {
@@ -1518,41 +1546,57 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "Nordvest Nett",
         "prisomrade": "NO3",
         "supported": True,
-        "energiledd_dag_eks_mva": 0.2603,  # 26,03 øre/kWh ren energiledd (2026)
-        "energiledd_natt_eks_mva": 0.2003,  # 20,03 øre/kWh ren energiledd (2026)
+        # Oppdatert 2026-09-12 til tariffen som gjelder fra 01.07.2026. Kilde:
+        # nvn.no/nettleige/nettleie-privatkunder, som oppgir energiledd dag
+        # 49,20 og natt 41,70 øre/kWh inkl. alle avgifter. Trukket fra
+        # forbruksavgift 8,9125 og Enova 1,25 øre inkl. mva og delt på 1,25 gir
+        # ren energiledd eks. mva. Kryssjekket mot fri-nettleie nordvest.yml,
+        # som gir nøyaktig samme 31,23/25,23 øre.
+        "energiledd_dag_eks_mva": 0.3123,  # 31,23 øre/kWh ren energiledd (01.07.2026)
+        "energiledd_natt_eks_mva": 0.2523,  # 25,23 øre/kWh ren energiledd (01.07.2026)
         "url": "https://www.nvn.no/nettleige/nettleie-privatkunder",
+        # Kapasitetstrinn i kr/mnd inkl. mva, ordrett fra nvn.no sin egen
+        # tabell (01.07.2026). Identisk med fri-nettleie nordvest.yml omregnet
+        # fra kr/år eks. mva.
         "kapasitetstrinn": [
-            (2, 158),
-            (5, 388),
-            (10, 478),
-            (15, 726),
-            (20, 861),
-            (25, 1004),
-            (50, 1926),
-            (75, 2850),
-            (100, 3773),
-            (float("inf"), 7420),
+            (2, 190),
+            (5, 466),
+            (10, 573),
+            (15, 871),
+            (20, 1033),
+            (25, 1205),
+            (50, 2311),
+            (75, 3420),
+            (100, 4528),
+            (float("inf"), 8904),
         ],
     },
     "norefjell_nett": {
         "name": "Norefjell Nett",
         "prisomrade": "NO1",
         "supported": True,
-        "energiledd_dag_eks_mva": 0.22534,  # 22,53 øre/kWh ren energiledd (2026)
-        "energiledd_natt_eks_mva": 0.15078,  # 15,08 øre/kWh ren energiledd (2026)
+        # Oppdatert 2026-09-12 til tariffen fra 01.08.2026. Kilde: Norefjell
+        # Nett sin prisliste norefjell-nett.no/uploads/Nettleiepriser-01.08.2026.pdf,
+        # tariff N100 (forbruk under 100 000 kWh/år). Den oppgir energiledd
+        # eks. mva direkte, altså i vår egen konvensjon.
+        "energiledd_dag_eks_mva": 0.23530,  # 23,53 øre/kWh ren energiledd (01.08.2026, dag 06-22)
+        "energiledd_natt_eks_mva": 0.18580,  # 18,58 øre/kWh ren energiledd (01.08.2026, natt 22-06)
         "url": "https://norefjell-nett.no/strompris",
-        # Kapasitetstrinn: fri-nettleie norefjell.yml, tariff gyldig fra 2026-01-01 (hentet 2026-07-28)
+        # Kapasitetsledd i kr/mnd inkl. mva, ordrett fra Norefjell Nett sin
+        # prisliste fra 01.08.2026 (samme PDF som energileddet over), avrundet til
+        # hele kroner fra 266,25 / 346,25 / 478,75 og så videre. Identisk med
+        # fri-nettleie norefjell.yml omregnet fra kr/år eks. mva.
         "kapasitetstrinn": [
-            (2, 243),
-            (5, 315),
-            (10, 435),
-            (15, 653),
-            (20, 846),
-            (25, 1040),
-            (50, 1694),
-            (75, 2540),
-            (100, 3386),
-            (float("inf"), 4838),
+            (2, 266),  # 0-2 kW: 266 kr/mnd
+            (5, 346),  # 2-5 kW: 346 kr/mnd
+            (10, 479),  # 5-10 kW: 479 kr/mnd
+            (15, 719),  # 10-15 kW: 719 kr/mnd
+            (20, 931),  # 15-20 kW: 931 kr/mnd
+            (25, 1144),  # 20-25 kW: 1144 kr/mnd
+            (50, 1863),  # 25-50 kW: 1863 kr/mnd
+            (75, 2794),  # 50-75 kW: 2794 kr/mnd
+            (100, 3725),  # 75-100 kW: 3725 kr/mnd
+            (float("inf"), 5321),  # >100 kW: 5321 kr/mnd
         ],
     },
     "r_nett": {
@@ -2009,20 +2053,30 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         # tidligere kommentar her om at natten slutter 05:00 hadde ingen virkning.
         # fri-nettleie oppgir høylast 6-21 for Elvenett, altså dag fra 06 som hos
         # de andre, så det var ikke noe å implementere. Fjernet 2026-07-28.
-        "energiledd_dag_eks_mva": 0.19998,  # 20,00 øre/kWh ren energiledd (2025)
-        "energiledd_natt_eks_mva": 0.10998,  # 11,00 øre/kWh ren energiledd (2025)
+        # Oppdatert 2026-09-12 til tariffen fra 01.09.2026. Kilde: elvenett.no
+        # sin prisliste "Nettleiepriser for privatkunder og mindre næring pr
+        # 01.09.2026", som oppgir energiledd dag kl. 06-22 til 20,00 øre/kWh
+        # eks. mva og avgifter, med nattreduksjon kl. 22-06 på 15,00 øre. Natten
+        # er altså 5,00, ikke 11,00 som vi hadde.
+        "energiledd_dag_eks_mva": 0.20000,  # 20,00 øre/kWh ren energiledd (01.09.2026)
+        "energiledd_natt_eks_mva": 0.05000,  # 5,00 øre/kWh ren energiledd (01.09.2026)
         "url": "https://www.elvenett.no/priser-og-avtaler/",
+        # Kapasitetsledd i kr/mnd inkl. mva, ordrett fra elvenett.no sin prisliste
+        # pr 01.09.2026. De tre laveste trinnene hadde drevet fra hverandre hos oss
+        # (194/275/380 mot 160/233/331); resten sto riktig. Elvenett har i tillegg
+        # en nattreduksjon av kapasitetsleddet (kW x 0,7 kl. 22-06) som modellen
+        # vår ikke kjenner. Den er ikke ny.
         "kapasitetstrinn": [
-            (2, 194),  # 2325/12
-            (5, 275),  # 3300/12
-            (10, 380),  # 4560/12
-            (15, 496),  # 5955/12
-            (20, 638),  # 7650/12
-            (25, 803),  # 9630/12
-            (50, 1133),  # 13590/12
-            (75, 1511),  # 18135/12
-            (100, 1894),  # 22725/12
-            (float("inf"), 2275),  # 27300/12
+            (2, 160),  # 0-2 kW: 160 kr/mnd
+            (5, 233),  # 2-5 kW: 233 kr/mnd
+            (10, 331),  # 5-10 kW: 331 kr/mnd
+            (15, 496),  # 10-15 kW: 496 kr/mnd
+            (20, 638),  # 15-20 kW: 638 kr/mnd
+            (25, 803),  # 20-25 kW: 803 kr/mnd
+            (50, 1133),  # 25-50 kW: 1133 kr/mnd
+            (75, 1511),  # 50-75 kW: 1511 kr/mnd
+            (100, 1894),  # 75-100 kW: 1894 kr/mnd
+            (float("inf"), 2275),  # >100 kW: 2275 kr/mnd
         ],
     },
     "etna_nett": {
@@ -2073,13 +2127,17 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "Sør Aurdal Energi",
         "prisomrade": "NO1",
         "supported": True,
-        # Korrigert 2026-05-25: lagt på sesongprising (verifisert mot SAE PDF 2026).
-        # Vinter (okt-mar) 25,52 / sommer (apr-sep) 21,52. Flat sats, ingen dag/natt.
-        "energiledd_dag_eks_mva": 0.2552,
-        "energiledd_natt_eks_mva": 0.2552,
+        # Sesongprising, flat sats, ingen dag/natt. Oppdatert 2026-09-12 til
+        # satsene fra 01.09.2026: vinter (okt-mar) 29,52 / sommer (apr-sep)
+        # 25,52 øre/kWh eks. mva. Kilde: sae.no/uploads/Kundeinformasjon/
+        # 2026_09_Kundeinformasjon_tariffer.pdf, tariffgruppe N100-H. Begge
+        # satsene er hevet 4,00 øre eks. mva, som er de 5,00 øre inkl. mva SAE
+        # varsler i samme brev. Fastleddet er uendret.
+        "energiledd_dag_eks_mva": 0.2952,
+        "energiledd_natt_eks_mva": 0.2952,
         "energiledd_perioder": [
-            {"fra": "10-01", "til": "03-31", "dag_eks_mva": 0.2552, "natt_eks_mva": 0.2552},
-            {"fra": "04-01", "til": "09-30", "dag_eks_mva": 0.2152, "natt_eks_mva": 0.2152},
+            {"fra": "10-01", "til": "03-31", "dag_eks_mva": 0.2952, "natt_eks_mva": 0.2952},
+            {"fra": "04-01", "til": "09-30", "dag_eks_mva": 0.2552, "natt_eks_mva": 0.2552},
         ],
         "url": "https://sae.no/tariffer",
         # Fastleddet bestemmes av månedens enkeltstående høyeste time, ikke

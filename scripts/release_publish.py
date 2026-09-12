@@ -23,7 +23,7 @@ tre leddene bindes til den, og bindingen er etterprøvbar i ettertid:
 Rekkefølgen gjør flyten atomisk der det betyr noe: alt skjer i en draft, og
 `draft=false` er siste kall. Feiler noe før det, finnes det ingen offentlig
 release å rydde. Hvert steg er idempotent, så et nytt forsøk på samme SHA
-plukker opp der det stoppet: taggen er allerede riktig, drafen gjenbrukes,
+plukker opp der det stoppet: taggen er allerede riktig, draften gjenbrukes,
 et asset som alt er lastet opp leses tilbake og sammenlignes framfor å byttes.
 
 Er ZIP-en på plass, men med feil sha256, stopper vi. Da vet vi ikke hva som

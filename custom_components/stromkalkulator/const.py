@@ -47,6 +47,39 @@ CONF_EGENDEFINERT_SATSER_BEKREFTET: Final[str] = "egendefinert_satser_bekreftet"
 CONF_PRISENHET_BEKREFTET: Final[str] = "prisenhet_bekreftet"
 # DSO-id-en som betyr "ikke i listen, brukeren taster satsene selv".
 DSO_EGENDEFINERT: Final[str] = "custom"
+# Hvor energiledd-satsene til en entry kommer fra (kontrakt §6).
+#
+#   catalog             dso.py gjelder, løpende. Ingen sats lagres på entryet.
+#   manual              brukerens egne tall gjelder, og skal ikke overskrives.
+#   legacy_unconfirmed  entryet har en lagret sats fra før 1.17, og vi vet ikke
+#                       om den var et bevisst valg. Katalogen regnes med mens vi
+#                       venter på svaret, for det var nettopp den utdaterte
+#                       lagrede satsen som var feilen.
+CONF_TARIFFMODUS: Final[str] = "tariffmodus"
+TARIFFMODUS_CATALOG: Final[str] = "catalog"
+TARIFFMODUS_MANUAL: Final[str] = "manual"
+TARIFFMODUS_LEGACY: Final[str] = "legacy_unconfirmed"
+TARIFFMODUS_ALLE: Final[tuple[str, ...]] = (
+    TARIFFMODUS_CATALOG,
+    TARIFFMODUS_MANUAL,
+    TARIFFMODUS_LEGACY,
+)
+# Prefiks på repair-issuen som ber brukeren velge mellom katalogen og sin egen
+# sats. Ligger her av samme grunn som EGENDEFINERT_ISSUE_PREFIX: __init__.py
+# reiser issuen og skal ikke dra inn repairs-plattformen for en streng.
+TARIFF_ISSUE_PREFIX: Final[str] = "tariff_ubekreftet_"
+# Minste forskjell mellom lagret og katalogført energiledd som skal vekke
+# brukeren, i NOK/kWh inkl. mva. Terskelen ligger mellom to kjente tall:
+#
+#   under den:  støyen fra v1-migreringen, som regnet inkl-mva-satser tilbake
+#               til eks. mva og rundet til fem desimaler. En BKK-entry har
+#               0,28774 lagret der dso.py sier 0,2877, altså 0,005 øre/kWh.
+#   over den:   0,01 øre/kWh, minste kvantum på en norsk prisliste, altså den
+#               minste ekte tariffendringen som finnes.
+#
+# Terskelen er 0,0075 øre/kWh. Den kan ikke settes til nøyaktig 0,01 øre, for
+# 0.4614 - 0.4613 er 9.9999e-05 i flyttall og ville falt utenfor et `>= 1e-4`.
+TARIFF_AVVIK_TERSKEL: Final[float] = 7.5e-05
 # Prefiks på repair-issuen som ber om at satsen sjekkes. Ligger her og ikke i
 # repairs.py fordi __init__.py reiser issuen og ikke skal dra inn
 # homeassistant.components.repairs bare for en streng.
@@ -275,6 +308,55 @@ def compute_energiledd_inkl_mva(energiledd_eks_mva: float, avgiftssone: str) -> 
     forbruksavgift = get_forbruksavgift(avgiftssone)
     mva_sats = get_mva_sats(avgiftssone)
     return (energiledd_eks_mva + forbruksavgift + ENOVA_AVGIFT) * (1 + mva_sats)
+
+
+def les_tariffmodus(data: Mapping[str, Any]) -> str:
+    """Tariffmodusen til en entry, med et forsvarlig svar der feltet mangler.
+
+    Alle entries har feltet etter config v5. En entry uten det har enten ikke
+    rukket migreringen ennå eller er en testfikstur, og da er katalogen riktig
+    svar: den følger nettselskapets prisliste, som er det entryet ba om.
+    Egendefinert har ingen katalog å følge og er alltid manual.
+    """
+    modus = data.get(CONF_TARIFFMODUS)
+    if isinstance(modus, str) and modus in TARIFFMODUS_ALLE:
+        return modus
+    if data.get(CONF_DSO) == DSO_EGENDEFINERT:
+        return TARIFFMODUS_MANUAL
+    return TARIFFMODUS_CATALOG
+
+
+def har_lagret_energiledd(data: Mapping[str, Any]) -> bool:
+    """Om entryet bærer en egen energiledd-sats i det hele tatt."""
+    return any(data.get(nokkel) is not None for nokkel in (CONF_ENERGILEDD_DAG, CONF_ENERGILEDD_NATT))
+
+
+def energiledd_avviker(data: Mapping[str, Any], dso: Mapping[str, Any], avgiftssone: str) -> bool:
+    """Om entryets lagrede energiledd er en annen sats enn dso.py fører i dag.
+
+    Sammenligningen skjer på tallet brukeren faktisk ser, altså inkl.
+    forbruksavgift, Enova og mva for entryets egen avgiftssone, og dag og natt
+    hver for seg. Et signifikant avvik i én av dem er nok.
+
+    En sats som ikke lar seg lese som et tall teller ikke som avvik: den blir
+    ignorert av rate-oppløsningen uansett, og et varsel om den ville bedt
+    brukeren velge mellom katalogen og noe som ikke er en sats.
+    """
+    for nokkel, katalognokkel in (
+        (CONF_ENERGILEDD_DAG, "energiledd_dag_eks_mva"),
+        (CONF_ENERGILEDD_NATT, "energiledd_natt_eks_mva"),
+    ):
+        raa = data.get(nokkel)
+        if raa is None:
+            continue
+        try:
+            lagret = compute_energiledd_inkl_mva(float(raa), avgiftssone)
+            katalog = compute_energiledd_inkl_mva(float(dso[katalognokkel]), avgiftssone)
+        except (TypeError, ValueError, KeyError):
+            continue
+        if abs(lagret - katalog) >= TARIFF_AVVIK_TERSKEL:
+            return True
+    return False
 
 
 def get_default_avgiftssone(prisomrade: str) -> str:

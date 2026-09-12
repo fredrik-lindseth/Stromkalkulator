@@ -60,7 +60,7 @@
       },
       "reconfigure": {
         "title": "Strømkalkulator innstillinger",
-        "description": "Endre nettselskap, sensorer eller Norgespris-innstillinger.",
+        "description": "Endre nettselskap, sensorer eller Norgespris-innstillinger.\n\nEnergiledd-feltene er overstyringer. Står de tomme, gjelder prislisten til nettselskapet, og satsen oppdateres av seg selv når prislisten endres. Prislisten til {dso} fører nå dag {katalog_dag} og natt {katalog_natt}, i øre/kWh med avgifter og mva. Egendefinert nettselskap har ingen prisliste, så der gjelder alltid tallene du har lagt inn selv.",
         "data": {
           "tso": "Nettselskap",
           "sikringstrinn": "Hovedsikring",
@@ -89,8 +89,8 @@
           "energy_sensor": "Kumulativ energi-teller fra AMS-måleren (OBIS 1.8.0, total forbruk i kWh). Anbefales: gir eksakt forbruk mot faktura. Uten denne brukes effektmåleren med Riemann-summering.",
           "electricity_provider_price_sensor": "Sensor med totalprisen fra din strømleverandør (f.eks. Tibber «Electricity price»). Kun for å vise «Total strømpris (strømavtale)»-sensoren som sammenligning mot din faktiske avtale. Påvirker ingen andre beregninger. Hopp over hvis du har spotpris direkte eller Norgespris.",
           "export_power_sensor": "Effektmåler for eksport til nettet (OBIS 2.7.0) i watt, kun for plusskunder med solceller. Brukes til å beregne salgsinntekt og netto månedskostnad. Hopp over hvis du ikke har solceller.",
-          "energiledd_dag": "Ren nettleie eks. mva og avgifter. Integrasjonen legger på forbruksavgift, Enova og mva basert på avgiftssone.",
-          "energiledd_natt": "Ren nettleie eks. mva og avgifter. Sett samme verdi som dag for flat sats.",
+          "energiledd_dag": "Ren nettleie eks. mva og avgifter. La feltet stå tomt for å følge nettselskapets prisliste, så oppdateres satsen av seg selv når prislisten endres. Fyller du inn et tall, er det ditt som gjelder til du tømmer feltet igjen.",
+          "energiledd_natt": "Ren nettleie eks. mva og avgifter. Samme regel som for dag: tomt felt følger prislisten, utfylt felt gjelder foran den. Sett samme verdi som dag for flat sats.",
           "kapasitet_varsel_terskel": "Varsle når margin til neste kapasitetstrinn er under denne verdien. Standard: 2.0 kW.",
           "energi_frossen_timer": "Meld fra når energimåleren ikke har økt på så mange timer. Standard: 3. Sett den høyere på en hytte eller et anlegg som står tomt i perioder, ellers varsler den hver gang hovedbryteren er av."
         }
@@ -114,7 +114,7 @@
     "step": {
       "init": {
         "title": "Strømkalkulator innstillinger",
-        "description": "Endre nettselskap, sensorer eller Norgespris-innstillinger.",
+        "description": "Endre nettselskap, sensorer eller Norgespris-innstillinger.\n\nEnergiledd-feltene er overstyringer. Står de tomme, gjelder prislisten til nettselskapet, og satsen oppdateres av seg selv når prislisten endres. Prislisten til {dso} fører nå dag {katalog_dag} og natt {katalog_natt}, i øre/kWh med avgifter og mva. Egendefinert nettselskap har ingen prisliste, så der gjelder alltid tallene du har lagt inn selv.",
         "data": {
           "tso": "Nettselskap",
           "sikringstrinn": "Hovedsikring",
@@ -143,8 +143,8 @@
           "energy_sensor": "Kumulativ energi-teller fra AMS-måleren (OBIS 1.8.0, total forbruk i kWh). Anbefales: gir eksakt forbruk mot faktura. Uten denne brukes effektmåleren med Riemann-summering.",
           "electricity_provider_price_sensor": "Sensor med totalprisen fra din strømleverandør (f.eks. Tibber «Electricity price»). Kun for å vise «Total strømpris (strømavtale)»-sensoren som sammenligning mot din faktiske avtale. Påvirker ingen andre beregninger. Hopp over hvis du har spotpris direkte eller Norgespris.",
           "export_power_sensor": "Effektmåler for eksport til nettet (OBIS 2.7.0) i watt, kun for plusskunder med solceller. Brukes til å beregne salgsinntekt og netto månedskostnad. Hopp over hvis du ikke har solceller.",
-          "energiledd_dag": "Ren nettleie eks. mva og avgifter. Integrasjonen legger på forbruksavgift, Enova og mva basert på avgiftssone.",
-          "energiledd_natt": "Ren nettleie eks. mva og avgifter. Sett samme verdi som dag for flat sats.",
+          "energiledd_dag": "Ren nettleie eks. mva og avgifter. La feltet stå tomt for å følge nettselskapets prisliste, så oppdateres satsen av seg selv når prislisten endres. Fyller du inn et tall, er det ditt som gjelder til du tømmer feltet igjen.",
+          "energiledd_natt": "Ren nettleie eks. mva og avgifter. Samme regel som for dag: tomt felt følger prislisten, utfylt felt gjelder foran den. Sett samme verdi som dag for flat sats.",
           "kapasitet_varsel_terskel": "Varsle når margin til neste kapasitetstrinn er under denne verdien. Standard: 2.0 kW.",
           "energi_frossen_timer": "Meld fra når energimåleren ikke har økt på så mange timer. Standard: 3. Sett den høyere på en hytte eller et anlegg som står tomt i perioder, ellers varsler den hver gang hovedbryteren er av."
         }
@@ -409,6 +409,21 @@
           "confirm": {
             "title": "Bekreft enheten på prissensoren",
             "description": "{entity_id} oppgir ingen enhet, og kalkulatoren regner med at prisen er i NOK/kWh. Det gjelder {roller}. Stemmer det, trenger du ikke gjøre noe annet enn å bekrefte her, så er varselet borte.\n\nEr sensoren i øre/kWh eller NOK/MWh, blir tallene henholdsvis hundre og tusen ganger feil. Sett da riktig enhet på sensoren, eller velg en annen sensor, før du bekrefter."
+          }
+        }
+      }
+    },
+    "tariff_ubekreftet": {
+      "title": "Velg hvilken energiledd-sats som skal gjelde",
+      "fix_flow": {
+        "step": {
+          "init": {
+            "title": "Velg hvilken energiledd-sats som skal gjelde",
+            "description": "Anlegget ditt har en energiledd-sats lagret fra et tidligere oppsett: {lagret_dag} øre/kWh på dag og {lagret_natt} øre/kWh på natt og helg, avgifter og mva medregnet. {dso} sin prisliste fører i dag {katalog_dag} og {katalog_natt} øre/kWh.\n\nTil og med 1.16.0 vant den lagrede satsen over prislisten, så en tariffendring nådde aldri fram til deg. Det er rettet, og anlegget regner med prislisten fra nå. Vi vet bare ikke om tallet du har lagret var ditt eget valg, for oppsettet lagret prislistens sats på alle. Derfor spør vi.\n\nVelger du å følge prislisten, fjernes det lagrede tallet, og satsen oppdateres av seg selv heretter. Velger du å beholde dine satser, gjelder {lagret_dag} og {lagret_natt} øre/kWh til du endrer dem selv i innstillingene.",
+            "menu_options": {
+              "folg_katalog": "Følg prislisten til {dso}",
+              "behold_manual": "Behold mine egne satser"
+            }
           }
         }
       }

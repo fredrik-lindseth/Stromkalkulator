@@ -76,6 +76,68 @@ Bytter nettselskapet energiledd mellom sommer og vinter, legg til `energiledd_pe
 
 Periodene må dekke hele året uten overlapp. Krysser en periode nyttår (`fra` > `til`), tolkes det som fra `fra`-dato til årsslutt pluss fra årets start til `til`-dato. `energiledd_dag_eks_mva` og `energiledd_natt_eks_mva` beholdes som fallback for datoer ingen periode dekker. Satsene er eks. mva og avgifter, som de vanlige energiledd-feltene, og krever bekreftelse fra DSO-ens prisliste.
 
+## Drift-vakten mot fri-nettleie
+
+`scripts/sjekk_mot_fri_nettleie.py` sammenligner `dso.py` mot
+[fri-nettleie](https://github.com/kraftsystemet/fri-nettleie) og kjøres ukentlig
+i CI. Kjør den lokalt før du endrer satser:
+
+```bash
+uv run --with pyyaml python scripts/sjekk_mot_fri_nettleie.py --bare-avvik
+```
+
+Hvert nettselskap får ett av tre utfall, og exit-koden er det verste av dem:
+
+| Utfall | Exit | Betyr |
+| --- | --- | --- |
+| verifisert | 0 | alle feltene vi kan sammenligne stemmer |
+| avvik | 1 | energiledd, fastledd eller fastledd-metode spriker mer enn toleransen |
+| ufullstendig | 2 | kontrollen ble ikke gjort: ingen match i fri-nettleie, 404, nettverksfeil, ingen aktiv tariff, manglende energiledd, ukartlagt fastledd-metode, ugyldig `--dso` |
+
+Ufullstendig slår avvik i exit-koden. En kjøring som ikke vet hva den ikke
+sjekket, har ikke lov å si «alt i orden». Begge listene står i rapporten og i
+`--json-ut`, så ingenting forsvinner av at 2 vinner over 1.
+
+### Kjente avvik har utløpsdato
+
+`KJENTE_AVVIK` i scriptet demper funn vi har tatt stilling til: enten et avvik
+der vi bevisst følger nettselskapets egen prisside, eller et hull i dekningen
+der fri-nettleie ikke har noe å sammenligne med. En oppføring er et `Unntak` med
+felt, signatur, begrunnelse og `gyldig_til`:
+
+```python
+"telemark_nett": (
+    Unntak(
+        felt=FELT_MATCH,
+        signatur="ingen match i fri-nettleie",
+        gyldig_til=date(2027, 3, 1),
+        grunn="fri-nettleie hadde telemark.yml 2026-07-28, men filen er borte ...",
+    ),
+),
+```
+
+Tre regler gjør at et unntak ikke kan bli liggende og dempe for alltid:
+
+- Det demper bare det ene feltet, med den ene signaturen. Endrer tallet seg, er
+  det et nytt funn og rapporteres. Den gamle listen dempet alt hos
+  nettselskapet, og et injisert energiledd på 100 kr/kWh hos Fjellnett ble grønt.
+- Etter `gyldig_til` demper det ingenting. Står avviket fortsatt der, blir
+  kjøringen rød igjen.
+- Er det utløpt og treffer ingenting, melder det seg selv som ufullstendig, så
+  det blir fjernet framfor å ligge som støy.
+
+Et unntak som fortsatt er gyldig, men ikke treffer noe funn, skrives ut som
+«kan trolig fjernes» uten å felle kjøringen.
+
+### Når vakten er rød
+
+CI-jobben feiler, og workflowen oppretter ett issue med etiketten `pris-drift`
+og de berørte nettselskapene i tittelen. Samme funn neste uke gir en kommentar
+på det samme issuet framfor et nytt, og etter tre uker får issuet etiketten
+`pris-drift-eskalert` og en kommentar til repo-eier. Issuet lukkes kun av en
+fullstendig kjøring (uten `--dso`-filter) med exit 0; en filtrert kjøring vet
+ingenting om resten av listen og får ikke lukke noe.
+
 ## Testing
 
 ```bash

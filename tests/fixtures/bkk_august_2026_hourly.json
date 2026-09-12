@@ -14,7 +14,7 @@
    "fylt_fra_nordpool": {
     "kilde": "nordpool_nok_kvarter_no5.json",
     "dato": "2026-09-12",
-    "fylte_timer": 51,
+    "fylte_timer": 50,
     "avregning": "snitt av fire publiserte Final-kvarterpriser",
     "randtimer": {
      "2026-08-17T00:00:00+02:00": {
@@ -28,17 +28,11 @@
       "forrige_kvarter_nok_kwh": 1.36097,
       "publisert_nok_kwh": 1.438275,
       "begrunnelse": "randtime_forrige_kvarter"
-     },
-     "2026-08-31T00:00:00+02:00": {
-      "recorder_nok_kwh": 1.35957,
-      "forrige_kvarter_nok_kwh": 1.35947,
-      "publisert_nok_kwh": 1.364737,
-      "begrunnelse": "randtime_forrige_kvarter"
      }
     },
     "overstyrte_timer": {}
    },
-   "aarsak": "sensor.nord_pool_no5_current_price hadde ingen måling 17.08 kl. 00-16, 23.08 kl. 00-09 og 31.08 kl. 00-23; time 00 har en statistikkrad, men ikke en måling. Utfallene startet presis ved døgnskiftet: sensoren gikk unknown kl. 00:00:00 og unavailable få sekunder senere. HAs statistikk-kompilator snitter bare over numeriske states, så staten fra 23:45-kvarteret kvelden før ble båret gjennom hele time 00. Time 00 er derfor ikke en måling, men en del av hullet, og fylles fra arkivet som randtime."
+   "aarsak": "sensor.nord_pool_no5_current_price hadde ingen måling 17.08 kl. 00-16, 23.08 kl. 00-09 og 31.08 kl. 00-23; time 00 har en statistikkrad, men ikke en måling. Utfallene startet presis ved døgnskiftet: sensoren gikk unknown kl. 00:00:00 og unavailable få sekunder senere. HAs statistikk-kompilator snitter bare over numeriske states, så staten fra 23:45-kvarteret kvelden før ble båret gjennom hele time 00. Time 00 er derfor ikke en måling, men en del av hullet, og fylles fra arkivet som randtime når regelen kan prøves. 17.08 og 23.08 kl. 00 er fylt slik. 31.08 kl. 00 står med recorder-verdien: hele det døgnet er hullet, så kurs-årgangen HA lagret prisene med kan ikke måles, og da er ikke avstanden til den publiserte timen etterprøvbar. Timen venter på en avgjørelse med --overstyr framfor å bære et proveniensmerke vi ikke kan stå for."
   },
   "datahull": {
    "timer_uten_maaling": 176,
@@ -4401,9 +4395,8 @@
   {
    "start_local": "2026-08-31T00:00:00+02:00",
    "kwh": 1.038,
-   "spot_nok_kwh_eks_mva": 1.364737,
-   "p_max_w": 3805.0,
-   "spot_kilde": "nordpool_publisert"
+   "spot_nok_kwh_eks_mva": 1.35957,
+   "p_max_w": 3805.0
   },
   {
    "start_local": "2026-08-31T01:00:00+02:00",

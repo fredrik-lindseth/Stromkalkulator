@@ -374,6 +374,8 @@ MAX_ELAPSED_HOURS: Final[float] = 0.1  # 6 min - reject clock jumps in Riemann s
 MAX_ENERGY_DELTA_KWH: Final[float] = 100.0
 # Hvis lagret _last_tpi_kwh er eldre enn dette ved oppstart, nullstilles den
 # slik at første poll ikke gir et gigantisk delta.
+# På vei ut: docs/kontrakter/input-og-konfig.md §5 pensjonerer aldersgrensen,
+# og K1 fjerner konstanten i samme commit som den siste bruken i coordinator.py.
 TPI_STALE_HOURS: Final[float] = 24.0
 
 # === VAKTHOLD PÅ INPUT-SENSORENE ===

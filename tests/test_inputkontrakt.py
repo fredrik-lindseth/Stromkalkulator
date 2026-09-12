@@ -140,6 +140,22 @@ def test_prisenhetene_henger_sammen() -> None:
     assert faktor["øre/MWh"] == pytest.approx(faktor["NOK/kWh"] / 100_000)
 
 
+def test_energi_og_effektenhetene_henger_sammen() -> None:
+    """Samme krav som for pris: tierpotenser av hverandre, ikke løse tall.
+
+    Prisradene var bundet sammen, energi- og effektradene sto fritt, og en
+    faktor 0,01 på `Wh` gikk rett gjennom vaktholdet.
+    """
+    kwh = {raa: f for raa, norm, f in ENHETER if norm == "kWh"}
+    assert kwh["kWh"] == 1
+    assert kwh["Wh"] == pytest.approx(kwh["kWh"] / 1000)
+    assert kwh["MWh"] == pytest.approx(kwh["kWh"] * 1000)
+    watt = {raa: f for raa, norm, f in ENHETER if norm == "W"}
+    assert watt["W"] == 1
+    assert watt["kW"] == pytest.approx(watt["W"] * 1000)
+    assert watt["MW"] == pytest.approx(watt["W"] * 1_000_000)
+
+
 def test_eur_avvises() -> None:
     """§2: EUR er ingen enhet vi kan regne om, siden vi ikke har noen kurs."""
     assert not [raa for raa, _, _ in ENHETER if "EUR" in raa.upper()]
@@ -189,9 +205,25 @@ def test_manglende_entitet_er_utilgjengelig_ikke_ugyldig() -> None:
 # Grensen for urimelig pris (§1), etter normalisering
 
 
+def _urimelig_rad() -> str:
+    """Raden for `urimelig_verdi` i grunntabellen i §1."""
+    seksjon = _seksjon(KONTRAKTTEKST, "## 1. Typede inputresultater")
+    return next(li for li in seksjon.splitlines() if "`urimelig_verdi`" in li and li.startswith("|"))
+
+
+# Tallet og enheten det gjelder i må stå i samme setning. Leses de hver for seg,
+# godtar vakten en rad som sier «over 2000 i sensorens egen enhet» så lenge
+# frasen «etter normalisering» finnes et eller annet sted i dokumentet.
+URIMELIG = re.compile(r"over (\d+) \*{0,2}etter\*{0,2} normalisering til `?NOK/kWh`?")
+
+
 def _urimelig_grense() -> float:
-    linje = next(li for li in KONTRAKTTEKST.splitlines() if "`urimelig_verdi`" in li and li.startswith("|"))
-    return float(re.search(r"over (\d+)", linje).group(1))
+    treff = URIMELIG.search(_urimelig_rad())
+    assert treff, (
+        "raden for `urimelig_verdi` må oppgi grensen og at den gjelder etter "
+        f"normalisering til NOK/kWh, i samme setning. Raden er: {_urimelig_rad().strip()}"
+    )
+    return float(treff.group(1))
 
 
 def test_urimelig_grense_avviser_ikke_ekte_spotpriser() -> None:
@@ -199,19 +231,22 @@ def test_urimelig_grense_avviser_ikke_ekte_spotpriser() -> None:
 
     2000 NOK/MWh er 2 NOK/kWh, og NO1, NO2 og NO5 har passert det. Grensen
     gjelder etter normalisering, og den skal ligge godt over ekte toppriser.
+    Regnes den i sensorens egen enhet, feller `_urimelig_grense` raden.
     """
     grense = _urimelig_grense()
     faktor = {raa: f for raa, norm, f in ENHETER if norm == "NOK/kWh"}
     assert 2500 * faktor["NOK/MWh"] < grense, "en dyr time i NOK/MWh blir avvist"
     assert 700 * faktor["øre/kWh"] < grense
     assert grense >= 50, "grensen er så lav at den kan treffe ekte data"
-    assert "etter** normalisering" in KONTRAKTTEKST or "etter normalisering" in KONTRAKTTEKST
 
 
 def test_urimelig_grense_gjelder_absoluttverdien() -> None:
-    """Negative spotpriser er gyldige (avregning.md B2) og skal ikke avvises."""
-    seksjon = _seksjon(KONTRAKTTEKST, "## 1. Typede inputresultater")
-    assert "absoluttverdi" in seksjon
+    """Negative spotpriser er gyldige (avregning.md B2) og skal ikke avvises.
+
+    Kravet leses fra selve raden, ikke fra seksjonen: prosa lenger nede kan
+    ikke holde liv i en rad som har mistet absoluttverdien.
+    """
+    assert "absoluttverdi" in _urimelig_rad()
 
 
 # ---------------------------------------------------------------------------
@@ -332,10 +367,28 @@ def test_baselinens_levetid_star_bare_ett_sted() -> None:
     )
 
 
-def test_konstantene_kontrakten_navngir_finnes() -> None:
-    const = _tekst(KOMPONENT / "const.py")
-    for navn in ("MAX_ENERGY_DELTA_KWH", "TPI_STALE_HOURS"):
-        assert navn in const
+def test_vernet_kontrakten_peker_pa_finnes() -> None:
+    """§5 gjør `MAX_ENERGY_DELTA_KWH` til hele vernet mot det gigantiske spranget."""
+    assert "MAX_ENERGY_DELTA_KWH" in _tekst(KOMPONENT / "const.py")
+
+
+def test_tpi_stale_hours_er_enten_i_bruk_eller_borte() -> None:
+    """§5 pensjonerer aldersgrensen: K1 fjerner siste bruk og konstanten sammen.
+
+    Vakten kan ikke kreve at navnet finnes, for da blir den rød i det K1 gjør
+    det kontrakten ber om. Den kan heller ikke kreve at det er borte, for K1 har
+    ikke landet ennå. Den krever det §5 faktisk sier: konstanten ligger aldri i
+    `const.py` uten en bruker, og ingen bruker overlever konstanten.
+    """
+    navn = "TPI_STALE_HOURS"
+    i_const = navn in _tekst(KOMPONENT / "const.py")
+    brukere = sorted(
+        sti.name for sti in KOMPONENT.glob("*.py") if sti.name != "const.py" and navn in _tekst(sti)
+    )
+    if i_const:
+        assert brukere, f"{navn} står igjen i const.py uten bruker; §5 sier den skal ut"
+    else:
+        assert not brukere, f"{navn} er fjernet fra const.py, men brukes fortsatt i {brukere}"
 
 
 def test_de_to_kontraktene_er_enige_om_store_versjonene() -> None:

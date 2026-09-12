@@ -152,6 +152,32 @@ def sekunder_mellom(fra: datetime, til: datetime) -> float:
     return til.timestamp() - fra.timestamp()
 
 
+def trekk_fra_sekunder(tidspunkt: datetime, sekunder: float) -> datetime:
+    """Tidspunktet så mange ekte sekunder tidligere.
+
+    Motstykket til sekunder_mellom(). Å trekke fra en timedelta flytter
+    veggklokken, så over et sommertidsskifte bommer den med en time. Veien om
+    timestamp() treffer øyeblikket som faktisk ligger så mange sekunder tilbake.
+    """
+    if tidspunkt.tzinfo is None:
+        return tidspunkt - timedelta(seconds=sekunder)
+    return datetime.fromtimestamp(tidspunkt.timestamp() - sekunder, tz=tidspunkt.tzinfo)
+
+
+def _som_lokal(tidspunkt: datetime | None) -> datetime | None:
+    """Lagret tidsstempel tilbake til lokal tid.
+
+    _iso_utc() skriver UTC til Store, og fromisoformat gir det tilbake i UTC.
+    Alt annet i minnet er lokal tid fra dt_util.now(), og et tidsstempel som
+    vises til brukeren eller havner i diagnostikken skal vise klokken på veggen.
+    Naive tidsstempel har ingen sone å regne om fra og slippes gjennom.
+    """
+    if tidspunkt is None or tidspunkt.tzinfo is None:
+        return tidspunkt
+    lokal: datetime = dt_util.as_local(tidspunkt)
+    return lokal
+
+
 def _iso_utc(tidspunkt: datetime | None) -> str | None:
     """Tidsstempel til lagring, i UTC når det er tidssonebevisst.
 
@@ -1639,7 +1665,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 stored_increase = data.get("last_energy_increase")
                 if stored_increase:
                     try:
-                        self._last_energy_increase = datetime.fromisoformat(stored_increase)
+                        self._last_energy_increase = _som_lokal(
+                            datetime.fromisoformat(stored_increase)
+                        )
                     except (ValueError, TypeError):
                         _LOGGER.warning(
                             "Kunne ikke lese last_energy_increase fra storage: %s", stored_increase
@@ -1647,13 +1675,26 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
                 stored_last_update = data.get("last_update")
                 last_update_age_hours: float | None = None
+                naa = dt_util.now()
                 if stored_last_update:
                     try:
                         loaded_last_update = datetime.fromisoformat(stored_last_update)
                         # Bare gjenopprett hvis gapet er innenfor MAX_ELAPSED_HOURS.
                         # Lengre gap betyr restart-pause; da vil vi heller starte friskt
                         # (None) enn å akkumulere current_power * hele restart-vinduet.
-                        last_update_age_hours = sekunder_mellom(loaded_last_update, dt_util.now()) / 3600
+                        last_update_age_hours = sekunder_mellom(loaded_last_update, naa) / 3600
+                        if self._last_energy_increase is not None and last_update_age_hours > 0:
+                            # HA var av i gapet, og da kunne ingen se telleren øke.
+                            # Frossen-klokken skal bare telle tid vi faktisk så på,
+                            # ellers gir et strømbrudd på en natt et frossen-varsel
+                            # i det HA kommer opp igjen. Klokken skyves fram med
+                            # nedetiden: det som var målt før avstengningen står,
+                            # det blinde gapet teller ikke.
+                            observert = max(
+                                0.0,
+                                sekunder_mellom(self._last_energy_increase, loaded_last_update),
+                            )
+                            self._last_energy_increase = trekk_fra_sekunder(naa, observert)
                         if 0 <= last_update_age_hours <= MAX_ELAPSED_HOURS:
                             self._last_update = loaded_last_update
                     except (ValueError, TypeError) as err:
@@ -1680,7 +1721,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         stored_tpi_time = data.get("last_tpi_time")
                         if stored_tpi_time:
                             try:
-                                self._last_tpi_time = datetime.fromisoformat(stored_tpi_time)
+                                self._last_tpi_time = _som_lokal(
+                                    datetime.fromisoformat(stored_tpi_time)
+                                )
                             except (ValueError, TypeError):
                                 self._last_tpi_time = None
 

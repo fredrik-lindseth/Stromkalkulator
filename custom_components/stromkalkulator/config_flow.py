@@ -19,6 +19,7 @@ from .const import (
     CONF_AVGIFTSSONE,
     CONF_BOLIGTYPE,
     CONF_DSO,
+    CONF_EGENDEFINERT_KAPASITETSTRINN,
     CONF_EGENDEFINERT_SATSER_BEKREFTET,
     CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
     CONF_ENERGI_FROSSEN_TIMER,
@@ -54,7 +55,12 @@ from .const import (
     compute_energiledd_inkl_mva,
     resolve_avgiftssone,
 )
-from .dso import FASTLEDD_OV_TREFASE, finn_sikringstrinn, hent_fastledd_metode
+from .dso import (
+    FASTLEDD_OV_TREFASE,
+    finn_sikringstrinn,
+    hent_fastledd_metode,
+    parse_kapasitetstrinn,
+)
 from .inputadapter import (
     GRUNN_FEIL_DIMENSJON,
     GRUNN_FEIL_VALUTA,
@@ -279,6 +285,10 @@ def _config_data_schema(current: dict[str, Any]) -> vol.Schema:
             # tariffendring aldri nådde fram. Tomt felt betyr «følg katalogen».
             # Egendefinert har ingen katalog og beholder derfor sitt tall.
             **_energiledd_felt(current, dso_id == DSO_EGENDEFINERT),
+            # Kapasitetstrinn er brukerens egne kun for Egendefinert. De kjente
+            # nettselskapene har trinn med kilde i dso.py, og et felt her ville
+            # invitert til å overstyre en verifisert prisliste med et minne.
+            **(_kapasitetstrinn_felt(current) if dso_id == DSO_EGENDEFINERT else {}),
             vol.Optional(
                 CONF_ENERGI_FROSSEN_TIMER,
                 default=current.get(CONF_ENERGI_FROSSEN_TIMER, DEFAULT_ENERGI_FROSSEN_TIMER),
@@ -352,6 +362,34 @@ def _energiledd_felt(current: dict[str, Any], egendefinert: bool) -> dict[Any, A
     }
 
 
+def _kapasitetstrinn_felt(current: dict[str, Any]) -> dict[Any, Any]:
+    """Tekstfeltet der brukeren skriver sitt eget nettselskaps fastledd-trinn.
+
+    Valgfritt med vilje. Tomt felt betyr «jeg vet ikke», og da står
+    kapasitetsleddet som ukjent (kontrakt §9). Det er ikke det samme som null,
+    og det er bedre enn et tall vi ikke har kilde på.
+    """
+    return {
+        vol.Optional(
+            CONF_EGENDEFINERT_KAPASITETSTRINN,
+            description={"suggested_value": current.get(CONF_EGENDEFINERT_KAPASITETSTRINN)},
+        ): selector.TextSelector(),
+    }
+
+
+def _valider_kapasitetstrinn(user_input: dict[str, Any]) -> dict[str, str]:
+    """Feilnøkkel hvis trinntabellen ikke lar seg lese. Tom tabell er lovlig."""
+    raa = user_input.get(CONF_EGENDEFINERT_KAPASITETSTRINN)
+    if not raa:
+        return {}
+    try:
+        parse_kapasitetstrinn(str(raa))
+    except ValueError as feil:
+        _LOGGER.debug("Ugyldig trinntabell «%s»: %s", raa, feil)
+        return {CONF_EGENDEFINERT_KAPASITETSTRINN: "trinntabell_ugyldig"}
+    return {}
+
+
 def _ore(verdi: float) -> str:
     """Sats i NOK/kWh vist som øre med norsk desimalkomma."""
     return f"{verdi * 100:.2f}".replace(".", ",")
@@ -387,6 +425,11 @@ _TOMBARE_FELT: tuple[str, ...] = (
     CONF_ENERGY_SENSOR,
     CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
     CONF_EXPORT_POWER_SENSOR,
+    # Trinntabellen følger samme regel: tømmer brukeren feltet, er fastleddet
+    # ukjent igjen. Feltet finnes bare for Egendefinert, så et bytte til et
+    # kjent nettselskap fjerner tabellen her, slik sikringstrinnet fjernes
+    # lenger nede.
+    CONF_EGENDEFINERT_KAPASITETSTRINN,
 )
 
 
@@ -497,9 +540,8 @@ def _validate_options_input(
     Delt mellom options-flowen og reconfigure-steget. Returnerer en error-dict
     (tom hvis alt er gyldig).
     """
-    errors: dict[str, str] = _valider_sensorfelt(
-        hass, user_input, paakrevd={CONF_POWER_SENSOR, CONF_SPOT_PRICE_SENSOR}
-    )
+    errors: dict[str, str] = _valider_kapasitetstrinn(user_input)
+    errors |= _valider_sensorfelt(hass, user_input, paakrevd={CONF_POWER_SENSOR, CONF_SPOT_PRICE_SENSOR})
 
     new_power = user_input.get(CONF_POWER_SENSOR)
     if new_power and new_power != current_data.get(CONF_POWER_SENSOR):
@@ -668,15 +710,21 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            self._data.update(user_input)
-            # Teksten over feltet er rettet, så den som taster nå har fått
-            # riktig beskjed og skal ikke møte varselet om feilmerkingen
-            # (incident 007).
-            self._data[CONF_EGENDEFINERT_SATSER_BEKREFTET] = True
-            # Egendefinert har ingen katalog å falle tilbake på; tallene her er
-            # brukerens egne og skal aldri overskrives av dso.py.
-            self._data[CONF_TARIFFMODUS] = TARIFFMODUS_MANUAL
-            return self._create_entry()
+            errors = _valider_kapasitetstrinn(user_input)
+            if not errors:
+                self._data.update(user_input)
+                # Tomt felt betyr «jeg vet ikke», og da skal det ikke ligge en
+                # tom streng på entryet som ser ut som et svar.
+                if not self._data.get(CONF_EGENDEFINERT_KAPASITETSTRINN):
+                    self._data.pop(CONF_EGENDEFINERT_KAPASITETSTRINN, None)
+                # Teksten over feltet er rettet, så den som taster nå har fått
+                # riktig beskjed og skal ikke møte varselet om feilmerkingen
+                # (incident 007).
+                self._data[CONF_EGENDEFINERT_SATSER_BEKREFTET] = True
+                # Egendefinert har ingen katalog å falle tilbake på; tallene her er
+                # brukerens egne og skal aldri overskrives av dso.py.
+                self._data[CONF_TARIFFMODUS] = TARIFFMODUS_MANUAL
+                return self._create_entry()
 
         return self.async_show_form(
             step_id="pricing",
@@ -713,6 +761,7 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
                             mode=selector.NumberSelectorMode.BOX,
                         ),
                     ),
+                    **_kapasitetstrinn_felt(user_input or {}),
                 }
             ),
             errors=errors,

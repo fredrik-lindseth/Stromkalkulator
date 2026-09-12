@@ -20,6 +20,7 @@ from .const import (
     CONF_AVGIFTSSONE,
     CONF_BOLIGTYPE,
     CONF_DSO,
+    CONF_EGENDEFINERT_KAPASITETSTRINN,
     CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
     CONF_ENERGI_FROSSEN_TIMER,
     CONF_ENERGILEDD_DAG,
@@ -81,6 +82,7 @@ from .dso import (
     finn_sikringstrinn,
     grunnlag_i_lavere_trinn,
     hent_fastledd_metode,
+    parse_kapasitetstrinn,
 )
 from .inputadapter import (
     BASELINE_NOKKEL,
@@ -431,6 +433,21 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self.kapasitetstrinn = [(entry["max"], entry["pris"]) for entry in dict_trinn]
         else:
             self.kapasitetstrinn = cast("list[tuple[float, int]]", raw_trinn)
+
+        # Egendefinert har ingen prisliste, så trinnene er brukerens egne eller
+        # ingen. En ulesbar tabell behandles som ingen: config-flowen avviser
+        # den, og et entry som likevel bærer en (håndredigert .storage) skal gi
+        # ukjent fastledd, ikke halve trinn.
+        egne_trinn = entry.data.get(CONF_EGENDEFINERT_KAPASITETSTRINN)
+        if egne_trinn:
+            try:
+                self.kapasitetstrinn = parse_kapasitetstrinn(str(egne_trinn))
+            except ValueError:
+                _LOGGER.warning(
+                    "Kunne ikke lese egendefinerte kapasitetstrinn (%s). Fastleddet står som ukjent.",
+                    egne_trinn,
+                )
+                self.kapasitetstrinn = []
 
         # Fastledd-metode. Nettselskap uten `fastledd_metode` bruker NVE-modellen
         # (snitt av tre døgnmakser) og er upåvirket av alt under.
@@ -1381,6 +1398,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "fastledd_metode": self.fastledd_metode,
             "fastledd_grunnlag_kw": round(kw["fastledd_grunnlag"], 2),
             "fastledd_mangler_sikringsvalg": self._mangler_sikringsvalg(),
+            "fastledd_ukjent": self._fastledd_ukjent(),
             "spot_price": round(kw["spot_price"], 4),
             "spot_price_valid": kw["spot_price_valid"],
             "stromstotte": round(kw["stromstotte"], 4),
@@ -1591,6 +1609,17 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return 0.0
         return sum(top_3) / 3 if len(top_3) >= 3 else sum(top_3) / len(top_3)
 
+    def _fastledd_ukjent(self) -> bool:
+        """Om fastleddet er ukjent fordi ingen kjenner trinnene.
+
+        Gjelder Egendefinert uten brukeroppgitt trinntabell. Nettselskapene i
+        `dso.py` har enten trinn med kilde eller en annen fastledd-metode, så
+        dette er ikke en tilstand et katalogoppsett kan havne i. Kapasitetsledd
+        og alt som bygger på det blir ukjent (kontrakt §9), framfor et
+        plausibelt beløp uten kilde (incident 006).
+        """
+        return self.fastledd_metode in FASTLEDD_TRINNBASERTE and not self.kapasitetstrinn
+
     def _mangler_sikringsvalg(self) -> bool:
         """Om et sikringsbasert fastledd står uten gyldig brukervalg."""
         if self.fastledd_metode != FASTLEDD_OV_TREFASE:
@@ -1616,6 +1645,12 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         Returns: (pris, trinnummer, trinnbeskrivelse). Trinnummer er None der
         nettselskapet ikke har trinn, eller der sikringsstørrelsen mangler.
         """
+        if self._fastledd_ukjent():
+            # Ingen gjetning: uten brukerens egne trinn finnes det ikke noe
+            # beløp å slå opp, og 0 her betyr «regnet uten fastledd», ikke
+            # «fastleddet er null». Sensorene viser Ukjent.
+            return 0, None, "fastledd ukjent"
+
         if self.fastledd_metode == FASTLEDD_OV_TREFASE:
             valgt = finn_sikringstrinn(self.dso, self.sikringstrinn_valg)
             if valgt is None:

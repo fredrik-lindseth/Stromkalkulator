@@ -16,7 +16,7 @@ from datetime import date, datetime
 from unittest.mock import MagicMock
 
 import pytest
-from stromkalkulator.const import CONF_SIKRINGSTRINN, resolve_avgiftssone
+from stromkalkulator.const import CONF_SIKRINGSTRINN, DSO_EGENDEFINERT, resolve_avgiftssone
 from stromkalkulator.dso import (
     DSO_LIST,
     FASTLEDD_FEM_VEKTET_AR,
@@ -116,6 +116,10 @@ class TestFastleddMetodeIDsoData:
     def test_trinnbaserte_metoder_har_trinn(self):
         for dso_id, data in DSO_LIST.items():
             if hent_fastledd_metode(data) in (FASTLEDD_OV_TREFASE, FASTLEDD_FEM_VEKTET_AR):
+                continue
+            if dso_id == DSO_EGENDEFINERT:
+                # Egendefinert har ingen prisliste. Trinnene kommer fra
+                # brukeren, og uten dem er fastleddet ukjent.
                 continue
             assert data["kapasitetstrinn"], f"{dso_id}: mangler kapasitetstrinn"
 

@@ -86,6 +86,11 @@ class TestFinnSeksjon:
     def test_tom_seksjon_regnes_som_manglende(self):
         assert release_notes.finn_seksjon(FALSK_CHANGELOG, "1.8.0") is None
 
+    def test_seksjon_med_bare_blanke_linjer_regnes_som_manglende(self):
+        """Mellomrom og tab på linjene er like tomt som ingen linjer."""
+        changelog = "## [1.8.0]\n   \n\t\n## [1.7.0]\n\n- x\n"
+        assert release_notes.finn_seksjon(changelog, "1.8.0") is None
+
     def test_ukjent_versjon_gir_none(self):
         assert release_notes.finn_seksjon(FALSK_CHANGELOG, "9.9.9") is None
 
@@ -148,9 +153,9 @@ class TestEkteChangelog:
     def test_manifest_versjonen_er_enten_sluppet_eller_under_arbeid(self):
         """En bumpet manifest-versjon uten CHANGELOG-seksjon stopper releasen.
 
-        Samme sjekk som ci.yml gjør, men her fanges den lokalt før push. Står
-        versjonen fortsatt på forrige release, holder det at CHANGELOG har en
-        `[Ikke sluppet]`-seksjon å skrive i.
+        Svakere enn porten i ci.yml, som spør GitHub om taggen finnes: lokalt
+        vet testen ikke om versjonen er sluppet, så den godtar også at CHANGELOG
+        bare har en `[Ikke sluppet]`-seksjon å skrive i.
         """
         manifest = json.loads(
             (REPO_ROOT / "custom_components" / "stromkalkulator" / "manifest.json").read_text(encoding="utf-8")

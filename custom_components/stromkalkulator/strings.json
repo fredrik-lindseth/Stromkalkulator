@@ -36,7 +36,7 @@
       },
       "sikring": {
         "title": "Sikringsstørrelse",
-        "description": "{dso} fakturerer fastleddet etter størrelsen på hovedsikringen (overbelastningsvernet), ikke etter hvor mye effekt du bruker. Velg raden som står på nettleiefakturaen eller i sikringsskapet. Er du i tvil, spør {dso}, vi kan ikke lese den av strømmåleren.",
+        "description": "{dso} fakturerer fastleddet etter størrelsen på hovedsikringen (overbelastningsvernet), ikke etter hvor mye effekt du bruker. Velg raden som står på nettleiefakturaen eller i sikringsskapet. Er du i tvil, spør {dso}. Vi kan ikke lese den av strømmåleren.",
         "data": {
           "sikringstrinn": "Hovedsikring"
         },
@@ -99,7 +99,7 @@
     "error": {
       "sensor_not_found": "Sensor ikke funnet",
       "already_configured": "Denne effektmåleren er allerede i bruk av en annen Strømkalkulator-instans",
-      "spot_unit_invalid": "Sensoren har ikke en pris-enhet kalkulatoren kan bruke direkte. Prisen må være i NOK/kWh (eller EUR/MWh). Øre/kWh godtas ikke, siden verdien da tolkes som NOK/kWh og gir 100x feil pris - konverter til NOK/kWh først, eller velg en spotpris-sensor fra Nord Pool-integrasjonen.",
+      "spot_unit_invalid": "Sensoren har ikke en pris-enhet kalkulatoren kan bruke direkte. Prisen må være i NOK/kWh (eller EUR/MWh). Øre/kWh godtas ikke, siden verdien da tolkes som NOK/kWh og gir 100x feil pris. Konverter til NOK/kWh først, eller velg en spotpris-sensor fra Nord Pool-integrasjonen.",
       "spot_value_unreasonable": "Sensorverdien er for høy til å være en spotpris. Du har sannsynligvis valgt en kr-totalsensor i stedet for en spotpris-sensor."
     },
     "abort": {
@@ -363,7 +363,7 @@
     },
     "spotpris_mva_check": {
       "title": "Spotpris-håndtering oppdatert",
-      "description": "Strømkalkulator behandler nå spotpris-sensoren som eks. mva (riktig for HA-core Nord Pool-integrasjonen). Tidligere antok koden inkl. mva, noe som ga 25 % feil i strømstøtte og totalpris i Sør-Norge. De fleste brukere trenger ikke gjøre noe.\n\nDu trenger KUN å handle hvis spotpris-sensoren din allerede leverer priser inkl. mva. Det gjelder hvis du har en egendefinert template-sensor som legger på 25 %, eller bruker den eldre custom_components/nordpool med VAT=true. I så fall: åpne Strømkalkulator-innstillinger (Settings > Devices & Services > Strømkalkulator > Configure) og slå PÅ «Spotpris-sensor leverer priser inkl. mva»."
+      "description": "Strømkalkulator behandler nå spotpris-sensoren som eks. mva (riktig for HA-core Nord Pool-integrasjonen). Tidligere antok koden inkl. mva, og det ga 25 % feil i strømstøtte og totalpris i Sør-Norge. De fleste brukere trenger ikke gjøre noe.\n\nDu trenger bare å gjøre noe hvis spotpris-sensoren din allerede leverer priser inkl. mva. Det gjelder hvis du har en egendefinert template-sensor som legger på 25 %, eller bruker den eldre custom_components/nordpool med VAT=true. I så fall: åpne Strømkalkulator-innstillinger (Settings > Devices & Services > Strømkalkulator > Configure) og slå på «Spotpris-sensor leverer priser inkl. mva»."
     },
     "sikringstrinn_mangler": {
       "title": "Sikringsstørrelse mangler",

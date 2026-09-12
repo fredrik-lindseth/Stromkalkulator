@@ -15,9 +15,14 @@ Home Assistant-integrasjon for nettleie, strømstøtte og Norgespris-sammenligni
 
 ```bash
 pipx run --with hypothesis --with pyyaml pytest tests/ --ignore=tests/test_smoke_ha.py -v
-ruff check custom_components/stromkalkulator/ tests/
+ruff check .
 pipx run mypy custom_components/stromkalkulator/ --ignore-missing-imports
 ```
+
+`ruff check .` dekker hele repoet, ikke bare `custom_components/` og
+`tests/`. Pre-commit-hooken kjører uansett på alle sporede Python-filer, så
+en smalere kommando her ville sagt grønt om `scripts/` og
+`vulture_whitelist.py` uten å ha sett på dem.
 
 `mypy` er blokkerende i CI, men sto lenge ikke her. Da gikk en `bool(dso)` som
 ikke smalner typen rett gjennom lokal grønn testsuite og feilet i CI etter push,

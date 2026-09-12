@@ -63,7 +63,7 @@ git clone https://github.com/fredrik-lindseth/Stromkalkulator.git
 cd Stromkalkulator
 pip install ruff pytest
 pipx run --with hypothesis --with pyyaml pytest tests/ -v
-ruff check custom_components/stromkalkulator/
+ruff check .
 ```
 
 ## Deploy til HA (utvikling)

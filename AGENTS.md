@@ -14,29 +14,43 @@ Home Assistant-integrasjon for nettleie, strømstøtte og Norgespris-sammenligni
 ## Før commit
 
 ```bash
-pipx run --with hypothesis --with pyyaml pytest tests/ --ignore=tests/test_smoke_ha.py -v
-ruff check .
-pipx run mypy custom_components/stromkalkulator/ --ignore-missing-imports
+just test
 ```
 
-`ruff check .` dekker hele repoet, ikke bare `custom_components/` og
-`tests/`. Pre-commit-hooken kjører uansett på alle sporede Python-filer, så
-en smalere kommando her ville sagt grønt om `scripts/` og
-`vulture_whitelist.py` uten å ha sett på dem.
+`just test` er `just test-unit` (hele `tests/`) og `just check` (ruff check,
+ruff format --check, mypy og vulture) i ett. Begge kjører gjennom `uv` mot
+låste dependency-grupper i `uv.lock`, så du trenger `uv` og `just`, men ikke å
+installere noe for hånd. Home Assistant er ikke med: `tests/` stubber HA bort,
+og en ekte `homeassistant` i samme miljø ville kollidert med stubbene.
 
-`mypy` er blokkerende i CI, men sto lenge ikke her. Da gikk en `bool(dso)` som
-ikke smalner typen rett gjennom lokal grønn testsuite og feilet i CI etter push,
-så releasen ble hoppet over.
+Rører du noe Home Assistant faktisk kaller, altså setup, config-flow,
+entiteter, migrering eller repairs, kjør også ekte HA:
 
-`--with hypothesis` trengs fordi `tests/test_property.py` bruker den; uten
-flagget feiler `pipx run pytest` allerede på collection. `--with pyyaml` trengs
-fordi `tests/test_fri_nettleie_sjekk.py` og `tests/test_testpakke.py` ellers
-feiler på collection; de skipper ikke lenger, for en vakt som hopper over seg
-selv vakter ingenting. `--ignore` trengs fordi `test_smoke_ha.py` krever
-`pytest-homeassistant-custom-component` og kjører i en egen CI-jobb med
-`--noconftest`. Kjøres også via pre-commit hooks, men bare når de er installert:
-sjekk `git config core.hooksPath` (skal være tom) og kjør `pre-commit install`
-og `pre-commit install --hook-type pre-push` i en fersk klone.
+```bash
+just test-ha target=minimum
+just test-ha target=current
+```
+
+`minimum` er HA 2025.1.0, versjonen `hacs.json` lover brukerne, og `current` er
+nyeste versjon vi har prøvd. Begge må være grønne. Feiler `minimum`, er det
+kompatibiliteten som skal rettes, eller minimum som skal heves med en begrunnet
+beslutning i CHANGELOG og `hacs.json`. Ikke hev det stille.
+
+De samme oppskriftene kjøres av pre-push-hooken og av CI, så det finnes ikke en
+annen kommandolinje som kan gå grønn på noe annet. `tests/test_testkommandoer.py`
+feiler hvis justfile, denne seksjonen, `docs/testing.md`, `docs/development.md`,
+`.pre-commit-config.yaml` og `.github/workflows/ci.yml` spriker.
+
+Hookene kjøres bare når de er installert: sjekk `git config core.hooksPath`
+(skal være tom) og kjør `pre-commit install` og
+`pre-commit install --hook-type pre-push` i en fersk klone.
+
+`mypy` er blokkerende i CI, men sto lenge ikke i denne seksjonen. Da gikk en
+`bool(dso)` som ikke smalner typen rett gjennom lokal grønn testsuite og feilet
+i CI etter push, så releasen ble hoppet over.
+
+Full oversikt over de fire miljøene, versjonsmatrisen og hvorfor de er atskilt:
+[docs/testing.md](docs/testing.md#testmiljøer).
 
 ## Viktige regler
 

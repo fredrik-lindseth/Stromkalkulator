@@ -1,36 +1,16 @@
 """Røyktest mot ekte Home Assistant (ikke mocket).
 
-Resten av testpakken (tests/) mocker bort homeassistant.* i sys.modules via
-tests/conftest.py, så config-flow-rendering, entity-registrering og
-plattform-setup blir aldri kjørt mot ekte HA. Denne testen bruker
-pytest-homeassistant-custom-component sitt rammeverk til å laste integrasjonen
-i en ekte HomeAssistant-instans.
+Unit-testene under `tests/` stubber bort `homeassistant.*`, så config-flow-
+rendering, entitetsregistrering og plattform-setup blir aldri kjørt mot ekte HA
+der. Denne fila laster integrasjonen i en ekte HomeAssistant-instans via
+pytest-homeassistant-custom-component.
 
-Conftest-kollisjon: tests/conftest.py stubber homeassistant.* på modulnivå for
-HELE tests/-mappen, og pytest laster den så snart en test under tests/ samles
-inn. En ekte-HA-test tåler ikke det. Løsningen er å kjøre denne fila med
-`--noconftest` i en egen CI-jobb (se .github/workflows/ci.yml, jobb `smoke-ha`).
-`--noconftest` slår kun av conftest.py-filene; entry-point-pluginen
-pytest-homeassistant-custom-component lastes fortsatt og gir hass-fixturene.
-Den ordinære jobben kjører `pytest tests/ --ignore=tests/test_smoke_ha.py`.
-
-Krever `asyncio_mode=auto` (hass-fixturen er en async generator dekorert med
-@pytest.fixture); CI-jobben sender `-o asyncio_mode=auto`.
+Kjøres av `just test-ha target=minimum` og `target=current`. sys.path og
+`enable_custom_integrations` settes i tests_ha/conftest.py.
 """
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
-# Repo-roten på sys.path så både `import custom_components.stromkalkulator` og
-# HA-loaderens interne `import custom_components` finner integrasjonen. Uten
-# tests/conftest.py (kjøres med --noconftest) settes ikke dette ellers.
-_REPO_ROOT = Path(__file__).resolve().parents[1]
-if str(_REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(_REPO_ROOT))
-
-import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
@@ -53,12 +33,6 @@ from custom_components.stromkalkulator.dso import DSO_LIST
 
 POWER_SENSOR = "sensor.smoke_power"
 SPOT_SENSOR = "sensor.smoke_spot_price"
-
-
-@pytest.fixture(autouse=True)
-def _enable_custom(enable_custom_integrations):
-    """Slå på lasting av custom_components/ for alle tester i fila."""
-    yield
 
 
 def _entry_data() -> dict:

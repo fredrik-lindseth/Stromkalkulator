@@ -63,15 +63,13 @@ repos:
   - repo: local
     hooks:
       - id: pytest
-        name: pytest
-        # Samme suite som AGENTS.md foreskriver. `language: python` gir hooken
-        # sitt eget venv med hypothesis og pyyaml, slik at den ikke avhenger av
-        # hva som tilfeldigvis ligger i PATH (`python` finnes ikke på alle
-        # maskiner) og ikke kan gå grønn lokalt mens CI går rød på en test som
-        # stille skipper.
-        entry: pytest tests/ --ignore=tests/test_smoke_ha.py
-        language: python
-        additional_dependencies: [pytest, hypothesis, pyyaml]
+        name: pytest (just test-unit)
+        # Kaller nøyaktig samme oppskrift som AGENTS.md og CI. Hooken har ikke
+        # sitt eget miljø og sin egen kommandolinje lenger: da kunne den gå
+        # grønn på noe annet enn det de to andre kjører, og det er akkurat
+        # spriket tests/test_testkommandoer.py vokter.
+        entry: just test-unit
+        language: system
         pass_filenames: false
         always_run: true
         stages: [pre-push]

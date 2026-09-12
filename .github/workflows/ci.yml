@@ -6,45 +6,28 @@ on:
   pull_request:
     branches: [ main ]
 
+# CI kaller de samme just-oppskriftene som kjøres lokalt og av pre-commit.
+# Kommandolinjene står ett sted, i justfile, og tests/test_testkommandoer.py
+# feller byggingen hvis dokumentasjonen sier noe annet enn oppskriftene.
+
 jobs:
-  test:
+  test-unit:
+    name: Unit (stubbet HA)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
         with:
-          python-version: '3.12'
+          enable-cache: true
 
-      # Drift-vakten i tests/test_research_reproducibility.py skipper hvis verken
-      # `just` eller `make` finnes. Uten dette steget kjørte den aldri i CI.
       - name: Set up just
         uses: extractions/setup-just@v3
 
-      # pyyaml trengs av tests/test_fri_nettleie_sjekk.py, som ellers skipper i
-      # sin helhet via importorskip. Samme fella som just-steget over.
-      - name: Install dependencies
-        run: |
-          pip install pytest pytest-cov hypothesis vulture ruff mypy pyyaml
-
-      - name: Run linter (ruff)
-        run: |
-          ruff check .
-          echo "✅ Linting passed"
-
-      - name: Run type checker (mypy)
-        run: |
-          mypy custom_components/stromkalkulator/ --ignore-missing-imports
-          echo "✅ Type checking passed"
-
       - name: Run unit tests with coverage
-        run: |
-          # test_smoke_ha.py ekskluderes: den kjører mot ekte HA i egen jobb.
-          # conftest.py mocker homeassistant.* globalt her, så den ville kollidere.
-          pytest tests/ --ignore=tests/test_smoke_ha.py -v --cov=custom_components/stromkalkulator --cov-report=xml --cov-report=term-missing
-          echo "✅ All unit tests passed"
+        run: just test-unit --cov=custom_components/stromkalkulator --cov-report=xml --cov-report=term-missing
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v6
@@ -55,33 +38,40 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
+  check:
+    name: Kvalitet (ruff, mypy, vulture)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Set up just
+        uses: extractions/setup-just@v3
+
+      - name: Lint, format, typer og død kode
+        run: just check
+
       - name: Validate manifest
         run: |
           jq empty custom_components/stromkalkulator/manifest.json || exit 1
-          echo "✅ Manifest JSON is valid"
-
-      - name: Check for dead code with Vulture
-        run: |
-          vulture custom_components/stromkalkulator/ vulture_whitelist.py --min-confidence 80 || true
-          echo "ℹ️ Vulture check complete (warnings only)"
 
       - name: Check version consistency
         run: |
           VERSION=$(jq -r '.version' custom_components/stromkalkulator/manifest.json)
-          echo "📦 manifest.json version: $VERSION"
           if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "❌ Invalid version format: $VERSION"
+            echo "Ugyldig versjonsformat i manifest.json: $VERSION"
             exit 1
           fi
-          echo "✅ Version format is valid"
-
           PYPROJECT_VERSION=$(python3 -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
-          echo "📦 pyproject.toml version: $PYPROJECT_VERSION"
           if [[ "$VERSION" != "$PYPROJECT_VERSION" ]]; then
-            echo "❌ Version drift: manifest.json ($VERSION) != pyproject.toml ($PYPROJECT_VERSION)"
+            echo "Versjonsdrift: manifest.json ($VERSION) != pyproject.toml ($PYPROJECT_VERSION)"
             exit 1
           fi
-          echo "✅ manifest.json and pyproject.toml versions match"
 
       # release.yml bygger release-body-en fra CHANGELOG.md. Mangler seksjonen,
       # feiler release-jobben etter at CI er grønn, og det er et dårlig sted å
@@ -93,38 +83,35 @@ jobs:
         run: |
           VERSION=$(jq -r '.version' custom_components/stromkalkulator/manifest.json)
           if gh release view "v$VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo "ℹ️ v$VERSION er alt sluppet, CHANGELOG-seksjonen er historikk"
+            echo "v$VERSION er alt sluppet, CHANGELOG-seksjonen er historikk"
             exit 0
           fi
           if ! python3 scripts/release_notes.py "$VERSION" >/dev/null; then
-            echo "❌ CHANGELOG.md mangler release-noten for v$VERSION"
+            echo "CHANGELOG.md mangler release-noten for v$VERSION"
             exit 1
           fi
-          echo "✅ CHANGELOG.md har release-noten for v$VERSION"
 
-  # Egen jobb for røyktesten mot ekte Home Assistant. Isolert fra `test`-jobben
-  # fordi tests/conftest.py mocker homeassistant.* globalt for hele tests/-mappen.
-  # Vi kjører med --noconftest (slår kun av conftest.py, ikke entry-point-pluginen
-  # pytest-homeassistant-custom-component) og asyncio_mode=auto (hass-fixturen er
-  # en async generator). Se tests/test_smoke_ha.py for detaljer.
-  smoke-ha:
-    name: Smoke test (real Home Assistant)
+  test-ha:
+    name: Ekte HA (${{ matrix.target }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # minimum er versjonen hacs.json lover brukerne. Feiler den, skal
+        # kompatibiliteten rettes eller minimum heves med en begrunnet
+        # beslutning, ikke stille.
+        target: [minimum, current]
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
         with:
-          python-version: '3.13'
+          enable-cache: true
 
-      - name: Install Home Assistant test framework
-        run: |
-          # Trekker inn homeassistant + pytest-oppsett transitivt.
-          pip install pytest-homeassistant-custom-component
+      - name: Set up just
+        uses: extractions/setup-just@v3
 
-      - name: Run real-HA smoke test
-        run: |
-          pytest tests/test_smoke_ha.py --noconftest -o asyncio_mode=auto
-          echo "✅ Real-HA smoke test passed"
+      - name: Run real-HA tests
+        run: just test-ha ${{ matrix.target }}

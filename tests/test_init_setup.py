@@ -220,3 +220,97 @@ class TestUniqueIdSetup:
         asyncio.run(init_module.async_setup_entry(hass, entry))
 
         hass.config_entries.async_update_entry.assert_not_called()
+
+
+# ULID-formede entry-id-er: HA lager entry_id slik, og ryddingen kjenner igjen
+# suffikset på formen. "test_entry" fra conftest gjør den ikke, med vilje.
+LEVENDE_ENTRY = "01KFEFGNT6PZZFVPK0F0FSN40D"
+SLETTET_ENTRY = "01KNMS11PBKD0SPDPND2ZFB0JZ"
+
+
+def _mock_ir_med_issues(issues):
+    """Lag en ir-mock der issue-registeret inneholder de gitte (domene, id)-parene."""
+    mock_ir = MagicMock()
+    mock_ir.IssueSeverity.WARNING = "warning"
+    registry = MagicMock()
+    registry.issues = dict.fromkeys(issues, MagicMock())
+    mock_ir.async_get.return_value = registry
+    return mock_ir
+
+
+def _slettede(mock_ir):
+    return [call.args[2] for call in mock_ir.async_delete_issue.call_args_list]
+
+
+class TestRepairOpprydding:
+    """Repair-issues suffikset med entry_id skal ikke overleve entryen sin.
+
+    Fredriks HA hadde en spotpris_mva_check fra en entry som var slettet for
+    lengst; den lå og maste om et anlegg som ikke fantes.
+    """
+
+    def test_remove_entry_sletter_issues_for_entryen(self, init_module):
+        hass = _make_hass()
+        entry = _make_entry(entry_id=SLETTET_ENTRY)
+        mock_ir = _mock_ir_med_issues(
+            [
+                (init_module.DOMAIN, f"spotpris_mva_check_{SLETTET_ENTRY}"),
+                (init_module.DOMAIN, f"dso_delt_{SLETTET_ENTRY}"),
+                (init_module.DOMAIN, f"spotpris_mva_check_{LEVENDE_ENTRY}"),
+                (init_module.DOMAIN, "satser_utdatert"),
+                ("hacs", f"restart_required_{SLETTET_ENTRY}"),
+            ],
+        )
+
+        with patch.object(init_module, "ir", mock_ir):
+            asyncio.run(init_module.async_remove_entry(hass, entry))
+
+        assert _slettede(mock_ir) == [
+            f"spotpris_mva_check_{SLETTET_ENTRY}",
+            f"dso_delt_{SLETTET_ENTRY}",
+        ]
+        assert all(
+            call.args[1] == init_module.DOMAIN
+            for call in mock_ir.async_delete_issue.call_args_list
+        )
+
+    def test_setup_sletter_foreldrelost_issue(self, init_module):
+        hass = _make_hass()
+        entry = _make_entry(entry_id=LEVENDE_ENTRY, dso_id="bkk")
+        entry.unique_id = entry.entry_id
+        hass.config_entries.async_entries = MagicMock(return_value=[entry])
+        mock_ir = _mock_ir_med_issues(
+            [
+                (init_module.DOMAIN, f"spotpris_mva_check_{SLETTET_ENTRY}"),
+                (init_module.DOMAIN, f"spotpris_mva_check_{LEVENDE_ENTRY}"),
+            ],
+        )
+
+        with patch.object(init_module, "ir", mock_ir):
+            asyncio.run(init_module.async_setup_entry(hass, entry))
+
+        slettede = _slettede(mock_ir)
+        assert f"spotpris_mva_check_{SLETTET_ENTRY}" in slettede
+        assert f"spotpris_mva_check_{LEVENDE_ENTRY}" not in slettede
+
+    def test_setup_rorer_ikke_domenevide_eller_andres_issues(self, init_module):
+        hass = _make_hass()
+        entry = _make_entry(entry_id=LEVENDE_ENTRY, dso_id="bkk")
+        entry.unique_id = entry.entry_id
+        hass.config_entries.async_entries = MagicMock(return_value=[entry])
+        mock_ir = _mock_ir_med_issues(
+            [
+                (init_module.DOMAIN, "dso_migration_skiakernett_vevig"),
+                (init_module.DOMAIN, "norgespris_utlopt"),
+                ("hacs", f"spotpris_mva_check_{SLETTET_ENTRY}"),
+            ],
+        )
+
+        with patch.object(init_module, "ir", mock_ir):
+            asyncio.run(init_module.async_setup_entry(hass, entry))
+
+        assert "dso_migration_skiakernett_vevig" not in _slettede(mock_ir)
+        assert all(
+            call.args[1] == init_module.DOMAIN
+            for call in mock_ir.async_delete_issue.call_args_list
+        )

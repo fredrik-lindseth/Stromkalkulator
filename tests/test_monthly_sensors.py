@@ -66,6 +66,7 @@ from stromkalkulator.const import (  # noqa: E402
     FORBRUKSAVGIFT_ALMINNELIG,
 )
 from stromkalkulator.sensor import (  # noqa: E402
+    AkkumulertKostnadSensor,
     DagskostnadSensor,
     EstimertMaanedskostnadSensor,
     ForrigeMaanedNettleieSensor,
@@ -543,3 +544,69 @@ class TestEstimertMaanedskostnadSensor:
         assert value is not None
         # Just verify it computes without error and is positive
         assert value > 0
+
+
+# ---------------------------------------------------------------------------
+# Ukjent fastledd (Egendefinert uten trinntabell, kontrakt §9)
+# ---------------------------------------------------------------------------
+
+
+class TestUkjentFastledd:
+    """Et månedsbeløp uten kapasitetsledd er systematisk for lavt.
+
+    Da skal sensoren være Ukjent, ikke vise en total som mangler en av de to
+    store postene. Forbrukssensorene og avgiftene er uberørt: de har ingenting
+    med fastleddet å gjøre.
+    """
+
+    def _data(self, *, ukjent: bool):
+        return {
+            "monthly_consumption_dag_kwh": 150.0,
+            "monthly_consumption_natt_kwh": 50.0,
+            "monthly_consumption_total_kwh": 200.0,
+            "energiledd_dag": 0.4613,
+            "energiledd_natt": 0.2329,
+            "kapasitetsledd": 0 if ukjent else 415,
+            "stromstotte": 0.0,
+            "monthly_accumulated_cost_kr": 123.45,
+            "fastledd_ukjent": ukjent,
+        }
+
+    @pytest.mark.parametrize(
+        "sensor_class",
+        [MaanedligNettleieSensor, MaanedligTotalSensor, AkkumulertKostnadSensor],
+    )
+    def test_maanedsbeloep_er_ukjent(self, sensor_class):
+        sensor = sensor_class(_make_coordinator(self._data(ukjent=True)), _make_entry())
+        assert sensor.native_value is None
+        assert sensor.extra_state_attributes["fastledd_ukjent"] is True
+
+    @pytest.mark.parametrize(
+        "sensor_class",
+        [MaanedligNettleieSensor, MaanedligTotalSensor, AkkumulertKostnadSensor],
+    )
+    def test_kjent_fastledd_gir_tall_som_foer(self, sensor_class):
+        sensor = sensor_class(_make_coordinator(self._data(ukjent=False)), _make_entry())
+        assert sensor.native_value is not None
+        assert "fastledd_ukjent" not in sensor.extra_state_attributes
+
+    @patch("stromkalkulator.sensor.dt_util")
+    def test_estimert_maanedskostnad_er_ukjent(self, mock_dt):
+        mock_dt.now.return_value = datetime(2026, 4, 15, 12, 0, 0)
+        sensor = EstimertMaanedskostnadSensor(
+            _make_coordinator(self._data(ukjent=True)), _make_entry("standard")
+        )
+        assert sensor.native_value is None
+
+    @patch("stromkalkulator.sensor.dt_util")
+    def test_estimert_maanedskostnad_uberoert_med_trinn(self, mock_dt):
+        mock_dt.now.return_value = datetime(2026, 4, 15, 12, 0, 0)
+        sensor = EstimertMaanedskostnadSensor(
+            _make_coordinator(self._data(ukjent=False)), _make_entry("standard")
+        )
+        assert sensor.native_value is not None
+
+    def test_avgifter_og_forbruk_er_uberoert(self):
+        data = self._data(ukjent=True)
+        assert MaanedligAvgifterSensor(_make_coordinator(data), _make_entry()).native_value is not None
+        assert MaanedligForbrukTotalSensor(_make_coordinator(data), _make_entry()).native_value is not None

@@ -489,3 +489,84 @@ class TestHandleCoordinatorUpdateDedup:
         sensor.available = False
         sensor._handle_coordinator_update()
         assert len(writes) == 2
+
+
+class TestFastleddUkjent:
+    """Egendefinert uten trinntabell: ukjent fastledd forplanter seg ærlig.
+
+    Kontrakt §9. Sensorene som bygger på et månedsbeløp blir Ukjent, de som
+    regner per kWh regnes uten fastledd og sier fra i et attributt, og resten
+    er uberørt. Se test_egendefinert_fastledd.py for coordinatoren.
+    """
+
+    @pytest.fixture
+    def ukjent_coordinator(self, mock_coordinator):
+        mock_coordinator.data = {
+            **SAMPLE_DATA,
+            "fastledd_ukjent": True,
+            "kapasitetsledd": 0,
+            "kapasitetstrinn_nummer": None,
+            "kapasitetstrinn_intervall": "fastledd ukjent",
+            "kapasitetsledd_per_kwh": 0.0,
+            "margin_neste_trinn_kw": 0.0,
+        }
+        mock_coordinator.kapasitetstrinn = []
+        return mock_coordinator
+
+    @pytest.mark.parametrize(
+        "sensor_class",
+        [KapasitetstrinnSensor, MarginNesteTrinnSensor],
+    )
+    def test_trinnsensorer_er_ukjent(self, sensor_class, ukjent_coordinator, mock_entry):
+        sensor = sensor_class(ukjent_coordinator, mock_entry)
+        assert sensor.native_value is None
+
+    def test_kapasitetstrinn_sier_fra_i_attributt(self, ukjent_coordinator, mock_entry):
+        sensor = KapasitetstrinnSensor(ukjent_coordinator, mock_entry)
+        assert sensor.extra_state_attributes["fastledd_ukjent"] is True
+
+    @pytest.mark.parametrize(
+        "sensor_class",
+        [
+            StromprisPerKwhSensor,
+            TotalPriceSensor,
+            TotalPrisEtterStotteSensor,
+            TotalPrisInklAvgifterSensor,
+            TotalPrisNorgesprisSensor,
+            StromprisNorgesprisSensor,
+            ElectricityCompanyTotalSensor,
+        ],
+    )
+    def test_prissensorer_har_tall_og_flagg(self, sensor_class, ukjent_coordinator, mock_entry):
+        """Per-kWh-prisene regnes uten fastledd, men skjuler ikke at de gjør det."""
+        sensor = sensor_class(ukjent_coordinator, mock_entry)
+        assert sensor.native_value is not None
+        assert sensor.extra_state_attributes["fastledd_ukjent"] is True
+
+    @pytest.mark.parametrize(
+        "sensor_class",
+        [
+            EnergileddSensor,
+            EnergileddDagSensor,
+            EnergileddNattSensor,
+            StromstotteSensor,
+            OffentligeAvgifterSensor,
+            MaanedligForbrukTotalSensor,
+            TariffSensor,
+        ],
+    )
+    def test_uavhengige_sensorer_er_uberoert(self, sensor_class, ukjent_coordinator, mock_entry):
+        sensor = sensor_class(ukjent_coordinator, mock_entry)
+        assert sensor.native_value is not None
+        attrs = sensor.extra_state_attributes or {}
+        assert "fastledd_ukjent" not in attrs
+
+    @pytest.mark.parametrize(
+        "sensor_class",
+        [KapasitetstrinnSensor, MarginNesteTrinnSensor, TotalPriceSensor, StromprisPerKwhSensor],
+    )
+    def test_kjent_fastledd_gir_ingen_flagg(self, sensor_class, mock_coordinator, mock_entry):
+        """Motsatt retning: et vanlig oppsett skal ikke se noe av dette."""
+        sensor = sensor_class(mock_coordinator, mock_entry)
+        assert sensor.native_value is not None
+        assert "fastledd_ukjent" not in (sensor.extra_state_attributes or {})

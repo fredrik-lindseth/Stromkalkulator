@@ -284,6 +284,21 @@ class NettleieBaseSensor(CoordinatorEntity, SensorEntity):
             return None
         return data.get(key)
 
+    def _fastledd_ukjent(self) -> bool:
+        """Om kapasitetsleddet er ukjent fordi ingen kjenner trinnene.
+
+        Egendefinert nettselskap uten brukeroppgitt trinntabell. Sensorer som
+        bygger på et månedsbeløp blir Ukjent, og de som regner per kWh regnes
+        uten fastledd og sier fra i et attributt (kontrakt §9).
+        """
+        return bool(self.coordinator.data and self.coordinator.data.get("fastledd_ukjent"))
+
+    def _merk_fastledd_ukjent(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        """Legg på flagget som forteller at fastleddet ikke er med i tallet."""
+        if self._fastledd_ukjent():
+            attrs["fastledd_ukjent"] = True
+        return attrs
+
     def _get_forbruksavgift(self) -> float:
         avgiftssone = self._entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
         return get_forbruksavgift(avgiftssone)
@@ -370,12 +385,15 @@ class KapasitetstrinnSensor(NettleieBaseSensor):
         """Return the state.
 
         Ukjent (None) når nettselskapet fakturerer etter sikringsstørrelse og
-        brukeren ikke har oppgitt den. Et tall her ville sett riktig ut og vært
-        gjetning, og det er nettopp feilen incident 006 handler om.
+        brukeren ikke har oppgitt den, og når et egendefinert nettselskap står
+        uten trinntabell. Et tall her ville sett riktig ut og vært gjetning, og
+        det er nettopp feilen incident 006 handler om.
         """
         if not self.coordinator.data:
             return None
         if self.coordinator.data.get("fastledd_mangler_sikringsvalg"):
+            return None
+        if self._fastledd_ukjent():
             return None
         return cast("float | int | None", self.coordinator.data.get("kapasitetsledd"))
 
@@ -396,6 +414,7 @@ class KapasitetstrinnSensor(NettleieBaseSensor):
             }
             if self.coordinator.data.get("fastledd_mangler_sikringsvalg"):
                 attrs["mangler_sikringsstorrelse"] = True
+            self._merk_fastledd_ukjent(attrs)
             if metode == FASTLEDD_UKJENT:
                 # Nettselskapet publiserer ikke metoden sin, så beløpet er
                 # regnet med NVE-modellen og kan avvike fra fakturaen.
@@ -422,8 +441,8 @@ class MarginNesteTrinnSensor(NettleieBaseSensor):
 
     @property
     def native_value(self) -> float | None:
-        """Return the state."""
-        if self.coordinator.data:
+        """Return the state (Ukjent uten kjente trinn å ha margin til)."""
+        if self.coordinator.data and not self._fastledd_ukjent():
             return cast("float | None", self.coordinator.data.get("margin_neste_trinn_kw"))
         return None
 
@@ -458,12 +477,14 @@ class TotalPriceSensor(NettleieBaseSensor):
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return extra attributes."""
         if self.coordinator.data:
-            return {
-                "spot_price": self.coordinator.data.get("spot_price"),
-                "energiledd": self.coordinator.data.get("energiledd"),
-                "kapasitetsledd_per_kwh": self.coordinator.data.get("kapasitetsledd_per_kwh"),
-                "dso": self.coordinator.data.get("dso"),
-            }
+            return self._merk_fastledd_ukjent(
+                {
+                    "spot_price": self.coordinator.data.get("spot_price"),
+                    "energiledd": self.coordinator.data.get("energiledd"),
+                    "kapasitetsledd_per_kwh": self.coordinator.data.get("kapasitetsledd_per_kwh"),
+                    "dso": self.coordinator.data.get("dso"),
+                }
+            )
         return None
 
 
@@ -550,8 +571,8 @@ class TrinnNummerSensor(NettleieBaseSensor):
 
     @property
     def native_value(self) -> int | None:
-        """Return the state."""
-        if self.coordinator.data:
+        """Return the state (Ukjent når trinnene ikke er kjent)."""
+        if self.coordinator.data and not self._fastledd_ukjent():
             return cast("int | None", self.coordinator.data.get("kapasitetstrinn_nummer"))
         return None
 
@@ -640,11 +661,13 @@ class ElectricityCompanyTotalSensor(NettleieBaseSensor):
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return extra attributes."""
         if self.coordinator.data:
-            return {
-                "electricity_company_pris": self.coordinator.data.get("electricity_company_price"),
-                "energiledd": self.coordinator.data.get("energiledd"),
-                "kapasitetsledd_per_kwh": self.coordinator.data.get("kapasitetsledd_per_kwh"),
-            }
+            return self._merk_fastledd_ukjent(
+                {
+                    "electricity_company_pris": self.coordinator.data.get("electricity_company_price"),
+                    "energiledd": self.coordinator.data.get("energiledd"),
+                    "kapasitetsledd_per_kwh": self.coordinator.data.get("kapasitetsledd_per_kwh"),
+                }
+            )
         return None
 
 
@@ -671,10 +694,12 @@ class StromprisPerKwhSensor(NettleieBaseSensor):
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return extra attributes."""
         if self.coordinator.data:
-            return {
-                "spot_price": self.coordinator.data.get("spot_price"),
-                "energiledd": self.coordinator.data.get("energiledd"),
-            }
+            return self._merk_fastledd_ukjent(
+                {
+                    "spot_price": self.coordinator.data.get("spot_price"),
+                    "energiledd": self.coordinator.data.get("energiledd"),
+                }
+            )
         return None
 
 
@@ -761,13 +786,15 @@ class TotalPrisEtterStotteSensor(NettleieBaseSensor):
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return extra attributes."""
         if self.coordinator.data:
-            return {
-                "spotpris": self.coordinator.data.get("spot_price"),
-                "stromstotte": self.coordinator.data.get("stromstotte"),
-                "spotpris_etter_stotte": self.coordinator.data.get("spotpris_etter_stotte"),
-                "energiledd": self.coordinator.data.get("energiledd"),
-                "kapasitetsledd_per_kwh": self.coordinator.data.get("kapasitetsledd_per_kwh"),
-            }
+            return self._merk_fastledd_ukjent(
+                {
+                    "spotpris": self.coordinator.data.get("spot_price"),
+                    "stromstotte": self.coordinator.data.get("stromstotte"),
+                    "spotpris_etter_stotte": self.coordinator.data.get("spotpris_etter_stotte"),
+                    "energiledd": self.coordinator.data.get("energiledd"),
+                    "kapasitetsledd_per_kwh": self.coordinator.data.get("kapasitetsledd_per_kwh"),
+                }
+            )
         return None
 
 
@@ -795,17 +822,19 @@ class TotalPrisInklAvgifterSensor(NettleieBaseSensor):
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return extra attributes with breakdown."""
         if self.coordinator.data:
-            return {
-                "spotpris": self.coordinator.data.get("spot_price"),
-                "stromstotte": self.coordinator.data.get("stromstotte"),
-                "spotpris_etter_stotte": self.coordinator.data.get("spotpris_etter_stotte"),
-                "energiledd": self.coordinator.data.get("energiledd"),
-                "kapasitetsledd_per_kwh": self.coordinator.data.get("kapasitetsledd_per_kwh"),
-                "forbruksavgift_inkl_mva": self.coordinator.data.get("forbruksavgift_inkl_mva"),
-                "enova_inkl_mva": self.coordinator.data.get("enova_inkl_mva"),
-                "offentlige_avgifter": self.coordinator.data.get("offentlige_avgifter"),
-                "bruk": "Marginalkostnad per kWh for Energy Dashboard. Månedlig sum avviker fra faktura pga. kapasitetsledd-fordeling.",
-            }
+            return self._merk_fastledd_ukjent(
+                {
+                    "spotpris": self.coordinator.data.get("spot_price"),
+                    "stromstotte": self.coordinator.data.get("stromstotte"),
+                    "spotpris_etter_stotte": self.coordinator.data.get("spotpris_etter_stotte"),
+                    "energiledd": self.coordinator.data.get("energiledd"),
+                    "kapasitetsledd_per_kwh": self.coordinator.data.get("kapasitetsledd_per_kwh"),
+                    "forbruksavgift_inkl_mva": self.coordinator.data.get("forbruksavgift_inkl_mva"),
+                    "enova_inkl_mva": self.coordinator.data.get("enova_inkl_mva"),
+                    "offentlige_avgifter": self.coordinator.data.get("offentlige_avgifter"),
+                    "bruk": "Marginalkostnad per kWh for Energy Dashboard. Månedlig sum avviker fra faktura pga. kapasitetsledd-fordeling.",
+                }
+            )
         return None
 
 
@@ -832,13 +861,15 @@ class TotalPrisNorgesprisSensor(NettleieBaseSensor):
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return extra attributes."""
         if self.coordinator.data:
-            return {
-                "norgespris": self.coordinator.data.get("norgespris"),
-                "energiledd": self.coordinator.data.get("energiledd"),
-                "kapasitetsledd_per_kwh": self.coordinator.data.get("kapasitetsledd_per_kwh"),
-                "norgespris_over_tak": self.coordinator.data.get("norgespris_over_tak", False),
-                "boligtype": self.coordinator.data.get("boligtype", "bolig"),
-            }
+            return self._merk_fastledd_ukjent(
+                {
+                    "norgespris": self.coordinator.data.get("norgespris"),
+                    "energiledd": self.coordinator.data.get("energiledd"),
+                    "kapasitetsledd_per_kwh": self.coordinator.data.get("kapasitetsledd_per_kwh"),
+                    "norgespris_over_tak": self.coordinator.data.get("norgespris_over_tak", False),
+                    "boligtype": self.coordinator.data.get("boligtype", "bolig"),
+                }
+            )
         return None
 
 
@@ -866,14 +897,16 @@ class StromprisNorgesprisSensor(NettleieBaseSensor):
         """Return extra attributes."""
         if self.coordinator.data:
             boligtype = self.coordinator.data.get("boligtype", "bolig")
-            return {
-                "fast_pris": self.coordinator.data.get("norgespris"),
-                "spot_pris": self.coordinator.data.get("spot_price"),
-                "forbruk_denne_maaneden_kwh": self.coordinator.data.get("monthly_consumption_total_kwh"),
-                "maks_kwh_med_fast_pris": get_norgespris_max_kwh(boligtype),
-                "over_maaneds_grense": self.coordinator.data.get("norgespris_over_tak", False),
-                "boligtype": boligtype,
-            }
+            return self._merk_fastledd_ukjent(
+                {
+                    "fast_pris": self.coordinator.data.get("norgespris"),
+                    "spot_pris": self.coordinator.data.get("spot_price"),
+                    "forbruk_denne_maaneden_kwh": self.coordinator.data.get("monthly_consumption_total_kwh"),
+                    "maks_kwh_med_fast_pris": get_norgespris_max_kwh(boligtype),
+                    "over_maaneds_grense": self.coordinator.data.get("norgespris_over_tak", False),
+                    "boligtype": boligtype,
+                }
+            )
         return None
 
 
@@ -1244,8 +1277,8 @@ class MaanedligNettleieSensor(MaanedligBaseSensor):
 
     @property
     def native_value(self) -> float | None:
-        """Calculate monthly grid rent cost."""
-        if self.coordinator.data:
+        """Calculate monthly grid rent cost (Ukjent uten kjent fastledd)."""
+        if self.coordinator.data and not self._fastledd_ukjent():
             return _beregn_nettleie(
                 self.coordinator.data.get("monthly_consumption_dag_kwh", 0),
                 self.coordinator.data.get("monthly_consumption_natt_kwh", 0),
@@ -1264,11 +1297,13 @@ class MaanedligNettleieSensor(MaanedligBaseSensor):
             dag_pris = self.coordinator.data.get("energiledd_dag", 0)
             natt_pris = self.coordinator.data.get("energiledd_natt", 0)
             kapasitet = self.coordinator.data.get("kapasitetsledd", 0)
-            return {
-                "energiledd_dag_kr": round(dag_kwh * dag_pris, 2),
-                "energiledd_natt_kr": round(natt_kwh * natt_pris, 2),
-                "kapasitetsledd_kr": kapasitet,
-            }
+            return self._merk_fastledd_ukjent(
+                {
+                    "energiledd_dag_kr": round(dag_kwh * dag_pris, 2),
+                    "energiledd_natt_kr": round(natt_kwh * natt_pris, 2),
+                    "kapasitetsledd_kr": None if self._fastledd_ukjent() else kapasitet,
+                }
+            )
         return None
 
 
@@ -1383,8 +1418,12 @@ class MaanedligTotalSensor(MaanedligBaseSensor):
         energiledd_dag/natt fra dso.py inkluderer allerede forbruksavgift og
         Enova-avgift, så nettleie-beløpet er komplett. Avgifter legges IKKE
         til separat, det ville dobbelttelle dem.
+
+        Ukjent når fastleddet er ukjent: en månedstotal uten kapasitetsledd er
+        systematisk for lav, og et tall som ser ut som en total skal ikke mangle
+        en av de to store postene.
         """
-        if self.coordinator.data:
+        if self.coordinator.data and not self._fastledd_ukjent():
             dag_kwh = self.coordinator.data.get("monthly_consumption_dag_kwh", 0)
             natt_kwh = self.coordinator.data.get("monthly_consumption_natt_kwh", 0)
             total_kwh = dag_kwh + natt_kwh
@@ -1418,14 +1457,18 @@ class MaanedligTotalSensor(MaanedligBaseSensor):
             stotte = total_kwh * stromstotte
             total_kostnad = nettleie - stotte
 
-            return {
-                "nettleie_kr": round(nettleie, 2),
-                "stromstotte_kr": round(stotte, 2),
-                "forbruk_dag_kwh": round(dag_kwh, 1),
-                "forbruk_natt_kwh": round(natt_kwh, 1),
-                "forbruk_total_kwh": round(total_kwh, 1),
-                "vektet_snittpris_kr_per_kwh": round(total_kostnad / total_kwh, 4) if total_kwh > 0 else None,
-            }
+            return self._merk_fastledd_ukjent(
+                {
+                    "nettleie_kr": round(nettleie, 2),
+                    "stromstotte_kr": round(stotte, 2),
+                    "forbruk_dag_kwh": round(dag_kwh, 1),
+                    "forbruk_natt_kwh": round(natt_kwh, 1),
+                    "forbruk_total_kwh": round(total_kwh, 1),
+                    "vektet_snittpris_kr_per_kwh": round(total_kostnad / total_kwh, 4)
+                    if total_kwh > 0
+                    else None,
+                }
+            )
         return None
 
 
@@ -1528,8 +1571,8 @@ class AkkumulertKostnadSensor(MaanedligBaseSensor):
 
     @property
     def native_value(self) -> float | None:
-        """Return accumulated monthly cost."""
-        if self.coordinator.data:
+        """Return accumulated monthly cost (Ukjent uten kjent fastledd)."""
+        if self.coordinator.data and not self._fastledd_ukjent():
             return cast("float | None", self.coordinator.data.get("monthly_accumulated_cost_kr"))
         return None
 
@@ -1537,13 +1580,17 @@ class AkkumulertKostnadSensor(MaanedligBaseSensor):
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return cost breakdown."""
         if self.coordinator.data:
-            return {
-                "strompris_kr": self.coordinator.data.get("monthly_accumulated_cost_strom_kr"),
-                "energiledd_kr": self.coordinator.data.get("monthly_accumulated_cost_energiledd_kr"),
-                "kapasitetsledd_kr": self.coordinator.data.get("monthly_accumulated_cost_kapasitetsledd_kr"),
-                "total_kwh": self.coordinator.data.get("monthly_consumption_total_kwh"),
-                "bruk": "Velg som 'Use an entity tracking total costs' i Energy Dashboard",
-            }
+            return self._merk_fastledd_ukjent(
+                {
+                    "strompris_kr": self.coordinator.data.get("monthly_accumulated_cost_strom_kr"),
+                    "energiledd_kr": self.coordinator.data.get("monthly_accumulated_cost_energiledd_kr"),
+                    "kapasitetsledd_kr": self.coordinator.data.get(
+                        "monthly_accumulated_cost_kapasitetsledd_kr"
+                    ),
+                    "total_kwh": self.coordinator.data.get("monthly_consumption_total_kwh"),
+                    "bruk": "Velg som 'Use an entity tracking total costs' i Energy Dashboard",
+                }
+            )
         return None
 
 
@@ -1561,7 +1608,8 @@ class EstimertMaanedskostnadSensor(MaanedligBaseSensor):
 
     @property
     def native_value(self) -> float | None:
-        if not self.coordinator.data:
+        """Estimert total for måneden (Ukjent uten kjent fastledd)."""
+        if not self.coordinator.data or self._fastledd_ukjent():
             return None
 
         now = dt_util.now()

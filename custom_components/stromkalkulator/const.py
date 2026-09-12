@@ -41,6 +41,12 @@ CONF_ENERGI_FROSSEN_TIMER: Final[str] = "energi_frossen_timer"
 # det, bare be dem sjekke, og flagget er det som gjør at varselet lar seg lukke
 # for godt. Se docs/incidents/007-energiledd-label-inkl-avgifter.md.
 CONF_EGENDEFINERT_SATSER_BEKREFTET: Final[str] = "egendefinert_satser_bekreftet"
+# Egendefinert nettselskap: brukerens egen kapasitetstrinn-tabell, som ett
+# tekstfelt på formen "2:155,5:250,10:415" (kW-grense:kr/mnd inkl. mva). Feltet
+# finnes bare for Egendefinert, som ikke har noen prisliste vi kan lese.
+# Mangler det, er kapasitetsleddet ukjent, ikke null. Se kontrakt §9 og
+# docs/incidents/006-kapasitetstrinn-uten-kilde.md.
+CONF_EGENDEFINERT_KAPASITETSTRINN: Final[str] = "egendefinert_kapasitetstrinn"
 # Rollene der brukeren har bekreftet at en prissensor uten enhet er NOK/kWh.
 # Per rolle og ikke ett ja/nei for hele entryet: den som bekreftet spotprisen og
 # senere la til en leverandørprissensor uten enhet skal få spørsmålet om den òg.

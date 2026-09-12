@@ -46,16 +46,18 @@
       },
       "pricing": {
         "title": "Egendefinerte priser",
-        "description": "Velg avgiftssone og angi energiledd-priser i NOK/kWh eks. mva og eks. forbruksavgift/Enova. Integrasjonen legger på avgifter og mva basert på avgiftssone.",
+        "description": "Velg avgiftssone og angi energiledd-priser i NOK/kWh eks. mva og eks. forbruksavgift/Enova. Integrasjonen legger på avgifter og mva basert på avgiftssone. Kapasitetsleddet (fastleddet) har vi ingen prisliste for, så det må du hente fra din egen.",
         "data": {
           "avgiftssone": "Avgiftssone",
           "energiledd_dag": "Energiledd dag (NOK/kWh, eks. mva og avgifter)",
-          "energiledd_natt": "Energiledd natt/helg (NOK/kWh, eks. mva og avgifter)"
+          "energiledd_natt": "Energiledd natt/helg (NOK/kWh, eks. mva og avgifter)",
+          "egendefinert_kapasitetstrinn": "Kapasitetstrinn fra prislisten din (valgfritt)"
         },
         "data_description": {
           "avgiftssone": "Bestemmer mva og forbruksavgift. Mva-fritaket følger fylke, ikke prisområde: «Nord-Norge» gjelder Nordland og Troms, «Tiltakssonen» gjelder Finnmark og Nord-Troms (mval. § 6-6). Alle andre, inkludert NO3 (Trøndelag og Møre og Romsdal), velger «Sør-Norge» og betaler 25 % mva.",
           "energiledd_dag": "Ren nettleie for dag. Finn beløpet «energiledd» eller «overføring» på prislisten din, før forbruksavgift, Enova og mva.",
-          "energiledd_natt": "Ren nettleie for natt/helg. Hvis nettselskapet bruker flat sats, sett samme verdi som dag."
+          "energiledd_natt": "Ren nettleie for natt/helg. Hvis nettselskapet bruker flat sats, sett samme verdi som dag.",
+          "egendefinert_kapasitetstrinn": "Fastleddet slik nettselskapet ditt fører det: kW-grense og kr/mnd inkl. mva, skilt av kolon, og trinnene skilt av komma. Skrivemåten 2:155,5:250,10:415 betyr 155 kr/mnd opp til 2 kW, 250 kr/mnd fra 2 til 5 kW og 415 kr/mnd over 5 kW; tallene er et formateksempel, ikke priser. Øverste trinn gjelder alt over grensen under. Lar du feltet stå tomt, står kapasitetstrinn, månedlig nettleie, månedlig total, estimert månedskostnad og akkumulert kostnad som Ukjent. Det er med vilje: vi har ingen prisliste for Egendefinert, og et gjettet fastledd ser ut som en pris uten å være det."
         }
       },
       "reconfigure": {
@@ -76,7 +78,8 @@
           "energiledd_dag": "Energiledd dag (NOK/kWh, eks. mva og avgifter)",
           "energiledd_natt": "Energiledd natt/helg (NOK/kWh, eks. mva og avgifter)",
           "kapasitet_varsel_terskel": "Kapasitetsvarsel-terskel (kW)",
-          "energi_frossen_timer": "Terskel for frossen energimåler (timer)"
+          "energi_frossen_timer": "Terskel for frossen energimåler (timer)",
+          "egendefinert_kapasitetstrinn": "Kapasitetstrinn fra prislisten din (valgfritt)"
         },
         "data_description": {
           "boligtype": "Bolig: Strømstøtte opptil 5000 kWh/mnd, Norgespris opptil 5000 kWh/mnd. Fritidsbolig: Ingen strømstøtte, Norgespris opptil 1000 kWh/mnd. Fritidsbolig (fast bosted): Samme som bolig (Forskrift § 11).",
@@ -92,7 +95,8 @@
           "energiledd_dag": "Ren nettleie eks. mva og avgifter. La feltet stå tomt for å følge nettselskapets prisliste, så oppdateres satsen av seg selv når prislisten endres. Fyller du inn et tall, er det ditt som gjelder til du tømmer feltet igjen.",
           "energiledd_natt": "Ren nettleie eks. mva og avgifter. Samme regel som for dag: tomt felt følger prislisten, utfylt felt gjelder foran den. Sett samme verdi som dag for flat sats.",
           "kapasitet_varsel_terskel": "Varsle når margin til neste kapasitetstrinn er under denne verdien. Standard: 2.0 kW.",
-          "energi_frossen_timer": "Meld fra når energimåleren ikke har økt på så mange timer. Standard: 3. Sett den høyere på en hytte eller et anlegg som står tomt i perioder, ellers varsler den hver gang hovedbryteren er av."
+          "energi_frossen_timer": "Meld fra når energimåleren ikke har økt på så mange timer. Standard: 3. Sett den høyere på en hytte eller et anlegg som står tomt i perioder, ellers varsler den hver gang hovedbryteren er av.",
+          "egendefinert_kapasitetstrinn": "Fastleddet slik nettselskapet ditt fører det: kW-grense og kr/mnd inkl. mva, skilt av kolon, og trinnene skilt av komma. Skrivemåten 2:155,5:250,10:415 betyr 155 kr/mnd opp til 2 kW, 250 kr/mnd fra 2 til 5 kW og 415 kr/mnd over 5 kW; tallene er et formateksempel, ikke priser. Øverste trinn gjelder alt over grensen under. Lar du feltet stå tomt, står kapasitetstrinn, månedlig nettleie, månedlig total, estimert månedskostnad og akkumulert kostnad som Ukjent. Det er med vilje: vi har ingen prisliste for Egendefinert, og et gjettet fastledd ser ut som en pris uten å være det."
         }
       }
     },
@@ -104,7 +108,8 @@
       "enhet_ukjent": "Kalkulatoren kjenner ikke igjen enheten sensoren oppgir, og kan derfor ikke regne om verdien. Effekt må være W, kW eller MW. Energi må være Wh, kWh eller MWh. Pris må være NOK/kWh, kr/kWh, øre/kWh eller NOK/MWh.",
       "enhet_feil_dimensjon": "Sensoren måler noe annet enn feltet spør etter. Sjekk at effektfeltet peker på en effektsensor, energifeltet på en kumulativ kWh-teller og prisfeltene på en pris per kWh.",
       "enhet_feil_valuta": "Prisen er i en annen valuta enn kroner. Kalkulatoren har ingen valutakurs, så en EUR-sensor kan ikke brukes direkte. Velg en sensor i NOK/kWh eller øre/kWh, eller lag en malsensor som regner om.",
-      "energi_ikke_kumulativ": "Energisensoren må være en teller som bare går oppover, altså state_class total_increasing eller total. Vi måler differansen mellom avlesninger, og en sensor som viser forbruket akkurat nå har ingen differanse å måle."
+      "energi_ikke_kumulativ": "Energisensoren må være en teller som bare går oppover, altså state_class total_increasing eller total. Vi måler differansen mellom avlesninger, og en sensor som viser forbruket akkurat nå har ingen differanse å måle.",
+      "trinntabell_ugyldig": "Kapasitetstrinnene lar seg ikke lese. Skriv hvert trinn som kW-grense og kr/mnd skilt av kolon, trinnene skilt av komma, og med stigende kW-grenser: 2:155,5:250,10:415."
     },
     "abort": {
       "already_configured": "Allerede konfigurert"
@@ -130,7 +135,8 @@
           "energiledd_dag": "Energiledd dag (NOK/kWh, eks. mva og avgifter)",
           "energiledd_natt": "Energiledd natt/helg (NOK/kWh, eks. mva og avgifter)",
           "kapasitet_varsel_terskel": "Kapasitetsvarsel-terskel (kW)",
-          "energi_frossen_timer": "Terskel for frossen energimåler (timer)"
+          "energi_frossen_timer": "Terskel for frossen energimåler (timer)",
+          "egendefinert_kapasitetstrinn": "Kapasitetstrinn fra prislisten din (valgfritt)"
         },
         "data_description": {
           "boligtype": "Bolig: Strømstøtte opptil 5000 kWh/mnd, Norgespris opptil 5000 kWh/mnd. Fritidsbolig: Ingen strømstøtte, Norgespris opptil 1000 kWh/mnd. Fritidsbolig (fast bosted): Samme som bolig (Forskrift § 11).",
@@ -146,7 +152,8 @@
           "energiledd_dag": "Ren nettleie eks. mva og avgifter. La feltet stå tomt for å følge nettselskapets prisliste, så oppdateres satsen av seg selv når prislisten endres. Fyller du inn et tall, er det ditt som gjelder til du tømmer feltet igjen.",
           "energiledd_natt": "Ren nettleie eks. mva og avgifter. Samme regel som for dag: tomt felt følger prislisten, utfylt felt gjelder foran den. Sett samme verdi som dag for flat sats.",
           "kapasitet_varsel_terskel": "Varsle når margin til neste kapasitetstrinn er under denne verdien. Standard: 2.0 kW.",
-          "energi_frossen_timer": "Meld fra når energimåleren ikke har økt på så mange timer. Standard: 3. Sett den høyere på en hytte eller et anlegg som står tomt i perioder, ellers varsler den hver gang hovedbryteren er av."
+          "energi_frossen_timer": "Meld fra når energimåleren ikke har økt på så mange timer. Standard: 3. Sett den høyere på en hytte eller et anlegg som står tomt i perioder, ellers varsler den hver gang hovedbryteren er av.",
+          "egendefinert_kapasitetstrinn": "Fastleddet slik nettselskapet ditt fører det: kW-grense og kr/mnd inkl. mva, skilt av kolon, og trinnene skilt av komma. Skrivemåten 2:155,5:250,10:415 betyr 155 kr/mnd opp til 2 kW, 250 kr/mnd fra 2 til 5 kW og 415 kr/mnd over 5 kW; tallene er et formateksempel, ikke priser. Øverste trinn gjelder alt over grensen under. Lar du feltet stå tomt, står kapasitetstrinn, månedlig nettleie, månedlig total, estimert månedskostnad og akkumulert kostnad som Ukjent. Det er med vilje: vi har ingen prisliste for Egendefinert, og et gjettet fastledd ser ut som en pris uten å være det."
         }
       }
     },
@@ -158,7 +165,8 @@
       "enhet_ukjent": "Kalkulatoren kjenner ikke igjen enheten sensoren oppgir, og kan derfor ikke regne om verdien. Effekt må være W, kW eller MW. Energi må være Wh, kWh eller MWh. Pris må være NOK/kWh, kr/kWh, øre/kWh eller NOK/MWh.",
       "enhet_feil_dimensjon": "Sensoren måler noe annet enn feltet spør etter. Sjekk at effektfeltet peker på en effektsensor, energifeltet på en kumulativ kWh-teller og prisfeltene på en pris per kWh.",
       "enhet_feil_valuta": "Prisen er i en annen valuta enn kroner. Kalkulatoren har ingen valutakurs, så en EUR-sensor kan ikke brukes direkte. Velg en sensor i NOK/kWh eller øre/kWh, eller lag en malsensor som regner om.",
-      "energi_ikke_kumulativ": "Energisensoren må være en teller som bare går oppover, altså state_class total_increasing eller total. Vi måler differansen mellom avlesninger, og en sensor som viser forbruket akkurat nå har ingen differanse å måle."
+      "energi_ikke_kumulativ": "Energisensoren må være en teller som bare går oppover, altså state_class total_increasing eller total. Vi måler differansen mellom avlesninger, og en sensor som viser forbruket akkurat nå har ingen differanse å måle.",
+      "trinntabell_ugyldig": "Kapasitetstrinnene lar seg ikke lese. Skriv hvert trinn som kW-grense og kr/mnd skilt av kolon, trinnene skilt av komma, og med stigende kW-grenser: 2:155,5:250,10:415."
     }
   },
   "entity": {
@@ -427,6 +435,10 @@
           }
         }
       }
+    },
+    "egendefinert_fastledd": {
+      "title": "Kapasitetstrinn mangler for egendefinert nettselskap",
+      "description": "Til og med 1.16.0 hadde Egendefinert ti innebygde kapasitetstrinn. De var en mal uten prisliste bak seg, og siden kapasitetsleddet er et fast månedsbeløp slo de rett inn i månedskostnaden. Trinnene er fjernet. Til du legger inn dine egne, står «Kapasitetstrinn», «Månedlig nettleie», «Månedlig total», «Estimert månedskostnad» og «Akkumulert kostnad» som Ukjent, og prisene per kWh regnes uten fastledd. Åpne Innstillinger > Enheter og tjenester > Strømkalkulator > Konfigurer og skriv inn trinnene fra prislisten din på formen kW-grense:kr/mnd, skilt av komma."
     }
   }
 }

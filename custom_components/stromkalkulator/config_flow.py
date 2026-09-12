@@ -53,6 +53,7 @@ from .const import (
     TARIFFMODUS_CATALOG,
     TARIFFMODUS_MANUAL,
     compute_energiledd_inkl_mva,
+    les_tariffmodus,
     resolve_avgiftssone,
 )
 from .dso import (
@@ -336,8 +337,16 @@ def _energiledd_felt(current: dict[str, Any], egendefinert: bool) -> dict[Any, A
     """Energiledd-feltene, som overstyring eller som påkrevd tall.
 
     `suggested_value` og ikke `default`: et default fyller feltet på nytt hver
-    gang skjemaet åpnes, og da kan overstyringen aldri fjernes igjen. Et
-    suggested_value er brukerens eget tall når det finnes, og tomt ellers.
+    gang skjemaet åpnes, og da kan overstyringen aldri fjernes igjen.
+
+    Forslaget står bare i `manual`, altså der brukeren faktisk har skrevet et
+    tall. Grunnen er at HA-frontenden fyller feltet med `suggested_value` og
+    sender verdien tilbake ved lagring, også når brukeren ikke rørte det. For
+    en `legacy_unconfirmed`-entry ville det gjort at et besøk i innstillingene
+    låste den utdaterte satsen som `manual` og slettet satsvarselet, altså
+    stikk i strid med kontrakt §6: «lagrer uten å røre feltet» skal bety
+    «følg katalogen». I `catalog` og `legacy_unconfirmed` står feltet derfor
+    tomt, og katalogtallet står som hint i stegbeskrivelsen.
     """
     if egendefinert:
         return {
@@ -350,14 +359,19 @@ def _energiledd_felt(current: dict[str, Any], egendefinert: bool) -> dict[Any, A
                 default=current.get(CONF_ENERGILEDD_NATT, DEFAULT_ENERGILEDD_NATT),
             ): _energiledd_sats_selector(),
         }
+    manuell = les_tariffmodus(current) == TARIFFMODUS_MANUAL
+
+    def forslag(felt: str) -> dict[str, Any]:
+        return {"suggested_value": current.get(felt)} if manuell else {}
+
     return {
         vol.Optional(
             CONF_ENERGILEDD_DAG,
-            description={"suggested_value": current.get(CONF_ENERGILEDD_DAG)},
+            description=forslag(CONF_ENERGILEDD_DAG),
         ): _energiledd_sats_selector(),
         vol.Optional(
             CONF_ENERGILEDD_NATT,
-            description={"suggested_value": current.get(CONF_ENERGILEDD_NATT)},
+            description=forslag(CONF_ENERGILEDD_NATT),
         ): _energiledd_sats_selector(),
     }
 

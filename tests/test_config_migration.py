@@ -547,6 +547,26 @@ class TestV4ToV5Migration:
 
         assert entry.data["tariffmodus"] == "catalog"
 
+    def test_fusjonert_nettselskap_gir_catalog(self, init_module):
+        """Skiakernett er fusjonert inn i Vevig og står ikke i DSO_LIST.
+
+        Uten oppslaget i DSO_MIGRATIONS ser en slik entry ut som et ukjent
+        nettselskap, og den fikk `manual` med Skiakernetts gamle sats. Så
+        flyttet `async_setup_entry` DSO-en over til Vevig, og entryet regnet
+        videre med gammel sats på nytt selskap for godt, uten tariffvarsel,
+        siden varselet bare ser på `legacy_unconfirmed`.
+        """
+        fusjon = init_module.DSO_MIGRATIONS[0]
+        assert fusjon.gammel not in DSO_LIST
+
+        entry = self._migrer_v4(
+            init_module,
+            {"tso": fusjon.gammel, "avgiftssone": "standard", "energiledd_dag": 0.31},
+        )
+
+        assert entry.data["tariffmodus"] == "catalog"
+        assert "energiledd_dag" not in entry.data
+
     def test_ukjent_nettselskap_gir_manual(self, init_module):
         """Et håndredigert .storage med en DSO-id vi ikke har: satsen er alt de har."""
         entry = self._migrer_v4(

@@ -43,6 +43,25 @@ jobs:
             echo "Creating new release v${{ steps.version.outputs.version }}"
           fi
 
+      # Release-noten lever i repoet, ikke i en håndskrevet GitHub-draft som kan
+      # forsvinne (stromkalkulator-1dk4). Mangler seksjonen, stopper jobben her
+      # framfor å publisere en release med rå commit-liste som body.
+      - name: Hent release-noten fra CHANGELOG.md
+        id: notes
+        if: steps.check_release.outputs.exists == 'false'
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if ! NOTES=$(python3 scripts/release_notes.py "$VERSION"); then
+            echo "::error file=CHANGELOG.md::CHANGELOG.md mangler en seksjon '## [$VERSION]' med innhold. Skriv release-noten der før du bumper versjonen."
+            exit 1
+          fi
+          DELIM="noter-$(openssl rand -hex 8)"
+          {
+            echo "notes<<$DELIM"
+            echo "$NOTES"
+            echo "$DELIM"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Create ZIP for HACS
         if: steps.check_release.outputs.exists == 'false'
         run: |
@@ -94,18 +113,18 @@ jobs:
           tag_name: v${{ steps.version.outputs.version }}
           name: v${{ steps.version.outputs.version }}
           body: |
-            ## Endringer
-
-            ${{ steps.changelog.outputs.commits }}
+            ${{ steps.notes.outputs.notes }}
 
             ## Verifisering
 
-            **SHA256:** `${{ steps.checksum.outputs.sha256 }}`
+            **SHA256:** `${{ steps.checksum.outputs.sha256 }}` ([hvordan verifisere](https://github.com/fredrik-lindseth/Stromkalkulator/blob/main/SECURITY.md))
 
-            Verifiser at denne releasen ble bygd fra kildekoden:
-            ```bash
-            gh attestation verify stromkalkulator.zip --repo fredrik-lindseth/Stromkalkulator
-            ```
+            <details>
+            <summary>Alle commits</summary>
+
+            ${{ steps.changelog.outputs.commits }}
+
+            </details>
           draft: false
           prerelease: false
 

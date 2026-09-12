@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -50,6 +51,13 @@ PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BUTTON, Platform.BINARY_S
 type StromkalkulatorConfigEntry = ConfigEntry[NettleieCoordinator]
 
 _MIGRATION_INDEX: dict[str, DSOFusjon] = {m.gammel: m for m in DSO_MIGRATIONS}
+
+# Issue-id-er som gjelder ett anlegg er suffikset med entry_id (incident 001:
+# entry_id er nøkkelen, aldri DSO-id eller brukervalg). HA lager entry_id som en
+# ULID (26 tegn, versaler og siffer); entries fra før ULID-skiftet har 32 tegn
+# heksadesimalt. Mønsteret treffer derfor bare ekte entry-suffikser, og lar
+# domenevide issues som satser_utdatert og dso_migration_<gammel>_<ny> stå.
+_ENTRY_ID_SUFFIX = re.compile(r"_([0-9A-Z]{26}|[0-9a-f]{32})$")
 
 
 def _migrate_storage_file_sync(storage_dir: str, old_dso: str, new_dso: str) -> None:
@@ -186,6 +194,49 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
+def _issues_for_entry(hass: HomeAssistant, entry_id: str) -> list[str]:
+    """Hent våre issue-id-er som er suffikset med denne entry-en."""
+    registry = ir.async_get(hass)
+    suffix = f"_{entry_id}"
+    return [
+        issue_id
+        for issue_domain, issue_id in list(registry.issues)
+        if issue_domain == DOMAIN and issue_id.endswith(suffix)
+    ]
+
+
+def _rydd_issues_for_entry(hass: HomeAssistant, entry_id: str) -> None:
+    """Slett alle repair-issues som hører til en entry."""
+    for issue_id in _issues_for_entry(hass, entry_id):
+        ir.async_delete_issue(hass, DOMAIN, issue_id)
+        _LOGGER.debug("Fjernet repair-issue %s for slettet entry %s", issue_id, entry_id)
+
+
+def _rydd_foreldrelose_issues(hass: HomeAssistant) -> None:
+    """Slett anleggs-issues som peker på en entry som ikke finnes lenger.
+
+    Issues opprettet av eldre versjoner ble aldri fjernet når brukeren slettet
+    anlegget, så de ble liggende og maste om noe som ikke fantes. Ryddingen
+    kjøres ved hver setup og rører kun issues i vårt eget domene med et gyldig
+    entry_id-suffiks.
+    """
+    registry = ir.async_get(hass)
+    kjente = {oppforing.entry_id for oppforing in hass.config_entries.async_entries(DOMAIN)}
+
+    for issue_domain, issue_id in list(registry.issues):
+        if issue_domain != DOMAIN:
+            continue
+        treff = _ENTRY_ID_SUFFIX.search(issue_id)
+        if treff is None or treff.group(1) in kjente:
+            continue
+        ir.async_delete_issue(hass, DOMAIN, issue_id)
+        _LOGGER.info(
+            "Fjernet foreldreløs repair-issue %s (entry %s finnes ikke)",
+            issue_id,
+            treff.group(1),
+        )
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: StromkalkulatorConfigEntry) -> bool:
     """Set up Nettleie from a config entry."""
     # Nye entries opprettes uten unique_id (config-flowen kjenner ikke entry_id
@@ -193,6 +244,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: StromkalkulatorConfigEnt
     # Migrerte entries (v3->v4) har den allerede, så guarden hopper over dem.
     if entry.unique_id is None:
         hass.config_entries.async_update_entry(entry, unique_id=entry.entry_id)
+
+    _rydd_foreldrelose_issues(hass)
 
     # Check for DSO migration (merger)
     dso_id = entry.data.get(CONF_DSO, DEFAULT_DSO)
@@ -378,3 +431,12 @@ async def async_unload_entry(hass: HomeAssistant, entry: StromkalkulatorConfigEn
     unload_ok: bool = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
     return unload_ok
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: StromkalkulatorConfigEntry) -> None:
+    """Rydd opp etter en slettet entry.
+
+    Repair-issuene våre er suffikset med entry_id. Uten denne ryddingen blir de
+    liggende i issue-registeret og varsler om et anlegg som ikke finnes lenger.
+    """
+    _rydd_issues_for_entry(hass, entry.entry_id)

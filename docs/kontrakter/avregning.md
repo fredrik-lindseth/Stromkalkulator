@@ -70,9 +70,9 @@ nærliggende svarene er begge målt og begge gale:
 
 Den tredje veien er å ta på alvor at **en pris gjelder for et intervall, ikke
 for et øyeblikk**. Nord Pool publiserer én pris per **prisrute**: et halvåpent
-UTC-vindu på `opplosning_minutter` (15 for en kvartersnativ prissensor, 60 for
-en timesoppløst), forankret i hele klokketimer. Et avregningsintervall på en
-time består av fire ruter ved kvartersoppløsning og én ved timesoppløsning.
+UTC-vindu på `opplosning_minutter`, forankret i hele klokketimer. I v1 er ruten
+15 minutter uansett prissensor, se «Hvilken rutelengde?» under, så et
+avregningsintervall på en time består av fire ruter.
 
 En prisprøve er derfor et par, `(rutestart, verdi)`, og ikke en state-avlesning
 med et klokkeslett. **B1s regel om `observed_at` fra `last_updated` gjelder

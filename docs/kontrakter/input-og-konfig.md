@@ -86,8 +86,8 @@ lenge MWh-enheter ble avvist. Punkt 2 godtar `NOK/MWh`, og 2000 NOK/MWh er
 ekte data er verre enn ingen grense. Norske timespriser har toppet seg i
 størrelsesorden ti kroner per kWh, så 100 NOK/kWh ligger en størrelsesorden over
 ekte data og fanger fortsatt det grensen er til for: en sensor som leverer noe
-helt annet enn en pris, for eksempel en teller uten enhet. Den regnes på absoluttverdien, så
-negative spotpriser passerer; de er gyldige
+helt annet enn en pris, for eksempel en teller uten enhet. Den regnes på
+absoluttverdien, så negative spotpriser passerer; de er gyldige
 ([avregning.md B2](avregning.md#b2-prisintervall)).
 
 At entiteten mangler er altså `Utilgjengelig(finnes_ikke)`, ikke `Ugyldig`.

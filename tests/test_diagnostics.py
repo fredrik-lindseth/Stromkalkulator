@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import json
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -32,21 +32,29 @@ sys.modules["homeassistant.const"].__version__ = "2025.8.1"
 from stromkalkulator import const as konst  # noqa: E402
 from stromkalkulator.diagnostics import async_get_config_entry_diagnostics  # noqa: E402
 from stromkalkulator.diagnostikk import (  # noqa: E402
+    BASELINE_ALLOWLIST,
+    BASELINE_UTELATT,
     BEREGNING_ALLOWLIST,
     BEREGNING_UTELATT,
     DIAGNOSTICS_SCHEMA_VERSION,
+    ENHET_VOKABULAR,
+    INPUT_RESULTAT_ALLOWLIST,
+    INPUT_RESULTAT_UTELATT,
     MAANEDSNAVN,
     NOKKEL_MARKOR,
     PROBLEM_ALLOWLIST,
     PROBLEM_UTELATT,
+    REPAIR_SORTER,
     ROLLE_TIL_CONF,
     TEKST_MARKOR,
     VALG_ALLOWLIST,
     Aliaser,
     bygg_diagnostikk,
+    enhet_visning,
     rens,
     rens_trygg,
 )
+from stromkalkulator.inputadapter import ENHETSTABELL, Baseline  # noqa: E402
 
 from tests.conftest import _make_entry, _make_hass, _run_update  # noqa: E402
 
@@ -65,6 +73,9 @@ HEMMELIG_ADRESSE = "Nesttunveien 42, 5221 Nesttun"
 # Entity-id der delen før punktumet ikke er et HA-domene, men et navn. Ikke
 # nåbar via EntitySelector, men .storage kan redigeres for hånd.
 HEMMELIG_PSEUDODOMENE = "fredrik_nesttunveien_42.effekt"
+# Kildeidentiteten en AMS- eller Elhub-integrasjon setter som unique_id. Den er
+# målepunkt-ID-en, altså like identifiserende som adressen.
+HEMMELIG_UNIQUE_ID = f"elhub_{HEMMELIG_MAALEPUNKT}"
 
 MANGLER = object()
 
@@ -126,13 +137,39 @@ class FakeEntry:
             setattr(self, navn, verdi)
 
 
-def _dump(entry=None, hass=None):
-    """Bygg en dump synkront, slik resten av testpakken kjører async-kode."""
+@dataclass
+class FakeIssue:
+    """Står for HAs IssueEntry. Bare feltene diagnostikken ser etter."""
+
+    severity: str = "warning"
+    active: bool = True
+    is_fixable: bool = False
+    created: datetime = datetime(2026, 7, 29, 10, 58)
+    dismissed_version: str | None = None
+    # Feltet som bærer entity-id-en i klartekst. Skal aldri ut.
+    translation_placeholders: dict = field(default_factory=dict)
+
+
+def _dump(entry=None, hass=None, issues=None):
+    """Bygg en dump synkront, slik resten av testpakken kjører async-kode.
+
+    `issues` legger et issue-register bak `ir.async_get`. Uten det svarer den
+    mockede HA-modulen med en MagicMock, og dumpen melder at registeret ikke
+    var tilgjengelig, som er det samme den gjør i et HA der oppslaget ryker.
+    """
     import asyncio
 
-    return asyncio.run(
-        bygg_diagnostikk(hass or MagicMock(), entry or FakeEntry(coordinator=FakeCoordinator()))
-    )
+    def bygg():
+        return asyncio.run(
+            bygg_diagnostikk(hass or MagicMock(), entry or FakeEntry(coordinator=FakeCoordinator()))
+        )
+
+    if issues is None:
+        return bygg()
+    registry = MagicMock()
+    registry.issues = issues
+    with patch("stromkalkulator.diagnostikk.ir.async_get", MagicMock(return_value=registry)):
+        return bygg()
 
 
 class TestVersjon:
@@ -251,7 +288,8 @@ class TestPersonvern:
         assert roller["effekt"]["entitet_alias"] == roller["energi"]["entitet_alias"]
         assert roller["effekt"]["entitet_alias"] != roller["spotpris"]["entitet_alias"]
         assert roller["effekt"]["entitet_alias"].startswith("sensor.")
-        assert roller["eksport"] == {"konfigurert": False, "entitet_alias": None}
+        assert roller["eksport"]["konfigurert"] is False
+        assert roller["eksport"]["entitet_alias"] is None
 
     def test_vaktholdsproblem_peker_paa_samme_alias_som_rollen(self):
         coordinator = FakeCoordinator(
@@ -502,9 +540,11 @@ class TestSkjemaVakt:
             "config_entry",
             "input_roller",
             "lastet",
+            "baseline",
             "dso",
             "vakthold",
             "beregning",
+            "repairs",
             "utelatt_med_vilje",
         }
 
@@ -584,3 +624,467 @@ class TestSkjemaVakt:
 @pytest.mark.parametrize("rolle", sorted(ROLLE_TIL_CONF))
 def test_alle_fem_roller_er_med(rolle):
     assert rolle in _dump()["input_roller"]
+
+
+def _resultat(
+    rolle_entity=HEMMELIG_ENTITET,
+    type_="gyldig",
+    grunn=None,
+    raa_enhet="kW",
+    enhet_normalisert="W",
+    alder=42.0,
+):
+    """En rad slik coordinatorens `input_resultater` bygger den."""
+    return {
+        "entity_id": rolle_entity,
+        "type": type_,
+        "grunn": grunn,
+        "raa_enhet": raa_enhet,
+        "enhet_normalisert": enhet_normalisert,
+        "alder_sekunder": alder,
+    }
+
+
+def _baseline(source_identity=HEMMELIG_UNIQUE_ID, entity_id=HEMMELIG_ENTITET, forkastet=False):
+    """En baseline slik coordinatoren rapporterer den."""
+    return {
+        "schema_version": 2,
+        "source_identity": source_identity,
+        "entity_id": entity_id,
+        "value_kwh": 12345.678,
+        "observed_at": "2026-07-29T08:58:00+00:00",
+        "forkastet": forkastet,
+    }
+
+
+class TestInputRoller:
+    """Rollene skal svare på hva som kom inn, ikke bare hva som er valgt."""
+
+    def test_rollen_viser_tilstand_enhet_og_alder(self):
+        coordinator = FakeCoordinator(data={"input_resultater": {"effekt": _resultat()}})
+        rolle = _dump(FakeEntry(coordinator=coordinator))["input_roller"]["effekt"]
+        assert rolle["konfigurert"] is True
+        assert rolle["avlest"] is True
+        assert rolle["type"] == "gyldig"
+        assert rolle["grunn"] is None
+        assert rolle["raa_enhet"] == "kW"
+        assert rolle["enhet_normalisert"] == "W"
+        assert rolle["alder_sekunder"] == 42.0
+
+    def test_rollen_uten_avlesning_sier_det(self):
+        """En optional input som ikke er satt opp har ingen tilstand å vise."""
+        rolle = _dump()["input_roller"]["eksport"]
+        assert rolle["konfigurert"] is False
+        assert rolle["avlest"] is False
+        assert rolle["type"] is None
+        assert rolle["raa_enhet"] is None
+
+    def test_ugyldig_input_viser_grunnen(self):
+        coordinator = FakeCoordinator(
+            data={
+                "input_resultater": {
+                    "spotpris": _resultat(
+                        rolle_entity="sensor.nordpool_kwh_bergen",
+                        type_="ugyldig",
+                        grunn="feil_valuta",
+                        raa_enhet="EUR/MWh",
+                        enhet_normalisert=None,
+                        alder=None,
+                    )
+                }
+            }
+        )
+        rolle = _dump(FakeEntry(coordinator=coordinator))["input_roller"]["spotpris"]
+        assert rolle["type"] == "ugyldig"
+        assert rolle["grunn"] == "feil_valuta"
+        assert rolle["raa_enhet"] == "EUR/MWh"
+        assert rolle["alder_sekunder"] is None
+
+    def test_utilgjengelig_input_viser_grunnen_og_alderen(self):
+        """Cache-alderen er svaret på «hvor lenge har den vært borte»."""
+        coordinator = FakeCoordinator(
+            data={
+                "input_resultater": {
+                    "energi": _resultat(
+                        type_="utilgjengelig",
+                        grunn="finnes_ikke",
+                        raa_enhet=None,
+                        enhet_normalisert=None,
+                        alder=7200.0,
+                    )
+                }
+            }
+        )
+        rolle = _dump(FakeEntry(coordinator=coordinator))["input_roller"]["energi"]
+        assert rolle["type"] == "utilgjengelig"
+        assert rolle["grunn"] == "finnes_ikke"
+        assert rolle["alder_sekunder"] == 7200.0
+
+    def test_sensor_uten_enhet_skilles_fra_ukjent_enhet(self):
+        """`raa_enhet` None er punkt 4 i kontrakten, ikke et hull i dumpen."""
+        coordinator = FakeCoordinator(data={"input_resultater": {"spotpris": _resultat(raa_enhet=None)}})
+        rolle = _dump(FakeEntry(coordinator=coordinator))["input_roller"]["spotpris"]
+        assert rolle["raa_enhet"] is None
+
+    def test_resultatets_entitet_faar_samme_alias_som_rollen(self):
+        coordinator = FakeCoordinator(data={"input_resultater": {"effekt": _resultat()}})
+        dump = _dump(FakeEntry(coordinator=coordinator))
+        assert dump["input_roller"]["effekt"]["entitet_alias"] == "sensor.alias_1"
+
+    def test_rolle_som_bare_coordinatoren_kjenner_faar_alias(self):
+        """Entiteten kan være strøket fra entry.data, men stå i siste resultat."""
+        coordinator = FakeCoordinator(
+            data={"input_resultater": {"eksport": _resultat(rolle_entity=HEMMELIG_ENTITET)}}
+        )
+        entry = FakeEntry(coordinator=coordinator)
+        entry.data.pop(konst.CONF_POWER_SENSOR)
+        dump = _dump(entry)
+        eksport = dump["input_roller"]["eksport"]
+        assert eksport["konfigurert"] is False
+        assert eksport["entitet_alias"] is not None
+        assert HEMMELIG_ENTITET not in json.dumps(dump, ensure_ascii=False)
+
+
+class TestEnhetsvokabular:
+    """Enheten er skrevet av en fremmed integrasjon, ikke av oss."""
+
+    def test_kjente_enheter_gjengis_med_vaart_eget_ord(self):
+        assert enhet_visning("kW") == "kW"
+        assert enhet_visning("kwh") == "kWh"
+        assert enhet_visning(" NOK/kWh ") == "NOK/kWh"
+        assert enhet_visning("ore/kWh") == "øre/kWh"
+        assert enhet_visning("EUR/MWh") == "EUR/MWh"
+
+    def test_ukjent_enhet_blir_markor(self):
+        assert enhet_visning(HEMMELIG_ADRESSE) == TEKST_MARKOR
+        assert enhet_visning(HEMMELIG_STI) == TEKST_MARKOR
+        assert enhet_visning(object()) == TEKST_MARKOR
+
+    def test_ingen_enhet_er_ingen_enhet(self):
+        assert enhet_visning(None) is None
+
+    def test_hele_enhetstabellen_kan_gjengis(self):
+        """Godtar adapteren en enhet, skal dumpen kunne si hvilken det var."""
+        mangler = set(ENHETSTABELL) - set(ENHET_VOKABULAR)
+        assert not mangler, f"enheter adapteren regner på, men dumpen ikke kan vise: {sorted(mangler)}"
+
+
+class TestBaseline:
+    """Baselinen forklarer et månedsforbruk ingen kjenner seg igjen i."""
+
+    def test_baseline_vises_med_aliasert_kilde(self):
+        coordinator = FakeCoordinator(data={"baseline": _baseline()})
+        dump = _dump(FakeEntry(coordinator=coordinator))
+        baseline = dump["baseline"]
+        assert baseline["value_kwh"] == 12345.678
+        assert baseline["observed_at"] == "2026-07-29T08:58:00+00:00"
+        assert baseline["schema_version"] == 2
+        assert baseline["forkastet"] is False
+        assert baseline["kilde_alias"] == "kilde_1"
+        assert "source_identity" not in baseline
+        assert "entity_id" not in baseline
+
+    def test_baselinens_entitet_deler_alias_med_energirollen(self):
+        coordinator = FakeCoordinator(
+            data={
+                "baseline": _baseline(entity_id=HEMMELIG_ENTITET),
+                "input_resultater": {"energi": _resultat()},
+            }
+        )
+        dump = _dump(FakeEntry(coordinator=coordinator))
+        assert dump["baseline"]["entitet_alias"] == dump["input_roller"]["energi"]["entitet_alias"]
+
+    def test_forkastet_baseline_uten_verdi(self):
+        """Et uventet nullforbruk etter omstart skal kunne forklares her."""
+        coordinator = FakeCoordinator(data={"baseline": {"forkastet": True}})
+        baseline = _dump(FakeEntry(coordinator=coordinator))["baseline"]
+        assert baseline["forkastet"] is True
+        assert baseline["value_kwh"] is None
+        assert baseline["kilde_alias"] is None
+
+    def test_ingen_baseline_gir_none(self):
+        assert _dump()["baseline"] is None
+
+    def test_maalepunkt_id_i_kildeidentiteten_lekker_ikke(self):
+        coordinator = FakeCoordinator(data={"baseline": _baseline()})
+        tekst = json.dumps(_dump(FakeEntry(coordinator=coordinator)), ensure_ascii=False)
+        assert HEMMELIG_MAALEPUNKT not in tekst
+        assert HEMMELIG_UNIQUE_ID not in tekst
+
+
+class TestRepairs:
+    """Et varsel brukeren har klikket bort forklarer ofte hele saken."""
+
+    def test_issues_for_dette_anlegget(self):
+        issues = {
+            (konst.DOMAIN, f"input_utfall_{HEMMELIG_ENTRY_ID}"): FakeIssue(
+                translation_placeholders={"entity_id": HEMMELIG_ENTITET}
+            ),
+        }
+        repairs = _dump(issues=issues)["repairs"]
+        assert repairs["tilgjengelig"] is True
+        assert repairs["issues"] == [
+            {
+                "sort": "input_utfall",
+                "gjelder": "dette_anlegget",
+                "aktiv": True,
+                "fiksbar": False,
+                "alvorlighet": "warning",
+                "opprettet": "2026-07-29T10:58:00",
+                "avvist_i_versjon": None,
+            }
+        ]
+
+    def test_domenevide_og_fremmede_issues(self):
+        issues = {
+            (konst.DOMAIN, "satser_utdatert"): FakeIssue(),
+            (konst.DOMAIN, "input_utfall_01JXXXXXXXXXXXXXXXXXXXXXXX"): FakeIssue(),
+            ("mobile_app", "noe_annet"): FakeIssue(),
+        }
+        repairs = _dump(issues=issues)["repairs"]
+        gjelder = {rad["sort"]: rad["gjelder"] for rad in repairs["issues"]}
+        assert gjelder == {
+            "satser_utdatert": "hele_integrasjonen",
+            "input_utfall": "annet_anlegg",
+        }
+
+    def test_avvist_issue_er_med_og_merket(self):
+        issues = {
+            (konst.DOMAIN, "norgespris_utlopt"): FakeIssue(
+                active=False, dismissed_version="2025.8.1", severity="error", is_fixable=True
+            )
+        }
+        rad = _dump(issues=issues)["repairs"]["issues"][0]
+        assert rad["aktiv"] is False
+        assert rad["avvist_i_versjon"] == "2025.8.1"
+        assert rad["alvorlighet"] == "error"
+        assert rad["fiksbar"] is True
+
+    def test_ukjent_sort_blir_markor(self):
+        """En issue-id fra en gammel versjon er like gjerne et navn."""
+        issues = {(konst.DOMAIN, f"{HEMMELIG_ADRESSE}_{HEMMELIG_ENTRY_ID}"): FakeIssue()}
+        dump = _dump(issues=issues)
+        assert dump["repairs"]["issues"][0]["sort"] == TEKST_MARKOR
+        assert HEMMELIG_ADRESSE not in json.dumps(dump, ensure_ascii=False)
+
+    def test_registeret_kan_mangle(self):
+        """En dump skal ikke ryke fordi issue-registeret ikke svarer."""
+        repairs = _dump()["repairs"]
+        assert repairs == {"tilgjengelig": False, "issues": []}
+
+    def test_repairs_ogsaa_naar_entryet_ikke_er_lastet(self):
+        issues = {(konst.DOMAIN, "satser_utdatert"): FakeIssue()}
+        dump = _dump(FakeEntry(), issues=issues)
+        assert dump["lastet"] is False
+        assert dump["repairs"]["issues"][0]["sort"] == "satser_utdatert"
+
+    def test_alle_issue_sorter_koden_lager_er_kjent(self, coord_module):
+        """Vokter kopien av vaktholdets issue-prefikser mot coordinatoren."""
+        fra_coordinator = set(coord_module._VAKTHOLD_ISSUE_PREFIX.values())
+        assert fra_coordinator <= REPAIR_SORTER, (
+            f"vakthold-issues dumpen ikke kjenner: {sorted(fra_coordinator - REPAIR_SORTER)}"
+        )
+        assert konst.TARIFF_ISSUE_PREFIX.rstrip("_") in REPAIR_SORTER
+        assert konst.EGENDEFINERT_ISSUE_PREFIX.rstrip("_") in REPAIR_SORTER
+
+
+class TestTarifforigin:
+    """Satsene som ble brukt, ikke de som ligger lagret."""
+
+    def test_tarifforigin_slipper_gjennom_uten_markor(self):
+        origin = {
+            "modus": konst.TARIFFMODUS_CATALOG,
+            "dso": "bkk",
+            "sesongperioder_styrer": True,
+            "manual_ignorert": False,
+            "energiledd_dag_eks_mva": 0.2877,
+            "energiledd_natt_eks_mva": 0.105,
+            "energiledd_dag_inkl_mva": 0.46125,
+            "energiledd_natt_inkl_mva": 0.23275,
+        }
+        coordinator = FakeCoordinator(data={"tarifforigin": origin})
+        assert _dump(FakeEntry(coordinator=coordinator))["beregning"]["tarifforigin"] == origin
+
+    @pytest.mark.parametrize("modus", sorted(konst.TARIFFMODUS_ALLE))
+    def test_hver_tariffmodus_vises(self, modus):
+        coordinator = FakeCoordinator(data={"tarifforigin": {"modus": modus, "dso": "bkk"}})
+        beregning = _dump(FakeEntry(coordinator=coordinator))["beregning"]
+        assert beregning["tarifforigin"]["modus"] == modus
+
+    def test_plantet_modus_blir_markor(self):
+        coordinator = FakeCoordinator(data={"tarifforigin": {"modus": HEMMELIG_ADRESSE}})
+        dump = _dump(FakeEntry(coordinator=coordinator))
+        assert dump["beregning"]["tarifforigin"]["modus"] == TEKST_MARKOR
+        assert HEMMELIG_ADRESSE not in json.dumps(dump, ensure_ascii=False)
+
+
+class TestLekkasjeproberD2:
+    """Egne forsøk på å lekke gjennom de nye feltene.
+
+    Alle tre planter i felt koden stoler på: en adresse i entitetsnavnet en
+    rolle rapporterer, en målepunkt-ID i sensorens attributter og en sti i en
+    option. Ingen av dem er nåbare i UI-et, men dumpen limes inn offentlig.
+    """
+
+    def test_adresse_i_entitetsnavnet_paa_et_inputresultat(self):
+        coordinator = FakeCoordinator(
+            data={
+                "input_resultater": {
+                    "effekt": _resultat(rolle_entity=f"sensor.{HEMMELIG_ADRESSE}"),
+                    "energi": _resultat(rolle_entity=HEMMELIG_PSEUDODOMENE),
+                }
+            }
+        )
+        dump = _dump(FakeEntry(coordinator=coordinator))
+        tekst = json.dumps(dump, ensure_ascii=False)
+        for plantet in (HEMMELIG_ADRESSE, HEMMELIG_PSEUDODOMENE, "fredrik_nesttunveien_42"):
+            assert plantet not in tekst, f"{plantet} lekket ut gjennom input_resultater"
+
+    def test_maalepunkt_id_i_enhet_og_attributter(self):
+        """Enheten og kildeidentiteten kommer begge fra en fremmed integrasjon."""
+        coordinator = FakeCoordinator(
+            data={
+                "input_resultater": {
+                    "energi": _resultat(raa_enhet=f"kWh ({HEMMELIG_MAALEPUNKT})"),
+                },
+                "baseline": _baseline(source_identity=HEMMELIG_MAALEPUNKT),
+                "input_problemer": [
+                    {
+                        "type": "enhet",
+                        "input": "energi",
+                        "entity_id": HEMMELIG_ENTITET,
+                        "raa_enhet": HEMMELIG_MAALEPUNKT,
+                        "grunn": "ukjent_enhet",
+                        "finnes": True,
+                    }
+                ],
+            }
+        )
+        dump = _dump(FakeEntry(coordinator=coordinator))
+        assert dump["input_roller"]["energi"]["raa_enhet"] == TEKST_MARKOR
+        assert dump["vakthold"]["input_problemer"][0]["raa_enhet"] == TEKST_MARKOR
+        assert HEMMELIG_MAALEPUNKT not in json.dumps(dump, ensure_ascii=False)
+
+    def test_sti_i_en_option_og_i_et_repair_varsel(self):
+        issues = {
+            (konst.DOMAIN, f"input_enhet_{HEMMELIG_ENTRY_ID}"): FakeIssue(
+                translation_placeholders={
+                    "entity_id": HEMMELIG_ENTITET,
+                    "sti": HEMMELIG_STI,
+                },
+                severity=HEMMELIG_ADRESSE,
+            )
+        }
+        entry = FakeEntry(
+            options={konst.CONF_SIKRINGSTRINN: HEMMELIG_STI, "loggsti": HEMMELIG_STI},
+            data={konst.CONF_ENERGI_FROSSEN_TIMER: HEMMELIG_STI},
+            coordinator=FakeCoordinator(),
+        )
+        dump = _dump(entry, issues=issues)
+        assert dump["repairs"]["issues"][0]["alvorlighet"] == TEKST_MARKOR
+        tekst = json.dumps(dump, ensure_ascii=False)
+        for plantet in (HEMMELIG_STI, HEMMELIG_ADRESSE, HEMMELIG_ENTITET):
+            assert plantet not in tekst, f"{plantet} lekket ut"
+
+
+class TestFlereOppsett:
+    """Samme dump må virke på tvers av avtale-, mva- og tariffvalg."""
+
+    @pytest.mark.parametrize("har_norgespris", [True, False])
+    @pytest.mark.parametrize("spotpris_inkl_mva", [True, False])
+    @pytest.mark.parametrize("avgiftssone", ["standard", "tiltakssone"])
+    def test_ekte_coordinator_gir_ren_dump(
+        self, coord_module, har_norgespris, spotpris_inkl_mva, avgiftssone
+    ):
+        hass = _make_hass()
+        entry = _make_entry(
+            har_norgespris=har_norgespris,
+            spotpris_inkl_mva=spotpris_inkl_mva,
+            avgiftssone=avgiftssone,
+            energy_sensor="sensor.energy",
+            export_power_sensor="sensor.export_power",
+            electricity_company_price_sensor="sensor.elco_price",
+        )
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+        coordinator.data = _run_update(coord_module, coordinator)
+        dump = _dump(FakeEntry(coordinator=coordinator))
+        tekst = json.dumps(dump, allow_nan=False, ensure_ascii=False)
+        assert TEKST_MARKOR not in tekst, "tekstvakten sensurerte en ekte verdi"
+        assert NOKKEL_MARKOR not in tekst, "tekstvakten sensurerte en ekte nøkkel"
+        assert dump["beregning"]["har_norgespris"] == har_norgespris
+        assert dump["input_roller"]["effekt"]["type"] == "gyldig"
+
+    def test_dumpen_er_lik_etter_reload(self, coord_module):
+        """To dumper av samme oppsett skal kunne sammenlignes felt for felt."""
+        hass = _make_hass()
+        entry = _make_entry(energy_sensor="sensor.energy")
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+        coordinator.data = _run_update(coord_module, coordinator)
+        fake = FakeEntry(coordinator=coordinator)
+        assert json.dumps(_dump(fake), allow_nan=False) == json.dumps(_dump(fake), allow_nan=False)
+
+    def test_en_syntetisk_feilrapport_forklarer_grunnlaget(self, coord_module):
+        """GO-kriteriet: dumpen svarer på hvorfor tallene stoppet.
+
+        Uten rå identifikatorer, og uten at leseren må be om noe mer.
+        """
+        hass = _make_hass()
+        entry = _make_entry(energy_sensor="sensor.energy")
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+        coordinator.data = _run_update(coord_module, coordinator)
+        coordinator.data["input_resultater"]["energi"] = _resultat(
+            type_="utilgjengelig", grunn="finnes_ikke", raa_enhet=None, alder=9000.0
+        )
+        coordinator.data["baseline"] = _baseline()
+        issues = {(konst.DOMAIN, f"input_utfall_{HEMMELIG_ENTRY_ID}"): FakeIssue()}
+        dump = _dump(FakeEntry(coordinator=coordinator), issues=issues)
+
+        assert dump["input_roller"]["energi"]["grunn"] == "finnes_ikke"
+        assert dump["input_roller"]["energi"]["alder_sekunder"] == 9000.0
+        assert dump["baseline"]["value_kwh"] == 12345.678
+        assert dump["repairs"]["issues"][0]["sort"] == "input_utfall"
+        assert dump["beregning"]["tarifforigin"]["modus"] in konst.TARIFFMODUS_ALLE
+        assert dump["integration"]["version"] == MANIFEST["version"]
+
+        tekst = json.dumps(dump, allow_nan=False, ensure_ascii=False)
+        for raa in (HEMMELIG_ENTITET, HEMMELIG_ENTRY_ID, HEMMELIG_MAALEPUNKT, "sensor.energy"):
+            assert raa not in tekst, f"{raa} sto rått i feilrapporten"
+
+
+class TestSkjemaVaktD2:
+    """Driftvakter for feltene D2 la til."""
+
+    def test_hvert_felt_i_input_resultater_er_behandlet(self, coord_module):
+        hass = _make_hass()
+        entry = _make_entry(energy_sensor="sensor.energy")
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+        data = _run_update(coord_module, coordinator)
+        rad = data["input_resultater"]["effekt"]
+        behandlet = set(INPUT_RESULTAT_ALLOWLIST) | set(INPUT_RESULTAT_UTELATT)
+        assert not set(rad) - behandlet, f"nye felt i input_resultater: {sorted(set(rad) - behandlet)}"
+        assert not behandlet - set(rad), (
+            f"allowlisten peker på felt som ikke finnes: {sorted(behandlet - set(rad))}"
+        )
+
+    def test_hvert_felt_i_baselinen_er_behandlet(self):
+        lagret = Baseline(
+            source_identity=HEMMELIG_UNIQUE_ID,
+            entity_id=HEMMELIG_ENTITET,
+            value_kwh=1.0,
+            observed_at=datetime(2026, 7, 29, 10, 58),
+        ).som_lagret()
+        felt = set(lagret) | {"forkastet"}
+        behandlet = set(BASELINE_ALLOWLIST) | set(BASELINE_UTELATT)
+        assert felt == behandlet, f"baseline-felt uten beslutning: {sorted(felt ^ behandlet)}"
+
+    def test_allowlistene_er_uten_duplikater(self):
+        assert not set(BASELINE_ALLOWLIST) & set(BASELINE_UTELATT)
+        assert not set(INPUT_RESULTAT_ALLOWLIST) & set(INPUT_RESULTAT_UTELATT)
+
+    def test_skjemaversjonen_er_bumpet_for_de_nye_feltene(self):
+        assert DIAGNOSTICS_SCHEMA_VERSION == 2
+
+    def test_rollene_har_de_samme_feltene(self):
+        roller = _dump()["input_roller"]
+        felt = {frozenset(rad) for rad in roller.values()}
+        assert len(felt) == 1, "rollene har ulike felt, og da kan de ikke sammenlignes"

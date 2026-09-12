@@ -148,14 +148,14 @@ Status hos oss: alle nettselskap innebygd i `dso.py`.
 
 Innenfor scope (data-integrasjon):
 
-1. **Plusskunde-eksportsensorer + Norgespris-sammenligning på salgssiden**. Etterspurt i vår egen HA-tråd.
-2. **Netto-kost-sensor** (forbruk minus eksport). Etterspurt. Bygger på 1.
-3. **Forbruk-only pris-sensor** (spot + energiledd + avgifter, uten kapasitetstrinn). Lett.
-4. **Eksplisitt 15-min Nordpool-støtte**. Mulig regresjon vi må verifisere.
-5. **Dokumentert integrasjon med Dynamic Energy Cost**. Pek på det, ikke bygg det selv.
-6. **"Beste N timer"-sensor-attributter** med totalpris (inkl. nettleie dag/natt), ikke bare spot.
-7. **ENTSO-e fallback** hvis Nordpool ned. Liten innsats.
-8. **Solcelle-forecast som valgfri input** (Solcast/Forecast.Solar) for plusskunde-prediksjon.
+1. Plusskunde-eksportsensorer og Norgespris-sammenligning på salgssiden. Etterspurt i vår egen HA-tråd.
+2. Netto-kost-sensor (forbruk minus eksport). Etterspurt. Bygger på 1.
+3. Forbruk-only pris-sensor (spot + energiledd + avgifter, uten kapasitetstrinn). Lett.
+4. Eksplisitt 15-min Nordpool-støtte. Mulig regresjon vi må verifisere.
+5. Dokumentert integrasjon med Dynamic Energy Cost. Pek på det, ikke bygg det selv.
+6. "Beste N timer"-sensor-attributter med totalpris (inkl. nettleie dag/natt), ikke spot alene.
+7. ENTSO-e fallback hvis Nordpool er nede. Liten innsats.
+8. Solcelle-forecast som valgfri input (Solcast/Forecast.Solar) for plusskunde-prediksjon.
 
 Utenfor scope (egne prosjekter):
 

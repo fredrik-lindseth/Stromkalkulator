@@ -4,36 +4,32 @@ Vurderer om observerte 12:00 → 14:15 CET-bevegelser på 0,02-0,05 NOK/EUR i Q1
 
 ## 1. Er 0,02-0,05 NOK/EUR normalt?
 
-**Ja, godt innenfor normalen. Trolig i nedre halvdel av forventet bånd.**
+Ja, det ligger godt innenfor normalen, trolig i nedre halvdel av forventet bånd. Referansepunkter:
 
-Referansepunkter:
+- Daglig EUR/NOK-ATR i januar 2026: 0,0662 (Traders Union, 13. jan 2026).
+- Daglig vol siste 30 dager (myfxbook): ~1,15%, ca. 0,12-0,14 NOK ved kurs ~11,5.
+- NYU V-Lab GARCH for NOK 22. mai 2026: ~8,2% annualisert = ca. 0,52% daglig (~0,06 NOK).
+- Krohn/Mueller/Whelan (2024): G9-valutaer har ~2bp pre-fix run-up i USD og like stor reversal post-fix. 2bp på EUR/NOK = ~0,002 NOK. Den _systematiske_ fix-komponenten er mye mindre enn støyen rundt.
 
-- Daglig EUR/NOK-ATR i januar 2026: **0,0662** (Traders Union, 13. jan 2026).
-- Daglig vol siste 30 dager (myfxbook): **~1,15%**, ca. 0,12-0,14 NOK ved kurs ~11,5.
-- NYU V-Lab GARCH for NOK 22. mai 2026: **~8,2% annualisert** = ca. 0,52% daglig (~0,06 NOK).
-- Krohn/Mueller/Whelan (2024): G9-valutaer har ~**2bp pre-fix run-up** i USD og like stor reversal post-fix. 2bp på EUR/NOK = ~0,002 NOK. Den _systematiske_ fix-komponenten er mye mindre enn støyen rundt.
-
-Et 2t15-vindu fanger typisk **20-30% av daglig variasjon**. På ATR ~0,07 betyr det forventet absoluttbevegelse **0,015-0,025 NOK** stille dag, **0,04-0,08 NOK** travel dag. 0,02-0,05 ligger midt i båndet.
-
-Konklusjon: normal intraday-støy, ikke målefeil eller strukturell anomali.
+Et 2t15-vindu fanger typisk 20-30% av daglig variasjon. På ATR ~0,07 betyr det forventet absoluttbevegelse 0,015-0,025 NOK på en stille dag og 0,04-0,08 NOK på en travel. 0,02-0,05 ligger midt i båndet, altså normal intraday-støy og verken målefeil eller strukturell anomali.
 
 ## 2. Intraday-mønstre i NOK rundt 12:00 CET
 
 Ingen publisert studie dokumenterer en "12:00 CET dip" spesifikt for EUR/NOK, men flere kilder peker samme vei:
 
-- BIS Triennial 2022: NOK er 1,7% av global FX-turnover, en **mindre-likvid G10**. Spreads i EUR/NOK bredere enn EUR/SEK og langt bredere enn EUR/USD.
-- Norges Bank WP 2013/12 (King, Osler, Rime): mindre-likvide valutaer har **større prisimpact per ordre** og tydeligere intraday-mønstre.
-- Desk-observasjoner (SEB, Nordea): NOK-likviditet konsentrert **08:00-16:00 CET**, peak under London-overlapp ~09:00-11:00 og 13:30-16:00. Vinduet **11:30-13:30 CET** er "European lunch lull", Nordic-desker redusert, US ennå ikke åpne.
+- BIS Triennial 2022: NOK er 1,7% av global FX-turnover, altså en mindre-likvid G10. Spreads i EUR/NOK er bredere enn EUR/SEK og langt bredere enn EUR/USD.
+- Norges Bank WP 2013/12 (King, Osler, Rime): mindre-likvide valutaer har større prisimpact per ordre og tydeligere intraday-mønstre.
+- Desk-observasjoner (SEB, Nordea): NOK-likviditeten er konsentrert 08:00-16:00 CET, med peak under London-overlappen ~09:00-11:00 og 13:30-16:00. Vinduet 11:30-13:30 CET er "European lunch lull", der Nordic-deskene er redusert og US ennå ikke er åpne.
 - Nord Pools 12:00-snapshot faller midt i denne tynne perioden. En enkelt stor ordre kan flytte mid-prisen mer enn senere.
 
-Rimelig å forvente at **12:00-kursen har høyere varians enn 14:15-kursen**, men ingen systematisk bias.
+Rimelig å forvente at 12:00-kursen har høyere varians enn 14:15-kursen, men ingen systematisk bias.
 
 ## 3. ECB-fix 14:15 CET, kjent vol-mønster
 
 Krohn, Mueller & Whelan (JoF 2024, "Foreign Exchange Fixings and Returns around the Clock"):
 
-- USD apprecierer mot G9 i opptrekket til både London-fix (16:00 CET) og **ECB-fix (14:15 CET)**, deretter reversal. W-formet over døgnet.
-- Pre-fix appreciation ~**2bp**, statistisk signifikant over 21 år.
+- USD apprecierer mot G9 i opptrekket til både London-fix (16:00 CET) og ECB-fix (14:15 CET), deretter reversal. W-formet over døgnet.
+- Pre-fix appreciation ~2bp, statistisk signifikant over 21 år.
 - Long-USD pre-fix / short post-fix: 11-14% annualisert mot EUR, GBP, JPY.
 - Forfatterne tolker det som dealer-intermediasjon av USD-etterspørsel rundt benchmarks. NOK er ikke i G9-utvalget, men paperet generaliserer til G10.
 

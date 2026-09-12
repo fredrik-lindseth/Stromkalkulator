@@ -1,8 +1,8 @@
 # Verifiser at integrasjonen regner riktig for ditt nettselskap
 
-Når du bekrefter at fakturaen din matcher integrasjonens beregninger, fungerer det som en attest for alle som bruker samme nettselskap. Foreløpig er kun BKK (NO5) verifisert mot ekte fakturaer. Hjelp oss verifisere resten.
+Bekrefter du at fakturaen din matcher integrasjonens beregninger, er det en attest for alle som bruker samme nettselskap. Foreløpig er bare BKK (NO5) verifisert mot ekte fakturaer, så det er god plass til flere.
 
-Denne guiden tar deg gjennom verifiseringen steg for steg, uansett hvilken AMS-måler, HAN-leser eller DSO du har.
+Guiden her tar deg gjennom verifiseringen steg for steg, uansett hvilken AMS-måler, HAN-leser eller DSO du har.
 
 ## 1. Hva er forventet avvik?
 
@@ -42,7 +42,7 @@ Hvis du finner avvik, noter ned følgende før du går videre. Du trenger inform
 
 ## 4. Verifiser kilden med Elhub
 
-Elhub har de offisielle timesverdiene som DSO fakturerer på. Sammenligning mot Elhub viser om avviket sitter hos HAN-leseren eller hos DSO.
+Elhub har de offisielle timesverdiene som DSO fakturerer på, så en sammenligning mot Elhub viser om avviket sitter hos HAN-leseren eller hos DSO.
 
 1. Logg inn på [minside.elhub.no/metering-points](https://minside.elhub.no/metering-points) med BankID.
 2. Velg "Min side" og last ned timesverdier (CSV) for fakturaperioden.
@@ -56,7 +56,7 @@ Elhub har de offisielle timesverdiene som DSO fakturerer på. Sammenligning mot 
 
 ## 5. Verifiseringsskript for utviklere
 
-Vil du grave i timesdataene, finnes det et Python-skript som reproduserer hele BKK-beregningen fra rå timesdata.
+Vil du grave i timesdataene, finnes det et Python-skript som reproduserer hele BKK-beregningen fra rådata.
 
 ### 5a. Eksporter timesdata fra Home Assistant
 

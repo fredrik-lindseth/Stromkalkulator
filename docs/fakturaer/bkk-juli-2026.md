@@ -21,8 +21,8 @@
 | Herav MVA             |             |                 | 117.22       | 117.22             | 0.00     |
 
 **Resultat:** Alle linjer matcher fakturaen når fakturaens eget forbrukstall
-brukes. Juli er den skarpeste måneden så langt: ingen linje bommer i det hele
-tatt på øret. Ettøringen på totalen kommer av at fakturaen bare oppgir
+brukes. Ingen enkeltlinje bommer på øret, og det er det skarpeste vi har hatt
+så langt. Ettøringen på totalen kommer av at fakturaen bare oppgir
 Norgespris-satsen med fem desimaler (-0.86017 kr/kWh), så vår replay av
 linjen lander på -807.4958 der BKK har regnet time for time. Satsene er
 uendret fra juni.
@@ -46,7 +46,7 @@ så det reelle hullet er 62 timer. Beviset er totalsummen: fylles bare de 61
 null-timene fra Elhub mangler måneden 1,6 kWh mot fakturaen, men med
 Elhub-verdien for time 10 (1,635 kWh) lander totalen 10 Wh fra fakturaen.
 
-Hullet ble først stående **ufylt** (Elhub-eksporten som lå lokalt dekket bare
+Hullet ble først stående ufylt (Elhub-eksporten som lå lokalt dekket bare
 01.07-05.07), og restanalysen under ble brukt som plausibilitetssjekk. Etter
 ny Elhub-eksport for hele måneden (2026-08-08) er alle 62 timene fylt med
 Elhub-kWh via `scripts/research/fyll_datahull_fra_elhub.py`, merket
@@ -78,10 +78,11 @@ timepriser i hullet, er fakturaen konsistent.
 | Uvektet snitt av timesatsene     | -112.708 øre/kWh                     |
 
 Den implisitte satsen ligger godt innenfor spennet, og litt over det uvektede
-snittet, som er akkurat det man venter når forbruket vekter dagtimer med litt
+snittet. Det er akkurat det man venter når forbruket vekter dagtimer med litt
 lavere kompensasjon tyngre. Døgnprofilen (1.5 kWh/h dag mot 0.9 natt) er også
-den normale for husstanden. Fakturaen er altså konsistent med modellen vår
-også der vi mangler måling. Dette er en plausibilitetssjekk, ikke en attest.
+den normale for husstanden. Fakturaen henger altså sammen med modellen vår også
+der vi mangler måling. Det holder som plausibilitetssjekk, men det er ingen
+attest.
 
 ## Time-for-time-verifisering
 
@@ -108,7 +109,7 @@ Dag/natt-splitten treffer på 14/24 Wh, godt innenfor det dokumenterte
 den kjente prisårgang-effekten: fire søndager (05.07, 12.07, 19.07, 26.07)
 har konstant kursavvik mellom recorder og publisert. Med Nord Pools
 publiserte Final-priser er avviket -0,05 kr, og den skarpeste sjekken,
-Elhub-kWh x Final for hele måneden, treffer fakturaen på **+0,003 kr**, jf.
+Elhub-kWh x Final for hele måneden, treffer fakturaen på +0,003 kr, jf.
 [research/norgespris-eksakt-match.md](../research/norgespris-eksakt-match.md).
 Juli hadde 18 timer med spot under 50 øre inkl. mva der kunden betaler
 mellomlegg (målt over de 683 HAN-timene; alle utfallstimene lå over 50 øre).
@@ -199,6 +200,6 @@ matcher på øret (maks 0.01 kr på totalen, som skyldes fakturaens
 fem-desimalers Norgespris-sats), kapasitetstrinnet treffer, og satsene i
 dso.py og const.py er uendret fra juni og konsistente med det BKK fakturerer.
 Norgespris-linjen er reprodusert eksakt med Elhub-kWh x publiserte
-Final-priser, som mai og juni. Månedens lærdom: HAN-utfall midt i en time
-etterlater en falsk 0,0-måling før hullet, og Elhub-fylling pluss
-totalsum-avstemming avslører den.
+Final-priser, som mai og juni. Lærdommen fra måneden er at et HAN-utfall midt i
+en time etterlater en falsk 0,0-måling rett før hullet. Elhub-fylling og
+avstemming mot totalsummen avslører den.

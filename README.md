@@ -16,7 +16,7 @@
   <a href="SECURITY.md"><img src="https://slsa.dev/images/gh-badge-level1.svg" alt="SLSA 1"></a>
 </p>
 
-Home Assistant-integrasjon som beregner faktisk strømpris i Norge, inkludert nettleie, avgifter og strømstøtte. Du får sensorer for hva strømmen faktisk koster (ikke bare spotprisen): energiledd dag/natt, kapasitetsledd, strømstøtte, totalpris til Energy Dashboard, månedlig forbruk og kostnad, faktura-sjekk mot forrige måned, og solcelle-eksport for plusskunder.
+Home Assistant-integrasjon som beregner faktisk strømpris i Norge, inkludert nettleie, avgifter og strømstøtte. Du får sensorer for hva strømmen faktisk koster: energiledd dag/natt, kapasitetsledd, strømstøtte, totalpris til Energy Dashboard, månedlig forbruk og kostnad, faktura-sjekk mot forrige måned, og solcelle-eksport for plusskunder.
 
 ## Verifisert mot ekte fakturaer
 
@@ -26,7 +26,7 @@ Home Assistant-integrasjon som beregner faktisk strømpris i Norge, inkludert ne
 
 Hver rapport matcher integrasjonens beregninger linje for linje mot en ekte faktura. Se [docs/fakturaer/referanse.md](docs/fakturaer/referanse.md).
 
-**Presisjon:** Integrasjonen treffer fakturaen på øret, innenfor 50 Wh på månedsforbruk og 1-2 øre på nettleielinjene (BKKs interne avrunding), uten konfigurasjon. Verifisert på Kaifa MA304H3E med Pow-U HAN-leser og offisiell `nordpool`-integrasjon. Presisjon per målermerke og HAN-leser, og hvorfor Norgespris-linjen treffer eksakt: [begrensninger.md](docs/begrensninger.md).
+Integrasjonen treffer fakturaen på øret, innenfor 50 Wh på månedsforbruk og 1-2 øre på nettleielinjene (BKKs interne avrunding), uten konfigurasjon. Verifisert på Kaifa MA304H3E med Pow-U HAN-leser og offisiell `nordpool`-integrasjon. Presisjon per målermerke og HAN-leser, og hvorfor Norgespris-linjen treffer eksakt: [begrensninger.md](docs/begrensninger.md).
 
 Bruker du et annet nettselskap, [send inn din faktura](docs/fakturaer/verifiser-din-faktura.md) så bekrefter vi det.
 
@@ -79,27 +79,39 @@ Avgiftssonen bestemmer mva og forbruksavgift, og settes automatisk fra nettselsk
 
 Integrasjonen oppretter seks devices med til sammen 35 aktive sensorer. Diagnostikk-sensorer er deaktivert som standard og kan slås på under Settings > Devices > Entities uten at det påvirker beregningene. Blant sensorene er et kapasitetsvarsel som utløses når du nærmer deg neste (dyrere) kapasitetstrinn, med en terskel (standard 2,0 kW) du kan endre under Configure. Komplett oversikt: [sensorer.md](docs/sensorer.md).
 
-**Nettleie**: priser og beregninger for nettleie, strømstøtte og totalpris.
+### Nettleie
+
+Priser og beregninger for nettleie, strømstøtte og totalpris.
 
 ![Nettleie](images/nettleie.png)
 
-**Strømstøtte**: hvor mye du får i strømstøtte (90 % over 96,25 øre/kWh).
+### Strømstøtte
+
+Hvor mye du får i strømstøtte (90 % over 96,25 øre/kWh).
 
 ![Strømstøtte](images/strømstøtte.png)
 
-**Norgespris**: sammenligner spotprisavtalen din med Norgespris.
+### Norgespris
+
+Sammenligner spotprisavtalen din med Norgespris.
 
 ![Norgespris](images/norgespris.png)
 
-**Månedlig forbruk**: forbruk og kostnader for inneværende måned, fordelt på dag og natt/helg.
+### Månedlig forbruk
+
+Forbruk og kostnader for inneværende måned, fordelt på dag og natt/helg.
 
 ![Månedlig forbruk](images/månedlig_forbruk.png)
 
-**Forrige måned**: forrige måneds data for faktura-verifisering.
+### Forrige måned
+
+Forrige måneds data for faktura-verifisering.
 
 ![Forrige måned](images/forrige_måned.png)
 
-**Eksport**: solcelle-eksport for plusskunder (deaktivert som standard).
+### Eksport
+
+Solcelle-eksport for plusskunder (deaktivert som standard).
 
 ## Bruk med Energy Dashboard
 
@@ -140,23 +152,23 @@ Laget for privatbolig med eget strømabonnement. Ikke støttet:
 
 ## Ofte stilte spørsmål
 
-**Hvorfor viser sensoren "natt" midt på dagen?**
+### Hvorfor viser sensoren "natt" midt på dagen?
 
 "Natt"-tariffen heter egentlig "natt/helg" og gjelder netter (22:00-06:00), hele helger og helligdager. Så på en lørdag kl. 14:00 er "natt" riktig. Full regel: [beregninger.md](docs/beregninger.md#energiledd).
 
-**Hvorfor er "Totalpris inkl. avgifter" høyere enn spotprisen?**
+### Hvorfor er "Totalpris inkl. avgifter" høyere enn spotprisen?
 
 Spotprisen er bare strømmen. Totalpris inkluderer også nettleie (energiledd + kapasitetsledd), forbruksavgift, Enova-avgift og mva. For de fleste utgjør nettleie og avgifter 30-50 % av totalprisen.
 
-**Strømstøtte viser 0. Er det feil?**
+### Strømstøtte viser 0. Er det feil?
 
 Nei. Strømstøtte utbetales kun når spotprisen er over 96,25 øre/kWh (2026). Under terskelen er støtten 0.
 
-**Tallene stemmer ikke helt med fakturaen?**
+### Tallene stemmer ikke helt med fakturaen?
 
 Du mangler sannsynligvis en energi-sensor (kWh-måler) i konfigurasjonen. Med energi-sensor leser integrasjonen forbruket direkte fra meter-registeret og treffer fakturaen til siste watt-time. Uten den estimeres forbruket via Riemann-sum av effektsensoren, og du får typisk 1-5 % avvik over en måned. Se [input-sensorer.md](docs/input-sensorer.md) for hvordan du legger til en, og [beregninger.md](docs/beregninger.md#nøyaktighet) for detaljer.
 
-**Hvorfor viser Energy Dashboard feil kapasitetsledd?**
+### Hvorfor viser Energy Dashboard feil kapasitetsledd?
 
 Det skjer bare med prissensor-metoden (**Totalpris inkl. avgifter**): kapasitetsleddet fordeles per kWh, så Energy Dashboard ganger det opp feil ved avvikende forbruk. Løsningen er **Akkumulert strømkostnad**, som fordeler kapasitetsleddet lineært over tid. Regneeksempel og detaljer: [beregninger.md](docs/beregninger.md#totalpris).
 
@@ -173,7 +185,7 @@ Det skjer bare med prissensor-metoden (**Totalpris inkl. avgifter**): kapasitets
 
 ## Verifisering av releases
 
-Alle releases har en kryptografisk attestasjon som beviser at ZIP-filen ble bygd fra kildekoden i dette repoet. Se [SECURITY.md](SECURITY.md) for detaljer. Dette er nøyaktig filen HACS laster ned og installerer, ikke bare et vedlegg til release-siden.
+Alle releases har en kryptografisk attestasjon som beviser at ZIP-filen ble bygd fra kildekoden i dette repoet. Se [SECURITY.md](SECURITY.md) for detaljer. Dette er nøyaktig filen HACS laster ned og installerer, ikke et løsrevet vedlegg til release-siden.
 
 ```bash
 gh attestation verify stromkalkulator.zip --repo fredrik-lindseth/Stromkalkulator
@@ -181,7 +193,7 @@ gh attestation verify stromkalkulator.zip --repo fredrik-lindseth/Stromkalkulato
 
 ## Datakilder
 
-Nettleieprisene vedlikeholdes i integrasjonen og kryssjekkes mot [fri-nettleie](https://github.com/kraftsystemet/fri-nettleie) fra kraftsystemet, som fungerer som referanse/fasit for satsene. Dataene derfra brukes under [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/). Avgifter kommer fra skatteetaten, kapasitetstrinn-struktur fra NVE.
+Nettleieprisene vedlikeholdes i integrasjonen og kryssjekkes mot [fri-nettleie](https://github.com/kraftsystemet/fri-nettleie) fra kraftsystemet, som er fasiten for satsene. Dataene derfra brukes under [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/). Avgifter kommer fra skatteetaten, kapasitetstrinn-struktur fra NVE.
 
 ## Lisens
 

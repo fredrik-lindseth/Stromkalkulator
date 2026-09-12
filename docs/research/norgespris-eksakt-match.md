@@ -6,7 +6,7 @@ og [bloomberg-verifisering.md](bloomberg-verifisering.md) har jaktet på siden
 april: hvorfor traff vi ikke linjen på øret?
 
 > Status: konklusjon 2026-07-06, komplett samme kveld med Elhub-CSV.
-> Både mai- og juni-fakturaens Norgespris-linje reproduseres **eksakt**
+> Både mai- og juni-fakturaens Norgespris-linje reproduseres eksakt
 > (innenfor 0,005 kr) med Elhub-kWh x Nord Pools publiserte Final-priser.
 > Restavviket som tidligere ble dokumentert som et ±0,2 %-bånd var
 > prisdata-årgang i HA-recorderen pluss én recorder-aggregatglipp, ikke
@@ -87,8 +87,8 @@ harde tall:
   0 Wh i alle fem månedene. Mars-avviket på 1,4 kWh i HAN-dataene var
   HAN-timing-støy, ikke klassifiseringsfeil.
 - kWh-kilden (HAN mot Elhub) flytter Norgespris-summen med under 0,07 kr i
-  fire av fem måneder. 13-sekundersskiftet koster øre, ikke kroner.
-  Unntaket er mai, se neste seksjon.
+  fire av fem måneder. 13-sekundersskiftet koster øre. Unntaket er mai, se
+  neste seksjon.
 
 Bakgrunn for skiftet: [elhub-vs-han-vs-faktura.md](elhub-vs-han-vs-faktura.md).
 
@@ -104,8 +104,8 @@ er hele det gjenværende nettleie-avviket. Energileddene traff eksakt i juni.
 
 Mai traff ikke eksakt med HAN-kWh x Final-priser (-0,35 kr). To hypoteser
 sto igjen: kWh-serien vår, eller prisårgang i BKKs fakturakjøring. Elhub-CSV
-for mai (lastet ned samme kveld) avgjorde det: **Elhub-kWh x Final treffer
-fakturaen på -0,001 kr.** Avviket satt i HAN-kWh-serien.
+for mai (lastet ned samme kveld) avgjorde det. Elhub-kWh x Final treffer
+fakturaen på -0,001 kr, så avviket satt i HAN-kWh-serien.
 
 Og det satt i én dag. Recorder-statistikken for 2. pinsedag 25. mai har
 byttet delta mellom nabotimer: time 14/15 med ±0,96 kWh og time 16/17 med
@@ -141,7 +141,7 @@ automatisk (time 00 rett før et hull, innenfor 0,5 øre/kWh av forrige døgns
 23:45-kvarter), fyller den fra det publiserte arkivet og fører begrunnelsen i
 fixturens metadata. Merkingen gjør at prisfidelitets-tellingen holder timen
 utenfor. Hvorfor den offisielle Nord Pool-integrasjonen faller ut ved
-døgnskiftet er fortsatt ukjent; HA-loggen dekker bare siste boot.
+døgnskiftet er fortsatt ukjent, og HA-loggen dekker bare siste boot.
 
 ## Konsekvenser i repoet
 

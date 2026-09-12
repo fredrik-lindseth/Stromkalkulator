@@ -1,8 +1,8 @@
 # Trippelverifisering av DSO-tariffer 2026
 
 Sjekk av flaggede feil i `dso.py` mot tre uavhengige kilder per
-nettselskap. Verdier i `dso.py` er **ren nettleie eks. mva og eks.
-forbruksavgift/Enova** for energiledd, og **kr/mnd inkl. mva** for
+nettselskap. Verdier i `dso.py` er ren nettleie eks. mva og eks.
+forbruksavgift/Enova for energiledd, og kr/mnd inkl. mva for
 kapasitetsledd.
 
 Hentet 2026-05-23.
@@ -19,7 +19,7 @@ Hentet 2026-05-23.
 
 ## Lnett (NO2)
 
-**Kilder:**
+Kilder:
 - Primær: [Lnett tariffhefte 2026 PDF (siteid 131569206)](https://www.l-nett.no/getfile.php/131569206-1764934863/Tariffhefte%20fra%201.%20januar%202026.pdf)
 - Sekundær: [Lnett HTML prisside](https://www.l-nett.no/nettleie/priser-og-vilkar-privat/)
 - Tertiær: [kraftsystemet.no/lnett](https://kraftsystemet.no/fri-nettleie/tariffer/lnett.html)
@@ -51,7 +51,7 @@ HTML-prisliste viser bare trinn 1-6, PDF og kraftsystemet bekrefter trinn
 
 ## Lede (NO2)
 
-**Kilder:**
+Kilder:
 - Primær: [Lede prisside privatkunder](https://lede.no/priser/nettleie-privatkunder/)
 - Sekundær: [Lede prisside oversikt](https://lede.no/priser/)
 - Tertiær: [kraftsystemet.no/lede](https://kraftsystemet.no/fri-nettleie/tariffer/lede.html)
@@ -69,11 +69,11 @@ avgifter. Kraftsystemet.no detaljerer alle nivåer eksplisitt:
 m/ alle avgifter og mva.
 
 Matematisk verifikasjon: (11,41 + 1,0 + 7,13) × 1,25 = 24,425 ≈ 24,42
-matcher Lede-faktura. Tre kilder enige om at ren nettleie er **11,41
-øre/kWh**.
+matcher Lede-faktura. Tre kilder er enige om at ren nettleie er 11,41
+øre/kWh.
 
-Vår eksisterende verdi 24,382 er prisen **inkl. mva og avgifter**, ikke
-ren nettleie. Feil semantikk.
+Vår eksisterende verdi 24,382 er prisen inkl. mva og avgifter, altså feil
+semantikk.
 
 ### Kapasitetsledd (kr/mnd inkl. mva)
 
@@ -94,9 +94,9 @@ ren nettleie. Feil semantikk.
 Lede HTML viser tier 0-50 kW direkte. Kraftsystemet gir alle 11 trinn.
 Tre kilder enige der de overlapper.
 
-## Norgesnett (NO1), Ingen endring
+## Norgesnett (NO1), ingen endring
 
-**Kilder:**
+Kilder:
 - Primær: [Norgesnett kunde-prisside](https://norgesnett.no/kunde/nettleie-privat/)
 - Sekundær: [Norgesnett PDF 2026](https://norgesnett.no/wp-content/uploads/Nettleiepriser-privat-naering-1.jan-2026.pdf) (begrenset til avgiftsinfo)
 - Tertiær: [kraftsystemet.no/norgesnett](https://kraftsystemet.no/fri-nettleie/tariffer/norgesnett.html)
@@ -116,11 +116,11 @@ korrekt, ingen endring.
 ### Kapasitetsledd
 
 Alle 10 trinn matcher Norgesnetts egen tabell innenfor 1 kr/mnd (vi har
-avrundet til hele kroner; Norgesnett oppgir desimaler).
+avrundet til hele kroner, Norgesnett oppgir desimaler).
 
-## Asker Nett (NO1), Ingen endring
+## Asker Nett (NO1), ingen endring
 
-**Kilder:**
+Kilder:
 - Primær: [Asker Nett prisliste 2026](https://askernett.no/prisliste-for-privatkunder-i-2026/)
 - Sekundær: [Asker Nett prisjustering 2026](https://askernett.no/prisjustering-pa-nettleien-fra-1-januar-2026/)
 - Tertiær: websøk-bekreftelse
@@ -137,7 +137,7 @@ korrekt.
 
 ## Elvia (NO1)
 
-**Kilder:**
+Kilder:
 - Primær: [Elvia tariffblad 2026 PDF](https://www.elvia.no/siteassets/dokumenter/priser/2026/tariffblad_1_0_standard-tariff_privat_20260101.pdf)
 - Sekundær: [Elvia HTML prisside](https://www.elvia.no/nettleie/alt-om-nettleiepriser/nettleie-pris/)
 - Tertiær: [kraftsystemet.no/elvia](https://kraftsystemet.no/fri-nettleie/tariffer/elvia.html)

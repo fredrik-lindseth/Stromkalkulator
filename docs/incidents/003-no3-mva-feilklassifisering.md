@@ -95,9 +95,11 @@ def get_default_avgiftssone(prisomrade: str) -> str:
 
 ## Lærdom
 
-1. **Prisområde er ikke avgiftssone.** NO1-NO5 er Statnetts markedsområder basert på nettkapasitet. Mva-fritak er fylkesbasert i skattelovgivningen. NO4 overlapper tilfeldig med fritaksfylkene, NO3 gjør det ikke.
-2. **Verifiser geografi mot offisielle kilder.** Elinett ble antatt å være i Helgeland basert på en feil kommentar i koden.
-3. **"Nord-Norge" er tvetydig.** Geografisk: Nordland/Troms/Finnmark. Mva-fritak: samme. Kraftmarked: NO4 + deler av Nordland i NO3. Forbruksavgift: lik sats overalt fra 2026.
+Prisområde er ikke avgiftssone. NO1-NO5 er Statnetts markedsområder basert på nettkapasitet, mens mva-fritaket er fylkesbasert i skattelovgivningen. NO4 overlapper tilfeldig med fritaksfylkene, NO3 gjør det ikke.
+
+Verifiser geografi mot offisielle kilder. Elinett ble antatt å være i Helgeland basert på en feil kommentar i koden.
+
+"Nord-Norge" betyr fire forskjellige ting her. Geografisk er det Nordland, Troms og Finnmark, og mva-fritaket følger de samme fylkene. I kraftmarkedet er det NO4 pluss deler av Nordland i NO3. For forbruksavgiften er satsen lik overalt fra 2026.
 
 ## Kilder
 

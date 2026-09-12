@@ -48,8 +48,10 @@ Fungerer for alle tre avgiftssoner (Standard, Nord-Norge, Tiltakssonen).
 
 ## Lærdom
 
-1. **Ikke bland inkl. mva og eks. mva i aritmetikk.** Konverter til samme basis først (del på (1 + mva)), trekk fra etterpå.
-2. **Fakturaverifisering avdekker subtile feil.** Diagnostikk-attributter brukes sjelden til daglig, og ble bare fanget gjennom systematisk sammenligning.
-3. **Tester må matche faktiske fakturaer.** `test_reverse_energiledd_*` i `tests/test_faktura_februar_2026.py`.
+Ikke bland inkl. mva og eks. mva i samme regnestykke. Konverter til samme basis først (del på (1 + mva)), trekk fra etterpå.
 
-   > Note: `tests/test_faktura_februar_2026.py` er siden konsolidert inn i `tests/test_faktura_bkk.py` (samme testnavn, `test_reverse_energiledd_dag_eks_avgifter` / `test_reverse_energiledd_natt_eks_avgifter`). Historisk referanse over, ikke omskrevet.
+Fakturaverifisering avdekker subtile feil. Diagnostikk-attributter brukes sjelden til daglig, og dette ble bare fanget gjennom systematisk sammenligning.
+
+Tester må matche faktiske fakturaer: `test_reverse_energiledd_*` i `tests/test_faktura_februar_2026.py`.
+
+> Note: `tests/test_faktura_februar_2026.py` er siden konsolidert inn i `tests/test_faktura_bkk.py` (samme testnavn, `test_reverse_energiledd_dag_eks_avgifter` / `test_reverse_energiledd_natt_eks_avgifter`). Historisk referanse over, ikke omskrevet.

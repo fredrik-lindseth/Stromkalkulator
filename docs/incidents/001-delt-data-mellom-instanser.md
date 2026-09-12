@@ -32,7 +32,7 @@ Effekttoppene fra begge målerne ble blandet i én `_daily_max_power`-dict.
 
 Migreringen flyttet data fra gammel DSO-basert fil til ny entry-basert fil. Resultat:
 
-- Instans 1 fikk all den gamle (blandede) dataen, toppverdiene tilhørte kanskje ikke denne måleren
+- Instans 1 fikk alle de gamle, blandede dataene, og toppverdiene tilhørte kanskje ikke denne måleren
 - Instans 2 startet tomt, hadde bare noen få dager
 
 Begge viste feil kapasitetstrinn sammenlignet med Elvias beregning.
@@ -49,6 +49,8 @@ Bug 2 var selvløsende. Ved månedsskifte nullstilles `_daily_max_power`, og dat
 
 ## Lærdom
 
-1. **Lagringsnøkler må være globalt unike per instans.** Aldri bruk domenedata (nettselskap-ID, API-nøkkel) som lagringsnøkkel. Bruk `entry.entry_id`.
-2. **Migreringer kan forurense data.** Når du fikser en delt-tilstand-bug er eksisterende data allerede kontaminert. Akseptert her at data nullstilles naturlig ved månedsskifte.
-3. **Multi-instans må testes fra starten.** Vanskelig å oppdage delt tilstand i etterkant.
+Lagringsnøkler må være globalt unike per instans. Aldri bruk domenedata som nettselskap-ID eller API-nøkkel som lagringsnøkkel, bruk `entry.entry_id`.
+
+Når du fikser en delt-tilstand-bug, er eksisterende data allerede kontaminert. Her godtok vi at dataene nullstilles naturlig ved månedsskifte.
+
+Multi-instans må testes fra starten. Delt tilstand er vanskelig å oppdage i etterkant.

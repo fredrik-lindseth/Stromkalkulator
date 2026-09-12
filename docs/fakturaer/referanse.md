@@ -1,6 +1,6 @@
 # Verifiserte fakturaer
 
-Hver rapport her er en attest på at integrasjonen regner riktig for et gitt nettselskap, periode og avtaletype. Tallene er hentet fra ekte fakturaer og sammenlignet linje for linje mot integrasjonens beregninger.
+Hver rapport her er en attest på at integrasjonen regner riktig for et gitt nettselskap, en gitt periode og en gitt avtaletype. Tallene er hentet fra ekte fakturaer og sammenlignet linje for linje mot integrasjonens beregninger.
 
 ## Verifiserte nettselskap
 
@@ -8,7 +8,7 @@ Hver rapport her er en attest på at integrasjonen regner riktig for et gitt net
 | ----------- | ---------- | ----------- | -------------------------- | ------------------ | ---------------------------------- |
 | BKK         | NO5        | Standard    | 10                         | august 2026        | Spotpris (2025), Norgespris (2026) |
 
-Vil du legge til ditt nettselskap? Se [verifiser-din-faktura.md](verifiser-din-faktura.md).
+Vil du få inn ditt eget nettselskap? Se [verifiser-din-faktura.md](verifiser-din-faktura.md).
 
 ## Fakturaer
 

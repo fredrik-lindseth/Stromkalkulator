@@ -8,8 +8,6 @@ Tre scenarier dokumentert i `docs/begrensninger.md §2`:
 2. Negative spotpriser
 3. Norgespris-tak 5000 kWh/mnd
 
----
-
 ## 1. DST-overgang
 
 ### Hvor håndteres time-aggregering
@@ -29,7 +27,7 @@ Tre scenarier dokumentert i `docs/begrensninger.md §2`:
 `dt_util.now()` gir aware datetime. Subtraksjon mellom to aware datetimes gir
 reell elapsed-tid uavhengig av DST. Riemann-summen er derfor korrekt.
 
-- **Vår-DST (29. mars 2026, 23-timersdøgn):** Klokken hopper 02:00 til 03:00.
+- Vår-DST (29. mars 2026, 23-timersdøgn): klokken hopper 02:00 til 03:00.
   Coordinator polles hvert minutt. Vanligvis er gapet 1 min, så det skjer
   ingenting spesielt. Hvis HA er nede over hoppet, blir gapet >6 min og
   cappes til 6 min av `MAX_ELAPSED_HOURS`. Ingen feilakkumulering.
@@ -40,7 +38,7 @@ reell elapsed-tid uavhengig av DST. Riemann-summen er derfor korrekt.
   eksisterer ikke. Forrige time (1) får sin energi lagret når polling kl 03:xx
   detekterer hour-bytte.
 
-- **Høst-DST (25. oktober 2026, 25-timersdøgn):** Klokken hopper 03:00 til
+- Høst-DST (25. oktober 2026, 25-timersdøgn): klokken hopper 03:00 til
   02:00. Time 2 oppleves to ganger.
 
   `_current_hour` går fra 2 til 2, ingen hour-bytte i `coordinator.py:518`.
@@ -48,7 +46,7 @@ reell elapsed-tid uavhengig av DST. Riemann-summen er derfor korrekt.
   "første time 2" i `_current_hour_energy`. Når klokken endelig blir 3 (etter
   to passeringer av time 2), arkiveres den summerte timen som maks.
 
-  **Det er en bug, men en liten en.** En "25-timersdag" får én logisk time
+  Dette er en bug, om enn en liten. En "25-timersdag" får én logisk time
   som er kunstig høyere fordi to fysiske timer (02:00-03:00 CEST + 02:00-03:00
   CET) legges sammen. Kan i ekstreme tilfeller løfte den dagen inn i topp-3
   feil. Konkret eksempel: noen som lader EV om natten kan få "natt-timen"
@@ -56,19 +54,19 @@ reell elapsed-tid uavhengig av DST. Riemann-summen er derfor korrekt.
 
 ### Identifiserte bugs
 
-1. **Høst-DST: doblet time akkumuleres som én logisk time** (linje 516-536).
+1. Høst-DST, doblet time akkumuleres som én logisk time (linje 516-536).
    `now.hour == self._current_hour` trigger ikke time-bytte. `fold` brukes
    aldri til å skille de to passeringene. Effekt: forhøyet topp-time
    i oktober for noen brukere. Konsekvens på kapasitetsledd: typisk
    ingen, fordi nettselskapet selv aggregerer per fysisk klokke-time.
-2. **Naiv datetime som faller inn fra tester eller utenfra:** `_is_day_rate`
+2. Naiv datetime som faller inn fra tester eller utenfra: `_is_day_rate`
    bruker `now.hour`, fungerer for naiv tid. `_async_update_data` får alltid
    aware fra `dt_util.now()`. OK i produksjon. Tester må bruke aware tid hvis
    de skal etterligne reell DST-adferd. Eksisterende `test_dst_overgang.py`
    bruker delvis naiv tid (linje 97-103), men cap-en redder oss.
-3. **Ingen bruk av `range(24)` for aggregering**, sjekket, ikke funnet i
+3. Ingen bruk av `range(24)` for aggregering, sjekket, ikke funnet i
    coordinator. Topp-3-utvelgelse er via sortert dict, ikke hardkodet.
-4. **`days_in_month` ignorerer DST**: `coordinator.py:88-91` antar 24 timer
+4. `days_in_month` ignorerer DST. `coordinator.py:88-91` antar 24 timer
    per dag i `seconds_in_month = dim * 24 * 3600` (linje 684). I oktober
    blir reell sekunder-i-måneden 1 time lengre, i mars 1 time kortere.
    Effekt på `_monthly_accumulated_cost_kapasitetsledd`: under 0,15 % avvik
@@ -86,12 +84,10 @@ reell elapsed-tid uavhengig av DST. Riemann-summen er derfor korrekt.
 
 ### Prioritering
 
-**Akademisk → viktig.** Den dobbelte oktober-timen er en reell, identifiserbar
-bug, men effekten på faktura er minimal (1 av ~720 timer i måneden).
+Akademisk i dag, viktig senere. Den dobbelte oktober-timen er en reell og
+identifiserbar bug, men effekten på faktura er minimal (1 av ~720 timer i måneden).
 Nettselskapet bruker fysisk timestempling, så det smitter ikke over i
 faktisk kapasitetsledd. Sjekk en gang etter høst-DST 2026 mot ekte faktura.
-
----
 
 ## 2. Negative spotpriser
 
@@ -137,13 +133,13 @@ faktisk kapasitetsledd. Sjekk en gang etter høst-DST 2026 mot ekte faktura.
 
 ### Identifiserte bugs
 
-1. **Ikke en bug, men dokumentasjons-gap:** Negativ Norgespris-kompensasjon-tall
+1. Dokumentasjons-gap, ikke kodefeil. Negativ Norgespris-kompensasjon-tall
    vises som "negativt = spot dyrere enn norgespris" i `sensor.py:1416`. Ved
    negativ spot vil sensoren vise STORE positive tall (kunden taper), som er
    konsistent med formelen. Bruker uten kontekst kan mistolke. Akademisk.
-2. **`STROMSTOTTE_LEVEL`-sjekken er strikt `>`** (linje 446). Ved spot = 0,9625
+2. `STROMSTOTTE_LEVEL`-sjekken er strikt `>` (linje 446). Ved spot = 0,9625
    eksakt: ingen støtte. Konsistent med tests. OK.
-3. **Negative spot + Norgespris-tak overskredet** (linje 627-628): faller
+3. Negativ spot med Norgespris-taket overskredet (linje 627-628) faller
    tilbake til `spot_price + energiledd + fastledd_per_kwh`. Hvis spot er
    negativ kan total_price gå negativ. Korrekt, det reflekterer at strømmen
    bokstavelig talt subsidierer brukeren i den timen.
@@ -159,12 +155,10 @@ faktisk kapasitetsledd. Sjekk en gang etter høst-DST 2026 mot ekte faktura.
 
 ### Prioritering
 
-**Akademisk.** Koden håndterer negative tall matematisk korrekt. Ingen
-abs/max-bugs. Verifikasjon mot ekte faktura ville være fint men er ikke
-påtrengende, Norge har sjelden vedvarende negativ spot, og effekten på
+Akademisk. Koden håndterer negative tall matematisk korrekt, og det finnes
+ingen abs/max-bugs. Verifikasjon mot ekte faktura ville vært fint, men det
+haster ikke. Norge har sjelden vedvarende negativ spot, og effekten på
 total fakturasum er liten.
-
----
 
 ## 3. Norgespris-tak 5000 kWh/mnd
 
@@ -186,36 +180,36 @@ total fakturasum er liten.
 
 ### Sannsynlig adferd
 
-Implementeringen er **enkel og kronologisk** men har en subtilitet:
+Implementeringen er enkel og kronologisk, men har en subtilitet:
 
 - `monthly_total_kwh` brukes som live-teller. Mens forbruket akkumulerer mot
   taket, brukes Norgespris. I det øyeblikket teller passerer 5000, bytter
-  alle kommende timer i samme måned til spot. Dette **matcher forskriftens
-  kronologiske telling**.
+  alle kommende timer i samme måned til spot. Det matcher forskriftens
+  kronologiske telling.
 - Forrige måneds beregning bruker arkivert forbruk, så grensen treffer på
   samme måte historisk.
 
 ### Identifiserte bugs / mangler
 
-1. **Ingen sub-time-allokering ved tak-overgang.** Hvis taket nås midt i en
+1. Ingen sub-time-allokering ved tak-overgang. Hvis taket nås midt i en
    time, bruker hele timen den prisen som var aktiv da `_async_update_data`
    kjørte. Coordinator polles hvert minutt, så feilen er <1 minutts forbruk i
    feil prisbucket. Marginalt (under 0,1 kWh feil for typisk husholdning).
-2. **Live-bytte mellom Norgespris og spot midt i måneden.** Når forbruket
+2. Live-bytte mellom Norgespris og spot midt i måneden. Når forbruket
    passerer 5000 kWh, vil `total_pris_norgespris`-sammenligningssensoren
-   plutselig vise spot-pris i stedet for norgespris. Det er **riktig
-   adferd**, men kan forvirre brukere som ikke vet om taket.
-3. **`monthly_consumption_total_kwh` lekker ut til både strømstøtte- og
-   Norgespris-grenser.** Begge bruker `>= 5000`. Bra konsistens.
-4. **Edge case:** En spot-kunde (`har_norgespris=False`) som forbruker > 5000
+   plutselig vise spot-pris i stedet for norgespris. Det er riktig adferd,
+   men kan forvirre brukere som ikke vet om taket.
+3. `monthly_consumption_total_kwh` lekker ut til både strømstøtte- og
+   Norgespris-grenser. Begge bruker `>= 5000`. Bra konsistens.
+4. Edge case: en spot-kunde (`har_norgespris=False`) som forbruker > 5000
    kWh treffer strømstøtte-taket samtidig. Strømstøtten blir 0 etter 5000.
    Konsistent med Forskrift § 5.
-5. **`monthly_norgespris_compensation` regnes også over taket**
+5. `monthly_norgespris_compensation` regnes også over taket
    (`coordinator.py:664`, betinget kun av `energy_kwh > 0 and spot_price_valid`).
    For en Norgespris-kunde som forbruker > 5000 kWh: timene over taket gir
    `(norgespris - spot) * kWh`-bidrag, men kunden betaler faktisk spot for de
    timene. Sammenligningssensoren overdriver "kompensasjonen" når man er over
-   taket. **Reell bug.**
+   taket. Reell bug.
 
 ### Konkret feilkilde for storforbrukere
 
@@ -245,8 +239,8 @@ verifikasjonssensoren `monthly_norgespris_compensation_kr` skjevviser.
 
 ### Prioritering
 
-**Viktig.** Selve prisberegningen er korrekt. Verifikasjonssensoren
-(`monthly_norgespris_compensation_kr`) er **feil over taket** for husholdninger
+Viktig. Selve prisberegningen er korrekt. Verifikasjonssensoren
+(`monthly_norgespris_compensation_kr`) er feil over taket for husholdninger
 som forbruker >5000 kWh. Dette er en stor kategori (varmtvann + EV-lading
 gir lett 6000-8000 kWh i vintermånedene). Fix: gate akkumulering på
 `not norgespris_over_tak`, evt. estimat-allokering per time over/under tak.

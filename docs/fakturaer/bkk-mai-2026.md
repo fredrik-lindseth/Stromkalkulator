@@ -88,14 +88,14 @@ halvert mot april.
 
 ## Status og gjenstående
 
-Dette er en linje-for-linje-attest: integrasjonens satser og formler
-reproduserer fakturaen innenfor avrundingsfeil. Verifisert via
+Attesten er linje for linje. Integrasjonens satser og formler reproduserer
+fakturaen innenfor avrundingsfeil. Verifisert via
 `tests/test_faktura_bkk.py` (fixture `FAKTURA_MAI_2026`).
 
 Time-for-time-verifisering ble utført 2026-07-06 (sammen med juni):
 HAN-eksporten (`tests/fixtures/bkk_mai_2026_hourly.json`, 744 timer) matcher
 fakturaen på alle linjer. Total kWh treffer på 4 Wh, nettleie på 0.02 kr.
-Norgespris-linjen er verifisert **eksakt** med Elhub-CSV: Elhub-kWh x
+Norgespris-linjen er verifisert eksakt med Elhub-CSV: Elhub-kWh x
 publiserte Final-priser gir -1032.56 kr, avvik -0.001 kr. Elhub matcher
 også fakturaens dag/natt/total på 0 Wh. HAN-kWh-varianten avvek 0.35 kr,
 som viste seg å sitte i én recorder-aggregatglipp på 2. pinsedag (delta

@@ -22,7 +22,7 @@ Trinn-tabell og priser ligger per nettselskap i [`dso.py`](../custom_components/
 
 #### Nettselskap med en annen metode
 
-Modellen over kalles NVE-modellen i bransjen, og 70 av 75 nettselskap bruker den. Navnet er upresist: RME påbyr ingen bestemt modell, bare at fastleddet differensieres etter kundens etterspørsel etter effekt, og nevner selv sikringsstørrelse som et lovlig alternativ ([RME: Nettleie for forbruk](https://www.nve.no/reguleringsmyndigheten/regulering/nettvirksomhet/nettleie/nettleie-for-forbruk/)). Fem gjør noe annet, og for dem er det ikke tallene, men modellen som avgjør om beløpet stemmer. Metoden ligger i `fastledd_metode` per nettselskap, med fri-nettleies navn slik at drift-vakten kan sammenligne dem direkte. Er feltet ikke satt, gjelder NVE-modellen.
+Modellen over kalles NVE-modellen i bransjen, og 70 av 75 nettselskap bruker den. Navnet er upresist: RME påbyr ingen bestemt modell, bare at fastleddet differensieres etter kundens etterspørsel etter effekt, og nevner selv sikringsstørrelse som et lovlig alternativ ([RME: Nettleie for forbruk](https://www.nve.no/reguleringsmyndigheten/regulering/nettvirksomhet/nettleie/nettleie-for-forbruk/)). Fem gjør noe annet, og hos dem stemmer beløpet bare hvis modellen er riktig, uansett hvor riktige satsene er. Metoden ligger i `fastledd_metode` per nettselskap, med fri-nettleies navn slik at drift-vakten kan sammenligne dem direkte. Er feltet ikke satt, gjelder NVE-modellen.
 
 | Metode            | Grunnlag                                            | Nettselskap       |
 | ----------------- | --------------------------------------------------- | ----------------- |
@@ -32,22 +32,19 @@ Modellen over kalles NVE-modellen i bransjen, og 70 av 75 nettselskap bruker den
 | `FEM_VEKTET_ÅR`   | Fem sesongvektede ukestopper, løpende tolv måneder  | Fjellnett         |
 | `UKJENT`          | Ikke publisert, regnes som NVE-modellen             | Tinfos            |
 
-**`MND_MAX`** slår opp i samme trinn-tabell, men med månedsmaksen i stedet for snittet. Sør Aurdal skriver trinnene som "fra [kW] - til og med [kW]", så eksakt grensetreff hører til det lavere trinnet (`terskel_inkludert: False`).
+`MND_MAX` slår opp i samme trinn-tabell, men med månedsmaksen i stedet for snittet. Sør Aurdal skriver trinnene som "fra [kW] - til og med [kW]", så eksakt grensetreff hører til det lavere trinnet (`terskel_inkludert: False`).
 
-**`OV_TREFASE`** kan ikke utledes fra effektsensoren. Brukeren velger raden fra nettselskapets egen prisliste i oppsettet (`sikringstrinn` i config). Vi ber ikke om et amperetall, fordi satsen hos Netera også avhenger av systemspenning (3x230 V IT mot 3x400 V TN), og å utlede raden fra ampere alene ville vært en tolkning vi ikke har grunnlag for. Mangler valget, står kapasitetsledd-sensoren som Ukjent og et repair-varsel ber om at det settes. Vi gjetter ikke på et trinn.
+`OV_TREFASE` kan ikke utledes fra effektsensoren. Brukeren velger raden fra nettselskapets egen prisliste i oppsettet (`sikringstrinn` i config). Vi ber ikke om et amperetall, fordi satsen hos Netera også avhenger av systemspenning (3x230 V IT mot 3x400 V TN), og å utlede raden fra ampere alene ville vært en tolkning vi ikke har grunnlag for. Mangler valget, står kapasitetsledd-sensoren som Ukjent og et repair-varsel ber om at det settes. Vi gjetter ikke på et trinn.
 
-**`FEM_VEKTET_ÅR`** har ingen trinn. Fjellnett regner `grunnbeløp + sats per kW`, der kW er snittet av de fem høyeste ukestoppene over løpende tolv måneder, vektet mot en sesongfaktor per måned (januar 100 %, juni 25 %). Vi holder høyeste time per uke i `weekly_max_power`, nøklet på mandagens dato, og kutter uker eldre enn 52 uker. Vektingen skjer før ukestoppen plukkes ut, slik nettselskapet gjør det, så uker som krysser et månedsskifte blir riktige. Beløpet rundes til hele kroner per måned, som resten av `dso.py`, altså opptil 50 øre/mnd unna nettselskapets øre-eksakte beløp. Nye brukere bygger opp historikk: uten målinger vises bare grunnbeløpet, og verdien konvergerer over tolv måneder.
+`FEM_VEKTET_ÅR` har ingen trinn. Fjellnett regner `grunnbeløp + sats per kW`, der kW er snittet av de fem høyeste ukestoppene over løpende tolv måneder, vektet mot en sesongfaktor per måned (januar 100 %, juni 25 %). Vi holder høyeste time per uke i `weekly_max_power`, nøklet på mandagens dato, og kutter uker eldre enn 52 uker. Vektingen skjer før ukestoppen plukkes ut, slik nettselskapet gjør det, så uker som krysser et månedsskifte blir riktige. Beløpet rundes til hele kroner per måned, som resten av `dso.py`, altså opptil 50 øre/mnd unna nettselskapets øre-eksakte beløp. Nye brukere bygger opp historikk: uten målinger vises bare grunnbeløpet, og verdien konvergerer over tolv måneder.
 
-**`UKJENT`** betyr at nettselskapet ikke publiserer metoden. Tinfos gjør ikke det, og fri-nettleie har en åpen forespørsel til dem. Vi regner med NVE-modellen og setter `metode_uverifisert` på sensoren, framfor å gjette på en annen modell.
+`UKJENT` betyr at nettselskapet ikke publiserer metoden. Tinfos gjør ikke det, og fri-nettleie har en åpen forespørsel til dem. Vi regner med NVE-modellen og setter `metode_uverifisert` på sensoren, framfor å gjette på en annen modell.
 
 Metoden er en sats på lik linje med prisene: `scripts/sjekk_mot_fri_nettleie.py` sammenligner den mot fri-nettleie og feller exit-koden hvis et nettselskap har byttet modell.
 
 ### Energiledd
 
-Skiller mellom dag og natt/helg:
-
-- **Dag**: hverdager 06:00-22:00, ikke helligdager
-- **Natt/helg**: 22:00-06:00, helger og helligdager hele døgnet
+Dag er hverdager 06:00-22:00, utenom helligdager. Natt/helg er 22:00-06:00, pluss helger og helligdager hele døgnet.
 
 Bevegelige helligdager (påske, pinse, Kristi himmelfartsdag) regnes fra påskeformelen.
 
@@ -103,13 +100,13 @@ Summen av kraftpris (spot etter strømstøtte eller Norgespris), nettleie og kap
 
 To Energy Dashboard-strategier:
 
-- **Prissensor (kr/kWh)**: kapasitetsleddet fordeles per forventet kWh, månedstotalen blir unøyaktig ved avvikende forbruk (regneeksempel under).
-- **Akkumulert kostnad (anbefalt)**: kapasitetsleddet tikker lineært over tid uavhengig av forbruk, månedstotalen treffer fakturaen.
+- Prissensor (kr/kWh): kapasitetsleddet fordeles per forventet kWh, månedstotalen blir unøyaktig ved avvikende forbruk (regneeksempel under).
+- Akkumulert kostnad (anbefalt): kapasitetsleddet tikker lineært over tid uavhengig av forbruk, månedstotalen treffer fakturaen.
 
 Prissensor-metoden ganger totalprisen med faktisk forbruk i Energy Dashboard, mens kapasitetsleddet er fordelt over forventet kWh. Bruker du mer eller mindre enn fordelingen forutsetter, blir kapasitetsleddet feil. Mars, kapasitetsledd 250 kr/mnd fordelt på 744 kWh (31 dager × 24):
 
-- Faktisk forbruk 1553 kWh gir Dashboard-beregning (250/744) × 1553 = **522 kr** kapasitetsledd
-- Fakturaen sier **250 kr**, altså +272 kr for mye bare på kapasitetsleddet
+- Faktisk forbruk 1553 kWh gir Dashboard-beregning (250/744) × 1553 = 522 kr kapasitetsledd
+- Fakturaen sier 250 kr, altså +272 kr for mye bare på kapasitetsleddet
 
 Akkumulert strømkostnad fordeler kapasitetsleddet lineært over tid og gir korrekt månedstotal uansett forbruk. Oppsett: [sensorer.md](sensorer.md#energy-dashboard).
 

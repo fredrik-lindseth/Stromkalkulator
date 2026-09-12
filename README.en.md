@@ -22,7 +22,7 @@ Home Assistant integration that calculates the actual electricity price in Norwa
 
 ## What you get
 
-Sensors showing what electricity actually costs, not just the spot price:
+Sensors showing what electricity actually costs:
 
 - Grid tariff: energy component (day/night) and capacity component from your grid company
 - Electricity subsidy: automatic (90 % above 96.25 øre/kWh)
@@ -39,7 +39,7 @@ Sensors showing what electricity actually costs, not just the spot price:
 
 Each report matches the integration's calculations line by line against a real invoice. See [docs/fakturaer/referanse.md](docs/fakturaer/referanse.md) (Norwegian).
 
-**Precision:** The integration hits the invoice to the øre: within 50 Wh on monthly consumption, 1-2 øre on the grid tariff lines (BKK's internal rounding), and the Norgespris line is reproduced exactly against published Final prices (June 2026, see [docs/research/norgespris-eksakt-match.md](docs/research/norgespris-eksakt-match.md), Norwegian). The live sensor can deviate 0.04-0.05 % because Nord Pool may correct the exchange rate after publication. No configuration needed. Details per meter brand and HAN reader: [docs/begrensninger.md](docs/begrensninger.md) (Norwegian).
+The integration hits the invoice to the øre: within 50 Wh on monthly consumption, 1-2 øre on the grid tariff lines (BKK's internal rounding), and the Norgespris line is reproduced exactly against published Final prices (June 2026, see [docs/research/norgespris-eksakt-match.md](docs/research/norgespris-eksakt-match.md), Norwegian). The live sensor can deviate 0.04-0.05 % because Nord Pool may correct the exchange rate after publication. No configuration needed. Details per meter brand and HAN reader: [docs/begrensninger.md](docs/begrensninger.md) (Norwegian).
 
 Verification was done on a Kaifa MA304H3E (3-phase, imported by Nuri Telecom) with a Pow-U HAN reader (AMSleser.no) and the official `nordpool` integration in HA. Aidon meters have the same broadcast timing (HH:00:10) and are expected to give the same precision. Other HAN readers and spot integrations may have different precision characteristics.
 
@@ -98,7 +98,7 @@ The tax zone determines VAT and consumption tax, and is set automatically from y
 | Northern Norway | Nordland, Troms     | 7.13 øre/kWh    | 0%  |
 | Tiltakssonen    | Finnmark/Nord-Troms | 0 øre           | 0%  |
 
-## Devices and Sensors
+## Devices and sensors
 
 The integration creates six devices with sensors:
 
@@ -217,7 +217,7 @@ Designed for residential homes with individual electricity subscriptions. Not su
 
 ## Frequently asked questions
 
-**Why does the sensor show "natt" (night) in the middle of the day?**
+### Why does the sensor show "natt" (night) in the middle of the day?
 
 The "natt" tariff is actually "natt/helg" (night/weekend) and applies to:
 
@@ -227,30 +227,30 @@ The "natt" tariff is actually "natt/helg" (night/weekend) and applies to:
 
 So on a Saturday at 14:00, "natt" tariff is correct.
 
-**Why is "Totalpris inkl. avgifter" higher than the spot price?**
+### Why is "Totalpris inkl. avgifter" higher than the spot price?
 
 The spot price is just the electricity. Total price also includes grid tariff (energy component + capacity component), consumption tax, Enova levy, and VAT. For most people, grid tariff and taxes make up 30-50% of the total price.
 
-**Electricity subsidy shows 0. Is that wrong?**
+### Electricity subsidy shows 0. Is that wrong?
 
 No. Electricity subsidy is only paid out when the spot price is above 96.25 øre/kWh (2026). Below the threshold, the subsidy is 0.
 
-**The numbers don't quite match my invoice?**
+### The numbers don't quite match my invoice?
 
 You're probably missing an energy sensor (kWh meter) in your configuration. With an energy sensor, the integration reads consumption directly from the meter register and matches the invoice down to the last watt-hour. Without one, consumption is estimated via a Riemann sum of the power sensor, and you'll typically see a 1-5 % deviation over a month. See [input-sensorer.md](docs/input-sensorer.md) (Norwegian) for how to add one, and [beregninger.md](docs/beregninger.md#nøyaktighet) (Norwegian) for details.
 
 <a id="capacity-charge-in-energy-dashboard"></a>
-**Why does the Energy Dashboard show the wrong capacity charge?**
+### Why does the Energy Dashboard show the wrong capacity charge?
 
 This only applies if you use **Totalpris inkl. avgifter** (the price sensor method). The total price sensor spreads the capacity charge over expected kWh. The Energy Dashboard multiplies this price by actual consumption. If you use more or less than the distribution assumes, the capacity charge comes out wrong.
 
 Example: March, capacity charge 250 kr/month, spread over 744 kWh (31 days x 24):
 
-- You use 1553 kWh, the Dashboard computes (250/744) x 1553 = **522 kr** for the capacity charge
-- The invoice says **250 kr**
+- You use 1553 kWh, the Dashboard computes (250/744) x 1553 = 522 kr for the capacity charge
+- The invoice says 250 kr
 - Deviation: +272 kr on the capacity charge alone
 
-**Solution:** Use **Akkumulert strømkostnad** instead. This sensor distributes the capacity charge linearly over time, not per kWh, and gives correct monthly totals regardless of consumption. See [setup](#option-2-accumulated-cost-recommended).
+Use **Akkumulert strømkostnad** instead. That sensor distributes the capacity charge linearly over time rather than per kWh, and gives correct monthly totals regardless of consumption. See [setup](#option-2-accumulated-cost-recommended).
 
 The "Månedlig nettleie total" sensor is also useful for invoice verification, but can't be used directly in the Energy Dashboard.
 
@@ -273,7 +273,7 @@ gh attestation verify stromkalkulator.zip --repo fredrik-lindseth/Stromkalkulato
 
 ## Data sources
 
-Grid tariff prices are maintained in the integration and cross-checked against [fri-nettleie](https://github.com/kraftsystemet/fri-nettleie) from kraftsystemet, which serves as the reference for the rates. Their data is used under [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/). Taxes come from the Norwegian Tax Administration, capacity tier structure from NVE.
+Grid tariff prices are maintained in the integration and cross-checked against [fri-nettleie](https://github.com/kraftsystemet/fri-nettleie) from kraftsystemet, which is our reference for the rates. Their data is used under [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/). Taxes come from the Norwegian Tax Administration, capacity tier structure from NVE.
 
 ## License
 

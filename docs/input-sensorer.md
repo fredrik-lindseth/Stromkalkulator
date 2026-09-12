@@ -2,21 +2,17 @@
 
 Hva integrasjonen trenger fra Home Assistant for å beregne strømkostnad.
 
-## TL;DR
+## Kort fortalt
 
-For å treffe fakturaen på øret, anbefales:
-
-- **Effektmåler (W)**: instantan effekt (nødvendig)
-- **Energimåler (kWh)**: kumulativ måler (sterkt anbefalt)
-- **Spotpris-sensor (NOK/kWh)**: fra Nord Pool eller lignende (nødvendig)
+Integrasjonen trenger en effektmåler (W) for instantan effekt og en spotpris-sensor (NOK/kWh) fra Nord Pool eller lignende. En energimåler (kWh) er ikke påkrevd, men uten den estimeres forbruket, så skal du treffe fakturaen på øret bør du ha den.
 
 Eksport-effektmåler og strømleverandør-sensor er valgfrie og brukes kun hvis du har solceller eller vil sammenligne med faktisk strømavtale.
 
 ## Effektmåler (power_sensor)
 
-**Hva**: Sensor som rapporterer hvor mye strøm du bruker nå, i watt (W). Verdien hopper opp og ned i takt med at apparater slår seg på og av.
+Sensoren rapporterer hvor mye strøm du bruker nå, i watt (W). Verdien hopper opp og ned i takt med at apparater slår seg på og av.
 
-**Hvor finner du den**: Vanligvis fra AMS-måleren via HAN-porten. Typiske kilder:
+Den kommer vanligvis fra AMS-måleren via HAN-porten. Typiske kilder:
 
 - Pow-U / AMSleser.no
 - Tibber Pulse
@@ -25,15 +21,15 @@ Eksport-effektmåler og strømleverandør-sensor er valgfrie og brukes kun hvis 
 
 Sensoren heter ofte noe som `sensor.<noe>_power` eller `sensor.<noe>_p` og har enhet `W`.
 
-**Hvorfor brukes den**: For å beregne kapasitetstrinn (toppforbruk per time), spotpris-kostnad i sanntid, og for å estimere månedsforbruk hvis du ikke har en energimåler-sensor.
+Integrasjonen bruker den til kapasitetstrinn (toppforbruk per time), til spotpris-kostnad i sanntid, og til å estimere månedsforbruk hvis du ikke har en energimåler-sensor.
 
-**Krav**: Bør oppdatere hvert 2-10 sekund. Sensorer som kun oppdateres hvert minutt mister detaljer rundt korte forbruksspisser.
+Den bør oppdatere hvert 2-10 sekund. Sensorer som kun oppdateres hvert minutt mister detaljer rundt korte forbruksspisser.
 
 ## Energimåler (energy_sensor)
 
-**Hva**: Kumulativ teller som viser totalt antall kWh siden måleren ble installert. Tallet går bare oppover. Dette er den samme verdien som leses av nettselskapet ved fakturering.
+Dette er en kumulativ teller som viser totalt antall kWh siden måleren ble installert. Tallet går bare oppover, og det er den samme verdien nettselskapet leser av ved fakturering.
 
-**Hvor finner du den**: Fra samme AMS-leser som effektmåleren. Sensoren heter ofte noe som:
+Den kommer fra samme AMS-leser som effektmåleren. Sensoren heter ofte noe som:
 
 - `sensor.<noe>_active_energy_import`
 - `sensor.<noe>_total_consumption`
@@ -42,7 +38,7 @@ Sensoren heter ofte noe som `sensor.<noe>_power` eller `sensor.<noe>_p` og har e
 
 Enheten er `kWh` og verdien er stor (typisk over 1000 kWh) og stiger sakte.
 
-**Hvorfor anbefales den**: Gir eksakt forbruk i hver måned, identisk med fakturaen. Forskjellen forklares under «Riemann-summering vs delta-akkumulering» lenger ned.
+Den gir eksakt forbruk i hver måned, identisk med fakturaen. Forskjellen forklares under «Riemann-summering vs delta-akkumulering» lenger ned.
 
 ## OBIS-koder forklart
 
@@ -61,31 +57,23 @@ Når dokumentasjonen sier «OBIS 1.8.0», menes altså bare «kumulativ kWh-tell
 
 ## Spotpris-sensor (spot_price_sensor)
 
-**Hva**: Sensor som viser gjeldende spotpris fra Nord Pool i NOK/kWh.
+Sensoren viser gjeldende spotpris fra Nord Pool i NOK/kWh. Den offisielle Nord Pool-integrasjonen i Home Assistant gir en `Current price`-sensor, og den eldre custom-integrasjonen `custom_components/nordpool` gir en lignende.
 
-**Hvor finner du den**: Den offisielle Nord Pool-integrasjonen i Home Assistant gir en `Current price`-sensor. Custom-integrasjonen `custom_components/nordpool` (eldre) gir også en lignende sensor.
+Formatet skal være NOK per kWh, ikke kr/MWh. Viser sensoren din tall som 850 (kr/MWh), må du dele på 1000.
 
-**Format**: NOK per kWh, ikke kr/MWh. Hvis sensoren din viser tall som 850 (kr/MWh), må du dele på 1000 for å få NOK/kWh.
-
-**Mva-håndtering**: Se egen seksjon under.
+Mva er en sak for seg, se egen seksjon under.
 
 ## Strømleverandør-sensor (electricity_provider_price_sensor, valgfri)
 
-**Hva**: Hvis du bruker Tibber eller lignende, har du gjerne en sensor som viser totalprisen du faktisk betaler, inkludert påslag og avgifter.
+Bruker du Tibber eller lignende, har du gjerne en sensor som viser totalprisen du faktisk betaler, inkludert påslag og avgifter. Tibber-integrasjonen gir en `Electricity price`-sensor med totalpris.
 
-**Hvor finner du den**: Tibber-integrasjonen gir en `Electricity price`-sensor med totalpris.
-
-**Hvorfor valgfri**: Spotpris-sensoren gir grunnlaget for alle beregninger. Strømleverandør-sensoren brukes bare for å vise «hva du faktisk betaler» i sensoren «Total strømpris (strømavtale)».
+Den er valgfri fordi spotpris-sensoren gir grunnlaget for alle beregninger. Strømleverandør-sensoren brukes bare for å vise «hva du faktisk betaler» i sensoren «Total strømpris (strømavtale)».
 
 ## Eksport-effektmåler (export_power_sensor, valgfri)
 
-**Hva**: For plusskunder med solceller. Sensor som viser hvor mye effekt du eksporterer til nettet akkurat nå (W).
+For plusskunder med solceller. Sensoren viser hvor mye effekt du eksporterer til nettet akkurat nå (W), og kommer fra samme AMS-leser som effektmåleren, men som en annen sensor (OBIS 2.7.0). Integrasjonen bruker den til å beregne inntekt fra salg av strøm til nettet.
 
-**Hvor finner du den**: Samme AMS-leser som effektmåleren, men en annen sensor (OBIS 2.7.0).
-
-**Hvorfor**: Brukes til å beregne inntekt fra salg av strøm til nettet.
-
-## Riemann-summering vs delta-akkumulering (forklart enkelt)
+## Riemann-summering vs delta-akkumulering
 
 Tenk på effektmåleren (W) som speedometeret i bilen. Den viser hvor fort du går nå.
 
@@ -93,13 +81,13 @@ Tenk på energimåleren (kWh) som triptelleren. Den viser totalt antall kWh side
 
 Integrasjonen kan regne ut totalt forbruk på to måter:
 
-**Riemann-summering (når energi-sensor mangler):** Les speedometeret hvert minutt, regn ut «hvor langt har jeg kjørt i dette minuttet» som hastighet × tid. Summer over en hel måned.
+Riemann-summering brukes når energi-sensoren mangler: les speedometeret hvert minutt, regn ut «hvor langt har jeg kjørt i dette minuttet» som hastighet × tid. Summer over en hel måned.
 
 Problem: hvis du leser speedometeret midt under en akselerasjon, får du for høyt estimat for forrige minutt. Hvis du leser mens du står stille, men brukte mye effekt for 2 sekunder siden, mister du forbruk.
 
 Over en hel måned: summeringen kan avvike fra «ekte» forbruk med flere prosent. Avviket er typisk størst hvis du har mye av/på-utstyr (varmtvannsbereder, induksjonstopp, varmepumpe i defrost).
 
-**Delta-akkumulering (når energi-sensor er konfigurert):** Les triptelleren ved start og slutt av måneden. Differansen er eksakt forbruk. Ingen estimering, ingen avrundingsfeil.
+Delta-akkumulering brukes når energi-sensoren er konfigurert: les triptelleren ved start og slutt av måneden. Differansen er eksakt forbruk. Ingen estimering, ingen avrundingsfeil.
 
 For integrasjonen: konfigurer `energy_sensor`, så bruker den triptelleren (eksakt). Uten `energy_sensor`: integrasjonen leser bare speedometeret (estimat).
 
@@ -177,11 +165,11 @@ inputene.
 
 Vaktholdet ser etter tre ting:
 
-| Situasjon                                              | Hva som skjer                                      |
-| ------------------------------------------------------ | -------------------------------------------------- |
-| Entiteten er `unavailable` eller `unknown` over 30 min | Måledata-problem slår på, og du får et reparasjonsvarsel |
-| Energitelleren rapporterer, men øker ikke på tre timer  | Samme, med typen «frossen»                          |
-| Spotprisen har vært borte lenger enn cachen på to timer | Samme, med typen «spot_utlopt»                      |
+| Situasjon                                               | Hva som skjer                                            |
+| ------------------------------------------------------- | -------------------------------------------------------- |
+| Entiteten er `unavailable` eller `unknown` over 30 min  | Måledata-problem slår på, og du får et reparasjonsvarsel |
+| Energitelleren rapporterer, men øker ikke på tre timer  | Samme, med typen «frossen»                               |
+| Spotprisen har vært borte lenger enn cachen på to timer | Samme, med typen «spot_utlopt»                           |
 
 Du ser det på `binary_sensor`-en «Måledata-problem» og under Innstillinger >
 Reparasjoner. Varslene forsvinner av seg selv når inputen er tilbake.
@@ -194,15 +182,15 @@ ellers varsler den hver gang hovedbryteren er av.
 
 Hva som skjer med tallene mens en input er nede:
 
-- **Effektmåler nede:** døgnmaks og dermed kapasitetstrinnet blir for lavt.
+- Effektmåler nede: døgnmaks og dermed kapasitetstrinnet blir for lavt.
   Timene i hullet finnes ikke.
-- **Energimåler nede:** månedsforbruket blir for lavt. Når måleren kommer
+- Energimåler nede: månedsforbruket blir for lavt. Når måleren kommer
   tilbake, kan hele hullet komme som ett sprang. Er spranget over 100 kWh,
   forkastes det, og du får et eget varsel med tallet, siden et sprang like
   gjerne kan være et målerbytte som ekte forbruk.
-- **Spotpris nede:** kWh telles videre, men kostnad, strømstøtte og
+- Spotpris nede: kWh telles videre, men kostnad, strømstøtte og
   Norgespris-sammenligning fryser når cachen på to timer er tom.
-- **Strømleverandør-sensor nede:** bare sammenligningssensoren «Total strømpris
+- Strømleverandør-sensor nede: bare sammenligningssensoren «Total strømpris
   (strømavtale)» blir borte. Ingen alarm, bare et attributt.
 
 ## Feilsøking

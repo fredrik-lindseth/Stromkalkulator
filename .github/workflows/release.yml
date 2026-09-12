@@ -1,145 +1,108 @@
 name: Release
 
+# Releaseporten. Alt som skal være grønt for kandidat-SHA-en, kjøres som en del
+# av denne grafen (`needs: ci`), ikke som separate workflows vi håper er ferdige.
+# Tidligere hang jobben på `workflow_run` fra CI, mens HACS-valideringen og
+# Hassfest var egne kjøringer: en release kunne gå ut før de var ferdige, eller
+# selv om de hadde feilet (stromkalkulator-2dobu6k).
+#
+# Kandidaten er `github.sha`, altså commiten denne kjøringen tilhører. Både CI
+# og releasesteget sjekker ut nøyaktig den, så det finnes ikke et vindu der main
+# kan flytte seg mellom testing, bygging og tagging (stromkalkulator-4rw6g9u).
+#
+# Selve flyten ligger i scripts/release_publish.py, som er testbar og
+# gjenopptakbar. Draften publiseres som siste kall; feiler noe før det, finnes
+# det ingen halv release å rydde, og en ny kjøring på samme SHA plukker opp der
+# den slapp (stromkalkulator-5k7d7qp).
+
 on:
-  workflow_run:
-    workflows: [ "CI" ]
-    types: [ completed ]
+  push:
+    branches: [ main ]
+  # Gjenopptak: «Re-run failed jobs» beholder SHA-en, eller kjør workflowen
+  # manuelt på taggen. Kandidaten følger alltid av ref-en, aldri av et fritt
+  # skjemafelt, så den kan ikke settes til noe CI ikke har sett.
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Kjør flyten uten å skrive noe (leser bare)"
+        type: boolean
+        default: false
+
+# Én publisering om gangen. cancel-in-progress står av med vilje: å avbryte en
+# kjøring midt i opplastingen er nettopp halvveisen porten skal forhindre.
+concurrency:
+  group: release-${{ github.repository }}
+  cancel-in-progress: false
+
+permissions: {}
 
 jobs:
+  ci:
+    name: CI
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
+
   release:
+    name: Publiser
+    needs: [ ci ]
     runs-on: ubuntu-latest
-    # Kun release etter grønn CI på main (ikke på PR-kjøringer av CI).
-    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.event == 'push'
     permissions:
       contents: write
       id-token: write
       attestations: write
 
     steps:
-      - name: Checkout
+      - name: Checkout kandidat-SHA
         uses: actions/checkout@v6
         with:
-          # Pin til commiten CI faktisk validerte, ikke default-branch HEAD
-          # (workflow_run sjekker ellers ut siste commit på main ved kjøretid).
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ github.sha }}
+          # ZIP-en bygges fra git-objektene, og eksisterende tagger må kunne
+          # derefereres, så hele historikken og taggene må være her.
           fetch-depth: 0
+          fetch-tags: true
 
-      - name: Get version from manifest
-        id: version
-        run: |
-          VERSION=$(jq -r '.version' custom_components/stromkalkulator/manifest.json)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Check if release exists
-        id: check_release
+      # Leser tilstanden på GitHub og sier om versjonen er ute fra før. Skriver
+      # ingenting. Er den publisert, bevises den mot sin egen tagg og resten av
+      # jobben hoppes over; er taggen på en annen commit, stopper vi her.
+      - name: Les tilstanden
+        id: plan
         env:
           GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/release_publish.py plan --sha "$GITHUB_SHA" --repo "$GITHUB_REPOSITORY"
+
+      - name: Bygg deterministisk ZIP
+        if: steps.plan.outputs.utfall == 'klar'
+        id: bygg
         run: |
-          if gh release view "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-            echo "Release v${{ steps.version.outputs.version }} already exists"
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-            echo "Creating new release v${{ steps.version.outputs.version }}"
-          fi
+          DIGEST=$(python3 scripts/release_publish.py build --sha "$GITHUB_SHA" --output dist/stromkalkulator.zip)
+          echo "sha256=$DIGEST" >> "$GITHUB_OUTPUT"
+          echo "ZIP for ${GITHUB_SHA:0:12}: $DIGEST"
 
-      # Release-noten lever i repoet, ikke i en håndskrevet GitHub-draft som kan
-      # forsvinne (stromkalkulator-1dk4). Scriptet skriver relative lenker om
-      # til absolutte URL-er mot taggen og løfter «Dette må du gjøre selv»
-      # øverst. Mangler seksjonen, eller peker en lenke på en fil som ikke
-      # finnes, stopper jobben her framfor å publisere en release med rå
-      # commit-liste eller døde lenker som body.
-      - name: Hent release-noten fra CHANGELOG.md
-        id: notes
-        if: steps.check_release.outputs.exists == 'false'
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          if ! NOTES=$(python3 scripts/release_notes.py "$VERSION"); then
-            echo "::error file=CHANGELOG.md::Fikk ingen release-note for $VERSION. Enten mangler seksjonen '## [$VERSION]' med innhold, eller så peker en relativ lenke i den på en fil som ikke finnes. Se feilen over."
-            exit 1
-          fi
-          DELIM="noter-$(openssl rand -hex 8)"
-          {
-            echo "notes<<$DELIM"
-            printf '%s\n' "$NOTES"
-            echo "$DELIM"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Create ZIP for HACS
-        if: steps.check_release.outputs.exists == 'false'
-        run: |
-          mkdir -p dist
-          # HACS' zip_release-modus pakker ut zipen direkte i
-          # .../custom_components/stromkalkulator/ uten å strippe et
-          # prefiks. Zip derfor flatt fra inne i komponentkatalogen,
-          # ikke custom_components/stromkalkulator som toppnivå-mappe.
-          (cd custom_components/stromkalkulator && zip -r ../../dist/stromkalkulator.zip .)
-          echo "✅ Created ZIP for HACS"
-
-      - name: Generate SHA256 checksum
-        id: checksum
-        if: steps.check_release.outputs.exists == 'false'
-        run: |
-          SHA256=$(sha256sum dist/stromkalkulator.zip | awk '{print $1}')
-          echo "sha256=$SHA256" >> $GITHUB_OUTPUT
-
-      - name: Get commit messages since last tag
-        id: changelog
-        if: steps.check_release.outputs.exists == 'false'
-        run: |
-          # Get all tags, find the one before current version
-          CURRENT_VERSION="v${{ steps.version.outputs.version }}"
-          PREV_TAG=$(git tag --sort=-version:refname | grep -v "$CURRENT_VERSION" | head -n 1)
-
-          if [ -z "$PREV_TAG" ]; then
-            # First release - get all commits
-            COMMITS=$(git log --pretty=format:"- %s" --no-merges)
-            echo "📝 First release - showing all commits"
-          else
-            # Get commits since previous tag
-            COMMITS=$(git log ${PREV_TAG}..HEAD --pretty=format:"- %s" --no-merges)
-            echo "📝 Commits since $PREV_TAG"
-          fi
-
-          if [ -z "$COMMITS" ]; then
-            COMMITS="- Initial release"
-          fi
-
-          echo "commits<<EOF" >> $GITHUB_OUTPUT
-          echo "$COMMITS" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Create Release
-        if: steps.check_release.outputs.exists == 'false'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ steps.version.outputs.version }}
-          name: v${{ steps.version.outputs.version }}
-          body: |
-            ${{ steps.notes.outputs.notes }}
-
-            ## Verifisering
-
-            **SHA256:** `${{ steps.checksum.outputs.sha256 }}` ([hvordan verifisere](https://github.com/fredrik-lindseth/Stromkalkulator/blob/main/SECURITY.md))
-
-            <details>
-            <summary>Alle commits</summary>
-
-            ${{ steps.changelog.outputs.commits }}
-
-            </details>
-          draft: false
-          prerelease: false
-
-      - name: Upload ZIP to release
-        if: steps.check_release.outputs.exists == 'false'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ steps.version.outputs.version }}
-          files: dist/stromkalkulator.zip
-
-      - name: Attest build provenance
-        if: steps.check_release.outputs.exists == 'false'
+      # Attestasjonen lages før noe legges ut, og verifiseres av publiseringen
+      # under. Da kan ingen versjon bli offentlig med en attestasjon som peker
+      # på en annen commit eller en annen fil.
+      - name: Attester bygget
+        if: steps.plan.outputs.utfall == 'klar'
         uses: actions/attest-build-provenance@v4
         with:
           subject-path: dist/stromkalkulator.zip
+
+      - name: Verifiser og publiser
+        if: steps.plan.outputs.utfall == 'klar'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # Tom på push, "true" bare når noen ba om tørrkjøring i skjemaet.
+          TORRKJORING: ${{ inputs.dry_run }}
+        run: |
+          kommando=(
+            python3 scripts/release_publish.py publish
+            --sha "$GITHUB_SHA"
+            --repo "$GITHUB_REPOSITORY"
+            --zip dist/stromkalkulator.zip
+          )
+          if [ "$TORRKJORING" = "true" ]; then
+            kommando+=(--dry-run)
+          fi
+          "${kommando[@]}"

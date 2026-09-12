@@ -1,11 +1,19 @@
 name: CI
 
 on:
-  push:
-    branches: [ main ]
   pull_request:
     branches: [ main ]
+  # Release-workflowen kaller denne for kandidat-SHA-en sin, og venter på hele
+  # grafen før den publiserer. Derfor ingen egen push-trigger: på main er det
+  # release.yml som starter CI, og da finnes det bare én kjøring som gjelder
+  # nettopp den commiten. To kjøringer av samme ting er to svar å velge mellom.
+  workflow_call:
 
+# HACS- og Hassfest-valideringen hører hjemme her, ikke i egne workflows.
+# Release venter på denne grafen, og det den ikke ser, kan den ikke vente på
+# (stromkalkulator-2dobu6k). De samme to kjøres også nattlig fra validate.yml og
+# hassfest.yml, fordi begge kan bli røde av endringer utenfor repoet.
+#
 # CI kaller de samme just-oppskriftene som kjøres lokalt og av pre-commit.
 # Kommandolinjene står ett sted, i justfile, og tests/test_testkommandoer.py
 # feller byggingen hvis dokumentasjonen sier noe annet enn oppskriftene.
@@ -115,3 +123,25 @@ jobs:
 
       - name: Run real-HA tests
         run: just test-ha ${{ matrix.target }}
+
+  hacs:
+    name: HACS-validering
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: HACS validation
+        uses: hacs/action@main
+        with:
+          category: integration
+
+  hassfest:
+    name: Hassfest
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Hassfest validation
+        uses: home-assistant/actions/hassfest@master

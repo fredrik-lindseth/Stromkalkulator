@@ -17,10 +17,27 @@ presis ved døgnskiftet, går den `unknown` kl. 00:00:00 og `unavailable` noen
 sekunder senere. HAs statistikk-kompilator regner timesnittet bare over
 numeriske states, så staten fra 23:45-kvarteret kvelden før blir båret gjennom
 hele time 00. Recorderen har da en verdi for timen, men det er ikke en måling
-av timen. Slike timer kjennes igjen automatisk: time 00 rett før et hull, der
-recorder-verdien ligger innenfor 0,5 øre/kWh av forrige døgns 23:45-kvarter.
-De fylles fra arkivet og merkes som de andre, med begrunnelsen arkivert i
-fixturens metadata.
+av timen. Slike timer kjennes igjen automatisk, og regelen har to krav som
+begge må være oppfylt for at en time med recorder-verdi skal overskrives:
+
+1. Verdien ligger innenfor 0,5 øre/kWh av forrige døgns 23:45-kvarter.
+2. Verdien ligger minst 0,2 øre/kWh lenger unna sin egen publiserte time enn
+   den ligger fra det 23:45-kvarteret.
+
+Krav 1 alene holder ikke. På en natt med flat pris ligger en ekte måling i
+time 00 også innenfor 0,5 øre av 23:45-kvarteret, og da ville en gyldig måling
+blitt overskrevet og merket med en årsak som ikke er sann. Krav 2 skiller de
+to: en ekte måling stemmer med sin egen time, en båret verdi gjør det ikke.
+De tre randtimene i august ligger 0,52, 4,2 og 7,7 øre fra sin egen time, mens
+de ligger 0, 0,01 og 0,35 øre fra 23:45-kvarteret.
+
+Er kravene i konflikt, altså verdien ligger nær 23:45-kvarteret men også nær
+sin egen time, gjetter scriptet ikke. Timen blir stående som målt, og saken
+skrives ut så den kan avgjøres for hånd med --overstyr. Samme gjelder når
+arkivet mangler den publiserte timen, for da kan krav 2 ikke prøves.
+
+Randtimer som passerer fylles fra arkivet og merkes som de andre, med
+begrunnelsen arkivert i fixturens metadata.
 
 Andre timer der recorderen har en verdi overstyres aldri automatisk. Faller
 sensoren ut midt i en time, lagrer recorderen et snitt av bare den delen av
@@ -48,6 +65,12 @@ NOK_ARKIV = ROOT / "_private" / "Måleverdier" / "nordpool_nok_kvarter_no5.json"
 # randtime. 0,5 øre/kWh dekker kurs-årgangen mellom recorderens publiseringskurs
 # og arkivets, som er noen tideler av en øre.
 RANDTIME_TOLERANSE_NOK = 0.005
+# Hvor mye lenger unna sin egen publiserte time verdien må ligge enn den ligger
+# fra 23:45-kvarteret. En båret verdi er kvelden før om igjen og bommer på sin
+# egen time; en ekte måling treffer den. Marginen er satt under den trangeste
+# ekte randtimen vi har (31.08: 0,01 øre fra 23:45, 0,52 øre fra egen time) og
+# over kurs-årgangen mellom recorderens publiseringskurs og arkivets.
+RANDTIME_EGEN_TIME_MARGIN_NOK = 0.002
 RANDTIME_BEGRUNNELSE = "randtime_forrige_kvarter"
 FYLT_MERKE = "nordpool_publisert"
 
@@ -80,16 +103,24 @@ def forrige_kvarter_iso(ts: str) -> str:
 
 
 def finn_randtimer(
-    hours: list[dict[str, object]], kvarter: dict[str, float]
-) -> dict[str, float]:
+    hours: list[dict[str, object]],
+    kvarter: dict[str, float],
+    publiserte_timer: dict[str, float],
+) -> tuple[dict[str, float], list[str]]:
     """Time 00 rett før et hull, der recorder-verdien er forrige døgns 23:45.
 
     Sensoren går `unknown` presis 00:00:00 og `unavailable` få sekunder senere.
     HAs statistikk-kompilator snitter bare over numeriske states, så staten fra
     23:45-kvarteret bæres gjennom hele time 00. Verdien er da ikke en måling av
     timen, og timen hører til hullet.
+
+    Nærheten til 23:45-kvarteret holder ikke alene: på en flat natt treffer en
+    ekte måling den også. Verdien må i tillegg ligge klart lenger unna sin egen
+    publiserte time enn den ligger fra 23:45-kvarteret. Returnerer treffene og
+    en liste med de tvilstilfellene som ble stående urørt.
     """
     treff: dict[str, float] = {}
+    tvil: list[str] = []
     for i, h in enumerate(hours[:-1]):
         ts = str(h["start_local"])
         verdi = h["spot_nok_kwh_eks_mva"]
@@ -100,10 +131,30 @@ def finn_randtimer(
             # recorderens, så regelen kan ikke prøves på nytt.
             continue
         forrige = kvarter.get(forrige_kvarter_iso(ts))
-        if forrige is None or abs(float(verdi) - forrige) > RANDTIME_TOLERANSE_NOK:
+        if forrige is None:
+            continue
+        avstand_forrige = abs(float(verdi) - forrige)
+        if avstand_forrige > RANDTIME_TOLERANSE_NOK:
+            continue
+        publisert = publiserte_timer.get(ts)
+        if publisert is None:
+            tvil.append(
+                f"{ts}: ligger {avstand_forrige * 100:.2f} øre fra forrige døgns 23:45, "
+                "men prisarkivet mangler timen selv, så randtimen kan ikke avgjøres. "
+                "Lot timen stå."
+            )
+            continue
+        avstand_egen = abs(float(verdi) - publisert)
+        if avstand_egen < avstand_forrige + RANDTIME_EGEN_TIME_MARGIN_NOK:
+            tvil.append(
+                f"{ts}: ligger {avstand_forrige * 100:.2f} øre fra forrige døgns 23:45, "
+                f"men bare {avstand_egen * 100:.2f} øre fra sin egen publiserte time. "
+                "Det ser ut som en ekte måling, ikke en båret verdi. Lot timen stå; "
+                "bruk --overstyr med begrunnelse hvis den likevel hører til hullet."
+            )
             continue
         treff[ts] = forrige
-    return treff
+    return treff, tvil
 
 
 def main() -> int:
@@ -138,16 +189,12 @@ def main() -> int:
     # Randtimene finnes før hullene fylles: etterpå ser en fylt time 00 ut som
     # en hvilken som helst arkivpris. Tidligere kjøringers randtimer beholdes så
     # scriptet kan kjøres om igjen uten å miste begrunnelsen.
-    nye_rand = finn_randtimer(hours, kvarter)
-    tidligere = (
-        fixture["metadata"].get("spothull", {}).get("fylt_fra_nordpool", {}).get("randtimer", {})
-    )
-    fortsatt_merket = {
-        str(h["start_local"]) for h in hours if h.get("spot_kilde") == FYLT_MERKE
-    }
-    randtimer: dict[str, dict[str, float | str]] = {
-        ts: data for ts, data in tidligere.items() if ts in fortsatt_merket
-    }
+    nye_rand, tvil = finn_randtimer(hours, kvarter, priser)
+    for linje in tvil:
+        print(linje)
+    tidligere = fixture["metadata"].get("spothull", {}).get("fylt_fra_nordpool", {}).get("randtimer", {})
+    fortsatt_merket = {str(h["start_local"]) for h in hours if h.get("spot_kilde") == FYLT_MERKE}
+    randtimer: dict[str, dict[str, float | str]] = {ts: data for ts, data in tidligere.items() if ts in fortsatt_merket}
 
     fylte: list[str] = []
     overstyrte: dict[str, dict[str, float | str]] = {}
@@ -161,9 +208,8 @@ def main() -> int:
             h["spot_kilde"] = FYLT_MERKE
             fylte.append(ts)
         elif ts in nye_rand:
-            if ts not in priser:
-                print(f"Prisarkivet mangler {ts}; kan ikke fylle randtimen")
-                return 1
+            # finn_randtimer krever at den publiserte timen finnes, så
+            # oppslaget i priser er trygt her.
             randtimer[ts] = {
                 "recorder_nok_kwh": h["spot_nok_kwh_eks_mva"],
                 "forrige_kvarter_nok_kwh": round(nye_rand[ts], 6),
@@ -202,9 +248,7 @@ def main() -> int:
     }
     fixture["metadata"]["spothull"] = spothull
 
-    args.fixture.write_text(
-        json.dumps(fixture, ensure_ascii=False, indent=1) + "\n", encoding="utf-8"
-    )
+    args.fixture.write_text(json.dumps(fixture, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     print(
         f"Fylte {len(fylte)} timer (herav {len(nye_rand)} randtimer) og "
         f"overstyrte {len(overstyrte)} fra {args.arkiv.name}"

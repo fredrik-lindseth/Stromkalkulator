@@ -107,9 +107,18 @@ kvarterprisene i timen: den kom aldri fra timen.
 Alle 51 timene er fylt fra Nord Pools publiserte Final-kvarterpriser med
 `scripts/research/fyll_spothull_fra_nordpool.py`, merket
 `"spot_kilde": "nordpool_publisert"` i fixturen. Randtimene kjenner scriptet
-igjen selv: time 00 rett før et hull, der recorder-verdien ligger innenfor
-0,5 øre/kWh av forrige døgns 23:45-kvarter. Begrunnelsen arkiveres i fixturens
-metadata under `spothull.fylt_fra_nordpool.randtimer`.
+igjen selv, og regelen har to krav som begge må være oppfylt: verdien ligger
+innenfor 0,5 øre/kWh av forrige døgns 23:45-kvarter, og den ligger minst
+0,2 øre/kWh lenger unna sin egen publiserte time enn den ligger fra kvarteret.
+Kolonnen «Publisert time 00» i tabellen over er det andre kravet: de tre
+randtimene bommer 4,2, 7,7 og 0,52 øre på sin egen time. Nærheten til
+23:45-kvarteret alene ville ikke holdt. På en natt med flat pris ligger en ekte
+måling i time 00 også innenfor 0,5 øre av kvarteret kvelden før, og da ville
+scriptet overskrevet en gyldig måling og merket den med en årsak som ikke er
+sann. Er verdien nær begge, gjetter ikke scriptet: timen blir stående som målt
+og skrevet ut, så den kan avgjøres for hånd med `--overstyr`. Begrunnelsen for
+de fylte randtimene arkiveres i fixturens metadata under
+`spothull.fylt_fra_nordpool.randtimer`.
 `verify_norgespris_eksakt.py` holder alle 51 utenfor
 prisfidelitets-sammenligningen, ellers ville den målt arkivet mot seg selv.
 

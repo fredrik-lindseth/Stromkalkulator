@@ -66,7 +66,7 @@ av faktiske timepriser i hullet, henger fakturaen sammen med modellen vår.
 | Fordelt på                   | 80 dag-timer, 96 natt/helg-timer      |
 | Snitt dag                    | 1.571 kWh/h                           |
 | Snitt natt/helg              | 1.087 kWh/h                           |
-| Implisitt Norgespris-sats    | -100.186 øre/kWh                      |
+| Implisitt Norgespris-sats    | -100.189 øre/kWh                      |
 | Faktiske timesatser i hullet | -138.780 til 38.256 øre/kWh           |
 | Uvektet snitt av timesatsene | -101.037 øre/kWh                      |
 
@@ -93,11 +93,11 @@ Beviset ligger i tallene. Utfallet 04.09, som er utenfor denne fakturaen, har
 mean = min = max = 1.33741 for time 00, identisk med staten fra 03.09 kl. 23:45.
 For august:
 
-| Døgn  | Recorder time 00 | Forrige døgn 23:45 | Avvik (rå) | Publisert time 00 |
-| ----- | ---------------- | ------------------ | ---------- | ----------------- |
-| 17.08 | 1.26647          | 1.26293            | 0.354 øre  | 1.30852           |
-| 23.08 | 1.36097          | 1.36097            | 0          | 1.438275          |
-| 31.08 | 1.35957          | 1.35947            | 0.01 øre   | 1.364737          |
+| Døgn  | Recorder time 00 | Forrige døgn 23:45 | Avvik (rå) | Publisert time 00 | Utfall              |
+| ----- | ---------------- | ------------------ | ---------- | ----------------- | ------------------- |
+| 17.08 | 1.26647          | 1.26293            | 0.354 øre  | 1.30852           | fylt som randtime   |
+| 23.08 | 1.36097          | 1.36097            | 0          | 1.438275          | fylt som randtime   |
+| 31.08 | 1.35957          | 1.35947            | 0.01 øre   | 1.364737          | står, venter på svar |
 
 Avviks-kolonnen er den rå avstanden, altså recorder-verdien mot arkivprisen slik
 den står. 23.08 er identisk til siste desimal. De to andre avviker med noen
@@ -109,10 +109,10 @@ bommer på 17.08, men det gjør den ikke.
 Dette forklarer også hvorfor recorder-verdien lå *under* alle fire
 kvarterprisene i timen: den kom aldri fra timen.
 
-Alle 51 timene er fylt fra Nord Pools publiserte Final-kvarterpriser med
+50 timer er fylt fra Nord Pools publiserte Final-kvarterpriser med
 `scripts/research/fyll_spothull_fra_nordpool.py`, merket
-`"spot_kilde": "nordpool_publisert"` i fixturen. Randtimene kjenner scriptet
-igjen selv, og regelen har to krav som begge må være oppfylt: verdien ligger
+`"spot_kilde": "nordpool_publisert"` i fixturen: de 48 tomme timene og to av de
+tre randtimene. Randtimene kjenner scriptet igjen selv, og regelen har to krav som begge må være oppfylt: verdien ligger
 innenfor 0,5 øre/kWh av forrige døgns 23:45-kvarter, og den ligger minst
 0,2 øre/kWh lenger unna sin egen publiserte time enn den ligger fra kvarteret.
 Begge avstandene måles mot kurs-årgangsjustert pris, ikke mot arkivprisen rå:
@@ -120,27 +120,40 @@ Begge avstandene måles mot kurs-årgangsjustert pris, ikke mot arkivprisen rå:
 er båret, og timens egen pris med årgangen på sitt eget døgn. Uten det bommer en
 ekte måling på sin egen publiserte time på en årgangsdag av en grunn som ikke
 har noe med hull å gjøre, og krav 2 slår til på en gyldig verdi. Kolonnen
-«Publisert time 00» i tabellen over er det andre kravet: de tre randtimene
-bommer 4,2, 7,7 og 0,52 øre på sin egen time. Nærheten til
+«Publisert time 00» i tabellen over er det andre kravet: de to fylte randtimene
+bommer 4,2 og 7,7 øre på sin egen time, og 31.08 bommer 0,52. Nærheten til
 23:45-kvarteret alene ville ikke holdt. På en natt med flat pris ligger en ekte
 måling i time 00 også innenfor 0,5 øre av kvarteret kvelden før, og da ville
 scriptet overskrevet en gyldig måling og merket den med en årsak som ikke er
 sann. Er verdien nær begge, gjetter ikke scriptet: timen blir stående som målt
 og skrevet ut, så den kan avgjøres for hånd med `--overstyr`.
 
-Regelen er ikke uttømmende. Årgangen måles av døgnets egne ekte timer, så et
-helt hullet døgn, et døgn med under seks ekte timer, eller et døgn der faktoren
-ikke er konstant, gir ingen målt årgang. Da faller scriptet tilbake til rå
-publisert pris som før, og utskriften sier «kurs-årgang umålt». 31.08 er
-akkurat det tilfellet: den fylles med umålt årgang, og de 0,52 øre den bommer på
-egen time ligger innenfor det en årgang kunne forklart. Beviset for at den er
-båret er likevel sterkt, siden 0,01 øre fra 23:45-kvarteret er tilfeldig for en
-måling. Går det andre veien, altså at årgangen dytter en ekte randtime ut av
-krav 1, blir timen stående og skrevet ut.
+Årgangen måles av døgnets egne ekte timer, så et helt hullet døgn, et døgn med
+under seks ekte timer, eller et døgn der faktoren ikke er konstant, gir ingen
+målt årgang. Da er ikke krav 2 etterprøvbart, og timen blir stående. 31.08 er
+akkurat det tilfellet: hele døgnet er hullet, så det er ingen ekte timer å måle
+årgangen på, og de 0,52 øre timen bommer på sin egen publiserte time ligger
+innenfor det en årgang kunne forklart. Indisiet for at verdien er båret er
+sterkt, siden 0,01 øre fra 23:45-kvarteret er en tilfeldighet for en ekte
+måling, men et indisium er ikke en måling. Timen står med recorder-verdien
+1.35957 til den er avgjort for hånd:
+
+```
+python3 scripts/research/fyll_spothull_fra_nordpool.py \
+    --fixture tests/fixtures/bkk_august_2026_hourly.json \
+    --overstyr "2026-08-31T00:00:00+02:00=<begrunnelse>"
+```
+
+Å fylle den automatisk ville gitt timen merket `randtime_forrige_kvarter`, altså
+en påstand om at regelen kjente den igjen. Den påstanden holder ikke når
+forutsetningen for regelen ikke lar seg måle, og en fixture som påstår noe usant
+om seg selv er verre enn et åpent hull. Går det andre veien, altså at årgangen
+dytter en ekte randtime ut av krav 1, blir timen også stående og skrevet ut.
 
 Begrunnelsen for de fylte randtimene arkiveres i fixturens metadata under
-`spothull.fylt_fra_nordpool.randtimer`.
-`verify_norgespris_eksakt.py` holder alle 51 utenfor
+`spothull.fylt_fra_nordpool.randtimer`, manuelle overstyringer under
+`overstyrte_timer`. Begge deler står gjennom senere kjøringer av scriptet.
+`verify_norgespris_eksakt.py` holder alle 50 utenfor
 prisfidelitets-sammenligningen, ellers ville den målt arkivet mot seg selv.
 
 Hvorfor den offisielle Nord Pool-integrasjonen faller ut presis ved døgnskiftet
@@ -158,7 +171,7 @@ er merket DELVIS:
 | Forbruk dag kWh        | 349.822          | 475.519 | DELVIS |
 | Forbruk natt kWh       | 385.140          | 489.448 | DELVIS |
 | Kapasitet              | 250.00           | 250.00  | OK     |
-| Norgespris-komp        | -755.95          | -986.38 | DELVIS |
+| Norgespris-komp        | -755.94          | -986.38 | DELVIS |
 
 Kapasitetslinjen er den eneste som er sammenlignbar, og den treffer.
 
@@ -198,12 +211,14 @@ Eksakt-sjekken (Elhub-kWh x publiserte Final-priser) kan ikke kjøres før
 Elhub-CSV-en finnes. Prisdekningen er på plass: alle 744 timene har publisert
 Final-pris i kvarterarkivet.
 
-Prisfidelitet mot publisert, målt over de 517 timene som både har HAN-måling og
+Prisfidelitet mot publisert, målt over de 518 timene som både har HAN-måling og
 ekte recorder-pris: 218 bit-like, 418 innenfor 0,01 øre/kWh. Én dag med
 kurs-årgang, 16.08 (søndag), HA/publisert = 1.00281 konstant over alle 24 timer.
-Det er det vanlige søndagsmønsteret. Regnet med recorder-prisene lander
-Norgespris-summen for de målte timene 0,18 kr fra Final-summen, og 16.08 står
-for 0,12 av dem.
+Det er det vanlige søndagsmønsteret. Den 518. timen er 31.08 kl. 00, som venter
+på en avgjørelse og derfor telles som ekte: den bommer 0,52 øre på sin egen
+publiserte time og er den ene timen i tellingen som ikke er forklart. Regnet med
+recorder-prisene lander Norgespris-summen for de målte timene 0,17 kr fra
+Final-summen, og 16.08 står for 0,12 av dem.
 
 ## Avgiftsverifisering
 

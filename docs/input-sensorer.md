@@ -47,11 +47,11 @@ regner om til den enheten resten av koden bruker. Det er nytt fra 1.17: før ble
 tallet lest rått, så en kW-sensor ble lest som watt og en NOK/MWh-sensor som
 kroner per kWh. Begge deler er tusen ganger feil, og ingenting sa fra.
 
-| Rolle                          | Godtatte enheter                              |
-| ------------------------------ | --------------------------------------------- |
-| Effektmåler, eksport-effektmåler | `W`, `kW`, `MW`                             |
-| Energimåler                    | `Wh`, `kWh`, `MWh`                            |
-| Spotpris, strømleverandørpris  | `NOK/kWh`, `kr/kWh`, `øre/kWh`, `NOK/MWh`, `øre/MWh` |
+| Rolle                            | Godtatte enheter                                     |
+| -------------------------------- | ---------------------------------------------------- |
+| Effektmåler, eksport-effektmåler | `W`, `kW`, `MW`                                      |
+| Energimåler                      | `Wh`, `kWh`, `MWh`                                   |
+| Spotpris, strømleverandørpris    | `NOK/kWh`, `kr/kWh`, `øre/kWh`, `NOK/MWh`, `øre/MWh` |
 
 Store og små bokstaver spiller ingen rolle, og `ore` godtas som skrivemåte for
 `øre`.
@@ -221,12 +221,12 @@ inputene.
 
 Vaktholdet ser etter fire ting:
 
-| Situasjon                                                  | Hva som skjer                                            |
-| ---------------------------------------------------------- | -------------------------------------------------------- |
+| Situasjon                                                       | Hva som skjer                                            |
+| --------------------------------------------------------------- | -------------------------------------------------------- |
 | Entiteten er `unavailable`, `unknown` eller slettet over 30 min | Måledata-problem slår på, og du får et reparasjonsvarsel |
-| Energitelleren rapporterer, men øker ikke på tre timer     | Samme, med typen «frossen»                               |
-| Spotprisen har vært borte lenger enn cachen på to timer    | Samme, med typen «spot_utlopt»                           |
-| Sensoren bytter til en enhet vi ikke kan regne om          | Samme, med typen «enhet», og uten 30-minuttersfristen     |
+| Energitelleren rapporterer, men øker ikke på tre timer          | Samme, med typen «frossen»                               |
+| Spotprisen har vært borte lenger enn cachen på to timer         | Samme, med typen «spot_utlopt»                           |
+| Sensoren bytter til en enhet vi ikke kan regne om               | Samme, med typen «enhet», og uten 30-minuttersfristen    |
 
 En slettet entitet felte tidligere hele oppdateringen, så alt sto stille selv
 om de andre sensorene leverte som normalt. Nå meldes den som et utfall, og alt

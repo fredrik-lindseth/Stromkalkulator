@@ -238,6 +238,10 @@ Regler:
   steder å lese samme regel er ett for mye. K1 fjerner den siste bruken av
   konstanten, og står den da igjen i `const.py` uten bruker, fjernes den i samme
   commit.
+- Hva som skjer med baselinen når et delta avvises, både det negative og det
+  som er større enn `MAX_ENERGY_DELTA_KWH`, står i [avregning.md
+  C1](avregning.md#c1-fordelingsregel-jevnt-over-tid) sammen med bokføringen av
+  det avviste deltaet. Regelen eies der, og gjentas ikke her.
 - En gammel baseline uten `source_identity`, altså alt som ligger lagret i dag,
   forkastes én gang ved lasting. Månedsdata beholdes. Neste avlesning setter ny
   baseline med kilde og gir delta 0. Det koster hver bruker inntil ett

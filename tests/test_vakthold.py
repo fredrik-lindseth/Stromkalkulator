@@ -263,6 +263,120 @@ class TestSpotUtlopt:
         assert f"spot_utfall_{coord.entry.entry_id}" in _issue_ids(coord_module.ir)
 
 
+class TestOmstart:
+    """Falske positiver rett etter at HA har startet, altså hos alle brukere."""
+
+    def test_spot_uten_cache_varsler_ikke_med_en_gang(self, coord_module):
+        """R2: spot-cachen er in-memory og tom ved oppstart.
+
+        HA skriver restaurerte entiteter som unavailable til integrasjonen som
+        eier dem har levert. Kommer vår første refresh før Nord Pool henter,
+        er prisen ugyldig og cachen tom, og uten grace varsler vi hver eneste
+        omstart.
+        """
+        benk = Sensorbenk()
+        benk.sett("sensor.spot_price", "unavailable")
+        coord = _lag_coordinator(coord_module, benk)
+
+        start = datetime(2026, 6, 15, 12, 0)
+        resultat = _poll(coord_module, coord, start)
+        assert resultat["spot_price_valid"] is False
+        assert _typer(resultat) == set()
+        assert resultat["maaledata_problem"] is False
+        assert _issue_ids(coord_module.ir) == []
+
+        # Nord Pool kom seg opp, og da skal ingenting ha vært varslet.
+        benk.sett("sensor.spot_price", 1.20)
+        assert _typer(_poll(coord_module, coord, start + timedelta(minutes=1))) == set()
+
+    def test_spot_borte_forbi_grace_varsler_likevel(self, coord_module):
+        """Motprøve: grace er en utsettelse, ikke en avlysning."""
+        benk = Sensorbenk()
+        benk.sett("sensor.spot_price", "unavailable")
+        coord = _lag_coordinator(coord_module, benk)
+
+        start = datetime(2026, 6, 15, 12, 0)
+        _poll(coord_module, coord, start)
+        resultat = _poll(coord_module, coord, start + timedelta(minutes=45))
+
+        assert SPOT_UTLOPT in _typer(resultat)
+        assert f"spot_utfall_{coord.entry.entry_id}" in _issue_ids(coord_module.ir)
+
+    def test_lang_nedetid_gir_ikke_frossen_ved_forste_poll(self, coord_module):
+        """O1: HA har vært av i to døgn, og da er baseline droppet som foreldet.
+
+        Hytta som slås på igjen skal ikke møtes av et varsel om frossen måler.
+        """
+        benk = Sensorbenk()
+        coord = _lag_coordinator(coord_module, benk)
+        coord._store.async_load.return_value = {
+            "last_energy_increase": "2026-06-13T12:00:00",
+            "last_update": "2026-06-13T12:00:00",
+            "last_tpi_kwh": 1000.0,
+        }
+
+        start = datetime(2026, 6, 15, 12, 0)
+        coord_module.dt_util.now.return_value = start
+        resultat = _poll(coord_module, coord, start)
+
+        assert FROSSEN not in _typer(resultat)
+        assert not [i for i in _issue_ids(coord_module.ir) if i.startswith("energi_frossen_")]
+        assert coord._last_energy_increase == start
+
+
+class TestEnRangering:
+    """Én årsak skal gi ett varsel, ikke to."""
+
+    def test_energisensor_borte_gir_bare_utfall(self, coord_module):
+        """O2: unavailable energisensor slo ut både utfall og frossen.
+
+        Rangeringen: står energi-inputen selv i utfall, eier utfalls-deteksjonen
+        hendelsen. Frossen sier at sensoren rapporterer, og det gjør den ikke.
+        """
+        benk = Sensorbenk()
+        coord = _lag_coordinator(coord_module, benk)
+        start = datetime(2026, 6, 15, 12, 0)
+        _poll(coord_module, coord, start)
+
+        benk.sett("sensor.tpi", "unavailable")
+        resultat = _poll(coord_module, coord, start + timedelta(hours=4))
+
+        assert [p["type"] for p in resultat["input_problemer"]] == [UTFALL]
+        assert not [i for i in _issue_ids(coord_module.ir) if i.startswith("energi_frossen_")]
+
+    def test_frossen_klokken_starter_paa_nytt_etter_utfall(self, coord_module):
+        """Comebacket skal ikke bli et frossen-varsel i samme sekund.
+
+        Telleren gikk sin gang mens vi var blinde. Det vi mistet melder utfallet,
+        og et sprang som blir forkastet melder seg selv.
+        """
+        benk = Sensorbenk()
+        coord = _lag_coordinator(coord_module, benk)
+        start = datetime(2026, 6, 15, 12, 0)
+        _poll(coord_module, coord, start)
+
+        benk.sett("sensor.tpi", "unavailable")
+        _poll(coord_module, coord, start + timedelta(hours=10))
+
+        # Måleren teller videre der ute, så spranget forkastes som outlier.
+        benk.sett("sensor.tpi", 1400.0)
+        resultat = _poll(coord_module, coord, start + timedelta(hours=10, minutes=1))
+        assert FROSSEN not in _typer(resultat)
+        assert coord._last_energy_increase == start + timedelta(hours=10, minutes=1)
+
+    def test_spotutfall_erstatter_utfall_for_samme_sensor(self, coord_module):
+        """Spot_utlopt sier alt utfallet sier, og i tillegg hva det koster."""
+        benk = Sensorbenk()
+        coord = _lag_coordinator(coord_module, benk)
+        start = datetime(2026, 6, 15, 12, 0)
+        _poll(coord_module, coord, start)
+
+        benk.sett("sensor.spot_price", "unavailable")
+        resultat = _poll(coord_module, coord, start + timedelta(hours=3))
+
+        assert _typer(resultat) == {SPOT_UTLOPT}
+
+
 class TestForkastetDelta:
     """Deteksjon 4: kWh som ble kastet, skal synes som et fiksbart varsel."""
 
@@ -285,6 +399,32 @@ class TestForkastetDelta:
         assert plassholdere["kwh"] == "145.4"
         assert plassholdere["sensor"] == "sensor.tpi"
         assert "15.06.2026" in plassholdere["tidspunkt"]
+
+    def test_plassholderen_peker_paa_forrige_avlesning(self, coord_module):
+        """O3: hovedtilfellet er comebacket etter et langt utfall, ikke ett minutt.
+
+        08.08.2026 sto telleren vår på samme tall i 237 timer mens måleren gikk
+        videre. Varselet skal si hva spranget måles fra.
+        """
+        benk = Sensorbenk()
+        coord = _lag_coordinator(coord_module, benk)
+        start = datetime(2026, 7, 29, 10, 0)
+        _poll(coord_module, coord, start)
+
+        benk.sett("sensor.tpi", "unavailable")
+        _poll(coord_module, coord, start + timedelta(hours=100))
+
+        benk.sett("sensor.tpi", 1145.4)
+        _poll(coord_module, coord, datetime(2026, 8, 8, 8, 0))
+
+        kall = next(
+            k
+            for k in coord_module.ir.async_create_issue.call_args_list
+            if k.args[2] == f"energi_delta_forkastet_{coord.entry.entry_id}"
+        )
+        plassholdere = kall.kwargs["translation_placeholders"]
+        assert plassholdere["forrige"] == "29.07.2026 kl. 10:00"
+        assert plassholdere["tidspunkt"] == "08.08.2026 kl. 08:00"
 
     def test_negativt_sprang_gir_issue(self, coord_module):
         benk = Sensorbenk()
@@ -319,8 +459,8 @@ class TestFriskmelding:
         _poll(coord_module, coord, start)
 
         benk.sett("sensor.power", "unavailable")
-        benk.sett("sensor.tpi", "unavailable")
         benk.sett("sensor.spot_price", "unavailable")
+        # tpi rapporterer, men står stille: det er frossen, ikke utfall.
         resultat = _poll(coord_module, coord, start + timedelta(hours=4))
         assert _typer(resultat) == {UTFALL, FROSSEN, SPOT_UTLOPT}
 
@@ -428,12 +568,19 @@ class TestJuliReplay:
         assert vindu, "fant ingen timer i utfallsvinduet"
         assert all(problem for _, problem in vindu)
 
-    def test_baade_utfall_og_frossen_fanges(self, replay):
+    def test_hullet_meldes_som_utfall_ikke_ogsaa_frossen(self, replay):
+        """Én årsak, ett varsel.
+
+        Sensoren var borte i hele hullet, og da eier utfalls-deteksjonen
+        hendelsen. Frossen-teksten sier at sensoren rapporterer mens telleren
+        står stille, og det ville vært usant her. Den fasen har sin egen dekning
+        i TestFrossenTeller.
+        """
         typer = set()
         for tid, _, t in replay:
             if datetime(2026, 7, 29, 11, 0) <= tid < datetime(2026, 8, 8, 8, 0):
                 typer |= t
-        assert {UTFALL, FROSSEN} <= typer
+        assert typer == {UTFALL}
 
     def test_vaktholdet_slaar_av_etter_comebacket(self, replay):
         etter = [

@@ -226,7 +226,8 @@ LEVENDE_ENTRY = "01KFEFGNT6PZZFVPK0F0FSN40D"
 SLETTET_ENTRY = "01KNMS11PBKD0SPDPND2ZFB0JZ"
 
 # Entries opprettet før HA gikk over til ULID har 32 tegn heksadesimalt. De
-# lever fortsatt i gamle installasjoner (22 av 66 i Fredriks HA), så den grenen
+# lever fortsatt i gamle installasjoner (22 av 66 i Fredriks HA, september
+# 2026), så den grenen
 # i _ENTRY_ID_SUFFIX må ryddes like godt som ULID-grenen.
 LEVENDE_HEX_ENTRY = "3f0a1c9b4d6e8f2a7b5c0d1e2f3a4b5c"
 SLETTET_HEX_ENTRY = "a1b2c3d4e5f60718293a4b5c6d7e8f90"

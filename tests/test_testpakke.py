@@ -7,7 +7,8 @@ til er definert i pakken selv, og at referansene til integrasjonen svarer til
 en sensor integrasjonen faktisk lager.
 
 Instansspesifikke entity-id-er (device-prefiks, HAs dedup-nummerering) kan bare
-verifiseres mot en kjørende HA. Det gjør scripts/sjekk_testpakke.py.
+verifiseres mot en kjørende HA. Det gjør scripts/sjekk_testpakke.py. Nederst
+testes at scriptets henting av pakken fra HA skiller ssh-feil fra manglende fil.
 """
 
 from __future__ import annotations

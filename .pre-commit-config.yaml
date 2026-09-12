@@ -1,6 +1,13 @@
 # Pre-commit hooks for Strømkalkulator
-# Install: pip install pre-commit && pre-commit install
-# Run manually: pre-commit run --all-files
+# Install: pip install pre-commit && pre-commit install && pre-commit install --hook-type pre-push
+# Kjør en enkelt hook: pre-commit run <id> --all-files
+# Ikke kjør `pre-commit run --all-files` uten hook-id: repoet har aldri vært
+# ruff-format-rent, så det reformaterer titalls filer du ikke har rørt.
+
+# Alt utenom testsuiten hører hjemme på commit. Uten dette kjører hele settet
+# på nytt ved push, og et push av en ny gren sender alle filer gjennom
+# ruff-format.
+default_stages: [pre-commit]
 
 repos:
   # Ruff - Fast Python linter and formatter
@@ -51,8 +58,14 @@ repos:
     hooks:
       - id: pytest
         name: pytest
-        entry: python -m pytest tests/ -v --tb=short --ignore=tests/test_smoke_ha.py
-        language: system
+        # Samme suite som AGENTS.md foreskriver. `language: python` gir hooken
+        # sitt eget venv med hypothesis og pyyaml, slik at den ikke avhenger av
+        # hva som tilfeldigvis ligger i PATH (`python` finnes ikke på alle
+        # maskiner) og ikke kan gå grønn lokalt mens CI går rød på en test som
+        # stille skipper.
+        entry: pytest tests/ --ignore=tests/test_smoke_ha.py
+        language: python
+        additional_dependencies: [pytest, hypothesis, pyyaml]
         pass_filenames: false
         always_run: true
         stages: [pre-push]

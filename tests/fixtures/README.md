@@ -27,6 +27,52 @@ Desember 2025 og første halvdel av januar 2026 kommer fra Tibber Pulse-sensor,
 resten fra Pow-U HAN-modul (installert 30.01.26). Begge måler samme fysiske
 meter, så akkumulerte kWh-verdier er kontinuerlige.
 
+### `elhub_<måned>_<år>.json`
+
+Intervallenergi per time, hentet rett fra Elhub-CSV-en. Dette er
+fakturagrunnlaget BKK leser, og det er uavhengig av HAN-måleren: en måned der
+HAN-leseren var nede har likevel full Elhub-dekning. Fasiten i
+`tests/replay/fasit.py` måles mot disse.
+
+| Fil | Timer | Sum kWh | Faktura total |
+| --- | ---: | ---: | ---: |
+| `elhub_februar_2026.json` | 672 | 1673,786 | 1673,786 |
+| `elhub_mars_2026.json` | 743 | 1553,217 | 1553,217 |
+| `elhub_april_2026.json` | 720 | 1381,827 | 1381,827 |
+| `elhub_mai_2026.json` | 744 | 1179,303 | 1179,303 |
+| `elhub_juni_2026.json` | 720 | 1033,628 | 1033,628 |
+| `elhub_juli_2026.json` | 744 | 938,763 | 938,763 |
+
+Bare `Fra` og `Volum` er med. Kundenavn, målepunkt-ID og
+registreringstidspunkt blir liggende i den private CSV-en, på samme måte som
+`bkk_*_hourly.json` ikke har navn eller fakturanummer.
+
+August 2026 mangler, for Elhub-CSV-en er ikke lastet ned. Måneden er derfor
+merket ufullstendig i `tests/test_replay_hendelser.py` og avstemmes ikke mot
+faktura; HAN-fixturen mangler 176 av 744 timer og duger ikke som erstatning.
+
+### `final_pris_<måned>_<år>.json`
+
+Nord Pools publiserte Final-priser for NO5, en rad per time med de fire
+kvarterprisene og timesnittet. Timesprisen er det uvektede snittet uten
+mellomavrunding, altså A2 i [avregningskontrakten](../../docs/kontrakter/avregning.md).
+Rader med `kilde: "fallback"` kommer fra EUR-fixturen ganget med
+exchangeRate-arkivet og har `kvarter: null`; det gjelder 1. til 4. mai 2026,
+som har falt ut av gratis-vinduet i NOK-arkivet.
+
+Finnes for mai, juni, juli og august 2026. Lenger tilbake rekker ikke
+prisarkivet, og `just snapshot-kurs` må kjøres månedlig for at det ikke skal
+krympe videre.
+
+### Regenerere elhub- og final_pris-fixturene
+
+```bash
+python3 scripts/research/lag_replay_fixtures.py
+python3 scripts/research/lag_replay_fixtures.py --sjekk   # feiler ved drift
+```
+
+Krever de private arkivene i `_private/Måleverdier/`.
+
 ### `nordpool_eur_no5_2026.json`
 
 Time-for-time Nord Pool day-ahead spotpris for NO5 (Bergen), råpris i EUR/MWh.

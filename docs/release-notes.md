@@ -79,7 +79,7 @@ innholdet slik det var ved releasen, også om et år.
 - Peker en relativ lenke på en fil som ikke finnes, feiler scriptet med exit 1
   framfor å publisere en død lenke. Slett eller rett stien.
 
-Flytter du en fil det lenkes til fra en uslupen seksjon, fanges det av
+Flytter du en fil det lenkes til fra en usluppen seksjon, fanges det av
 `pytest tests/test_release_notes.py` lokalt og av CI, ikke først i
 release-jobben.
 

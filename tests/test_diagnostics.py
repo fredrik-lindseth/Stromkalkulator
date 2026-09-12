@@ -7,6 +7,7 @@ and includes all required sections.
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime
 from unittest.mock import MagicMock
 
 import pytest
@@ -35,7 +36,12 @@ def mock_coordinator():
         "energiledd": 0.4613,
         "spot_price": 1.20,
         "total_price": 1.50,
+        "input_problemer": [{"type": "utfall", "input": "energi"}],
     }
+    coordinator.energi_frossen_terskel_timer = 3.0
+    coordinator._last_energy_increase = datetime(2026, 7, 29, 10, 58)
+    coordinator._input_sist_gyldig = {"energi": datetime(2026, 7, 29, 10, 58)}
+    coordinator._vakthold_issues = {"utfall", "frossen"}
     return coordinator
 
 
@@ -116,3 +122,26 @@ class TestDiagnosticsStructure:
     def test_config_entry_includes_har_norgespris(self, mock_hass, mock_entry):
         result = asyncio.run(async_get_config_entry_diagnostics(mock_hass, mock_entry))
         assert result["config_entry"]["data"]["har_norgespris"] is False
+
+
+class TestVaktholdDiagnostikk:
+    """Vaktholdet er det første man vil se når noen melder at tallene stoppet."""
+
+    def test_har_vakthold_seksjon(self, mock_hass, mock_entry):
+        result = asyncio.run(async_get_config_entry_diagnostics(mock_hass, mock_entry))
+        vakthold = result["vakthold"]
+        assert vakthold["grace_minutter"] == 30.0
+        assert vakthold["frossen_terskel_timer"] == 3.0
+        assert vakthold["sist_energi_okning"] == "2026-07-29T10:58:00"
+        assert vakthold["input_sist_gyldig"] == {"energi": "2026-07-29T10:58:00"}
+        assert vakthold["aktive_issues"] == ["frossen", "utfall"]
+        assert vakthold["input_problemer"][0]["input"] == "energi"
+
+    def test_taaler_tom_coordinator(self, mock_hass, mock_entry, mock_coordinator):
+        mock_coordinator.data = None
+        mock_coordinator._last_energy_increase = None
+        mock_coordinator._input_sist_gyldig = {}
+        mock_coordinator._vakthold_issues = set()
+        result = asyncio.run(async_get_config_entry_diagnostics(mock_hass, mock_entry))
+        assert result["vakthold"]["sist_energi_okning"] is None
+        assert result["vakthold"]["input_problemer"] == []

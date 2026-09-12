@@ -56,6 +56,7 @@ async def async_setup_entry(
     async_add_entities(
         [
             KapasitetVarselBinarySensor(coordinator, entry),
+            MaaledataProblemBinarySensor(coordinator, entry),
             NorgesprisAktivBinarySensor(coordinator, entry),
             StromstotteAktivBinarySensor(coordinator, entry),
         ]
@@ -127,6 +128,47 @@ class KapasitetVarselBinarySensor(StromkalkulatorBinarySensor):
                 "margin_kw": self.coordinator.data.get("margin_neste_trinn_kw"),
             }
         return None
+
+
+class MaaledataProblemBinarySensor(StromkalkulatorBinarySensor):
+    """Vakthold: på når en input-sensor har sviktet.
+
+    Aldri spot-gatet. Poenget med sensoren er å si fra når inputen er borte, og
+    et bortfall av spotprisen er nettopp et av tilfellene den skal fange. Gates
+    den på gyldig spot, blir den utilgjengelig akkurat når den trengs.
+    """
+
+    _attr_translation_key = "maaledata_problem"
+    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon = "mdi:database-alert"
+
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the binary sensor."""
+        super().__init__(coordinator, entry, "maaledata_problem")
+
+    @property
+    def is_on(self) -> bool | None:
+        """True når minst ett vakthold-problem er aktivt."""
+        if self.coordinator.data:
+            return bool(self.coordinator.data.get("maaledata_problem", False))
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Hvilke inputer som svikter, og hvor lenge."""
+        if not self.coordinator.data:
+            return None
+        problemer = self.coordinator.data.get("input_problemer") or []
+        return {
+            "problemer": problemer,
+            "antall_problemer": len(problemer),
+            "berorte_inputer": [p.get("input") for p in problemer],
+            "sist_energi_okning": self.coordinator.data.get("sist_energi_okning"),
+            "spotpris_gyldig": self.coordinator.data.get("spot_price_valid"),
+            "leverandorpris_gyldig": self.coordinator.data.get("leverandorpris_gyldig"),
+            "frossen_terskel_timer": self.coordinator.data.get("energi_frossen_terskel_timer"),
+        }
 
 
 class NorgesprisAktivBinarySensor(StromkalkulatorBinarySensor):

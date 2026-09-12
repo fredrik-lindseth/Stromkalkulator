@@ -43,6 +43,13 @@ Effektsensor (W) + Spotpris (NOK/kWh)
     total_strompris_etter_stotte
 ```
 
+Parallelt med beregningen vurderer coordinatoren om inputene i det hele tatt
+leverer: entiteter som har stått `unavailable` over grace-vinduet, en
+energiteller som ikke har økt på terskelen, og en spot-cache som er løpt ut.
+Resultatet ligger i `data["input_problemer"]`, drives `binary_sensor`-en
+`maaledata_problem`, og reiser repair-issues per entry. Se
+[input-sensorer.md](input-sensorer.md#når-en-input-dør).
+
 ### Hvorfor polling, ikke event-drevet
 
 Coordinator poller hvert minutt i stedet for å abonnere på state-endringer. Ikke fordi matematikken krever det. Akkumuleringen antar ikke jevne tidssteg, `elapsed_hours` er faktisk `now - _last_update` (`coordinator.py:513-517`), så event-drevet oppdatering ville fungert regnemessig.

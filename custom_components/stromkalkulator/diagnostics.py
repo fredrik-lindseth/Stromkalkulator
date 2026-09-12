@@ -20,6 +20,7 @@ from .const import (
     CONF_POWER_SENSOR,
     CONF_SIKRINGSTRINN,
     CONF_SPOT_PRICE_SENSOR,
+    INPUT_UTFALL_GRACE_MINUTTER,
 )
 
 
@@ -65,6 +66,24 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
             # Uten den i diagnostikken må man gjette fra DSO-id-en.
             "fastledd_metode": coordinator.fastledd_metode,
             "ukesmaks_count": len(coordinator._weekly_max_power),
+        },
+        # Vaktholdet er det første man vil se når noen melder at tallene
+        # stoppet: hvilken input som svikter, hvor lenge, og hvilke varsler som
+        # står ute akkurat nå.
+        "vakthold": {
+            "grace_minutter": INPUT_UTFALL_GRACE_MINUTTER,
+            "frossen_terskel_timer": coordinator.energi_frossen_terskel_timer,
+            "sist_energi_okning": (
+                coordinator._last_energy_increase.isoformat()
+                if coordinator._last_energy_increase
+                else None
+            ),
+            "input_sist_gyldig": {
+                rolle: naar.isoformat()
+                for rolle, naar in coordinator._input_sist_gyldig.items()
+            },
+            "aktive_issues": sorted(coordinator._vakthold_issues),
+            "input_problemer": (coordinator.data or {}).get("input_problemer", []),
         },
         "coordinator_data": coordinator.data if coordinator.data else {},
     }

@@ -19,6 +19,7 @@ from .const import (
     CONF_BOLIGTYPE,
     CONF_DSO,
     CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
+    CONF_ENERGI_FROSSEN_TIMER,
     CONF_ENERGILEDD_DAG,
     CONF_ENERGILEDD_NATT,
     CONF_ENERGY_SENSOR,
@@ -30,12 +31,15 @@ from .const import (
     CONF_SPOT_PRICE_SENSOR,
     CONF_SPOTPRIS_INKL_MVA,
     DEFAULT_DSO,
+    DEFAULT_ENERGI_FROSSEN_TIMER,
     DEFAULT_ENERGILEDD_DAG,
     DEFAULT_ENERGILEDD_NATT,
     DEFAULT_KAPASITET_VARSEL_TERSKEL,
     DEFAULT_NAME,
     DOMAIN,
     DSO_LIST,
+    MAX_ENERGI_FROSSEN_TIMER,
+    MIN_ENERGI_FROSSEN_TIMER,
     resolve_avgiftssone,
 )
 from .dso import FASTLEDD_OV_TREFASE, finn_sikringstrinn, hent_fastledd_metode
@@ -251,6 +255,18 @@ def _config_data_schema(current: dict[str, Any]) -> vol.Schema:
                     max=2,
                     step="any",
                     unit_of_measurement="NOK/kWh",
+                    mode=selector.NumberSelectorMode.BOX,
+                ),
+            ),
+            vol.Optional(
+                CONF_ENERGI_FROSSEN_TIMER,
+                default=current.get(CONF_ENERGI_FROSSEN_TIMER, DEFAULT_ENERGI_FROSSEN_TIMER),
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=MIN_ENERGI_FROSSEN_TIMER,
+                    max=MAX_ENERGI_FROSSEN_TIMER,
+                    step=1,
+                    unit_of_measurement="t",
                     mode=selector.NumberSelectorMode.BOX,
                 ),
             ),

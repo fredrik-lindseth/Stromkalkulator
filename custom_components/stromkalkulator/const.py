@@ -30,6 +30,10 @@ CONF_SPOTPRIS_INKL_MVA: Final[str] = "spotpris_inkl_mva"
 # i DSO-ens `fastledd_sikringstrinn`. Fravær betyr "ikke valgt", og skal aldri
 # tolkes som laveste trinn. Se docs/beregninger.md#kapasitetsledd.
 CONF_SIKRINGSTRINN: Final[str] = "sikringstrinn"
+# Hvor lenge energitelleren kan stå stille før vaktholdet melder den frossen.
+# Konfigurerbar fordi en hytte med hovedbryteren av står stille i dagevis helt
+# lovlig, mens en bolig som ikke har økt på tre timer er et reelt utfall.
+CONF_ENERGI_FROSSEN_TIMER: Final[str] = "energi_frossen_timer"
 
 # Avgiftssoner for forbruksavgift og mva
 # Kilde: merverdiavgiftsloven § 6-6 (mva-fritak for Nordland, Troms, Finnmark)
@@ -358,6 +362,36 @@ MAX_ENERGY_DELTA_KWH: Final[float] = 100.0
 # Hvis lagret _last_tpi_kwh er eldre enn dette ved oppstart, nullstilles den
 # slik at første poll ikke gir et gigantisk delta.
 TPI_STALE_HOURS: Final[float] = 24.0
+
+# === VAKTHOLD PÅ INPUT-SENSORENE ===
+# HAN-leseren lå nede 237 timer i strekk sommeren 2026 uten at noe varslet, og
+# spotpris-sensoren falt ut fire ganger måneden etter. Vaktholdet i
+# coordinator.py ser etter tre ting og eksponerer dem på binary_sensor
+# maaledata_problem + repair-issues. Se docs/input-sensorer.md.
+
+# Hvor lenge en input-entitet kan stå unavailable/unknown før det meldes.
+# Bevisst en konstant og ikke et valg: 30 minutter dekker HA-restart, oppdatering
+# av en integrasjon og en nettverksglipp, og alt lengre er et ekte utfall.
+INPUT_UTFALL_GRACE_MINUTTER: Final[float] = 30.0
+
+# Frossen energiteller: default og grenser for options-feltet (timer).
+DEFAULT_ENERGI_FROSSEN_TIMER: Final[float] = 3.0
+MIN_ENERGI_FROSSEN_TIMER: Final[float] = 1.0
+MAX_ENERGI_FROSSEN_TIMER: Final[float] = 48.0
+
+# Problemtyper i data["input_problemer"]. Brukes som attributt-verdier og i
+# repair-issue-id-ene, så de skal være stabile strenger.
+VAKTHOLD_UTFALL: Final[str] = "utfall"
+VAKTHOLD_FROSSEN: Final[str] = "frossen"
+VAKTHOLD_SPOT_UTLOPT: Final[str] = "spot_utlopt"
+
+# Rollenavn for de konfigurerbare inputene. Rollen, ikke entity-id-en, er det
+# brukeren kjenner igjen i attributtene.
+INPUT_ROLLE_EFFEKT: Final[str] = "effekt"
+INPUT_ROLLE_ENERGI: Final[str] = "energi"
+INPUT_ROLLE_SPOTPRIS: Final[str] = "spotpris"
+INPUT_ROLLE_EKSPORT: Final[str] = "eksport"
+INPUT_ROLLE_LEVERANDORPRIS: Final[str] = "leverandorpris"
 
 # Dag/natt-tariff (nettleie energiledd)
 DAY_RATE_START_HOUR: Final[int] = 6

@@ -73,7 +73,8 @@
           "export_power_sensor": "Eksport-effektmåler (valgfri)",
           "energiledd_dag": "Energiledd dag (NOK/kWh)",
           "energiledd_natt": "Energiledd natt/helg (NOK/kWh)",
-          "kapasitet_varsel_terskel": "Kapasitetsvarsel-terskel (kW)"
+          "kapasitet_varsel_terskel": "Kapasitetsvarsel-terskel (kW)",
+          "energi_frossen_timer": "Terskel for frossen energimåler (timer)"
         },
         "data_description": {
           "boligtype": "Bolig: Strømstøtte opptil 5000 kWh/mnd, Norgespris opptil 5000 kWh/mnd. Fritidsbolig: Ingen strømstøtte, Norgespris opptil 1000 kWh/mnd. Fritidsbolig (fast bosted): Samme som bolig (Forskrift § 11).",
@@ -88,7 +89,8 @@
           "export_power_sensor": "Effektmåler for eksport til nettet (OBIS 2.7.0), kun for plusskunder med solceller. Brukes til å beregne salgsinntekt og netto månedskostnad. Hopp over hvis du ikke har solceller.",
           "energiledd_dag": "Ren nettleie eks. mva og avgifter. Integrasjonen legger på forbruksavgift, Enova og mva basert på avgiftssone.",
           "energiledd_natt": "Ren nettleie eks. mva og avgifter. Sett samme verdi som dag for flat sats.",
-          "kapasitet_varsel_terskel": "Varsle når margin til neste kapasitetstrinn er under denne verdien. Standard: 2.0 kW."
+          "kapasitet_varsel_terskel": "Varsle når margin til neste kapasitetstrinn er under denne verdien. Standard: 2.0 kW.",
+          "energi_frossen_timer": "Meld fra når energimåleren ikke har økt på så mange timer. Standard: 3. Sett den høyere på en hytte eller et anlegg som står tomt i perioder, ellers varsler den hver gang hovedbryteren er av."
         }
       }
     },
@@ -121,7 +123,8 @@
           "export_power_sensor": "Eksport-effektmåler (valgfri)",
           "energiledd_dag": "Energiledd dag (NOK/kWh)",
           "energiledd_natt": "Energiledd natt/helg (NOK/kWh)",
-          "kapasitet_varsel_terskel": "Kapasitetsvarsel-terskel (kW)"
+          "kapasitet_varsel_terskel": "Kapasitetsvarsel-terskel (kW)",
+          "energi_frossen_timer": "Terskel for frossen energimåler (timer)"
         },
         "data_description": {
           "boligtype": "Bolig: Strømstøtte opptil 5000 kWh/mnd, Norgespris opptil 5000 kWh/mnd. Fritidsbolig: Ingen strømstøtte, Norgespris opptil 1000 kWh/mnd. Fritidsbolig (fast bosted): Samme som bolig (Forskrift § 11).",
@@ -136,7 +139,8 @@
           "export_power_sensor": "Effektmåler for eksport til nettet (OBIS 2.7.0), kun for plusskunder med solceller. Brukes til å beregne salgsinntekt og netto månedskostnad. Hopp over hvis du ikke har solceller.",
           "energiledd_dag": "Ren nettleie eks. mva og avgifter. Integrasjonen legger på forbruksavgift, Enova og mva basert på avgiftssone.",
           "energiledd_natt": "Ren nettleie eks. mva og avgifter. Sett samme verdi som dag for flat sats.",
-          "kapasitet_varsel_terskel": "Varsle når margin til neste kapasitetstrinn er under denne verdien. Standard: 2.0 kW."
+          "kapasitet_varsel_terskel": "Varsle når margin til neste kapasitetstrinn er under denne verdien. Standard: 2.0 kW.",
+          "energi_frossen_timer": "Meld fra når energimåleren ikke har økt på så mange timer. Standard: 3. Sett den høyere på en hytte eller et anlegg som står tomt i perioder, ellers varsler den hver gang hovedbryteren er av."
         }
       }
     }
@@ -148,6 +152,9 @@
       }
     },
     "binary_sensor": {
+      "maaledata_problem": {
+        "name": "Måledata-problem"
+      },
       "kapasitet_varsel": {
         "name": "Kapasitetsvarsel"
       },
@@ -310,6 +317,29 @@
     }
   },
   "issues": {
+    "vakthold_utfall": {
+      "title": "Strømkalkulator får ikke data fra {input}",
+      "description": "{entity_id} har vært utilgjengelig i {timer} timer. Så lenge den er borte står forbruk og kostnad stille, uten at tallene ser feil ut. Sjekk integrasjonen som eier sensoren, HAN-leseren og nettverket. Varselet forsvinner av seg selv når dataene kommer tilbake."
+    },
+    "vakthold_frossen": {
+      "title": "Energimåleren står stille",
+      "description": "{entity_id} har ikke økt på {timer} timer. Sensoren rapporterer fortsatt, men telleren beveger seg ikke, så månedsforbruket blir for lavt. Står anlegget faktisk uten forbruk, kan du heve terskelen i innstillingene. Varselet forsvinner av seg selv når telleren øker igjen."
+    },
+    "vakthold_spot_utlopt": {
+      "title": "Spotprisen er for gammel til å regne med",
+      "description": "{entity_id} har ikke levert en gyldig pris på {timer} timer, og den mellomlagrede prisen er utløpt. Forbruket telles fortsatt i kWh, men kostnad, strømstøtte og Norgespris-sammenligning står stille til prisen er tilbake."
+    },
+    "energi_delta_forkastet": {
+      "title": "Et sprang i energimåleren ble forkastet",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Et sprang i energimåleren ble forkastet",
+            "description": "{sensor} hoppet {kwh} kWh på ett minutt {tidspunkt}. Spranget er holdt utenfor månedsforbruket, fordi det like gjerne kan være en målerbytte eller et sensorhikk som ekte forbruk. Var det ekte, mangler de kWh-ene nå i månedstallet, og fakturaen blir høyere enn estimatet. Bekreft for å lukke varselet."
+          }
+        }
+      }
+    },
     "satser_utdatert": {
       "title": "Nettleie- og avgiftssatsene kan være utdaterte",
       "description": "Satsene i Strømkalkulator er verifisert for {aar}. Kalenderen har rullet videre, og integrasjonen regner fortsatt med {aar}-satser. Sjekk om det finnes en oppdatert versjon i HACS, ellers kan nettleie, avgifter og strømstøtte være feil for inneværende år."

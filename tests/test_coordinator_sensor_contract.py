@@ -164,3 +164,17 @@ class TestCoordinatorSensorContract:
             # Should not raise
             value = sensor.native_value
             assert value is not None, f"{sensor.__class__.__name__} returned None"
+
+
+class TestVaktholdKontrakt:
+    """Nøklene binary_sensor.maaledata_problem leser, må finnes i data-dicten."""
+
+    def test_data_har_vakthold_nokler(self, coord_module):
+        coordinator, _entry, data = _build_coordinator_with_data(coord_module)
+
+        assert data["maaledata_problem"] is False
+        assert data["input_problemer"] == []
+        assert data["sist_energi_okning"] is None
+        assert data["energi_frossen_terskel_timer"] == coordinator.energi_frossen_terskel_timer
+        # Uten leverandør-sensor er spørsmålet ikke stilt, og svaret er None.
+        assert data["leverandorpris_gyldig"] is None

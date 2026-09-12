@@ -34,6 +34,7 @@ _coord_mod.CoordinatorEntity = FakeCoordinatorEntity
 
 from stromkalkulator.binary_sensor import (  # noqa: E402
     KapasitetVarselBinarySensor,
+    MaaledataProblemBinarySensor,
     NorgesprisAktivBinarySensor,
     StromstotteAktivBinarySensor,
 )
@@ -238,3 +239,67 @@ class TestStromstotteAktivBinarySensor:
     def test_attributes_none_without_data(self, mock_entry):
         sensor = StromstotteAktivBinarySensor(_coord(None), mock_entry)
         assert sensor.extra_state_attributes is None
+
+
+class TestMaaledataProblemBinarySensor:
+    """Vaktholdets ansikt utad. Den skal virke også når spotprisen er borte."""
+
+    def test_av_uten_problemer(self, mock_entry):
+        sensor = MaaledataProblemBinarySensor(
+            _coord({"maaledata_problem": False, "input_problemer": []}), mock_entry
+        )
+        assert sensor.is_on is False
+
+    def test_paa_med_problem(self, mock_entry):
+        sensor = MaaledataProblemBinarySensor(
+            _coord(
+                {
+                    "maaledata_problem": True,
+                    "input_problemer": [
+                        {
+                            "type": "utfall",
+                            "input": "energi",
+                            "entity_id": "sensor.tpi",
+                            "siden": "2026-07-29T11:00:00",
+                            "minutter": 180,
+                            "timer": 3.0,
+                        }
+                    ],
+                }
+            ),
+            mock_entry,
+        )
+        assert sensor.is_on is True
+        attrs = sensor.extra_state_attributes
+        assert attrs is not None
+        assert attrs["antall_problemer"] == 1
+        assert attrs["berorte_inputer"] == ["energi"]
+        assert attrs["problemer"][0]["entity_id"] == "sensor.tpi"
+
+    def test_ikke_spot_gatet(self, mock_entry):
+        """Bortfall av spotprisen er nettopp det sensoren skal melde."""
+        sensor = MaaledataProblemBinarySensor(
+            _coord(
+                {
+                    "maaledata_problem": True,
+                    "spot_price_valid": False,
+                    "input_problemer": [{"type": "spot_utlopt", "input": "spotpris"}],
+                }
+            ),
+            mock_entry,
+        )
+        assert sensor.is_on is True
+        attrs = sensor.extra_state_attributes
+        assert attrs is not None
+        assert attrs["spotpris_gyldig"] is False
+
+    def test_none_uten_data(self, mock_entry):
+        sensor = MaaledataProblemBinarySensor(_coord(None), mock_entry)
+        assert sensor.is_on is None
+        assert sensor.extra_state_attributes is None
+
+    def test_device_class_og_kategori(self, mock_entry):
+        sensor = MaaledataProblemBinarySensor(_coord({}), mock_entry)
+        assert sensor._attr_device_class == "problem"
+        assert sensor._attr_entity_category == "diagnostic"
+        assert sensor._attr_unique_id == "test_entry_123_maaledata_problem"

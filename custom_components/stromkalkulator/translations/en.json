@@ -73,7 +73,8 @@
           "export_power_sensor": "Export power sensor (optional)",
           "energiledd_dag": "Energy tariff day (NOK/kWh)",
           "energiledd_natt": "Energy tariff night/weekend (NOK/kWh)",
-          "kapasitet_varsel_terskel": "Capacity warning threshold (kW)"
+          "kapasitet_varsel_terskel": "Capacity warning threshold (kW)",
+          "energi_frossen_timer": "Frozen energy meter threshold (hours)"
         },
         "data_description": {
           "boligtype": "Residence: Subsidy up to 5000 kWh/month, Norgespris up to 5000 kWh/month. Holiday home: No subsidy, Norgespris up to 1000 kWh/month. Holiday home (permanent residence): Same as residence (Regulation § 11).",
@@ -88,7 +89,8 @@
           "export_power_sensor": "Power sensor for export to the grid (OBIS 2.7.0), for prosumers with solar panels only. Used to calculate export revenue and net monthly cost. Skip if you don't have solar panels.",
           "energiledd_dag": "Net grid tariff excl. VAT and consumption tax. The integration adds consumption tax, Enova fee and VAT based on tax zone.",
           "energiledd_natt": "Net grid tariff excl. VAT and consumption tax. Set the same as day for flat rate.",
-          "kapasitet_varsel_terskel": "Warn when margin to next capacity tier is below this value. Default: 2.0 kW."
+          "kapasitet_varsel_terskel": "Warn when margin to next capacity tier is below this value. Default: 2.0 kW.",
+          "energi_frossen_timer": "Warn when the energy meter has not increased for this many hours. Default: 3. Raise it for a cabin or site that sits idle for stretches, otherwise it warns every time the main breaker is off."
         }
       }
     },
@@ -121,7 +123,8 @@
           "export_power_sensor": "Export power sensor (optional)",
           "energiledd_dag": "Energy tariff day (NOK/kWh)",
           "energiledd_natt": "Energy tariff night/weekend (NOK/kWh)",
-          "kapasitet_varsel_terskel": "Capacity warning threshold (kW)"
+          "kapasitet_varsel_terskel": "Capacity warning threshold (kW)",
+          "energi_frossen_timer": "Frozen energy meter threshold (hours)"
         },
         "data_description": {
           "boligtype": "Residence: Subsidy up to 5000 kWh/month, Norgespris up to 5000 kWh/month. Holiday home: No subsidy, Norgespris up to 1000 kWh/month. Holiday home (permanent residence): Same as residence (Regulation § 11).",
@@ -136,7 +139,8 @@
           "export_power_sensor": "Power sensor for export to the grid (OBIS 2.7.0), for prosumers with solar panels only. Used to calculate export revenue and net monthly cost. Skip if you don't have solar panels.",
           "energiledd_dag": "Net grid tariff excl. VAT and consumption tax. The integration adds consumption tax, Enova fee and VAT based on tax zone.",
           "energiledd_natt": "Net grid tariff excl. VAT and consumption tax. Set the same as day for flat rate.",
-          "kapasitet_varsel_terskel": "Warn when margin to next capacity tier is below this value. Default: 2.0 kW."
+          "kapasitet_varsel_terskel": "Warn when margin to next capacity tier is below this value. Default: 2.0 kW.",
+          "energi_frossen_timer": "Warn when the energy meter has not increased for this many hours. Default: 3. Raise it for a cabin or site that sits idle for stretches, otherwise it warns every time the main breaker is off."
         }
       }
     }
@@ -148,6 +152,9 @@
       }
     },
     "binary_sensor": {
+      "maaledata_problem": {
+        "name": "Measurement data problem"
+      },
       "kapasitet_varsel": {
         "name": "Capacity warning"
       },
@@ -310,6 +317,29 @@
     }
   },
   "issues": {
+    "vakthold_utfall": {
+      "title": "Strømkalkulator is not receiving data from {input}",
+      "description": "{entity_id} has been unavailable for {timer} hours. While it is gone, consumption and cost stand still without the numbers looking wrong. Check the integration that owns the sensor, the HAN reader and the network. The warning clears itself once data returns."
+    },
+    "vakthold_frossen": {
+      "title": "The energy meter is not moving",
+      "description": "{entity_id} has not increased for {timer} hours. The sensor still reports, but the counter is stuck, so monthly consumption comes out too low. If the site really has no consumption, raise the threshold in settings. The warning clears itself once the counter increases again."
+    },
+    "vakthold_spot_utlopt": {
+      "title": "The spot price is too old to calculate with",
+      "description": "{entity_id} has not delivered a valid price for {timer} hours, and the cached price has expired. Consumption is still counted in kWh, but cost, subsidy and the Norgespris comparison stand still until the price returns."
+    },
+    "energi_delta_forkastet": {
+      "title": "A jump in the energy meter was discarded",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "A jump in the energy meter was discarded",
+            "description": "{sensor} jumped {kwh} kWh in one minute on {tidspunkt}. The jump was kept out of monthly consumption, since it could just as well be a meter swap or a sensor glitch as real usage. If it was real, those kWh are now missing from the monthly figure and the invoice will exceed the estimate. Confirm to close the warning."
+          }
+        }
+      }
+    },
     "satser_utdatert": {
       "title": "Grid tariff and tax rates may be outdated",
       "description": "The rates in Strømkalkulator are verified for {aar}. The calendar has rolled over and the integration is still using {aar} rates. Check HACS for an updated version, otherwise grid tariffs, taxes and subsidy may be wrong for the current year."

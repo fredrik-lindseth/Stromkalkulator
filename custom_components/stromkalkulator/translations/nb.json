@@ -11,7 +11,7 @@
         },
         "data_description": {
           "boligtype": "Bolig: Strømstøtte opptil 5000 kWh/mnd, Norgespris opptil 5000 kWh/mnd. Fritidsbolig: Ingen strømstøtte, Norgespris opptil 1000 kWh/mnd. Fritidsbolig (fast bosted): Samme som bolig (Forskrift § 11).",
-          "har_norgespris": "Aktiver hvis du har valgt Norgespris hos nettselskapet. Bruker fast pris (40-50 øre/kWh) i stedet for spotpris."
+          "har_norgespris": "Aktiver hvis du har valgt Norgespris hos nettselskapet. Fast pris (50 øre/kWh i Sør-Norge, 40 øre i Nord-Norge) for de første 5000 kWh per måned (1000 kWh for fritidsbolig). Forbruk over grensen betales til spotpris."
         }
       },
       "sensors": {
@@ -28,7 +28,7 @@
         "data_description": {
           "power_sensor": "Sensor som viser nåværende strømforbruk i watt, f.eks. fra HAN-port, Tibber Pulse eller P1-måler.",
           "spot_price_sensor": "Sensor med gjeldende spotpris i NOK/kWh. Vanligvis «Current price» fra Nord Pool-integrasjonen.",
-          "spotpris_inkl_mva": "La stå av for HA-core nordpool-integrasjon (leverer eks. mva). Slå på hvis sensoren din allerede inkluderer mva.",
+          "spotpris_inkl_mva": "La stå av for HA-core nordpool-integrasjon (leverer eks. mva). Slå på hvis sensoren din allerede inkluderer mva (f.eks. eldre custom_components/nordpool med VAT=true, eller egendefinert template-sensor).",
           "energy_sensor": "Kumulativ kWh-teller fra AMS-måleren. Anbefales for eksakte fakturatall. Se docs/input-sensorer.md for detaljer.",
           "electricity_provider_price_sensor": "Sensor med totalprisen fra din strømleverandør (f.eks. Tibber «Electricity price»). Kun for å vise «Total strømpris (strømavtale)»-sensoren som sammenligning mot din faktiske avtale. Påvirker ingen andre beregninger. Hopp over hvis du har spotpris direkte eller Norgespris.",
           "export_power_sensor": "Effektmåler for eksport til nettet (OBIS 2.7.0), kun for plusskunder med solceller. Brukes til å beregne salgsinntekt og netto månedskostnad. Hopp over hvis du ikke har solceller."
@@ -46,14 +46,16 @@
       },
       "pricing": {
         "title": "Egendefinerte priser",
-        "description": "Velg avgiftssone og angi energiledd-priser i NOK/kWh (inkl. avgifter).",
+        "description": "Velg avgiftssone og angi energiledd-priser i NOK/kWh eks. mva og eks. forbruksavgift/Enova. Integrasjonen legger på avgifter og mva basert på avgiftssone.",
         "data": {
           "avgiftssone": "Avgiftssone",
-          "energiledd_dag": "Energiledd dag (NOK/kWh)",
-          "energiledd_natt": "Energiledd natt/helg (NOK/kWh)"
+          "energiledd_dag": "Energiledd dag (NOK/kWh, eks. mva og avgifter)",
+          "energiledd_natt": "Energiledd natt/helg (NOK/kWh, eks. mva og avgifter)"
         },
         "data_description": {
-          "avgiftssone": "Bestemmer mva og forbruksavgift. Mva-fritaket følger fylke, ikke prisområde: «Nord-Norge» gjelder Nordland og Troms, «Tiltakssonen» gjelder Finnmark og Nord-Troms (mval. § 6-6). Alle andre, inkludert NO3 (Trøndelag og Møre og Romsdal), velger «Sør-Norge» og betaler 25 % mva."
+          "avgiftssone": "Bestemmer mva og forbruksavgift. Mva-fritaket følger fylke, ikke prisområde: «Nord-Norge» gjelder Nordland og Troms, «Tiltakssonen» gjelder Finnmark og Nord-Troms (mval. § 6-6). Alle andre, inkludert NO3 (Trøndelag og Møre og Romsdal), velger «Sør-Norge» og betaler 25 % mva.",
+          "energiledd_dag": "Ren nettleie for dag. Finn beløpet «energiledd» eller «overføring» på prislisten din, før forbruksavgift, Enova og mva.",
+          "energiledd_natt": "Ren nettleie for natt/helg. Hvis nettselskapet bruker flat sats, sett samme verdi som dag."
         }
       },
       "reconfigure": {
@@ -71,8 +73,8 @@
           "energy_sensor": "Energimåler-sensor (kWh, valgfri)",
           "electricity_provider_price_sensor": "Strømleverandør-sensor (valgfri)",
           "export_power_sensor": "Eksport-effektmåler (valgfri)",
-          "energiledd_dag": "Energiledd dag (NOK/kWh)",
-          "energiledd_natt": "Energiledd natt/helg (NOK/kWh)",
+          "energiledd_dag": "Energiledd dag (NOK/kWh, eks. mva og avgifter)",
+          "energiledd_natt": "Energiledd natt/helg (NOK/kWh, eks. mva og avgifter)",
           "kapasitet_varsel_terskel": "Kapasitetsvarsel-terskel (kW)",
           "energi_frossen_timer": "Terskel for frossen energimåler (timer)"
         },
@@ -80,7 +82,7 @@
           "boligtype": "Bolig: Strømstøtte opptil 5000 kWh/mnd, Norgespris opptil 5000 kWh/mnd. Fritidsbolig: Ingen strømstøtte, Norgespris opptil 1000 kWh/mnd. Fritidsbolig (fast bosted): Samme som bolig (Forskrift § 11).",
           "sikringstrinn": "Radene er gjengitt ordrett fra nettselskapets prisliste. Merk at satsen kan avhenge av systemspenning (230 V eller 400 V).",
           "avgiftssone": "Settes automatisk fra nettselskap. Overstyr kun hvis du vet du tilhører en annen sone.",
-          "har_norgespris": "Aktiver hvis du har valgt Norgespris hos nettselskapet. Bruker fast pris (40-50 øre/kWh) i stedet for spotpris.",
+          "har_norgespris": "Aktiver hvis du har valgt Norgespris hos nettselskapet. Fast pris (50 øre/kWh i Sør-Norge, 40 øre i Nord-Norge) for de første 5000 kWh per måned (1000 kWh for fritidsbolig). Forbruk over grensen betales til spotpris.",
           "power_sensor": "Sensor som viser nåværende strømforbruk i watt, f.eks. fra HAN-port, Tibber Pulse eller P1-måler.",
           "spot_price_sensor": "Sensor med gjeldende spotpris i NOK/kWh. Vanligvis «Current price» fra Nord Pool-integrasjonen.",
           "spotpris_inkl_mva": "La stå av for HA-core nordpool-integrasjon (leverer eks. mva). Slå på hvis sensoren din allerede inkluderer mva.",
@@ -121,8 +123,8 @@
           "energy_sensor": "Energimåler-sensor (kWh, valgfri)",
           "electricity_provider_price_sensor": "Strømleverandør-sensor (valgfri)",
           "export_power_sensor": "Eksport-effektmåler (valgfri)",
-          "energiledd_dag": "Energiledd dag (NOK/kWh)",
-          "energiledd_natt": "Energiledd natt/helg (NOK/kWh)",
+          "energiledd_dag": "Energiledd dag (NOK/kWh, eks. mva og avgifter)",
+          "energiledd_natt": "Energiledd natt/helg (NOK/kWh, eks. mva og avgifter)",
           "kapasitet_varsel_terskel": "Kapasitetsvarsel-terskel (kW)",
           "energi_frossen_timer": "Terskel for frossen energimåler (timer)"
         },
@@ -130,7 +132,7 @@
           "boligtype": "Bolig: Strømstøtte opptil 5000 kWh/mnd, Norgespris opptil 5000 kWh/mnd. Fritidsbolig: Ingen strømstøtte, Norgespris opptil 1000 kWh/mnd. Fritidsbolig (fast bosted): Samme som bolig (Forskrift § 11).",
           "sikringstrinn": "Radene er gjengitt ordrett fra nettselskapets prisliste. Merk at satsen kan avhenge av systemspenning (230 V eller 400 V).",
           "avgiftssone": "Settes automatisk fra nettselskap. Overstyr kun hvis du vet du tilhører en annen sone.",
-          "har_norgespris": "Aktiver hvis du har valgt Norgespris hos nettselskapet. Bruker fast pris (40-50 øre/kWh) i stedet for spotpris.",
+          "har_norgespris": "Aktiver hvis du har valgt Norgespris hos nettselskapet. Fast pris (50 øre/kWh i Sør-Norge, 40 øre i Nord-Norge) for de første 5000 kWh per måned (1000 kWh for fritidsbolig). Forbruk over grensen betales til spotpris.",
           "power_sensor": "Sensor som viser nåværende strømforbruk i watt, f.eks. fra HAN-port, Tibber Pulse eller P1-måler.",
           "spot_price_sensor": "Sensor med gjeldende spotpris i NOK/kWh. Vanligvis «Current price» fra Nord Pool-integrasjonen.",
           "spotpris_inkl_mva": "La stå av for HA-core nordpool-integrasjon (leverer eks. mva). Slå på hvis sensoren din allerede inkluderer mva.",
@@ -215,7 +217,7 @@
         "name": "Total strømpris (Norgespris)"
       },
       "strompris_norgespris": {
-        "name": "Strømpris (Norgespris, uten nettleie)"
+        "name": "Strømpris (Norgespris-ordningen)"
       },
       "prisforskjell_norgespris": {
         "name": "Prisforskjell (Norgespris)"
@@ -359,13 +361,13 @@
         }
       }
     },
-    "sikringstrinn_mangler": {
-      "title": "Sikringsstørrelse mangler",
-      "description": "{dso} fakturerer fastleddet etter størrelsen på hovedsikringen din, og den kan ikke leses av strømmåleren. Til den er valgt, står «Kapasitetstrinn» som Ukjent, og fastleddet mangler i månedskostnad og fakturaestimat. Åpne Innstillinger > Enheter og tjenester > Strømkalkulator > Konfigurer og velg raden som står på nettleiefakturaen din."
-    },
     "spotpris_mva_check": {
       "title": "Spotpris-håndtering oppdatert",
       "description": "Strømkalkulator behandler nå spotpris-sensoren som eks. mva (riktig for HA-core Nord Pool-integrasjonen). Tidligere antok koden inkl. mva, og det ga 25 % feil i strømstøtte og totalpris i Sør-Norge. De fleste brukere trenger ikke gjøre noe.\n\nDu trenger bare å gjøre noe hvis spotpris-sensoren din allerede leverer priser inkl. mva. Det gjelder hvis du har en egendefinert template-sensor som legger på 25 %, eller bruker den eldre custom_components/nordpool med VAT=true. I så fall: åpne Strømkalkulator-innstillinger (Settings > Devices & Services > Strømkalkulator > Configure) og slå på «Spotpris-sensor leverer priser inkl. mva»."
+    },
+    "sikringstrinn_mangler": {
+      "title": "Sikringsstørrelse mangler",
+      "description": "{dso} fakturerer fastleddet etter størrelsen på hovedsikringen din, og den kan ikke leses av strømmåleren. Til den er valgt, står «Kapasitetstrinn» som Ukjent, og fastleddet mangler i månedskostnad og fakturaestimat. Åpne Innstillinger > Enheter og tjenester > Strømkalkulator > Konfigurer og velg raden som står på nettleiefakturaen din."
     },
     "dso_delt": {
       "title": "Nettselskapet ditt er delt i flere prisområder",

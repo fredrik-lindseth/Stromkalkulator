@@ -16,6 +16,9 @@ Den tredje trenger mer: varselet reises ved hver oppstart så lenge entryet
 bruker egendefinerte satser, så en ren bekreftelse ville kommet tilbake ved
 neste restart. EgendefinertSatserRepairFlow skriver derfor et flagg på config
 entryet, og det er flagget __init__.py sjekker før den reiser varselet igjen.
+
+TariffmodusRepairFlow er den eneste som ikke er en bekreftelse: den stiller et
+spørsmål med to svar, og begge skriver en tariffmodus på entryet.
 """
 
 from __future__ import annotations
@@ -29,9 +32,15 @@ from homeassistant.helpers import issue_registry as ir
 
 from .const import (
     CONF_EGENDEFINERT_SATSER_BEKREFTET,
+    CONF_ENERGILEDD_DAG,
+    CONF_ENERGILEDD_NATT,
     CONF_PRISENHET_BEKREFTET,
+    CONF_TARIFFMODUS,
     DOMAIN,
     EGENDEFINERT_ISSUE_PREFIX,
+    TARIFF_ISSUE_PREFIX,
+    TARIFFMODUS_CATALOG,
+    TARIFFMODUS_MANUAL,
 )
 
 if TYPE_CHECKING:
@@ -143,6 +152,56 @@ class PrisenhetRepairFlow(RepairsFlow):
         )
 
 
+class TariffmodusRepairFlow(RepairsFlow):
+    """Lar brukeren velge mellom nettselskapets katalog og sin egen sats.
+
+    Entryet har en energiledd-sats lagret fra før 1.17, og den er en annen enn
+    den `dso.py` fører i dag. Vi vet ikke om tallet var et bevisst valg eller
+    bare katalogens sats slik den så ut den gangen oppsettet ble laget, for
+    oppsettsflyten lagret den på alle. Derfor spør vi framfor å gjette, og
+    begge svarene er endelige: etterpå står entryet i catalog eller manual, og
+    varselet kommer ikke tilbake.
+
+    Fram til brukeren svarer regner entryet med katalogen.
+    """
+
+    def __init__(self, issue_id: str, entry_id: str) -> None:
+        """Ta vare på hvilken issue og hvilket anlegg valget gjelder."""
+        self._issue_id = issue_id
+        self._entry_id = entry_id
+
+    async def async_step_init(self, _user_input: dict[str, Any] | None = None) -> Any:
+        """Vis de to valgene som hver sin knapp."""
+        issue = ir.async_get(self.hass).async_get_issue(DOMAIN, self._issue_id)
+        return self.async_show_menu(
+            step_id="init",
+            menu_options=["folg_katalog", "behold_manual"],
+            description_placeholders=issue.translation_placeholders if issue else None,
+        )
+
+    async def async_step_folg_katalog(self, _user_input: dict[str, Any] | None = None) -> Any:
+        """Nettselskapets prisliste gjelder, og den lagrede satsen fjernes."""
+        self._skriv_modus(TARIFFMODUS_CATALOG, fjern_satser=True)
+        return self.async_create_entry(title="", data={})
+
+    async def async_step_behold_manual(self, _user_input: dict[str, Any] | None = None) -> Any:
+        """Brukerens egen sats gjelder, og katalogen rører den ikke igjen."""
+        self._skriv_modus(TARIFFMODUS_MANUAL, fjern_satser=False)
+        return self.async_create_entry(title="", data={})
+
+    def _skriv_modus(self, modus: str, *, fjern_satser: bool) -> None:
+        """Skriv svaret på entryet. Oppdateringen laster integrasjonen på nytt."""
+        entry = self.hass.config_entries.async_get_entry(self._entry_id)
+        if entry is None:
+            _LOGGER.debug("Fant ikke entry %s, hopper over tariffvalget", self._entry_id)
+            return
+        data = {**entry.data, CONF_TARIFFMODUS: modus}
+        if fjern_satser:
+            data.pop(CONF_ENERGILEDD_DAG, None)
+            data.pop(CONF_ENERGILEDD_NATT, None)
+        self.hass.config_entries.async_update_entry(entry, data=data)
+
+
 async def async_create_fix_flow(
     hass: HomeAssistant,
     issue_id: str,
@@ -155,6 +214,9 @@ async def async_create_fix_flow(
     ConfirmRepairFlow er tilstrekkelig. Integrasjonen kan ikke gjenskape
     forbruket som gikk tapt, bare vise tallet.
     """
+    if issue_id.startswith(TARIFF_ISSUE_PREFIX):
+        entry_id = str((data or {}).get("entry_id") or issue_id[len(TARIFF_ISSUE_PREFIX) :])
+        return TariffmodusRepairFlow(issue_id, entry_id)
     if issue_id.startswith(PRISENHET_ISSUE_PREFIX):
         entry_id = str((data or {}).get("entry_id") or issue_id[len(PRISENHET_ISSUE_PREFIX) :])
         roller_raa = (data or {}).get("roller")

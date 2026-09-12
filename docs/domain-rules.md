@@ -72,6 +72,57 @@ To regler er lette å bryte. Den første er at sikringsstørrelse er brukerdata.
 
 Den andre er at nettselskap uten trinn har tom `kapasitetstrinn`. `FEM_VEKTET_ÅR` er en lineær sats, ikke trinn. Å samle fri-nettleies punktvise tabell i en trinn-liste ville løyet om hva tersklene betyr. La listen stå tom og legg satsen i `fastledd_lineaer`.
 
+### Katalogen gjelder, og entryet lagrer ingen sats
+
+En satsoppdatering i `dso.py` skal nå fram til alle som ikke uttrykkelig har
+valgt noe annet. Til og med 1.16.0 gjorde den ikke det: oppsettsflyten lagret
+katalogens energiledd på hvert eneste config entry, og coordinatoren lot den
+lagrede verdien vinne. Sju nettselskap fikk nye tariffer i august og september
+2026, og av dem slo bare Sør Aurdal gjennom, fordi sesongperioder alltid har
+ignorert en lagret fast sats.
+
+`CONF_TARIFFMODUS` avgjør hvor satsen kommer fra, og feltet har tre verdier:
+
+- `catalog`: `dso.py` gjelder løpende, og entryet har ingen sats lagret. Alle
+  nye oppsett med et kjent nettselskap havner her.
+- `manual`: brukerens egne tall gjelder. Egendefinert er alltid `manual`, og
+  det samme er den som har svart «behold mine satser» på varselet.
+- `legacy_unconfirmed`: entryet har en sats fra før 1.17 som avviker fra
+  katalogen. Katalogen regnes med, men tallet blir stående til brukeren har
+  svart, så «behold mine satser» fortsatt er et reelt valg.
+
+To ting er lette å bryte her.
+
+Den første er at **tall-likhet ikke er brukerintensjon**. At en lagret sats er
+lik katalogens betyr ikke at brukeren valgte den, og at den er ulik betyr ikke
+at brukeren skrev den. Derfor blir ingen entry `manual` i migreringen uten at
+nettselskapet er Egendefinert.
+
+Den andre er **terskelen for hva som er et avvik**, `TARIFF_AVVIK_TERSKEL` i
+`const.py`. Den er 0,0075 øre/kWh inkl. mva og ligger med vilje mellom to kjente
+tall: v1-migreringens femdesimalavrunding gir opptil 0,006 øre støy, og 0,01
+øre er minste kvantum på en norsk prisliste. Settes den lavere, får brukere et
+varsel om en forskjell som er usynlig på hver eneste sensor, og det er en falsk
+positiv. Settes den høyere, slipper ekte endringer gjennom.
+
+Energiledd-feltet i options og reconfigure er et **overstyringsfelt**, ikke et
+påkrevd tall med forrige verdi som default. Var det påkrevd, ville hver lagring
+i innstillingene fryst katalogens sats på entryet igjen. Tomt felt betyr
+`catalog`, utfylt betyr `manual`.
+
+Hele regelen står i [kontrakten for input og konfigurasjon](kontrakter/input-og-konfig.md),
+§6 til §8.
+
+## Et tømt valgfritt felt fjerner bindingen
+
+Home Assistant sender ikke med et tomt `vol.Optional`-felt i det hele tatt, så
+et tømt felt ser ut som et felt brukeren aldri rørte. `{**current,
+**user_input}` gjeninnfører derfor bindingen brukeren nettopp fjernet, og det
+var grunnen til at ingen fikk fjernet en energisensor, en eksportmåler eller en
+leverandørprissensor de en gang hadde valgt. `_ny_entry_data` i `config_flow.py`
+fjerner dem uttrykkelig. Legger du til et nytt valgfritt entitetsfelt, skal det
+inn i `_TOMBARE_FELT` samme sted.
+
 ## Sensor-enheter og device_class
 
 Skill mellom satser og pengebeløp. De behandles ulikt, og å blande dem koster brukerne statistikk.

@@ -1,4 +1,4 @@
-"""Tester for async_migrate_entry (v1→v2→v3→v4 config entry-migrering).
+"""Tester for async_migrate_entry (v1→v2→v3→v4→v5 config entry-migrering).
 
 Migrering kjører på alle eksisterende brukere ved oppgradering. Ufanget
 exception stopper integrasjonen kald, så denne funksjonen MÅ være dekket.
@@ -7,6 +7,7 @@ Se docs/research/test-strategi-vurdering.md (anbefaling 1, P0).
 v1 → v2: Energiledd-overrides konverteres fra inkl-mva til eks-mva.
 v2 → v3: Setter spotpris_inkl_mva = False og lager repair-issue for Sør-Norge.
 v3 → v4: Setter entry unique_id = entry_id (stabil, uavhengig av power-sensor).
+v4 → v5: Setter tariffmodus, og fjerner den lagrede satsen der katalogen gjelder.
 """
 
 from __future__ import annotations
@@ -16,6 +17,7 @@ import importlib
 from unittest.mock import MagicMock
 
 import pytest
+from stromkalkulator.const import DSO_LIST
 
 
 @pytest.fixture
@@ -48,7 +50,7 @@ def _make_entry(
 def _make_hass(entry: MagicMock) -> MagicMock:
     """HA-mock der async_update_entry oppdaterer entry-felter in-place.
 
-    Det matcher hvordan ekte HA oppfører seg, slik at kjedet v1→v2→v3→v4-
+    Det matcher hvordan ekte HA oppfører seg, slik at kjedet v1→v2→v3→v4→v5-
     migrering kan testes uten å hoppe over mellomliggende grener.
     """
     hass = MagicMock()
@@ -92,7 +94,7 @@ class TestV1ToV2Migration:
         result = _migrate(init_module, hass, entry)
 
         assert result is True
-        assert entry.version == 4  # kjedet helt fram via v2- og v3-grenene
+        assert entry.version == 5  # kjedet helt fram via v2-, v3- og v4-grenene
         assert entry.data["energiledd_dag"] == pytest.approx(0.31870, abs=1e-5)
 
     def test_converts_energiledd_natt_inkl_to_eks(self, init_module):
@@ -142,7 +144,7 @@ class TestV1ToV2Migration:
 
         assert "energiledd_dag" not in entry.data
         assert "energiledd_natt" not in entry.data
-        assert entry.version == 4
+        assert entry.version == 5
 
     def test_nord_norge_no_mva_no_forbruksavgift_reduction(self, init_module):
         """Nord-Norge: mva-fritak, men full forbruksavgift fra 2026."""
@@ -164,10 +166,14 @@ class TestV1ToV2Migration:
     def test_tiltakssone_no_forbruksavgift(self, init_module):
         """Tiltakssonen: ingen mva, ingen forbruksavgift, kun Enova trekkes fra."""
         # 0.15 / 1.0 - 0.0 - 0.01 = 0.14
+        #
+        # Arva og ikke Area Nett: Area Nett har sesongperioder, og da fjerner
+        # v4→v5-migreringen den lagrede satsen, siden periodene alt styrte over
+        # den. Da ville denne testen mistet tallet den skal se på.
         entry = _make_entry(
             version=1,
             data={
-                "tso": "area_nett",
+                "tso": "arva",
                 "avgiftssone": "tiltakssone",
                 "energiledd_dag": 0.15,
             },
@@ -266,7 +272,7 @@ class TestV2ToV3Migration:
 
         assert result is True
         assert entry.data["spotpris_inkl_mva"] is False
-        assert entry.version == 4
+        assert entry.version == 5
 
     def test_standard_avgiftssone_creates_repair_issue(self, init_module):
         """Sør-Norge (standard) skal få repair-issue om mva-sjekk."""
@@ -376,11 +382,16 @@ class TestV3ToV4Migration:
         result = _migrate(init_module, hass, entry)
 
         assert result is True
-        assert entry.version == 4
+        assert entry.version == 5
         assert entry.unique_id == "entry_v3"
 
     def test_preserves_data(self, init_module):
-        """v3→v4 rører ikke entry.data (bare unique_id og versjon)."""
+        """v3→v4 rører ikke entry.data (bare unique_id og versjon).
+
+        v4→v5 legger på tariffmodus like etter, og her gir den
+        `legacy_unconfirmed` fordi 0,3187 er en annen sats enn BKKs 0,2877.
+        Alt annet står uendret.
+        """
         original = {
             "tso": "bkk",
             "avgiftssone": "standard",
@@ -393,14 +404,14 @@ class TestV3ToV4Migration:
 
         _migrate(init_module, hass, entry)
 
-        assert entry.data == original
+        assert entry.data == {**original, "tariffmodus": "legacy_unconfirmed"}
 
 
 class TestChainedMigration:
-    """v1 → v4 i én operasjon (kjedet)."""
+    """v1 → v5 i én operasjon (kjedet)."""
 
-    def test_v1_to_v4_full_chain(self, init_module):
-        """v1-entry skal migreres helt fram til v4 i én call."""
+    def test_v1_to_v5_full_chain(self, init_module):
+        """v1-entry skal migreres helt fram til v5 i én call."""
         entry = _make_entry(
             version=1,
             data={
@@ -419,7 +430,7 @@ class TestChainedMigration:
         result = _migrate(init_module, hass, entry)
 
         assert result is True
-        assert entry.version == 4
+        assert entry.version == 5
         # v1→v2: energiledd konvertert
         assert entry.data["energiledd_dag"] == pytest.approx(0.31870, abs=1e-5)
         # v2→v3: spotpris-flag satt og repair-issue laget
@@ -427,9 +438,11 @@ class TestChainedMigration:
         mock_ir.async_create_issue.assert_called_once()
         # v3→v4: unique_id byttet til entry_id
         assert entry.unique_id == "entry_chain"
+        # v4→v5: satsen avviker fra BKKs katalog og blir stående til brukeren svarer
+        assert entry.data["tariffmodus"] == "legacy_unconfirmed"
 
-    def test_v1_to_v4_calls_update_thrice(self, init_module):
-        """v1→v4 skal kalle async_update_entry én gang per versjons-bump."""
+    def test_v1_to_v5_calls_update_four_times(self, init_module):
+        """v1→v5 skal kalle async_update_entry én gang per versjons-bump."""
         entry = _make_entry(
             version=1,
             data={"tso": "bkk", "avgiftssone": "standard"},
@@ -438,21 +451,148 @@ class TestChainedMigration:
 
         _migrate(init_module, hass, entry)
 
-        assert hass.config_entries.async_update_entry.call_count == 3
+        assert hass.config_entries.async_update_entry.call_count == 4
+
+
+class TestV4ToV5Migration:
+    """v4 → v5: tariffmodus per entry, etter tabellen i kontrakt §7.
+
+    Hovedregelen er at tall-likhet ikke er brukerintensjon. Oppsettsflyten
+    lagret katalogens sats på alle, så et tall på entryet sier ingenting om hva
+    brukeren ville. Derfor blir ingen `manual` her uten at nettselskapet er
+    Egendefinert.
+    """
+
+    def _migrer_v4(self, init_module, data: dict, entry_id: str = "e5") -> MagicMock:
+        entry = _make_entry(version=4, data=data, entry_id=entry_id, unique_id=entry_id)
+        hass = _make_hass(entry)
+        assert _migrate(init_module, hass, entry) is True
+        assert entry.version == 5
+        return entry
+
+    def test_gammel_katalogsats_gir_legacy_og_beholder_tallet(self, init_module):
+        """Arva-entryet fra issuet: satsen avviker, og brukeren skal få velge.
+
+        Modusen betyr ikke at den lagrede satsen gjelder. Coordinatoren regner
+        med katalogen fra første oppstart; tallet blir bare stående til
+        brukeren har svart, så «behold mine satser» fortsatt er mulig.
+        """
+        arva = DSO_LIST["arva"]
+        entry = self._migrer_v4(
+            init_module,
+            {
+                "tso": "arva",
+                "avgiftssone": "tiltakssone",
+                "energiledd_dag": arva["energiledd_dag_eks_mva"] + 0.02,
+                "energiledd_natt": arva["energiledd_natt_eks_mva"],
+            },
+        )
+
+        assert entry.data["tariffmodus"] == "legacy_unconfirmed"
+        assert entry.data["energiledd_dag"] == pytest.approx(arva["energiledd_dag_eks_mva"] + 0.02)
+
+    def test_sats_lik_katalogen_gir_catalog_og_fjerner_tallet(self, init_module):
+        """Tallet er det samme, så brukeren merker ingenting.
+
+        Det fjernes likevel: sto det igjen, ville entryet drifte fra katalogen
+        på nytt ved neste prisendring, og vi ville vært tilbake der vi startet.
+        """
+        bkk = DSO_LIST["bkk"]
+        entry = self._migrer_v4(
+            init_module,
+            {
+                "tso": "bkk",
+                "avgiftssone": "standard",
+                "energiledd_dag": bkk["energiledd_dag_eks_mva"],
+                "energiledd_natt": bkk["energiledd_natt_eks_mva"],
+            },
+        )
+
+        assert entry.data["tariffmodus"] == "catalog"
+        assert "energiledd_dag" not in entry.data
+        assert "energiledd_natt" not in entry.data
+
+    def test_avrundingsstoy_fra_v1_gir_catalog(self, init_module):
+        """0,28774 mot katalogens 0,2877 er 0,005 øre/kWh, ikke en tariffendring."""
+        entry = self._migrer_v4(
+            init_module,
+            {"tso": "bkk", "avgiftssone": "standard", "energiledd_dag": 0.28774},
+        )
+
+        assert entry.data["tariffmodus"] == "catalog"
+        assert "energiledd_dag" not in entry.data
+
+    def test_egendefinert_gir_manual_og_beholder_tallet(self, init_module):
+        entry = self._migrer_v4(
+            init_module,
+            {"tso": "custom", "avgiftssone": "standard", "energiledd_dag": 0.33},
+        )
+
+        assert entry.data["tariffmodus"] == "manual"
+        assert entry.data["energiledd_dag"] == 0.33
+
+    def test_sesong_dso_gir_catalog_og_fjerner_tallet(self, init_module):
+        """Periodene styrte alt over den lagrede satsen, så tallene endrer seg ikke."""
+        sesong = next(dso_id for dso_id, dso in DSO_LIST.items() if dso.get("energiledd_perioder"))
+        entry = self._migrer_v4(
+            init_module,
+            {"tso": sesong, "avgiftssone": "standard", "energiledd_dag": 0.99},
+        )
+
+        assert entry.data["tariffmodus"] == "catalog"
+        assert "energiledd_dag" not in entry.data
+
+    def test_uten_lagret_energiledd_gir_catalog(self, init_module):
+        entry = self._migrer_v4(init_module, {"tso": "bkk", "avgiftssone": "standard"})
+
+        assert entry.data["tariffmodus"] == "catalog"
+
+    def test_ukjent_nettselskap_gir_manual(self, init_module):
+        """Et håndredigert .storage med en DSO-id vi ikke har: satsen er alt de har."""
+        entry = self._migrer_v4(
+            init_module,
+            {"tso": "finnes_ikke", "avgiftssone": "standard", "energiledd_dag": 0.31},
+        )
+
+        assert entry.data["tariffmodus"] == "manual"
+        assert entry.data["energiledd_dag"] == 0.31
+
+    def test_akkumulatorfelt_og_sensorvalg_staar_urort(self, init_module):
+        """En bruker på 1.16.0 skal ikke miste noe av oppsettet sitt."""
+        entry = self._migrer_v4(
+            init_module,
+            {
+                "tso": "bkk",
+                "avgiftssone": "standard",
+                "power_sensor": "sensor.power",
+                "energy_sensor": "sensor.energy",
+                "har_norgespris": True,
+                "sikringstrinn": "3x63",
+                "et_fremmed_felt": "behold meg",
+            },
+            entry_id="entry_bevar",
+        )
+
+        assert entry.data["power_sensor"] == "sensor.power"
+        assert entry.data["energy_sensor"] == "sensor.energy"
+        assert entry.data["har_norgespris"] is True
+        assert entry.data["sikringstrinn"] == "3x63"
+        assert entry.data["et_fremmed_felt"] == "behold meg"
+        assert entry.unique_id == "entry_bevar"
 
 
 class TestIdempotency:
-    """v4 → v4 skal være no-op."""
+    """v5 → v5 skal være no-op."""
 
-    def test_v4_returns_true_without_changes(self, init_module):
+    def test_v5_returns_true_without_changes(self, init_module):
         """Allerede migrert entry skal returnere True uten å røre data."""
         original_data = {
             "tso": "bkk",
             "avgiftssone": "standard",
             "spotpris_inkl_mva": False,
-            "energiledd_dag": 0.31870,
+            "tariffmodus": "catalog",
         }
-        entry = _make_entry(version=4, data=original_data, entry_id="entry1", unique_id="entry1")
+        entry = _make_entry(version=5, data=original_data, entry_id="entry1", unique_id="entry1")
         hass = _make_hass(entry)
 
         mock_ir = MagicMock()
@@ -462,21 +602,21 @@ class TestIdempotency:
 
         assert result is True
         assert entry.data == original_data
-        assert entry.version == 4
+        assert entry.version == 5
         hass.config_entries.async_update_entry.assert_not_called()
         mock_ir.async_create_issue.assert_not_called()
 
     def test_future_version_returns_false_downgrade_protection(self, init_module):
-        """Hypotetisk v5-entry (fra nedgradering) skal avvises, ikke lastes.
+        """Hypotetisk v6-entry (fra nedgradering) skal avvises, ikke lastes.
 
         HA-konvensjon: returner False når entry.version er høyere enn koden
         støtter, så en nedgradert installasjon ikke laster et ukjent skjema.
         """
-        entry = _make_entry(version=5, data={"tso": "bkk"})
+        entry = _make_entry(version=6, data={"tso": "bkk"})
         hass = _make_hass(entry)
 
         result = _migrate(init_module, hass, entry)
 
         assert result is False
-        assert entry.version == 5
+        assert entry.version == 6
         hass.config_entries.async_update_entry.assert_not_called()

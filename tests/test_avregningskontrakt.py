@@ -450,3 +450,131 @@ def test_uvektet_snitt_er_samme_regning_som_forskningsskriptene() -> None:
     ]
     pris, _, _ = intervallpris(polls, 15)
     assert pris == pytest.approx(sum(kvarter_nok_mwh) / len(kvarter_nok_mwh) / 1000, abs=1e-15)
+
+
+# ---------------------------------------------------------------------------
+# Bruker uten energisensor (B1) og avviste deltaer (C1)
+
+
+def _seksjon(overskrift: str) -> str:
+    """Teksten fra en overskrift til den neste på samme eller høyere nivå."""
+    tekst = _kontrakttekst()
+    assert overskrift in tekst, f"kontrakten mangler {overskrift!r}"
+    rest = tekst.split(overskrift, 1)[1]
+    linjer = []
+    for linje in rest.splitlines():
+        if linje.startswith("## ") or linje.startswith("### "):
+            break
+        linjer.append(linje)
+    return "\n".join(linjer)
+
+
+_PUNKTSTART = re.compile(r"^(?:- |\d+\. )")
+
+
+def _punkter(tekst: str) -> list[str]:
+    """Punktene i en liste, med fortsettelseslinjene slått sammen til én streng.
+
+    Både kulepunkter og nummererte punkter, siden C2 bruker det siste. Et punkt
+    lest linje for linje ville delt en setning i to og gjort vaktene under
+    blinde for alt som står etter første linjeskift.
+    """
+    punkter: list[str] = []
+    for linje in tekst.splitlines():
+        if _PUNKTSTART.match(linje):
+            punkter.append(_PUNKTSTART.sub("", linje).strip())
+        elif punkter and linje.startswith("  ") and linje.strip():
+            punkter[-1] += " " + linje.strip()
+    return punkter
+
+
+B1 = _seksjon("### B1 Energiavlesning")
+
+
+def _syntetisk_tabell() -> dict[str, str]:
+    """Feltene i B1s tabell for den syntetiske avlesningen."""
+    rader = {}
+    treff = False
+    for linje in B1.splitlines():
+        if not linje.startswith("|"):
+            treff = False
+            continue
+        celler = [c.strip() for c in linje.strip().strip("|").split("|")]
+        if celler[1].startswith("Verdi for en syntetisk avlesning"):
+            treff = True
+            continue
+        if treff and celler[0].startswith("`"):
+            rader[celler[0].strip("`")] = celler[1]
+    return rader
+
+
+def test_brukeren_uten_energisensor_er_beskrevet() -> None:
+    """Funn 1: en bruker med effekt og spot, men uten teller, må ha et svar.
+
+    Uten avsnittet ville L1 og L3a landet ulikt: den ene lar effektbrukeren
+    stå utenfor boken på dagens akkumulatorer, den andre finner opp en
+    syntetisk avlesning og gjetter på `observed_at`.
+    """
+    assert "Bruker uten energisensor" in B1
+    tabell = _syntetisk_tabell()
+    assert set(tabell) == {"source_identity", "entity_id", "value_kwh", "observed_at", "kvalitet"}, (
+        f"den syntetiske avlesningen må fylle alle feltene i B1, fant {sorted(tabell)}"
+    )
+    assert "estimert" in tabell["kvalitet"], "B1s `estimert` er nettopp denne stien"
+    assert "olltid" in tabell["observed_at"], "observasjonstiden for en effektprøve må stå"
+    assert "unique_id" in tabell["source_identity"]
+
+
+@pytest.mark.parametrize(
+    ("emne", "krav"),
+    [
+        ("C2.6", "at estimatet ikke er polltidsuavhengig"),
+        ("MAX_ELAPSED_HOURS", "hva et for langt vindu gjør"),
+        ("konfigurert", "hvilken sti som gjelder når begge sensorene finnes"),
+    ],
+)
+def test_effektstien_svarer_pa_det_en_utforer_ellers_ville_gjettet(emne: str, krav: str) -> None:
+    """De tre følgene som ikke kan utledes av tabellen alene."""
+    punkter = [p for p in _punkter(B1) if emne in p]
+    assert punkter, f"B1 sier ikke {krav} ({emne})"
+
+
+def test_c2_6_innrommer_unntaket_for_effektstien() -> None:
+    """To steder med hver sin sannhet er feilen som felte kontraktene første gang.
+
+    B1 sier at invarianten ikke holder uten teller. Står ikke det samme i C2.6,
+    lover invariantlisten noe B1 tar tilbake.
+    """
+    invarianter = _seksjon("### C2 Invariantene")
+    punkt = next(p for p in _punkter(invarianter) if p.startswith("**Polltidsuavhengighet"))
+    assert "uten energisensor" in punkt and "B1" in punkt, (
+        "C2.6 må si at effektstien er unntatt, og vise til B1"
+    )
+
+
+def _randtilfeller() -> list[str]:
+    c1 = _seksjon("### C1 Fordelingsregel: jevnt over tid")
+    punkter = _punkter(c1.split("Randtilfeller:", 1)[1])
+    assert len(punkter) >= 3, "C1 må fortsatt liste randtilfellene"
+    return punkter
+
+
+@pytest.mark.parametrize("nokkel", ["MAX_ENERGY_DELTA_KWH", "Negativt delta"])
+def test_avvist_delta_sier_hva_som_skjer_med_baselinen(nokkel: str) -> None:
+    """Funn 3: står ikke flyttingen der, implementerer en utfører det motsatte.
+
+    Blir baselinen stående etter et avvist sprang, ligger hver senere avlesning
+    også over grensen, og boken står stille for godt etter étt sprang. Koden i
+    dag flytter den (`_compute_energy_delta` skriver `_last_tpi_kwh` uansett
+    gren), og kontrakten skal si det samme.
+    """
+    punkt = next((p for p in _randtilfeller() if nokkel in p), None)
+    assert punkt, f"C1 mangler randtilfellet for {nokkel}"
+    assert "baseline" in punkt.lower(), f"C1 sier ikke hva som skjer med baselinen ved {nokkel}"
+
+
+def test_avvist_sprang_er_synlig_i_data_dicten() -> None:
+    """Et avvist delta skal telles, ikke forsvinne."""
+    punkt = next(p for p in _randtilfeller() if "MAX_ENERGY_DELTA_KWH" in p)
+    assert "avregning_avvist_kwh" in punkt
+    assert "`avregning_avvist_kwh`" in _kontrakttekst().split("Nye felt:")[1]

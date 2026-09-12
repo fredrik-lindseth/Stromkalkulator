@@ -145,3 +145,25 @@ deploy-testpakke host="ha-local":
     echo "Kopiert. Start HA på nytt for at pakken skal leses:"
     echo "  ssh -o IdentitiesOnly=yes {{host}} 'ha core restart'"
     echo "Deretter: just sjekk-testpakke"
+
+# ---------------------------------------------------------------------------
+# Release
+#
+# Samme kjerne som .github/workflows/release.yml kjører, altså
+# scripts/release_publish.py. Ingen av oppskriftene under skriver noe på GitHub;
+# publiseringen skjer bare i workflowen, på en commit CI har sett.
+# ---------------------------------------------------------------------------
+
+# Bygg HACS-ZIP-en for en commit og skriv sha256-en. Deterministisk: samme
+# commit gir byte-lik fil, så den kan sammenlignes med den som ligger ute.
+release-zip sha="HEAD":
+    python3 scripts/release_publish.py build --sha {{sha}} --output dist/stromkalkulator.zip
+
+# Hva ville releaseflyten gjort med denne commiten? Leser GitHub, skriver ingenting.
+release-plan sha="HEAD":
+    python3 scripts/release_publish.py plan --sha {{sha}}
+
+# Etterprøv en release som alt er ute: peker taggen, ZIP-en og attestasjonen på
+# samme artefakt? Exit 2 hvis ikke.
+release-verify tag:
+    python3 scripts/release_publish.py verify --sha {{tag}}

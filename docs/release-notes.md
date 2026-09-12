@@ -101,7 +101,8 @@ release-jobben.
 
 1. CHANGELOG-seksjonen, med «Dette må du gjøre selv» løftet øverst og relative
    lenker skrevet om til absolutte
-2. `## Verifisering` med SHA256-linjen og lenke til `SECURITY.md`
+2. `## Verifisering` med commiten ZIP-en er bygget fra, SHA256-linjen og lenke
+   til `SECURITY.md`
 3. `<details>`-fold med alle commits siden forrige tag
 
 De to siste er automatiske. Ikke skriv dem inn i CHANGELOG.
@@ -136,17 +137,79 @@ Sjekkliste før du skriver i CHANGELOG:
 2. Bump versjonen i `manifest.json` og `pyproject.toml`
 3. Commit og push til main
 
-CI sjekker at CHANGELOG har en seksjon for den nye versjonen (bare når taggen
-ikke finnes fra før), og release-workflowen bygger zip, SHA256 og attestasjon
-og publiserer med seksjonen som body.
+Resten gjør `release.yml`. Den starter CI for nettopp den commiten, venter på
+hele grafen, og publiserer først når artefakten er bygget, lastet opp og
+verifisert.
 
-Workflowen hopper stille over hvis releasen **eller en draft med samme tag**
-allerede finnes. Har du en håndskrevet draft liggende, slett den før du pusher,
-ellers sitter du igjen med en draft uten zip og attestasjon:
+### Releaseporten
+
+`release.yml` er den eneste workflowen som kjører på push til main. Den kaller
+`ci.yml` (`workflow_call`) for sin egen commit og har `needs: ci`, så unit,
+kvalitet, begge HA-målene, HACS-validering og Hassfest må være grønne for
+*samme SHA* før releasejobben starter. HACS og Hassfest lå før i egne
+workflows; da kunne en release gå ut før de var ferdige. De kjøres fortsatt
+nattlig fra `validate.yml` og `hassfest.yml`, siden begge kan bli røde av
+endringer utenfor repoet.
+
+Selve flyten ligger i `scripts/release_publish.py`, som er dekket av
+`tests/test_release_publish.py`. Rekkefølgen er:
+
+1. **Les tilstanden** (`plan`). Er versjonen sluppet fra før, bevises den mot
+   sin egen tagg og jobben stopper der. Peker taggen på en annen commit, blir
+   det full stopp.
+2. **Bygg ZIP-en** (`build`) fra git-objektene på kandidat-SHA-en, ikke fra
+   arbeidstreet. Bygget er deterministisk: faste tidsstempler, rettigheter fra
+   git-modus, sortert rekkefølge. Samme commit gir byte-lik fil.
+3. **Attester** bygget, før noe legges ut.
+4. **Verifiser og publiser** (`publish`). Attestasjonen sjekkes mot repo,
+   kilde-SHA, signer-workflow og ZIP-ens sha256. Taggen opprettes eksplisitt på
+   SHA-en. Draften opprettes eller gjenopptas, ZIP-en lastes opp og *leses
+   tilbake* med ny sha256-utregning. `draft=false` er siste kall.
+
+### Når noe feiler halvveis
+
+Det finnes ingen offentlig release før siste kall, så det er ingenting å rydde.
+Kjør jobben om igjen på samme commit («Re-run failed jobs» beholder SHA-en,
+eller kjør workflowen manuelt på taggen). Hvert steg er idempotent:
+
+- Taggen finnes og peker riktig: den står, og flyttes aldri.
+- Drafen finnes: den gjenbrukes, og body-en skrives ikke over. Har du redigert
+  den for hånd, blir redigeringen stående.
+- ZIP-en ligger der alt: den lastes ned og sammenlignes. Stemmer sha256-en, er
+  den ferdig. Stemmer den ikke, stopper flyten framfor å bytte en fil vi ikke
+  vet hva er. HACS installerer nøyaktig den filen, så det er ikke et sted for
+  automatikk. Slett asset-et bevisst, eller slipp en ny versjon.
+
+En håndskrevet draft med samme tag er ikke lenger et problem som gjør at
+releasen aldri kommer ut. Flyten gjenopptar den og publiserer den.
+
+### Se hva som ville skjedd
 
 ```bash
-gh release delete vX.Y.Z --repo fredrik-lindseth/Stromkalkulator --yes
+just release-zip            # bygg ZIP-en, se sha256-en
+just release-plan           # les tilstanden på GitHub, skriv ingenting
+just release-verify v1.16.0 # etterprøv en release som alt er ute
 ```
+
+Ingen av dem skriver noe. `release-plan` hopper over attestasjonssjekken, siden
+den kjøres før byggesteget har attestert noe. I workflowen finnes det i tillegg
+`workflow_dispatch` med `dry_run`, som kjører hele flyten uten å skrive.
+
+### Det v1.16.0 viser
+
+`just release-verify v1.16.0` feller i dag, og det er riktig:
+
+```text
+✓ tagg: v1.16.0 peker på 9dad0dd9ec54
+✓ innhold: filene er de samme som i 9dad0dd9ec54, men ZIP-en er ikke byte-lik
+! attestasjon: expected SourceRepositoryDigest to be 9dad0dd9..., got c7e7c70d...
+```
+
+Taggen peker på én commit, attestasjonen sier ZIP-en ble bygget fra en annen.
+Innholdet var likt, så ingen brukere fikk feil kode, men bindingen manglet.
+Det er nettopp den gamle flyten som gjorde det mulig, og det er derfor
+`plan` bare advarer om eldre releaser mens `verify` feller: en release som alt
+er ute, blir ikke bedre av at hver push til main etterpå går rød.
 
 ## Retting etter publisering
 

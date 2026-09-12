@@ -49,11 +49,57 @@ snapshot-kurs area="NO5":
 verify-norgespris:
     python3 scripts/research/verify_norgespris_eksakt.py
 
-# Kjør hele testpakken + linting.
-test:
-    pipx run --with hypothesis --with pyyaml pytest tests/ -v
-    ruff check .
-    pipx run mypy custom_components/stromkalkulator/ --ignore-missing-imports
+# ---------------------------------------------------------------------------
+# Testmiljøer
+#
+# Fire miljøer, fire venv-er, ingen av dem deler sys.modules med hverandre:
+#
+#   unit + kvalitet   tests/ med stubbet Home Assistant, Python 3.13
+#   ha-minimum        tests_ha/ mot ekte HA 2025.1.0 (Python 3.13)
+#   ha-current        tests_ha/ mot ekte HA 2026.9.2 (Python 3.14)
+#
+# Gruppene står i pyproject.toml og er låst i uv.lock. Versjonstabellen med
+# begrunnelse står i docs/testing.md. Pre-commit og CI kaller de samme
+# oppskriftene, så det finnes ikke en «annen» kommando de kjører.
+# ---------------------------------------------------------------------------
+
+# Unit- og replay-testene. Ekstra argumenter sendes videre til pytest.
+test-unit *args:
+    UV_PROJECT_ENVIRONMENT=.venv-unit uv run --frozen --python 3.13 --group unit pytest tests/ {{args}}
+
+# Lint, formatsjekk, typer og død kode. Samme verktøyversjoner som hookene.
+check:
+    UV_PROJECT_ENVIRONMENT=.venv-kvalitet uv run --frozen --python 3.13 --group kvalitet ruff check .
+    UV_PROJECT_ENVIRONMENT=.venv-kvalitet uv run --frozen --python 3.13 --group kvalitet ruff format --check .
+    UV_PROJECT_ENVIRONMENT=.venv-kvalitet uv run --frozen --python 3.13 --group kvalitet mypy custom_components/stromkalkulator/ --ignore-missing-imports
+    UV_PROJECT_ENVIRONMENT=.venv-kvalitet uv run --frozen --python 3.13 --group kvalitet vulture custom_components/stromkalkulator vulture_whitelist.py --min-confidence 80 --exclude "*test*"
+
+# Det AGENTS.md ber om før commit: unit + kvalitet. Krever ikke Home Assistant.
+test: test-unit check
+
+# Ekte Home Assistant. target=minimum er versjonen hacs.json lover,
+# target=current er nyeste vi har sett på. Begge skal være grønne.
+test-ha target="current" *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # just tar argumenter posisjonelt, men skrivemåten `target=minimum` er den
+    # dokumenterte, så prefikset strippes her framfor å bli lest som et navn.
+    mal="{{target}}"; mal="${mal#target=}"
+    case "$mal" in
+        minimum) python=3.13 ;;
+        current) python=3.14 ;;
+        *) echo "Ukjent target '$mal'. Bruk minimum eller current." >&2; exit 2 ;;
+    esac
+    UV_PROJECT_ENVIRONMENT=".venv-ha-$mal" uv run --frozen --python "$python" \
+        --group "ha-$mal" pytest tests_ha -o asyncio_mode=auto {{args}}
+
+# Docker-laget (T11b). Stub inntil det finnes, og den sier fra framfor å gå
+# grønn på ingenting.
+test-e2e target="current":
+    #!/usr/bin/env bash
+    echo "tests_e2e er tom: Docker-laget (dcat stromkalkulator-6b54ywj, T11b) er ikke bygget ennå." >&2
+    echo "{{target}} er tatt imot, men det finnes ingenting å kjøre. Se tests_e2e/README.md." >&2
+    exit 1
 
 # Filen skal være identisk, alle entitetsreferanser skal finnes, og
 # test-sensorene skal stå i en grei tilstand. Exit 1 hvis ikke.

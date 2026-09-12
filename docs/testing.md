@@ -1,12 +1,61 @@
 # Testing
 
+## Testmiljøer
+
+Fire miljøer, fire virtuelle miljøer, ingen av dem deler `sys.modules` med
+hverandre. Det er ikke en pytest-markør som skiller dem, det er hvilke pakker
+som er installert: `tests/` stubber `homeassistant.*` i `sys.modules`, og en
+ekte `homeassistant` i samme miljø ville kollidert med stubbene.
+
+| Oppskrift                  | Tre        | Gruppe       | Python | Home Assistant |
+| -------------------------- | ---------- | ------------ | ------ | -------------- |
+| `just test-unit`           | `tests/`   | `unit`       | 3.13   | stubbet        |
+| `just check`               | hele repo  | `kvalitet`   | 3.13   | ingen          |
+| `just test-ha target=minimum` | `tests_ha/` | `ha-minimum` | 3.13   | 2025.1.0       |
+| `just test-ha target=current` | `tests_ha/` | `ha-current` | 3.14   | 2026.9.2       |
+
+`just test` er `test-unit` og `check` i ett, og er det AGENTS.md ber om før
+commit. `just test-e2e` finnes, men feiler med en melding: Docker-laget er ikke
+bygget ennå, se [tests_e2e/README.md](../tests_e2e/README.md).
+
+Gruppene står i `[dependency-groups]` i `pyproject.toml` og er låst i
+`uv.lock`. HA-versjonen står ikke der direkte: den følger av
+`pytest-homeassistant-custom-component`, som pinner `homeassistant` eksakt.
+`0.13.201` gir HA 2025.1.0, `0.13.365` gir HA 2026.9.2. De to gruppene er
+erklært som `conflicts` i `[tool.uv]`, så uv låser dem som atskilte grener
+framfor å prøve å få dem inn i samme miljø.
+
+Python-versjonene er ikke fritt valg. HA 2026.9 krever 3.14.2 eller nyere, og
+`pytest-homeassistant-custom-component` for 2025.1 krever 3.12 eller nyere.
+`uv` henter begge selv, så du trenger ikke installere dem.
+
+HA 2025.1.0 pinner `aiohasupervisor==0.2.2b5`, altså en prerelease. uv nekter
+prereleases som default, så den står eksplisitt i `ha-minimum` og
+`prerelease = "if-necessary-or-explicit"` i `[tool.uv]` slipper den gjennom.
+Uten dette kunne minimum-grenen ikke løses i det hele tatt.
+
+`minimum` er versjonen `hacs.json` lover brukerne. Feiler den, skal
+kompatibiliteten rettes eller minimum heves med en begrunnet beslutning, ikke
+stille.
+
+`just test-unit` og `just test-ha` tar ekstra argumenter videre til pytest,
+f.eks. `just test-unit -k energiledd` eller
+`just test-ha target=current -x`.
+
+### Én kommandolinje, tre steder
+
+Pre-push-hooken kjører `just test-unit`, og CI-jobbene kjører `just test-unit`,
+`just check` og `just test-ha` for begge mål. Ingen av dem har sin egen
+kommandolinje, så ingen av dem kan gå grønn på noe annet enn det du kjørte.
+`tests/test_testkommandoer.py` feiler hvis justfile, AGENTS.md, denne filen,
+`docs/development.md`, `.pre-commit-config.yaml` og `.github/workflows/ci.yml`
+spriker.
+
 ## Unit-tester
 
 ```bash
-pipx run --with hypothesis --with pyyaml pytest tests/ -v
+just test-unit
 ```
-
-Eller i venv: `python -m pytest tests/ -v`.
 
 ### Hva som dekkes
 
@@ -24,7 +73,34 @@ Nye tester legges i nivået de hører til. Denne listen skal ikke oppdateres for
 
 ### Begrensninger
 
-Kjører uten Home Assistant installert (HA mockes i `conftest.py`). `pytest-homeassistant-custom-component` er ikke en avhengighet i dette prosjektet. Options flow med reload, end-to-end setup/unload og repair-issue-flows er allerede dekket via mock-basert HA (`test_config_flow_options.py`, `test_init_setup.py`, `test_config_migration.py`). Unntaket er ekte multi-step config-flow-kjøring: `test_config_flow.py` bruker regex mot kildekoden (bevisst skjørt, se filens docstring) fordi vi ikke kjører en reell `ConfigFlow`-instans.
+Unit-testene kjører uten Home Assistant installert (HA stubbes i
+`tests/conftest.py`). Options flow med reload, end-to-end setup/unload og
+repair-issue-flows er dekket mock-basert (`test_config_flow_options.py`,
+`test_init_setup.py`, `test_config_migration.py`), og `test_config_flow.py`
+bruker regex mot kildekoden (bevisst skjørt, se filens docstring) fordi den
+ikke kjører en reell `ConfigFlow`-instans.
+
+Det som må kjøres mot ekte HA, ligger i `tests_ha/`.
+
+## Ekte Home Assistant
+
+```bash
+just test-ha target=minimum
+just test-ha target=current
+```
+
+`tests_ha/` laster integrasjonen i en ekte `HomeAssistant`-instans via
+pytest-homeassistant-custom-component. Egen conftest, eget miljø, egen
+asyncio-modus (`-o asyncio_mode=auto`, fordi `hass`-fixturen er en async
+generator). Tom collection er rødt: conftest-en avbryter kjøringen hvis
+ingen tester ble samlet inn, så en feilstavet sti eller en import som slutter
+å samles ikke kan vises som grønn.
+
+I dag dekker den setup/unload med entitetsregistrering og første
+config-flow-steg. Bredden (full config-flow, options og reload, migrering,
+repairs, to entries, månedsskifte og DST med kontrollert klokke) kommer med
+dcat-issue `stromkalkulator-6b54ywj`, som også eier tidsbudsjettet for dette
+avsnittet.
 
 ## Live-tester i Home Assistant
 

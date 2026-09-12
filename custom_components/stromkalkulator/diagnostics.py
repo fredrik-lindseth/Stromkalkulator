@@ -1,86 +1,20 @@
-"""Diagnostics support for Strømkalkulator."""
+"""Diagnostics-plattformen for Strømkalkulator.
+
+Selve skjemaet ligger i `diagnostikk.py`, så det kan testes uten HAs
+diagnostics-plattform. Denne filen er bare inngangen HA kaller.
+"""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from .diagnostikk import bygg_diagnostikk
+
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
 
-    from .coordinator import NettleieCoordinator
-
-from .const import (
-    CONF_AVGIFTSSONE,
-    CONF_DSO,
-    CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
-    CONF_ENERGILEDD_DAG,
-    CONF_ENERGILEDD_NATT,
-    CONF_HAR_NORGESPRIS,
-    CONF_POWER_SENSOR,
-    CONF_SIKRINGSTRINN,
-    CONF_SPOT_PRICE_SENSOR,
-    INPUT_UTFALL_GRACE_MINUTTER,
-)
-
 
 async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]:
-    """Return diagnostics for a config entry.
-
-    This includes integration version, configuration, sensor entity IDs,
-    DSO data, and coordinator data (sanitized).
-    """
-    coordinator: NettleieCoordinator = entry.runtime_data
-
-    return {
-        "integration": {
-            "version": entry.version,
-            "domain": entry.domain,
-            "title": entry.title,
-        },
-        "config_entry": {
-            "entry_id": entry.entry_id,
-            "data": {
-                "dso": entry.data.get(CONF_DSO),
-                "avgiftssone": entry.data.get(CONF_AVGIFTSSONE),
-                "har_norgespris": entry.data.get(CONF_HAR_NORGESPRIS),
-                "energiledd_dag_eks_mva_override": entry.data.get(CONF_ENERGILEDD_DAG),
-                "energiledd_natt_eks_mva_override": entry.data.get(CONF_ENERGILEDD_NATT),
-                "sikringstrinn": entry.data.get(CONF_SIKRINGSTRINN),
-            },
-        },
-        "sensor_entity_ids": {
-            "power_sensor": entry.data.get(CONF_POWER_SENSOR),
-            "spot_price_sensor": entry.data.get(CONF_SPOT_PRICE_SENSOR),
-            "electricity_provider_price_sensor": entry.data.get(CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR),
-        },
-        "dso_info": {
-            "id": coordinator._dso_id,
-            "name": coordinator.dso.get("name"),
-            "energiledd_dag_eks_mva": coordinator.energiledd_dag_eks_mva,
-            "energiledd_natt_eks_mva": coordinator.energiledd_natt_eks_mva,
-            "energiledd_dag_inkl_mva": coordinator.energiledd_dag,
-            "energiledd_natt_inkl_mva": coordinator.energiledd_natt,
-            "kapasitetstrinn_count": len(coordinator.kapasitetstrinn),
-            # Metoden er halve svaret på "hvorfor stemmer ikke fastleddet".
-            # Uten den i diagnostikken må man gjette fra DSO-id-en.
-            "fastledd_metode": coordinator.fastledd_metode,
-            "ukesmaks_count": len(coordinator._weekly_max_power),
-        },
-        # Vaktholdet er det første man vil se når noen melder at tallene
-        # stoppet: hvilken input som svikter, hvor lenge, og hvilke varsler som
-        # står ute akkurat nå.
-        "vakthold": {
-            "grace_minutter": INPUT_UTFALL_GRACE_MINUTTER,
-            "frossen_terskel_timer": coordinator.energi_frossen_terskel_timer,
-            "sist_energi_okning": (
-                coordinator._last_energy_increase.isoformat() if coordinator._last_energy_increase else None
-            ),
-            "input_sist_gyldig": {
-                rolle: naar.isoformat() for rolle, naar in coordinator._input_sist_gyldig.items()
-            },
-            "aktive_issues": sorted(coordinator._vakthold_issues),
-            "input_problemer": (coordinator.data or {}).get("input_problemer", []),
-        },
-        "coordinator_data": coordinator.data if coordinator.data else {},
-    }
+    """Returner diagnostikk for et config entry."""
+    return await bygg_diagnostikk(hass, entry)

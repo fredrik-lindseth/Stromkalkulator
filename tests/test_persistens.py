@@ -503,6 +503,7 @@ class TestLastEnergyIncreasePersistens:
         return make_store
 
     def test_roundtrip(self):
+        """Tidsstempelet overlever en kort omstart, altså en med baseline i behold."""
         coord = _reload_coord()
         saved: dict = {}
         coord.Store = MagicMock(side_effect=self._make_store_factory(None, saved))
@@ -510,15 +511,77 @@ class TestLastEnergyIncreasePersistens:
         hass = MagicMock()
         entry = _make_entry(energy_sensor="sensor.tpi")
         coordinator = coord.NettleieCoordinator(hass, entry)
-        coordinator._last_energy_increase = datetime(2026, 7, 29, 10, 58)
+        coordinator._last_energy_increase = datetime(2026, 6, 15, 10, 58)
+        coordinator._last_tpi_kwh = 133282.18
+        coordinator._last_update = datetime(2026, 6, 15, 11, 0)
 
         asyncio.run(coordinator._save_stored_data())
-        assert saved["last_energy_increase"] == "2026-07-29T10:58:00"
+        assert saved["last_energy_increase"] == "2026-06-15T10:58:00"
 
         coord.Store = MagicMock(side_effect=self._make_store_factory(saved))
         gjenopptatt = coord.NettleieCoordinator(hass, entry)
         asyncio.run(gjenopptatt._load_stored_data())
-        assert gjenopptatt._last_energy_increase == datetime(2026, 7, 29, 10, 58)
+        assert gjenopptatt._last_energy_increase == datetime(2026, 6, 15, 10, 58)
+
+    def test_lang_nedetid_nullstiller_klokken(self):
+        """O1: baseline droppet som foreldet skal ta frossen-klokken med seg.
+
+        Hytta som slås på etter en uke har en gammel last_energy_increase i
+        lagringsfilen, men ingen tpi-baseline å måle fra. Å ha vært avslått er
+        ikke en frossen måler, så klokken skal starte ved første poll.
+        """
+        coord = _reload_coord()
+        coord.Store = MagicMock(
+            side_effect=self._make_store_factory(
+                {
+                    "last_energy_increase": "2026-06-08T12:00:00",
+                    "last_update": "2026-06-08T12:00:00",
+                    "last_tpi_kwh": 133282.18,
+                }
+            )
+        )
+        coordinator = coord.NettleieCoordinator(MagicMock(), _make_entry(energy_sensor="sensor.tpi"))
+        asyncio.run(coordinator._load_stored_data())
+
+        assert coordinator._last_tpi_kwh is None, "baseline skal droppes som foreldet"
+        assert coordinator._last_energy_increase is None
+
+    def test_kort_omstart_beholder_klokken(self):
+        """Motprøve: fem timer nede, baseline i behold, klokken går videre."""
+        coord = _reload_coord()
+        coord.Store = MagicMock(
+            side_effect=self._make_store_factory(
+                {
+                    "last_energy_increase": "2026-06-15T06:00:00",
+                    "last_update": "2026-06-15T07:00:00",
+                    "last_tpi_kwh": 133282.18,
+                }
+            )
+        )
+        coordinator = coord.NettleieCoordinator(MagicMock(), _make_entry(energy_sensor="sensor.tpi"))
+        asyncio.run(coordinator._load_stored_data())
+
+        assert coordinator._last_tpi_kwh == 133282.18
+        assert coordinator._last_energy_increase == datetime(2026, 6, 15, 6, 0)
+
+    def test_tidsstempel_lagres_i_utc(self):
+        """Tidssonebevisst tidsstempel skal lagres som UTC, ikke lokal sone.
+
+        Kommer det tilbake med samme ZoneInfo-objekt som dt_util.now(), hopper
+        Python over utcoffset i subtraksjonen og vaktholdet måler veggklokke.
+        """
+        from zoneinfo import ZoneInfo
+
+        coord = _reload_coord()
+        saved: dict = {}
+        coord.Store = MagicMock(side_effect=self._make_store_factory(None, saved))
+        coordinator = coord.NettleieCoordinator(MagicMock(), _make_entry(energy_sensor="sensor.tpi"))
+        coordinator._last_energy_increase = datetime(
+            2026, 6, 15, 12, 0, tzinfo=ZoneInfo("Europe/Oslo")
+        )
+
+        asyncio.run(coordinator._save_stored_data())
+        assert saved["last_energy_increase"] == "2026-06-15T10:00:00+00:00"
 
     def test_gammel_lagringsfil_uten_nokkelen(self):
         """Fil skrevet før v1.17.0: ingen nøkkel, ingen krasj, står på None."""
@@ -766,6 +829,7 @@ class TestSaveDataStructure:
             "previous_month_cost",
             "last_update",
             "last_tpi_kwh",
+            "last_tpi_time",
             "weekly_max_power",
             "last_energy_increase",
         }

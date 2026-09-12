@@ -4,6 +4,7 @@ Sjekker at coordinator.py:
 - `_is_day_rate` bruker lokal time, ikke UTC
 - Akkumulator hopper ikke over eller dobbelttelle energi
 - Topp-3 datoer henger ikke fast i feil dato
+- Vaktholdet på input-sensorene måler ekte tid, ikke veggklokke
 """
 
 from __future__ import annotations
@@ -12,6 +13,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from tests.conftest import _make_entry, _make_hass, _run_update
+from tests.test_vakthold import Sensorbenk, _lag_coordinator, _poll, _typer
 
 _real_datetime = datetime
 OSLO = ZoneInfo("Europe/Oslo")
@@ -313,3 +315,91 @@ class TestTidsstempelKonsistens:
         before = _real_datetime(*VAR_SONDAG, 1, 30)
         after = _real_datetime(*VAR_SONDAG, 3, 30)
         assert (after - before) == timedelta(hours=2)
+
+
+class TestVaktholdOverDst:
+    """Vaktholdet skal måle ekte tid, ikke veggklokke.
+
+    Python hopper over utcoffset når begge datetimes har samme tzinfo-objekt,
+    og dt_util.now() gir nettopp det. En rett subtraksjon måler derfor
+    veggklokke. Ved vårskiftet ble ett ekte minutt til 61 og to ekte timer til
+    tre, altså utfall og frossen-varsel hos alle med en input som glapp rett før
+    02:00. Ved høstskiftet forsvant en time den andre veien.
+
+    Testene går gjennom `_async_update_data`, samme vei som en ekte poll, og
+    bruker aware Oslo-tid. Naive datetimes ser aldri feilen.
+    """
+
+    @staticmethod
+    def _coord_med_klokke(coord_module, benk, na):
+        coord_module.dt_util.now.return_value = na
+        coord = _lag_coordinator(coord_module, benk)
+        coord._current_month = na.strftime("%Y-%m")
+        coord._current_date = na.strftime("%Y-%m-%d")
+        return coord
+
+    def test_var_ett_ekte_minutt_er_ikke_utfall(self, coord_module):
+        """29.03: 01:59 CET til 03:00 CEST er ett minutt, ikke 61."""
+        benk = Sensorbenk()
+        start = _real_datetime(*VAR_SONDAG, 1, 59, tzinfo=OSLO)
+        coord = self._coord_med_klokke(coord_module, benk, start)
+        _poll(coord_module, coord, start)
+
+        benk.sett("sensor.power", "unavailable")
+        resultat = _poll(coord_module, coord, _real_datetime(*VAR_SONDAG, 3, 0, tzinfo=OSLO))
+
+        assert _typer(resultat) == set()
+        assert resultat["maaledata_problem"] is False
+
+    def test_var_utfall_meldes_etter_ekte_halvtime(self, coord_module):
+        """Motprøve: klokken stilles, men 36 ekte minutter er fortsatt utfall."""
+        benk = Sensorbenk()
+        start = _real_datetime(*VAR_SONDAG, 1, 59, tzinfo=OSLO)
+        coord = self._coord_med_klokke(coord_module, benk, start)
+        _poll(coord_module, coord, start)
+
+        benk.sett("sensor.power", "unavailable")
+        resultat = _poll(coord_module, coord, _real_datetime(*VAR_SONDAG, 3, 35, tzinfo=OSLO))
+
+        problem = next(p for p in resultat["input_problemer"] if p["type"] == "utfall")
+        assert problem["minutter"] == 36
+
+    def test_var_to_ekte_timer_er_ikke_frossen(self, coord_module):
+        """29.03: telleren står stille i to timer, terskelen er tre."""
+        benk = Sensorbenk()
+        start = _real_datetime(*VAR_SONDAG, 0, 31, tzinfo=OSLO)
+        coord = self._coord_med_klokke(coord_module, benk, start)
+        _poll(coord_module, coord, start)
+
+        resultat = _poll(coord_module, coord, _real_datetime(*VAR_SONDAG, 3, 32, tzinfo=OSLO))
+        assert "frossen" not in _typer(resultat)
+
+        # Og etter tre ekte timer skal den melde.
+        resultat = _poll(coord_module, coord, _real_datetime(*VAR_SONDAG, 4, 35, tzinfo=OSLO))
+        assert "frossen" in _typer(resultat)
+
+    def test_host_utfall_gaar_ikke_tapt_i_den_doble_timen(self, coord_module):
+        """25.10: 02:30 CEST til 02:15 CET er 45 minutter fram, ikke 15 tilbake."""
+        benk = Sensorbenk()
+        start = _real_datetime(*HOST_SONDAG, 2, 30, tzinfo=OSLO, fold=0)
+        coord = self._coord_med_klokke(coord_module, benk, start)
+        _poll(coord_module, coord, start)
+
+        benk.sett("sensor.power", "unavailable")
+        resultat = _poll(
+            coord_module, coord, _real_datetime(*HOST_SONDAG, 2, 15, tzinfo=OSLO, fold=1)
+        )
+
+        problem = next(p for p in resultat["input_problemer"] if p["type"] == "utfall")
+        assert problem["minutter"] == 45
+
+    def test_host_frossen_maaler_den_ekstra_timen(self, coord_module):
+        """25.10: veggklokken viser 2 t 5 min, men det gikk 3 t 5 min."""
+        benk = Sensorbenk()
+        start = _real_datetime(*HOST_SONDAG, 2, 0, tzinfo=OSLO, fold=0)
+        coord = self._coord_med_klokke(coord_module, benk, start)
+        _poll(coord_module, coord, start)
+
+        resultat = _poll(coord_module, coord, _real_datetime(*HOST_SONDAG, 4, 5, tzinfo=OSLO))
+        problem = next(p for p in resultat["input_problemer"] if p["type"] == "frossen")
+        assert problem["timer"] == 3.1

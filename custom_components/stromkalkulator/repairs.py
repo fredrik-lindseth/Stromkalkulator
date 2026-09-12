@@ -1,10 +1,12 @@
 """Repairs-plattform for Strømkalkulator.
 
 Home Assistant oppdager fix-flows via denne plattformfilen (repairs.py) og
-`async_create_fix_flow`. Tre issues er fiksbare: DSO-fusjonen (dso_migration_*,
+`async_create_fix_flow`. Fem issues er fiksbare: DSO-fusjonen (dso_migration_*,
 reist i __init__.py), forkastet energi-delta (energi_delta_forkastet_*, reist fra
-coordinatoren når en avlesning hoppet så mye at den ble kastet) og den
-feilmerkede energiledd-satsen (egendefinert_energiledd_*).
+coordinatoren når en avlesning hoppet så mye at den ble kastet), den
+feilmerkede energiledd-satsen (egendefinert_energiledd_*), prissensoren uten
+enhet (prisenhet_ubekreftet_*, reist fra coordinatoren) og tariffvalget
+(tariff_ubekreftet_*, reist i __init__.py).
 
 De to første trenger bare en bekreftelse, og ConfirmRepairFlow-helperen holder:
 den viser et confirm-steg og lukker issuen når brukeren bekrefter. Tittel og
@@ -16,6 +18,7 @@ Den tredje trenger mer: varselet reises ved hver oppstart så lenge entryet
 bruker egendefinerte satser, så en ren bekreftelse ville kommet tilbake ved
 neste restart. EgendefinertSatserRepairFlow skriver derfor et flagg på config
 entryet, og det er flagget __init__.py sjekker før den reiser varselet igjen.
+PrisenhetRepairFlow gjør det samme per prisrolle.
 
 TariffmodusRepairFlow er den eneste som ikke er en bekreftelse: den stiller et
 spørsmål med to svar, og begge skriver en tariffmodus på entryet.
@@ -209,10 +212,11 @@ async def async_create_fix_flow(
 ) -> RepairsFlow:
     """Lag fix-flow for en fiksbar repair-issue.
 
-    Energiledd-varselet trenger sin egen flow for å huske bekreftelsen. De andre
-    (dso_migration_*, energi_delta_forkastet_*) krever bare et klikk, så
-    ConfirmRepairFlow er tilstrekkelig. Integrasjonen kan ikke gjenskape
-    forbruket som gikk tapt, bare vise tallet.
+    Tariffvalget, prisenheten og energiledd-varselet trenger hver sin flow for
+    å skrive svaret på entryet. De andre (dso_migration_*,
+    energi_delta_forkastet_*) krever bare et klikk, så ConfirmRepairFlow er
+    tilstrekkelig. Integrasjonen kan ikke gjenskape forbruket som gikk tapt,
+    bare vise tallet.
     """
     if issue_id.startswith(TARIFF_ISSUE_PREFIX):
         entry_id = str((data or {}).get("entry_id") or issue_id[len(TARIFF_ISSUE_PREFIX) :])

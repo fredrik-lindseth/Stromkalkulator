@@ -337,7 +337,7 @@
         "step": {
           "confirm": {
             "title": "A jump in the energy meter was discarded",
-            "description": "{sensor} jumped {kwh} kWh in one minute on {tidspunkt}. The jump was kept out of monthly consumption, since it could just as well be a meter swap or a sensor glitch as real usage. If it was real, those kWh are now missing from the monthly figure and the invoice will exceed the estimate. Confirm to close the warning."
+            "description": "{sensor} jumped {kwh} kWh since the previous reading on {forrige}. The jump was kept out of monthly consumption, since it could just as well be a meter swap or a sensor glitch as real usage. If it was real, those kWh are now missing from the monthly figure and the invoice will exceed the estimate. Confirm to close the warning."
           }
         }
       }

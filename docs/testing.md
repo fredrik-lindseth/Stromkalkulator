@@ -28,12 +28,34 @@ Kjører uten Home Assistant installert (HA mockes i `conftest.py`). `pytest-home
 
 ## Live-tester i Home Assistant
 
-`packages/stromkalkulator_test.yaml` gir test-sensorer som kjører i HA.
+`packages/stromkalkulator_test.yaml` gir test-sensorer som kjører i HA. Filen
+finnes to steder, her i repoet og installert på HA-instansen, og de har driftet
+fra hverandre før uten at noe fanget det. To just-oppskrifter holder dem i takt:
 
 ```bash
-ssh ha-local "cat > /config/packages/stromkalkulator_test.yaml" < packages/stromkalkulator_test.yaml
-ssh ha-local "ha core restart"
+just deploy-testpakke   # diff mot HA, kopier etter bekreftelse, be om restart
+just sjekk-testpakke    # er repo og HA i takt, og står testene grønt?
 ```
+
+`deploy-testpakke` viser diffen først og gjør ingenting hvis filene er like.
+Den restarter ikke HA selv; packages leses bare ved oppstart, så kommandoen for
+restart skrives ut til slutt.
+
+`sjekk-testpakke` kjører `scripts/sjekk_testpakke.py`, som leser states over
+supervisor-proxyen på `ha-local` og sjekker tre ting: at filen på HA er identisk
+med repoets, at hver entitet pakken refererer til finnes i state-maskinen, og at
+test-sensorene står i en grei tilstand. Exit 1 hvis noe mangler eller står i
+FEIL. Med `--states <fil>` leses states fra en JSON-dump i stedet, nyttig for
+feilsøking uten tilgang til boksen.
+
+SSH-en trenger `-o IdentitiesOnly=yes`, ellers faller den på «Too many
+authentication failures». Scriptet setter flagget selv.
+
+Uten tilgang til en kjørende HA dekker `tests/test_testpakke.py` det som kan
+sjekkes offline: at pakken parser, at unique_id-ene er unike, at test-sensorer
+som viser til hverandre finnes i pakken, og at referansene til integrasjonen
+svarer til en sensor den faktisk lager (slugger fra `translations/nb.json`).
+Instansspesifikke entity-id-er kan bare sjekkes live.
 
 Pass på at packages er aktivert i `configuration.yaml`:
 

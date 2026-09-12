@@ -54,3 +54,31 @@ test:
     pipx run --with hypothesis --with pyyaml pytest tests/ -v
     ruff check custom_components/stromkalkulator/ tests/
     pipx run mypy custom_components/stromkalkulator/ --ignore-missing-imports
+
+# Filen skal være identisk, alle entitetsreferanser skal finnes, og
+# test-sensorene skal stå i en grei tilstand. Exit 1 hvis ikke.
+# Sjekk at testpakken i repoet er i takt med den som kjører på HA.
+sjekk-testpakke host="ha-local":
+    python3 scripts/sjekk_testpakke.py --host {{host}}
+
+# Viser diff først, kopierer bare hvis den er ulik, og ber om restart etterpå
+# (HA laster ikke packages på nytt av seg selv).
+# Legg repoets testpakke ut på HA.
+deploy-testpakke host="ha-local":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    fjern=/config/packages/stromkalkulator_test.yaml
+    lokal=packages/stromkalkulator_test.yaml
+    ssh -o IdentitiesOnly=yes {{host}} "cat $fjern" > /tmp/stromkalkulator_test_fjern.yaml 2>/dev/null || : > /tmp/stromkalkulator_test_fjern.yaml
+    if diff -u /tmp/stromkalkulator_test_fjern.yaml "$lokal" > /tmp/stromkalkulator_test.diff; then
+        echo "Testpakken på {{host}} er allerede identisk med repoets. Gjør ingenting."
+        exit 0
+    fi
+    echo "Diff mot {{host}} (fjern → repo):"
+    cat /tmp/stromkalkulator_test.diff
+    read -r -p "Kopier repoets pakke til {{host}}? [j/N] " svar
+    [[ "$svar" == "j" ]] || { echo "Avbrutt."; exit 1; }
+    ssh -o IdentitiesOnly=yes {{host}} "cat > $fjern" < "$lokal"
+    echo "Kopiert. Start HA på nytt for at pakken skal leses:"
+    echo "  ssh -o IdentitiesOnly=yes {{host}} 'ha core restart'"
+    echo "Deretter: just sjekk-testpakke"

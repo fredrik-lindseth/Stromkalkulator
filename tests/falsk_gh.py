@@ -16,6 +16,10 @@ Feil sprøytes inn med `GH_FEIL`, en kommaliste:
 
 Hvert kall logges i `kall`, så testene kan slå fast at et gjenopptak *ikke*
 lastet opp på nytt.
+
+`GH_REPO_ROOT` peker på testens ekte git-repo. Compare-endepunktet, som
+hovedgren-vakten spør, svarer ut fra faktiske commits der framfor et hardkodet
+svar.
 """
 
 from __future__ import annotations
@@ -23,8 +27,10 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import subprocess
 import sys
 from pathlib import Path
+from typing import NoReturn
 
 TILSTAND = Path(os.environ["GH_TILSTAND"])
 
@@ -41,12 +47,12 @@ def feil_aktiv(navn: str) -> bool:
     return navn in os.environ.get("GH_FEIL", "").split(",")
 
 
-def svar(data) -> None:
+def svar(data) -> NoReturn:
     print(json.dumps(data))
     sys.exit(0)
 
 
-def http_feil(kode: int, melding: str) -> None:
+def http_feil(kode: int, melding: str) -> NoReturn:
     print(f"gh: {melding} (HTTP {kode})", file=sys.stderr)
     sys.exit(1)
 
@@ -96,12 +102,12 @@ def api(argv: list[str]) -> None:
     if sti.startswith("https://uploads.github.com/"):
         release = finn_release_id(tilstand, biter[biter.index("releases") + 1])
         navn = sti.split("name=")[1]
-        data = Path(inn).read_bytes() if inn else b""
+        innhold = Path(inn).read_bytes() if inn else b""
         if feil_aktiv("upload_korrupt"):
-            data = b"noe helt annet"
+            innhold = b"noe helt annet"
         asset_id = str(tilstand["neste_id"])
         tilstand["neste_id"] += 1
-        tilstand["assets"][asset_id] = data.hex()
+        tilstand["assets"][asset_id] = innhold.hex()
         release["assets"].append({"id": asset_id, "name": navn})
         skriv(tilstand)
         if feil_aktiv("upload_etter_lagring"):
@@ -147,6 +153,7 @@ def api(argv: list[str]) -> None:
             "name": data.get("name"),
             "body": data.get("body", ""),
             "draft": bool(data.get("draft")),
+            "prerelease": bool(data.get("prerelease")),
             "assets": [],
         }
         tilstand["neste_id"] += 1
@@ -165,7 +172,53 @@ def api(argv: list[str]) -> None:
             skriv(tilstand)
             svar(release)
 
+    # Hovedgren-vakten: repoet sin default_branch, og sammenligningen mot den.
+    if len(biter) == 3 and biter[0] == "repos" and metode == "GET":
+        svar({"default_branch": tilstand.get("hovedgren", "main")})
+
+    if len(biter) >= 2 and biter[-2] == "compare":
+        base, _, head = biter[-1].partition("...")
+        svar({"status": sammenlign(base, head)})
+
     http_feil(404, f"falsk gh kjenner ikke {metode} {sti}")
+
+
+def rev(ref: str) -> str | None:
+    """Full commit-SHA for en ref i det ekte testrepoet, eller None."""
+    res = subprocess.run(
+        ["git", "-C", os.environ["GH_REPO_ROOT"], "rev-parse", "--verify", f"{ref}^{{commit}}"],
+        capture_output=True,
+        text=True,
+    )
+    return res.stdout.strip() if res.returncode == 0 else None
+
+
+def er_forfar(eldre: str, yngre: str) -> bool:
+    res = subprocess.run(
+        ["git", "-C", os.environ["GH_REPO_ROOT"], "merge-base", "--is-ancestor", eldre, yngre],
+        capture_output=True,
+    )
+    return res.returncode == 0
+
+
+def sammenlign(base: str, head: str) -> str:
+    """Som GitHubs compare-status, regnet ut med ekte git mot testrepoet.
+
+    Å hardkode svaret ville gjort hovedgren-vakten til en test av hardkodingen.
+    Her er det faktiske grener og commits som avgjør.
+    """
+    base_sha, head_sha = rev(base), rev(head)
+    if head_sha is None:
+        http_feil(404, "No commit found for SHA")
+    if base_sha is None:
+        http_feil(404, "Not Found")
+    if base_sha == head_sha:
+        return "identical"
+    if er_forfar(head_sha, base_sha):
+        return "behind"
+    if er_forfar(base_sha, head_sha):
+        return "ahead"
+    return "diverged"
 
 
 def finn_release_id(tilstand: dict, release_id: str) -> dict:
@@ -173,7 +226,6 @@ def finn_release_id(tilstand: dict, release_id: str) -> dict:
         if release["id"] == release_id:
             return release
     http_feil(404, "Not Found")
-    raise AssertionError  # uoppnåelig, http_feil avslutter
 
 
 def attestation(argv: list[str]) -> None:

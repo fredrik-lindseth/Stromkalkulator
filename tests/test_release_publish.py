@@ -141,7 +141,7 @@ class FalskGitHub:
 
 
 @pytest.fixture
-def github(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> FalskGitHub:
+def github(repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> FalskGitHub:
     """Legg en `gh` på PATH som snakker med en tilstandsfil vi kan se inn i."""
     tilstand = tmp_path / "github.json"
     tilstand.write_text(
@@ -165,6 +165,9 @@ def github(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> FalskGitHub:
     skall.chmod(0o755)
     monkeypatch.setenv("PATH", f"{bin_}{os.pathsep}{os.environ['PATH']}")
     monkeypatch.setenv("GH_TILSTAND", str(tilstand))
+    # Hovedgren-vakten spør GitHub om commiten er på main. Etterligningen regner
+    # det ut med ekte git, mot dette repoet.
+    monkeypatch.setenv("GH_REPO_ROOT", str(repo))
     monkeypatch.delenv("GH_FEIL", raising=False)
     monkeypatch.delenv("GITHUB_OUTPUT", raising=False)
     return FalskGitHub(tilstand)
@@ -515,6 +518,126 @@ def test_make_latest_settes_eksplisitt(repo: Path, sha: str, github: FalskGitHub
 
 
 # --------------------------------------------------------------------------
+# Hovedgrenen
+# --------------------------------------------------------------------------
+
+
+def _sidegren(repo: Path, navn: str = "sidegren", versjon: str = VERSJON) -> str:
+    """En commit som aldri har vært på main. Arbeidstreet blir stående der."""
+    _git(repo, "checkout", "-qb", navn)
+    (repo / KOMPONENT / "sensor.py").write_text("SENSOR = 'fra en gren'\n")
+    if versjon != VERSJON:
+        (repo / KOMPONENT / "manifest.json").write_text(
+            json.dumps({"domain": "stromkalkulator", "version": versjon}) + "\n"
+        )
+        (repo / "CHANGELOG.md").write_text(CHANGELOG.replace(VERSJON, versjon))
+    _git(repo, "commit", "-qam", "noe på en gren")
+    return _git(repo, "rev-parse", "HEAD")
+
+
+def test_commit_utenfor_hovedgrenen_slippes_ikke(repo: Path, sha: str, github: FalskGitHub) -> None:
+    """workflow_dispatch kan kjøres hvor som helst. Det som går ut, kommer fra main."""
+    side = _sidegren(repo)
+    digest = bygg(repo, side, repo / "dist" / "gren.zip")
+    github.attester(digest, side)
+
+    assert publiser(repo, side) == release_publish.EXIT_STOPP
+    assert github.releaser == []
+    assert github.tagg() is None
+
+
+def test_plan_stopper_ogsa_utenfor_hovedgrenen(repo: Path, sha: str, github: FalskGitHub) -> None:
+    """Vakten skal felle i første steg, ikke først når noe skal skrives."""
+    side = _sidegren(repo)
+    assert kjor(repo, "plan", "--sha", side, "--repo", REPONAVN) == release_publish.EXIT_STOPP
+
+
+def test_eldre_commit_pa_hovedgrenen_er_greit(
+    repo: Path, sha: str, github: FalskGitHub, attestert: str
+) -> None:
+    """Gjenopptak på en commit main har passert, er nettopp det vakten skal slippe gjennom."""
+    (repo / "README.md").write_text("main har gått videre\n")
+    _git(repo, "commit", "-qam", "etterpå")
+    assert publiser(repo, sha) == release_publish.EXIT_OK
+
+
+def test_proveslipp_bare_for_proveversjonen(repo: Path, sha: str, github: FalskGitHub) -> None:
+    """Unntaksveien kan ikke slippe en ekte versjon, uansett hvem som huker av."""
+    side = _sidegren(repo)
+    digest = bygg(repo, side, repo / "dist" / "gren.zip")
+    github.attester(digest, side)
+
+    assert publiser(repo, side, "--proveslipp") == release_publish.EXIT_STOPP
+    assert github.releaser == []
+
+
+def test_proveslipp_med_proveversjonen_gar_gjennom(repo: Path, sha: str, github: FalskGitHub) -> None:
+    """Prøvekjøringen mot engangstagg trenger en ekte workflow-kjøring for å bli attestert."""
+    side = _sidegren(repo, versjon=release_publish.PROVEVERSJON)
+    digest = bygg(repo, side, repo / "dist" / "gren.zip")
+    github.attester(digest, side)
+
+    assert publiser(repo, side, "--proveslipp") == release_publish.EXIT_OK
+    release = github.release(f"v{release_publish.PROVEVERSJON}")
+    assert release is not None
+    assert release["prerelease"] is True, "en prøvetagg skal ikke se ut som noe å installere"
+    assert release["make_latest"] == "false", "en prøvetagg ble latest"
+
+
+# --------------------------------------------------------------------------
+# Draft fra en annen commit
+# --------------------------------------------------------------------------
+
+
+def test_draft_fra_en_annen_commit_gjenbrukes_ikke(
+    repo: Path, sha: str, github: FalskGitHub, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Taggen ble slettet for hånd, draften ble stående. Body-en beskriver commit A."""
+    digest_a = bygg(repo, sha, repo / "dist" / "a.zip")
+    github.attester(digest_a, sha)
+    monkeypatch.setenv("GH_FEIL", "publish")
+    publiser(repo, sha)
+    monkeypatch.delenv("GH_FEIL")
+
+    # Mennesket sletter taggen, men lar draften stå.
+    tilstand = github.les()
+    del tilstand["tags"][TAG]
+    github.skriv(tilstand)
+
+    (repo / KOMPONENT / "sensor.py").write_text("SENSOR = 2\n")
+    _git(repo, "commit", "-qam", "samme versjon, ny commit")
+    ny_sha = _git(repo, "rev-parse", "HEAD")
+    github.attester(bygg(repo, ny_sha, repo / "dist" / "b.zip"), ny_sha)
+
+    assert publiser(repo, ny_sha) == release_publish.EXIT_STOPP
+    assert github.tagg() is None, "taggen ble opprettet før draften var sjekket"
+    assert github.release()["draft"] is True
+    assert sha[:12] in github.release()["body"], "draften hører fortsatt til den gamle commiten"
+
+
+def test_handskrevet_draft_gjenbrukes_fortsatt(
+    repo: Path, sha: str, github: FalskGitHub, attestert: str
+) -> None:
+    """En draft laget i nettleseren peker på en gren, ikke en commit. Den skal ut."""
+    tilstand = github.les()
+    tilstand["releaser"].append(
+        {
+            "id": "77",
+            "tag_name": TAG,
+            "target_commitish": "main",
+            "body": "skrevet for hånd",
+            "draft": True,
+            "assets": [],
+        }
+    )
+    github.skriv(tilstand)
+
+    assert publiser(repo, sha) == release_publish.EXIT_OK
+    assert github.release()["draft"] is False
+    assert github.release()["body"] == "skrevet for hånd"
+
+
+# --------------------------------------------------------------------------
 # Workflow og justfile
 # --------------------------------------------------------------------------
 
@@ -534,6 +657,19 @@ def test_release_workflow_venter_pa_hele_ci_grafen() -> None:
         "workflow_run gir ikke releasen kontroll over hvilken commit som testes"
     )
     assert release["concurrency"]["cancel-in-progress"] is False
+
+
+def test_release_jobben_har_en_ref_vakt() -> None:
+    """workflow_dispatch kan kjøres fra hvilken som helst gren. Publiseringen kan ikke."""
+    release = yaml.safe_load((REPO / ".github" / "workflows" / "release.yml").read_text())
+    vakt = " ".join(release["jobs"]["release"]["if"].split())
+
+    assert "github.ref == 'refs/heads/main'" in vakt
+    assert "inputs.proveslipp" in vakt, "unntaksveien for prøvekjøring skal være eksplisitt"
+    assert "proveslipp" in release[True]["workflow_dispatch"]["inputs"]
+
+    workflow = (REPO / ".github" / "workflows" / "release.yml").read_text()
+    assert "--proveslipp" in workflow, "inputet må nå fram til scriptet, som binder det til 0.0.0"
 
 
 def test_workflowen_publiserer_til_slutt_og_attesterer_for_opplasting() -> None:

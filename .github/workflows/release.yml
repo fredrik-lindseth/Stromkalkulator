@@ -27,6 +27,10 @@ on:
         description: "Kjør flyten uten å skrive noe (leser bare)"
         type: boolean
         default: false
+      proveslipp:
+        description: "Prøveslipp fra en gren. Krever manifestversjon 0.0.0"
+        type: boolean
+        default: false
 
 # Én publisering om gangen. cancel-in-progress står av med vilje: å avbryte en
 # kjøring midt i opplastingen er nettopp halvveisen porten skal forhindre.
@@ -46,6 +50,16 @@ jobs:
 
   release:
     name: Publiser
+    # Ref-vakten. Uten den kan workflow_dispatch kjøres fra hvilken som helst
+    # gren og publisere noe som aldri har vært på main. Prøveslipp er den
+    # bevisste unntaksveien, og vakten i release-scriptet slipper den bare
+    # gjennom for manifestversjon 0.0.0, så avhuking på feil gren kan ikke
+    # slippe en ekte versjon. Den samme vakten sjekker kandidaten mot GitHubs
+    # egen hovedgren, så den gjelder like fullt når flyten kjøres for hånd.
+    if: >-
+      github.ref == 'refs/heads/main'
+      || startsWith(github.ref, 'refs/tags/v')
+      || inputs.proveslipp
     # `needs` på en `uses:`-jobb venter på *alle* jobbene i ci.yml, altså
     # test-unit, check, begge HA-målene, hacs og hassfest, og alle for denne
     # kjøringens `github.sha`. Det er GitHub som holder den garantien, så den
@@ -76,7 +90,13 @@ jobs:
         id: plan
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python3 scripts/release_publish.py plan --sha "$GITHUB_SHA" --repo "$GITHUB_REPOSITORY"
+          PROVESLIPP: ${{ inputs.proveslipp }}
+        run: |
+          kommando=(python3 scripts/release_publish.py plan --sha "$GITHUB_SHA" --repo "$GITHUB_REPOSITORY")
+          if [ "$PROVESLIPP" = "true" ]; then
+            kommando+=(--proveslipp)
+          fi
+          "${kommando[@]}"
 
       - name: Bygg deterministisk ZIP
         if: steps.plan.outputs.utfall == 'klar'
@@ -99,8 +119,9 @@ jobs:
         if: steps.plan.outputs.utfall == 'klar'
         env:
           GH_TOKEN: ${{ github.token }}
-          # Tom på push, "true" bare når noen ba om tørrkjøring i skjemaet.
+          # Tomme på push, "true" bare når noen ba om det i skjemaet.
           TORRKJORING: ${{ inputs.dry_run }}
+          PROVESLIPP: ${{ inputs.proveslipp }}
         run: |
           kommando=(
             python3 scripts/release_publish.py publish
@@ -110,5 +131,8 @@ jobs:
           )
           if [ "$TORRKJORING" = "true" ]; then
             kommando+=(--dry-run)
+          fi
+          if [ "$PROVESLIPP" = "true" ]; then
+            kommando+=(--proveslipp)
           fi
           "${kommando[@]}"

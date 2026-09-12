@@ -274,3 +274,81 @@ class TestVarseletLarSegLukke:
             resultat = asyncio.run(flow.async_step_confirm())
 
         assert resultat["description_placeholders"] is None
+
+
+class TestFastleddVarselet:
+    """Varselet om de fjernede kapasitetstrinnene (kontrakt §9).
+
+    Egendefinert hadde ti innebygde trinn til og med 1.16.0. De var en mal uten
+    prisliste bak seg, og bare brukeren vet hva nettselskapet hans tar. Varselet
+    ber om tabellen, og er ikke fiksbart: det finnes ingen bekreftelse vi kan ta
+    imot i stedet for tallene, akkurat som for sikringsstørrelse.
+    """
+
+    def test_egendefinert_uten_tabell_far_varselet(self, init_module):
+        hass = MagicMock()
+        entry = _make_entry(entry_id="abc", dso_id="custom")
+        mock_ir = _mock_ir()
+
+        with patch.object(init_module, "ir", mock_ir):
+            init_module._check_egendefinert_fastledd(hass, entry)
+
+        call = _reist(mock_ir, "egendefinert_fastledd_abc")
+        assert call is not None
+        assert call.kwargs["is_fixable"] is False
+        assert call.kwargs["translation_key"] == "egendefinert_fastledd"
+
+    def test_egendefinert_med_tabell_far_det_ikke(self, init_module):
+        hass = MagicMock()
+        entry = _make_entry(
+            entry_id="abc",
+            dso_id="custom",
+            extra_data={"egendefinert_kapasitetstrinn": "2:155,5:250,10:415"},
+        )
+        mock_ir = _mock_ir()
+
+        with patch.object(init_module, "ir", mock_ir):
+            init_module._check_egendefinert_fastledd(hass, entry)
+
+        mock_ir.async_create_issue.assert_not_called()
+        mock_ir.async_delete_issue.assert_called_once_with(
+            hass, init_module.DOMAIN, "egendefinert_fastledd_abc"
+        )
+
+    def test_kjent_dso_far_det_ikke(self, init_module):
+        """Falske positiver varsler hos alle. BKK har trinn med kilde."""
+        hass = MagicMock()
+        entry = _make_entry(entry_id="abc", dso_id="bkk")
+        mock_ir = _mock_ir()
+
+        with patch.object(init_module, "ir", mock_ir):
+            init_module._check_egendefinert_fastledd(hass, entry)
+
+        mock_ir.async_create_issue.assert_not_called()
+        mock_ir.async_delete_issue.assert_called_once()
+
+    def test_varselet_forsvinner_nar_tabellen_kommer(self, init_module):
+        """Sjekken kjører ved hver oppstart, så et fylt felt lukker varselet."""
+        hass = MagicMock()
+        entry = _make_entry(entry_id="abc", dso_id="custom")
+        mock_ir = _mock_ir()
+
+        with patch.object(init_module, "ir", mock_ir):
+            init_module._check_egendefinert_fastledd(hass, entry)
+            entry.data["egendefinert_kapasitetstrinn"] = "2:155"
+            init_module._check_egendefinert_fastledd(hass, entry)
+
+        assert _reist(mock_ir, "egendefinert_fastledd_abc") is not None
+        mock_ir.async_delete_issue.assert_called_once_with(
+            hass, init_module.DOMAIN, "egendefinert_fastledd_abc"
+        )
+
+    def test_tom_tabell_teller_som_manglende(self, init_module):
+        hass = MagicMock()
+        entry = _make_entry(entry_id="abc", dso_id="custom", extra_data={"egendefinert_kapasitetstrinn": ""})
+        mock_ir = _mock_ir()
+
+        with patch.object(init_module, "ir", mock_ir):
+            init_module._check_egendefinert_fastledd(hass, entry)
+
+        assert _reist(mock_ir, "egendefinert_fastledd_abc") is not None

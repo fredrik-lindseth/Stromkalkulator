@@ -25,6 +25,7 @@ Sist oppdatert: Juli 2026 (Elvia og Nettselskapet hevet priser 01.07.2026)
 
 from collections.abc import Mapping
 from dataclasses import dataclass
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Any, Final, NotRequired, TypedDict
 
 # Type for kapasitetstrinn: tuple of (kW-grense, kr/mnd)
@@ -221,6 +222,73 @@ def grunnlag_i_lavere_trinn(grunnlag_kw: float, terskel: float, terskel_inkluder
     if terskel_inkludert:
         return grunnlag_kw < terskel
     return grunnlag_kw <= terskel
+
+
+def parse_kapasitetstrinn(tekst: str) -> list[KapasitetstrinnTuple]:
+    """Les brukerens egne kapasitetstrinn fra ett tekstfelt.
+
+    Formatet er par skilt av komma, med kW-grense og pris skilt av kolon:
+    `2:155,5:250,10:415`. Venstre side er trinnets øvre kW-grense, høyre side
+    er kr/mnd inkl. mva, samme konvensjon som `kapasitetstrinn` ellers i denne
+    filen. Se docs/kontrakter/input-og-konfig.md §9.
+
+    Tom tekst gir tom liste, altså «jeg vet ikke», som ikke er det samme som
+    null. Alt annet som ikke lar seg lese hever `ValueError`, og config-flowen
+    gjør den om til feilnøkkelen `trinntabell_ugyldig`.
+    """
+    ryddet = tekst.strip()
+    if not ryddet:
+        return []
+
+    trinn: list[KapasitetstrinnTuple] = []
+    for raa_par in ryddet.split(","):
+        par = raa_par.strip()
+        if not par:
+            raise ValueError(f"Tomt trinn i «{tekst}»")
+        if ":" not in par:
+            # Et komma med siffer på begge sider og uten kolon etter er et
+            # desimaltegn, ikke et skille: «155,5» er én pris. Da hører delen
+            # til forrige par.
+            if not trinn:
+                raise ValueError(f"«{par}» mangler kolon mellom kW-grense og pris")
+            forrige_grense, forrige_pris = trinn[-1]
+            trinn[-1] = (forrige_grense, _rund_krone(f"{forrige_pris}.{_bare_siffer(par)}"))
+            continue
+        raa_grense, _, raa_pris = par.partition(":")
+        grense = _som_tall(raa_grense, "kW-grense")
+        pris = _som_tall(raa_pris, "pris")
+        if grense <= 0:
+            raise ValueError(f"kW-grensen må være over null, fikk «{raa_grense.strip()}»")
+        if pris < 0:
+            raise ValueError(f"Prisen kan ikke være negativ, fikk «{raa_pris.strip()}»")
+        if trinn and grense <= trinn[-1][0]:
+            raise ValueError(f"kW-grensene må stige: {grense} kommer etter {trinn[-1][0]}")
+        trinn.append((grense, _rund_krone(pris)))
+    return trinn
+
+
+def _bare_siffer(tekst: str) -> str:
+    """Desimaldelen av et tall skrevet med komma, uten annet rusk."""
+    del_ = tekst.strip()
+    if not del_.isdigit():
+        raise ValueError(f"«{tekst.strip()}» er verken et trinn eller en desimaldel")
+    return del_
+
+
+def _som_tall(raa: str, hva: str) -> float:
+    """Tolk ett tall fra brukerens trinntabell. Punktum og komma er samme tegn."""
+    tekst = raa.strip().replace(",", ".")
+    if not tekst:
+        raise ValueError(f"Mangler {hva}")
+    try:
+        return float(tekst)
+    except ValueError as feil:
+        raise ValueError(f"«{raa.strip()}» er ikke et tall ({hva})") from feil
+
+
+def _rund_krone(pris: float | str) -> int:
+    """Prisen lagres i hele kroner, som resten av `kapasitetstrinn`."""
+    return int(Decimal(str(pris)).quantize(Decimal(1), ROUND_HALF_UP))
 
 
 def finn_kapasitetstrinn(
@@ -708,18 +776,12 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "energiledd_dag_eks_mva": 0.2387,
         "energiledd_natt_eks_mva": 0.0787,
         "url": "",
-        "kapasitetstrinn": [
-            (2, 150),
-            (5, 250),
-            (10, 400),
-            (15, 600),
-            (20, 800),
-            (25, 1000),
-            (50, 1800),
-            (75, 2600),
-            (100, 3500),
-            (float("inf"), 7000),
-        ],
+        # Tom med vilje. Egendefinert har ingen prisliste vi kan lese, så de ti
+        # trinnene som sto her var en mal, ikke priser, akkurat den feilen
+        # incident 006 handler om. Brukeren oppgir sine egne trinn i
+        # oppsettet (`CONF_EGENDEFINERT_KAPASITETSTRINN`), og uten dem er
+        # kapasitetsleddet ukjent framfor plausibelt.
+        "kapasitetstrinn": [],
     },
     # =========================================================================
     # Nettselskaper som mangler priser (supported: False)

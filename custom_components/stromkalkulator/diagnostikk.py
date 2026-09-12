@@ -55,6 +55,7 @@ from .const import (
     CONF_AVGIFTSSONE,
     CONF_BOLIGTYPE,
     CONF_DSO,
+    CONF_EGENDEFINERT_KAPASITETSTRINN,
     CONF_EGENDEFINERT_SATSER_BEKREFTET,
     CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
     CONF_ENERGI_FROSSEN_TIMER,
@@ -108,6 +109,9 @@ VALG_ALLOWLIST: tuple[str, ...] = (
     CONF_KAPASITET_VARSEL_TERSKEL,
     CONF_ENERGI_FROSSEN_TIMER,
     CONF_EGENDEFINERT_SATSER_BEKREFTET,
+    # Brukerens egen trinntabell er en tariff, ikke personopplysninger, og
+    # den forklarer hvorfor fastleddet er som det er.
+    CONF_EGENDEFINERT_KAPASITETSTRINN,
     CONF_PRISENHET_BEKREFTET,
     CONF_TARIFFMODUS,
 )
@@ -141,6 +145,7 @@ BEREGNING_ALLOWLIST: tuple[str, ...] = (
     "fastledd_metode",
     "fastledd_grunnlag_kw",
     "fastledd_mangler_sikringsvalg",
+    "fastledd_ukjent",
     "spot_price",
     "spot_price_valid",
     "stromstotte",

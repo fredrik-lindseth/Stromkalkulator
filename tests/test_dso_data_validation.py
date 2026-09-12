@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import pytest
 from stromkalkulator.const import (
+    DSO_EGENDEFINERT,
     ENOVA_AVGIFT,
     FORBRUKSAVGIFT_ALMINNELIG,
     MVA_SATS,
@@ -111,10 +112,15 @@ class TestDSOKapasitetstrinn:
     Gjelder bare nettselskap som faktisk har kW-trinn. Alut og Netera fakturerer
     etter sikringsstørrelse og Fjellnett etter en lineær sats, så de har tomme
     lister med vilje. Strukturen deres testes i test_fastledd_metoder.py.
+    Egendefinert har tom liste av en tredje grunn: det finnes ingen prisliste å
+    ha trinn fra, og brukeren oppgir sine egne. Se
+    test_egendefinert_fastledd.py, som vokter at listen blir stående tom.
     """
 
     @staticmethod
     def _krev_trinn(dso_id, data):
+        if dso_id == DSO_EGENDEFINERT:
+            pytest.skip("Egendefinert har ingen prisliste; trinnene kommer fra brukeren")
         if hent_fastledd_metode(data) not in FASTLEDD_TRINNBASERTE:
             pytest.skip(f"{dso_id} har ikke kW-trinn ({hent_fastledd_metode(data)})")
 

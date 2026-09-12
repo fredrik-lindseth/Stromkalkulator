@@ -79,7 +79,9 @@ med et klokkeslett. **B1s regel om `observed_at` fra `last_updated` gjelder
 energi, ikke pris.** Observasjonstiden til en prisprøve er rutestarten, snappet
 til gridet:
 
-1. **Rute.** Prøven tilordnes ruten som inneholder **polltiden**. Prissensoren
+1. **Rute.** Prøven tilordnes ruten som inneholder **polltiden**, altså
+   `avlest_kl` fra adapteren ([input-og-konfig.md
+   §1](input-og-konfig.md#1-typede-inputresultater)). Prissensoren
    er en trinnfunksjon som per definisjon viser prisen for ruten som gjelder nå,
    og det er den egenskapen vi leser, ikke når staten sist ble skrevet.
 2. **Settlevindu.** En prøve godtas bare når polltiden ligger minst
@@ -115,12 +117,12 @@ vite hvilken sensor brukeren har, og det er grunnen til at den er valgt framfor
 et felt i oppsettet. `opplosning_minutter` på prisintervallet (B2) er derfor 15
 i v1. Den er ikke det samme tallet som avregningsintervallets lengde, som er 60
 (A1 og A5). Radene i C8 med 60 minutters rute viser at regelen er
-oppløsningsuavhengig; v1 kjører ikke i den moden.
+oppløsningsuavhengig; v1 kjører ikke i den modusen.
 
 **Hva dette koster på invarianten.** C2.6 holder uavkortet så lenge hver rute
 har minst én poll i settlevinduet sitt, altså så lenge pollintervallet er
-kortere enn ruten minus 60 sekunder. Ved dagens poll hvert tiende sekund mot en
-rute på et kvarter er marginen stor. Skulle det ikke holde, er tapet en rute
+kortere enn ruten minus 60 sekunder. Ved dagens poll hvert minutt
+(`UPDATE_INTERVAL_MINUTES`) mot en rute på et kvarter er marginen stor. Skulle det ikke holde, er tapet en rute
 som mangler og som merker seg selv som `delvis_pris`, ikke en pris som glir med
 polltiden: verdien i en rute er den samme uansett når i ruten den ble lest.
 Fasit for regelen er prøvetabellen i C8, som `tests/test_avregningskontrakt.py`
@@ -260,7 +262,7 @@ Jevn fordeling er ikke eksakt heller, og det skal stå: den antar konstant
 effekt gjennom hele pollvinduet, mens den ekte effekten skifter ved
 timegrensen. Restfeilen er systematisk liten (under 0,07 kr per måned ved
 5-minutters poll) og skrumper mot null når pollintervallet er kort. Ved vanlig
-drift (poll hvert tiende sekund) er den ikke målbar.
+drift (poll hvert minutt) er den ikke målbar.
 
 Randtilfeller:
 
@@ -446,7 +448,7 @@ intervallstart. `PRIS_SETTLE_SEKUNDER` er 60.
 | P3 | 15 | 00:10=0.90; 01:30=1.00; 16:00=1.00; 31:00=1.00; 46:00=1.00 | 4 | 1.00 | komplett |
 | P4 | 60 | 05:00=1.23 | 1 | 1.23 | komplett |
 | P5 | 15 | 02:00=1.00; 33:00=1.40 | 2 | 1.20 | delvis_pris |
-| P6 | 15 | 00:20=1.00; 15:30=1.10 | 0 | — | uten_pris |
+| P6 | 15 | 00:20=1.00; 15:30=1.10 | 0 | - | uten_pris |
 | P7 | 60 | 02:00=1.00; 10:00=1.40 | 1 | 1.40 | komplett |
 
 P2 er feilen som gjorde denne seksjonen nødvendig: fire like priser på rad er

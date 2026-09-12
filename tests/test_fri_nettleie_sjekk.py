@@ -31,6 +31,7 @@ except ModuleNotFoundError as feil:  # pragma: no cover
     ) from feil
 sjekk = importlib.import_module("sjekk_mot_fri_nettleie")
 
+import json  # noqa: E402
 from datetime import date  # noqa: E402
 
 JANUAR = date(2027, 1, 15)
@@ -350,3 +351,226 @@ class TestAktivTariff:
 
     def test_ingen_treff_gir_none(self):
         assert sjekk.aktiv_tariff(self.DATA, date(2020, 1, 1)) is None
+
+
+def _fjellnett_yaml(grunnpris_ore: float = 14.8) -> dict:
+    """fri-nettleie-fil som matcher vår Fjellnett-oppføring, med justerbart energiledd.
+
+    Fjellnett er FEM_VEKTET_ÅR med 2000 + 589 kr/kW/år eks. mva og flat sats
+    14,8 øre. Tersklene er funksjonen samplet på hele kW, slik fri-nettleie
+    koder lineære fastledd.
+    """
+    return {
+        "tariffer": [
+            {
+                "kundegrupper": ["husholdning"],
+                "gyldig_fra": "2026-07-01",
+                "energiledd": {"grunnpris": grunnpris_ore},
+                "fastledd": {
+                    "metode": "FEM_VEKTET_ÅR",
+                    "terskler": [
+                        {"terskel": 0, "pris": 2000},
+                        {"terskel": 10, "pris": 2000 + 5890},
+                    ],
+                },
+            }
+        ]
+    }
+
+
+@pytest.fixture
+def stub_nett(monkeypatch):
+    """Bytt ut all nettverkstilgang i scriptet. Ingen test treffer GitHub."""
+
+    def installer(yaml_per_slug: dict, slugs: list[str] | None = None):
+        tilgjengelige = sorted(yaml_per_slug) if slugs is None else sorted(slugs)
+        monkeypatch.setattr(sjekk, "list_remote_dsoer", lambda: tilgjengelige)
+        monkeypatch.setattr(sjekk, "hent_yaml", lambda slug: yaml_per_slug.get(slug))
+
+    return installer
+
+
+class TestUtfallOgExitKode:
+    """Tre utfall, tre exit-koder. Vakten skal si hva den ikke fikk sjekket."""
+
+    ARGS: ClassVar = ["--dso", "fjellnett", "--bare-avvik", "--dato", "2026-09-12"]
+
+    def test_alt_stemmer_gir_null(self, stub_nett):
+        """Vakten skal tie når den skal tie. Ellers blir den slått av."""
+        stub_nett({"fjellnett": _fjellnett_yaml()})
+        assert sjekk.main(self.ARGS) == 0
+
+    def test_injisert_energiledd_gir_avvik(self, stub_nett, capsys):
+        """100 kr/kWh hos Fjellnett var grønt før: KJENTE_AVVIK dempet hele DSO-en."""
+        stub_nett({"fjellnett": _fjellnett_yaml(grunnpris_ore=10000)})
+        assert sjekk.main(self.ARGS) == 1
+        assert "fjellnett" in capsys.readouterr().out
+
+    def test_manglende_aktiv_tariff_gir_ufullstendig(self, stub_nett, capsys):
+        data = _fjellnett_yaml()
+        data["tariffer"][0]["kundegrupper"] = ["liten_næring"]
+        stub_nett({"fjellnett": data})
+        assert sjekk.main(self.ARGS) == 2
+        assert "ingen aktiv tariff" in capsys.readouterr().out
+
+    def test_manglende_energiledd_gir_ufullstendig(self, stub_nett, capsys):
+        data = _fjellnett_yaml()
+        del data["tariffer"][0]["energiledd"]
+        stub_nett({"fjellnett": data})
+        assert sjekk.main(self.ARGS) == 2
+        assert "mangler energiledd" in capsys.readouterr().out
+
+    def test_404_gir_ufullstendig(self, stub_nett, capsys):
+        """Filen er listet, men borte. Før ble den talt og glemt."""
+        stub_nett({}, slugs=["fjellnett"])
+        assert sjekk.main(self.ARGS) == 2
+        assert "404" in capsys.readouterr().out
+
+    def test_ingen_match_gir_ufullstendig(self, stub_nett, capsys):
+        stub_nett({}, slugs=[])
+        assert sjekk.main(self.ARGS) == 2
+        assert "ingen match" in capsys.readouterr().out
+
+    def test_nettverksfeil_pa_en_dso_stopper_ikke_kjoringen(self, stub_nett, monkeypatch, capsys):
+        stub_nett({"fjellnett": _fjellnett_yaml()})
+
+        def feil(slug):
+            raise OSError("connection reset")
+
+        monkeypatch.setattr(sjekk, "hent_yaml", feil)
+        assert sjekk.main(self.ARGS) == 2
+        assert "henting feilet" in capsys.readouterr().out
+
+    def test_ufullstendig_slar_avvik_i_exit_koden(self, stub_nett):
+        """En kjøring som ikke vet hva den ikke sjekket, får ikke si «bare avvik»."""
+        data = _fjellnett_yaml(grunnpris_ore=10000)
+        del data["tariffer"][0]["fastledd"]
+        stub_nett({"fjellnett": data, "bkk": _fjellnett_yaml()})
+        assert sjekk.main(["--dso", "fjellnett", "--bare-avvik", "--dato", "2026-09-12"]) == 1
+        stub_nett({}, slugs=[])
+        assert sjekk.main(["--dso", "fjellnett,bkk", "--bare-avvik", "--dato", "2026-09-12"]) == 2
+
+
+class TestFilterValidering:
+    """--dso skal valideres mot DSO_LIST før vi bruker et nettkall på den."""
+
+    def test_ukjent_dso_gir_to_og_melding(self, monkeypatch, capsys):
+        def aldri():
+            raise AssertionError("skal ikke røre nettverket ved ugyldig filter")
+
+        monkeypatch.setattr(sjekk, "list_remote_dsoer", aldri)
+        assert sjekk.main(["--dso", "bkkk"]) == 2
+        assert "ukjent DSO-ID" in capsys.readouterr().err
+
+    def test_custom_avvises(self):
+        with pytest.raises(ValueError, match="custom"):
+            sjekk.parse_filter("custom")
+
+    def test_tomt_filter_avvises(self):
+        with pytest.raises(ValueError):
+            sjekk.parse_filter(" , ")
+
+    def test_gyldig_filter_beholdes(self):
+        assert sjekk.parse_filter("bkk, elvia") == {"bkk", "elvia"}
+
+    def test_delvis_kjoring_merkes_i_json(self, stub_nett, tmp_path):
+        stub_nett({"fjellnett": _fjellnett_yaml()})
+        ut = tmp_path / "res.json"
+        sjekk.main(["--dso", "fjellnett", "--bare-avvik", "--json-ut", str(ut)])
+        data = json.loads(ut.read_text())
+        assert data["fullstendig"] is False
+        assert data["status"] == "verifisert"
+        assert data["verifisert"] == ["fjellnett"]
+
+
+def _funn(dso_id: str, felt: str, signatur: str, utfall=sjekk.Utfall.AVVIK) -> sjekk.Funn:
+    return sjekk.Funn(dso_id, felt, signatur, f"[X] {dso_id} {felt} {signatur}", utfall)
+
+
+class TestUnntak:
+    """Unntak demper ett felt, med én signatur, fram til én dato."""
+
+    I_DAG = date(2026, 9, 12)
+
+    def _kjor(self, monkeypatch, unntak: sjekk.Unntak, funn: list[sjekk.Funn]):
+        monkeypatch.setattr(sjekk, "KJENTE_AVVIK", {"testnett": (unntak,)})
+        resultat = sjekk.Resultat("testnett", "testnett", funn)
+        status = sjekk.anvend_unntak([resultat], self.I_DAG)
+        return resultat, status
+
+    def test_matchende_signatur_dempes(self, monkeypatch):
+        unntak = sjekk.Unntak("dag", "20.00 vs 19.00 øre", date(2027, 1, 1), "venter på fri-nettleie")
+        resultat, status = self._kjor(monkeypatch, unntak, [_funn("testnett", "dag", "20.00 vs 19.00 øre")])
+        assert resultat.utfall is sjekk.Utfall.VERIFISERT
+        assert resultat.dempet is True
+        assert status.brukte == [("testnett", unntak)]
+
+    def test_annen_verdi_i_samme_felt_dempes_ikke(self, monkeypatch):
+        """Dette er Fjellnett-100-tilfellet: unntaket gjaldt et annet tall."""
+        unntak = sjekk.Unntak("dag", "20.00 vs 19.00 øre", date(2027, 1, 1), "venter på fri-nettleie")
+        resultat, status = self._kjor(
+            monkeypatch, unntak, [_funn("testnett", "dag", "10000.00 vs 19.00 øre")]
+        )
+        assert resultat.utfall is sjekk.Utfall.AVVIK
+        assert status.brukte == []
+
+    def test_annet_felt_dempes_ikke(self, monkeypatch):
+        unntak = sjekk.Unntak("natt", "9.00 vs 8.00 øre", date(2027, 1, 1), "venter på fri-nettleie")
+        resultat, _ = self._kjor(
+            monkeypatch,
+            unntak,
+            [_funn("testnett", "natt", "9.00 vs 8.00 øre"), _funn("testnett", "dag", "20.00 vs 19.00 øre")],
+        )
+        assert resultat.utfall is sjekk.Utfall.AVVIK
+
+    def test_utlopt_unntak_demper_ikke(self, monkeypatch):
+        unntak = sjekk.Unntak("dag", "20.00 vs 19.00 øre", date(2026, 9, 12), "utløper i dag")
+        resultat, status = self._kjor(monkeypatch, unntak, [_funn("testnett", "dag", "20.00 vs 19.00 øre")])
+        assert resultat.utfall is sjekk.Utfall.AVVIK
+        assert status.utlopte == [("testnett", unntak)]
+
+    def test_ubrukt_unntak_rapporteres_men_feller_ikke(self, monkeypatch):
+        unntak = sjekk.Unntak("dag", "20.00 vs 19.00 øre", date(2027, 1, 1), "venter på fri-nettleie")
+        resultat, status = self._kjor(monkeypatch, unntak, [])
+        assert resultat.utfall is sjekk.Utfall.VERIFISERT
+        assert status.ubrukte == [("testnett", unntak)]
+
+    def test_utlopt_og_ubrukt_unntak_gir_ufullstendig(self, monkeypatch):
+        """Slik kan listen ikke gro seg full av oppføringer ingen rydder."""
+        unntak = sjekk.Unntak("dag", "20.00 vs 19.00 øre", date(2026, 1, 1), "glemt")
+        resultat, status = self._kjor(monkeypatch, unntak, [])
+        assert resultat.utfall is sjekk.Utfall.UFULLSTENDIG
+        assert status.utlopte == [("testnett", unntak)]
+
+    def test_unntak_utenfor_filteret_teller_verken_brukt_eller_ubrukt(self, monkeypatch):
+        monkeypatch.setattr(
+            sjekk,
+            "KJENTE_AVVIK",
+            {"testnett": (sjekk.Unntak("dag", "x", date(2026, 1, 1), "utløpt"),)},
+        )
+        status = sjekk.anvend_unntak([sjekk.Resultat("annet", "annet", [])], self.I_DAG)
+        assert status.utlopte == [] and status.ubrukte == []
+
+
+class TestKjenteAvvikListen:
+    """Selve listen skal være typo-fri og ha en dato på hver oppføring."""
+
+    FELT: ClassVar = {
+        sjekk.FELT_DAG,
+        sjekk.FELT_NATT,
+        sjekk.FELT_FASTLEDD,
+        sjekk.FELT_METODE,
+        sjekk.FELT_MATCH,
+        sjekk.FELT_HENTING,
+        sjekk.FELT_TARIFF,
+        sjekk.FELT_ENERGILEDD,
+        sjekk.FELT_FASTLEDD_METODE_UKJENT,
+    }
+
+    def test_hver_oppforing_er_velformet(self):
+        for dso_id, unntak_liste in sjekk.KJENTE_AVVIK.items():
+            assert dso_id in sjekk.DSO_LIST, f"{dso_id} finnes ikke i DSO_LIST"
+            for unntak in unntak_liste:
+                assert unntak.felt in self.FELT, f"{dso_id}: ukjent felt {unntak.felt}"
+                assert unntak.grunn.strip(), f"{dso_id}: unntak uten begrunnelse"
+                assert isinstance(unntak.gyldig_til, date)

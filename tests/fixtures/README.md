@@ -34,14 +34,14 @@ fakturagrunnlaget BKK leser, og det er uavhengig av HAN-måleren: en måned der
 HAN-leseren var nede har likevel full Elhub-dekning. Fasiten i
 `tests/replay/fasit.py` måles mot disse.
 
-| Fil | Timer | Sum kWh | Faktura total |
-| --- | ---: | ---: | ---: |
-| `elhub_februar_2026.json` | 672 | 1673,786 | 1673,786 |
-| `elhub_mars_2026.json` | 743 | 1553,217 | 1553,217 |
-| `elhub_april_2026.json` | 720 | 1381,827 | 1381,827 |
-| `elhub_mai_2026.json` | 744 | 1179,303 | 1179,303 |
-| `elhub_juni_2026.json` | 720 | 1033,628 | 1033,628 |
-| `elhub_juli_2026.json` | 744 | 938,763 | 938,763 |
+| Fil                       | Timer |  Sum kWh | Faktura total |
+| ------------------------- | ----: | -------: | ------------: |
+| `elhub_februar_2026.json` |   672 | 1673,786 |      1673,786 |
+| `elhub_mars_2026.json`    |   743 | 1553,217 |      1553,217 |
+| `elhub_april_2026.json`   |   720 | 1381,827 |      1381,827 |
+| `elhub_mai_2026.json`     |   744 | 1179,303 |      1179,303 |
+| `elhub_juni_2026.json`    |   720 | 1033,628 |      1033,628 |
+| `elhub_juli_2026.json`    |   744 |  938,763 |       938,763 |
 
 Bare `Fra` og `Volum` er med. Kundenavn, målepunkt-ID og
 registreringstidspunkt blir liggende i den private CSV-en, på samme måte som

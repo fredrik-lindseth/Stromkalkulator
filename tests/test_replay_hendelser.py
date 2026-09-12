@@ -747,7 +747,7 @@ class TestFakturaavstemmingGjennomCoordinator:
     """De tre avstembare månedene, time for time, i produksjonsrytme.
 
     Hver måned kjøres én gang med poll hvert minutt og jitter, og alle
-    påstandene leser samme kjøring. Det er den dyreste posten i fila, og
+    påstandene leser samme kjøring. Det er den dyreste posten i filen, og
     kjøretidsvakten nederst passer på at den holder seg innenfor budsjettet.
     """
 
@@ -847,10 +847,10 @@ def test_coordinatoren_treffer_fasiten(coord_module):
 def test_maanedsreplay_er_raskere_enn_budsjettet(coord_module):
     """Et døgn i produksjonsrytme skal koste under et sekund.
 
-    Budsjettet for hele fila er 30 sekunder i default-suiten, og
+    Budsjettet for hele filen er 30 sekunder i default-suiten, og
     månedsreplayen over er den eneste posten som er stor nok til å sprenge
     det. Måler vi ett døgn, fanger vi en regresjon i pollkostnaden lenge før
-    den gjør hele fila treg.
+    den gjør hele filen treg.
     """
     start = datetime(2026, 6, 15, 0, tzinfo=OSLO)
     timer, priser = _flat(start, 24, 1.5, 1.00)

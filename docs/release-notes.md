@@ -195,6 +195,34 @@ Ingen av dem skriver noe. `release-plan` hopper over attestasjonssjekken, siden
 den kjøres før byggesteget har attestert noe. I workflowen finnes det i tillegg
 `workflow_dispatch` med `dry_run`, som kjører hele flyten uten å skrive.
 
+### Det som ikke er bevist ennå
+
+Flyten er kjørt mot en GitHub-etterligning som husker tilstand mellom kall, og
+lesesiden er kjørt mot ekte GitHub og ekte `gh attestation verify`. Skrivesiden
+er aldri kjørt mot et ekte repo, for det ville krevd å publisere noe. Fire ting
+kan derfor bare bekreftes av den første ekte kjøringen:
+
+- At `setup-uv` sin cache og `uv run --frozen` finner Python 3.13 og 3.14 på
+  `ubuntu-latest`, som ikke har dem forhåndsinstallert. uv henter dem selv, men
+  det er ikke prøvd her.
+- At minimum-grenen løser `aiohasupervisor`-prereleasen på runneren. `--frozen`
+  gjør dette til et nedlastingsspørsmål og ikke et løsningsspørsmål, men lokal
+  maskin og runner har ulike hjul tilgjengelig.
+- At `gh api` sine skrivekall (opprette tagg, opprette draft, laste opp asset,
+  `make_latest`) oppfører seg som etterligningen antar.
+- At de to validatorene er stabile nok til å stå i releaseporten.
+
+Feiler noe av det, feiler det på rett side: jobben stopper, ingenting blir
+publisert, og neste kjøring på samme commit gjenopptar. Det er billigere å
+oppdage det slik enn å bygge inn en omvei rundt noe vi ikke vet om er et
+problem.
+
+Majorversjonene på `actions/checkout`, `astral-sh/setup-uv`,
+`extractions/setup-just` og `codecov/codecov-action` er pinnet og finnes. Det
+finnes nyere majors for alle fire. Det er en oppgraderingsbeslutning, ikke et
+brudd, og den hører ikke hjemme i releaseporten. Den er skilt ut som
+`stromkalkulator-3m5o02u` i dcat.
+
 ### Det v1.16.0 viser
 
 `just release-verify v1.16.0` feller i dag, og det er riktig:

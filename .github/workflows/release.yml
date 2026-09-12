@@ -44,21 +44,24 @@ jobs:
           fi
 
       # Release-noten lever i repoet, ikke i en håndskrevet GitHub-draft som kan
-      # forsvinne (stromkalkulator-1dk4). Mangler seksjonen, stopper jobben her
-      # framfor å publisere en release med rå commit-liste som body.
+      # forsvinne (stromkalkulator-1dk4). Scriptet skriver relative lenker om
+      # til absolutte URL-er mot taggen og løfter «Dette må du gjøre selv»
+      # øverst. Mangler seksjonen, eller peker en lenke på en fil som ikke
+      # finnes, stopper jobben her framfor å publisere en release med rå
+      # commit-liste eller døde lenker som body.
       - name: Hent release-noten fra CHANGELOG.md
         id: notes
         if: steps.check_release.outputs.exists == 'false'
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           if ! NOTES=$(python3 scripts/release_notes.py "$VERSION"); then
-            echo "::error file=CHANGELOG.md::CHANGELOG.md mangler en seksjon '## [$VERSION]' med innhold. Skriv release-noten der før du bumper versjonen."
+            echo "::error file=CHANGELOG.md::Fikk ingen release-note for $VERSION. Enten mangler seksjonen '## [$VERSION]' med innhold, eller så peker en relativ lenke i den på en fil som ikke finnes. Se feilen over."
             exit 1
           fi
           DELIM="noter-$(openssl rand -hex 8)"
           {
             echo "notes<<$DELIM"
-            echo "$NOTES"
+            printf '%s\n' "$NOTES"
             echo "$DELIM"
           } >> "$GITHUB_OUTPUT"
 

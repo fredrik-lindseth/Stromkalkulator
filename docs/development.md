@@ -109,7 +109,7 @@ ssh ha-local "ha core logs --follow"
 ssh ha-local "ha core logs" | grep -i stromkalkulator
 ```
 
-Diagnostikk-nedlasting: Settings > Devices & Services > Strømkalkulator > tre-prikk-menyen > Last ned diagnostikk. JSON-en (`diagnostics.py`) inneholder integrasjons-versjon, konfigurasjon, sensor-entitets-ID-er, DSO-data og coordinator-data. Legg den gjerne ved i issues.
+Diagnostikk-nedlasting: Settings > Devices & Services > Strømkalkulator > tre-prikk-menyen > Last ned diagnostikk. JSON-en (`diagnostikk.py`) inneholder releaseversjon, HA-versjon, valgene fra oppsettet, inputrollene med aliaserte entity-id-er, DSO-data, vakthold og beregningsfeltene fra siste oppdatering. Entity-id-er, entry-id og tittel er byttet med aliaser, så den kan legges ved i issues uten å røpe hvem eller hvor.
 
 | Feil                                  | Årsak                                                                                      | Løsning                             |
 | ------------------------------------- | ------------------------------------------------------------------------------------------ | ----------------------------------- |

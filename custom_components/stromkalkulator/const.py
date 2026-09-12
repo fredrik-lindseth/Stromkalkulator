@@ -34,6 +34,19 @@ CONF_SIKRINGSTRINN: Final[str] = "sikringstrinn"
 # Konfigurerbar fordi en hytte med hovedbryteren av står stille i dagevis helt
 # lovlig, mens en bolig som ikke har økt på tre timer er et reelt utfall.
 CONF_ENERGI_FROSSEN_TIMER: Final[str] = "energi_frossen_timer"
+# Egendefinert nettselskap: brukeren har bekreftet at energiledd-satsen er
+# sjekket mot prislisten. Til og med 1.16.0 sto feltet merket "inkl. avgifter" i
+# nb og en, mens koden regner det eks. mva og avgifter og legger dem på selv, så
+# alle som fulgte teksten la inn en for høy sats. Vi kan ikke se hvem som gjorde
+# det, bare be dem sjekke, og flagget er det som gjør at varselet lar seg lukke
+# for godt. Se docs/incidents/007-energiledd-label-inkl-avgifter.md.
+CONF_EGENDEFINERT_SATSER_BEKREFTET: Final[str] = "egendefinert_satser_bekreftet"
+# DSO-id-en som betyr "ikke i listen, brukeren taster satsene selv".
+DSO_EGENDEFINERT: Final[str] = "custom"
+# Prefiks på repair-issuen som ber om at satsen sjekkes. Ligger her og ikke i
+# repairs.py fordi __init__.py reiser issuen og ikke skal dra inn
+# homeassistant.components.repairs bare for en streng.
+EGENDEFINERT_ISSUE_PREFIX: Final[str] = "egendefinert_energiledd_"
 
 # Avgiftssoner for forbruksavgift og mva
 # Kilde: merverdiavgiftsloven § 6-6 (mva-fritak for Nordland, Troms, Finnmark)

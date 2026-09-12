@@ -23,7 +23,7 @@
           "spotpris_inkl_mva": "Spot price sensor delivers prices incl. VAT",
           "energy_sensor": "Energy meter sensor (kWh, optional)",
           "electricity_provider_price_sensor": "Electricity provider sensor (optional)",
-          "export_power_sensor": "Export power sensor (optional)"
+          "export_power_sensor": "Export power sensor (W, optional)"
         },
         "data_description": {
           "power_sensor": "Sensor showing current power consumption in watts, e.g. from HAN port, Tibber Pulse, or P1 meter.",
@@ -31,7 +31,7 @@
           "spotpris_inkl_mva": "Leave off for HA-core nordpool integration (delivers excl. VAT). Turn on if your sensor already includes VAT (e.g. the older custom_components/nordpool with VAT=true, or a custom template sensor).",
           "energy_sensor": "Cumulative kWh counter from the AMS smart meter. Recommended for exact invoice numbers. See docs/input-sensorer.md for details.",
           "electricity_provider_price_sensor": "Sensor with the total price from your electricity provider (e.g. Tibber 'Electricity price'). Only used to populate the 'Total price (electricity contract)' sensor for comparison against your actual contract. Does not affect any other calculation. Skip if you have spot price directly or Norgespris.",
-          "export_power_sensor": "Power sensor for export to the grid (OBIS 2.7.0), for prosumers with solar panels only. Used to calculate export revenue and net monthly cost. Skip if you don't have solar panels."
+          "export_power_sensor": "Power sensor for export to the grid (OBIS 2.7.0) in watts, for prosumers with solar panels only. Used to calculate export revenue and net monthly cost. Skip if you don't have solar panels."
         }
       },
       "sikring": {
@@ -72,7 +72,7 @@
           "spotpris_inkl_mva": "Spot price sensor delivers prices incl. VAT",
           "energy_sensor": "Energy meter sensor (kWh, optional)",
           "electricity_provider_price_sensor": "Electricity provider sensor (optional)",
-          "export_power_sensor": "Export power sensor (optional)",
+          "export_power_sensor": "Export power sensor (W, optional)",
           "energiledd_dag": "Energy tariff day (NOK/kWh, excl. VAT and taxes)",
           "energiledd_natt": "Energy tariff night/weekend (NOK/kWh, excl. VAT and taxes)",
           "kapasitet_varsel_terskel": "Capacity warning threshold (kW)",
@@ -88,7 +88,7 @@
           "spotpris_inkl_mva": "Leave off for HA-core nordpool integration (delivers excl. VAT). Turn on if your sensor already includes VAT.",
           "energy_sensor": "Cumulative kWh counter from the AMS smart meter (OBIS 1.8.0). Recommended for exact invoice numbers. Without it, the power sensor is used with Riemann summation.",
           "electricity_provider_price_sensor": "Sensor with the total price from your electricity provider (e.g. Tibber 'Electricity price'). Only used to populate the 'Total price (electricity contract)' sensor for comparison against your actual contract. Does not affect any other calculation. Skip if you have spot price directly or Norgespris.",
-          "export_power_sensor": "Power sensor for export to the grid (OBIS 2.7.0), for prosumers with solar panels only. Used to calculate export revenue and net monthly cost. Skip if you don't have solar panels.",
+          "export_power_sensor": "Power sensor for export to the grid (OBIS 2.7.0) in watts, for prosumers with solar panels only. Used to calculate export revenue and net monthly cost. Skip if you don't have solar panels.",
           "energiledd_dag": "Net grid tariff excl. VAT and consumption tax. The integration adds consumption tax, Enova fee and VAT based on tax zone.",
           "energiledd_natt": "Net grid tariff excl. VAT and consumption tax. Set the same as day for flat rate.",
           "kapasitet_varsel_terskel": "Warn when margin to next capacity tier is below this value. Default: 2.0 kW.",
@@ -122,7 +122,7 @@
           "spotpris_inkl_mva": "Spot price sensor delivers prices incl. VAT",
           "energy_sensor": "Energy meter sensor (kWh, optional)",
           "electricity_provider_price_sensor": "Electricity provider sensor (optional)",
-          "export_power_sensor": "Export power sensor (optional)",
+          "export_power_sensor": "Export power sensor (W, optional)",
           "energiledd_dag": "Energy tariff day (NOK/kWh, excl. VAT and taxes)",
           "energiledd_natt": "Energy tariff night/weekend (NOK/kWh, excl. VAT and taxes)",
           "kapasitet_varsel_terskel": "Capacity warning threshold (kW)",
@@ -138,7 +138,7 @@
           "spotpris_inkl_mva": "Leave off for HA-core nordpool integration (delivers excl. VAT). Turn on if your sensor already includes VAT.",
           "energy_sensor": "Cumulative kWh counter from the AMS smart meter (OBIS 1.8.0). Recommended for exact invoice numbers. Without it, the power sensor is used with Riemann summation.",
           "electricity_provider_price_sensor": "Sensor with the total price from your electricity provider (e.g. Tibber 'Electricity price'). Only used to populate the 'Total price (electricity contract)' sensor for comparison against your actual contract. Does not affect any other calculation. Skip if you have spot price directly or Norgespris.",
-          "export_power_sensor": "Power sensor for export to the grid (OBIS 2.7.0), for prosumers with solar panels only. Used to calculate export revenue and net monthly cost. Skip if you don't have solar panels.",
+          "export_power_sensor": "Power sensor for export to the grid (OBIS 2.7.0) in watts, for prosumers with solar panels only. Used to calculate export revenue and net monthly cost. Skip if you don't have solar panels.",
           "energiledd_dag": "Net grid tariff excl. VAT and consumption tax. The integration adds consumption tax, Enova fee and VAT based on tax zone.",
           "energiledd_natt": "Net grid tariff excl. VAT and consumption tax. Set the same as day for flat rate.",
           "kapasitet_varsel_terskel": "Warn when margin to next capacity tier is below this value. Default: 2.0 kW.",
@@ -372,6 +372,17 @@
     "dso_delt": {
       "title": "Your grid company is split into several price areas",
       "description": "{dso} has several price areas with different rates, and your address decides which one applies. We cannot pick for you. Open the Strømkalkulator settings and select the right area from: {omrader}. Until you do, the integration uses the middle area, so your grid tariff may be wrong."
+    },
+    "egendefinert_energiledd": {
+      "title": "Check the energy tariff rate you entered",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Check the energy tariff rate you entered",
+            "description": "Your grid company isn't in the list, so you entered the energy tariff rate yourself. Up to and including version 1.16.0 the field was labelled 'incl. taxes', while the integration treats the rate as grid tariff only and adds consumption tax, the Enova fee and VAT itself. If you followed that text, the taxes are counted twice, and the rate is about {avgifter} øre/kWh too high before VAT.\n\nWe can't see what you typed, only that the text was misleading. You currently have {dag} øre/kWh for daytime and {natt} øre/kWh for night and weekend. Compare with the line listed as 'energiledd' or 'overføring' on your grid company's price list, the one before taxes and VAT. If it needs correcting, do it in Settings > Devices & Services > Strømkalkulator > Configure. Confirm here once the rate is checked, and the warning is gone for good."
+          }
+        }
+      }
     }
   }
 }

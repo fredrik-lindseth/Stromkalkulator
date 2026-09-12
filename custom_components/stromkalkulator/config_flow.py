@@ -18,6 +18,7 @@ from .const import (
     CONF_AVGIFTSSONE,
     CONF_BOLIGTYPE,
     CONF_DSO,
+    CONF_EGENDEFINERT_SATSER_BEKREFTET,
     CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
     CONF_ENERGI_FROSSEN_TIMER,
     CONF_ENERGILEDD_DAG,
@@ -37,6 +38,7 @@ from .const import (
     DEFAULT_KAPASITET_VARSEL_TERSKEL,
     DEFAULT_NAME,
     DOMAIN,
+    DSO_EGENDEFINERT,
     DSO_LIST,
     MAX_ENERGI_FROSSEN_TIMER,
     MIN_ENERGI_FROSSEN_TIMER,
@@ -91,11 +93,11 @@ def _dso_options() -> list[selector.SelectOptionDict]:
             [
                 selector.SelectOptionDict(value=key, label=value["name"])
                 for key, value in DSO_LIST.items()
-                if value.get("supported", False) and key != "custom"
+                if value.get("supported", False) and key != DSO_EGENDEFINERT
             ],
             key=lambda x: x["label"],
         ),
-        selector.SelectOptionDict(value="custom", label="Egendefinert"),
+        selector.SelectOptionDict(value=DSO_EGENDEFINERT, label="Egendefinert"),
     ]
 
 
@@ -299,11 +301,16 @@ def _apply_dso_derivation(user_input: dict[str, Any], old_dso: str | None) -> No
     if new_dso == old_dso:
         return
 
-    if new_dso != "custom" and new_dso in DSO_LIST:
+    if new_dso != DSO_EGENDEFINERT and new_dso in DSO_LIST:
         dso: DSOEntry = DSO_LIST[new_dso]
         user_input[CONF_ENERGILEDD_DAG] = dso["energiledd_dag_eks_mva"]
         user_input[CONF_ENERGILEDD_NATT] = dso["energiledd_natt_eks_mva"]
         user_input[CONF_AVGIFTSSONE] = resolve_avgiftssone(dso)
+
+    # Bytter man til Egendefinert nå, står satsene med rettet merking i skjemaet,
+    # så varselet om den gamle «inkl. avgifter»-teksten er ikke relevant.
+    if new_dso == DSO_EGENDEFINERT:
+        user_input[CONF_EGENDEFINERT_SATSER_BEKREFTET] = True
 
     # Et sikringstrinn hører til ett nettselskaps prisliste. Overlever id-en et
     # bytte, ville den enten peke i tomme luften eller, verre, treffe en rad med
@@ -430,7 +437,7 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
                 self._data.update(user_input)
 
                 # If custom DSO, go to pricing step (includes avgiftssone)
-                if self._data.get(CONF_DSO) == "custom":
+                if self._data.get(CONF_DSO) == DSO_EGENDEFINERT:
                     return await self.async_step_pricing()
 
                 # Auto-detect avgiftssone from DSO
@@ -509,6 +516,10 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
 
         if user_input is not None:
             self._data.update(user_input)
+            # Teksten over feltet er rettet, så den som taster nå har fått
+            # riktig beskjed og skal ikke møte varselet om feilmerkingen
+            # (incident 007).
+            self._data[CONF_EGENDEFINERT_SATSER_BEKREFTET] = True
             return self._create_entry()
 
         return self.async_show_form(

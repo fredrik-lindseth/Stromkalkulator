@@ -16,6 +16,7 @@ from .const import (
     AVGIFTSSONE_STANDARD,
     CONF_AVGIFTSSONE,
     CONF_DSO,
+    CONF_EGENDEFINERT_SATSER_BEKREFTET,
     CONF_ENERGILEDD_DAG,
     CONF_ENERGILEDD_NATT,
     CONF_HAR_NORGESPRIS,
@@ -23,6 +24,8 @@ from .const import (
     CONF_SPOTPRIS_INKL_MVA,
     DEFAULT_DSO,
     DOMAIN,
+    DSO_EGENDEFINERT,
+    EGENDEFINERT_ISSUE_PREFIX,
     ENOVA_AVGIFT,
     NORGESPRIS_SLUTT_AAR,
     SATSER_GJELDER_AAR,
@@ -314,8 +317,53 @@ async def async_setup_entry(hass: HomeAssistant, entry: StromkalkulatorConfigEnt
     _check_stale_rates(hass, entry)
     _check_sikringstrinn(hass, entry)
     _check_delt_dso(hass, entry)
+    _check_egendefinerte_satser(hass, entry)
 
     return True
+
+
+def _ore(verdi: object) -> str:
+    """Formater en NOK/kWh-sats som øre med norsk desimalkomma."""
+    try:
+        tall = float(verdi)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return "?"
+    return f"{tall * 100:.2f}".replace(".", ",")
+
+
+def _check_egendefinerte_satser(hass: HomeAssistant, entry: StromkalkulatorConfigEntry) -> None:
+    """Be brukere med egendefinert nettselskap sjekke energiledd-satsen.
+
+    Til og med 1.16.0 var feltet merket «inkl. avgifter» på norsk og «incl.
+    taxes» på engelsk, mens koden regner satsen som ren nettleie eks. mva og
+    legger forbruksavgift, Enova og mva på selv. Fulgte du teksten, telles
+    avgiftene to ganger. Vi kan ikke se hva den enkelte tastet, bare at teksten
+    var villedende, så varselet ber om en sjekk framfor å påstå en feil.
+
+    Bekreftelsen lagres på entryet (repairs.py), ellers ville varselet kommet
+    tilbake ved hver omstart. Nye oppsett etter rettingen får flagget satt med en
+    gang i config-flowen og ser aldri varselet.
+    """
+    issue_id = f"{EGENDEFINERT_ISSUE_PREFIX}{entry.entry_id}"
+    bruker_egendefinert = entry.data.get(CONF_DSO) == DSO_EGENDEFINERT
+    if not bruker_egendefinert or entry.data.get(CONF_EGENDEFINERT_SATSER_BEKREFTET):
+        ir.async_delete_issue(hass, DOMAIN, issue_id)
+        return
+
+    sone = entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
+    ir.async_create_issue(
+        hass,
+        DOMAIN,
+        issue_id,
+        is_fixable=True,
+        severity=ir.IssueSeverity.WARNING,
+        translation_key="egendefinert_energiledd",
+        translation_placeholders={
+            "avgifter": _ore(get_forbruksavgift(sone) + ENOVA_AVGIFT),
+            "dag": _ore(entry.data.get(CONF_ENERGILEDD_DAG)),
+            "natt": _ore(entry.data.get(CONF_ENERGILEDD_NATT)),
+        },
+    )
 
 
 def _check_delt_dso(hass: HomeAssistant, entry: StromkalkulatorConfigEntry) -> None:

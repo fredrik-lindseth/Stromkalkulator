@@ -240,12 +240,22 @@ def _avled_tariffmodus(data: dict[str, object]) -> str:
     sats på alle. Derfor blir ingen `manual` her uten at nettselskapet er
     Egendefinert; de som avviker får `legacy_unconfirmed` og et valg.
     """
-    dso_id = data.get(CONF_DSO, DEFAULT_DSO)
-    dso = DSO_LIST.get(str(dso_id))
+    dso_id = str(data.get(CONF_DSO, DEFAULT_DSO))
+    dso = DSO_LIST.get(dso_id)
+
+    # Fusjonert eller utfaset først, og med vilje før `dso is None`: et
+    # fusjonert selskap er tatt ut av DSO_LIST, så det ser ut som et ukjent
+    # nettselskap her. `async_setup_entry` flytter entryet over til selskapet
+    # som overtok, og den lagrede satsen hører til selskapet de forlater.
+    # Havnet de på `manual`, ville de regnet videre med den gamle satsen på det
+    # nye selskapet for godt, uten tariffvarsel. `dso_migration`-varselet
+    # forteller allerede hva som skjedde, så det kommer ikke et til.
+    if dso_id in _MIGRATION_INDEX:
+        return TARIFFMODUS_CATALOG
 
     # Egendefinert har ingen katalog å falle tilbake på, og det samme gjelder
-    # et nettselskap som ikke finnes i listen i det hele tatt (håndredigert
-    # .storage). Satsen på entryet er alt de har.
+    # et nettselskap som verken finnes i listen eller er fusjonert inn i noe
+    # (håndredigert .storage). Satsen på entryet er alt de har.
     if dso_id == DSO_EGENDEFINERT or dso is None:
         return TARIFFMODUS_MANUAL
 
@@ -257,11 +267,9 @@ def _avled_tariffmodus(data: dict[str, object]) -> str:
     if dso.get("energiledd_perioder"):
         return TARIFFMODUS_CATALOG
 
-    # Et nettselskap som er fusjonert inn i et annet, eller som ikke lenger
-    # vedlikeholdes: den lagrede satsen hører til selskapet de forlater.
-    # `dso_migration`-varselet forteller allerede hva som skjedde, og et
-    # tariffvarsel i tillegg ville vært to varsler om samme flytting.
-    if str(dso_id) in _MIGRATION_INDEX or not dso.get("supported", False):
+    # Et nettselskap som ikke lenger vedlikeholdes, samme begrunnelse som
+    # fusjonerte over.
+    if not dso.get("supported", False):
         return TARIFFMODUS_CATALOG
 
     sone = data.get(CONF_AVGIFTSSONE) or resolve_avgiftssone(dso)
@@ -492,7 +500,13 @@ def _check_tariffmodus(hass: HomeAssistant, entry: StromkalkulatorConfigEntry) -
     """
     issue_id = f"{TARIFF_ISSUE_PREFIX}{entry.entry_id}"
     dso = DSO_LIST.get(entry.data.get(CONF_DSO, DEFAULT_DSO))
-    sone = entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
+    # Samme fallback som `_avled_tariffmodus`: mangler entryet avgiftssone, er
+    # den nettselskapets egen. Standard for alle ville gitt mva-faktor der NO4
+    # har fritak, og et avvik rett over terskelen kan falle på hver sin side av
+    # den med og uten mva. Da hadde migreringen og varselet felt ulik dom.
+    sone = entry.data.get(CONF_AVGIFTSSONE) or (
+        resolve_avgiftssone(dso) if dso is not None else AVGIFTSSONE_STANDARD
+    )
 
     uavklart = (
         les_tariffmodus(entry.data) == TARIFFMODUS_LEGACY

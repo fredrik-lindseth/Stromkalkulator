@@ -555,6 +555,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # poll, og bare for de rollene som faktisk er ubekreftede nå.
         self._prisenhet_issue_aktiv = False
         self._prisenhet_issue_roller: list[str] = []
+        self._prisenhet_issue_synket = False
         # Settes fra Store ved oppstart, ellers på første poll. None betyr
         # "vet ikke ennå", og da kan telleren ikke meldes frossen.
         self._last_energy_increase = None
@@ -668,11 +669,15 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         delta = 0.0
 
         if forrige is not None and not forrige.samme_kilde(identitet, self.energy_sensor):
+            # Kildeidentiteten er unique_id fra entity-registeret, og hos
+            # AMS- og Elhub-integrasjoner er den målepunkt-ID eller
+            # målerserienummer, altså noe som peker på én husstand.
+            # home-assistant.log limes inn i offentlige issues like ofte som
+            # diagnostikkdumpen, og dumpen aliaserer den nettopp derfor
+            # (diagnostikk.py). Loggen sier at kilden er en annen, ikke hvilken.
             _LOGGER.info(
-                "energy_sensor %s er en ny kilde (%s -> %s). Ny baseline på %.3f kWh, delta 0.",
+                "energy_sensor %s er en ny kilde. Ny baseline på %.3f kWh, delta 0.",
                 self.energy_sensor,
-                forrige.source_identity or forrige.entity_id,
-                identitet or self.energy_sensor,
                 current_kwh,
             )
         elif forrige is not None:
@@ -812,10 +817,6 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         self._last_energy_increase = now
                 continue
             siden = self._input_sist_gyldig.setdefault(rolle, now)
-            if rolle == INPUT_ROLLE_LEVERANDORPRIS:
-                # Leverandørprisen mater bare sammenligningssensoren. Den
-                # rapporteres som attributt og skal ikke heve vaktholdet.
-                continue
             if isinstance(resultat, Ugyldig) and resultat.grunn in ENHETSGRUNNER:
                 # Ingen grace: dette er ikke et utfall som går over av seg selv,
                 # det er en sensor som leverer noe vi ikke har lov til å regne
@@ -823,6 +824,14 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 problemer.append(
                     self._vakthold_problem(VAKTHOLD_ENHET, rolle, entity_id, siden, now, resultat=resultat)
                 )
+                continue
+            if rolle == INPUT_ROLLE_LEVERANDORPRIS:
+                # Leverandørprisen mater bare sammenligningssensoren, så et
+                # utfall der rapporteres som attributt og hever ikke vaktholdet.
+                # Enhetsgrenen over gjelder likevel: kontrakt §1 sier at en
+                # sensor som bytter enhet under drift er en ekte feil i alle
+                # roller, og uten den ville en leverandørpris som gikk til
+                # EUR/kWh bare blitt stille.
                 continue
             if sekunder_mellom(siden, now) > grace_sekunder:
                 self._input_utfall_aktiv.add(rolle)
@@ -1475,7 +1484,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "leverandorpris_gyldig": (
                 None
                 if not self.electricity_company_price_sensor
-                else self._input_er_gyldig(self.electricity_company_price_sensor)
+                else self._input_er_gyldig(INPUT_ROLLE_LEVERANDORPRIS)
             ),
             "monthly_norgespris_diff_kr": round(self._monthly_norgespris_diff, 2),
             "previous_month_norgespris_diff_kr": round(self._previous_month_norgespris_diff, 2),
@@ -1818,9 +1827,16 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             and resultat.raa_enhet is None
         ]
         if not ubekreftede:
-            if self._prisenhet_issue_aktiv:
+            if self._prisenhet_issue_aktiv or not self._prisenhet_issue_synket:
+                # `not synket` er første poll etter oppstart, og den rydder også
+                # et varsel som overlevde en omstart. Uten det ble en issue
+                # stående for godt hvis sensoren fikk enhet mens HA var nede:
+                # minnet sa at ingen issue var aktiv, og da ble den aldri
+                # slettet. Samme mønster som `_vakthold_issues_synket`.
                 ir.async_delete_issue(self.hass, DOMAIN, issue_id)
                 self._prisenhet_issue_aktiv = False
+                self._prisenhet_issue_roller = []
+            self._prisenhet_issue_synket = True
             return
 
         if self._prisenhet_issue_roller == ubekreftede:
@@ -1843,6 +1859,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
         self._prisenhet_issue_aktiv = True
         self._prisenhet_issue_roller = list(ubekreftede)
+        self._prisenhet_issue_synket = True
 
     def _input_resultater_rapport(self, now: datetime) -> dict[str, dict[str, Any]]:
         """Siste resultat per rolle, på formen diagnostikken leser (§10)."""
@@ -2014,14 +2031,22 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 # Alt som ligger lagret fra før 1.17 er en rå sensorverdi uten
                 # kilde og uten enhet. Den forkastes én gang, og neste avlesning
                 # setter ny baseline med delta 0. Månedsdata beholdes.
-                self._baseline = Baseline.fra_lagret(data.get(BASELINE_NOKKEL))
+                lagret_baseline = data.get(BASELINE_NOKKEL)
+                self._baseline = Baseline.fra_lagret(lagret_baseline)
+                # Forkastet betyr at det faktisk lå en baseline der som ikke lot
+                # seg lese. `_save_stored_data` skriver `energi_baseline: None`
+                # ved hver lagring uten baseline, så `BASELINE_NOKKEL in data`
+                # er sann også hos den som aldri har hatt en, og det ga et
+                # forkastet-flagg og en INFO-linje hos hver eneste ny bruker.
+                self._baseline_forkastet = self._baseline is None and (
+                    lagret_baseline is not None or data.get("last_tpi_kwh") is not None
+                )
                 if self._baseline is not None and not self.energy_sensor:
                     # Energisensoren er fjernet fra konfigurasjonen. Settes den
-                    # inn igjen, er det per definisjon en ny kilde (§5).
+                    # inn igjen, er det per definisjon en ny kilde (§5). Det er
+                    # ikke en forkastet baseline: den var lesbar, den har bare
+                    # ingen sensor å høre til.
                     self._baseline = None
-                self._baseline_forkastet = self._baseline is None and (
-                    BASELINE_NOKKEL in data or data.get("last_tpi_kwh") is not None
-                )
                 if self._baseline_forkastet:
                     _LOGGER.info(
                         "Energibaselinen i lagringsfilen manglet kildeidentitet og ble forkastet. "

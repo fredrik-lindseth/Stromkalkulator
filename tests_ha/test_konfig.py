@@ -10,6 +10,7 @@ Kjøres av `just test-ha target=minimum` og `target=current`.
 
 from __future__ import annotations
 
+import voluptuous as vol
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
@@ -303,6 +304,172 @@ async def test_utfylt_energiledd_gir_manual(hass: HomeAssistant) -> None:
 # ---------------------------------------------------------------------------
 # Reload
 # ---------------------------------------------------------------------------
+
+
+def _frontend_forhaandsutfylling(data_schema) -> dict:
+    """Det HA-frontenden legger i feltene når skjemaet åpnes.
+
+    Frontenden viser `suggested_value` der den finnes, ellers feltets `default`,
+    og sender verdien tilbake ved lagring selv om brukeren ikke rørte feltet. Et
+    felt uten begge deler står tomt og utelates fra `user_input`. Å regne det ut
+    fra det ekte skjemaet, framfor å skrive opp en ordbok for hånd, er hele
+    poenget: en test som fyller inn feltene selv kan aldri se hva skjemaet
+    foreslo.
+    """
+    utfylt: dict = {}
+    for nokkel in data_schema.schema:
+        foreslatt = (getattr(nokkel, "description", None) or {}).get("suggested_value")
+        if foreslatt is not None:
+            utfylt[str(nokkel)] = foreslatt
+            continue
+        standard = getattr(nokkel, "default", None)
+        if standard is not None and standard is not vol.UNDEFINED:
+            verdi = standard()
+            if verdi is not vol.UNDEFINED:
+                utfylt[str(nokkel)] = verdi
+    return utfylt
+
+
+async def test_legacy_skjema_foreslaar_ikke_den_utdaterte_satsen(hass: HomeAssistant) -> None:
+    """Energiledd-feltet skal stå tomt for en entry som venter på svar.
+
+    Sto den utdaterte satsen som `suggested_value`, ville frontenden sendt den
+    tilbake ved en helt vanlig lagring, og `_sett_tariffmodus` ville lest et
+    utfylt felt som et bevisst valg.
+    """
+    _sett_states(hass)
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        version=5,
+        data=_basisdata(
+            **{
+                CONF_TARIFFMODUS: "legacy_unconfirmed",
+                CONF_ENERGILEDD_DAG: 0.40,
+                CONF_ENERGILEDD_NATT: 0.30,
+            }
+        ),
+    )
+    await _last(hass, entry)
+
+    resultat = await hass.config_entries.options.async_init(entry.entry_id)
+    utfylt = _frontend_forhaandsutfylling(resultat["data_schema"])
+
+    assert CONF_ENERGILEDD_DAG not in utfylt
+    assert CONF_ENERGILEDD_NATT not in utfylt
+    # Negativ prøve på samme skjema: de andre feltene er fortsatt fylt ut, så
+    # testen kan ikke gå grønn på at skjemaet er tomt.
+    assert utfylt[CONF_POWER_SENSOR] == POWER_SENSOR
+    assert utfylt[CONF_DSO] == "bkk"
+
+
+async def test_manual_skjema_foreslaar_brukerens_egen_sats(hass: HomeAssistant) -> None:
+    """Den andre retningen: den som har skrevet et tall skal se det igjen.
+
+    Uten forslaget måtte en manual-bruker skrive satsen på nytt hver gang han
+    var innom innstillingene for å endre noe annet, ellers falt han til
+    katalogen.
+    """
+    _sett_states(hass)
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        version=5,
+        data=_basisdata(**{CONF_TARIFFMODUS: "manual", CONF_ENERGILEDD_DAG: 0.42}),
+    )
+    await _last(hass, entry)
+
+    resultat = await hass.config_entries.options.async_init(entry.entry_id)
+    utfylt = _frontend_forhaandsutfylling(resultat["data_schema"])
+
+    assert utfylt[CONF_ENERGILEDD_DAG] == 0.42
+
+
+async def test_lagring_uten_endring_laaser_ikke_den_utdaterte_satsen(hass: HomeAssistant) -> None:
+    """Åpne innstillingene, trykk lagre, ikke rør noe: katalogen skal fortsatt gjelde.
+
+    Dette er hele poenget med tariffmodusen. Sendte skjemaet den utdaterte
+    satsen tilbake, ble entryet stående i `manual` med den gamle satsen, og
+    satsvarselet forsvant fordi modusen ikke lenger var legacy. Brukeren hadde
+    da mistet både satsoppdateringen og varselet som skulle fortalt ham om den,
+    uten å ha gjort annet enn å se på innstillingene.
+    """
+    _sett_states(hass)
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        version=5,
+        data=_basisdata(
+            **{
+                CONF_TARIFFMODUS: "legacy_unconfirmed",
+                CONF_ENERGILEDD_DAG: 0.40,
+                CONF_ENERGILEDD_NATT: 0.30,
+            }
+        ),
+    )
+    await _last(hass, entry)
+    assert ir.async_get(hass).async_get_issue(DOMAIN, f"{TARIFF_ISSUE_PREFIX}{entry.entry_id}")
+
+    resultat = await hass.config_entries.options.async_init(entry.entry_id)
+    utfylt = _frontend_forhaandsutfylling(resultat["data_schema"])
+    await hass.config_entries.options.async_configure(resultat["flow_id"], user_input=utfylt)
+    await hass.async_block_till_done()
+
+    assert entry.data[CONF_TARIFFMODUS] == "catalog"
+    assert CONF_ENERGILEDD_DAG not in entry.data
+    assert CONF_ENERGILEDD_NATT not in entry.data
+    assert entry.runtime_data.energiledd_dag_eks_mva == BKK["energiledd_dag_eks_mva"]
+    # Varselet er borte fordi spørsmålet er besvart med «følg katalogen»
+    # (kontrakt §6), ikke fordi satsen ble låst.
+    assert ir.async_get(hass).async_get_issue(DOMAIN, f"{TARIFF_ISSUE_PREFIX}{entry.entry_id}") is None
+
+
+async def test_lagring_uten_endring_beholder_manual_satsen(hass: HomeAssistant) -> None:
+    """Samme handling på en manual-entry skal ikke kaste satsen.
+
+    Speilbildet av testen over: her *skal* skjemaet sende tallet tilbake, og
+    entryet skal bli stående i manual med brukerens egen sats.
+    """
+    _sett_states(hass)
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        version=5,
+        data=_basisdata(
+            **{CONF_TARIFFMODUS: "manual", CONF_ENERGILEDD_DAG: 0.42, CONF_ENERGILEDD_NATT: 0.31}
+        ),
+    )
+    await _last(hass, entry)
+
+    resultat = await hass.config_entries.options.async_init(entry.entry_id)
+    utfylt = _frontend_forhaandsutfylling(resultat["data_schema"])
+    await hass.config_entries.options.async_configure(resultat["flow_id"], user_input=utfylt)
+    await hass.async_block_till_done()
+
+    assert entry.data[CONF_TARIFFMODUS] == "manual"
+    assert entry.data[CONF_ENERGILEDD_DAG] == 0.42
+    assert entry.runtime_data.energiledd_dag_eks_mva == 0.42
+
+
+async def test_reconfigure_uten_endring_laaser_ikke_den_utdaterte_satsen(hass: HomeAssistant) -> None:
+    """Reconfigure tegner samme skjema og må svare likt."""
+    _sett_states(hass)
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        version=5,
+        data=_basisdata(
+            **{
+                CONF_TARIFFMODUS: "legacy_unconfirmed",
+                CONF_ENERGILEDD_DAG: 0.40,
+                CONF_ENERGILEDD_NATT: 0.30,
+            }
+        ),
+    )
+    await _last(hass, entry)
+
+    resultat = await entry.start_reconfigure_flow(hass)
+    utfylt = _frontend_forhaandsutfylling(resultat["data_schema"])
+    await hass.config_entries.flow.async_configure(resultat["flow_id"], user_input=utfylt)
+    await hass.async_block_till_done()
+
+    assert entry.data[CONF_TARIFFMODUS] == "catalog"
+    assert CONF_ENERGILEDD_DAG not in entry.data
 
 
 async def test_reload_beholder_unique_ider(hass: HomeAssistant) -> None:

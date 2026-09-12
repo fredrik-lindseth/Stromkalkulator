@@ -28,7 +28,7 @@
         "data_description": {
           "power_sensor": "Sensor showing current power consumption in watts, e.g. from HAN port, Tibber Pulse, or P1 meter.",
           "spot_price_sensor": "Sensor with current spot price in NOK/kWh. Usually 'Current price' from the Nord Pool integration.",
-          "spotpris_inkl_mva": "Leave off for HA-core nordpool integration (delivers excl. VAT). Turn on if your sensor already includes VAT.",
+          "spotpris_inkl_mva": "Leave off for HA-core nordpool integration (delivers excl. VAT). Turn on if your sensor already includes VAT (e.g. the older custom_components/nordpool with VAT=true, or a custom template sensor).",
           "energy_sensor": "Cumulative kWh counter from the AMS smart meter. Recommended for exact invoice numbers. See docs/input-sensorer.md for details.",
           "electricity_provider_price_sensor": "Sensor with the total price from your electricity provider (e.g. Tibber 'Electricity price'). Only used to populate the 'Total price (electricity contract)' sensor for comparison against your actual contract. Does not affect any other calculation. Skip if you have spot price directly or Norgespris.",
           "export_power_sensor": "Power sensor for export to the grid (OBIS 2.7.0), for prosumers with solar panels only. Used to calculate export revenue and net monthly cost. Skip if you don't have solar panels."
@@ -46,14 +46,16 @@
       },
       "pricing": {
         "title": "Custom pricing",
-        "description": "Select your tax zone and enter energy tariff prices in NOK/kWh (incl. taxes).",
+        "description": "Select your tax zone and enter energy tariff prices in NOK/kWh excl. VAT and excl. consumption tax/Enova fee. The integration adds taxes and VAT based on tax zone.",
         "data": {
           "avgiftssone": "Tax zone",
-          "energiledd_dag": "Energy tariff day (NOK/kWh)",
-          "energiledd_natt": "Energy tariff night/weekend (NOK/kWh)"
+          "energiledd_dag": "Energy tariff day (NOK/kWh, excl. VAT and taxes)",
+          "energiledd_natt": "Energy tariff night/weekend (NOK/kWh, excl. VAT and taxes)"
         },
         "data_description": {
-          "avgiftssone": "Determines VAT and consumption tax. The VAT exemption follows county, not price area: 'Nord-Norge' covers Nordland and Troms, 'Tiltakssonen' covers Finnmark and Nord-Troms (VAT Act § 6-6). Everyone else, including NO3 (Trøndelag and Møre og Romsdal), selects 'Sør-Norge' and pays 25% VAT."
+          "avgiftssone": "Determines VAT and consumption tax. The VAT exemption follows county, not price area: 'Nord-Norge' covers Nordland and Troms, 'Tiltakssonen' covers Finnmark and Nord-Troms (VAT Act § 6-6). Everyone else, including NO3 (Trøndelag and Møre og Romsdal), selects 'Sør-Norge' and pays 25% VAT.",
+          "energiledd_dag": "Grid tariff only, for daytime. Find the amount listed as 'energiledd' or 'overføring' on your price list, before consumption tax, Enova fee and VAT.",
+          "energiledd_natt": "Grid tariff only, for night/weekend. If your grid company uses a flat rate, enter the same value as for daytime."
         }
       },
       "reconfigure": {
@@ -71,8 +73,8 @@
           "energy_sensor": "Energy meter sensor (kWh, optional)",
           "electricity_provider_price_sensor": "Electricity provider sensor (optional)",
           "export_power_sensor": "Export power sensor (optional)",
-          "energiledd_dag": "Energy tariff day (NOK/kWh)",
-          "energiledd_natt": "Energy tariff night/weekend (NOK/kWh)",
+          "energiledd_dag": "Energy tariff day (NOK/kWh, excl. VAT and taxes)",
+          "energiledd_natt": "Energy tariff night/weekend (NOK/kWh, excl. VAT and taxes)",
           "kapasitet_varsel_terskel": "Capacity warning threshold (kW)",
           "energi_frossen_timer": "Frozen energy meter threshold (hours)"
         },
@@ -121,8 +123,8 @@
           "energy_sensor": "Energy meter sensor (kWh, optional)",
           "electricity_provider_price_sensor": "Electricity provider sensor (optional)",
           "export_power_sensor": "Export power sensor (optional)",
-          "energiledd_dag": "Energy tariff day (NOK/kWh)",
-          "energiledd_natt": "Energy tariff night/weekend (NOK/kWh)",
+          "energiledd_dag": "Energy tariff day (NOK/kWh, excl. VAT and taxes)",
+          "energiledd_natt": "Energy tariff night/weekend (NOK/kWh, excl. VAT and taxes)",
           "kapasitet_varsel_terskel": "Capacity warning threshold (kW)",
           "energi_frossen_timer": "Frozen energy meter threshold (hours)"
         },
@@ -365,7 +367,7 @@
     },
     "spotpris_mva_check": {
       "title": "Spot price handling updated",
-      "description": "Stromkalkulator now treats the spot price sensor as excluding VAT (correct for the HA-core Nord Pool integration). The code previously assumed including VAT, and that gave 25 % errors in electricity subsidy and total price in Southern Norway. Most users don't need to do anything.\n\nYou only need to act if your spot price sensor already delivers prices including VAT. That applies if you have a custom template sensor that adds 25 %, or use the older custom_components/nordpool with VAT=true. In that case: open Strømkalkulator settings (Settings > Devices & Services > Strømkalkulator > Configure) and turn on 'Spot price sensor delivers prices including VAT'."
+      "description": "Strømkalkulator now treats the spot price sensor as excluding VAT (correct for the HA-core Nord Pool integration). The code previously assumed including VAT, and that gave 25 % errors in electricity subsidy and total price in Southern Norway. Most users don't need to do anything.\n\nYou only need to act if your spot price sensor already delivers prices including VAT. That applies if you have a custom template sensor that adds 25 %, or use the older custom_components/nordpool with VAT=true. In that case: open Strømkalkulator settings (Settings > Devices & Services > Strømkalkulator > Configure) and turn on 'Spot price sensor delivers prices including VAT'."
     },
     "dso_delt": {
       "title": "Your grid company is split into several price areas",

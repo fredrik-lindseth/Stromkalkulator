@@ -121,7 +121,7 @@ Steg for steg for begge alternativene: [sensorer.md](docs/sensorer.md#energy-das
 
 ## Strømavtaler
 
-Med spotpris trekkes strømstøtten (90 % over 96,25 øre) automatisk fra, og sensoren "Strømstøtte" viser beløpet. Har du [Norgespris](https://www.regjeringen.no/no/tema/energi/strom/regjeringens-stromtiltak/), kryss av "Jeg har Norgespris" i oppsettet: da regnes fast 50 øre (Sør-Norge) eller 40 øre (Nord-Norge) uten strømstøtte. Sensoren "Prisforskjell Norgespris" viser hvilken avtale som er billigst akkurat nå. Formler: [beregninger.md](docs/beregninger.md#norgespris).
+Med spotpris trekkes strømstøtten (90 % over 96,25 øre) automatisk fra, og sensoren "Strømstøtte" viser beløpet. Norgespris bestilles på Min side hos Elhub ([minside.elhub.no](https://minside.elhub.no)), ikke hos nettselskapet eller strømleverandøren. Har du [Norgespris](https://www.regjeringen.no/no/tema/energi/strom/regjeringens-stromtiltak/), kryss av "Jeg har Norgespris" i oppsettet: da regnes fast 50 øre (Sør-Norge) eller 40 øre (Nord-Norge) uten strømstøtte. Sensoren "Prisforskjell Norgespris" viser hvilken avtale som er billigst akkurat nå. Formler: [beregninger.md](docs/beregninger.md#norgespris).
 
 ## Sjekke mot faktura
 

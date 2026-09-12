@@ -1,9 +1,9 @@
 """Tester for fastledd-metoder som ikke er snitt av tre døgnmakser.
 
-NVE-modellen (`TRE_DØGNMAX_MND`) dekker 68 av 73 nettselskap. Fem gjør noe annet,
-og for dem var beregningen vår feil uansett hvor riktige trinnprisene var. Se
-[incident 006](../docs/incidents/006-kapasitetstrinn-uten-kilde.md) og
-[begrensninger.md](../docs/begrensninger.md) punkt 9.
+NVE-modellen (`TRE_DØGNMAX_MND`) dekker 69 av de 74 valgbare oppføringene. Fem
+gjør noe annet, og for dem var beregningen vår feil uansett hvor riktige
+trinnprisene var. Se [incident 006](../docs/incidents/006-kapasitetstrinn-uten-kilde.md)
+og [begrensninger.md](../docs/begrensninger.md) punkt 9.
 
 Metodenavnene er fri-nettleies, slik at drift-vakten kan sammenligne dem direkte.
 """
@@ -64,7 +64,7 @@ class TestFastleddMetodeIDsoData:
             assert metode in FASTLEDD_METODER, f"{dso_id}: ukjent fastledd-metode {metode!r}"
 
     def test_default_er_nve_modellen(self):
-        """68 nettselskap skal oppføre seg helt som før, uten å nevne metoden."""
+        """69 oppføringer skal oppføre seg helt som før, uten å nevne metoden."""
         assert hent_fastledd_metode(DSO_LIST["bkk"]) == FASTLEDD_TRE_DOGNMAX_MND
         assert "fastledd_metode" not in DSO_LIST["bkk"]
 

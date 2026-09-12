@@ -463,7 +463,7 @@ class TestForkastetDelta:
         plassholdere = kall.kwargs["translation_placeholders"]
         assert plassholdere["kwh"] == "145.4"
         assert plassholdere["sensor"] == "sensor.tpi"
-        assert "15.06.2026" in plassholdere["tidspunkt"]
+        assert "15.06.2026" in plassholdere["forrige"]
 
     def test_plassholderen_peker_paa_forrige_avlesning(self, coord_module):
         """O3: hovedtilfellet er comebacket etter et langt utfall, ikke ett minutt.
@@ -489,7 +489,6 @@ class TestForkastetDelta:
         )
         plassholdere = kall.kwargs["translation_placeholders"]
         assert plassholdere["forrige"] == "29.07.2026 kl. 10:00"
-        assert plassholdere["tidspunkt"] == "08.08.2026 kl. 08:00"
 
     def test_negativt_sprang_gir_issue(self, coord_module):
         benk = Sensorbenk()

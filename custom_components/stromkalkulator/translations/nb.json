@@ -11,7 +11,7 @@
         },
         "data_description": {
           "boligtype": "Bolig: Strømstøtte opptil 5000 kWh/mnd, Norgespris opptil 5000 kWh/mnd. Fritidsbolig: Ingen strømstøtte, Norgespris opptil 1000 kWh/mnd. Fritidsbolig (fast bosted): Samme som bolig (Forskrift § 11).",
-          "har_norgespris": "Aktiver hvis du har valgt Norgespris hos nettselskapet. Fast pris (50 øre/kWh i Sør-Norge, 40 øre i Nord-Norge) for de første 5000 kWh per måned (1000 kWh for fritidsbolig). Forbruk over grensen betales til spotpris."
+          "har_norgespris": "Aktiver hvis du har bestilt Norgespris på Min side hos Elhub (minside.elhub.no), ikke hos nettselskapet eller strømleverandøren. Fast pris (50 øre/kWh i Sør-Norge, 40 øre i Nord-Norge) for de første 5000 kWh per måned (1000 kWh for fritidsbolig). Forbruk over grensen betales til spotpris."
         }
       },
       "sensors": {
@@ -82,7 +82,7 @@
           "boligtype": "Bolig: Strømstøtte opptil 5000 kWh/mnd, Norgespris opptil 5000 kWh/mnd. Fritidsbolig: Ingen strømstøtte, Norgespris opptil 1000 kWh/mnd. Fritidsbolig (fast bosted): Samme som bolig (Forskrift § 11).",
           "sikringstrinn": "Radene er gjengitt ordrett fra nettselskapets prisliste. Merk at satsen kan avhenge av systemspenning (230 V eller 400 V).",
           "avgiftssone": "Settes automatisk fra nettselskap. Overstyr kun hvis du vet du tilhører en annen sone.",
-          "har_norgespris": "Aktiver hvis du har valgt Norgespris hos nettselskapet. Fast pris (50 øre/kWh i Sør-Norge, 40 øre i Nord-Norge) for de første 5000 kWh per måned (1000 kWh for fritidsbolig). Forbruk over grensen betales til spotpris.",
+          "har_norgespris": "Aktiver hvis du har bestilt Norgespris på Min side hos Elhub (minside.elhub.no), ikke hos nettselskapet eller strømleverandøren. Fast pris (50 øre/kWh i Sør-Norge, 40 øre i Nord-Norge) for de første 5000 kWh per måned (1000 kWh for fritidsbolig). Forbruk over grensen betales til spotpris.",
           "power_sensor": "Sensor som viser nåværende strømforbruk i watt, f.eks. fra HAN-port, Tibber Pulse eller P1-måler.",
           "spot_price_sensor": "Sensor med gjeldende spotpris i NOK/kWh. Vanligvis «Current price» fra Nord Pool-integrasjonen.",
           "spotpris_inkl_mva": "La stå av for HA-core nordpool-integrasjon (leverer eks. mva). Slå på hvis sensoren din allerede inkluderer mva.",
@@ -132,7 +132,7 @@
           "boligtype": "Bolig: Strømstøtte opptil 5000 kWh/mnd, Norgespris opptil 5000 kWh/mnd. Fritidsbolig: Ingen strømstøtte, Norgespris opptil 1000 kWh/mnd. Fritidsbolig (fast bosted): Samme som bolig (Forskrift § 11).",
           "sikringstrinn": "Radene er gjengitt ordrett fra nettselskapets prisliste. Merk at satsen kan avhenge av systemspenning (230 V eller 400 V).",
           "avgiftssone": "Settes automatisk fra nettselskap. Overstyr kun hvis du vet du tilhører en annen sone.",
-          "har_norgespris": "Aktiver hvis du har valgt Norgespris hos nettselskapet. Fast pris (50 øre/kWh i Sør-Norge, 40 øre i Nord-Norge) for de første 5000 kWh per måned (1000 kWh for fritidsbolig). Forbruk over grensen betales til spotpris.",
+          "har_norgespris": "Aktiver hvis du har bestilt Norgespris på Min side hos Elhub (minside.elhub.no), ikke hos nettselskapet eller strømleverandøren. Fast pris (50 øre/kWh i Sør-Norge, 40 øre i Nord-Norge) for de første 5000 kWh per måned (1000 kWh for fritidsbolig). Forbruk over grensen betales til spotpris.",
           "power_sensor": "Sensor som viser nåværende strømforbruk i watt, f.eks. fra HAN-port, Tibber Pulse eller P1-måler.",
           "spot_price_sensor": "Sensor med gjeldende spotpris i NOK/kWh. Vanligvis «Current price» fra Nord Pool-integrasjonen.",
           "spotpris_inkl_mva": "La stå av for HA-core nordpool-integrasjon (leverer eks. mva). Slå på hvis sensoren din allerede inkluderer mva.",

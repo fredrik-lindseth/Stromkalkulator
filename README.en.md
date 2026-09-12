@@ -86,7 +86,7 @@ Above the Norgespris kWh cap, you pay spot price for the rest of the month. Holi
 - Spot price sensor (NOK/kWh): usually "Current price" from the [Nord Pool integration](https://www.home-assistant.io/integrations/nordpool/). It delivers prices excluding VAT, which is what the integration expects. If your sensor already includes VAT, tick "Spotpris-sensor leverer priser inkl. mva".
 - Electricity provider sensor (optional): total price from your provider (e.g. Tibber), to see what you actually pay.
 
-All Norwegian grid companies are supported.
+If your grid company is missing from the list, "Egendefinert" covers it: you enter the energy rate and tax zone yourself.
 
 ### Tax zones
 
@@ -172,7 +172,7 @@ Electricity subsidy (90 % above 96.25 øre) is deducted automatically. The "Str�
 
 ### Norgespris
 
-If you have [Norgespris](https://www.regjeringen.no/no/tema/energi/strom/regjeringens-stromtiltak/) with your grid company:
+Norgespris is ordered at Elhub ([minside.elhub.no](https://minside.elhub.no)), not from your grid company or electricity provider. If you have [Norgespris](https://www.regjeringen.no/no/tema/energi/strom/regjeringens-stromtiltak/):
 
 1. Tick "Jeg har Norgespris" during setup
 2. The fixed price is 50 øre in Southern Norway or 40 øre in Northern Norway
@@ -196,7 +196,7 @@ Click on a sensor for details like the top-3 power days and costs split by day/n
 
 ## Supported grid companies
 
-All Norwegian grid companies are supported. Prices are updated annually at the start of the year. Found an error? [Create a PR](docs/contributing.md) or open an issue.
+The grid company list has 74 entries with rates, covering 72 grid companies (Area Nett has one entry per price area). Prices are updated annually at the start of the year. Found an error? [Create a PR](docs/contributing.md) or open an issue.
 
 ## Grid company mergers
 

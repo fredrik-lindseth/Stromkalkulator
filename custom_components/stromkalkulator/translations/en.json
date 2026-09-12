@@ -11,7 +11,7 @@
         },
         "data_description": {
           "boligtype": "Residence: Subsidy up to 5000 kWh/month, Norgespris up to 5000 kWh/month. Holiday home: No subsidy, Norgespris up to 1000 kWh/month. Holiday home (permanent residence): Same as residence (Regulation § 11).",
-          "har_norgespris": "Enable if you have opted for Norgespris from your grid company. Fixed price (50 øre/kWh in southern Norway, 40 øre in northern Norway) for the first 5000 kWh per month (1000 kWh for holiday homes). Consumption above the limit is billed at spot price."
+          "har_norgespris": "Enable if you have ordered Norgespris at Elhub (minside.elhub.no), not from your grid company or electricity provider. Fixed price (50 øre/kWh in southern Norway, 40 øre in northern Norway) for the first 5000 kWh per month (1000 kWh for holiday homes). Consumption above the limit is billed at spot price."
         }
       },
       "sensors": {
@@ -82,7 +82,7 @@
           "boligtype": "Residence: Subsidy up to 5000 kWh/month, Norgespris up to 5000 kWh/month. Holiday home: No subsidy, Norgespris up to 1000 kWh/month. Holiday home (permanent residence): Same as residence (Regulation § 11).",
           "sikringstrinn": "The rows are quoted verbatim from the grid company price list. Note that the rate can depend on system voltage (230 V or 400 V).",
           "avgiftssone": "Set automatically from grid company. Override only if you know you belong to a different zone.",
-          "har_norgespris": "Enable if you have opted for Norgespris from your grid company. Fixed price (50 øre/kWh in southern Norway, 40 øre in northern Norway) for the first 5000 kWh per month (1000 kWh for holiday homes). Consumption above the limit is billed at spot price.",
+          "har_norgespris": "Enable if you have ordered Norgespris at Elhub (minside.elhub.no), not from your grid company or electricity provider. Fixed price (50 øre/kWh in southern Norway, 40 øre in northern Norway) for the first 5000 kWh per month (1000 kWh for holiday homes). Consumption above the limit is billed at spot price.",
           "power_sensor": "Sensor showing current power consumption in watts, e.g. from HAN port, Tibber Pulse, or P1 meter.",
           "spot_price_sensor": "Sensor with current spot price in NOK/kWh. Usually 'Current price' from the Nord Pool integration.",
           "spotpris_inkl_mva": "Leave off for HA-core nordpool integration (delivers excl. VAT). Turn on if your sensor already includes VAT.",
@@ -132,7 +132,7 @@
           "boligtype": "Residence: Subsidy up to 5000 kWh/month, Norgespris up to 5000 kWh/month. Holiday home: No subsidy, Norgespris up to 1000 kWh/month. Holiday home (permanent residence): Same as residence (Regulation § 11).",
           "sikringstrinn": "The rows are quoted verbatim from the grid company price list. Note that the rate can depend on system voltage (230 V or 400 V).",
           "avgiftssone": "Set automatically from grid company. Override only if you know you belong to a different zone.",
-          "har_norgespris": "Enable if you have opted for Norgespris from your grid company. Fixed price (50 øre/kWh in southern Norway, 40 øre in northern Norway) for the first 5000 kWh per month (1000 kWh for holiday homes). Consumption above the limit is billed at spot price.",
+          "har_norgespris": "Enable if you have ordered Norgespris at Elhub (minside.elhub.no), not from your grid company or electricity provider. Fixed price (50 øre/kWh in southern Norway, 40 øre in northern Norway) for the first 5000 kWh per month (1000 kWh for holiday homes). Consumption above the limit is billed at spot price.",
           "power_sensor": "Sensor showing current power consumption in watts, e.g. from HAN port, Tibber Pulse, or P1 meter.",
           "spot_price_sensor": "Sensor with current spot price in NOK/kWh. Usually 'Current price' from the Nord Pool integration.",
           "spotpris_inkl_mva": "Leave off for HA-core nordpool integration (delivers excl. VAT). Turn on if your sensor already includes VAT.",

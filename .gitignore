@@ -32,3 +32,6 @@ Fakturaer/
 .coverage
 
 docs/iec-62056-21/
+
+# Ett venv per testmiljø, se justfile.
+.venv-*/

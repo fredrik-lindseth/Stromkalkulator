@@ -6,20 +6,60 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = "MIT"
 
-[project.optional-dependencies]
-dev = [
-    "pre-commit>=3.5.0",
-    "ruff>=0.8.0",
-    "vulture>=2.13",
+[dependency-groups]
+# Fire grupper, fire miljøer. `unit` og `kvalitet` kjenner ikke Home Assistant
+# i det hele tatt; tests/conftest.py stubber HA bort, og en ekte homeassistant i
+# samme miljø ville kollidert med stubbene. `ha-minimum` og `ha-current` er de
+# to ekte-HA-miljøene, låst til hver sin plugin-versjon som selv pinner HA
+# eksakt (se tabellen i docs/testing.md).
+unit = [
     "pytest>=8.0.0",
     "pytest-cov>=4.1.0",
     "hypothesis>=6.0.0",
-    "mypy>=1.8.0",
-    # Kun for tests/test_smoke_ha.py (ekte-HA røyktest). Trekker inn homeassistant
-    # og et helt pytest-oppsett. Kjøres isolert i CI-jobben `smoke-ha`, ikke i
-    # den ordinære pipx-suiten (som mocker bort HA).
-    "pytest-homeassistant-custom-component>=0.13.0",
+    "pyyaml>=6.0",
 ]
+# ruff er pinnet til samme versjon som .pre-commit-config.yaml bruker. Ulike
+# ruff-versjoner lokalt og i hooken er et sprik som viser seg som "formateringen
+# endret seg av seg selv".
+kvalitet = [
+    "ruff==0.16.7",
+    "mypy==2.3.1",
+    "vulture==2.16",
+    "pre-commit>=3.5.0",
+]
+# Minimum = det hacs.json lover: HA 2025.1.0. Plugin-versjonen pinner
+# homeassistant==2025.1.0 selv, så versjonen står bare ett sted.
+ha-minimum = [
+    "pytest-homeassistant-custom-component==0.13.201",
+    # HA 2025.1.0 pinner denne prereleasen transitivt. uv regner bare
+    # prereleases som er skrevet ut her som tillatte, så den må stå eksplisitt
+    # for at minimum-grenen skal kunne løses. Samme versjon som HA ber om.
+    "aiohasupervisor==0.2.2b5",
+]
+# Current = nyeste HA vi har sett på. Låst eksplisitt, aldri flytende:
+# 0.13.365 pinner homeassistant==2026.9.2 og krever Python 3.14.
+ha-current = [
+    "pytest-homeassistant-custom-component==0.13.365",
+]
+
+[tool.uv]
+# HA 2025.1.0 pinner aiohasupervisor==0.2.2b5, altså en prerelease. uv nekter
+# prereleases som default, så minimum-grenen kunne ikke løses uten dette.
+# `if-necessary-or-explicit` slipper bare gjennom de som er eksplisitt pinnet
+# (eller som ikke har noe stabilt alternativ), ikke prereleases generelt.
+prerelease = "if-necessary-or-explicit"
+# Ingen gruppe er default. Hvert miljø skal be om det det trenger, så et
+# `uv run` uten --group ikke stille drar inn noe som ikke hører hjemme der.
+default-groups = []
+# De to HA-gruppene kan aldri stå i samme miljø: de pinner hver sin
+# homeassistant. uv løser dem som atskilte grener i uv.lock.
+conflicts = [
+    [{ group = "ha-minimum" }, { group = "ha-current" }],
+]
+
+[tool.uv.dependency-groups]
+ha-minimum = { requires-python = ">=3.12,<3.14" }
+ha-current = { requires-python = ">=3.14.2" }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -58,11 +98,10 @@ ignore = [
 known-first-party = ["custom_components.stromkalkulator"]
 
 [tool.ruff.lint.per-file-ignores]
-# Røyktesten må legge repo-roten på sys.path FØR den importerer homeassistant og
-# custom_components (kjøres med --noconftest, så tests/conftest.py setter det
-# ikke). Det tvinger imports under en kodelinje (E402). HomeAssistant importeres
-# kun for type-hints (TC002), men holdes som vanlig import for lesbarhet.
-"tests/test_smoke_ha.py" = ["E402", "TC002"]
+# Ekte-HA-testene importerer HomeAssistant kun for type-hints (TC002), men
+# holder den som vanlig import for lesbarhet: et type-checking-blokk i en
+# testfil er mer støy enn nytte.
+"tests_ha/**" = ["TC002"]
 # vulture_whitelist.py er med vilje bare en liste med bare navn: det er formen
 # vulture leser whitelister i, og navnene er definert i Home Assistant eller i
 # integrasjonen, ikke her. Derfor er hver linje et "ubrukt uttrykk" (B018) med

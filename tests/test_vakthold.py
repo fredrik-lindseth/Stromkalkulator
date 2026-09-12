@@ -13,6 +13,7 @@ import asyncio
 import json
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import ClassVar
 from unittest.mock import MagicMock
 
 import pytest
@@ -43,11 +44,20 @@ class Sensorbenk:
     def sett(self, entity_id: str, verdi: object) -> None:
         self.verdier[entity_id] = verdi
 
+    #: Enheten hver sensor oppgir. Uten enhet antar adapteren rollens egen, og
+    #: prissensoren får da et repair om å bekrefte antakelsen. Ekte sensorer
+    #: har enhet, så benken skal ha det også.
+    ENHETER: ClassVar[dict[str, str | None]] = {
+        "sensor.power": "W",
+        "sensor.spot_price": "NOK/kWh",
+        "sensor.tpi": "kWh",
+    }
+
     def get(self, entity_id: str):
         verdi = self.verdier.get(entity_id, "__mangler__")
         if verdi == "__mangler__" or verdi is None:
             return None
-        return _make_state(verdi)
+        return _make_state(verdi, unit=self.ENHETER.get(entity_id))
 
 
 def _lag_coordinator(coord_module, benk: Sensorbenk, *, energy_sensor="sensor.tpi", **entry_kw):
@@ -644,3 +654,187 @@ class TestJuliReplay:
         av = next(tid for tid, problem in etter if not problem)
         assert av == datetime(2026, 8, 8, 8, 0)
         assert not any(problem for tid, problem in etter if tid > av)
+
+
+class TestSlettetEntitet:
+    """Deteksjon 4: entiteten finnes ikke lenger i det hele tatt.
+
+    Før kastet coordinatoren `UpdateFailed` før vaktholdet rakk å si fra, og
+    stoppet samtidig energi og energiledd som ikke trengte den sensoren. Nå
+    melder vaktholdet utfallet med `finnes: false`, og alt som fortsatt har
+    datagrunnlag regner videre (stromkalkulator-37d1wwi).
+    """
+
+    def test_slettet_effektsensor_melder_utfall_uten_a_felle_oppdateringen(self, coord_module):
+        benk = Sensorbenk()
+        coord = _lag_coordinator(coord_module, benk)
+        start = datetime(2026, 6, 15, 12, 0)
+        _poll(coord_module, coord, start)
+
+        benk.sett("sensor.power", None)
+        resultat = _poll(coord_module, coord, start + timedelta(minutes=45))
+
+        problem = next(p for p in resultat["input_problemer"] if p["input"] == "effekt")
+        assert problem["type"] == UTFALL
+        assert problem["finnes"] is False
+        assert problem["grunn"] == "finnes_ikke"
+        assert resultat["current_power_kw"] is None
+
+    def test_unavailable_entitet_finnes_fortsatt(self):
+        """Motsatt retning: en entitet som svarer unavailable er ikke slettet.
+
+        De to krever hver sin handling av brukeren, så de skal ikke se like ut.
+        """
+        import stromkalkulator.coordinator as coord_modul
+
+        benk = Sensorbenk()
+        coord = _lag_coordinator(coord_modul, benk)
+        start = datetime(2026, 6, 15, 12, 0)
+        _poll(coord_modul, coord, start)
+
+        benk.sett("sensor.power", "unavailable")
+        resultat = _poll(coord_modul, coord, start + timedelta(minutes=45))
+
+        problem = next(p for p in resultat["input_problemer"] if p["input"] == "effekt")
+        assert problem["finnes"] is True
+        assert problem["grunn"] == "utilgjengelig"
+
+    def test_energien_akkumulerer_videre_uten_effektsensor(self, coord_module):
+        """Energisensoren trenger ikke effektsensoren for å telle."""
+        benk = Sensorbenk()
+        coord = _lag_coordinator(coord_module, benk)
+        start = datetime(2026, 6, 15, 12, 0)
+        _poll(coord_module, coord, start)
+
+        benk.sett("sensor.power", None)
+        benk.sett("sensor.tpi", 1002.5)
+        resultat = _poll(coord_module, coord, start + timedelta(minutes=45))
+
+        assert resultat["monthly_consumption_total_kwh"] == pytest.approx(2.5)
+        assert resultat["energiledd"] > 0
+
+    def test_slettet_spotsensor_stopper_bare_de_spotavhengige_beloepene(self, coord_module):
+        benk = Sensorbenk()
+        coord = _lag_coordinator(coord_module, benk)
+        start = datetime(2026, 6, 15, 12, 0)
+        _poll(coord_module, coord, start)
+
+        benk.sett("sensor.spot_price", None)
+        benk.sett("sensor.tpi", 1003.0)
+        # Tre timer: lenger enn cachen av siste kjente pris, som er der for å
+        # bære en kort glipp og ikke for å skjule en død sensor.
+        resultat = _poll(coord_module, coord, start + timedelta(hours=3))
+
+        assert resultat["spot_price_valid"] is False
+        assert resultat["monthly_consumption_total_kwh"] == pytest.approx(3.0)
+        assert resultat["energiledd"] > 0
+
+
+class TestRuntimeEnhetsendring:
+    """Deteksjon 5: sensoren svarer, men i en enhet vi ikke kan regne om.
+
+    Det er ikke et utfall som går over av seg selv, så det meldes uten grace og
+    med sin egen problemtype.
+    """
+
+    def test_enhetsendring_gir_problemtype_enhet_og_issue(self, coord_module):
+        benk = Sensorbenk()
+        coord = _lag_coordinator(coord_module, benk)
+        start = datetime(2026, 6, 15, 12, 0)
+        _poll(coord_module, coord, start)
+
+        benk.ENHETER = {**benk.ENHETER, "sensor.spot_price": "EUR/MWh"}
+        resultat = _poll(coord_module, coord, start + timedelta(minutes=1))
+
+        problem = next(p for p in resultat["input_problemer"] if p["type"] == "enhet")
+        assert problem["input"] == "spotpris"
+        assert problem["raa_enhet"] == "EUR/MWh"
+        assert f"input_enhet_{coord.entry.entry_id}" in _issue_ids(coord_module.ir)
+
+    def test_gyldig_enhetsbytte_gir_ingen_varsel(self, coord_module):
+        """Motsatt retning: NOK/kWh til øre/kWh er en enhet vi kan regne om.
+
+        Falske positiver er grunnen til at forrige runde med vakthold ble
+        avvist to ganger, så hver deteksjon skal ha en negativ test.
+        """
+        benk = Sensorbenk()
+        coord = _lag_coordinator(coord_module, benk)
+        start = datetime(2026, 6, 15, 12, 0)
+        _poll(coord_module, coord, start)
+
+        benk.ENHETER = {**benk.ENHETER, "sensor.spot_price": "øre/kWh"}
+        benk.sett("sensor.spot_price", 120.0)
+        resultat = _poll(coord_module, coord, start + timedelta(minutes=1))
+
+        assert "enhet" not in _typer(resultat)
+        assert resultat["spot_price_valid"] is True
+
+    def test_issue_slettes_naar_enheten_rettes(self, coord_module):
+        benk = Sensorbenk()
+        coord = _lag_coordinator(coord_module, benk)
+        start = datetime(2026, 6, 15, 12, 0)
+        _poll(coord_module, coord, start)
+
+        benk.ENHETER = {**benk.ENHETER, "sensor.spot_price": "EUR/MWh"}
+        _poll(coord_module, coord, start + timedelta(minutes=1))
+
+        benk.ENHETER = {**benk.ENHETER, "sensor.spot_price": "NOK/kWh"}
+        resultat = _poll(coord_module, coord, start + timedelta(minutes=2))
+
+        assert "enhet" not in _typer(resultat)
+        assert f"input_enhet_{coord.entry.entry_id}" in _slettede_issue_ids(coord_module.ir)
+
+    def test_enhetsfeil_erstatter_ikke_et_ekte_utfall(self, coord_module):
+        """En borte sensor har ingen enhet å klage på, og skal melde utfall."""
+        benk = Sensorbenk()
+        coord = _lag_coordinator(coord_module, benk)
+        start = datetime(2026, 6, 15, 12, 0)
+        _poll(coord_module, coord, start)
+
+        benk.sett("sensor.power", None)
+        resultat = _poll(coord_module, coord, start + timedelta(minutes=45))
+
+        typer = {p["type"] for p in resultat["input_problemer"] if p["input"] == "effekt"}
+        assert typer == {UTFALL}
+
+
+class TestPrisenhetUbekreftet:
+    """§4: en prissensor uten enhet godtas, men brukeren skal bekrefte den."""
+
+    def _uten_enhet(self, benk):
+        benk.ENHETER = {**benk.ENHETER, "sensor.spot_price": None}
+
+    def test_varsel_reises_for_prissensor_uten_enhet(self, coord_module):
+        benk = Sensorbenk()
+        self._uten_enhet(benk)
+        coord = _lag_coordinator(coord_module, benk)
+        _poll(coord_module, coord, datetime(2026, 6, 15, 12, 0))
+
+        assert f"prisenhet_ubekreftet_{coord.entry.entry_id}" in _issue_ids(coord_module.ir)
+
+    def test_ingen_varsel_naar_sensoren_har_enhet(self, coord_module):
+        """Den som har en Nord Pool-sensor med NOK/kWh skal ikke se noe."""
+        benk = Sensorbenk()
+        coord = _lag_coordinator(coord_module, benk)
+        _poll(coord_module, coord, datetime(2026, 6, 15, 12, 0))
+
+        assert f"prisenhet_ubekreftet_{coord.entry.entry_id}" not in _issue_ids(coord_module.ir)
+
+    def test_bekreftet_rolle_gir_ingen_varsel(self, coord_module):
+        benk = Sensorbenk()
+        self._uten_enhet(benk)
+        coord = _lag_coordinator(coord_module, benk, extra_data={"prisenhet_bekreftet": ["spotpris"]})
+        _poll(coord_module, coord, datetime(2026, 6, 15, 12, 0))
+
+        assert f"prisenhet_ubekreftet_{coord.entry.entry_id}" not in _issue_ids(coord_module.ir)
+
+    def test_varselet_reises_en_gang_ikke_hver_poll(self, coord_module):
+        benk = Sensorbenk()
+        self._uten_enhet(benk)
+        coord = _lag_coordinator(coord_module, benk)
+        start = datetime(2026, 6, 15, 12, 0)
+        for minutt in range(4):
+            _poll(coord_module, coord, start + timedelta(minutes=minutt))
+
+        reist = [i for i in _issue_ids(coord_module.ir) if i.startswith("prisenhet_ubekreftet")]
+        assert len(reist) == 1

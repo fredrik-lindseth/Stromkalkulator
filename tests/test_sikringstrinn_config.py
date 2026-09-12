@@ -83,7 +83,24 @@ def _state(value="1.2", unit="NOK/kWh"):
     state = MagicMock()
     state.state = str(value)
     state.attributes = {"unit_of_measurement": unit}
+    state.last_updated = None
     return state
+
+
+def _rolle_state(entity_id):
+    """State med en enhet som passer rollen entity-id-en antyder.
+
+    Config-flowen validerer nå alle fem rollene gjennom inputadapteren. En mock
+    som ga alle sensorer samme enhet ville felt effektfeltet på at det så en
+    pris der det skulle sett watt.
+    """
+    if "power" in entity_id or "export" in entity_id:
+        return _state("5000", "W")
+    if "energy" in entity_id:
+        state = _state("1000", "kWh")
+        state.attributes["state_class"] = "total_increasing"
+        return state
+    return _state("1.2", "NOK/kWh")
 
 
 def _make_entry(dso="alut", sikringstrinn=None):
@@ -112,7 +129,7 @@ def _make_options_flow(entry):
     flow.hass = MagicMock()
     flow.hass.config_entries.async_entries.return_value = [entry]
     flow.hass.config_entries.async_update_entry = MagicMock()
-    flow.hass.states.get = MagicMock(return_value=_state())
+    flow.hass.states.get = MagicMock(side_effect=_rolle_state)
     flow.async_create_entry = MagicMock(return_value={"type": "create_entry"})
     flow.async_show_form = MagicMock(return_value={"type": "form", "step_id": "init"})
     return cf_mod, flow
@@ -122,7 +139,7 @@ def _make_config_flow(dso="alut"):
     cf_mod = _reload_config_flow()
     flow = cf_mod.NettleieConfigFlow()
     flow.hass = MagicMock()
-    flow.hass.states.get = MagicMock(return_value=_state())
+    flow.hass.states.get = MagicMock(side_effect=_rolle_state)
     flow._async_current_entries = MagicMock(return_value=[])
     flow._data = {CONF_DSO: dso, CONF_BOLIGTYPE: "bolig", CONF_HAR_NORGESPRIS: False}
     flow.async_create_entry = MagicMock(return_value={"type": "create_entry"})

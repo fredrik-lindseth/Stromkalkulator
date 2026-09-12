@@ -27,12 +27,20 @@ import voluptuous as vol
 from homeassistant.components.repairs import ConfirmRepairFlow, RepairsFlow
 from homeassistant.helpers import issue_registry as ir
 
-from .const import CONF_EGENDEFINERT_SATSER_BEKREFTET, DOMAIN, EGENDEFINERT_ISSUE_PREFIX
+from .const import (
+    CONF_EGENDEFINERT_SATSER_BEKREFTET,
+    CONF_PRISENHET_BEKREFTET,
+    DOMAIN,
+    EGENDEFINERT_ISSUE_PREFIX,
+)
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
+
+# Id-prefikset coordinatoren reiser prisenhet-varselet med.
+PRISENHET_ISSUE_PREFIX: str = "prisenhet_ubekreftet_"
 
 
 class EgendefinertSatserRepairFlow(RepairsFlow):
@@ -86,6 +94,55 @@ class EgendefinertSatserRepairFlow(RepairsFlow):
         )
 
 
+class PrisenhetRepairFlow(RepairsFlow):
+    """Bekrefter at en prissensor uten enhet faktisk er i NOK/kWh.
+
+    Vi godtar sensoren uansett, for integrasjonen skal virke fra første minutt,
+    men antakelsen skal være synlig. Bekreftelsen skrives per rolle på config
+    entryet, slik at den som senere legger til en leverandørprissensor uten
+    enhet får spørsmålet om den òg.
+    """
+
+    def __init__(self, issue_id: str, entry_id: str, roller: list[str]) -> None:
+        """Ta vare på hvilket anlegg og hvilke roller bekreftelsen gjelder."""
+        self._issue_id = issue_id
+        self._entry_id = entry_id
+        self._roller = roller
+
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> Any:
+        """Send rett videre til bekreftelsessteget."""
+        return await self.async_step_confirm(user_input)
+
+    async def async_step_confirm(self, user_input: dict[str, Any] | None = None) -> Any:
+        """Vis teksten, og skriv bekreftelsen når brukeren har svart."""
+        if user_input is not None:
+            self._merk_bekreftet()
+            return self.async_create_entry(title="", data={})
+
+        issue = ir.async_get(self.hass).async_get_issue(DOMAIN, self._issue_id)
+        return self.async_show_form(
+            step_id="confirm",
+            data_schema=vol.Schema({}),
+            description_placeholders=issue.translation_placeholders if issue else None,
+        )
+
+    def _merk_bekreftet(self) -> None:
+        """Legg rollene varselet gjaldt inn i flagget på entryet."""
+        entry = self.hass.config_entries.async_get_entry(self._entry_id)
+        if entry is None:
+            _LOGGER.debug("Fant ikke entry %s, hopper over bekreftelsen", self._entry_id)
+            return
+        fra_for = entry.data.get(CONF_PRISENHET_BEKREFTET)
+        bekreftet = list(fra_for) if isinstance(fra_for, list) else []
+        nye = [rolle for rolle in self._roller if rolle not in bekreftet]
+        if not nye:
+            return
+        self.hass.config_entries.async_update_entry(
+            entry,
+            data={**entry.data, CONF_PRISENHET_BEKREFTET: [*bekreftet, *nye]},
+        )
+
+
 async def async_create_fix_flow(
     hass: HomeAssistant,
     issue_id: str,
@@ -98,6 +155,11 @@ async def async_create_fix_flow(
     ConfirmRepairFlow er tilstrekkelig. Integrasjonen kan ikke gjenskape
     forbruket som gikk tapt, bare vise tallet.
     """
+    if issue_id.startswith(PRISENHET_ISSUE_PREFIX):
+        entry_id = str((data or {}).get("entry_id") or issue_id[len(PRISENHET_ISSUE_PREFIX) :])
+        roller_raa = (data or {}).get("roller")
+        roller = str(roller_raa).split(",") if roller_raa else []
+        return PrisenhetRepairFlow(issue_id, entry_id, roller)
     if issue_id.startswith(EGENDEFINERT_ISSUE_PREFIX):
         entry_id = issue_id[len(EGENDEFINERT_ISSUE_PREFIX) :]
         return EgendefinertSatserRepairFlow(issue_id, entry_id)

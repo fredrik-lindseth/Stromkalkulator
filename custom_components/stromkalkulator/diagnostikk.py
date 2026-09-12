@@ -60,6 +60,7 @@ from .const import (
     CONF_HAR_NORGESPRIS,
     CONF_KAPASITET_VARSEL_TERSKEL,
     CONF_POWER_SENSOR,
+    CONF_PRISENHET_BEKREFTET,
     CONF_SIKRINGSTRINN,
     CONF_SPOT_PRICE_SENSOR,
     CONF_SPOTPRIS_INKL_MVA,
@@ -96,6 +97,7 @@ VALG_ALLOWLIST: tuple[str, ...] = (
     CONF_KAPASITET_VARSEL_TERSKEL,
     CONF_ENERGI_FROSSEN_TIMER,
     CONF_EGENDEFINERT_SATSER_BEKREFTET,
+    CONF_PRISENHET_BEKREFTET,
 )
 
 # Inputrollene. Selve entity-id-en aliaseres; her står bare koblingen fra
@@ -200,13 +202,28 @@ BEREGNING_UTELATT: dict[str, str] = {
     "dso": "står i dso-seksjonen",
     "sist_energi_okning": "står i vakthold-seksjonen",
     "energi_frossen_terskel_timer": "står i vakthold-seksjonen",
+    # De to under har entity-id og kildeidentitet i seg og må aliaseres før de
+    # kan vises. K1 eksponerer dem, D2 bygger visningen.
+    "input_resultater": "venter på D2, som aliaserer entity-id-ene per rolle",
+    "baseline": "venter på D2, som aliaserer kildeidentiteten",
 }
 
 # Feltene på én rad i coordinator.data["input_problemer"]. Dette var en
 # denylist («alt utenom entity_id»), og da gikk hvert nytt felt noen la på
 # raden rett ut i dumpen. Allowlist her og `PROBLEM_UTELATT` under, slik at
 # testen kan kreve at hvert felt _vakthold_problem lager er behandlet.
-PROBLEM_ALLOWLIST: tuple[str, ...] = ("type", "input", "siden", "minutter", "timer")
+PROBLEM_ALLOWLIST: tuple[str, ...] = (
+    "type",
+    "input",
+    "siden",
+    "minutter",
+    "timer",
+    # Fra K1: om entiteten finnes i det hele tatt, hvorfor den ikke leverte, og
+    # enheten den oppga. Ingen av dem sier noe om hvem som eier anlegget.
+    "finnes",
+    "grunn",
+    "raa_enhet",
+)
 
 PROBLEM_UTELATT: dict[str, str] = {
     "entity_id": "aliaseres til entitet_alias, samme alias som rollen fikk",

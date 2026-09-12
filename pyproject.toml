@@ -63,6 +63,12 @@ known-first-party = ["custom_components.stromkalkulator"]
 # ikke). Det tvinger imports under en kodelinje (E402). HomeAssistant importeres
 # kun for type-hints (TC002), men holdes som vanlig import for lesbarhet.
 "tests/test_smoke_ha.py" = ["E402", "TC002"]
+# vulture_whitelist.py er med vilje bare en liste med bare navn: det er formen
+# vulture leser whitelister i, og navnene er definert i Home Assistant eller i
+# integrasjonen, ikke her. Derfor er hver linje et "ubrukt uttrykk" (B018) med
+# et "udefinert navn" (F821) for ruff. Unntaket gjelder kun denne filen, resten
+# av sjekkene kjører som før.
+"vulture_whitelist.py" = ["B018", "F821"]
 
 [tool.vulture]
 min_confidence = 80

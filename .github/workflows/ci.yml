@@ -31,7 +31,7 @@ jobs:
 
       - name: Run linter (ruff)
         run: |
-          ruff check custom_components/stromkalkulator/
+          ruff check .
           echo "✅ Linting passed"
 
       - name: Run type checker (mypy)

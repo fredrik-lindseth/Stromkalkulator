@@ -17,9 +17,10 @@ Se selv hva en gitt versjon gir:
 python3 scripts/release_notes.py 1.16.0
 ```
 
-Exit 1 hvis seksjonen mangler, er tom, eller har en relativ lenke til en fil
-som ikke finnes. Både `ci.yml` og `release.yml` henger på den exit-koden, så en
-versjon uten note blir aldri publisert.
+Exit 1 hvis seksjonen mangler, er tom, har en relativ lenke til en fil som ikke
+finnes, eller har en tom `### Dette må du gjøre selv`. Både `ci.yml` og
+`release.yml` henger på den exit-koden, så en versjon uten note blir aldri
+publisert.
 
 ## Stil
 
@@ -60,6 +61,11 @@ Du trenger ikke skrive den først i CHANGELOG; `release_notes.py` løfter den
 under «Lagt til» og «Fikset». Rekkefølgen skal ikke avhenge av at noen husker
 den. Overskriften matches uten hensyn til store bokstaver.
 
+Står overskriften der uten punkter under seg, feiler scriptet med exit 1 og sier
+hvilken versjon og hvilken kategori det gjelder. Den løftes øverst uansett, så
+tom ville den blitt en naken overskrift på toppen av en publisert release. Blanke
+linjer teller ikke som innhold. Skriv punktene, eller slett overskriften.
+
 Hvorfor den finnes: v1.15.0 byttet sensortyper og enheter, og noten på GitHub
 hadde en håndskrevet ramme om hva brukeren måtte gjøre. I CHANGELOG lå de samme
 fire punktene spredt under «Endret» og «Lagt til», så den som skummet fikk aldri
@@ -78,6 +84,12 @@ innholdet slik det var ved releasen, også om et år.
 - Anker uten fil (`#lagt-til`) peker på `CHANGELOG.md` i repoet, på riktig tag
 - Peker en relativ lenke på en fil som ikke finnes, feiler scriptet med exit 1
   framfor å publisere en død lenke. Slett eller rett stien.
+- Referansestil virker også: `[regler][r1]` med `[r1]: docs/domain-rules.md`
+  nederst. Det er definisjonen som skrives om, siden det er der målet står.
+- Mål i vinkelparenteser, `[x](<docs/en fil.md>)`, virker og er eneste måten å
+  skrive en sti med mellomrom i. En sti med parentes i navnet må skrives slik.
+- Autolenker (`<https://...>`) står urørt. De må ha et skjema for å være lenker,
+  så de er alltid absolutte.
 
 Flytter du en fil det lenkes til fra en usluppen seksjon, fanges det av
 `pytest tests/test_release_notes.py` lokalt og av CI, ikke først i

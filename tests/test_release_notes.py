@@ -155,6 +155,31 @@ class TestCli:
         assert "docs/finnes-ikke.md" in feil
         assert "CHANGELOG.md" in feil
 
+    def test_tom_handlingskategori_gir_exit_1(self, tmp_path, capsys):
+        """Heller feilet release enn en naken overskrift hos alle brukerne."""
+        changelog = tmp_path / "CHANGELOG.md"
+        changelog.write_text(
+            "## [3.0.0]\n\n### Fikset\n\n- En feil\n\n### Dette må du gjøre selv\n",
+            encoding="utf-8",
+        )
+        kode = release_notes.main(["3.0.0", "--changelog", str(changelog), "--repo-root", str(tmp_path)])
+        assert kode == 1
+        feil = capsys.readouterr().err
+        assert "3.0.0" in feil
+        assert "Dette må du gjøre selv" in feil
+
+    def test_handlingskategori_med_bare_blanke_linjer_gir_exit_1(self, tmp_path, capsys):
+        changelog = tmp_path / "CHANGELOG.md"
+        changelog.write_text(
+            "## [3.0.0]\n\n### Dette må du gjøre selv\n\n   \n\t\n\n### Fikset\n\n- En feil\n",
+            encoding="utf-8",
+        )
+        kode = release_notes.main(["3.0.0", "--changelog", str(changelog), "--repo-root", str(tmp_path)])
+        assert kode == 1
+        feil = capsys.readouterr().err
+        assert "3.0.0" in feil
+        assert "Dette må du gjøre selv" in feil
+
     def test_body_har_absolutte_lenker_og_loftet_kategori(self, tmp_path, capsys):
         repo = tmp_path / "repo"
         (repo / "docs").mkdir(parents=True)
@@ -295,6 +320,51 @@ class TestSkrivOmLenker:
         with pytest.raises(release_notes.LenkeFeil):
             self._om("[ut](../utenfor.md)", tmp_path)
 
+    def test_referansedefinisjon_blir_absolutt(self, tmp_path):
+        """`[tekst][r1]` har målet i definisjonen, så det er der det må rettes."""
+        ut = self._om("Se [regler][r1].\n\n[r1]: docs/domain-rules.md", tmp_path)
+        assert ut.endswith("[r1]: https://example.test/eier/repo/blob/v1.16.0/docs/domain-rules.md")
+        assert "Se [regler][r1]." in ut
+
+    def test_referansedefinisjon_beholder_tittelen(self, tmp_path):
+        ut = self._om('[r1]: docs/domain-rules.md "Domene"', tmp_path)
+        assert ut.endswith('/docs/domain-rules.md "Domene"')
+
+    def test_absolutt_referansedefinisjon_star_urort(self, tmp_path):
+        """CHANGELOG har en bunke compare-lenker som ikke skal røres."""
+        tekst = "[0.13.0]: https://github.com/eier/repo/releases/tag/v0.13.0"
+        assert self._om(tekst, tmp_path) == tekst
+
+    def test_doed_referansedefinisjon_gir_feil(self, tmp_path):
+        with pytest.raises(release_notes.LenkeFeil) as feil:
+            self._om("[r1]: docs/finnes-ikke.md", tmp_path)
+        assert "docs/finnes-ikke.md" in str(feil.value)
+
+    def test_vinkelparentes_med_mellomrom_blir_absolutt(self, tmp_path):
+        repo = self._repo(tmp_path)
+        (repo / "docs" / "med mellomrom.md").write_text("x", encoding="utf-8")
+        ut = release_notes.skriv_om_lenker(
+            "[x](<docs/med mellomrom.md>)",
+            "1.16.0",
+            repo_root=repo,
+            repo_url="https://example.test/eier/repo",
+        )
+        assert ut == "[x](https://example.test/eier/repo/blob/v1.16.0/docs/med%20mellomrom.md)"
+
+    def test_doed_vinkelparentes_gir_feil(self, tmp_path):
+        with pytest.raises(release_notes.LenkeFeil) as feil:
+            self._om("[x](<docs/borte fil.md>)", tmp_path)
+        assert "docs/borte fil.md" in str(feil.value)
+
+    def test_absolutt_vinkelparentes_beholder_parentesene(self, tmp_path):
+        tekst = "[x](<https://eksempel.test/a b>)"
+        assert self._om(tekst, tmp_path) == tekst
+
+    def test_autolenke_star_urort(self, tmp_path):
+        """En autolenke må ha skjema for å være en lenke, så den er alltid absolutt."""
+        tekst = "Se <https://eksempel.test/side>."
+        assert self._om(tekst, tmp_path) == tekst
+
     def test_tekst_uten_lenker_er_uendret(self, tmp_path):
         tekst = "### Fikset\n\n- Et punkt uten lenke"
         assert self._om(tekst, tmp_path) == tekst
@@ -317,34 +387,65 @@ class TestLoftHandlingskategori:
 """
 
     def test_kategorien_flyttes_oeverst(self):
-        ut = release_notes.loft_handlingskategori(self.SEKSJON)
+        ut = release_notes.loft_handlingskategori(self.SEKSJON, "3.0.0")
         assert ut.startswith("### Dette må du gjøre selv\n\n- Velg terskel i Configure")
 
     def test_de_andre_kategoriene_beholder_rekkefolgen(self):
-        ut = release_notes.loft_handlingskategori(self.SEKSJON)
+        ut = release_notes.loft_handlingskategori(self.SEKSJON, "3.0.0")
         assert ut.index("### Lagt til") < ut.index("### Fikset")
 
     def test_ingenting_gaar_tapt(self):
-        ut = release_notes.loft_handlingskategori(self.SEKSJON)
+        ut = release_notes.loft_handlingskategori(self.SEKSJON, "3.0.0")
         for punkt in ("Ny binary_sensor", "Velg terskel i Configure", "En feil"):
             assert punkt in ut
 
     def test_seksjon_uten_kategorien_er_uendret(self):
         seksjon = "### Fikset\n\n- En feil\n"
-        assert release_notes.loft_handlingskategori(seksjon) == seksjon
+        assert release_notes.loft_handlingskategori(seksjon, "3.0.0") == seksjon
 
     def test_kategorien_staar_allerede_oeverst(self):
         seksjon = "### Dette må du gjøre selv\n\n- Gjør noe\n\n### Fikset\n\n- En feil\n"
-        assert release_notes.loft_handlingskategori(seksjon) == seksjon
+        assert release_notes.loft_handlingskategori(seksjon, "3.0.0") == seksjon
 
     def test_stor_og_liten_bokstav_spiller_ingen_rolle(self):
         seksjon = "### Fikset\n\n- En feil\n\n### dette MÅ du gjøre selv\n\n- Gjør noe\n"
-        ut = release_notes.loft_handlingskategori(seksjon)
+        ut = release_notes.loft_handlingskategori(seksjon, "3.0.0")
         assert ut.startswith("### dette MÅ du gjøre selv")
+
+    def test_tom_kategori_gir_feil(self):
+        """En naken overskrift øverst i release-noten ser ødelagt ut."""
+        seksjon = "### Dette må du gjøre selv\n\n### Fikset\n\n- En feil\n"
+        with pytest.raises(release_notes.TomKategoriFeil) as feil:
+            release_notes.loft_handlingskategori(seksjon, "3.0.0")
+        assert feil.value.versjon == "3.0.0"
+        assert "Dette må du gjøre selv" in feil.value.overskrift
+
+    def test_tom_kategori_til_slutt_gir_feil(self):
+        seksjon = "### Fikset\n\n- En feil\n\n### Dette må du gjøre selv\n"
+        with pytest.raises(release_notes.TomKategoriFeil):
+            release_notes.loft_handlingskategori(seksjon, "3.0.0")
+
+    def test_kategori_med_bare_blanke_linjer_gir_feil(self):
+        """Mellomrom og tab er like tomt som ingen linjer, som for seksjoner."""
+        seksjon = "### Fikset\n\n- En feil\n\n### Dette må du gjøre selv\n\n   \n\t\n"
+        with pytest.raises(release_notes.TomKategoriFeil):
+            release_notes.loft_handlingskategori(seksjon, "3.0.0")
+
+    def test_underoverskrift_teller_som_innhold(self):
+        """`#### Noe` avslutter ikke blokken, så kategorien er ikke tom."""
+        seksjon = "### Fikset\n\n- En feil\n\n### Dette må du gjøre selv\n\n#### Steg\n\n- Gjør noe\n"
+        ut = release_notes.loft_handlingskategori(seksjon, "3.0.0")
+        assert ut.startswith("### Dette må du gjøre selv")
+
+    def test_annen_tom_kategori_gaar_gjennom(self):
+        """Vakten gjelder handlingskategorien, ikke alle overskrifter."""
+        seksjon = "### Fikset\n\n### Dette må du gjøre selv\n\n- Gjør noe\n"
+        ut = release_notes.loft_handlingskategori(seksjon, "3.0.0")
+        assert ut.startswith("### Dette må du gjøre selv")
 
     def test_kategorien_til_slutt_i_seksjonen(self):
         seksjon = "### Fikset\n\n- En feil\n\n### Dette må du gjøre selv\n\n- Gjør noe\n"
-        ut = release_notes.loft_handlingskategori(seksjon)
+        ut = release_notes.loft_handlingskategori(seksjon, "3.0.0")
         assert ut.startswith("### Dette må du gjøre selv")
         assert ut.rstrip().endswith("- En feil")
 

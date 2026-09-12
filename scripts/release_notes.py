@@ -18,10 +18,11 @@ Bruk:
     python3 scripts/release_notes.py 1.16.0
     python3 scripts/release_notes.py 1.16.0 --changelog /sti/til/CHANGELOG.md
 
-Skriver seksjonen til stdout og avslutter med 0. Finnes ikke seksjonen, eller
-peker en relativ lenke på en fil som ikke finnes i repoet, skrives en
-feilmelding til stderr og exit-koden blir 1, slik at workflowen stopper i
-stedet for å publisere en tom release eller en død lenke.
+Skriver seksjonen til stdout og avslutter med 0. Finnes ikke seksjonen, peker
+en relativ lenke på en fil som ikke finnes i repoet, eller står
+handlingskategorien tom, skrives en feilmelding til stderr og exit-koden blir
+1, slik at workflowen stopper i stedet for å publisere en tom release, en død
+lenke eller en naken overskrift.
 """
 
 from __future__ import annotations
@@ -81,8 +82,27 @@ class LenkeFeil(Exception):
     """En relativ lenke peker på noe som ikke finnes i repoet."""
 
 
-# Markdown-lenker og bilder: `](mål)` med valgfri tittel etter målet.
-LENKE = re.compile(r"\]\((?P<mal>[^)\s]+)(?P<tittel>\s+\"[^\"]*\")?\)")
+class TomKategoriFeil(Exception):
+    """En kategorioverskrift står uten punkter under seg."""
+
+    def __init__(self, versjon: str, overskrift: str) -> None:
+        super().__init__(f"seksjonen for {versjon} har kategorien '{overskrift}' uten innhold")
+        self.versjon = versjon
+        self.overskrift = overskrift
+
+
+# Markdown-lenker og bilder: `](mål)` med valgfri tittel etter målet. Målet kan
+# stå i vinkelparenteser, som er den eneste måten å skrive en sti med mellomrom.
+LENKE = re.compile(r"\]\((?:<(?P<vinkel>[^<>\n]*)>|(?P<mal>[^)\s]+))(?P<tittel>\s+\"[^\"]*\")?\)")
+
+# Referansedefinisjon: `[ref]: mål "tittel"` på egen linje. Lenken selv står som
+# `[tekst][ref]` et annet sted og har ikke målet i seg, så det er her det bor.
+REFERANSE = re.compile(
+    r"^(?P<pre>\s{0,3}\[[^\]\n]+\]:[ \t]*)"
+    r"(?:<(?P<vinkel>[^<>\n]*)>|(?P<mal>\S+))"
+    r"(?P<tittel>[ \t]+(?:\"[^\"\n]*\"|\'[^\'\n]*\'|\([^)\n]*\)))?[ \t]*$",
+    re.MULTILINE,
+)
 
 # "https:", "mailto:" og "//example.com" er allerede absolutte.
 ABSOLUTT = re.compile(r"^(?:[a-zA-Z][a-zA-Z0-9+.\-]*:|//)")
@@ -144,17 +164,37 @@ def skriv_om_lenker(
 ) -> str:
     """Gjør relative lenker absolutte mot taggen som slippes.
 
+    Dekker vanlige lenker og bilder, mål i vinkelparenteser (`](<sti med
+    mellomrom>)`) og referansedefinisjoner (`[ref]: sti`). Autolenker
+    (`<https://...>`) må ha et skjema for å være lenker i det hele tatt, så de
+    er alltid absolutte og står urørt.
+
     Absolutte lenker står urørt. Peker en relativ lenke på noe som ikke finnes
     i repoet, kastes LenkeFeil framfor å publisere en død lenke.
     """
     tag = tag_for(versjon)
     mangler: list[str] = []
 
-    def bytt(treff: re.Match[str]) -> str:
-        mal = _absolutt_url(treff.group("mal"), tag, repo_root, repo_url, mangler)
-        return f"]({mal}{treff.group('tittel') or ''})"
+    def nytt_mal(treff: re.Match[str]) -> str:
+        """Målet slik det skal stå etter omskriving, vinkelparenteser og alt.
 
-    resultat = LENKE.sub(bytt, tekst)
+        Et mål i vinkelparenteser som blir absolutt, kommer ut som en URL uten
+        mellomrom og trenger dem ikke lenger. Står det urørt, beholder vi dem.
+        """
+        vinkel = treff.group("vinkel")
+        if vinkel is None:
+            return _absolutt_url(treff.group("mal"), tag, repo_root, repo_url, mangler)
+        mal = _absolutt_url(vinkel, tag, repo_root, repo_url, mangler)
+        return f"<{mal}>" if mal == vinkel else mal
+
+    def bytt_lenke(treff: re.Match[str]) -> str:
+        return f"]({nytt_mal(treff)}{treff.group('tittel') or ''})"
+
+    def bytt_referanse(treff: re.Match[str]) -> str:
+        return f"{treff.group('pre')}{nytt_mal(treff)}{treff.group('tittel') or ''}"
+
+    resultat = REFERANSE.sub(bytt_referanse, tekst)
+    resultat = LENKE.sub(bytt_lenke, resultat)
 
     if mangler:
         raise LenkeFeil(", ".join(dict.fromkeys(mangler)))
@@ -162,11 +202,15 @@ def skriv_om_lenker(
     return resultat
 
 
-def loft_handlingskategori(tekst: str, kategori: str = HANDLING) -> str:
+def loft_handlingskategori(tekst: str, versjon: str, kategori: str = HANDLING) -> str:
     """Flytt «Dette må du gjøre selv» øverst i seksjonen.
 
     Rekkefølgen i CHANGELOG skal ikke avgjøre om brukeren ser beskjeden.
     Finnes ikke kategorien, står teksten som den er.
+
+    Står overskriften uten punkter under seg, kastes TomKategoriFeil. En naken
+    overskrift øverst i en publisert release ser ødelagt ut og uroer brukerne
+    uten grunn, og den som får feilen retter den i sin egen CHANGELOG-seksjon.
     """
     linjer = tekst.splitlines()
     start: int | None = None
@@ -183,7 +227,14 @@ def loft_handlingskategori(tekst: str, kategori: str = HANDLING) -> str:
             slutt = nr
             break
 
-    if start is None or start == 0:
+    if start is None:
+        return tekst
+
+    # Blanke linjer teller ikke som innhold, på linje med en tom seksjon.
+    if not any(linje.strip() for linje in linjer[start + 1 : slutt]):
+        raise TomKategoriFeil(versjon, linjer[start].strip())
+
+    if start == 0:
         return tekst
 
     blokk = list(linjer[start:slutt])
@@ -209,7 +260,7 @@ def bygg_body(
     if seksjon is None:
         return None
     return skriv_om_lenker(
-        loft_handlingskategori(seksjon),
+        loft_handlingskategori(seksjon, versjon),
         versjon,
         repo_root=repo_root,
         repo_url=repo_url,
@@ -243,6 +294,15 @@ def main(argv: list[str] | None = None) -> int:
             f"Relativ lenke peker på noe som ikke finnes i {args.repo_root}: {err}\n"
             "Rett stien i CHANGELOG.md, eller bruk en absolutt URL. En død lenke i en\n"
             "publisert release kan ikke rettes uten å redigere releasen for hånd.",
+            file=sys.stderr,
+        )
+        return 1
+    except TomKategoriFeil as err:
+        print(
+            f"Seksjonen '## [{err.versjon}]' i {args.changelog} har kategorien\n"
+            f"'{err.overskrift}' uten punkter under seg.\n"
+            "Skriv punktene, eller slett overskriften. Kategorien løftes øverst i\n"
+            "release-noten, så tom blir den til en naken overskrift hos alle brukerne.",
             file=sys.stderr,
         )
         return 1

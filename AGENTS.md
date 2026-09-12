@@ -86,6 +86,19 @@ releasen noe av brukeren, skriv det i en `### Dette må du gjøre selv`-kategori
 den løftes øverst i release-body-en, og står den tom, stopper jobben. Se
 [release-notes.md](docs/release-notes.md#changelogmd).
 
+### Release
+
+Push til main starter `release.yml`, som kaller `ci.yml` for sin egen commit og
+publiserer først når alt er grønt for nøyaktig den SHA-en. Kandidaten er repo +
+full SHA + manifestversjon, og tagg, ZIP og attestasjon bindes til den.
+Publisering er siste kall, så en kjøring som feiler halvveis etterlater ingen
+offentlig release, og den kjøres bare om igjen på samme commit.
+
+Flyten ligger i `scripts/release_publish.py` med tester i
+`tests/test_release_publish.py`. Endrer du den, kjør `just release-plan` og les
+hva den sier før du committer. Den skriver ingenting. Se
+[release-notes.md](docs/release-notes.md#releaseporten).
+
 ### Kapasitetstrinn
 
 Aldri mal, gjetning eller gjenbruk fra et annet nettselskap. Mangler kilde, la

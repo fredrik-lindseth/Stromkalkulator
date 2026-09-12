@@ -23,7 +23,6 @@ _attr_unique_id
 _attr_name
 _attr_native_unit_of_measurement
 _attr_state_class
-_attr_icon
 _attr_suggested_display_precision
 _attr_entity_category
 _device_group

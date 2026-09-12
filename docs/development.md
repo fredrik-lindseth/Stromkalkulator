@@ -14,9 +14,13 @@ custom_components/stromkalkulator/
 ├── dso.py           # nettselskap-data
 ├── coordinator.py   # DataUpdateCoordinator, beregningslogikk
 ├── sensor.py        # alle sensorer
+├── binary_sensor.py # varsler (kapasitet, måledata, aktiv ordning)
 ├── button.py        # "Lag fakturarapport"-knapp
-├── diagnostics.py   # HA diagnostikk
+├── repairs.py       # fix-flows for repair-varslene
+├── diagnostics.py   # HAs inngang til diagnostikk
+├── diagnostikk.py   # selve diagnostikk-snapshotet
 ├── strings.json     # oversettbare strenger
+├── icons.json       # ikon per entitet, slått opp på translation_key
 ├── translations/    # nb.json, en.json
 └── manifest.json    # HACS-metadata
 ```

@@ -107,7 +107,6 @@ class KapasitetVarselBinarySensor(StromkalkulatorBinarySensor):
 
     _attr_translation_key = "kapasitet_varsel"
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
-    _attr_icon = "mdi:alert"
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the binary sensor."""
@@ -141,7 +140,6 @@ class MaaledataProblemBinarySensor(StromkalkulatorBinarySensor):
     _attr_translation_key = "maaledata_problem"
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
     _attr_entity_category = EntityCategory.DIAGNOSTIC
-    _attr_icon = "mdi:database-alert"
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the binary sensor."""
@@ -181,7 +179,6 @@ class NorgesprisAktivBinarySensor(StromkalkulatorBinarySensor):
     _device_group = _DEVICE_NORGESPRIS
     _attr_translation_key = "norgespris_aktiv"
     _attr_entity_category = EntityCategory.DIAGNOSTIC
-    _attr_icon = "mdi:check-circle"
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the binary sensor."""
@@ -206,7 +203,6 @@ class StromstotteAktivBinarySensor(StromkalkulatorBinarySensor):
     _device_group = _DEVICE_STROMSTOTTE
     _attr_translation_key = "stromstotte_aktiv"
     _attr_entity_category = EntityCategory.DIAGNOSTIC
-    _attr_icon = "mdi:cash-check"
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the binary sensor."""

@@ -272,8 +272,42 @@ tallets absoluttverdi, så en negativ pris passerer den.
 | `tariff` | enum | `dag` eller `natt`, avgjort av `start_utc` i Europe/Oslo. |
 | `pris` | prisintervall \| None | Se B2. |
 | `regelkilde` | str | `{tariffmodus}:{dso_id}:{avgiftsaar}`, for eksempel `catalog:bkk:2027`. Alle tre leddene avgjøres av `start_utc`, og avgiftsåret er året i Europe/Oslo (C3). |
-| `kvalitet` | enum | `komplett`, `delvis_pris`, `uten_pris`, `ufullstendig`. |
+| `kvalitet` | enum | `komplett`, `delvis_pris`, `uten_pris`, `ufullstendig`. Priskvaliteten, med `ufullstendig` som overstyring. Se under. |
+| `energikvalitet` | enum | `malt` eller `estimert`. Hvor energien i intervallet kom fra, samme enum som B1. Se under. |
 | `apen` | bool | `True` så lenge `slutt_utc` ligger fram i tid. Se C6. |
+
+**Når `kvalitet` er `ufullstendig`.** De tre første verdiene er priskvaliteten
+etter A2.1 og C4, og de utelukker hverandre. `ufullstendig` er ikke en fjerde
+priskvalitet, den er en overstyring: **et intervall skal ha `ufullstendig` når,
+og bare når, boken står i måneden som krysset migreringen** (`ufullstendig`-
+flagget i D), uansett hvor mange prisprøver intervallet fikk. Flagget fjernes
+ved første månedsskifte, og intervaller bokført etter det får priskvaliteten
+sin som ellers. Overstyringen gjelder også et intervall som får ny pris i en
+replay: `ufullstendig` blir stående, for det som mangler er historikk, ikke
+pris.
+
+Grunnen til at den vinner over priskvaliteten, er at `kvalitet` er
+overskriften brukeren og diagnostikken leser. Står måneden som `ufullstendig`
+(`avregning_ufullstendig` i data-dicten), er ikke summen sammenlignbar med en
+faktura, og det er den viktigste opplysningen om intervallet. Priskvaliteten
+går aldri tapt: den finnes alltid på `pris.kvalitet`, og den som vil ha begge,
+leser begge.
+
+**Målt mot estimert energi.** `energikvalitet` er B1s enum, båret videre til
+intervallet, og den er eget felt fordi `kvalitet` alt er opptatt av prisen.
+Uten den finnes ingen måte å se at et intervall er fylt fra den syntetiske
+stien, og det er nettopp den som ikke er polltidsuavhengig (C2.6).
+
+- `malt` er standard: energien kommer fra deltaet mellom to tellerstander.
+- `estimert` betyr at energi i intervallet kom fra effektstien i B1.
+- `estimert` smitter og vaskes aldri bort: lander det estimert energi i et
+  intervall som alt har målt energi, blir intervallet `estimert`. Blandingen
+  skjer ikke i drift, siden stien velges av konfigurasjonen og ikke av
+  tilstanden, men den kan oppstå ved et bytte av oppsett midt i en time, og da
+  er den svakeste kilden den som gjelder for hele intervallet.
+- B1s tredje verdi, `avvist`, kan aldri stå på et intervall. En avvist
+  avlesning bokføres ikke, så den har ikke noe intervall å stå på; den telles i
+  `avregning_avvist_kwh`.
 
 Fastledd (kapasitetsledd) er ikke energi og hører ikke hjemme i et avregnet
 intervall. Det akkumuleres over tid mot en egen NOK-per-periode-flate og
@@ -530,7 +564,10 @@ Migrering v2 til v3 er enveis og gjør dette:
   får ikke intervallhistorikk, for den finnes ikke og kan ikke rekonstrueres.
 - Måneden migreringen skjer i merkes `avregning_ufullstendig: true`. Flagget
   ligger i data-dicten, vises i diagnostikken, og fjernes ved første
-  månedsskifte etter migreringen.
+  månedsskifte etter migreringen. Så lenge flagget står, skal hvert intervall
+  boken leverer ha `kvalitet = ufullstendig` (B3). Det er den eneste kilden til
+  den verdien: et intervall blir aldri `ufullstendig` av noe som gjelder
+  intervallet alene.
 - Første avlesning etter migrering blir baseline. Ingen intervaller bokføres
   bakover.
 - v2-feltene skrives videre uendret i v3-filen så lenge 1.17-serien lever, slik
@@ -538,6 +575,18 @@ Migrering v2 til v3 er enveis og gjør dette:
 
 Skjemaversjonen står også i data-dicten (`avregning_skjema`), så en bruker som
 rapporterer en feil kan si hvilken bok tallene kom fra.
+
+**Versjonen er et felt i dataene, ikke `Store`-konstruktørens major version.**
+Tallene i tabellen over skal ligge i nøkkelen `skjema_versjon` på toppnivå i
+Store-filen, mens `Store(hass, 1, ...)` blir stående. Se
+[input-og-konfig.md §5](input-og-konfig.md#5-energibaseline) for hvorfor; regelen
+eies der, og gjelder hele filen, ikke bare baselinen. Det er én teller for hele
+filen: K1 setter den til 2, og boken her løfter den til 3.
+
+Migreringen leser hele Store-filen, ikke bare bokens egne nøkler. Felt boken
+ikke kjenner igjen, altså alt v1 og v2 la der, følger med uendret under
+`ovrige`, slik at den som eier filen kan skrive dem tilbake. Det er slik
+løftet over om at v2-feltene overlever i v3-filen blir innfridd.
 
 ## Felttabell for data-dicten
 

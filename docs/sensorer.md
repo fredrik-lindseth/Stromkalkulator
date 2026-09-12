@@ -1,12 +1,17 @@
 # Sensorer
 
-6 devices, 53 sensorer totalt (35 aktive som standard).
+6 devices og 55 entiteter: 50 sensorer, 4 binærsensorer og 1 knapp. 32 av sensorene er på som standard.
+
+Tabellen teller sensorer. Binærsensorene og knappen står i devicene sine, men
+ikke i tallene her: de er Kapasitetsvarsel og Måledata-problem på Nettleie,
+Norgespris aktiv på Norgespris, Strømstøtte aktiv på Strømstøtte, og knappen
+Lag fakturarapport.
 
 | Device           | Aktive | Totalt |
 | ---------------- | ------ | ------ |
-| Nettleie         | 11     | 19     |
-| Strømstøtte      | 6      | 7      |
-| Norgespris       | 4      | 4      |
+| Nettleie         | 10     | 18     |
+| Strømstøtte      | 5      | 6      |
+| Norgespris       | 3      | 3      |
 | Månedlig forbruk | 8      | 12     |
 | Forrige måned    | 6      | 6      |
 | Eksport          | 0      | 5      |

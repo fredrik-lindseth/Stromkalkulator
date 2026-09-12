@@ -59,7 +59,7 @@ Se [research/klokke-og-tidsstempling.md](research/klokke-og-tidsstempling.md) og
 
 ## 7. Gap-bucket ved lang nedetid (energy_sensor)
 
-Med `energy_sensor` konfigurert (kumulativ kWh-teller) leser coordinator forbruket som differansen mot forrige avlesning, uavhengig av hvor lenge det er siden forrige poll. Er HA nede lenger enn noen få minutter, krediteres hele backlog-deltaet til klokketimen og dag/natt-tariffen som gjelder når HA er tilbake og poller igjen, ikke til timene det egentlig ble brukt i. Deltaet er bundet oppad av `MAX_ENERGY_DELTA_KWH` (100 kWh), og verdien det måles mot (`_last_tpi_kwh`) bundet av `TPI_STALE_HOURS` (24 timer, eldre verdi forkastes ved omstart).
+Med `energy_sensor` konfigurert (kumulativ kWh-teller) leser coordinator forbruket som differansen mot forrige avlesning, uavhengig av hvor lenge det er siden forrige poll. Er HA nede lenger enn noen få minutter, krediteres hele backlog-deltaet til klokketimen og dag/natt-tariffen som gjelder når HA er tilbake og poller igjen, ikke til timene det egentlig ble brukt i. Deltaet er bundet oppad av `MAX_ENERGY_DELTA_KWH` (100 kWh). Verdien det måles mot er baselinen i `inputadapter.py`, som er bundet til kilden sin og ikke har noen aldersgrense: etter en omstart gjenopptas den uansett hvor lenge HA var nede, så forbruket i gapet kommer med. Byttes måleren, gir første avlesning delta 0 i stedet for å lese den nye tellerstanden som forbruk.
 
 Dette kan forbigående blåse opp vist døgnmaks og kapasitetstrinn, og skjeve dag/natt-split-attributtet for den dagen (og måneden fram til neste månedsskifte). DSO-fakturaen er upåvirket, nettselskapet måler timesforbruk uavhengig av hvordan HA bokfører det.
 

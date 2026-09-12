@@ -71,9 +71,7 @@ class FakturaRapportButton(CoordinatorEntity, ButtonEntity):
     _attr_translation_key = "lag_fakturarapport"
     _attr_icon = "mdi:clipboard-text-outline"
 
-    def __init__(
-        self, coordinator: NettleieCoordinator, entry: ConfigEntry
-    ) -> None:
+    def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator)
         self._entry = entry
         self._attr_unique_id = f"{entry.entry_id}_lag_fakturarapport"
@@ -123,10 +121,14 @@ class FakturaRapportButton(CoordinatorEntity, ButtonEntity):
         avtale = "Norgespris" if har_norgespris else "Spotpris + strømstøtte"
         spot_handling = "inkl. mva" if spotpris_inkl_mva else "eks. mva"
 
+        # Oppsett-blokken er nøkkel/verdi i fet ledetekst, ikke pseudo-overskrifter
+        # i en punktliste. Formatet er låst til månedsrapportene i
+        # docs/fakturaer/, som en bruker kan lime rapporten rett inn blant.
+        # Endres det ene, må det andre endres i samme slengen.
         report_body = f"""## Oppsett
 
-- **Nettselskap:** {self._dso['name']}
-- **Prisområde:** {self._dso['prisomrade']}
+- **Nettselskap:** {self._dso["name"]}
+- **Prisområde:** {self._dso["prisomrade"]}
 - **Avgiftssone:** {avgiftssone}
 - **Avtale:** {avtale}
 - **Periode:** {prev_name}

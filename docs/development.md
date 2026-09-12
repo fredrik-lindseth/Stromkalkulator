@@ -58,13 +58,21 @@ Grunnen er broadcast-frekvensen på kildesensoren. Effektsensoren (`p` fra Kaifa
 
 ## Lokalt oppsett
 
+Du trenger `uv` og `just`. Ingenting annet installeres for hånd: gruppene i
+`pyproject.toml` er låst i `uv.lock`, og `uv` henter både Python-versjonene og
+pakkene selv.
+
 ```bash
 git clone https://github.com/fredrik-lindseth/Stromkalkulator.git
 cd Stromkalkulator
-pip install ruff pytest
-pipx run --with hypothesis --with pyyaml pytest tests/ -v
-ruff check .
+just test
+pre-commit install && pre-commit install --hook-type pre-push
 ```
+
+`just test` er unit-testene og kvalitetssjekkene, uten Home Assistant. Rører du
+noe HA faktisk kaller, kjør også `just test-ha target=minimum` og
+`just test-ha target=current`. Versjonsmatrisen og hvorfor miljøene er fysisk
+atskilt står i [testing.md](testing.md#testmiljøer).
 
 ## Deploy til HA (utvikling)
 

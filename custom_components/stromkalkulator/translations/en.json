@@ -60,7 +60,7 @@
       },
       "reconfigure": {
         "title": "Strømkalkulator settings",
-        "description": "Change grid company, sensors, or Norgespris settings.",
+        "description": "Change grid company, sensors or Norgespris settings.\n\nThe energiledd fields are overrides. Leave them empty and the grid company's price list applies, with the rate updating itself whenever the list changes. The price list for {dso} currently states day {katalog_dag} and night {katalog_natt}, in øre/kWh with taxes and VAT. A custom grid company has no price list, so there the numbers you entered yourself always apply.",
         "data": {
           "tso": "Grid company",
           "sikringstrinn": "Main fuse",
@@ -89,8 +89,8 @@
           "energy_sensor": "Cumulative kWh counter from the AMS smart meter (OBIS 1.8.0). Recommended for exact invoice numbers. Without it, the power sensor is used with Riemann summation.",
           "electricity_provider_price_sensor": "Sensor with the total price from your electricity provider (e.g. Tibber 'Electricity price'). Only used to populate the 'Total price (electricity contract)' sensor for comparison against your actual contract. Does not affect any other calculation. Skip if you have spot price directly or Norgespris.",
           "export_power_sensor": "Power sensor for export to the grid (OBIS 2.7.0) in watts, for prosumers with solar panels only. Used to calculate export revenue and net monthly cost. Skip if you don't have solar panels.",
-          "energiledd_dag": "Net grid tariff excl. VAT and consumption tax. The integration adds consumption tax, Enova fee and VAT based on tax zone.",
-          "energiledd_natt": "Net grid tariff excl. VAT and consumption tax. Set the same as day for flat rate.",
+          "energiledd_dag": "Grid rent excl. VAT and taxes. Leave the field empty to follow the grid company's price list, and the rate updates itself when the list changes. Enter a number and yours applies until you clear the field again.",
+          "energiledd_natt": "Grid rent excl. VAT and taxes. Same rule as for day: an empty field follows the price list, a filled one overrides it. Use the same value as day for a flat rate.",
           "kapasitet_varsel_terskel": "Warn when margin to next capacity tier is below this value. Default: 2.0 kW.",
           "energi_frossen_timer": "Warn when the energy meter has not increased for this many hours. Default: 3. Raise it for a cabin or site that sits idle for stretches, otherwise it warns every time the main breaker is off."
         }
@@ -114,7 +114,7 @@
     "step": {
       "init": {
         "title": "Strømkalkulator settings",
-        "description": "Change grid company, sensors, or Norgespris settings.",
+        "description": "Change grid company, sensors or Norgespris settings.\n\nThe energiledd fields are overrides. Leave them empty and the grid company's price list applies, with the rate updating itself whenever the list changes. The price list for {dso} currently states day {katalog_dag} and night {katalog_natt}, in øre/kWh with taxes and VAT. A custom grid company has no price list, so there the numbers you entered yourself always apply.",
         "data": {
           "tso": "Grid company",
           "sikringstrinn": "Main fuse",
@@ -143,8 +143,8 @@
           "energy_sensor": "Cumulative kWh counter from the AMS smart meter (OBIS 1.8.0). Recommended for exact invoice numbers. Without it, the power sensor is used with Riemann summation.",
           "electricity_provider_price_sensor": "Sensor with the total price from your electricity provider (e.g. Tibber 'Electricity price'). Only used to populate the 'Total price (electricity contract)' sensor for comparison against your actual contract. Does not affect any other calculation. Skip if you have spot price directly or Norgespris.",
           "export_power_sensor": "Power sensor for export to the grid (OBIS 2.7.0) in watts, for prosumers with solar panels only. Used to calculate export revenue and net monthly cost. Skip if you don't have solar panels.",
-          "energiledd_dag": "Net grid tariff excl. VAT and consumption tax. The integration adds consumption tax, Enova fee and VAT based on tax zone.",
-          "energiledd_natt": "Net grid tariff excl. VAT and consumption tax. Set the same as day for flat rate.",
+          "energiledd_dag": "Grid rent excl. VAT and taxes. Leave the field empty to follow the grid company's price list, and the rate updates itself when the list changes. Enter a number and yours applies until you clear the field again.",
+          "energiledd_natt": "Grid rent excl. VAT and taxes. Same rule as for day: an empty field follows the price list, a filled one overrides it. Use the same value as day for a flat rate.",
           "kapasitet_varsel_terskel": "Warn when margin to next capacity tier is below this value. Default: 2.0 kW.",
           "energi_frossen_timer": "Warn when the energy meter has not increased for this many hours. Default: 3. Raise it for a cabin or site that sits idle for stretches, otherwise it warns every time the main breaker is off."
         }
@@ -409,6 +409,21 @@
           "confirm": {
             "title": "Confirm the unit on the price sensor",
             "description": "{entity_id} reports no unit, and the calculator assumes the price is in NOK/kWh. This applies to {roller}. If that is correct, just confirm here and the notice is gone.\n\nIf the sensor is in øre/kWh or NOK/MWh, the numbers are off by a factor of a hundred and a thousand respectively. Set the right unit on the sensor, or pick another sensor, before confirming."
+          }
+        }
+      }
+    },
+    "tariff_ubekreftet": {
+      "title": "Choose which energiledd rate applies",
+      "fix_flow": {
+        "step": {
+          "init": {
+            "title": "Choose which energiledd rate applies",
+            "description": "Your installation has an energiledd rate stored from an earlier setup: {lagret_dag} øre/kWh for day and {lagret_natt} øre/kWh for night and weekend, taxes and VAT included. The price list for {dso} currently states {katalog_dag} and {katalog_natt} øre/kWh.\n\nUp to and including 1.16.0 the stored rate won over the price list, so a tariff change never reached you. That is fixed, and the installation uses the price list from now on. We simply do not know whether the stored number was your own choice, because setup stored the price list rate for everyone. Hence the question.\n\nChoose to follow the price list and the stored number is removed, with the rate updating itself from then on. Choose to keep your own rates and {lagret_dag} and {lagret_natt} øre/kWh apply until you change them yourself in the settings.",
+            "menu_options": {
+              "folg_katalog": "Follow the price list for {dso}",
+              "behold_manual": "Keep my own rates"
+            }
           }
         }
       }

@@ -109,7 +109,9 @@ ssh ha-local "ha core logs --follow"
 ssh ha-local "ha core logs" | grep -i stromkalkulator
 ```
 
-Diagnostikk-nedlasting: Settings > Devices & Services > Strømkalkulator > tre-prikk-menyen > Last ned diagnostikk. JSON-en (`diagnostikk.py`) inneholder releaseversjon, HA-versjon, valgene fra oppsettet, inputrollene med aliaserte entity-id-er, DSO-data, vakthold og beregningsfeltene fra siste oppdatering. Entity-id-er, entry-id og tittel er byttet med aliaser, så den kan legges ved i issues uten å røpe hvem eller hvor.
+Diagnostikk-nedlasting: Settings > Devices & Services > Strømkalkulator > tre-prikk-menyen > Last ned diagnostikk. JSON-en (`diagnostikk.py`) inneholder releaseversjon, HA-versjon, valgene fra oppsettet, inputrollene med aliaserte entity-id-er, DSO-data, vakthold og beregningsfeltene fra siste oppdatering.
+
+Den er bygget for å limes inn i en offentlig issue. Hvert felt står på en allowlist, også feltene på en vaktholdsrad, og hver strengverdi må i tillegg stå i et kjent vokabular (nettselskap, avgiftssone, fastledd-metode) eller treffe et kjent format (ISO-dato, `0-2 kW`, `juni 2026`). Alt annet byttes med `<tekst utelatt>`. Entity-id-er, entry-id og tittel byttes med aliaser. Aliasene er tellere, ikke hasher av navnet: `sensor.alias_1` betyr «den første entiteten denne dumpen nevnte» og ingenting mer. To dumper fra samme oppsett får derfor de samme aliasene, og det er med vilje: det er nettopp sammenligningen av to dumper feilsøkingen trenger, og en teller peker ikke tilbake på noen.
 
 | Feil                                  | Årsak                                                                                      | Løsning                             |
 | ------------------------------------- | ------------------------------------------------------------------------------------------ | ----------------------------------- |

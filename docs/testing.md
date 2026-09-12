@@ -34,9 +34,14 @@ prereleases som default, så den står eksplisitt i `ha-minimum` og
 `prerelease = "if-necessary-or-explicit"` i `[tool.uv]` slipper den gjennom.
 Uten dette kunne minimum-grenen ikke løses i det hele tatt.
 
-`minimum` er versjonen `hacs.json` lover brukerne. Feiler den, skal
-kompatibiliteten rettes eller minimum heves med en begrunnet beslutning, ikke
-stille.
+`minimum` er versjonen `hacs.json` lover brukerne, og `hacs.json` er kilden:
+`tests/test_testkommandoer.py` leser HA-versjonen `ha-minimum` faktisk løser til
+i `uv.lock` og feller den hvis den ikke er den samme. Den feller også hver
+HA-versjon skrevet i klartekst i justfile, AGENTS.md, docs eller
+`pyproject.toml` som ikke er en av de to låste. Tallet sto i ni kopier uten at
+noe holdt dem i synk, og da kunne hacs.json heves uten at minimum-miljøet
+testet noe annet enn før. Feiler minimum, skal kompatibiliteten rettes eller
+minimum heves med en begrunnet beslutning, ikke stille.
 
 `just test-unit` og `just test-ha` tar ekstra argumenter videre til pytest,
 f.eks. `just test-unit -k energiledd` eller
@@ -49,7 +54,10 @@ Pre-push-hooken kjører `just test-unit`, og CI-jobbene kjører `just test-unit`
 kommandolinje, så ingen av dem kan gå grønn på noe annet enn det du kjørte.
 `tests/test_testkommandoer.py` feiler hvis justfile, AGENTS.md, denne filen,
 `docs/development.md`, `.pre-commit-config.yaml` og `.github/workflows/ci.yml`
-spriker.
+spriker. Den sjekker ikke bare at oppskriftene heter det samme: `just check` må
+faktisk kjøre `ruff check .`, `ruff format --check .`, mypy og vulture, og
+`just test-unit` må kjøre hele `tests/`. Ellers kunne mypy falle ut av
+oppskriften mens vakten sto grønn.
 
 ## Unit-tester
 

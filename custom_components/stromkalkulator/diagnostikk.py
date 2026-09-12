@@ -3,18 +3,27 @@
 `diagnostics.py` er bare HAs inngang hit, slik at selve skjemaet kan testes
 uten HAs diagnostics-plattform.
 
-Tre regler holder filen ærlig:
+Fire regler holder filen ærlig:
 
-1. **Allowlist.** Ingenting havner i dumpen fordi det tilfeldigvis ligger i
-   `entry.data` eller `coordinator.data`. Hvert felt står oppført her, og
-   `tests/test_diagnostics.py` feller oss hvis coordinatoren får en ny nøkkel
-   som verken er tatt med eller uttrykkelig utelatt.
-2. **Aliaser.** Brukeren limer dumpen inn i en offentlig GitHub-issue. Entity-
+1. **Allowlist på nøklene.** Ingenting havner i dumpen fordi det tilfeldigvis
+   ligger i `entry.data` eller `coordinator.data`. Hvert felt står oppført her,
+   og `tests/test_diagnostics.py` feller oss hvis coordinatoren får en ny nøkkel
+   som verken er tatt med eller uttrykkelig utelatt. Det gjelder også radene i
+   `input_problemer`: de var en denylist («alt utenom entity_id»), og en
+   denylist lekker av konstruksjon, siden den må kjenne alt som er farlig på
+   forhånd.
+2. **Allowlist på strengverdiene.** En allowlistet nøkkel sier ingenting om hva
+   som ligger under den. Tall og bool bærer verken navn eller adresse, men en
+   streng bærer det den blir matet. Derfor går hver streng gjennom `tekstvakt`
+   og må enten stå i et kjent vokabular (DSO-navn, avgiftssone, fastledd-metode)
+   eller treffe et kjent format (ISO-dato, `0-2 kW`, `juni 2026`). Alt annet
+   byttes med en markør.
+3. **Aliaser.** Brukeren limer dumpen inn i en offentlig GitHub-issue. Entity-
    id-er, entry-id og entry-tittel er navn brukeren har valgt, og de røper
-   både hvem det er og hvor de bor. De byttes med aliaser som er stabile
+   både hvem det er og hvor de bor. De byttes med tellere som er stabile
    innenfor én eksport, så relasjonene mellom rollene består (samme sensor i
-   to roller får samme alias), men ingenting kan spores tilbake.
-3. **Kun JSON-primitiver.** Alt går gjennom `rens()`, så `json.dumps` lykkes
+   to roller får samme alias), men navnet er borte.
+4. **Kun JSON-primitiver.** Alt går gjennom `rens()`, så `json.dumps` lykkes
    uten `default`-hook. `coordinator.data` inneholder dataklasser
    (`DailyMaxEntry`), og de ville sprengt en rå dump.
 
@@ -26,6 +35,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 from dataclasses import asdict, is_dataclass
 from datetime import date, datetime
 from pathlib import Path
@@ -35,6 +45,8 @@ from homeassistant.const import __version__ as HA_VERSION
 from homeassistant.loader import async_get_integration
 
 from .const import (
+    AVGIFTSSONE_OPTIONS,
+    BOLIGTYPE_OPTIONS,
     CONF_AVGIFTSSONE,
     CONF_BOLIGTYPE,
     CONF_DSO,
@@ -58,7 +70,11 @@ from .const import (
     INPUT_ROLLE_LEVERANDORPRIS,
     INPUT_ROLLE_SPOTPRIS,
     INPUT_UTFALL_GRACE_MINUTTER,
+    VAKTHOLD_FROSSEN,
+    VAKTHOLD_SPOT_UTLOPT,
+    VAKTHOLD_UTFALL,
 )
+from .dso import DSO_LIST, FASTLEDD_METODER
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -186,6 +202,103 @@ BEREGNING_UTELATT: dict[str, str] = {
     "energi_frossen_terskel_timer": "står i vakthold-seksjonen",
 }
 
+# Feltene på én rad i coordinator.data["input_problemer"]. Dette var en
+# denylist («alt utenom entity_id»), og da gikk hvert nytt felt noen la på
+# raden rett ut i dumpen. Allowlist her og `PROBLEM_UTELATT` under, slik at
+# testen kan kreve at hvert felt _vakthold_problem lager er behandlet.
+PROBLEM_ALLOWLIST: tuple[str, ...] = ("type", "input", "siden", "minutter", "timer")
+
+PROBLEM_UTELATT: dict[str, str] = {
+    "entity_id": "aliaseres til entitet_alias, samme alias som rollen fikk",
+}
+
+# HA-domenet på en entity-id beholdes i aliaset fordi «sensor» mot
+# «input_number» forteller leseren hva slags kilde det er. Bare disse tre er
+# nåbare i config-flowens EntitySelector; alt annet er håndredigert .storage,
+# og da er domenedelen like gjerne et navn. Da forsvinner den også.
+ENTITET_DOMENER: frozenset[str] = frozenset({"sensor", "number", "input_number"})
+
+# Månedsnavnene coordinatoren setter i previous_month_name. Kopien er vaktet:
+# tests/test_diagnostics.py sammenligner den med det coordinatoren faktisk
+# produserer for alle tolv månedene.
+MAANEDSNAVN: tuple[str, ...] = (
+    "januar",
+    "februar",
+    "mars",
+    "april",
+    "mai",
+    "juni",
+    "juli",
+    "august",
+    "september",
+    "oktober",
+    "november",
+    "desember",
+)
+
+# Tilstandene og kildene på et config entry. HA definerer dem, men de er få og
+# faste, og et entry som melder noe annet skal ikke få skrive fritt i dumpen.
+ENTRY_TILSTANDER: frozenset[str] = frozenset(
+    {
+        "loaded",
+        "not_loaded",
+        "setup_error",
+        "setup_retry",
+        "setup_in_progress",
+        "migration_error",
+        "failed_unload",
+    }
+)
+ENTRY_KILDER: frozenset[str] = frozenset(
+    {"user", "import", "reconfigure", "discovery", "reauth", "hassio", "ignore", "system"}
+)
+
+# Nøkler som står inne i verdiene, ikke på dem: energiledd-periodene og
+# dagsmaks-postene er dicter coordinatoren bygger selv.
+NESTEDE_NOKLER: frozenset[str] = frozenset({"fra", "til", "dag", "natt", "kw", "hour"})
+
+TEKST_MARKOR = "<tekst utelatt>"
+NOKKEL_MARKOR = "<nøkkel utelatt>"
+
+# Hver streng i dumpen må stå her eller treffe et format under. DSO-navnene er
+# nettselskap, ikke personer, og sier hvilken prisliste som gjelder.
+TEKST_VOKABULAR: frozenset[str] = frozenset(
+    {"", "ukjent", "loader", "manifest_fil", DOMAIN}
+    | set(DSO_LIST)
+    | {str(oppforing["name"]) for oppforing in DSO_LIST.values() if oppforing.get("name")}
+    | set(FASTLEDD_METODER)
+    | set(AVGIFTSSONE_OPTIONS)
+    | set(BOLIGTYPE_OPTIONS)
+    | set(MAANEDSNAVN)
+    | set(ENTRY_TILSTANDER)
+    | set(ENTRY_KILDER)
+    | set(NESTEDE_NOKLER)
+    | set(ROLLE_TIL_CONF)
+    | set(VALG_ALLOWLIST)
+    | set(BEREGNING_ALLOWLIST)
+    | set(PROBLEM_ALLOWLIST)
+    | {VAKTHOLD_UTFALL, VAKTHOLD_FROSSEN, VAKTHOLD_SPOT_UTLOPT}
+)
+
+# Strengene som ikke er et fast ord, men et format koden selv lager.
+TEKST_FORMATER: tuple[re.Pattern[str], ...] = (
+    # ISO-dato og -tidspunkt, med eller uten sone.
+    re.compile(r"\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})?)?"),
+    re.compile(r"\d{4}-\d{2}"),  # fakturamåned
+    re.compile(r"\d{2}-\d{2}"),  # sesonggrense (MM-DD)
+    re.compile(r"\d{2}-\d{2} til \d{2}-\d{2}"),  # aktiv energiledd-periode
+    re.compile(r">?\d+(-\d+)? kW"),  # kapasitetstrinn-intervall
+    re.compile(r"(?:" + "|".join(MAANEDSNAVN) + r") \d{4}"),  # previous_month_name
+    re.compile(r"\d+\.\d+\.\d+[0-9A-Za-z.+-]*"),  # versjonsstreng
+    re.compile(r"<utelatt: \w+>"),  # rens() sin markør for ukjent type
+)
+
+
+def tekstvakt(tekst: str) -> bool:
+    """Om en streng er kjent nok til å stå i en dump som limes inn offentlig."""
+    return tekst in TEKST_VOKABULAR or any(m.fullmatch(tekst) for m in TEKST_FORMATER)
+
+
 # Hva som aldri er med, og hvorfor. Følger dumpen, så den som leser den vet at
 # hullene er med vilje og slipper å be om «hele» dumpen.
 UTELATT_MED_VILJE: tuple[str, ...] = (
@@ -221,14 +334,41 @@ def rens(verdi: Any) -> Any:
     return f"<utelatt: {type(verdi).__name__}>"
 
 
+def _filtrer_tekst(verdi: Any) -> Any:
+    """Bytt ut hver ukjent streng, i nøkler og verdier, med en markør."""
+    if isinstance(verdi, str):
+        return verdi if tekstvakt(verdi) else TEKST_MARKOR
+    if isinstance(verdi, dict):
+        return {(n if tekstvakt(n) else NOKKEL_MARKOR): _filtrer_tekst(v) for n, v in verdi.items()}
+    if isinstance(verdi, list):
+        return [_filtrer_tekst(v) for v in verdi]
+    return verdi
+
+
+def rens_trygg(verdi: Any) -> Any:
+    """`rens()` pluss tekstvakten.
+
+    Brukes på alt som kommer fra `entry.data`, `entry.options` eller
+    `coordinator.data`. Feltene diagnostikken lager selv (aliaser, domenenavn,
+    listen over det som er utelatt) går utenom: de er ikke data noen kan plante
+    i.
+    """
+    return _filtrer_tekst(rens(verdi))
+
+
 class Aliaser:
-    """Bytter brukervalgte navn med aliaser som er stabile i én eksport.
+    """Bytter brukervalgte navn med tellere som er stabile i én eksport.
 
     Samme verdi gir samme alias hele dumpen igjennom, så man ser at
     effektsensoren og energisensoren er den samme entiteten, eller at et
-    vaktholdsproblem gjelder rollen man tror. Aliasene er ikke stabile mellom
-    to dumper, og det er med vilje: to dumper fra samme bruker skal ikke kunne
-    kobles av en tredjepart.
+    vaktholdsproblem gjelder rollen man tror.
+
+    Aliasene er tellere uten innhold, ikke hasher av navnet. `sensor.alias_1`
+    er den første entiteten dumpen nevner, og ingenting mer. To dumper fra samme
+    bruker får derfor de samme aliasene, men et alias kan ikke knytte dem
+    sammen, for det er utledet av rekkefølgen i dumpen og ikke av brukeren. En
+    salt per dump ville gjort aliasene ulike uten å skjule noe mer, og samtidig
+    ødelagt det de er til for: å sammenligne to dumper fra samme oppsett.
     """
 
     def __init__(self) -> None:
@@ -245,10 +385,12 @@ class Aliaser:
             return self._kjente[nokkel]
         self._tellere[sort] = self._tellere.get(sort, 0) + 1
         nummer = self._tellere[sort]
-        if sort == "entitet" and "." in tekst:
+        domene = tekst.split(".", 1)[0] if "." in tekst else ""
+        if sort == "entitet" and domene in ENTITET_DOMENER:
             # Behold HA-domenet. «sensor» røper ingenting og forteller leseren
-            # at det faktisk er en sensor og ikke en input_number.
-            alias = f"{tekst.split('.', 1)[0]}.alias_{nummer}"
+            # at det faktisk er en sensor og ikke en input_number. Er domenet
+            # ukjent, er det ikke et domene: da står det et navn der.
+            alias = f"{domene}.alias_{nummer}"
         else:
             alias = f"{sort}_{nummer}"
         self._kjente[nokkel] = alias
@@ -290,11 +432,13 @@ async def _versjoner(hass: HomeAssistant) -> dict[str, Any]:
         kilde = "manifest_fil"
 
     return {
-        "version": kjorende,
+        # Versjonsstrengene er våre egne, men manifest.json på disk er en fil
+        # HACS eller en bruker kan ha rørt, så de går samme vei som resten.
+        "version": rens_trygg(kjorende),
         "version_kilde": kilde,
-        "manifest_version_paa_disk": paa_disk,
+        "manifest_version_paa_disk": rens_trygg(paa_disk),
         "versjon_avvik": bool(kjorende and paa_disk and kjorende != paa_disk),
-        "ha_version": HA_VERSION if isinstance(HA_VERSION, str) else None,
+        "ha_version": rens_trygg(HA_VERSION) if isinstance(HA_VERSION, str) else None,
     }
 
 
@@ -308,11 +452,11 @@ def _config_entry_seksjon(entry: ConfigEntry, aliaser: Aliaser) -> dict[str, Any
         "tittel_alias": aliaser.alias(getattr(entry, "title", None), "tittel"),
         # Skjemaversjonen på selve entryet, ikke releaseversjonen. De to ble
         # forvekslet før, og da fortalte dumpen aldri hvilken kode som kjørte.
-        "version": rens(getattr(entry, "version", None)),
-        "minor_version": rens(getattr(entry, "minor_version", None)),
-        "source": rens(getattr(entry, "source", None)),
-        "state": rens(getattr(tilstand, "value", tilstand)),
-        "valg": {nokkel: rens(data.get(nokkel)) for nokkel in VALG_ALLOWLIST},
+        "version": rens_trygg(getattr(entry, "version", None)),
+        "minor_version": rens_trygg(getattr(entry, "minor_version", None)),
+        "source": rens_trygg(getattr(entry, "source", None)),
+        "state": rens_trygg(getattr(tilstand, "value", tilstand)),
+        "valg": {nokkel: rens_trygg(data.get(nokkel)) for nokkel in VALG_ALLOWLIST},
         "options_overstyrer": sorted(n for n in options if n in VALG_ALLOWLIST),
     }
 
@@ -334,16 +478,16 @@ def _dso_seksjon(coordinator: Any) -> dict[str, Any]:
     """Tariffgrunnlaget. D2 utvider med tarifforigin fra K2."""
     dso = getattr(coordinator, "dso", {}) or {}
     return {
-        "id": rens(getattr(coordinator, "_dso_id", None)),
-        "name": rens(dso.get("name") if isinstance(dso, dict) else None),
-        "energiledd_dag_eks_mva": rens(getattr(coordinator, "energiledd_dag_eks_mva", None)),
-        "energiledd_natt_eks_mva": rens(getattr(coordinator, "energiledd_natt_eks_mva", None)),
-        "energiledd_dag_inkl_mva": rens(getattr(coordinator, "energiledd_dag", None)),
-        "energiledd_natt_inkl_mva": rens(getattr(coordinator, "energiledd_natt", None)),
+        "id": rens_trygg(getattr(coordinator, "_dso_id", None)),
+        "name": rens_trygg(dso.get("name") if isinstance(dso, dict) else None),
+        "energiledd_dag_eks_mva": rens_trygg(getattr(coordinator, "energiledd_dag_eks_mva", None)),
+        "energiledd_natt_eks_mva": rens_trygg(getattr(coordinator, "energiledd_natt_eks_mva", None)),
+        "energiledd_dag_inkl_mva": rens_trygg(getattr(coordinator, "energiledd_dag", None)),
+        "energiledd_natt_inkl_mva": rens_trygg(getattr(coordinator, "energiledd_natt", None)),
         "kapasitetstrinn_count": len(getattr(coordinator, "kapasitetstrinn", []) or []),
         # Metoden er halve svaret på «hvorfor stemmer ikke fastleddet».
         # Uten den i diagnostikken må man gjette fra DSO-id-en.
-        "fastledd_metode": rens(getattr(coordinator, "fastledd_metode", None)),
+        "fastledd_metode": rens_trygg(getattr(coordinator, "fastledd_metode", None)),
         "ukesmaks_count": len(getattr(coordinator, "_weekly_max_power", {}) or {}),
     }
 
@@ -353,14 +497,16 @@ def _vakthold_seksjon(coordinator: Any, aliaser: Aliaser) -> dict[str, Any]:
 
     Hvilken input som svikter, hvor lenge, og hvilke varsler som står ute nå.
     Problemradene bærer entity-id-en fra coordinatoren, så den aliaseres her
-    med samme alias som rollen fikk over.
+    med samme alias som rollen fikk over. Resten av raden plukkes felt for felt
+    fra `PROBLEM_ALLOWLIST`, ikke kopieres med `entity_id` strøket: et nytt felt
+    på raden skal kreve en beslutning, ikke bare dukke opp i dumpen.
     """
     data = getattr(coordinator, "data", None) or {}
     problemer = []
     for problem in data.get("input_problemer", []) or []:
         if not isinstance(problem, dict):
             continue
-        rad = {n: rens(v) for n, v in problem.items() if n != "entity_id"}
+        rad = {n: rens_trygg(problem.get(n)) for n in PROBLEM_ALLOWLIST}
         rad["entitet_alias"] = aliaser.alias(problem.get("entity_id"), "entitet")
         problemer.append(rad)
 
@@ -368,10 +514,12 @@ def _vakthold_seksjon(coordinator: Any, aliaser: Aliaser) -> dict[str, Any]:
     sist_okning = getattr(coordinator, "_last_energy_increase", None)
     return {
         "grace_minutter": INPUT_UTFALL_GRACE_MINUTTER,
-        "frossen_terskel_timer": rens(getattr(coordinator, "energi_frossen_terskel_timer", None)),
-        "sist_energi_okning": rens(sist_okning),
-        "input_sist_gyldig": {str(rolle): rens(naar) for rolle, naar in sist_gyldig.items()},
-        "aktive_issues": sorted(str(n) for n in getattr(coordinator, "_vakthold_issues", set()) or set()),
+        "frossen_terskel_timer": rens_trygg(getattr(coordinator, "energi_frossen_terskel_timer", None)),
+        "sist_energi_okning": rens_trygg(sist_okning),
+        "input_sist_gyldig": rens_trygg(dict(sist_gyldig)),
+        "aktive_issues": rens_trygg(
+            sorted(str(n) for n in getattr(coordinator, "_vakthold_issues", set()) or set())
+        ),
         "input_problemer": problemer,
     }
 
@@ -379,7 +527,7 @@ def _vakthold_seksjon(coordinator: Any, aliaser: Aliaser) -> dict[str, Any]:
 def _beregning_seksjon(coordinator: Any) -> dict[str, Any]:
     """Allowlisten fra coordinator.data, renset til JSON-primitiver."""
     data = getattr(coordinator, "data", None) or {}
-    return {nokkel: rens(data.get(nokkel)) for nokkel in BEREGNING_ALLOWLIST}
+    return {nokkel: rens_trygg(data.get(nokkel)) for nokkel in BEREGNING_ALLOWLIST}
 
 
 async def bygg_diagnostikk(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]:

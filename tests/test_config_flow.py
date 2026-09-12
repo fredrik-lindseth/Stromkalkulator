@@ -285,9 +285,11 @@ class TestCoordinatorFloatProtection:
         """float(.*state) calls in sensor-reading helpers must have except ValueError."""
         source = (COMPONENTS_DIR / "coordinator.py").read_text()
 
-        # Sensor reading is now in _read_sensor_float and _read_price_sensor helpers
-        for method_name in ("_read_sensor_float", "_read_price_sensor"):
-            pattern = rf"def {method_name}\(.*?(?=\n    def |\n    async def |\nclass |\Z)"
+        # All sensorlesing går gjennom inputadapteren nå, så det er der
+        # float(state) står.
+        source = (COMPONENTS_DIR / "inputadapter.py").read_text()
+        for method_name in ("vurder_state",):
+            pattern = rf"def {method_name}\(.*?(?=\ndef |\nclass |\Z)"
             match = re.search(pattern, source, re.DOTALL)
             assert match, f"Could not find {method_name} method"
             method_source = match.group(0)
@@ -352,78 +354,129 @@ class TestAvgiftssoneAutoDetection:
 class _FakeState:
     """Minimal State-stub for å teste spot-sensor-validator uten HA."""
 
-    def __init__(self, state: str, unit: str | None = None) -> None:
+    def __init__(self, state: str, unit: str | None = None, state_class: str | None = None) -> None:
         self.state = state
+        self.last_updated = None
         self.attributes: dict[str, str] = {}
         if unit is not None:
             self.attributes["unit_of_measurement"] = unit
+        if state_class is not None:
+            self.attributes["state_class"] = state_class
 
 
-class TestValidateSpotSensor:
-    """_validate_spot_sensor fanger åpenbart feil sensorvalg.
+CONF_POWER_SENSOR = "power_sensor"
+CONF_SPOT_PRICE_SENSOR = "spot_price_sensor"
+CONF_ENERGY_SENSOR = "energy_sensor"
+
+
+class TestValiderSensorfelt:
+    """Adapteren fanger feil sensorvalg i oppsett, options og reconfigure.
 
     Regresjon for stromkalkulator-34qzbh: bruker hadde pekt spot_price_sensor
     mot en kr-totalsensor (~877 kr). Alle Elvia-derivater ble katastrofalt feil
     uten advarsel.
+
+    Den gamle `_validate_spot_sensor` avviste der den burde regnet om: øre/kWh
+    ble nektet, mens EUR/MWh slapp gjennom til å bli lest som kroner.
     """
 
+    def _feil(self, felt, state, **andre):
+        from stromkalkulator.config_flow import _valider_sensorfelt
+
+        hass = MagicMock()
+        states = {"sensor.rolle": state}
+        states.update(andre)
+        hass.states.get = MagicMock(side_effect=states.get)
+        user_input = {felt: "sensor.rolle"}
+        return _valider_sensorfelt(hass, user_input, paakrevd=set()).get(felt)
+
     def test_nord_pool_style_sensor_passes(self):
-        from stromkalkulator.config_flow import _validate_spot_sensor
+        assert self._feil(CONF_SPOT_PRICE_SENSOR, _FakeState("0.85", "NOK/kWh")) is None
 
-        state = _FakeState("0.85", "NOK/kWh")
-        assert _validate_spot_sensor(state) is None
+    def test_ore_per_kwh_godtas_og_regnes_om(self):
+        """Etter kontrakten regnes øre/kWh om i stedet for å avvises.
 
-    def test_ore_per_kwh_sensor_rejected(self):
-        """øre/kWh tolkes av coordinator som NOK/kWh og gir 100x for lav pris.
-
-        Regresjon for stromkalkulator-3hnc: verdien (~85) er innenfor den
-        godtatte terskelen, så enheten er eneste holdepunkt for å avvise den.
+        Brukeren fikk før beskjed om å bygge en malsensor for noe adapteren kan
+        gjøre selv.
         """
-        from stromkalkulator.config_flow import _validate_spot_sensor
+        assert self._feil(CONF_SPOT_PRICE_SENSOR, _FakeState("85.5", "øre/kWh")) is None
+        assert self._feil(CONF_SPOT_PRICE_SENSOR, _FakeState("85.5", "ore/kWh")) is None
 
-        state = _FakeState("85.5", "øre/kWh")
-        assert _validate_spot_sensor(state) == "spot_unit_invalid"
+    def test_eur_per_mwh_avvises(self):
+        """Vi har ingen valutakurs, og å lese euro som kroner er verre enn nei."""
+        assert self._feil(CONF_SPOT_PRICE_SENSOR, _FakeState("65.4", "EUR/MWh")) == "enhet_feil_valuta"
+        assert self._feil(CONF_SPOT_PRICE_SENSOR, _FakeState("0.065", "EUR/kWh")) == "enhet_feil_valuta"
 
-    def test_eur_per_mwh_passes(self):
-        from stromkalkulator.config_flow import _validate_spot_sensor
-
-        state = _FakeState("65.4", "EUR/MWh")
-        assert _validate_spot_sensor(state) is None
+    def test_nok_per_mwh_godtas(self):
+        assert self._feil(CONF_SPOT_PRICE_SENSOR, _FakeState("850", "NOK/MWh")) is None
 
     def test_negative_spot_price_passes(self):
-        """Spot price can briefly go negative."""
-        from stromkalkulator.config_flow import _validate_spot_sensor
-
-        state = _FakeState("-0.05", "NOK/kWh")
-        assert _validate_spot_sensor(state) is None
+        """Spotprisen kan så vidt gå negativ, og det er en gyldig pris."""
+        assert self._feil(CONF_SPOT_PRICE_SENSOR, _FakeState("-0.05", "NOK/kWh")) is None
 
     def test_kr_unit_rejected(self):
-        """User pointed at a kr-total sensor."""
-        from stromkalkulator.config_flow import _validate_spot_sensor
-
-        state = _FakeState("877.50", "kr")
-        assert _validate_spot_sensor(state) == "spot_unit_invalid"
+        """Brukeren pekte på en kr-totalsensor."""
+        assert self._feil(CONF_SPOT_PRICE_SENSOR, _FakeState("877.50", "kr")) == "enhet_feil_dimensjon"
 
     def test_kwh_unit_rejected(self):
-        """User pointed at a kWh meter."""
-        from stromkalkulator.config_flow import _validate_spot_sensor
+        """Brukeren pekte på en kWh-måler."""
+        assert self._feil(CONF_SPOT_PRICE_SENSOR, _FakeState("1543.2", "kWh")) == "enhet_feil_dimensjon"
 
-        state = _FakeState("1543.2", "kWh")
-        assert _validate_spot_sensor(state) == "spot_unit_invalid"
+    def test_ukjent_enhet_avvises(self):
+        assert self._feil(CONF_SPOT_PRICE_SENSOR, _FakeState("1.2", "bananer")) == "enhet_ukjent"
 
     def test_extreme_value_rejected_even_without_unit(self):
-        """Sensor without unit but with value of 8772 is not a spot price."""
-        from stromkalkulator.config_flow import _validate_spot_sensor
+        """En sensor uten enhet med verdien 8772 er ingen spotpris."""
+        assert (
+            self._feil(CONF_SPOT_PRICE_SENSOR, _FakeState("8772.40", unit=None)) == "spot_value_unreasonable"
+        )
 
-        state = _FakeState("8772.40", unit=None)
-        assert _validate_spot_sensor(state) == "spot_value_unreasonable"
+    def test_dyr_time_i_nok_per_mwh_slipper_gjennom(self):
+        """Grensen gjelder etter normalisering. 2500 NOK/MWh er 2,5 NOK/kWh."""
+        assert self._feil(CONF_SPOT_PRICE_SENSOR, _FakeState("2500", "NOK/MWh")) is None
 
     def test_unavailable_sensor_accepted(self):
-        """unavailable/unknown state should not block config save."""
-        from stromkalkulator.config_flow import _validate_spot_sensor
+        """unavailable/unknown skal ikke blokkere lagring."""
+        assert self._feil(CONF_SPOT_PRICE_SENSOR, _FakeState("unavailable", "NOK/kWh")) is None
 
-        state = _FakeState("unavailable", "NOK/kWh")
-        assert _validate_spot_sensor(state) is None
+    def test_effektsensor_i_kilowatt_godtas(self):
+        assert self._feil(CONF_POWER_SENSOR, _FakeState("5.2", "kW")) is None
+
+    def test_effektfelt_med_energisensor_avvises(self):
+        assert self._feil(CONF_POWER_SENSOR, _FakeState("1543", "kWh")) == "enhet_feil_dimensjon"
+
+    def test_energisensor_uten_state_class_avvises(self):
+        state = _FakeState("1543", "kWh")
+        assert self._feil(CONF_ENERGY_SENSOR, state) == "energi_ikke_kumulativ"
+
+    def test_energisensor_med_measurement_avvises(self):
+        """En øyeblikksverdi er ingen teller, uansett hva enheten sier."""
+        state = _FakeState("1543", "kWh", state_class="measurement")
+        assert self._feil(CONF_ENERGY_SENSOR, state) == "energi_ikke_kumulativ"
+
+    def test_energisensor_med_total_godtas(self):
+        for state_class in ("total", "total_increasing"):
+            state = _FakeState("1543", "kWh", state_class=state_class)
+            assert self._feil(CONF_ENERGY_SENSOR, state) is None
+
+    def test_energisensor_i_wh_godtas(self):
+        state = _FakeState("1543000", "Wh", state_class="total_increasing")
+        assert self._feil(CONF_ENERGY_SENSOR, state) is None
+
+    def test_slettet_entitet_gir_sensor_not_found(self):
+        from stromkalkulator.config_flow import _valider_sensorfelt
+
+        hass = MagicMock()
+        hass.states.get = MagicMock(return_value=None)
+        feil = _valider_sensorfelt(hass, {CONF_POWER_SENSOR: "sensor.borte"}, paakrevd={CONF_POWER_SENSOR})
+        assert feil[CONF_POWER_SENSOR] == "sensor_not_found"
+
+    def test_tomt_valgfritt_felt_gir_ingen_feil(self):
+        from stromkalkulator.config_flow import _valider_sensorfelt
+
+        hass = MagicMock()
+        hass.states.get = MagicMock(return_value=None)
+        assert _valider_sensorfelt(hass, {}, paakrevd=set()) == {}
 
 
 # ---------------------------------------------------------------------------

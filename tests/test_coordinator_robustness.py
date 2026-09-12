@@ -133,20 +133,27 @@ class TestSpotprisCaching:
         # Eksportinntekt skal ikke akkumuleres uten gyldig spot
         assert result["monthly_export_revenue_kr"] == 0.0
 
-    def test_none_sensor_without_cache_raises(self, coord_module):
-        """Sensor not found at all (returns None) -> UpdateFailed."""
+    def test_slettet_spotsensor_gir_ugyldig_pris_ikke_updatefailed(self, coord_module):
+        """En slettet spotsensor skal melde seg, ikke felle hele oppdateringen.
+
+        Energien fra energisensoren og energileddet trenger ikke spotprisen, og
+        de skal akkumulere videre. Bare de spotavhengige beløpene står stille.
+        """
         hass = MagicMock()
 
         def get_state(eid):
             if "power" in eid:
                 return _make_state(5000)
-            return None  # spot sensor not found
+            return None  # spot-sensoren finnes ikke
 
         hass.states.get = MagicMock(side_effect=get_state)
         coordinator = coord_module.NettleieCoordinator(hass, _make_entry())
 
-        with pytest.raises(coord_module.UpdateFailed, match="Spot price sensor"):
-            _run_update(coord_module, coordinator)
+        resultat = _run_update(coord_module, coordinator)
+
+        assert resultat["spot_price_valid"] is False
+        assert resultat["current_power_kw"] == 5.0
+        assert resultat["energiledd"] > 0
 
     def test_nan_spot_with_cache_uses_cache(self, coord_module):
         """NaN spot value should fall back to cache."""

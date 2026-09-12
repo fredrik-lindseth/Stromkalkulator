@@ -109,19 +109,25 @@ def _les(sti: Path) -> dict[str, Any]:
     return json.loads(sti.read_text(encoding="utf-8"))
 
 
-def _doegn(arkiv: Path, dag: int, hull_fra: int) -> list[dict[str, Any]]:
-    """Ett døgn der timene fra og med `hull_fra` mangler recorder-pris."""
+def _doegn(arkiv: Path, dag: int, hull_fra: int, hull_til: int = 24) -> list[dict[str, Any]]:
+    """Ett døgn der timene fra og med `hull_fra` til `hull_til` mangler recorder-pris.
+
+    Døgnene i testene under lar som regel timene fra 17 og ut stå, slik 17.08
+    ser ut i virkeligheten. Randtime-regelen måler kurs-årgangen på døgnets egne
+    ekte timer, så et helt hullet døgn er et annet tilfelle enn et delvis hullet,
+    og det har sin egen test.
+    """
     hours = []
     for t in range(24):
         ts = _iso(datetime.fromisoformat(f"2026-08-{dag:02d}T00:00:00{TZ}") + timedelta(hours=t))
-        pris = None if t >= hull_fra else round(_timespris(arkiv, ts), 6)
+        pris = None if hull_fra <= t < hull_til else round(_timespris(arkiv, ts), 6)
         hours.append({"start_local": ts, "kwh": 1.0, "spot_nok_kwh_eks_mva": pris})
     return hours
 
 
 def test_randtime_fylles_og_begrunnes(tmp_path: Path) -> None:
     arkiv = _arkiv(tmp_path / "arkiv.json")
-    hours = _doegn(arkiv, 16, 24) + _doegn(arkiv, 17, 1)
+    hours = _doegn(arkiv, 16, 24) + _doegn(arkiv, 17, 1, 17)
     # Time 00 den 17. bærer staten fra 16.08 kl. 23:45.
     hours[24]["spot_nok_kwh_eks_mva"] = round(_kvarterpris(arkiv, f"2026-08-16T23:45:00{TZ}"), 6)
     fixture = _fixture(tmp_path / "fixture.json", hours)
@@ -135,7 +141,7 @@ def test_randtime_fylles_og_begrunnes(tmp_path: Path) -> None:
     assert randtime["spot_nok_kwh_eks_mva"] == pytest.approx(_timespris(arkiv, ts), abs=1e-6)
 
     meta = ut["metadata"]["spothull"]["fylt_fra_nordpool"]
-    assert meta["fylte_timer"] == 24  # 23 hulltimer pluss randtimen
+    assert meta["fylte_timer"] == 17  # 16 hulltimer pluss randtimen
     assert list(meta["randtimer"]) == [ts]
     assert meta["randtimer"][ts]["begrunnelse"] == "randtime_forrige_kvarter"
     # Timen før randtimen er en ekte måling og skal stå urørt.
@@ -157,7 +163,7 @@ def test_time_00_uten_hull_etter_seg_star_urort(tmp_path: Path) -> None:
 
 def test_time_00_langt_fra_forrige_kvarter_star_urort(tmp_path: Path) -> None:
     arkiv = _arkiv(tmp_path / "arkiv.json")
-    hours = _doegn(arkiv, 16, 24) + _doegn(arkiv, 17, 1)
+    hours = _doegn(arkiv, 16, 24) + _doegn(arkiv, 17, 1, 17)
     # Ett øre unna forrige kvarter: over toleransen, altså en ekte måling.
     hours[24]["spot_nok_kwh_eks_mva"] = round(_kvarterpris(arkiv, f"2026-08-16T23:45:00{TZ}") + 0.01, 6)
     maalt = hours[24]["spot_nok_kwh_eks_mva"]
@@ -184,7 +190,7 @@ def test_ekte_maaling_i_time_00_pa_flat_natt_star_urort(
         steg=0.0,
         avvik={f"2026-08-16T23:45:00{TZ}": 1497.0},
     )
-    hours = _doegn(arkiv, 16, 24) + _doegn(arkiv, 17, 1)
+    hours = _doegn(arkiv, 16, 24) + _doegn(arkiv, 17, 1, 17)
     maalt = hours[24]["spot_nok_kwh_eks_mva"]
     ts = hours[24]["start_local"]
     # 0,3 øre fra 23:45-kvarteret, altså innenfor randtime-toleransen, men
@@ -200,7 +206,7 @@ def test_ekte_maaling_i_time_00_pa_flat_natt_star_urort(
     assert "spot_kilde" not in ut["hours"][24]
     meta = ut["metadata"]["spothull"]["fylt_fra_nordpool"]
     assert meta["randtimer"] == {}
-    assert meta["fylte_timer"] == 23  # bare hulltimene 01-23
+    assert meta["fylte_timer"] == 16  # bare hulltimene 01-16
     assert "Lot timen stå" in capsys.readouterr().out
 
 
@@ -212,7 +218,7 @@ def test_randtime_med_trang_margin_fylles(tmp_path: Path) -> None:
         steg=0.0,
         avvik={_iso(datetime.fromisoformat(time_00) + timedelta(minutes=15 * k)): 1505.2 for k in range(4)},
     )
-    hours = _doegn(arkiv, 16, 24) + _doegn(arkiv, 17, 1)
+    hours = _doegn(arkiv, 16, 24) + _doegn(arkiv, 17, 1, 17)
     hours[24]["spot_nok_kwh_eks_mva"] = round(_kvarterpris(arkiv, f"2026-08-16T23:45:00{TZ}"), 6)
     fixture = _fixture(tmp_path / "fixture.json", hours)
 
@@ -231,7 +237,7 @@ def test_time_00_uten_publisert_pris_star_urort(tmp_path: Path, capsys: pytest.C
     data["daily"][0]["kvarter"] = [
         kv for kv in data["daily"][0]["kvarter"] if not kv["start_local"].startswith("2026-08-17T00:")
     ]
-    hours = _doegn(arkiv, 16, 24) + _doegn(arkiv, 17, 1)
+    hours = _doegn(arkiv, 16, 24) + _doegn(arkiv, 17, 1, 17)
     hours[24]["spot_nok_kwh_eks_mva"] = round(_kvarterpris(arkiv, f"2026-08-16T23:45:00{TZ}"), 6)
     maalt = hours[24]["spot_nok_kwh_eks_mva"]
     arkiv.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
@@ -249,7 +255,7 @@ def test_time_00_uten_publisert_pris_star_urort(tmp_path: Path, capsys: pytest.C
 
 def test_ny_kjoring_beholder_randtimen(tmp_path: Path) -> None:
     arkiv = _arkiv(tmp_path / "arkiv.json")
-    hours = _doegn(arkiv, 16, 24) + _doegn(arkiv, 17, 1)
+    hours = _doegn(arkiv, 16, 24) + _doegn(arkiv, 17, 1, 17)
     hours[24]["spot_nok_kwh_eks_mva"] = round(_kvarterpris(arkiv, f"2026-08-16T23:45:00{TZ}"), 6)
     fixture = _fixture(tmp_path / "fixture.json", hours)
 
@@ -260,7 +266,7 @@ def test_ny_kjoring_beholder_randtimen(tmp_path: Path) -> None:
 
     assert andre["hours"] == forste["hours"]
     meta = andre["metadata"]["spothull"]["fylt_fra_nordpool"]
-    assert meta["fylte_timer"] == 24
+    assert meta["fylte_timer"] == 17
     assert meta["randtimer"] == forste["metadata"]["spothull"]["fylt_fra_nordpool"]["randtimer"]
 
 
@@ -343,7 +349,7 @@ def test_baaret_verdi_fra_aargangsdag_fylles(tmp_path: Path) -> None:
         steg=0.0,
         avvik={_iso(datetime.fromisoformat(time_00) + timedelta(minutes=15 * k)): 1550.0 for k in range(4)},
     )
-    hours = _doegn_med_aargang(arkiv, 16, range(0), AARGANG) + _doegn(arkiv, 17, 1)
+    hours = _doegn_med_aargang(arkiv, 16, range(0), AARGANG) + _doegn(arkiv, 17, 1, 17)
     baaret = round(_kvarterpris(arkiv, f"2026-08-16T23:45:00{TZ}") * AARGANG, 6)
     hours[24]["spot_nok_kwh_eks_mva"] = baaret
     # Rå avstand til kvarteret er over toleransen; det er kurs-årgangen, ikke en måling.
@@ -357,17 +363,237 @@ def test_baaret_verdi_fra_aargangsdag_fylles(tmp_path: Path) -> None:
     assert list(ut["metadata"]["spothull"]["fylt_fra_nordpool"]["randtimer"]) == [time_00]
 
 
-def test_aargang_ratio_krever_nok_timer_og_konstant_faktor(tmp_path: Path) -> None:
+def test_maal_aargang_krever_nok_timer_og_konstant_faktor(tmp_path: Path) -> None:
     """Årgangen regnes som umålt når døgnet er for tynt eller ikke en konstant faktor."""
     arkiv = _arkiv(tmp_path / "arkiv.json", steg=0.0)
     priser = fyll.les_arkiv(arkiv)[0]
 
     helt_doegn = _doegn_med_aargang(arkiv, 16, range(0), AARGANG)
-    assert fyll.aargang_ratio(helt_doegn, priser, "2026-08-16") == pytest.approx(AARGANG, abs=1e-9)
+    maalt = fyll.maal_aargang(helt_doegn, priser, "2026-08-16")
+    assert maalt.ratio == pytest.approx(AARGANG, abs=1e-9)
+    assert maalt.grunn == "kurs-årgang 0.99400"
 
     tynt = _doegn_med_aargang(arkiv, 16, range(5, 24), AARGANG)  # fem ekte timer
-    assert fyll.aargang_ratio(tynt, priser, "2026-08-16") is None
+    umaalt = fyll.maal_aargang(tynt, priser, "2026-08-16")
+    assert umaalt.ratio is None
+    assert "5 ekte timer" in umaalt.grunn
 
     spriker = _doegn_med_aargang(arkiv, 16, range(0), AARGANG)
     spriker[3]["spot_nok_kwh_eks_mva"] = round(float(spriker[3]["spot_nok_kwh_eks_mva"]) * 1.01, 6)
-    assert fyll.aargang_ratio(spriker, priser, "2026-08-16") is None
+    varierer = fyll.maal_aargang(spriker, priser, "2026-08-16")
+    assert varierer.ratio is None
+    assert "varierer" in varierer.grunn
+
+
+DELMAALT_TIME = f"2026-08-18T05:00:00{TZ}"
+DELMAALT_INDEKS = 48 + 5
+
+
+def _fylt_doegn_med_randtime(arkiv: Path) -> list[dict[str, Any]]:
+    """Tre døgn: 16.08 helt målt, 17.08 hullet fra kl. 01, 18.08 helt målt.
+
+    Time 00 den 17. bærer staten fra 16.08 kl. 23:45, altså randtimen. 18.08
+    kl. 05 er en delvis målt time: sensoren falt ut midt i timen, så recorderen
+    har et snitt av bare den delen den rakk. Den er kandidaten for --overstyr,
+    og den ligger på et døgn randtime-regelen ikke måler kurs-årgang på.
+    """
+    hours = _doegn(arkiv, 16, 24) + _doegn(arkiv, 17, 1, 17) + _doegn(arkiv, 18, 24)
+    hours[24]["spot_nok_kwh_eks_mva"] = round(_kvarterpris(arkiv, f"2026-08-16T23:45:00{TZ}"), 6)
+    hours[DELMAALT_INDEKS]["spot_nok_kwh_eks_mva"] = round(_timespris(arkiv, DELMAALT_TIME) * 0.8, 6)
+    return hours
+
+
+def test_helt_hullet_doegn_gir_ingen_automatisk_randtime(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """31.08-tilfellet: døgnet har ingen ekte timer, så kurs-årgangen kan ikke måles.
+
+    Uten årgangen kan ikke avstanden til egen publiserte time prøves, og da er
+    det ikke avgjort om verdien er båret eller målt. Timen skal stå, og
+    scriptet skal si hva som ikke lot seg måle.
+    """
+    arkiv = _arkiv(tmp_path / "arkiv.json")
+    hours = _doegn(arkiv, 16, 24) + _doegn(arkiv, 17, 1)
+    time_00 = str(hours[24]["start_local"])
+    baaret = round(_kvarterpris(arkiv, f"2026-08-16T23:45:00{TZ}"), 6)
+    hours[24]["spot_nok_kwh_eks_mva"] = baaret
+    fixture = _fixture(tmp_path / "fixture.json", hours)
+
+    assert _kjor(fixture, arkiv) == 0
+
+    ut = _les(fixture)
+    assert ut["hours"][24]["spot_nok_kwh_eks_mva"] == baaret
+    assert "spot_kilde" not in ut["hours"][24]
+    meta = ut["metadata"]["spothull"]["fylt_fra_nordpool"]
+    assert meta["randtimer"] == {}
+    assert meta["fylte_timer"] == 23  # hulltimene 01-23, ikke time 00
+    utskrift = capsys.readouterr().out
+    assert "kurs-årgangen for 2026-08-17 er umålt" in utskrift
+    assert "0 ekte timer" in utskrift
+    assert f'--overstyr "{time_00}=' in utskrift
+
+
+def test_umaalt_aargang_kan_avgjores_med_overstyr(tmp_path: Path) -> None:
+    """Beslutningen scriptet ikke tar selv, tas for hånd og arkiveres."""
+    arkiv = _arkiv(tmp_path / "arkiv.json")
+    hours = _doegn(arkiv, 16, 24) + _doegn(arkiv, 17, 1)
+    time_00 = str(hours[24]["start_local"])
+    baaret = round(_kvarterpris(arkiv, f"2026-08-16T23:45:00{TZ}"), 6)
+    hours[24]["spot_nok_kwh_eks_mva"] = baaret
+    fixture = _fixture(tmp_path / "fixture.json", hours)
+
+    grunn = "hele døgnet er hullet; HA-loggen viser unknown 00:00:00"
+    assert _kjor(fixture, arkiv, "--overstyr", f"{time_00}={grunn}") == 0
+
+    ut = _les(fixture)
+    assert ut["hours"][24]["spot_kilde"] == "nordpool_publisert"
+    assert ut["hours"][24]["spot_nok_kwh_eks_mva"] == pytest.approx(_timespris(arkiv, time_00), abs=1e-6)
+    overstyrt = ut["metadata"]["spothull"]["fylt_fra_nordpool"]["overstyrte_timer"][time_00]
+    assert overstyrt["recorder_nok_kwh"] == baaret
+    assert overstyrt["begrunnelse"] == grunn
+
+
+def test_varierende_kurs_i_doegnet_lar_timen_sta(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """Er ikke døgnet lagret med én kurs, er årgangen umålt og timen står."""
+    arkiv = _arkiv(tmp_path / "arkiv.json")
+    hours = _fylt_doegn_med_randtime(arkiv)
+    baaret = hours[24]["spot_nok_kwh_eks_mva"]
+    # Sprik i de ekte timene den 17.: faktoren er ikke konstant over døgnet.
+    hours[24 + 20]["spot_nok_kwh_eks_mva"] = round(float(hours[24 + 20]["spot_nok_kwh_eks_mva"]) * 1.01, 6)
+    fixture = _fixture(tmp_path / "fixture.json", hours)
+
+    assert _kjor(fixture, arkiv) == 0
+
+    ut = _les(fixture)
+    assert ut["hours"][24]["spot_nok_kwh_eks_mva"] == baaret
+    assert "spot_kilde" not in ut["hours"][24]
+    assert ut["metadata"]["spothull"]["fylt_fra_nordpool"]["randtimer"] == {}
+    assert "varierer over døgnet" in capsys.readouterr().out
+
+
+def test_gjentatt_kjoring_endrer_ingenting(tmp_path: Path) -> None:
+    """Andre kjøring på samme fixture skal ikke røre en bokstav.
+
+    Både randtimen, den manuelle overstyringen og datoen for fyllingen står
+    urørt. Datoen er med fordi en kjøring som bare bekrefter fixturen ikke skal
+    kunne påstå at den ble fylt i dag.
+    """
+    arkiv = _arkiv(tmp_path / "arkiv.json")
+    fixture = _fixture(tmp_path / "fixture.json", _fylt_doegn_med_randtime(arkiv))
+    overstyrt_time = DELMAALT_TIME
+
+    assert _kjor(fixture, arkiv, "--overstyr", f"{overstyrt_time}=sensoren falt ut midt i timen") == 0
+    # Gammel dato i metadata står som bevis på at kjøring to ikke skriver ny.
+    forste = _les(fixture)
+    forste["metadata"]["spothull"]["fylt_fra_nordpool"]["dato"] = "2026-01-02"
+    fixture.write_text(json.dumps(forste, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    fasit = fixture.read_text(encoding="utf-8")
+
+    assert _kjor(fixture, arkiv) == 0
+    assert fixture.read_text(encoding="utf-8") == fasit
+
+    assert _kjor(fixture, arkiv) == 0
+    assert fixture.read_text(encoding="utf-8") == fasit
+
+
+def test_overstyring_overlever_kjoring_uten_flagget(tmp_path: Path) -> None:
+    """Å utelate --overstyr angrer ingenting, og begrunnelsen blir stående."""
+    arkiv = _arkiv(tmp_path / "arkiv.json")
+    hours = _fylt_doegn_med_randtime(arkiv)
+    overstyrt_time = DELMAALT_TIME
+    maalt = hours[DELMAALT_INDEKS]["spot_nok_kwh_eks_mva"]
+    fixture = _fixture(tmp_path / "fixture.json", hours)
+    grunn = "sensoren falt ut midt i timen; recorder-snittet dekker bare deler av den"
+
+    assert _kjor(fixture, arkiv, "--overstyr", f"{overstyrt_time}={grunn}") == 0
+    assert _kjor(fixture, arkiv) == 0
+
+    ut = _les(fixture)
+    assert ut["hours"][DELMAALT_INDEKS]["spot_kilde"] == "nordpool_publisert"
+    overstyrt = ut["metadata"]["spothull"]["fylt_fra_nordpool"]["overstyrte_timer"][overstyrt_time]
+    assert overstyrt["begrunnelse"] == grunn
+    assert overstyrt["recorder_nok_kwh"] == maalt
+
+
+def test_gjentatt_overstyr_arkiverer_ikke_arkivprisen(tmp_path: Path) -> None:
+    """Samme flagg om igjen er en bekreftelse, ikke en ny måling.
+
+    Recorder-verdien i metadata er målingen fra før overstyringen. Leses den av
+    timen andre gangen, arkiveres arkivprisen som om den var recorderens.
+    """
+    arkiv = _arkiv(tmp_path / "arkiv.json")
+    hours = _fylt_doegn_med_randtime(arkiv)
+    overstyrt_time = DELMAALT_TIME
+    maalt = hours[DELMAALT_INDEKS]["spot_nok_kwh_eks_mva"]
+    fixture = _fixture(tmp_path / "fixture.json", hours)
+    grunn = "sensoren falt ut midt i timen"
+
+    assert _kjor(fixture, arkiv, "--overstyr", f"{overstyrt_time}={grunn}") == 0
+    assert _kjor(fixture, arkiv, "--overstyr", f"{overstyrt_time}={grunn}") == 0
+
+    overstyrt = _les(fixture)["metadata"]["spothull"]["fylt_fra_nordpool"]["overstyrte_timer"][overstyrt_time]
+    assert overstyrt["recorder_nok_kwh"] == maalt
+    assert overstyrt["begrunnelse"] == grunn
+    assert "tidligere_begrunnelser" not in overstyrt
+
+
+def test_ny_begrunnelse_tar_vare_pa_den_gamle(tmp_path: Path) -> None:
+    arkiv = _arkiv(tmp_path / "arkiv.json")
+    hours = _fylt_doegn_med_randtime(arkiv)
+    overstyrt_time = DELMAALT_TIME
+    maalt = hours[DELMAALT_INDEKS]["spot_nok_kwh_eks_mva"]
+    fixture = _fixture(tmp_path / "fixture.json", hours)
+
+    assert _kjor(fixture, arkiv, "--overstyr", f"{overstyrt_time}=gjetning") == 0
+    assert _kjor(fixture, arkiv, "--overstyr", f"{overstyrt_time}=HA-loggen viser unavailable 05:12") == 0
+
+    overstyrt = _les(fixture)["metadata"]["spothull"]["fylt_fra_nordpool"]["overstyrte_timer"][overstyrt_time]
+    assert overstyrt["begrunnelse"] == "HA-loggen viser unavailable 05:12"
+    assert overstyrt["tidligere_begrunnelser"] == ["gjetning"]
+    assert overstyrt["recorder_nok_kwh"] == maalt
+
+
+def test_angre_legger_recorder_maalingen_tilbake(tmp_path: Path) -> None:
+    """--angre er den eksplisitte veien tilbake, for både overstyring og randtime."""
+    arkiv = _arkiv(tmp_path / "arkiv.json")
+    hours = _fylt_doegn_med_randtime(arkiv)
+    overstyrt_time = DELMAALT_TIME
+    randtime = str(hours[24]["start_local"])
+    maalt = hours[DELMAALT_INDEKS]["spot_nok_kwh_eks_mva"]
+    baaret = hours[24]["spot_nok_kwh_eks_mva"]
+    fixture = _fixture(tmp_path / "fixture.json", hours)
+
+    assert _kjor(fixture, arkiv, "--overstyr", f"{overstyrt_time}=sensoren falt ut midt i timen") == 0
+    assert _kjor(fixture, arkiv, "--angre", overstyrt_time) == 0
+
+    ut = _les(fixture)
+    assert ut["hours"][DELMAALT_INDEKS]["spot_nok_kwh_eks_mva"] == maalt
+    assert "spot_kilde" not in ut["hours"][DELMAALT_INDEKS]
+    assert ut["metadata"]["spothull"]["fylt_fra_nordpool"]["overstyrte_timer"] == {}
+
+    # Randtimen fylles igjen i samme kjøring, for regelen treffer fortsatt.
+    assert _kjor(fixture, arkiv, "--angre", randtime) == 0
+    ut = _les(fixture)
+    assert ut["hours"][24]["spot_kilde"] == "nordpool_publisert"
+    assert list(ut["metadata"]["spothull"]["fylt_fra_nordpool"]["randtimer"]) == [randtime]
+    assert (
+        ut["metadata"]["spothull"]["fylt_fra_nordpool"]["randtimer"][randtime]["recorder_nok_kwh"] == baaret
+    )
+
+
+def test_angre_uten_oppforing_avvises(tmp_path: Path) -> None:
+    arkiv = _arkiv(tmp_path / "arkiv.json")
+    fixture = _fixture(tmp_path / "fixture.json", _doegn(arkiv, 16, 24))
+
+    assert _kjor(fixture, arkiv, "--angre", f"2026-08-16T05:00:00{TZ}") == 1
+
+
+def test_overstyr_paa_alt_fylt_hulltime_avvises(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """En fylt hulltime har ingen recorder-måling å arkivere som original."""
+    arkiv = _arkiv(tmp_path / "arkiv.json")
+    fixture = _fixture(tmp_path / "fixture.json", _fylt_doegn_med_randtime(arkiv))
+    hulltime = f"2026-08-17T05:00:00{TZ}"
+
+    assert _kjor(fixture, arkiv) == 0
+    assert _kjor(fixture, arkiv, "--overstyr", f"{hulltime}=vil overstyre en fylt time") == 1
+    assert "alt fylt fra arkivet" in capsys.readouterr().out

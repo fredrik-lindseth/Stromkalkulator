@@ -145,7 +145,7 @@ def bygg_final_pris(navn: str, timenokler: list[str]) -> dict[str, Any] | None:
 
 
 def _skriv(sti: Path, data: dict[str, Any], sjekk: bool) -> bool:
-    """Skriv fila, eller sammenlign mot disk når `sjekk`. True = i orden."""
+    """Skriv filen, eller sammenlign mot disk når `sjekk`. True = i orden."""
     tekst = json.dumps(data, indent=1, ensure_ascii=False) + "\n"
     if sjekk:
         if not sti.exists():

@@ -55,7 +55,7 @@ class FalskState:
     """HA-state med både verdi og `last_updated`.
 
     `tests.conftest._make_state` gir bare `.state`. Den holder for en test som
-    ikke bryr seg om når verdien ble satt, men hele denne fila handler om
+    ikke bryr seg om når verdien ble satt, men hele denne filen handler om
     nettopp det, så staten her bærer observasjonstiden sin.
     """
 
@@ -117,7 +117,7 @@ class FalskStore:
     `tests.conftest.coord_module` gir en MagicMock som alltid laster `None`.
     Da er enhver omstart en ny installasjon, og C2.7 kan ikke testes i det hele
     tatt. Her ligger dataene i en dict som overlever at coordinatoren bygges på
-    nytt, akkurat som fila på disk gjør.
+    nytt, akkurat som filen på disk gjør.
     """
 
     def __init__(self, disk: dict[str, Any], key: str) -> None:

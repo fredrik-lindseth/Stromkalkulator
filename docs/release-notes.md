@@ -151,6 +151,21 @@ workflows; da kunne en release gå ut før de var ferdige. De kjøres fortsatt
 nattlig fra `validate.yml` og `hassfest.yml`, siden begge kan bli røde av
 endringer utenfor repoet.
 
+Det som slippes, kommer fra hovedgrenen. To vakter sier det:
+
+- `release.yml` kjører publiseringsjobben bare når ref-en er `main` eller en
+  `v*`-tagg. En `workflow_dispatch` fra en annen gren kjører CI, og stopper der.
+- `release_publish.py` spør GitHub om kandidaten er hovedgrenens spiss eller en
+  commit den har passert (`compare`-status `identical` eller `behind`). Er den
+  ikke det, stopper flyten før noe skrives. Vakten står i scriptet og ikke bare
+  i workflowen, så den gjelder også når flyten kjøres for hånd.
+
+Prøvekjøringen mot en engangstagg trenger en ekte workflow-kjøring for å få en
+attestasjon, og den må kunne gå fra en gren. Derfor finnes `proveslipp`, et
+eget felt i dispatch-skjemaet som gir `--proveslipp`. Den veien slipper bare
+manifestversjon `0.0.0` gjennom, og den releasen merkes som prerelease og blir
+aldri `latest`. Hukes feltet av på en gren med en ekte versjon, stopper flyten.
+
 Selve flyten ligger i `scripts/release_publish.py`, som er dekket av
 `tests/test_release_publish.py`. Rekkefølgen er:
 
@@ -173,8 +188,13 @@ Kjør jobben om igjen på samme commit («Re-run failed jobs» beholder SHA-en,
 eller kjør workflowen manuelt på taggen). Hvert steg er idempotent:
 
 - Taggen finnes og peker riktig: den står, og flyttes aldri.
-- Drafen finnes: den gjenbrukes, og body-en skrives ikke over. Har du redigert
+- Draften finnes: den gjenbrukes, og body-en skrives ikke over. Har du redigert
   den for hånd, blir redigeringen stående.
+- Draften er laget for en *annen* commit: stopp, før taggen opprettes. Body-en
+  sier hvilken commit ZIP-en er bygget fra, og den setningen skal ikke kunne
+  bli usann fordi en draft ble stående igjen fra et tidligere forsøk. Slett
+  draften, eller slipp endringen som en ny versjon. En draft du har laget i
+  nettleseren peker på en gren og ikke en commit, og den gjenbrukes som før.
 - ZIP-en ligger der alt: den lastes ned og sammenlignes. Stemmer sha256-en, er
   den ferdig. Stemmer den ikke, stopper flyten framfor å bytte en fil vi ikke
   vet hva er. HACS installerer nøyaktig den filen, så det er ikke et sted for
@@ -211,6 +231,16 @@ kan derfor bare bekreftes av den første ekte kjøringen:
 - At `gh api` sine skrivekall (opprette tagg, opprette draft, laste opp asset,
   `make_latest`) oppfører seg som etterligningen antar.
 - At de to validatorene er stabile nok til å stå i releaseporten.
+- At `compare`-statusen hovedgren-vakten leser, er `identical` for en fersk
+  push til main. Statusverdiene er GitHubs dokumenterte fire, og etterligningen
+  regner dem ut med ekte git, men kallet er aldri gjort mot ekte GitHub.
+- At jobbens `if` hopper over publiseringen slik den skal ved dispatch fra en
+  annen gren. Skulle den likevel starte, stopper vakten i scriptet.
+
+Prøvekjøringen mot en engangstagg, som står i akseptansekriteriene for
+stromkalkulator-5k7d7qp, er fortsatt ikke gjort. Veien er nå ryddet:
+`proveslipp` fra en gren med manifestversjon `0.0.0`, og taggen slettes
+etterpå. Den krever et push, og er derfor ikke kjørt her.
 
 Feiler noe av det, feiler det på rett side: jobben stopper, ingenting blir
 publisert, og neste kjøring på samme commit gjenopptar. Det er billigere å
@@ -235,6 +265,9 @@ brudd, og den hører ikke hjemme i releaseporten. Den er skilt ut som
 
 Taggen peker på én commit, attestasjonen sier ZIP-en ble bygget fra en annen.
 Innholdet var likt, så ingen brukere fikk feil kode, men bindingen manglet.
+`SECURITY.md` sier det samme, siden det er der brukerne blir bedt om å kjøre
+kommandoen. Taggen flyttes ikke, og en attestasjon fra 9dad0dd kan ikke lages i
+ettertid, så v1.16.0 blir stående slik (stromkalkulator-4xkynb1).
 Det er nettopp den gamle flyten som gjorde det mulig, og det er derfor
 `plan` bare advarer om eldre releaser mens `verify` feller: en release som alt
 er ute, blir ikke bedre av at hver push til main etterpå går rød.

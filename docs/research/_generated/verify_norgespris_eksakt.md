@@ -6,7 +6,7 @@ _Generert av_ `scripts/research/verify_norgespris_eksakt.py --emit-markdown` (kr
 | juni_2026 | -363.54 | -363.39 | +0.15 | -363.54 | +0.00 | -363.53 | +0.005 |
 | juli_2026 | -807.50 | (delvis) |  | (delvis) |  | -807.50 | +0.003 |
 
-HAN-fixturen mangler timer i: juli_2026 (62 timer). Måneder med full Elhub-CSV står likevel i tabellen; HAN-kolonnene deres er merket (delvis) og Elhub-kolonnen dekker hele måneden.
+HAN-fixturen mangler timer i: juli_2026 (62 timer); august_2026 (176 timer). Måneder med full Elhub-CSV står likevel i tabellen; HAN-kolonnene deres er merket (delvis) og Elhub-kolonnen dekker hele måneden.
 
 Prisårgang-dager (HA-recorderen har foreløpig kurs, publisert er Final):
 
@@ -25,5 +25,6 @@ Prisårgang-dager (HA-recorderen har foreløpig kurs, publisert er Final):
 | 2026-07-12 | søn | 1.00243 | 24 |
 | 2026-07-19 | søn | 1.00274 | 24 |
 | 2026-07-26 | søn | 0.99394 | 20 |
+| 2026-08-16 | søn | 1.00281 | 24 |
 
 Symmetri: mai_2026 har 35 timer med spot under 50 øre inkl. mva (å klippe dem ville flyttet summen -20.61 kr); juni_2026 har 83 timer med spot under 50 øre inkl. mva (å klippe dem ville flyttet summen -27.61 kr). BKK fakturerer symmetrisk.

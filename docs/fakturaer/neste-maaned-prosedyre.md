@@ -65,6 +65,14 @@ ellers ville målt en kilde mot seg selv. Begge har `--overstyr TIME=BEGRUNNELSE
 for enkelttimer der recorderen har en verdi som beviselig er gal; begrunnelsen
 arkiveres i fixturens metadata.
 
+Starter spotprishullet ved døgnskiftet, tar spot-scriptet også randtimen:
+time 00 har da en recorder-verdi, men det er staten fra 23:45-kvarteret kvelden
+før som HAs statistikk-kompilator bar gjennom timen, ikke en måling. Timer 00
+rett før et hull, der verdien ligger innenfor 0,5 øre/kWh av forrige døgns
+23:45-kvarter, fylles automatisk og føres under
+`spothull.fylt_fra_nordpool.randtimer` i metadata. Se
+[bkk-august-2026.md](bkk-august-2026.md) for gjennomgangen.
+
 Var HAN-leseren nede ved periodestart, er `metadata.tpi_start_kwh` også `null`.
 Sett den til tpi ved første målte time minus Elhub-forbruket fram dit; ellers
 kan ikke måneden legges inn i `tests/test_coordinator_replay.py`.

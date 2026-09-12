@@ -13,12 +13,32 @@
   "spothull": {
    "fylt_fra_nordpool": {
     "kilde": "nordpool_nok_kvarter_no5.json",
-    "dato": "2026-09-11",
-    "fylte_timer": 48,
+    "dato": "2026-09-12",
+    "fylte_timer": 51,
     "avregning": "snitt av fire publiserte Final-kvarterpriser",
+    "randtimer": {
+     "2026-08-17T00:00:00+02:00": {
+      "recorder_nok_kwh": 1.26647,
+      "forrige_kvarter_nok_kwh": 1.26293,
+      "publisert_nok_kwh": 1.30852,
+      "begrunnelse": "randtime_forrige_kvarter"
+     },
+     "2026-08-23T00:00:00+02:00": {
+      "recorder_nok_kwh": 1.36097,
+      "forrige_kvarter_nok_kwh": 1.36097,
+      "publisert_nok_kwh": 1.438275,
+      "begrunnelse": "randtime_forrige_kvarter"
+     },
+     "2026-08-31T00:00:00+02:00": {
+      "recorder_nok_kwh": 1.35957,
+      "forrige_kvarter_nok_kwh": 1.35947,
+      "publisert_nok_kwh": 1.364737,
+      "begrunnelse": "randtime_forrige_kvarter"
+     }
+    },
     "overstyrte_timer": {}
    },
-   "aarsak": "sensor.nord_pool_no5_current_price hadde ingen statistikk 17.08 kl. 01-16, 23.08 kl. 01-09 og 31.08 kl. 01-23. Utfallene startet ved døgnskifte. Time 00 de tre døgnene har en recorder-verdi som ligger 0,5-7,7 øre/kWh under den publiserte prisen uten at mekanismen er forklart; de er ikke overstyrt, så verify_norgespris_eksakt.py rapporterer dem."
+   "aarsak": "sensor.nord_pool_no5_current_price hadde ingen statistikk 17.08 kl. 00-16, 23.08 kl. 00-09 og 31.08 kl. 00-23. Utfallene startet presis ved døgnskiftet: sensoren gikk unknown kl. 00:00:00 og unavailable få sekunder senere. HAs statistikk-kompilator snitter bare over numeriske states, så staten fra 23:45-kvarteret kvelden før ble båret gjennom hele time 00. Time 00 er derfor ikke en måling, men en del av hullet, og fylles fra arkivet som randtime."
   },
   "datahull": {
    "timer_uten_maaling": 176,
@@ -2338,8 +2358,9 @@
   {
    "start_local": "2026-08-17T00:00:00+02:00",
    "kwh": 1.271,
-   "spot_nok_kwh_eks_mva": 1.26647,
-   "p_max_w": 3282.0
+   "spot_nok_kwh_eks_mva": 1.30852,
+   "p_max_w": 3282.0,
+   "spot_kilde": "nordpool_publisert"
   },
   {
    "start_local": "2026-08-17T01:00:00+02:00",
@@ -3218,8 +3239,9 @@
   {
    "start_local": "2026-08-23T00:00:00+02:00",
    "kwh": 0.987,
-   "spot_nok_kwh_eks_mva": 1.36097,
-   "p_max_w": 2626.0
+   "spot_nok_kwh_eks_mva": 1.438275,
+   "p_max_w": 2626.0,
+   "spot_kilde": "nordpool_publisert"
   },
   {
    "start_local": "2026-08-23T01:00:00+02:00",
@@ -4379,8 +4401,9 @@
   {
    "start_local": "2026-08-31T00:00:00+02:00",
    "kwh": 1.038,
-   "spot_nok_kwh_eks_mva": 1.35957,
-   "p_max_w": 3805.0
+   "spot_nok_kwh_eks_mva": 1.364737,
+   "p_max_w": 3805.0,
+   "spot_kilde": "nordpool_publisert"
   },
   {
    "start_local": "2026-08-31T01:00:00+02:00",

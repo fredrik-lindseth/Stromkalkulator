@@ -699,3 +699,130 @@ class TestNorgesprisKompensasjonSensorsNoneData:
 
         sensor = sensor_class(coordinator, entry)
         assert sensor.native_value is None
+
+
+# ===========================================================================
+# Egendefinert fastledd: trinntabellen i skjemaene (kontrakt §9)
+# ===========================================================================
+
+
+class TestTrinntabellISkjemaene:
+    """Feltet finnes bare for Egendefinert, og valideres før det lagres.
+
+    Trinnene er brukerens egne fordi Egendefinert ikke har noen prisliste vi
+    kan lese. De kjente nettselskapene har trinn med kilde i dso.py, og et felt
+    for dem ville invitert til å overstyre en verifisert prisliste med et minne.
+    """
+
+    def _skjema(self, **ekstra):
+        return {**_skjema_uten_valgfrie(), CONF_DSO: "custom", **ekstra}
+
+    def test_gyldig_tabell_lagres(self):
+        entry = _make_entry(dso="custom")
+        flow = _make_options_flow(entry)
+
+        asyncio.run(flow.async_step_init(self._skjema(egendefinert_kapasitetstrinn="2:155,5:250")))
+
+        data = flow.hass.config_entries.async_update_entry.call_args.kwargs["data"]
+        assert data["egendefinert_kapasitetstrinn"] == "2:155,5:250"
+
+    def test_ugyldig_tabell_avvises_med_feilnokkel(self):
+        entry = _make_entry(dso="custom")
+        flow = _make_options_flow(entry)
+
+        asyncio.run(flow.async_step_init(self._skjema(egendefinert_kapasitetstrinn="2 kW koster 155")))
+
+        flow.hass.config_entries.async_update_entry.assert_not_called()
+        assert (
+            flow.async_show_form.call_args[1]["errors"]["egendefinert_kapasitetstrinn"]
+            == "trinntabell_ugyldig"
+        )
+
+    def test_tomt_felt_fjerner_tabellen(self):
+        """Tomt betyr «jeg vet ikke», og da skal fastleddet bli ukjent igjen."""
+        entry = _make_entry(dso="custom")
+        entry.data["egendefinert_kapasitetstrinn"] = "2:155"
+        flow = _make_options_flow(entry)
+
+        asyncio.run(flow.async_step_init(self._skjema()))
+
+        data = flow.hass.config_entries.async_update_entry.call_args.kwargs["data"]
+        assert "egendefinert_kapasitetstrinn" not in data
+
+    def test_bytte_til_kjent_nettselskap_fjerner_tabellen(self):
+        """Trinnene hørte til ett nettselskap. Katalogen gjelder for det nye."""
+        entry = _make_entry(dso="custom")
+        entry.data["egendefinert_kapasitetstrinn"] = "2:155"
+        flow = _make_options_flow(entry)
+
+        asyncio.run(flow.async_step_init({**_skjema_uten_valgfrie(), CONF_DSO: "bkk"}))
+
+        data = flow.hass.config_entries.async_update_entry.call_args.kwargs["data"]
+        assert "egendefinert_kapasitetstrinn" not in data
+
+    def test_feltet_vises_kun_for_egendefinert(self):
+        cf_mod = _reload_config_flow()
+        egendefinert = cf_mod._config_data_schema({CONF_DSO: "custom"})
+        kjent = cf_mod._config_data_schema({CONF_DSO: "bkk"})
+        assert "egendefinert_kapasitetstrinn" in egendefinert
+        assert "egendefinert_kapasitetstrinn" not in kjent
+
+
+class TestPricingStegetTarImotTrinn:
+    """Førstegangsoppsettet skal kunne oppgi trinnene med en gang."""
+
+    def _flow(self):
+        cf_mod = _reload_config_flow()
+        flow = cf_mod.NettleieConfigFlow()
+        flow.hass = MagicMock()
+        flow._data = {CONF_DSO: "custom", CONF_POWER_SENSOR: "sensor.power_1"}
+        flow.async_create_entry = MagicMock(return_value={"type": "create_entry"})
+        flow.async_show_form = MagicMock(return_value={"type": "form", "step_id": "pricing"})
+        return flow
+
+    def test_gyldig_tabell_blir_med_paa_entryet(self):
+        flow = self._flow()
+        asyncio.run(
+            flow.async_step_pricing(
+                {
+                    CONF_AVGIFTSSONE: "standard",
+                    CONF_ENERGILEDD_DAG: 0.24,
+                    CONF_ENERGILEDD_NATT: 0.08,
+                    "egendefinert_kapasitetstrinn": "2:155,5:250,10:415",
+                }
+            )
+        )
+        assert flow._data["egendefinert_kapasitetstrinn"] == "2:155,5:250,10:415"
+        assert flow._data[CONF_TARIFFMODUS] == "manual"
+
+    def test_tomt_felt_gir_ingen_noekkel(self):
+        flow = self._flow()
+        asyncio.run(
+            flow.async_step_pricing(
+                {
+                    CONF_AVGIFTSSONE: "standard",
+                    CONF_ENERGILEDD_DAG: 0.24,
+                    CONF_ENERGILEDD_NATT: 0.08,
+                }
+            )
+        )
+        assert "egendefinert_kapasitetstrinn" not in flow._data
+        flow.async_create_entry.assert_called_once()
+
+    def test_ugyldig_tabell_stopper_oppsettet_med_feil(self):
+        flow = self._flow()
+        asyncio.run(
+            flow.async_step_pricing(
+                {
+                    CONF_AVGIFTSSONE: "standard",
+                    CONF_ENERGILEDD_DAG: 0.24,
+                    CONF_ENERGILEDD_NATT: 0.08,
+                    "egendefinert_kapasitetstrinn": "5:250,2:155",
+                }
+            )
+        )
+        flow.async_create_entry.assert_not_called()
+        assert (
+            flow.async_show_form.call_args[1]["errors"]["egendefinert_kapasitetstrinn"]
+            == "trinntabell_ugyldig"
+        )

@@ -108,6 +108,16 @@ Tinfos er dekket i punkt 9. Ingen kilde finnes for metoden.
 
 Felles for alle tre: se [bidra med faktura](fakturaer/bidra-med-faktura.md).
 
+## 11. Egendefinert nettselskap har ikke noe fastledd før du oppgir det
+
+Velger du Egendefinert, finnes det ingen prisliste vi kan lese. Til og med 1.16.0 lå det likevel ti kapasitetstrinn i koden for den oppføringen. De var en mal, ikke priser, og siden kapasitetsleddet er et fast månedsbeløp gikk feilen rett inn i månedskostnaden. De er fjernet, av samme grunn som i [incident 006](incidents/006-kapasitetstrinn-uten-kilde.md).
+
+I stedet kan du skrive inn dine egne trinn i oppsettet, som kW-grense og kr/mnd inkl. mva: `2:155,5:250,10:415` betyr 155 kr/mnd opp til 2 kW, 250 kr/mnd fra 2 til 5 kW og 415 kr/mnd over 5 kW. Det øverste trinnet gjelder alt over grensen under, så du trenger ikke skrive noe for «og oppover». Tallene henter du fra nettleiefakturaen eller prislisten.
+
+Lar du feltet stå tomt, er fastleddet ukjent. Da står kapasitetstrinn, trinn-nummer, margin til neste trinn, månedlig nettleie, månedlig total, estimert månedskostnad og akkumulert kostnad som Ukjent, og prisene per kWh regnes uten fastledd med attributtet `fastledd_ukjent`. Energiledd, forbruk, spotpris, strømstøtte, Norgespris og avgifter er uberørt. Et repair-varsel ber om tabellen ved hver oppstart til den er fylt inn.
+
+Ukjent er med vilje. Et beløp vi ikke har kilde på ser ut som en pris uten å være det, og en nettleie som er 200 kr/mnd feil melder seg ikke selv før fakturaen kommer.
+
 ## Sammendrag
 
 Reelle avvik som påvirker brukeren:

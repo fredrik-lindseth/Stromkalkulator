@@ -16,6 +16,7 @@ from .const import (
     AVGIFTSSONE_STANDARD,
     CONF_AVGIFTSSONE,
     CONF_DSO,
+    CONF_EGENDEFINERT_KAPASITETSTRINN,
     CONF_EGENDEFINERT_SATSER_BEKREFTET,
     CONF_ENERGILEDD_DAG,
     CONF_ENERGILEDD_NATT,
@@ -392,6 +393,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: StromkalkulatorConfigEnt
     _check_sikringstrinn(hass, entry)
     _check_delt_dso(hass, entry)
     _check_egendefinerte_satser(hass, entry)
+    _check_egendefinert_fastledd(hass, entry)
     _check_tariffmodus(hass, entry)
 
     return True
@@ -438,6 +440,38 @@ def _check_egendefinerte_satser(hass: HomeAssistant, entry: StromkalkulatorConfi
             "dag": _ore(entry.data.get(CONF_ENERGILEDD_DAG)),
             "natt": _ore(entry.data.get(CONF_ENERGILEDD_NATT)),
         },
+    )
+
+
+def _check_egendefinert_fastledd(hass: HomeAssistant, entry: StromkalkulatorConfigEntry) -> None:
+    """Be brukere med egendefinert nettselskap oppgi sine egne kapasitetstrinn.
+
+    Til og med 1.16.0 hadde Egendefinert ti innebygde trinn i `dso.py`. De var
+    en mal, ikke priser: ingen prisliste ligger bak dem, og kapasitetsleddet er
+    et fast månedsbeløp, så feilen slår rett inn i månedskostnaden (incident
+    006). Trinnene er fjernet, og uten brukerens egne står kapasitetsleddet og
+    alt som bygger på det som Ukjent.
+
+    Varselet er ikke fiksbart, som `sikringstrinn_mangler`: svaret finnes bare
+    på brukerens egen prisliste, så vi kan ikke spørre om en bekreftelse. Det
+    forsvinner av seg selv når tabellen er fylt inn, og reises ikke for noen
+    andre nettselskap.
+    """
+    issue_id = f"egendefinert_fastledd_{entry.entry_id}"
+    mangler = entry.data.get(CONF_DSO) == DSO_EGENDEFINERT and not entry.data.get(
+        CONF_EGENDEFINERT_KAPASITETSTRINN
+    )
+    if not mangler:
+        ir.async_delete_issue(hass, DOMAIN, issue_id)
+        return
+
+    ir.async_create_issue(
+        hass,
+        DOMAIN,
+        issue_id,
+        is_fixable=False,
+        severity=ir.IssueSeverity.WARNING,
+        translation_key="egendefinert_fastledd",
     )
 
 

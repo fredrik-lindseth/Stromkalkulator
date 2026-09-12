@@ -46,16 +46,18 @@
       },
       "pricing": {
         "title": "Custom pricing",
-        "description": "Select your tax zone and enter energy tariff prices in NOK/kWh excl. VAT and excl. consumption tax/Enova fee. The integration adds taxes and VAT based on tax zone.",
+        "description": "Select your tax zone and enter energy tariff prices in NOK/kWh excl. VAT and excl. consumption tax/Enova fee. The integration adds taxes and VAT based on tax zone. We have no price list for the capacity fee (the fixed part), so you need to take it from your own.",
         "data": {
           "avgiftssone": "Tax zone",
           "energiledd_dag": "Energy tariff day (NOK/kWh, excl. VAT and taxes)",
-          "energiledd_natt": "Energy tariff night/weekend (NOK/kWh, excl. VAT and taxes)"
+          "energiledd_natt": "Energy tariff night/weekend (NOK/kWh, excl. VAT and taxes)",
+          "egendefinert_kapasitetstrinn": "Capacity tiers from your price list (optional)"
         },
         "data_description": {
           "avgiftssone": "Determines VAT and consumption tax. The VAT exemption follows county, not price area: 'Nord-Norge' covers Nordland and Troms, 'Tiltakssonen' covers Finnmark and Nord-Troms (VAT Act § 6-6). Everyone else, including NO3 (Trøndelag and Møre og Romsdal), selects 'Sør-Norge' and pays 25% VAT.",
           "energiledd_dag": "Grid tariff only, for daytime. Find the amount listed as 'energiledd' or 'overføring' on your price list, before consumption tax, Enova fee and VAT.",
-          "energiledd_natt": "Grid tariff only, for night/weekend. If your grid company uses a flat rate, enter the same value as for daytime."
+          "energiledd_natt": "Grid tariff only, for night/weekend. If your grid company uses a flat rate, enter the same value as for daytime.",
+          "egendefinert_kapasitetstrinn": "The fixed grid fee as your grid company lists it: kW limit and NOK/month incl. VAT, separated by a colon, with tiers separated by commas. The notation 2:155,5:250,10:415 means NOK 155/month up to 2 kW, NOK 250/month from 2 to 5 kW and NOK 415/month above 5 kW; the numbers are a format example, not prices. The top tier covers everything above the limit below it. Leave the field empty and capacity tier, monthly grid rent, monthly total, estimated monthly cost and accumulated cost stay unknown. That is deliberate: there is no price list behind 'Custom', and a guessed fixed fee looks like a price without being one."
         }
       },
       "reconfigure": {
@@ -76,7 +78,8 @@
           "energiledd_dag": "Energy tariff day (NOK/kWh, excl. VAT and taxes)",
           "energiledd_natt": "Energy tariff night/weekend (NOK/kWh, excl. VAT and taxes)",
           "kapasitet_varsel_terskel": "Capacity warning threshold (kW)",
-          "energi_frossen_timer": "Frozen energy meter threshold (hours)"
+          "energi_frossen_timer": "Frozen energy meter threshold (hours)",
+          "egendefinert_kapasitetstrinn": "Capacity tiers from your price list (optional)"
         },
         "data_description": {
           "boligtype": "Residence: Subsidy up to 5000 kWh/month, Norgespris up to 5000 kWh/month. Holiday home: No subsidy, Norgespris up to 1000 kWh/month. Holiday home (permanent residence): Same as residence (Regulation § 11).",
@@ -92,7 +95,8 @@
           "energiledd_dag": "Grid rent excl. VAT and taxes. Leave the field empty to follow the grid company's price list, and the rate updates itself when the list changes. Enter a number and yours applies until you clear the field again.",
           "energiledd_natt": "Grid rent excl. VAT and taxes. Same rule as for day: an empty field follows the price list, a filled one overrides it. Use the same value as day for a flat rate.",
           "kapasitet_varsel_terskel": "Warn when margin to next capacity tier is below this value. Default: 2.0 kW.",
-          "energi_frossen_timer": "Warn when the energy meter has not increased for this many hours. Default: 3. Raise it for a cabin or site that sits idle for stretches, otherwise it warns every time the main breaker is off."
+          "energi_frossen_timer": "Warn when the energy meter has not increased for this many hours. Default: 3. Raise it for a cabin or site that sits idle for stretches, otherwise it warns every time the main breaker is off.",
+          "egendefinert_kapasitetstrinn": "The fixed grid fee as your grid company lists it: kW limit and NOK/month incl. VAT, separated by a colon, with tiers separated by commas. The notation 2:155,5:250,10:415 means NOK 155/month up to 2 kW, NOK 250/month from 2 to 5 kW and NOK 415/month above 5 kW; the numbers are a format example, not prices. The top tier covers everything above the limit below it. Leave the field empty and capacity tier, monthly grid rent, monthly total, estimated monthly cost and accumulated cost stay unknown. That is deliberate: there is no price list behind 'Custom', and a guessed fixed fee looks like a price without being one."
         }
       }
     },
@@ -104,7 +108,8 @@
       "enhet_ukjent": "The calculator does not recognise the unit this sensor reports, so it cannot convert the value. Power must be W, kW or MW. Energy must be Wh, kWh or MWh. Price must be NOK/kWh, kr/kWh, øre/kWh or NOK/MWh.",
       "enhet_feil_dimensjon": "The sensor measures something other than what the field asks for. Check that the power field points at a power sensor, the energy field at a cumulative kWh meter, and the price fields at a price per kWh.",
       "enhet_feil_valuta": "The price is in a currency other than kroner. The calculator has no exchange rate, so a EUR sensor cannot be used directly. Pick a sensor in NOK/kWh or øre/kWh, or build a template sensor that converts.",
-      "energi_ikke_kumulativ": "The energy sensor must be a counter that only increases, that is state_class total_increasing or total. We measure the difference between readings, and a sensor showing present consumption has no difference to measure."
+      "energi_ikke_kumulativ": "The energy sensor must be a counter that only increases, that is state_class total_increasing or total. We measure the difference between readings, and a sensor showing present consumption has no difference to measure.",
+      "trinntabell_ugyldig": "The capacity tiers could not be read. Write each tier as kW limit and NOK/month separated by a colon, tiers separated by commas, with increasing kW limits: 2:155,5:250,10:415."
     },
     "abort": {
       "already_configured": "Already configured"
@@ -130,7 +135,8 @@
           "energiledd_dag": "Energy tariff day (NOK/kWh, excl. VAT and taxes)",
           "energiledd_natt": "Energy tariff night/weekend (NOK/kWh, excl. VAT and taxes)",
           "kapasitet_varsel_terskel": "Capacity warning threshold (kW)",
-          "energi_frossen_timer": "Frozen energy meter threshold (hours)"
+          "energi_frossen_timer": "Frozen energy meter threshold (hours)",
+          "egendefinert_kapasitetstrinn": "Capacity tiers from your price list (optional)"
         },
         "data_description": {
           "boligtype": "Residence: Subsidy up to 5000 kWh/month, Norgespris up to 5000 kWh/month. Holiday home: No subsidy, Norgespris up to 1000 kWh/month. Holiday home (permanent residence): Same as residence (Regulation § 11).",
@@ -146,7 +152,8 @@
           "energiledd_dag": "Grid rent excl. VAT and taxes. Leave the field empty to follow the grid company's price list, and the rate updates itself when the list changes. Enter a number and yours applies until you clear the field again.",
           "energiledd_natt": "Grid rent excl. VAT and taxes. Same rule as for day: an empty field follows the price list, a filled one overrides it. Use the same value as day for a flat rate.",
           "kapasitet_varsel_terskel": "Warn when margin to next capacity tier is below this value. Default: 2.0 kW.",
-          "energi_frossen_timer": "Warn when the energy meter has not increased for this many hours. Default: 3. Raise it for a cabin or site that sits idle for stretches, otherwise it warns every time the main breaker is off."
+          "energi_frossen_timer": "Warn when the energy meter has not increased for this many hours. Default: 3. Raise it for a cabin or site that sits idle for stretches, otherwise it warns every time the main breaker is off.",
+          "egendefinert_kapasitetstrinn": "The fixed grid fee as your grid company lists it: kW limit and NOK/month incl. VAT, separated by a colon, with tiers separated by commas. The notation 2:155,5:250,10:415 means NOK 155/month up to 2 kW, NOK 250/month from 2 to 5 kW and NOK 415/month above 5 kW; the numbers are a format example, not prices. The top tier covers everything above the limit below it. Leave the field empty and capacity tier, monthly grid rent, monthly total, estimated monthly cost and accumulated cost stay unknown. That is deliberate: there is no price list behind 'Custom', and a guessed fixed fee looks like a price without being one."
         }
       }
     },
@@ -158,7 +165,8 @@
       "enhet_ukjent": "The calculator does not recognise the unit this sensor reports, so it cannot convert the value. Power must be W, kW or MW. Energy must be Wh, kWh or MWh. Price must be NOK/kWh, kr/kWh, øre/kWh or NOK/MWh.",
       "enhet_feil_dimensjon": "The sensor measures something other than what the field asks for. Check that the power field points at a power sensor, the energy field at a cumulative kWh meter, and the price fields at a price per kWh.",
       "enhet_feil_valuta": "The price is in a currency other than kroner. The calculator has no exchange rate, so a EUR sensor cannot be used directly. Pick a sensor in NOK/kWh or øre/kWh, or build a template sensor that converts.",
-      "energi_ikke_kumulativ": "The energy sensor must be a counter that only increases, that is state_class total_increasing or total. We measure the difference between readings, and a sensor showing present consumption has no difference to measure."
+      "energi_ikke_kumulativ": "The energy sensor must be a counter that only increases, that is state_class total_increasing or total. We measure the difference between readings, and a sensor showing present consumption has no difference to measure.",
+      "trinntabell_ugyldig": "The capacity tiers could not be read. Write each tier as kW limit and NOK/month separated by a colon, tiers separated by commas, with increasing kW limits: 2:155,5:250,10:415."
     }
   },
   "entity": {
@@ -427,6 +435,10 @@
           }
         }
       }
+    },
+    "egendefinert_fastledd": {
+      "title": "Capacity tiers missing for custom grid company",
+      "description": "Up to and including 1.16.0, 'Custom' shipped ten built-in capacity tiers. They were a template with no price list behind them, and since the capacity fee is a fixed monthly amount they fed straight into the monthly cost. They have been removed. Until you enter your own, 'Capacity tier', 'Monthly grid rent', 'Monthly total', 'Estimated monthly cost' and 'Accumulated cost' stay unknown, and the per-kWh prices are calculated without the fixed fee. Open Settings > Devices & Services > Strømkalkulator > Configure and enter the tiers from your price list as kW limit:NOK per month, separated by commas."
     }
   }
 }

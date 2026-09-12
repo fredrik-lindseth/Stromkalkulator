@@ -59,7 +59,12 @@ def les_elhub(maaned: str) -> list[tuple[datetime, float]]:
 
 
 def les_timespriser() -> dict[datetime, float]:
-    """Timespris i NOK/kWh eks. mva: snitt av de fire kvarterprisene (A2)."""
+    """Timespris i NOK/kWh eks. mva: snitt av de fire kvarterprisene (A2).
+
+    Uvektet snitt ved full presisjon, samme regning som prisruteregelen i A2.1
+    og som verify_norgespris_eksakt.py. Går de tre fra hverandre, regner drift
+    og etterkontroll ulikt, og da er sammenligningen under verdiløs.
+    """
     if not NOK_ARKIV.exists():
         sys.exit(f"Mangler {NOK_ARKIV}. Kjør `just snapshot-kurs`.")
     arkiv = json.loads(NOK_ARKIV.read_text(encoding="utf-8"))

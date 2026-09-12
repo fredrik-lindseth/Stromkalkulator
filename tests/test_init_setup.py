@@ -207,9 +207,7 @@ class TestUniqueIdSetup:
 
         asyncio.run(init_module.async_setup_entry(hass, entry))
 
-        hass.config_entries.async_update_entry.assert_called_once_with(
-            entry, unique_id=entry.entry_id
-        )
+        hass.config_entries.async_update_entry.assert_called_once_with(entry, unique_id=entry.entry_id)
 
     def test_entry_with_unique_id_not_touched(self, init_module):
         """Entry som allerede har unique_id (migrert v4) skal ikke oppdateres."""
@@ -269,10 +267,7 @@ class TestRepairOpprydding:
             f"spotpris_mva_check_{SLETTET_ENTRY}",
             f"dso_delt_{SLETTET_ENTRY}",
         ]
-        assert all(
-            call.args[1] == init_module.DOMAIN
-            for call in mock_ir.async_delete_issue.call_args_list
-        )
+        assert all(call.args[1] == init_module.DOMAIN for call in mock_ir.async_delete_issue.call_args_list)
 
     def test_setup_sletter_foreldrelost_issue(self, init_module):
         hass = _make_hass()
@@ -310,7 +305,4 @@ class TestRepairOpprydding:
             asyncio.run(init_module.async_setup_entry(hass, entry))
 
         assert "dso_migration_skiakernett_vevig" not in _slettede(mock_ir)
-        assert all(
-            call.args[1] == init_module.DOMAIN
-            for call in mock_ir.async_delete_issue.call_args_list
-        )
+        assert all(call.args[1] == init_module.DOMAIN for call in mock_ir.async_delete_issue.call_args_list)

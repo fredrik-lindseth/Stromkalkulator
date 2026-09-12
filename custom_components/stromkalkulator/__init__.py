@@ -91,9 +91,7 @@ def _migrate_storage_file_sync(storage_dir: str, old_dso: str, new_dso: str) -> 
     _LOGGER.info("Migrated storage file: %s -> %s", old_path.name, new_path.name)
 
 
-async def _migrate_storage_file(
-    hass: HomeAssistant, storage_dir: str, old_dso: str, new_dso: str
-) -> None:
+async def _migrate_storage_file(hass: HomeAssistant, storage_dir: str, old_dso: str, new_dso: str) -> None:
     """Migrate storage file in executor to avoid blocking the event loop."""
     await hass.async_add_executor_job(_migrate_storage_file_sync, storage_dir, old_dso, new_dso)
 
@@ -343,9 +341,7 @@ def _check_delt_dso(hass: HomeAssistant, entry: StromkalkulatorConfigEntry) -> N
             translation_key="dso_delt",
             translation_placeholders={
                 "dso": dso["name"],
-                "omrader": ", ".join(
-                    DSO_LIST[nytt]["name"] for nytt in delt_i if nytt in DSO_LIST
-                ),
+                "omrader": ", ".join(DSO_LIST[nytt]["name"] for nytt in delt_i if nytt in DSO_LIST),
             },
         )
     else:

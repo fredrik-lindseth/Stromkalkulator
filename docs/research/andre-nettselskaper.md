@@ -22,15 +22,14 @@ døgn", funksjonelt identisk med vår implementasjon i
 
 Kilde: [Tariffblad 1.0 standard tariff privat 2026-01-01 (PDF)](https://www.elvia.no/siteassets/dokumenter/priser/2026/tariffblad_1_0_standard-tariff_privat_20260101.pdf)
 
-**Energiledd:** match
-- Dag (inkl. alt): 36,40 øre/kWh. Vår dag eks. mva eks. avgifter: 20,99 -> regnet
-  ut blir det 20,99 + 8,13 = 29,12 eks. mva -> 36,40 inkl. mva. Stemmer.
-- Natt/helg (inkl. alt): 26,40 -> 12,99 ren nettleie. Stemmer.
+Energileddet matcher. Dag inkl. alt er 36,40 øre/kWh, og vår dag eks. mva eks.
+avgifter på 20,99 gir 20,99 + 8,13 = 29,12 eks. mva, altså 36,40 inkl. mva.
+Natt/helg inkl. alt er 26,40, som tilsvarer 12,99 ren nettleie.
 
-**Tidspunkter:** dag hverdager 06-22, natt hverdager 22-06, helg lørdag/
-søndag/helligdager hele døgnet. Match med `_is_day_rate()`.
+Tidspunktene matcher `_is_day_rate()`: dag hverdager 06-22, natt hverdager
+22-06, helg lørdag/søndag/helligdager hele døgnet.
 
-**Kapasitetstrinn:** AVVIK på trinn 6-10
+Kapasitetstrinnene avviker på trinn 6-10:
 
 | Trinn | kW     | Elvia 2026 | Vår dso.py | Diff |
 | ----- | ------ | ---------- | ---------- | ---- |
@@ -49,65 +48,54 @@ Kommentaren i dso.py:108 sier trinn 6-10 er "fra PDF
 tariffblad_1_0_standard-tariff_privat_20260101.pdf", men tallene
 matcher ikke aktuell PDF. Enten leste vi feil eller PDFen har endret seg.
 
-**Avregning:** "Gjennomsnittet av de tre høyeste døgnmaksene i måneden" -
-match med vår `_get_top_3_days()`. Døgnmaks = "klokketimen i løpet av et
-døgn med høyest kWh-forbruk": match med vårt `_current_hour_energy`.
+Avregningen er "Gjennomsnittet av de tre høyeste døgnmaksene i måneden", som
+matcher vår `_get_top_3_days()`. Døgnmaks er "klokketimen i løpet av et døgn
+med høyest kWh-forbruk", som matcher vårt `_current_hour_energy`.
 
 ### Tensio TN (NO3): Trøndelag nord
 
 Kilde: [Tensio nettleiepriser privat](https://www.tensio.no/no/kunde/nettleie/nettleiepriser-for-privat),
 [kraftsystemet.no Tensio TN](https://kraftsystemet.no/fri-nettleie/tariffer/tensio-tn.html)
 
-**Energiledd:** match
-- Dag: 25,902 øre/kWh eks. mva eks. avgifter (kraftsystemet.no, "u/ alle avgifter")
-- Natt: 13,006 øre/kWh eks. mva eks. avgifter
-- Vår dso.py: 25,902 / 13,006, match.
+Energileddet matcher: dag 25,902 øre/kWh og natt 13,006 øre/kWh, begge eks.
+mva og eks. avgifter (kraftsystemet.no, "u/ alle avgifter"). Vår dso.py har de
+samme tallene. Tidspunktene er dag 06-22 og natt 22-06, også match.
 
-**Tidspunkter:** dag 06-22, natt 22-06. Match.
+Om helg og helligdag skriver Tensio selv: "Energileddet varierer bare mellom
+dag- og nattpris, vi har ikke ulike priser for helg eller helligdager." Vår
+`helg_som_natt: False` stemmer.
 
-**Helg/helligdag:** Tensios egen side: "Energileddet varierer bare mellom
-dag- og nattpris, vi har ikke ulike priser for helg eller helligdager."
-Vår `helg_som_natt: False`: match.
-
-**Kapasitetstrinn:** kunne ikke verifisere kr/mnd-tallene direkte fra
-Tensios side (vises ikke på nettsiden uten konkrete tabeller). Vi har
-beregnet fra kr/år-tabell. Bør verifiseres mot ekte faktura før vi kan
-si noe sikkert.
+Kapasitetstrinnene fikk vi ikke verifisert direkte fra Tensios side, kr/mnd
+vises ikke der uten konkrete tabeller. Vi har beregnet dem fra kr/år-tabellen,
+så de bør verifiseres mot ekte faktura før vi kan si noe sikkert.
 
 ### Tensio TS (NO3): Trøndelag sør
 
 Kilde: [kraftsystemet.no Tensio TS](https://kraftsystemet.no/fri-nettleie/tariffer/tensio-ts.html)
 
-**Energiledd:** match
-- Dag: 20,702 øre/kWh eks. mva eks. avgifter
-- Natt: 10,206 øre/kWh eks. mva eks. avgifter
-- Vår dso.py: 20,702 / 10,206, match.
-
-**Tidspunkter, helg:** samme som TN.
-
-**Kapasitetstrinn:** samme forbehold som TN.
+Energileddet matcher: dag 20,702 og natt 10,206 øre/kWh eks. mva eks.
+avgifter, samme som vår dso.py. Tidspunkter og helgebehandling er som TN, og
+kapasitetstrinnene har samme forbehold som TN.
 
 ### Glitre Nett (NO1)
 
 Kilde: [Glitre Nett nettleiepriser privat](https://www.glitrenett.no/kunde/nettleie-og-priser/nettleiepriser-privatkunde)
 
-**Energiledd:** match
-- Dag (06-22): 24,6 øre/kWh eks. mva. Vår: 24,598 (avrunding på 0,002 øre, neglisjerbart)
-- Natt (22-06): 12,6 øre/kWh eks. mva. Vår: 12,598 (samme)
+Energileddet matcher. Dag (06-22) er 24,6 øre/kWh eks. mva mot vår 24,598, og
+natt (22-06) er 12,6 mot vår 12,598. Avrundingen på 0,002 øre er neglisjerbar.
 
-**Avregning:** "Snittet av de tre høyeste døgnmaksene": match.
+Avregningen er "Snittet av de tre høyeste døgnmaksene", som matcher, og alle ti
+kapasitetstrinn matcher også.
 
-**Helg/helligdag:** Glitres side nevner ikke spesiell helgebehandling, vår
-`helg_som_natt: False`: virker riktig, men bør dobbeltsjekkes mot faktura.
-
-**Kapasitetstrinn:** match alle ti trinn.
+Glitres side nevner ikke spesiell helgebehandling. Vår `helg_som_natt: False`
+virker riktig, men bør dobbeltsjekkes mot faktura.
 
 ### Lnett (NO2): Stavanger-området
 
 Kilde: [Lnett tariffhefte 2026 (PDF)](https://www.l-nett.no/getfile.php/131569206-1764934863/Tariffhefte%20fra%201.%20januar%202026.pdf),
 [Lnett priser privat](https://www.l-nett.no/nettleie/priser-og-vilkar-privat/)
 
-**Energiledd:** STORT AVVIK
+Energileddet har et stort avvik:
 
 |               | Lnett 2026 | Vår dso.py | Diff                   |
 | ------------- | ---------- | ---------- | ---------------------- |
@@ -118,7 +106,7 @@ Avviket på nøyaktig 8,13 øre = forbruksavgift (7,13) + Enova (1,0).
 Mistanke: gamle tall, eller avgifter trukket fra to ganger. Datoen i
 kommentaren stemmer heller ikke.
 
-**Kapasitetstrinn:** AVVIK på høyere trinn
+Kapasitetstrinnene avviker på de høyere trinnene:
 
 | Trinn | kW     | Lnett 2026 | Vår dso.py                     |
 | ----- | ------ | ---------- | ------------------------------ |
@@ -137,21 +125,19 @@ Vår dso.py:248 har `(float("inf"), 1150)`: alle kunder over 25 kW
 faktureres feil i vår implementasjon. Mistolket "20-25 kW" som siste
 trinn.
 
-**Avregning:** "Snittet av de tre høyeste timesforbrukene ('døgnmakser')
-forrige måned": match.
+Avregningen er "Snittet av de tre høyeste timesforbrukene ('døgnmakser')
+forrige måned", som matcher.
 
 ### Lede (NO2)
 
 Kilde: [Lede nettleie privatkunder](https://lede.no/priser/nettleie-privatkunder/)
 
-**Energiledd:** AVVIK
-- Lede 2026: 14,26 øre/kWh (flat, ingen dag/natt)
-- Vår dso.py: 24,382 (flat), **+10,12 øre for høyt**.
+Energileddet avviker. Lede 2026 har 14,26 øre/kWh flatt, uten dag/natt, mens
+vår dso.py har 24,382 flatt, altså 10,12 øre for høyt. Vi har antakelig
+2025-tall eller eldre. Verdt å notere: Lede har ikke dag/natt-differensiering
+for husholdning, kun for effekttariff på næring.
 
-Vi har antakelig 2025-tall eller eldre. Verdt å notere: Lede har ikke
-dag/natt-differensiering for husholdning (kun for effekttariff på næring).
-
-**Kapasitetstrinn:** AVVIK
+Kapasitetstrinnene avviker også:
 
 | kW    | Lede 2026 | Vår dso.py |
 | ----- | --------- | ---------- |
@@ -170,18 +156,15 @@ kraftsystemet 2026"), men tallene matcher ikke faktiske 2026-priser.
 
 Kilde: [Norgesnett nettleie privat](https://norgesnett.no/nettleie-privat/)
 
-**Energiledd:** AVVIK
-- Norgesnett 2026 inkl. mva: 44,36 (dag) / 33,46 (natt) øre/kWh
-- Inkl. mva -> eks. mva: 35,49 / 26,77 øre/kWh
-- Eks. mva -> ren nettleie (-8,13): **27,36 / 18,64** øre/kWh
-- Vår dso.py: **20,262 / 13,286**, for lavt med 7+ øre
-
+Energileddet avviker. Norgesnett 2026 inkl. mva er 44,36 (dag) og 33,46
+(natt) øre/kWh. Eks. mva blir det 35,49 / 26,77, og som ren nettleie (-8,13)
+27,36 / 18,64. Vår dso.py har 20,262 / 13,286, altså 7+ øre for lavt.
 Antakelig 2025-tall.
 
 ## Forbruksavgift 2026: sjekk const.py
 
-Statsbudsjettet 2026 foreslår 8,9125 øre/kWh inkl. mva = **7,13 øre/kWh
-eks. mva**. Skatteetaten bekrefter dette. Vår `const.py:181` har
+Statsbudsjettet 2026 foreslår 8,9125 øre/kWh inkl. mva, altså 7,13 øre/kWh
+eks. mva. Skatteetaten bekrefter dette. Vår `const.py:181` har
 `FORBRUKSAVGIFT_ALMINNELIG = 0.0713`: korrekt.
 
 Lnett og Glitre nevner i sine prislister at 2026-avgiftene "ikke er
@@ -190,30 +173,30 @@ statsbudsjett.
 
 ## Enova-avgift 2026: sjekk const.py
 
-Glitre og Lnett rapporterer **1,25 øre/kWh inkl. mva = 1,0 øre/kWh eks. mva**.
+Glitre og Lnett rapporterer 1,25 øre/kWh inkl. mva, altså 1,0 øre/kWh eks. mva.
 Vår `const.py:182` har `ENOVA_AVGIFT = 0.01`: korrekt.
 
 ## Bugs i dso.py
 
-1. **Lnett (linje 235-250)**: kapasitetstrinn mangler trinn over 25 kW.
+1. Lnett (linje 235-250): kapasitetstrinn mangler trinn over 25 kW.
    Siste tuple `(float("inf"), 1150)` skal være `(50, 2150), (75, 3150),
    (100, 4150), (float("inf"), 7000)`. Påvirker brukere på trinn 7-10.
 
-2. **Lnett (linje 239-240)**: energiledd er ~46-149% for lavt. Skal være
+2. Lnett (linje 239-240): energiledd er ~46-149% for lavt. Skal være
    0,2560 / 0,1360, ikke 0,1747 / 0,0547.
 
-3. **Lede (linje 223-224)**: energiledd 0,24382 (flat) skal være 0,1426.
+3. Lede (linje 223-224): energiledd 0,24382 (flat) skal være 0,1426.
 
-4. **Lede (linje 226-233)**: kapasitetstrinn ~9-10% for høyt.
+4. Lede (linje 226-233): kapasitetstrinn ~9-10% for høyt.
 
-5. **Norgesnett (linje 148-149)**: energiledd 0,20262 / 0,13286 skal være
+5. Norgesnett (linje 148-149): energiledd 0,20262 / 0,13286 skal være
    ~0,2736 / 0,1864 (basert på inkl-mva-tall fra 2026).
 
-6. **Elvia (linje 114-118)**: trinn 6-10 har avvik 25-345 kr/mnd. Mest
+6. Elvia (linje 114-118): trinn 6-10 har avvik 25-345 kr/mnd. Mest
    sannsynlig leste vi PDF-en feil eller den var en eldre versjon. Verifisert
    PDF nå viser: 630, 1175, 1720, 2270, 4570.
 
-7. **Asker Nett (linje 515-516)**: bør re-verifiseres mot 2026-prisliste -
+7. Asker Nett (linje 515-516): bør re-verifiseres mot 2026-prisliste,
    sannsynligvis samme mønster som Norgesnett siden Asker er nytt
    selskap med separat tariff.
 
@@ -253,11 +236,11 @@ Ingen krise i mai 2026.
 
 ## Anbefaling
 
-**Avgrense scope er ikke realistisk**: vi har allerede 30+ DSO-er i
-dso.py, og brukere har valgt dem i config. Å fjerne støtte for alle
-utenom BKK ville bryte eksisterende oppsett.
+Å avgrense scope er ikke realistisk. Vi har allerede 30+ DSO-er i dso.py, og
+brukere har valgt dem i config, så å fjerne støtte for alle utenom BKK ville
+bryte eksisterende oppsett.
 
-**Bør fikse de sju konkrete buggene** i prioritert rekkefølge:
+De sju konkrete buggene bør fikses i prioritert rekkefølge:
 
 | Prioritet | Bug                                       | Konsekvens for bruker                  |
 | --------- | ----------------------------------------- | -------------------------------------- |
@@ -269,11 +252,11 @@ utenom BKK ville bryte eksisterende oppsett.
 | P3        | Elvia: kapasitetstrinn 6-10 har små avvik | Kun for husholdninger med >20 kW snitt |
 | P3        | Asker Nett: verifiseres mot 2026          | Sannsynligvis lignende feil            |
 
-Bør også **legge til disclaimer** i `docs/begrensninger.md` om at kun
+Vi bør også legge inn en disclaimer i `docs/begrensninger.md` om at kun
 BKK er faktura-verifisert og at andre DSO-er er sjekket mot publiserte
 tariffer som kan ha avvik vi ikke ser før noen verifiserer mot faktura.
 
-**For framtiden:** automatisk parsing av PDF-er fra DSO-er er ikke
+For framtiden: automatisk parsing av PDF-er fra DSO-er er ikke
 realistisk (alle har forskjellig format), men vi kunne ha en `scripts/
 research/verify_dso_prices.py` som henter prisene fra DSO-ens HTML når
 mulig og flagger avvik. Manuell oppdatering 1-2 ganger i året er

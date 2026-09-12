@@ -12,9 +12,10 @@ Nettselskapet AS og [#12](https://github.com/fredrik-lindseth/Stromkalkulator/is
 om Elvia. Begge meldingene handlet om kapasitetsleddet.
 
 En full gjennomgang mot fri-nettleie viste at problemet var langt større enn de
-to. Av de 72 nettselskapene i `DSO_LIST` hadde 44 feil kapasitetstrinn. Energileddene var derimot
-nesten helt riktige: bare Elvia (og Rakkestad, som følger Elvia) måtte rettes,
-og etter det matcher alle fri-nettleie innenfor 0,1 øre/kWh.
+to. Av de 72 nettselskapene i `DSO_LIST` hadde 44 feil kapasitetstrinn.
+Energileddene var derimot nesten helt riktige. Bare Elvia (og Rakkestad, som
+følger Elvia) måtte rettes, og etter det matcher alle fri-nettleie innenfor
+0,1 øre/kWh.
 
 ## Rotårsak
 
@@ -74,9 +75,9 @@ husstander over det høyeste publiserte trinnet.
 2. Kapasitetstrinn for 40 av de 44 hentet fra fri-nettleie, med kilde-kommentar
    og tariffdato per oppføring. De fire siste står i punktet under.
 3. Elvia, Nettselskapet og Glitre verifisert direkte mot nettselskapenes egne
-   prislister, ikke bare fri-nettleie. BKK står uendret på faktura-verifiserte
-   tall. Alle fire stemmer med fri-nettleie, som er en uavhengig bekreftelse på
-   at konverteringen er riktig.
+   prislister, i tillegg til fri-nettleie. BKK står uendret på
+   faktura-verifiserte tall. Alle fire stemmer med fri-nettleie, som er en
+   uavhengig bekreftelse på at konverteringen er riktig.
 4. Regresjonstest: to nettselskap kan ikke ha identiske kapasitetstrinn uten at
    delingen er ført opp med begrunnelse.
 
@@ -86,8 +87,8 @@ fri-nettleie.
 ### Oppfølging: de fem avvikende metodene
 
 Fem nettselskap brukte en annen fastledd-metode enn vår modell med snitt av tre
-døgnmakser, og for dem var det ikke tallene men beregningsmodellen som var feil:
-Alut og Netera (`OV_TREFASE`, sikringsbasert), Fjellnett (`FEM_VEKTET_ÅR`),
+døgnmakser. For dem holdt det ikke å rette satsene, hele beregningsmodellen var
+feil: Alut og Netera (`OV_TREFASE`, sikringsbasert), Fjellnett (`FEM_VEKTET_ÅR`),
 Sør-Aurdal (`MND_MAX`) og Tinfos (`UKJENT`). Alle fire modellene er nå
 implementert, med `fastledd_metode` per nettselskap og fri-nettleies egne
 metodenavn som verdi. Drift-vakten sammenligner både metoden og satsene, hver på
@@ -112,23 +113,27 @@ regioner med ulik pris, og må verifiseres manuelt.
 
 ## Lærdom
 
-1. **En drift-detektor som dekker halve datasettet gir falsk trygghet.** Den
-   ukentlige jobben var grønn i fire måneder mens 44 nettselskap hadde feil
-   fastledd. Grønn CI ble lest som "prisene stemmer", ikke som "energileddene
-   stemmer". Når en sjekk innføres, hør etter hva den *ikke* dekker.
-2. **Strukturvalidering er ikke verdivalidering.** Trinnene besto alle tester
-   fordi de var sortert, positive og stigende. Tester som bare beskriver formen
-   på data, sier ingenting om at data er riktig.
-3. **Identiske verdier på tvers av uavhengige enheter er et varsel.** Fjorten
-   nettselskap med samme prisliste er statistisk umulig. Den invarianten er
-   billig å teste og ville fanget dette 1. april.
-4. **Skill mellom hva som er researchet og hva som er fylt ut.** Samme commit ga
-   riktige energiledd og oppdiktede kapasitetstrinn for de samme selskapene. At
-   en del av en oppføring har kilde, gjør ikke resten troverdig. Kilde-kommentar
-   per felt, ikke per nettselskap.
-5. **Bruker-issues er stikkprøver, ikke sakens omfang.** To meldinger om to
-   nettselskap avdekket en feil i 44. Når en bruker melder feil pris, sjekk hele
-   klassen.
+En drift-detektor som dekker halve datasettet gir falsk trygghet. Den ukentlige
+jobben var grønn i fire måneder mens 44 nettselskap hadde feil fastledd. Grønn
+CI ble lest som "prisene stemmer", når den egentlig sa "energileddene stemmer".
+Når en sjekk innføres, hør etter hva den *ikke* dekker.
+
+Strukturvalidering er ikke verdivalidering. Trinnene besto alle tester fordi de
+var sortert, positive og stigende. En test som bare beskriver formen på data,
+sier ingenting om at dataene er riktige.
+
+Identiske verdier på tvers av uavhengige enheter er et varsel. Fjorten
+nettselskap med samme prisliste er statistisk umulig. Den invarianten er billig
+å teste og ville fanget dette 1. april.
+
+Skill mellom hva som er researchet og hva som er fylt ut. Samme commit ga
+riktige energiledd og oppdiktede kapasitetstrinn for de samme selskapene. At en
+del av en oppføring har kilde, gjør ikke resten troverdig. Kilde-kommentar per
+felt, ikke per nettselskap.
+
+Bruker-issues er stikkprøver som sier lite om omfanget. To meldinger om to
+nettselskap avdekket en feil i 44. Når en bruker melder feil pris, sjekk hele
+klassen.
 
 ## Kilder
 

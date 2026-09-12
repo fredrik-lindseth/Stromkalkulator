@@ -24,7 +24,7 @@ Forholdstallet er nøyaktig 1,25.
 
 ## Rotårsak
 
-Den offisielle Nord Pool-integrasjonen i Home Assistant (`domain: nordpool`) leverer kraftpriser **eks. mva**. Strømkalkulator antar i hele beregningskjeden at spotpris-sensoren leverer priser **inkl. mva**.
+Den offisielle Nord Pool-integrasjonen i Home Assistant (`domain: nordpool`) leverer kraftpriser eks. mva. Strømkalkulator antar i hele beregningskjeden at spotpris-sensoren leverer priser inkl. mva.
 
 `const.py` linje 82:
 
@@ -39,10 +39,10 @@ Kommentaren er feil. Den ble skrevet da custom_components/nordpool var domineren
 
 Alle Sør-Norge-brukere med spotprisavtale får feil i fire sensorer:
 
-1. **Strømstøtte trigges 25 % for sent.** Vi sammenligner spotpris eks. mva mot terskel 96,25 øre inkl. mva (= 77 øre eks. mva). Strømstøtten settes inn ved 96,25 øre eks. mva = 120 øre inkl. mva i stedet for korrekt 96,25 øre inkl. mva.
-2. **Totalpris-sensoren undervurderer kraftpris** med 25 % for kraftdelen.
-3. **Akkumulert kostnad i Energy Dashboard** undervurderer faktiske kraftkostnader.
-4. **Norgespris-sammenligning** viser for lav besparelse (vist 47 % lavere enn faktisk i caset over).
+1. Strømstøtten trigges 25 % for sent. Vi sammenligner spotpris eks. mva mot terskel 96,25 øre inkl. mva (= 77 øre eks. mva). Støtten settes inn ved 96,25 øre eks. mva = 120 øre inkl. mva i stedet for korrekt 96,25 øre inkl. mva.
+2. Totalpris-sensoren undervurderer kraftprisen med 25 % for kraftdelen.
+3. Akkumulert kostnad i Energy Dashboard undervurderer faktiske kraftkostnader.
+4. Norgespris-sammenligningen viser for lav besparelse, 47 % lavere enn faktisk i caset over.
 
 Buggen ble ikke fanget av faktura-verifiseringen fordi fakturaene viser nettleie, ikke kraftpris. Nettleie-beregningene er korrekte.
 
@@ -101,19 +101,21 @@ Vurdert alternativ: sette `True` (beholder gammel oppførsel) og be brukere slå
 
 ## Lærdom
 
-1. **Eksterne sensor-konvensjoner er ikke statiske.** Da koden ble skrevet var custom_components/nordpool med `VAT: true` vanlig. Den offisielle integrasjonen i HA-core endret default uten at vi merket det. Antagelser om eksterne sensorer må verifiseres med jevne mellomrom.
-2. **Faktura-verifisering dekker bare nettleie.** Vår tillit til at "alt regner riktig" var basert på BKK-faktura-match. Fakturaene viser ikke kraftpris (det går via strømleverandøren), så kraftpris-feil var usynlig i denne testen.
-3. **Avvik på 25 % er signaleffekt, ikke avrundingsstøy.** Når et tall avviker med eksakt mva-rate, er sannsynligheten høy for en mva-håndtering-feil et sted i kjeden.
+Eksterne sensor-konvensjoner står ikke stille. Da koden ble skrevet var custom_components/nordpool med `VAT: true` vanlig. Den offisielle integrasjonen i HA-core endret default uten at vi merket det. Antagelser om eksterne sensorer må verifiseres med jevne mellomrom.
+
+Faktura-verifisering dekker bare nettleie. Tilliten vår til at "alt regner riktig" var basert på BKK-faktura-match, og fakturaene viser ikke kraftpris (den går via strømleverandøren). Kraftpris-feilen var derfor usynlig i den testen.
+
+Et avvik på nøyaktig 25 % er et signal, ikke avrundingsstøy. Når et tall bommer med eksakt mva-raten, sitter feilen som regel i mva-håndteringen et sted i kjeden.
 
 ## Etterspill
 
 Etter at hovedfixen ble implementert, kjørte vi en accountant-review for å fange relaterte mva-feil. Tre nye saker ble fikset i samme runde:
 
-1. **Eksportinntekt brukte spotpris inkl. mva.** Når `spot_price` ble normalisert til inkl. mva, gjorde det at `_monthly_export_revenue += spot_price * export_kwh` ble overrapportert med 25 % i Sør-Norge. Plusskunder får betalt eks. mva av strømleverandøren (privat har ikke utgående mva). Fix: ny variabel `spot_price_eks_mva` brukes for eksportinntekt. Tre nye tester dekker eks-mva-sensor, inkl-mva-sensor og Nord-Norge.
+1. Eksportinntekten brukte spotpris inkl. mva. Når `spot_price` ble normalisert til inkl. mva, gjorde det at `_monthly_export_revenue += spot_price * export_kwh` ble overrapportert med 25 % i Sør-Norge. Plusskunder får betalt eks. mva av strømleverandøren (privat har ikke utgående mva). Fix: ny variabel `spot_price_eks_mva` brukes for eksportinntekt. Tre nye tester dekker eks-mva-sensor, inkl-mva-sensor og Nord-Norge.
 
-2. **Falsk Norgespris-besparelse ved manglende spot-data.** Når spotpris-sensor var nede over 2 timer, falt `spot_price_raw` til 0.0 og koden akkumulerte `(norgespris - 0.0) × kwh = 50 øre/kWh` i fiktiv besparelse hver minutt sensoren var nede. Fix: ny `spot_price_valid`-flagg hopper over alle spot-avhengige akkumuleringer. Energiledd og Norgespris-under-tak akkumuleres uavhengig (de trenger ikke spot).
+2. Falsk Norgespris-besparelse ved manglende spot-data: når spotpris-sensor var nede over 2 timer, falt `spot_price_raw` til 0.0 og koden akkumulerte `(norgespris - 0.0) × kwh = 50 øre/kWh` i fiktiv besparelse hver minutt sensoren var nede. Fix: ny `spot_price_valid`-flagg hopper over alle spot-avhengige akkumuleringer. Energiledd og Norgespris-under-tak akkumuleres uavhengig (de trenger ikke spot).
 
-3. **Misvisende kommentarer i `dso.py`.** Verdiene `energiledd_dag_eks_mva` og `energiledd_natt_eks_mva` er ren energiledd, men kommentarene oppga sluttprisen etter at coordinator har lagt på avgifter og mva. Eksempel: `0.2099 # 36,40 øre/kWh inkl. avgifter` der 0.2099 i øre er 20.99, ikke 36.40. Dette har bidratt til å forvirre menneskelige reviewere og er antatt en medvirkende årsak til incidents 002 og 003. Kommentarene er ryddet til å beskrive ren energiledd.
+3. Misvisende kommentarer i `dso.py`. Verdiene `energiledd_dag_eks_mva` og `energiledd_natt_eks_mva` er ren energiledd, men kommentarene oppga sluttprisen etter at coordinator har lagt på avgifter og mva. Eksempel: `0.2099 # 36,40 øre/kWh inkl. avgifter` der 0.2099 i øre er 20.99, ikke 36.40. Dette har bidratt til å forvirre menneskelige reviewere og er antatt en medvirkende årsak til incidents 002 og 003. Kommentarene er ryddet til å beskrive ren energiledd.
 
 ## Kilder
 

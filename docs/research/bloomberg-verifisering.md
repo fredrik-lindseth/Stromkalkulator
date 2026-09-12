@@ -3,12 +3,11 @@
 Resultatet av Bloomberg-uttrekket som ble bestilt for å teste om BKK bruker
 Nord Pools preliminære 12:00 CET-interbankkurs til NOK-omregning av
 Norgespris-kompensasjonen. Bakgrunnen og hele variant-matrisen ligger i
-[nok-omregning.md](nok-omregning.md); dette er den korte rapporten på selve
+[nok-omregning.md](nok-omregning.md). Dette er den korte rapporten på selve
 Bloomberg-dataene.
 
-**Konklusjon først:** Hypotesen holdt ikke. 12:00-kursen forbedrer ikke avviket
-systematisk, og restavviket forblir i samme ±0,2 %-bånd som med Norges
-Bank-kursen.
+Hypotesen holdt ikke. 12:00-kursen forbedrer ikke avviket systematisk, og
+restavviket forblir i samme ±0,2 %-bånd som med Norges Bank-kursen.
 
 ## Hvilke data vi hadde
 
@@ -21,10 +20,10 @@ Hentet fra Bloomberg-terminal via BDH-formler, ticker `EURNOK Curncy`:
 | PX_MID (12:00)          | mid-pris ved samme snapshot (brukt som kurs) |
 | PX_LAST (daglig)        | vanlig daglig close, uten tid-override       |
 
-- **Periode:** 02.01.2026 - 30.04.2026, daglig, 85 bankdager (jan 21, feb 20, mar 22, apr 22).
-- **Snapshot:** 12:00 Europe/Berlin (= 12:00 CET/CEST = 12:00 Oslo).
-- **Kurs brukt i analysen:** PX_MID @ 12:00, same-day forward-fill for helg/helligdag.
-- **Dekning:** treffer de Norgespris-verifiserte månedene februar, mars og april. Dekker **ikke** mai (mai-fakturaen kom først nå, og Bloomberg-serien stopper 30.04).
+- Periode: 02.01.2026 - 30.04.2026, daglig, 85 bankdager (jan 21, feb 20, mar 22, apr 22).
+- Snapshot: 12:00 Europe/Berlin (= 12:00 CET/CEST = 12:00 Oslo).
+- Kurs brukt i analysen: PX_MID @ 12:00, same-day forward-fill for helg/helligdag.
+- Dekning: treffer de Norgespris-verifiserte månedene februar, mars og april. Mai er ikke dekket, siden mai-fakturaen kom først nå og Bloomberg-serien stopper 30.04.
 
 Råfilen (`fredrik_xr_data.xlsx`) og den genererte fixturen
 (`bloomberg_eur_nok_1200cet_2026.json`) ligger under `_private/Måleverdier/`
@@ -100,7 +99,7 @@ fulgt opp med egne live-kall, ga to ting verdt å ta med videre.
 
 ### Verifisert live 2026-06-20
 
-Nord Pool publiserer sin **egen** daglige EUR/NOK i feltet `exchangeRate` på
+Nord Pool publiserer sin egen daglige EUR/NOK i feltet `exchangeRate` på
 NOK-svaret fra `dataportal-api.nordpoolgroup.com/api/DayAheadPrices` (NO5,
 currency=NOK). Det er denne kursen som ganges på EUR-prisen for hele
 leveringsdøgnet, og svaret er merket `state: Final` (altså etter
@@ -109,29 +108,29 @@ om kraftomsetning forankrer som fasit, ikke Norges Bank eller Bloomberg.
 
 To ting jeg bekreftet med egne kall (51 leveringsdøgn, 30.04-19.06.2026):
 
-1. **Nord Pool-kursen sporer Norges Bank dagen FØR (D-1), ikke same-day.**
+1. Nord Pool-kursen sporer Norges Bank dagen før (D-1), ikke same-day.
    Snittavvik mot NB D-1: abs 0,0166 (stdev 0,024). Mot NB same-day: abs 0,0275
    (stdev 0,037). D-1 er klart nærmere. Det gir mening: valutasnapshotet tas på
    auksjonsdagen (D-1, ~12:00 CET rett før day-ahead-auksjonen ~12:50), ikke på
    leveringsdagen. Eksempel: NP-levering 12.05 = 10,83484, NB 11.05 (D-1) =
    10,8275, NB 12.05 = 10,771.
-2. **Nord Pool-kursen ligger i snitt litt OVER NB D-1** (+0,0051), som er
+2. Nord Pool-kursen ligger i snitt litt over NB D-1 (+0,0051), som er
    hedge-påslaget. Det forklarer hvorfor fakturaens implisitte kurs har ligget
    konsistent litt over NB i alle månedene.
 
 Konsekvens for variantmatrisen i [nok-omregning.md](nok-omregning.md):
 hovedvarianten vår (B: NB same-day) bruker feil FX-dag. Den mekanisk korrekte
-gratis-proxyen er **variant C (NB previous-bankday / D-1)**, som allerede ga
+gratis-proxyen er variant C (NB previous-bankday / D-1), som allerede ga
 den beste februar-matchen (+0,08 kr). Restavviket er da gapet mellom NB D-1 og
 Nord Pools faktiske hedge-kurs (~0,02 i kurs, ~0,2 % i sum).
 
 ### Haken, og hva vi faktisk kan gjøre
 
 Det gratis anonyme API-et serverer om lag de siste to månedene (tilgjengelig tilbake
-til ~19.04 da jeg sjekket 20.06); eldre datoer gir 401. Fixturemånedene jan-mars
-og første halvdel av april er altså ikke gratis tilgjengelige lenger. Men **mai (den
-nye fakturaen) ligger innenfor vinduet akkurat nå** og faller ut utover sommeren.
-Det betyr at vi for første gang kan teste med Nord Pools EKTE kurs, mot
+til ~19.04 da jeg sjekket 20.06), og eldre datoer gir 401. Fixturemånedene jan-mars
+og første halvdel av april er altså ikke gratis tilgjengelige lenger. Mai, den
+nye fakturaen, ligger innenfor vinduet akkurat nå og faller ut utover sommeren.
+Det betyr at vi for første gang kan teste med Nord Pools ekte kurs, mot
 mai-fakturaen, hvis vi henter dataene snart. For å verifisere bakover lenger enn
 vinduet trengs enten en gratis Data Portal-konto (innlogget eksport tilbake til
 1992) eller NB D-1 som proxy.
@@ -141,12 +140,12 @@ vinduet trengs enten en gratis Data Portal-konto (innlogget eksport tilbake til
 Dette er det mest lovende sporet, og nå sjekket mot primærkilden. Forskrift om
 Norgespris ([FOR-2025-09-08-1790](https://lovdata.no/dokument/SF/forskrift/2025-09-08-1790)):
 
-- **§ 11:** nettselskapet (BKK) skal beregne prissikringsverdi *time for time* =
+- § 11: nettselskapet (BKK) skal beregne prissikringsverdi *time for time* =
   elspotpris i budområde - referansepris (40 øre/kWh eks. mva, § 10), og
   beregningen skal ta hensyn til mva.
-- **§ 23 fjerde ledd:** prissikringsverdier time for time *offentliggjøres av
+- § 23 fjerde ledd: prissikringsverdier time for time *offentliggjøres av
   Reguleringsmyndigheten for energi (RME)*.
-- Forskriften sier **ingenting** om valutakurs, kurskilde eller avrunding. Den
+- Forskriften sier ingenting om valutakurs, kurskilde eller avrunding. Den
   delen er altså uregulert, akkurat som vi mistenkte.
 
 Hva «elspotpris i budområde i NOK» betyr forankres i
@@ -155,29 +154,29 @@ spotfakturering skal skje på «Nord Pool sin publiserte timespris per budområd
 oppgitt i NOK». Det er nettopp Nord Pools NOK-pris (med `exchangeRate`-en over),
 ikke en BKK-egen omregning.
 
-**Viktig korreksjon:** research-runden hevdet RME bruker «Epex Spot + Norges
-Bank». Det stemmer for **strømstøtte/fjernvarme**, som regnes på *månedssnitt*
+En viktig korreksjon: research-runden hevdet RME bruker «Epex Spot + Norges
+Bank». Det stemmer for strømstøtte og fjernvarme, som regnes på *månedssnitt*
 spotpris (NVEs strømstøttesats-side sier eksplisitt Epex Spot + NB-kurs). Det er
 en *annen* mekanisme enn den *timesbaserte* Norgespris-prissikringsverdien for
 vanlige strømkunder. Ikke bland dem.
 
-**Konsekvensen for verifisering bakover:** RME publiserer den offisielle
+Konsekvensen for verifisering bakover er at RME publiserer den offisielle
 prissikringsverdien per time per budområde, i NOK, med den offisielle
 omregningen allerede bakt inn. Norgespris gjelder fra 01.10.2025 (strømstøtte-
-grunnlaget enda lenger tilbake), så denne serien dekker **alle** fixturemånedene
+grunnlaget enda lenger tilbake), så denne serien dekker alle fixturemånedene
 og mai. Henter vi RMEs timesverdier for NO5, trenger vi ingen FX-rekonstruksjon
 og ingen Nord Pool-vindu, og kan sjekke hvilken som helst måned til øret.
-**Verifisert 2026-06-20:** RME publiserer verdiene kun som en innebygd Power
+Verifisert 2026-06-20: RME publiserer verdiene kun som en innebygd Power
 BI-rapport på [nve.no/…/prissikringsverdier-time-for-time](https://www.nve.no/reguleringsmyndigheten/kunde/stroem/dette-er-norgespris/prissikringsverdier-time-for-time/)
 : ingen åpen fil-nedlasting og intet API (`api.nve.no` har ingen pris-endepunkter).
 Eneste vei til rådata er Power BI sin «Eksporter data»: åpne rapporten, filtrer
 NO5 + måned, eksporter CSV/XLSX. Siden er åpen, ingen innlogging. For NO5 er
-verdiene oppgitt **inkl. mva**. Maskinporten gjelder bare nettselskapenes
+verdiene oppgitt inkl. mva. Maskinporten gjelder bare nettselskapenes
 innrapportering *til* RME, ikke nedlasting. Det som gjenstår å bekrefte er om
 eksporten faktisk gir time-rader (ikke aggregert) og rekker tilbake til
-01.10.2025; klarer den ikke det, er fallback en innsynsforespørsel til RME
+01.10.2025. Klarer den ikke det, er fallback en innsynsforespørsel til RME
 (`underlag_stromstotte@nve.no`), som etter § 23 plikter å offentliggjøre verdiene.
-Selve uttrekket krever en nettleser-økt; Power BI-eksporten lar seg ikke skripte rent.
+Selve uttrekket krever en nettleser-økt, for Power BI-eksporten lar seg ikke skripte rent.
 
 Den ene gjenværende usikkerheten: § 11 sier nettselskapet *beregner* verdien,
 mens § 23 sier RME *offentliggjør* den. Om BKKs fakturerte verdi er bit-identisk
@@ -189,37 +188,37 @@ desimaler). Et restavvik på under 3 kr / 0,05-0,2 % per måned er sannsynligvis
 avrundings- og kildepresisjonsstøy, ikke en feil i integrasjonen. Det kan vise
 seg umulig å lukke til null utenfra.
 
-> **Motbevist 2026-07-06:** Det lot seg lukke. Med Nord Pools publiserte
+> Motbevist 2026-07-06. Det lot seg lukke: med Nord Pools publiserte
 > Final-kvarterpriser traff vi juni-fakturaens Norgespris-linje på øret.
 > Se [norgespris-eksakt-match.md](norgespris-eksakt-match.md).
 
 ### Rangert
 
-1. **Hent RMEs publiserte timesverdier (prissikringsverdi) for NO5.** Den
+1. Hent RMEs publiserte timesverdier (prissikringsverdi) for NO5. Den
    offisielle fasiten i NOK, med omregningen allerede bakt inn, dekker alle
    måneder fra 01.10.2025. Haken (verifisert 2026-06-20): verdiene finnes kun
    som Power BI-dashboard, så uttrekket må gjøres manuelt via «Eksporter
-   data» i en nettleser (detaljer over). **Nedgradert 2026-07-06:** gapet er
+   data» i en nettleser (detaljer over). Nedgradert 2026-07-06: gapet er
    lukket uten RME (Elhub-kWh x NP Final traff fakturaen, se
-   [norgespris-eksakt-match.md](norgespris-eksakt-match.md)); kun aktuelt
+   [norgespris-eksakt-match.md](norgespris-eksakt-match.md)), kun aktuelt
    igjen for å verifisere måneder eldre enn NP-gratis-vinduet.
-2. ~~**Kjør Nord Pools faktiske `exchangeRate` mot den nye mai-fakturaen.**~~
+2. ~~Kjør Nord Pools faktiske `exchangeRate` mot den nye mai-fakturaen.~~
    Gjort 2026-07-06, med de publiserte NOK-kvarterprisene i stedet for
    rekonstruksjon: juni traff eksakt (0,00 kr), mai har -0,35 kr igjen.
    Arkivet utvidet med `scripts/research/snapshot_nordpool_nok.py`.
    Se [norgespris-eksakt-match.md](norgespris-eksakt-match.md).
-3. **Bytt primær gratis-proxy fra NB same-day (B) til NB D-1 (C)** i
+3. Bytt primær gratis-proxy fra NB same-day (B) til NB D-1 (C) i
    variantanalysen. Mekanisk korrekt, gratis, og best-matchende. Lav innsats.
-4. ~~**Spør BKK direkte** om de fakturerer bit-identisk med RMEs publiserte
+4. ~~Spør BKK direkte om de fakturerer bit-identisk med RMEs publiserte
    verdier, og hvilken kurskilde/avrunding de bruker.~~ Utkast skrevet, aldri
-   sendt: sporet ble løst empirisk 2026-07-06 før spørsmålet ble nødvendig.
+   sendt. Sporet ble løst empirisk 2026-07-06 før spørsmålet ble nødvendig.
    Utkastfilen (`epost-utkast-bkk.md`) er slettet.
-5. ~~**Godta ±0,2 % / under 3 kr som gulv**~~ Avlivet 2026-07-06: gulvet på
+5. ~~Godta ±0,2 % / under 3 kr som gulv~~. Avlivet 2026-07-06, for gulvet på
    Norgespris-linjen er ~0 med riktig priskilde og Elhub-kWh. Mai-restavviket
    på 0,35 kr ble lukket samme kveld med Elhub-CSV (recorder-aggregatglipp,
    ikke pris).
 
-**Status: sporet er lukket.** Elhub-kWh x Nord Pools publiserte Final-priser
+Sporet er lukket. Elhub-kWh x Nord Pools publiserte Final-priser
 reproduserer fakturaen (mai og juni 2026 innenfor 0,005 kr), se
 [norgespris-eksakt-match.md](norgespris-eksakt-match.md). RME-uttrekket (1)
 er kun aktuelt for å verifisere måneder eldre enn gratis-vinduet. BKK-eposten
@@ -244,11 +243,11 @@ produktet (mid-snapshot hvert 30. minutt, inkludert 12:00 CET).
 ```
 
 Velg EUR/NOK, 12:00 CET, periode etter behov. «Save As → CSV» og kjør samme
-analyse. Merk DST: april-oktober er CEST (UTC+2), november-mars er CET (UTC+1);
+analyse. Merk DST: april-oktober er CEST (UTC+2), november-mars er CET (UTC+1).
 12:00 Oslo håndteres av terminalen hvis du oppgir Europe/Oslo eller Europe/Berlin.
 
-Men vurder om det er verdt det: analysen over viser at selv en perfekt
-12:00-kurs ikke ville lukket februar, der fakturaens implisitte kurs ligger
-over både NB og 12:00-interbank. Et nytt Bloomberg-snapshot er trolig bortkastet.
-Den bedre veien er Nord Pools egen `exchangeRate` (som sporer NB D-1, ikke
-12:00-interbank), ikke mer FX-data fra terminalen. Se [Veien videre](#veien-videre).
+Vurder om det er verdt det. Analysen over viser at selv en perfekt 12:00-kurs
+ikke ville lukket februar, der fakturaens implisitte kurs ligger over både NB
+og 12:00-interbank. Et nytt Bloomberg-snapshot er trolig bortkastet. Den bedre
+veien er Nord Pools egen `exchangeRate`, som sporer NB D-1 og ikke
+12:00-interbank. Se [Veien videre](#veien-videre).

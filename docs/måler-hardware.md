@@ -2,7 +2,7 @@
 
 Hvordan strøm-data flyter fra måleren i sikringsskapet til BKKs faktura, og til vårt validerings-script. Hva vi vet, hva vi gjetter.
 
-> Status per 2026-05-23: Førsteutkast basert på empiriske observasjoner i eget oppsett (Kaifa MA304H3E + Pow-U + HA). Punkter merket «**Antagelse**» må bekreftes mot offisielle manualer eller leverandør.
+> Status per 2026-05-23: Førsteutkast basert på empiriske observasjoner i eget oppsett (Kaifa MA304H3E + Pow-U + HA). Punkter merket «Antagelse» må bekreftes mot offisielle manualer eller leverandør.
 
 ## Kjeden i ett bilde
 
@@ -33,12 +33,12 @@ Hvordan strøm-data flyter fra måleren i sikringsskapet til BKKs faktura, og ti
 
 ## TPI: Total Power In
 
-TPI = **Total Power In**, akronym fra M-Bus/IEC 62056. OBIS-kode `1-0:1.8.0` = "Sum Active Energy Imported".
+TPI = Total Power In, akronym fra M-Bus/IEC 62056. OBIS-kode `1-0:1.8.0` = "Sum Active Energy Imported".
 
 - Kumulativ kWh-teller i selve måleren
 - Monoton voksende (nullstilles kun ved meterbytte)
 - Oppløsning: 0,001 kWh = 1 Wh i HAN-output (Antagelse: høyere internt)
-- **Samme register som BKK avleser for fakturering**
+- Samme register som BKK avleser for fakturering
 
 Forbruk per time = `tpi[HH+1] - tpi[HH]`.
 
@@ -52,7 +52,7 @@ Norge har tre dominerende AMS-måler-merker. Alle bruker samme NEK HAN-spec, men
 | Kaifa    | MA105H2E, MA304H3E, MA304H4, MA304T3, MA304T4 | DLMS/COSEM over HDLC | RJ12 (eller RJ45)            | Ja, egen port    | Kaifa-deler av BKK (SORIA), Glitre, mindre nettselskaper          |
 | Kamstrup | Omnipower                                     | DLMS/COSEM           | RJ45 (HAN-NVE)               | Modellavhengig   | Glitre, deler av Aidon-DSO-er                                     |
 
-**SORIA-alliansen:** 27 nettselskaper fra Haugaland til Varanger gjorde felles innkjøp av 700 000 målere fra Nuri Telecom (Kaifa). BKK var program-manager. Det betyr at BKK NO5 har både Aidon og Kaifa i feltet, ofte i samme nettområde.
+SORIA-alliansen er 27 nettselskaper fra Haugaland til Varanger som gjorde felles innkjøp av 700 000 målere fra Nuri Telecom (Kaifa). BKK var program-manager. Det betyr at BKK NO5 har både Aidon og Kaifa i feltet, ofte i samme nettområde.
 
 ### HAN-broadcast-timing
 
@@ -121,13 +121,13 @@ Kilder: [Aidon 6534 bruksanvisning (Lidköping)](https://lidkoping.se/download/1
 
 ### Protokoll og broadcast-mønster på Kaifa
 
-Kaifa MA304H3E kjører **DLMS/COSEM over HDLC** på HAN-porten, ikke ASCII. Pow-U-firmwaren auto-detekterer dette og bytter parser ut fra rammeformatet.
+Kaifa MA304H3E kjører DLMS/COSEM over HDLC på HAN-porten, ikke ASCII. Pow-U-firmwaren auto-detekterer dette og bytter parser ut fra rammeformatet.
 
 | Liste | Frekvens                | Innhold                                         |
 | ----- | ----------------------- | ----------------------------------------------- |
 | list1 | hvert 2,5 sek           | `p` (W), `V_L1-3` (V), `I_L1-3` (A)             |
 | list2 | hvert 10 sek            | utvidet sett (spenning, strøm, effekt per fase) |
-| list3 | hver time, **HH:00:10** | `tpi`, `tqi`, `tpo`, `peaks0..2`                |
+| list3 | hver time, HH:00:10     | `tpi`, `tqi`, `tpo`, `peaks0..2`                |
 
 Sample-skiftet i eget oppsett er empirisk verifisert ved å sammenligne målerens egen RTC (`sensor.pow_u_ams_rtc`, fra OBIS 1.0.0) mot HA-mottakstid (`last_updated_ts`) over 24 timer:
 
@@ -137,7 +137,7 @@ Sample-skiftet i eget oppsett er empirisk verifisert ved å sammenligne måleren
 | HH:00:10  | Måleren bygger HAN-frame med eget tidsstempel i OBIS 1.0.0 (offisielt dokumentert) |
 | HH:00:13  | HA recorder mottar MQTT-publish fra Pow-U                                          |
 
-10 sek inne i måleren mellom snapshot og frame-bygging, 3 sek i transmisjon (HAN-overføring + Pow-U-parsing + MQTT-publish). Forsinkelsen ligger **ikke** mellom Elhub og BKK. Bekreftet: Elhub-data matcher faktura med 0 avvik, se [research/elhub-vs-han-vs-faktura.md](research/elhub-vs-han-vs-faktura.md).
+10 sek inne i måleren mellom snapshot og frame-bygging, 3 sek i transmisjon (HAN-overføring + Pow-U-parsing + MQTT-publish). Forsinkelsen ligger ikke mellom Elhub og BKK. Bekreftet: Elhub-data matcher faktura med 0 avvik, se [research/elhub-vs-han-vs-faktura.md](research/elhub-vs-han-vs-faktura.md).
 
 ## Pow-U / AMSleser.no
 
@@ -170,7 +170,7 @@ Sensorer som havner i HA (auto-oppdaget):
 
 `pow_u_ams_houruse` er Pow-U sin egen kalkulasjon (tpi-diff per time). I praksis matcher den `tpi_HH+1 - tpi_HH`, men kan avvike marginalt på grenser.
 
-`pow_u_ams_peaks0/1/2` er målerens egen rapporterte topp-3 maks-effekt for inneværende måned. Dette er **time-snitt-effekt**, ikke momentan-topp.
+`pow_u_ams_peaks0/1/2` er målerens egen rapporterte topp-3 maks-effekt for inneværende måned. Dette er time-snitt-effekt, ikke momentan-topp.
 
 ## HA recorder og long-term statistics
 
@@ -193,7 +193,7 @@ Long-term statistics aggregeres slik:
 
 NVE/RME-forskriften krever at AMS-målere rapporterer timesverdier til Elhub. Bekreftet 2026-05-23:
 
-- Elhub-CSV for april 2026 matcher BKK-fakturaen **eksakt** (1381,827 kWh, samme topp 3-verdier)
+- Elhub-CSV for april 2026 matcher BKK-fakturaen eksakt (1381,827 kWh, samme topp 3-verdier)
 - Tidssone: lokal CET/CEST med eksplisitt offset i ISO-format (`+02:00` i april)
 - Oppløsning: 3 desimaler = 1 Wh
 - Kvalitet-flagg: `Målt` for ekte data, `Beregnet` for interpolert ved nedetid
@@ -210,10 +210,8 @@ Se [research/elhub-vs-han-vs-faktura.md](research/elhub-vs-han-vs-faktura.md) fo
 
 For `p` (momentan effekt) er HAN-strømmen kontinuerlig. Vi kan måle hvert 2,5 sekund. BKK ser bare times-snitt av effekten (kWh-diff per time).
 
-Dette betyr:
-
-- **Vi** kan oppdage en kort spike på 12 kW som bare varte i 5 minutter
-- **BKK** ser kun timesnittet, som kan være 6 kW (hvis spiken var halve timen)
+Vi kan altså oppdage en kort spike på 12 kW som bare varte i 5 minutter. BKK ser kun
+timesnittet, som kan være 6 kW hvis spiken var halve timen.
 
 For kapasitetsledd er det bekreftet at BKK bruker timesnitt-effekt (= kWh-diff per time, eks. Elhub-snapshot). Vår tpi-baserte beregning matcher dette innenfor 3-8 W per topp. BKK ser ikke korte spikes, vi gjør det (`p`-strømmen 2,5 sek), men det brukes ikke i kapasitetsberegning.
 
@@ -233,16 +231,16 @@ Fra `tests/fixtures/bkk_april_2026_hourly.json` mot BKK-faktura 000000000:
 
 Forklaring per linje:
 
-**Total kWh (+9 Wh):** Forklart av 13-sek-lag på siste tpi-sample (01.05 00:00:13 vs 00:00:00). Av disse 13 sekundene ligger 10 sek inne i selve Kaifa-måleren (mellom Elhub-snapshot HH:00:00 og bygging av HAN-frame HH:00:10) og 3 sek i transmisjonskjeden (HAN + Pow-U-parsing + MQTT). 13s × snittforbruk 1,92 kW = 6,9 Wh, pluss noen Wh i andre enden.
+Total kWh, +9 Wh. Forklart av 13-sek-lag på siste tpi-sample (01.05 00:00:13 vs 00:00:00). Av disse 13 sekundene ligger 10 sek inne i selve Kaifa-måleren (mellom Elhub-snapshot HH:00:00 og bygging av HAN-frame HH:00:10) og 3 sek i transmisjonskjeden (HAN + Pow-U-parsing + MQTT). 13s × snittforbruk 1,92 kW = 6,9 Wh, pluss noen Wh i andre enden.
 
-**Topp 3 (3-8 W):** Samme sample-skifte i hourly aggregat. Vår "13:00-time" er teknisk 13:00:13 til 14:00:13. Time-snittet inneholder altså 13 sek av "neste" time og mangler 13 sek av "denne" time, som gir det observerte avviket på topp-3.
+Topp 3, 3-8 W. Samme sample-skifte i hourly aggregat. Vår "13:00-time" er teknisk 13:00:13 til 14:00:13. Time-snittet inneholder altså 13 sek av "neste" time og mangler 13 sek av "denne" time, som gir det observerte avviket på topp-3.
 
-**Norgespris-komp (+2,92 kr):** Bekreftet at Nord Pool-integrasjonen returnerer **eks. mva** (vektet snitt 1,2284 × 1,25 = 1,5355, matcher fakturaens implisitte 1,5333). Restavvik ~2 øre/kWh skyldes trolig EUR/NOK-vekslingskurs eller MVA-håndteringsforskjell mellom HA-cache og BKKs prisberegning.
+Norgespris-komp, +2,92 kr. Bekreftet at Nord Pool-integrasjonen returnerer eks. mva (vektet snitt 1,2284 × 1,25 = 1,5355, matcher fakturaens implisitte 1,5333). Restavvik ~2 øre/kWh skyldes trolig EUR/NOK-vekslingskurs eller MVA-håndteringsforskjell mellom HA-cache og BKKs prisberegning.
 
 ## Hva vi kan gjøre bedre
 
-1. **Interpolere tpi til presis HH:00:00** ved å bruke `p`-strømmen mellom HH:00:00 og HH:00:13. Forventet effekt: lukker 9 Wh-gapet.
-2. **Hente rå Nord Pool EUR-priser + NB-kurser** for å reprodusere spot-snitt eksakt. Forventet effekt: lukker 2,92 kr-gapet, men avhenger av om BKK bruker samme kurser.
+1. Interpolere tpi til presis HH:00:00 ved å bruke `p`-strømmen mellom HH:00:00 og HH:00:13. Forventet effekt: lukker 9 Wh-gapet.
+2. Hente rå Nord Pool EUR-priser + NB-kurser for å reprodusere spot-snitt eksakt. Forventet effekt: lukker 2,92 kr-gapet, men avhenger av om BKK bruker samme kurser.
 3. ~~Snapshot-automation i HA på HH:00:00~~. Virker ikke. Av de 13 sekundene ligger 10 inne i selve måleren (mellom Elhub-snapshot og bygging av HAN-frame), så HA mottar aldri en HH:00:00-tpi uansett trigger-tidspunkt.
 
 Se [fakturaverifisering-prosjekt.md](fakturaverifisering-prosjekt.md) for plan.

@@ -6,7 +6,7 @@ Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) og [S
 
 ### Fikset
 
-- **Sju nettselskap hevet nettleien 1. august og 1. september 2026**, og satsene våre lå igjen på de gamle. Alle sju er verifisert mot nettselskapets egen prisliste, ikke bare mot fri-nettleie:
+- **Sju nettselskap hevet nettleien 1. august og 1. september 2026**, og satsene våre lå igjen på de gamle. Alle sju er verifisert mot nettselskapets egen prisliste i tillegg til fri-nettleie:
   - **Elinett** (01.08): energiledd dag 22,64 → 25,50 og natt 14,64 → 17,50 øre/kWh, alle ti kapasitetstrinn hevet, trinn 1 fra 251 til 281 kr/mnd.
   - **Elvenett** (01.09): nattsatsen var 11,00 der den skal være 5,00 øre/kWh, og de tre laveste kapasitetstrinnene var for høye, trinn 1 fra 194 til 160 kr/mnd.
   - **Høland og Setskog Elverk** (01.08): energiledd dag 22,50 → 27,50 og natt 17,50 → 23,50 øre/kWh, alle ti trinn hevet, trinn 1 fra 200 til 265 kr/mnd.

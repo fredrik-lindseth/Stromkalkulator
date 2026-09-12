@@ -22,7 +22,7 @@ Default-listen (`HELLIGDAGER_FASTE` i `const.py`) er offisielle norske helligdag
 - 01-01 Nyttårsdag, 05-01 Arbeidernes dag, 05-17 Grunnlovsdag, 12-25 1. juledag, 12-26 2. juledag
 - Bevegelige (skjærtorsdag, langfredag, 1./2. påskedag, Kristi himmelfartsdag, 1./2. pinsedag) beregnes fra påskeformelen.
 
-Julaften (24.12) og nyttårsaften (31.12) er **ikke** offisielle helligdager etter loven, men flere nettselskaper behandler dem som lavtariff hele døgnet. Dette håndteres per DSO via `helligdager_ekstra` i `dso.py`:
+Julaften (24.12) og nyttårsaften (31.12) er ikke offisielle helligdager etter loven, men flere nettselskaper behandler dem som lavtariff hele døgnet. Dette håndteres per DSO via `helligdager_ekstra` i `dso.py`:
 
 ```python
 "bkk": {
@@ -68,14 +68,13 @@ Rekkefølge på kilder: nettselskapets egen prisliste, så fri-nettleie. Fri-net
 
 Verdiene er fri-nettleies egne navn (`fastledd.metode` i tariff-YAML-en), fordi drift-vakten sammenligner strengene direkte. Default er `TRE_DØGNMAX_MND`, så et nettselskap som følger NVE-modellen skal ikke ha feltet i det hele tatt. Metodene og hva de betyr: [beregninger.md](beregninger.md#nettselskap-med-en-annen-metode).
 
-To regler som er lette å bryte:
+To regler er lette å bryte. Den første er at sikringsstørrelse er brukerdata. `OV_TREFASE` kan ikke utledes fra effektsensoren. Gjengi radene ordrett fra prislisten i `fastledd_sikringstrinn` og la brukeren velge. Ikke oversett dem til et amperetall vi tolker selv, for satsen kan avhenge av systemspenning. Mangler valget, skal beløpet være Ukjent, ikke laveste trinn. `id` er lagret i brukerens config og kan ikke endres etter en release.
 
-- **Sikringsstørrelse er brukerdata.** `OV_TREFASE` kan ikke utledes fra effektsensoren. Gjengi radene ordrett fra prislisten i `fastledd_sikringstrinn` og la brukeren velge. Ikke oversett dem til et amperetall vi tolker selv: satsen kan avhenge av systemspenning. Mangler valget, skal beløpet være Ukjent, ikke laveste trinn. `id` er lagret i brukerens config og kan ikke endres etter en release.
-- **Nettselskap uten trinn har tom `kapasitetstrinn`.** `FEM_VEKTET_ÅR` er en lineær sats, ikke trinn. Å samle fri-nettleies punktvise tabell i en trinn-liste ville løyet om hva tersklene betyr. La listen stå tom og legg satsen i `fastledd_lineaer`.
+Den andre er at nettselskap uten trinn har tom `kapasitetstrinn`. `FEM_VEKTET_ÅR` er en lineær sats, ikke trinn. Å samle fri-nettleies punktvise tabell i en trinn-liste ville løyet om hva tersklene betyr. La listen stå tom og legg satsen i `fastledd_lineaer`.
 
 ## Sensor-enheter og device_class
 
-Skill mellom **satser** og **pengebeløp**. De behandles ulikt, og å blande dem koster brukerne statistikk.
+Skill mellom satser og pengebeløp. De behandles ulikt, og å blande dem koster brukerne statistikk.
 
 | Type       | Eksempel                  | Enhet     | device_class | state_class   |
 | ---------- | ------------------------- | --------- | ------------ | ------------- |
@@ -85,7 +84,7 @@ Skill mellom **satser** og **pengebeløp**. De behandles ulikt, og å blande dem
 
 `MONETARY` skal ha ISO 4217-kode (`NOK`), ikke `kr`. Ikke fordi HA validerer det, for det gjør den ikke: `SensorDeviceClass.MONETARY` står ikke i `DEVICE_CLASS_UNITS`. Grunnen er frontenden, som i `compute_state_display.ts` formaterer `MONETARY`-sensorer med `Intl.NumberFormat` og `style: "currency"`. `currency: "kr"` er ikke en gyldig trebokstavskode, så kallet kaster og faller tilbake til rått tall uten valutaformatering.
 
-**En sats uten `MONETARY` har ingenting å hente på ISO 4217.** Å døpe om `kr/mnd` til `NOK` gir null gevinst, mister `/mnd`, og koster en repair hos hver bruker. Det ble gjort med kapasitetstrinn i `0ccb02d` og rullet tilbake før det rakk ut i en release.
+En sats uten `MONETARY` har ingenting å hente på ISO 4217. Å døpe om `kr/mnd` til `NOK` gir null gevinst, mister `/mnd`, og koster en repair hos hver bruker. Det ble gjort med kapasitetstrinn i `0ccb02d` og rullet tilbake før det rakk ut i en release.
 
 ### Enhetsbytte er brytende
 

@@ -10,7 +10,7 @@ Sammenligner man prislistene til alle nettselskapene, er det åpenbart at de har
 brukt den friheten hver på sin måte. Denne integrasjonen skal regne ut nettleien og
 dekker alle nettselskapene, men oppgaven har ingen generell løsning.
 
-## Én husholdning, 69 priser
+## Hva samme forbruk koster rundt i landet
 
 Ta én husholdning. Snitt av tre døgnmakser på eksakt 5,0 kW, 600 kWh på dagtid og
 400 kWh om natten, i juli. Så flytter du den rundt i landet.[^husholdning]
@@ -30,17 +30,16 @@ kW-trinn gir sin egen unike sum. At prisene varierer er greit nok. Mer interessa
 fordelingen mellom de to leddene: hos Modalen er 74 % av nettleien energiledd,
 hos Noranett 14 %.
 
-Det gjør at «flytt forbruket til natten» er verdt fem ganger så mye hos den ene
-som hos den andre, mens «hold effekttoppen nede» er verdt fem ganger så mye
-motsatt vei.[^andel] Det finnes altså ikke ett spareråd som er riktig for norske
-strømkunder.
+Hos Modalen er det energileddet som er verdt å gjøre noe med, altså å flytte
+forbruk til natten. Hos Noranett er det fastleddet, altså å holde effekttoppen
+nede. Forholdet mellom de to er rundt fem til én begge veier.[^andel] Hvilket
+spareråd som lønner seg avhenger dermed av hvilket nettselskap kunden har.
 
 ## Fastleddet måler fem forskjellige ting
 
 Snitt av de tre høyeste døgnmaksene i måneden er den vanligste innretningen, og
-70 av 76 oppføringer bruker den.[^antall] De fem andre måler noe annet, og to av dem
-måler
-ikke effekt i det hele tatt.[^metoder]
+70 av 76 oppføringer bruker den.[^antall] De fem andre måler noe annet, og to av
+dem måler ikke effekt i det hele tatt.[^metoder]
 
 Alut og Netera setter fastleddet etter hovedsikringen. Alut har to satser, over og
 under 3 x 125 A, og skriver det rett ut i prislisten.[^alut] Netera har fem rader,
@@ -67,18 +66,18 @@ vektes:[^fjellnett]
 | november  | 0,70   | 3,50 kW                       |
 | desember  | 0,95   | 4,75 kW                       |
 
-En topp i januar betaler du for i tolv måneder. Samme topp i juli er så godt som
-gratis. En Fjellnett-kunde og en BKK-kunde som gjør nøyaktig det samme i samme
-sekund, får to helt ulike regninger for det.
+En topp i januar teller fullt og følger med i tolv måneder, mens den samme toppen
+i juli teller en fjerdedel. Hos BKK spiller måneden ingen rolle. To kunder kan
+altså gjøre det samme i samme sekund og få helt ulike regninger for det.
 
 Sør Aurdal Energi bruker månedens enkeltstående høyeste time, ikke snittet av
-tre.[^soraurdal] Da avgjør én glipp med badstuen og induksjonstoppen hele
-måneden.
+tre.[^soraurdal] Én time med badstue og induksjonstopp avgjør dermed hele
+månedens fastledd.
 
 Ingen av de fem bryter regelverket. Sikringsstørrelse står oppført hos RME som et
-gyldig alternativ, på linje med døgnmaks. Problemet er at ingen av selskapene
-mener de gjør noe spesielt. Hver av dem har en helt vanlig prisliste med helt vanlige
-tall, og ingen skriver at de måler noe annet enn noen andre.
+gyldig alternativ, på linje med døgnmaks. Det som gjør dem vanskelige å fange
+opp, er at prislistene deres ser helt alminnelige ut, og at ingen av dem skriver
+at de måler noe annet enn de andre gjør.
 
 ## Hva «natt» betyr
 
@@ -96,23 +95,21 @@ dager.[^helligdager] Derfor ligger det en påskeformel i `const.py`.
 
 BKK regner hele julaften og hele nyttårsaften som lavtariff, selv om ingen av dem
 er helligdag etter loven.[^bkkjul] Om noen av de andre gjør det samme, er ikke
-mulig å slå opp. Ingen av dem skriver det i prislisten, og fri-nettleies skjema har
-egne verdier for helligdager og fridager som ikke er i bruk i en eneste fil. Det
-viser seg først på fakturaen i desember.
+mulig å slå opp. Ingen av dem skriver det i prislisten, og fri-nettleies skjema
+har egne verdier for helligdager og fridager som ikke er i bruk i en eneste fil,
+så det ville i praksis først vise seg på en desemberfaktura.
 
 ## Forsøket på å standardisere
 
-[fri-nettleie](https://github.com/kraftsystemet/fri-nettleie) på Github gjør
-den jobben jeg trodde NVE gjorde, samler alle norske nettleietariffer, delt opp i ledd
-og nivå og trinn, i
-maskinlesbar format. Samtidig viser
-det hvor lite av problemet som lar seg normalisere bort.
+[fri-nettleie](https://github.com/kraftsystemet/fri-nettleie) på Github gjør den
+jobben jeg trodde NVE gjorde. Prosjektet samler alle norske nettleietariffer i
+maskinlesbart format, delt opp i ledd, nivå og trinn. Datasettet viser samtidig
+hvor lite av problemet som lar seg normalisere bort.
 
 Spørsmålet «har dette selskapet helgerabatt?» besvares der på fire måter. Åtte
 selskap skriver `dager: [virkedag]`, seks skriver `dager: [ukedag]`, åtte skriver
 `dager: [alle]`, og 29 har et dag/natt-skille uten å si hvilke dager det
-gjelder.[^dager] Skjemaet sier ikke om «virkedag»
-og «ukedag» betyr det samme. Tensio TN skriver `[alle]` og Tensio TS skriver
+gjelder.[^dager] Skjemaet sier ikke om «virkedag» og «ukedag» betyr det samme. Tensio TN skriver `[alle]` og Tensio TS skriver
 ingenting, enda de er søsterselskap med samme prisside som kilde. TS hadde
 `[alle]` i en tidligere utgave og mistet det underveis.
 
@@ -146,8 +143,9 @@ det:[^konvensjon]
 | Alut            | Inkl. Enova, eks. resten                | 13,10 øre  | 12,10 øre    |
 | Føre            | Ren nettleie, avgifter separat          | 19,29 øre  | 19,29 øre    |
 
-Samme ord, ingen merking. Eneste måte å finne ut hvilken variant du har foran deg,
-er å regne baklengs og se om resultatet ser fornuftig ut. To av konvensjonene skiller
+Ordet er det samme i alle sju, og ingen av dem merker hvilken variant det er.
+Eneste måte å finne ut hvilken du har foran deg, er å regne baklengs og se om
+resultatet ser fornuftig ut. To av konvensjonene skiller
 seg med nøyaktig 8,13 øre, avgiftene, som gjør det lett å trekke dem fra to ganger
 uten å merke det.
 
@@ -155,19 +153,18 @@ Så kommer avgiftene, som er fritatt i Nordland og Troms og dobbelt fritatt i
 tiltakssonen, etter fylkesgrenser og ikke etter prisområder. Én ren nettleiesats på
 29,00 øre blir 30,00 øre i tiltakssonen, 37,13 i Nord-Norge og 46,41 i
 Sør-Norge.[^soner] Prisområde NO3 spriker internt, fordi Bindal Kraftnett ligger i
-Nordland mens resten av området ligger i Trøndelag og Møre og Romsdal. Fylkesgrensen går
-altså tvers gjennom
-prisområdet.
+Nordland mens resten av området ligger i Trøndelag og Møre og Romsdal.
+Fylkesgrensen går altså tvers gjennom prisområdet.
 
 Og selv med riktig konvensjon i riktig kilde kan kilden ta feil. I tre uker i juli
-oppgav elvia.no 46,60 øre der selskapets eget tariffblad sa 46,40.[^elvia] Norges
-største nettselskap hadde en skrivefeil på sin egen prisside, og den eneste måten
-å oppdage den på var at et annet datasett var uenig.
+oppgav elvia.no 46,60 øre der selskapets eget tariffblad sa 46,40.[^elvia]
+Skrivefeilen sto på prissiden til Norges største nettselskap, og ble bare
+oppdaget fordi et annet datasett var uenig.
 
-## «2026-priser» finnes ikke
+## Prisene følger ikke kalenderåret
 
-Det siste håpet er at man i det minste kan si «dette er prisene for 2026» og
-oppdatere en gang i året. De 73 gjeldende husholdningstariffene i fri-nettleie trer
+Det er fristende å tro at satsene i det minste kan merkes «2026-priser» og
+oppdateres ved nyttår. De 73 gjeldende husholdningstariffene i fri-nettleie trer
 i kraft på 19 forskjellige datoer, fra 1. januar 2024 til 1. juli 2026.[^datoer]
 Tretti selskap har ikke rørt satsene siden nyttår, seks endret dem i juli, og tre
 har priser som har stått urørt siden 1. januar 2024.
@@ -176,21 +173,20 @@ Underveis flytter selskapene på seg. Skiakernett fusjonerte inn i Vevig. Rakkes
 Energi er blitt Elvia. Norgesnett eies av Glitre Nett og har egne, lavere priser.
 Noranett er tre separate tariffsett. Area Nett er tre prisområder delt etter kommune,
 med 358, 390 og 525 kr/mnd i laveste trinn, så adressen avgjør prisen innenfor
-samme selskap.[^identitet] Selv «hvor mange nettselskap finnes det» har ikke et stabilt
-svar.
+samme selskap.[^identitet] Selv spørsmålet om hvor mange nettselskap som finnes,
+har ikke et stabilt svar.
 
 ## Regnestykket
 
-Rommet av mulige tariffer lar seg telle. Fastledd-metode: fem observerte verdier.
-Trinnsekvenser: 24. Terskelregel ved eksakt grensetreff: to.
-Energiledd-form: fem. Helgeregel: to. Ekstra helligdager: to. Avgiftssone:
-tre. Ganget sammen blir det 14 400 kombinasjoner, og 41 av dem er
-besatt.[^kombinasjoner]
+Rommet av mulige tariffer lar seg telle. Det er fem observerte fastledd-metoder,
+24 trinnsekvenser, to terskelregler ved eksakt grensetreff, fem energiledd-former,
+to helgeregler, to varianter av ekstra helligdager og tre avgiftssoner. Ganget
+sammen blir det 14 400 kombinasjoner, og 41 av dem er besatt.[^kombinasjoner]
 
-Det er altså ikke et tett problemområde med noen få unntak, men et nesten tomt rom
-med 41 punkter spredt utover. Det finnes ingen struktur å generalisere fra, ingen
-regel som dekker de resterende 14 359, og ingen garanti mot at et selskap flytter
-seg til et av dem i morgen. Koden kan derfor ikke bli generell, den blir en liste.
+41 besatte punkter av 14 400 er et nesten tomt rom. Det er ingen struktur å
+generalisere fra, og ingenting hindrer et selskap i å flytte seg til en av de
+14 359 ledige kombinasjonene i morgen. Derfor består koden av en liste over de
+tariffene som faktisk finnes.
 
 Fakturaen er det eneste stedet alle leddene står samlet med tall som faktisk er
 brukt. Har du en, sier den mer om hva som gjelder hos nettselskapet ditt enn noen

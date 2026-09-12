@@ -4,23 +4,21 @@ Kilder hentet via offentlige websøk mai 2026. Ingen tilgang til Bloomberg/Refin
 
 ## 12:00 CET-fixing for EUR/NOK
 
-### Konkret svar
-
-Det finnes **ingen enkelt "industri-standard 12:00 CET-fix"** for EUR/NOK analogt med WMR/Refinitiv 16:00 London. Kandidatene:
+Det finnes ingen enkelt "industri-standard 12:00 CET-fix" for EUR/NOK analogt med WMR/Refinitiv 16:00 London. Kandidatene er disse:
 
 - **ECB Reference Rate:** concertation ca. 14:10 CET, publiseres ca. 16:00 CET. Disclaimer: *"Using the rates for transaction purposes is strongly discouraged."* Ikke en 12:00-fix.
-- **Bloomberg BFIX:** publiseres hvert 30. minutt mens markedet er åpent. Det finnes derfor en **BFIX EURNOK 12:00 CET (11:00 GMT)** som datapunkt, TWAP over 306-sek vindu (G10). Ticker-konvensjon `EURNOK BFIX <GO>`, men eksakt streng krever terminal.
-- **WMR/LSEG:** hovedfix 16:00 London. Tilbyr også **WMR 2PM CET FX Spot Rate** som egen benchmark, og **WMR Intraday Service** med timesfix 06:00-21:00 UK-tid. EUR/NOK 11:00 GMT er inkludert i intraday-abonnementet, men ikke et eget produkt.
+- **Bloomberg BFIX:** publiseres hvert 30. minutt mens markedet er åpent. Det finnes derfor en BFIX EURNOK 12:00 CET (11:00 GMT) som datapunkt, TWAP over 306-sek vindu (G10). Ticker-konvensjon `EURNOK BFIX <GO>`, men eksakt streng krever terminal.
+- **WMR/LSEG:** hovedfix 16:00 London. Tilbyr også WMR 2PM CET FX Spot Rate som egen benchmark, og WMR Intraday Service med timesfix 06:00-21:00 UK-tid. EUR/NOK 11:00 GMT er inkludert i intraday-abonnementet, men ikke et eget produkt.
 - **Reuters EUR= / EBS snapshot:** råkilde, ikke benchmark.
 
 ### Hva Nord Pool faktisk gjør
 
-Nord Pools formulering om "interbank-kurs 12:00 CET" er **deres egen prosess, ikke en publisert benchmark**:
+Nord Pools formulering om "interbank-kurs 12:00 CET" beskriver deres egen prosess, ikke en publisert benchmark:
 
 > "Prior to price calculation, Nord Pool gets the currency rates valid at 12:00 CET. (...) Once EUR prices are complete, Nord Pool contacts two banks to perform official currency hedging, and the official exchange rates are set."
 > ([Nord Pool: Preliminary prices and exchange rates](https://www.nordpoolgroup.com/en/trading/Day-ahead-trading/Preliminary-prices-and-exchange-rates/))
 
-Preliminær interbank-snapshot brukes til auksjonsclearing. Deretter ringer Nord Pool to banker (ikke navngitt offentlig) som hedger og setter den **offisielle EXR-kursen** publisert etter clearing. EXR er altså ikke en markedsfix, det er hedge-prisen.
+Preliminær interbank-snapshot brukes til auksjonsclearing. Deretter ringer Nord Pool to banker (ikke navngitt offentlig) som hedger og setter den offisielle EXR-kursen, den som publiseres etter clearing. EXR er altså ikke en markedsfix, det er hedge-prisen.
 
 ### Bloomberg-ticker / RIC
 
@@ -31,7 +29,7 @@ Preliminær interbank-snapshot brukes til auksjonsclearing. Deretter ringer Nord
 ### Andre kraftaktører
 
 - **Nord Pool:** egen EXR via to-banks hedge.
-- **EPEX SPOT / Nordic NEMOer (SDAC/SIDC):** day-ahead kjøres i EUR, konvertering håndteres av lokale clearinghus. Metodikk for EUR/NOK på sluttoppgjør er **ikke funnet** offentlig.
+- **EPEX SPOT / Nordic NEMOer (SDAC/SIDC):** day-ahead kjøres i EUR, konvertering håndteres av lokale clearinghus. Vi fant ingen offentlig metodikk for EUR/NOK på sluttoppgjør.
 
 ### Ikke funnet
 
@@ -41,21 +39,19 @@ Preliminær interbank-snapshot brukes til auksjonsclearing. Deretter ringer Nord
 
 ## Hva bruker norske banker og bedrifter
 
-### Konkret svar
+Det finnes ingen bransje-standard her heller. Praksis varierer per bank, per transaksjonstype og per beløpsstørrelse.
 
-**Det finnes ingen enkelt bransje-standard.** Praksis varierer per bank, per transaksjonstype og per beløpsstørrelse:
+Norges Banks midkurs (`B.EUR.NOK.SP`) publiseres ca. 16:00 CET basert på ECBs 14:15-concertation. Norges Banks egen disclaimer sier at *"The exchange rates are only intended to serve as an indication, and are not binding on Norges Bank or other banks."* Kursen brukes derfor primært til rapportering, regnskap, statistikk og skatt, ikke til banktransaksjoner. ([Norges Bank: Exchange rates](https://www.norges-bank.no/en/topics/statistics/exchange_rates/))
 
-1. **Norges Banks midkurs (`B.EUR.NOK.SP`)** publiseres ca. 16:00 CET basert på ECBs 14:15-concertation. Norges Banks egen disclaimer: *"The exchange rates are only intended to serve as an indication, and are not binding on Norges Bank or other banks."* Den brukes derfor primært til **rapportering, regnskap, statistikk og skatt**, ikke til banktransaksjoner. ([Norges Bank: Exchange rates](https://www.norges-bank.no/en/topics/statistics/exchange_rates/))
+Bankene selv, altså DNB og Nordea, bruker egne treasury-kurser for kundetransaksjoner. DNB publiserer daglig overførselskursliste (kjøp/salg med spread) og separat midkurs. For ordre < 1 MNOK i likvide kryss veksles løpende på treasury-kurs innenfor 08:00-17:00.
 
-2. **Banker (DNB, Nordea) bruker egne treasury-kurser** for kundetransaksjoner. DNB publiserer daglig overførselskursliste (kjøp/salg med spread) og separat midkurs. For ordre < 1 MNOK i likvide kryss veksles løpende på treasury-kurs innenfor 08:00-17:00.
+Strømleverandører med EUR-eksponering bruker vanligvis Nord Pools offisielle daglige EXR, siden det er den faktiske clearing-kursen. Eidsiva og lignende standardvilkår viser til Nord Pools dagskurs.
 
-3. **Strømleverandører ved EUR-eksponering:** vanlig praksis er **Nord Pools offisielle daglige EXR**, fordi det er den faktiske clearing-kursen. Eidsiva og lignende standardvilkår viser til Nord Pools dagskurs.
-
-4. **[Forskrift om Norges Banks notering](https://lovdata.no/dokument/LTI/forskrift/1991-08-28-561)** regulerer kun selve noteringen, ikke hvilken kurs bedrifter må bruke. Ingen forskrift pålegger strømleverandører en bestemt kilde.
+[Forskrift om Norges Banks notering](https://lovdata.no/dokument/LTI/forskrift/1991-08-28-561) regulerer kun selve noteringen, ikke hvilken kurs bedrifter må bruke. Ingen forskrift pålegger strømleverandører en bestemt kilde.
 
 ### Anvendelse på BKK-tallene
 
-BKK 11,0706 ligger mellom NB 11,0229 og Nord Pool EXR 11,0815. En 12:00 CET interbank-snapshot **kan** forklare differansen mot ECBs 14:15-snitt (intradag-bevegelse), men uten BKKs faktiske kilde-feed er dette spekulativt.
+BKK 11,0706 ligger mellom NB 11,0229 og Nord Pool EXR 11,0815. En 12:00 CET interbank-snapshot kan forklare differansen mot ECBs 14:15-snitt (intradag-bevegelse), men uten BKKs faktiske kilde-feed er det spekulativt.
 
 ### Ikke funnet
 

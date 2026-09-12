@@ -15,8 +15,6 @@ Enable more: **Settings > Devices > Strømkalkulator > (device) > Entities**, to
 
 Sensors marked _(optional)_ are disabled by default.
 
----
-
 ## Grid tariff (Nettleie)
 
 Main device, named "Nettleie ({grid company})".
@@ -32,17 +30,17 @@ Day: Mon-Fri 06-22 (not holidays). Night: 22-06, weekends, holidays.
 
 ### Capacity
 
-| Sensor                                   | Unit     | Description                                                         |
-| ---------------------------------------- | -------- | ------------------------------------------------------------------- |
-| Kapasitetstrinn                          | kr/month | Fixed monthly cost based on the average of the top-3 power days     |
-| Snitt toppforbruk                        | kW       | Average of the top-3, determines the tier                           |
-| Toppforbruk #1, #2, #3                   | kW       | The three highest power days this month                             |
-| Margin til neste trinn                   | kW       | How much more you can use before the next (more expensive) tier     |
-| Kapasitetsvarsel (binary_sensor)         | on/off   | On when the margin is below the threshold, for alerts/automations   |
-| _(optional)_ Kapasitetstrinn (nummer)    | -        | The tier you're on (1, 2, 3, ...)                                   |
-| _(optional)_ Kapasitetstrinn (intervall) | -        | The kW range for your tier (e.g. "2-5 kW")                          |
+| Sensor                                   | Unit     | Description                                                       |
+| ---------------------------------------- | -------- | ----------------------------------------------------------------- |
+| Kapasitetstrinn                          | kr/month | Fixed monthly cost based on the average of the top-3 power days   |
+| Snitt toppforbruk                        | kW       | Average of the top-3, determines the tier                         |
+| Toppforbruk #1, #2, #3                   | kW       | The three highest power days this month                           |
+| Margin til neste trinn                   | kW       | How much more you can use before the next (more expensive) tier   |
+| Kapasitetsvarsel (binary_sensor)         | on/off   | On when the margin is below the threshold, for alerts/automations |
+| _(optional)_ Kapasitetstrinn (nummer)    | -        | The tier you're on (1, 2, 3, ...)                                 |
+| _(optional)_ Kapasitetstrinn (intervall) | -        | The kW range for your tier (e.g. "2-5 kW")                        |
 
-**Toppforbruk #1-3** have attributes `dato` (YYYY-MM-DD) and `time` (0-23).
+Toppforbruk #1-3 have the attributes `dato` (YYYY-MM-DD) and `time` (0-23).
 
 ### Electricity price
 
@@ -62,8 +60,6 @@ Day: Mon-Fri 06-22 (not holidays). Night: 22-06, weekends, holidays.
 | _(optional)_ Forbruksavgift       | NOK/kWh | Electricity tax incl. VAT                  |
 | _(optional)_ Enovaavgift          | NOK/kWh | Enova levy incl. VAT                       |
 
----
-
 ## Electricity subsidy (Strømstøtte)
 
 | Sensor                                        | Unit    | Description                                                                                                                                                                          |
@@ -76,8 +72,6 @@ Day: Mon-Fri 06-22 (not holidays). Night: 22-06, weekends, holidays.
 | Strømstøtte gjenstående kWh                   | kWh     | How much of the monthly subsidy cap remains (residence=5000, holiday home=0)                                                                                                         |
 | _(optional)_ Strømpris per kWh (etter støtte) | NOK/kWh | Like "Strømpris per kWh", but with the subsidy deducted                                                                                                                              |
 
----
-
 ## Norgespris
 
 | Sensor                           | Unit    | Description                                                                     |
@@ -88,8 +82,6 @@ Day: Mon-Fri 06-22 (not holidays). Night: 22-06, weekends, holidays.
 | Norgespris aktiv nå              | on/off  | On if you have selected Norgespris                                              |
 
 kWh cap: residence=5000, holiday home=1000. Above the cap, you pay the spot price.
-
----
 
 ## Monthly consumption
 
@@ -123,8 +115,6 @@ Attributes on "Akkumulert strømkostnad": `strompris_kr`, `energiledd_kr`, `kapa
 
 Attributes on "Månedlig nettleie total": `nettleie_kr`, `stromstotte_kr`, `forbruk_dag_kwh`, `forbruk_natt_kwh`, `forbruk_total_kwh`, `vektet_snittpris_kr_per_kwh`.
 
----
-
 ## Previous month (Forrige måned)
 
 Stored at the change of month. Used for invoice verification.
@@ -140,11 +130,9 @@ Stored at the change of month. Used for invoice verification.
 
 All have a `maaned` attribute (e.g. "januar 2026").
 
-**The "Forrige måned nettleie" sensor** also has: `energiledd_dag_kr`, `energiledd_natt_kr`, `kapasitetsledd_kr`, `snitt_topp_3_kw`, `norgespris_differanse_kr`.
+The "Forrige måned nettleie" sensor also has `energiledd_dag_kr`, `energiledd_natt_kr`, `kapasitetsledd_kr`, `snitt_topp_3_kw`, `norgespris_differanse_kr`.
 
-**The "Forrige måned toppforbruk" sensor** has: `maaned`, `topp_1_dato`, `topp_1_kw`, `topp_1_time`, `topp_2_dato`, `topp_2_kw`, `topp_2_time`, `topp_3_dato`, `topp_3_kw`, `topp_3_time`.
-
----
+The "Forrige måned toppforbruk" sensor has `maaned`, `topp_1_dato`, `topp_1_kw`, `topp_1_time`, `topp_2_dato`, `topp_2_kw`, `topp_2_time`, `topp_3_dato`, `topp_3_kw`, `topp_3_time`.
 
 ## Export (Eksport, solar)
 
@@ -158,13 +146,11 @@ For prosumers. Requires a configured export power sensor. All disabled by defaul
 | _(optional)_ Forrige måned eksport kWh     | kWh  | Exported energy last month            |
 | _(optional)_ Forrige måned eksport inntekt | NOK  | Export revenue last month             |
 
----
-
 ## Measurement data watchdog
 
-| Sensor                                    | Unit   | Description                          |
-| ----------------------------------------- | ------ | ------------------------------------ |
-| Measurement data problem (binary_sensor)  | on/off | On when an input sensor has failed   |
+| Sensor                                   | Unit   | Description                        |
+| ---------------------------------------- | ------ | ---------------------------------- |
+| Measurement data problem (binary_sensor) | on/off | On when an input sensor has failed |
 
 The sensor is `device_class: problem` and sits under Diagnostics. It is never
 gated on the spot price: a spot price outage is exactly one of the cases it
@@ -172,27 +158,27 @@ reports, so it has to work when the price is missing.
 
 Three things turn it on:
 
-- **Outage.** A configured input has been `unavailable` or `unknown` for more
+- Outage: a configured input has been `unavailable` or `unknown` for more
   than 30 minutes. The limit is fixed and covers HA restarts, integration
   updates and a network hiccup.
-- **Frozen energy counter.** The energy meter reports, but the number has not
+- Frozen energy counter: the energy meter reports, but the number has not
   increased for more hours than the threshold. Set it under Configure, default
   three hours. Raise it for a cabin or site that sits idle for stretches.
-- **Expired spot price.** The spot price has been gone longer than the two hour
+- Expired spot price: the spot price has been gone longer than the two hour
   cache. Consumption is still counted in kWh, but cost, subsidy and the
   Norgespris comparison stand still until the price returns.
 
 Attributes:
 
-| Attribute               | Contents                                                          |
-| ----------------------- | ----------------------------------------------------------------- |
-| `problemer`             | One row per active problem: type, input, entity_id, since, hours   |
-| `antall_problemer`      | Number of active problems                                          |
-| `berorte_inputer`       | The failing roles, e.g. `["energi"]`                               |
-| `sist_energi_okning`    | When the energy counter last increased                             |
-| `spotpris_gyldig`       | Whether the spot price can be used right now                       |
-| `leverandorpris_gyldig` | Whether the provider sensor delivers, `null` if it is not set up   |
-| `frossen_terskel_timer` | The threshold in effect                                            |
+| Attribute               | Contents                                                         |
+| ----------------------- | ---------------------------------------------------------------- |
+| `problemer`             | One row per active problem: type, input, entity_id, since, hours |
+| `antall_problemer`      | Number of active problems                                        |
+| `berorte_inputer`       | The failing roles, e.g. `["energi"]`                             |
+| `sist_energi_okning`    | When the energy counter last increased                           |
+| `spotpris_gyldig`       | Whether the spot price can be used right now                     |
+| `leverandorpris_gyldig` | Whether the provider sensor delivers, `null` if it is not set up |
+| `frossen_terskel_timer` | The threshold in effect                                          |
 
 Each problem also raises a notice under Settings > Repairs, so you see it
 without having set anything up. It clears itself once the input returns. A jump
@@ -227,8 +213,6 @@ Use `Akkumulert strømkostnad`. The capacity charge is distributed linearly over
 5. Select `Akkumulert strømkostnad`
 
 The consumption meter (kWh) comes from your AMS reader, not Strømkalkulator.
-
----
 
 ## Examples
 
@@ -265,8 +249,6 @@ automation:
           message: "{{ states('sensor.nettleie_bkk_margin_til_neste_trinn') }} kW to next capacity tier."
 ```
 
----
-
 ## Invoice verification
 
 | Invoice line item    | Sensor                          | Where                           |
@@ -277,8 +259,6 @@ automation:
 | Energy night (kr)    | Forrige måned nettleie          | Attribute: `energiledd_natt_kr` |
 | Capacity charge (kr) | Forrige måned nettleie          | Attribute: `kapasitetsledd_kr`  |
 | Capacity tier (kW)   | Forrige måned toppforbruk       | State (avg. top-3)              |
-
----
 
 ## Technical details
 

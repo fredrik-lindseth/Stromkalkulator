@@ -4,18 +4,16 @@
 
 ## Egendefinert nettselskap
 
-Er ikke nettselskapet ditt i listen, eller vil du teste egne satser uten å vente på en PR? Velg **Egendefinert** nederst i nettselskap-listen under oppsett. Du får da et eget steg der du legger inn energiledd dag og natt (NOK/kWh, eks. mva og avgifter) og avgiftssone. Integrasjonen legger på forbruksavgift, Enova og mva selv. Send gjerne satsene inn som en PR etterpå, så slipper andre i samme nettselskap å fylle inn manuelt.
+Er ikke nettselskapet ditt i listen, eller vil du teste egne satser uten å vente på en PR, velg Egendefinert nederst i nettselskap-listen under oppsett. Du får da et eget steg der du legger inn energiledd dag og natt (NOK/kWh, eks. mva og avgifter) og avgiftssone. Integrasjonen legger på forbruksavgift, Enova og mva selv. Send gjerne satsene inn som en PR etterpå, så slipper andre i samme nettselskap å fylle inn manuelt.
 
 ## Rapportere feil
 
-Fant du feil priser?
-
-1. **Issue** med lenke til korrekte priser, eller
-2. **PR** med oppdaterte priser (se under)
+Fant du feil priser, åpne et issue med lenke til korrekte priser, eller send en PR med
+prisene oppdatert (se under).
 
 ## Verifisere fakturaen din
 
-Vil du bekrefte at integrasjonen regner riktig? Se [verifiser-din-faktura.md](fakturaer/verifiser-din-faktura.md).
+Vil du bekrefte at integrasjonen regner riktig, se [verifiser-din-faktura.md](fakturaer/verifiser-din-faktura.md).
 
 Foreløpig er kun BKK (NO5) verifisert. Vi trenger fakturadata fra andre nettselskap. Bruk [issue-malen](../.github/ISSUE_TEMPLATE/faktura-verifisering.md).
 
@@ -46,7 +44,7 @@ Foreløpig er kun BKK (NO5) verifisert. Vi trenger fakturadata fra andre nettsel
 },
 ```
 
-`energiledd_dag_eks_mva` og `energiledd_natt_eks_mva` er ren nettleie i NOK/kWh, **eks. forbruksavgift, Enova og mva**. Integrasjonen legger på avgifter og mva selv basert på avgiftssone. Finn beløpet «energiledd» eller «overføring» på prislisten din, før avgifter og mva.
+`energiledd_dag_eks_mva` og `energiledd_natt_eks_mva` er ren nettleie i NOK/kWh, eks. forbruksavgift, Enova og mva. Integrasjonen legger på avgifter og mva selv basert på avgiftssone. Finn beløpet «energiledd» eller «overføring» på prislisten din, før avgifter og mva.
 
 ### Spesielle tilfeller
 
@@ -87,10 +85,8 @@ pipx run --with hypothesis --with pyyaml pytest tests/ -v
 
 ## PR
 
-1. Fork
-2. Endringer
-3. Verifiser syntaks
-4. PR med: navn på nettselskap, lenke til prisside, hva som er endret
+Fork repoet, gjør endringen og verifiser syntaksen. Oppgi navn på nettselskap, lenke til
+prisside og hva som er endret i PR-en.
 
 ## Fusjon av nettselskaper
 

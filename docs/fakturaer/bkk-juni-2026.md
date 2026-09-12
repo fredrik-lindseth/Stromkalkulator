@@ -43,7 +43,7 @@ Utført med HAN-eksport fra HA-recorder (`tests/fixtures/bkk_juni_2026_hourly.js
 | Norgespris-komp (publisert Final-pris) | **-363.54** | -363.54  | **0.00** |
 | Total inkl. Norgespris                 | 262.21      | 262.05   | +0.16    |
 
-Alt innenfor toleranse. Norgespris-linjen reproduseres **eksakt** når
+Alt innenfor toleranse. Norgespris-linjen reproduseres eksakt når
 beregningen bruker Nord Pools publiserte Final-priser i stedet for
 HA-recorderens lagrede verdier; recorder-avviket på 0.15 kr skyldes at
 recorderen har en foreløpig valutakurs for to søndager, se
@@ -113,9 +113,8 @@ og for første gang i 2026 er fakturaen et beløp å betale, ikke til gode.
 
 ## Status og gjenstående
 
-Dette er både en linje-for-linje-attest og en time-for-time-verifisering:
-integrasjonens satser og formler reproduserer fakturaen innenfor
-avrundingsfeil. Verifisert via `tests/test_faktura_bkk.py` (fixture
+Juni er attestert både linje for linje og time for time. Integrasjonens satser
+og formler reproduserer fakturaen innenfor avrundingsfeil. Verifisert via `tests/test_faktura_bkk.py` (fixture
 `FAKTURA_JUNI_2026`) og coordinator-replay i
 `tests/test_coordinator_replay.py`.
 

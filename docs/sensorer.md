@@ -15,8 +15,6 @@ Aktivere flere: **Settings > Devices > Strømkalkulator > (device) > Entities**,
 
 Sensorer merket _(valgfri)_ er deaktivert som standard.
 
----
-
 ## Nettleie
 
 Hoveddevicen, navngis "Nettleie ({nettselskap})".
@@ -46,11 +44,11 @@ Hos nettselskap med sesongpriser bærer Energiledd-sensoren attributtene `sesong
 | _(valgfri)_ Kapasitetstrinn (nummer)    | -      | Trinnet du er på (1, 2, 3, ...)                           |
 | _(valgfri)_ Kapasitetstrinn (intervall) | -      | kW-intervallet for ditt trinn (f.eks. "2-5 kW")           |
 
-**Toppforbruk #1-3** har attributter `dato` (YYYY-MM-DD) og `time` (0-23).
+Toppforbruk #1-3 har attributtene `dato` (YYYY-MM-DD) og `time` (0-23).
 
-**Kapasitetsvarsel** er en `binary_sensor` som slår til (on) når margin til neste trinn er under terskelen. Terskelen settes i options (Configure), default 2,0 kW. Bruk varselet i automasjoner som skrur ned last før du bikker over i et dyrere trinn.
+Kapasitetsvarsel er en `binary_sensor` som slår til (on) når margin til neste trinn er under terskelen. Terskelen settes i options (Configure), default 2,0 kW. Bruk varselet i automasjoner som skrur ned last før du bikker over i et dyrere trinn.
 
-**Kapasitetstrinn** bærer `fastledd_metode` (nettselskapets modell) og `fastledd_grunnlag_kw` (kW-verdien den modellen faktisk slår opp med). For de 68 nettselskapene som bruker NVE-modellen er `fastledd_grunnlag_kw` det samme som `gjennomsnitt_kw`. To attributter dukker opp bare når de gjelder:
+Kapasitetstrinn bærer `fastledd_metode` (nettselskapets modell) og `fastledd_grunnlag_kw` (kW-verdien den modellen faktisk slår opp med). For de 68 nettselskapene som bruker NVE-modellen er `fastledd_grunnlag_kw` det samme som `gjennomsnitt_kw`. To attributter dukker opp bare når de gjelder:
 
 | Attributt                   | Når                                                         |
 | --------------------------- | ----------------------------------------------------------- |
@@ -77,8 +75,6 @@ Hos Alut og Netera fakturerer nettselskapet etter hovedsikringens størrelse, ik
 | _(valgfri)_ Forbruksavgift       | NOK/kWh | Elavgift inkl. mva                        |
 | _(valgfri)_ Enovaavgift          | NOK/kWh | Enova-avgift inkl. mva                    |
 
----
-
 ## Strømstøtte
 
 | Sensor                                       | Enhet   | Beskrivelse                                                                                                                                                             |
@@ -91,8 +87,6 @@ Hos Alut og Netera fakturerer nettselskapet etter hovedsikringens størrelse, ik
 | Strømstøtte gjenstående kWh                  | kWh     | Hvor mye av månedens støtte-tak som er igjen (bolig=5000, fritidsbolig=0)                                                                                               |
 | _(valgfri)_ Strømpris per kWh (etter støtte) | NOK/kWh | Som "Strømpris per kWh", men med støtte trukket fra                                                                                                                     |
 
----
-
 ## Norgespris
 
 | Sensor                           | Enhet   | Beskrivelse                                                       |
@@ -103,8 +97,6 @@ Hos Alut og Netera fakturerer nettselskapet etter hovedsikringens størrelse, ik
 | Norgespris aktiv nå              | on/off  | På hvis du har valgt Norgespris                                   |
 
 kWh-tak: bolig=5000, fritidsbolig=1000. Over taket betaler du spotpris.
-
----
 
 ## Månedlig forbruk
 
@@ -138,8 +130,6 @@ Attributter på "Akkumulert strømkostnad": `strompris_kr`, `energiledd_kr`, `ka
 
 Attributter på "Månedlig nettleie total": `nettleie_kr`, `stromstotte_kr`, `forbruk_dag_kwh`, `forbruk_natt_kwh`, `forbruk_total_kwh`, `vektet_snittpris_kr_per_kwh`.
 
----
-
 ## Forrige måned
 
 Lagres ved månedsskifte. Brukes til faktura-verifisering.
@@ -157,11 +147,9 @@ Devicen har også knappen **Lag fakturarapport**. Den lager en varsling (persist
 
 Alle har `maaned`-attributt (f.eks. "januar 2026").
 
-**Nettleie-sensoren** har også: `energiledd_dag_kr`, `energiledd_natt_kr`, `kapasitetsledd_kr`, `snitt_topp_3_kw`, `norgespris_differanse_kr`.
+Nettleie-sensoren har også `energiledd_dag_kr`, `energiledd_natt_kr`, `kapasitetsledd_kr`, `snitt_topp_3_kw`, `norgespris_differanse_kr`.
 
-**Toppforbruk-sensoren** har: `maaned`, `topp_1_dato`, `topp_1_kw`, `topp_1_time`, `topp_2_dato`, `topp_2_kw`, `topp_2_time`, `topp_3_dato`, `topp_3_kw`, `topp_3_time`.
-
----
+Toppforbruk-sensoren har `maaned`, `topp_1_dato`, `topp_1_kw`, `topp_1_time`, `topp_2_dato`, `topp_2_kw`, `topp_2_time`, `topp_3_dato`, `topp_3_kw`, `topp_3_time`.
 
 ## Eksport (solceller)
 
@@ -175,13 +163,11 @@ For plusskunder. Krever konfigurert eksport-effektsensor. Alle deaktivert som st
 | _(valgfri)_ Forrige måned eksport kWh     | kWh   | Eksportert energi forrige måned      |
 | _(valgfri)_ Forrige måned eksport inntekt | NOK   | Eksportinntekt forrige måned         |
 
----
-
 ## Vakthold på måledataene
 
-| Sensor                            | Enhet  | Beskrivelse                              |
-| --------------------------------- | ------ | ---------------------------------------- |
-| Måledata-problem (binary_sensor)  | on/off | På når en input-sensor har sviktet       |
+| Sensor                           | Enhet  | Beskrivelse                        |
+| -------------------------------- | ------ | ---------------------------------- |
+| Måledata-problem (binary_sensor) | on/off | På når en input-sensor har sviktet |
 
 Sensoren er `device_class: problem` og ligger under Diagnostikk. Den er aldri
 spot-gatet: et bortfall av spotprisen er nettopp et av tilfellene den skal
@@ -189,27 +175,27 @@ melde, så den må virke når spotprisen mangler.
 
 Tre ting slår den på:
 
-- **Utfall.** En konfigurert input har stått `unavailable` eller `unknown` i mer
+- Utfall: en konfigurert input har stått `unavailable` eller `unknown` i mer
   enn 30 minutter. Grensen er fast og dekker HA-restart, oppdatering av en
   integrasjon og en nettverksglipp.
-- **Frossen energiteller.** Energimåleren rapporterer, men tallet har ikke økt
+- Frossen energiteller: energimåleren rapporterer, men tallet har ikke økt
   på flere timer enn terskelen. Terskelen settes under Configure, default tre
   timer. Hev den på en hytte eller et anlegg som står tomt i perioder.
-- **Utløpt spotpris.** Spotprisen har vært borte lenger enn cachen på to timer.
+- Utløpt spotpris: spotprisen har vært borte lenger enn cachen på to timer.
   Forbruket telles fortsatt i kWh, men kostnad, strømstøtte og
   Norgespris-sammenligning står stille til prisen er tilbake.
 
 Attributter:
 
-| Attributt               | Innhold                                                        |
-| ----------------------- | -------------------------------------------------------------- |
-| `problemer`             | Én rad per aktivt problem: type, input, entity_id, siden, timer |
-| `antall_problemer`      | Antall aktive problemer                                         |
-| `berorte_inputer`       | Rollene som svikter, f.eks. `["energi"]`                        |
-| `sist_energi_okning`    | Da energitelleren sist økte                                     |
-| `spotpris_gyldig`       | Om spotprisen kan regnes med nå                                 |
+| Attributt               | Innhold                                                          |
+| ----------------------- | ---------------------------------------------------------------- |
+| `problemer`             | Én rad per aktivt problem: type, input, entity_id, siden, timer  |
+| `antall_problemer`      | Antall aktive problemer                                          |
+| `berorte_inputer`       | Rollene som svikter, f.eks. `["energi"]`                         |
+| `sist_energi_okning`    | Da energitelleren sist økte                                      |
+| `spotpris_gyldig`       | Om spotprisen kan regnes med nå                                  |
 | `leverandorpris_gyldig` | Om leverandør-sensoren leverer, `null` hvis den ikke er satt opp |
-| `frossen_terskel_timer` | Terskelen som gjelder                                           |
+| `frossen_terskel_timer` | Terskelen som gjelder                                            |
 
 Hvert problem gir i tillegg et varsel under Innstillinger > Reparasjoner, så du
 ser det uten å ha satt opp noe. Varselet forsvinner av seg selv når inputen er
@@ -244,8 +230,6 @@ Bruk `Akkumulert strømkostnad`. Kapasitetsleddet fordeles lineært over tid, m�
 5. Velg `Akkumulert strømkostnad`
 
 Forbruksmåleren (kWh) kommer fra din AMS-leser, ikke Strømkalkulator.
-
----
 
 ## Eksempler
 
@@ -282,8 +266,6 @@ automation:
           message: "{{ states('sensor.nettleie_bkk_margin_til_neste_trinn') }} kW til neste kapasitetstrinn."
 ```
 
----
-
 ## Faktura-verifisering
 
 | Faktura-post          | Sensor                          | Hvor                            |
@@ -294,8 +276,6 @@ automation:
 | Energiledd natt (kr)  | Forrige måned nettleie          | Attributt: `energiledd_natt_kr` |
 | Kapasitetsledd (kr)   | Forrige måned nettleie          | Attributt: `kapasitetsledd_kr`  |
 | Kapasitetstrinn (kW)  | Forrige måned toppforbruk       | State (snitt topp-3)            |
-
----
 
 ## Tekniske detaljer
 

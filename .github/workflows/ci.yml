@@ -37,7 +37,13 @@ jobs:
       - name: Run unit tests with coverage
         run: just test-unit --cov=custom_components/stromkalkulator --cov-report=xml --cov-report=term-missing
 
+      # Coverage-tallet er nyttig, men det er ikke en test. Nå som release.yml
+      # venter på denne jobben, ville et ustabilt opplastingssteg blokkert en
+      # release som ellers er grønn. `fail_ci_if_error: false` dekker feil
+      # Codecov selv rapporterer; continue-on-error dekker resten, som at
+      # actionen ikke svarer i det hele tatt.
       - name: Upload coverage to Codecov
+        continue-on-error: true
         uses: codecov/codecov-action@v6
         with:
           files: ./coverage.xml
@@ -124,9 +130,15 @@ jobs:
       - name: Run real-HA tests
         run: just test-ha ${{ matrix.target }}
 
+  # De to validatorene kjører mot `@main` og `@master` hos andre, og de snakker
+  # med GitHubs API. Er de trege eller ustabile, blokkerer de releasen framfor å
+  # slippe noe gjennom, og det er riktig vei å feile. Timeouten er der for at en
+  # hengende validator ikke skal holde concurrency-låsen i timevis; kjør jobben
+  # om igjen, flyten er gjenopptakbar.
   hacs:
     name: HACS-validering
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -139,6 +151,7 @@ jobs:
   hassfest:
     name: Hassfest
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v6

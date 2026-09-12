@@ -83,6 +83,25 @@ jobs:
           fi
           echo "✅ manifest.json and pyproject.toml versions match"
 
+      # release.yml bygger release-body-en fra CHANGELOG.md. Mangler seksjonen,
+      # feiler release-jobben etter at CI er grønn, og det er et dårlig sted å
+      # oppdage det. Sjekkes bare når taggen ikke finnes fra før, altså når den
+      # bumpede versjonen er på vei ut (stromkalkulator-1dk4).
+      - name: Check changelog section for unreleased version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(jq -r '.version' custom_components/stromkalkulator/manifest.json)
+          if gh release view "v$VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "ℹ️ v$VERSION er alt sluppet, CHANGELOG-seksjonen er historikk"
+            exit 0
+          fi
+          if ! python3 scripts/release_notes.py "$VERSION" >/dev/null; then
+            echo "❌ CHANGELOG.md mangler release-noten for v$VERSION"
+            exit 1
+          fi
+          echo "✅ CHANGELOG.md har release-noten for v$VERSION"
+
   # Egen jobb for røyktesten mot ekte Home Assistant. Isolert fra `test`-jobben
   # fordi tests/conftest.py mocker homeassistant.* globalt for hele tests/-mappen.
   # Vi kjører med --noconftest (slår kun av conftest.py, ikke entry-point-pluginen

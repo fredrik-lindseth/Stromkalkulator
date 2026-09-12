@@ -15,7 +15,19 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 from pathlib import Path
+from unittest.mock import MagicMock
+
+# voluptuous er ikke installert i testmiljøet, og config_flow.py importerer den.
+# Uten stubben her besto filen bare når en annen testfil tilfeldigvis hadde
+# lagt den i sys.modules først, og feilet når den ble kjørt alene.
+if "voluptuous" not in sys.modules:
+    _vol = MagicMock()
+    _vol.Schema = MagicMock(side_effect=lambda x: x)
+    _vol.Required = lambda name, **kw: name
+    _vol.Optional = lambda name, **kw: name
+    sys.modules["voluptuous"] = _vol
 
 COMPONENTS_DIR = Path(__file__).parent.parent / "custom_components" / "stromkalkulator"
 
@@ -421,3 +433,86 @@ class TestValidateSpotSensor:
 
         state = _FakeState("unavailable", "NOK/kWh")
         assert _validate_spot_sensor(state) is None
+
+
+# ---------------------------------------------------------------------------
+# 9. Energiledd-feltet må si hva koden faktisk venter
+# ---------------------------------------------------------------------------
+
+
+class TestEnergileddMerking:
+    """Labelen på energiledd-feltet skal aldri love «inkl. avgifter» igjen.
+
+    Koden regner satsen som ren nettleie og legger forbruksavgift, Enova og mva
+    på selv (compute_energiledd_inkl_mva). Fram til og med 1.16.0 sto feltet
+    merket motsatt i nb og en, så alle som fulgte teksten tastet en sats med
+    avgiftene alt inne, og de ble talt to ganger. Se
+    docs/incidents/007-energiledd-label-inkl-avgifter.md.
+
+    Tekstdriften mellom malen og oversettelsene vokter test_oversettelser.py.
+    Denne vokter innholdet: en formulering som sier det motsatte av koden er en
+    feil selv om alle tre filene er enige om den.
+    """
+
+    FILER = ("strings.json", "translations/nb.json", "translations/en.json")
+    FORBUDT = ("inkl. avgifter", "incl. taxes", "including taxes", "inkludert avgifter")
+
+    def _energiledd_tekster(self, fil: str) -> list[str]:
+        data = json.loads((COMPONENTS_DIR / fil).read_text())
+        tekster: list[str] = []
+
+        def gaa(node, forelder: str | None) -> None:
+            if isinstance(node, dict):
+                for nokkel, verdi in node.items():
+                    gaa(verdi, nokkel)
+                return
+            if forelder and forelder.startswith("energiledd"):
+                tekster.append(str(node))
+
+        gaa(data, None)
+        # Steget for egendefinerte priser har sin egen forklaring i description.
+        for sti in (("config", "step", "pricing", "description"),):
+            node = data
+            for ledd in sti:
+                node = node[ledd]
+            tekster.append(str(node))
+        return tekster
+
+    def test_ingen_lover_inkl_avgifter(self):
+        for fil in self.FILER:
+            for tekst in self._energiledd_tekster(fil):
+                lav = tekst.lower()
+                traff = [ord_ for ord_ in self.FORBUDT if ord_ in lav]
+                assert not traff, f"{fil}: «{tekst}» lover {traff}, koden venter eks. mva og avgifter"
+
+    def test_labelen_sier_eks_mva(self):
+        """Uten forbeholdet i selve labelen må brukeren gjette."""
+        for fil in self.FILER:
+            data = json.loads((COMPONENTS_DIR / fil).read_text())
+            label = data["config"]["step"]["pricing"]["data"]["energiledd_dag"]
+            assert "eks. mva" in label or "excl. VAT" in label, f"{fil}: {label}"
+
+
+class TestEgendefinertBekreftelse:
+    """Nye egendefinerte oppsett skal ikke møte varselet om den gamle teksten.
+
+    Varselet gjelder satser tastet etter en feilmerket label. Den som taster nå
+    ser den rettede teksten, så config-flowen setter bekreftelsen med en gang.
+    Source-guard fordi flowen ikke kan kjøres uten HA.
+    """
+
+    def test_pricing_steget_setter_flagget(self):
+        source = (COMPONENTS_DIR / "config_flow.py").read_text()
+        pricing = re.search(
+            r"async def async_step_pricing\(.*?(?=\n    def |\n    async def |\nclass |\Z)",
+            source,
+            re.DOTALL,
+        )
+        assert pricing, "fant ikke async_step_pricing"
+        assert "CONF_EGENDEFINERT_SATSER_BEKREFTET" in pricing.group(0)
+
+    def test_bytte_til_egendefinert_setter_flagget(self):
+        source = (COMPONENTS_DIR / "config_flow.py").read_text()
+        derivasjon = re.search(r"def _apply_dso_derivation\(.*?(?=\ndef |\nclass |\Z)", source, re.DOTALL)
+        assert derivasjon, "fant ikke _apply_dso_derivation"
+        assert "CONF_EGENDEFINERT_SATSER_BEKREFTET" in derivasjon.group(0)

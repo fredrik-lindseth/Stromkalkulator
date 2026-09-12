@@ -1,0 +1,138 @@
+# Incident 007: Energiledd-feltet ba om «inkl. avgifter», koden ville ha eks.
+
+**Dato:** 12. september 2026
+**Status:** teksten rettet i `4f1dae2`, varsel til de berørte i denne fiksen
+**Berørte versjoner:** til og med 1.16.0, kun oppsett med egendefinert nettselskap
+
+## Symptomer
+
+Ingen bruker meldte fra. Feilen ble funnet under en synk av `translations/nb.json`
+mot `strings.json`: steget for egendefinerte priser ba om energiledd
+«(inkl. avgifter)» på norsk og «(incl. taxes)» på engelsk, mens malen i
+`strings.json` hele tiden har sagt eks. mva og avgifter.
+
+Det er nettopp derfor den er alvorlig. En bruker som taster inn en for høy sats
+får tall som ser plausible ut: nettleien er høyere enn naboens, men den er også
+det hos noen. Ingenting i integrasjonen sier fra, og fakturaen fra nettselskapet
+kommer med et annet beløp uten at det er opplagt hvorfor.
+
+## Rotårsak
+
+Koden regner energiledd som ren nettleie og legger avgiftene på selv:
+
+```python
+def compute_energiledd_inkl_mva(energiledd_eks_mva: float, avgiftssone: str) -> float:
+    return (energiledd_eks_mva + forbruksavgift + ENOVA_AVGIFT) * (1 + mva_sats)
+```
+
+Labelen over feltet lovet det motsatte. Taster brukeren inn en sats som alt
+inneholder avgiftene, legges de på en gang til. Samme klasse dobbelttelling som
+regresjonstesten `test_maanedlig_total_sensor_matcher_faktura` i
+`tests/test_faktura_bkk.py` vokter mot for de kjente nettselskapene, men den
+testen dekker DSO-satser fra `dso.py`, ikke tall brukeren taster selv.
+
+Feilen sto i to språkfiler samtidig fordi paritetstestene i `test_config_flow.py`
+bare sammenlignet nøkkelsett på ett nivå. Tekstinnholdet var det ingen som så på.
+
+## Hvor mye det utgjør
+
+Avgiftene er 7,13 øre/kWh forbruksavgift pluss 1,0 øre/kWh Enova, altså 8,13
+øre/kWh eks. mva. Hvor galt det blir, avhenger av hva brukeren leste «inkl.
+avgifter» som:
+
+| Tolkning                                 | Feil per kWh (Sør-Norge) | 1500 kWh/mnd | Per år   |
+| ---------------------------------------- | ------------------------ | ------------ | -------- |
+| Energiledd + forbruksavgift + Enova       | 10,16 øre                | 152 kr       | 1830 kr  |
+| Hele linjen fra fakturaen, altså inkl. mva | 21,69 øre                | 325 kr       | 3900 kr  |
+
+Regnestykket for den første raden, med BKK-satsen som står som default i
+skjemaet (28,77 øre/kWh eks. mva):
+
+- Riktig: `(0,2877 + 0,0813) × 1,25 = 0,46125 kr/kWh`
+- Tastet 0,369 etter teksten: `(0,369 + 0,0813) × 1,25 = 0,56288 kr/kWh`
+- Differanse: `0,10163 kr/kWh`, som er avgiftene med mva på.
+
+I Nord-Norge og tiltakssonen er det mindre: uten mva blir første rad 8,13
+øre/kWh, og i tiltakssonen, der forbruksavgiften er fritatt, 1,00 øre/kWh.
+
+Feilen treffer alt som bygger på energileddet: energiledd-sensorene, månedlig
+nettleie, månedlig total, estimert månedskostnad og fakturaestimatet.
+Strømstøtte, Norgespris og spotpris er ikke berørt.
+
+## Reproduksjon
+
+1. Sett opp integrasjonen på nytt og velg «Egendefinert» som nettselskap.
+2. På 1.16.0 leste feltet «Energiledd dag (NOK/kWh)» med beskrivelsen
+   «angi energiledd-priser i NOK/kWh (inkl. avgifter)».
+3. Tast inn 0,369, altså BKKs energiledd med forbruksavgift og Enova lagt til,
+   slik teksten ber om.
+4. `sensor.energiledd_dag` viser 56,29 øre/kWh der den skulle vist 46,13.
+
+## Fiksen
+
+Teksten er rettet i `4f1dae2`, i både `strings.json`, `nb.json` og `en.json`, og
+`tests/test_oversettelser.py` vokter nå at de tre holder seg i synk ordrett.
+
+De som alt har tastet feil har fortsatt tallet sitt. Denne fiksen legger til et
+repair-varsel for config entries med egendefinert nettselskap:
+`_check_egendefinerte_satser` i `__init__.py` reiser
+`egendefinert_energiledd_<entry_id>` ved oppstart, med brukerens egne satser og
+avgiftsbeløpet for sonen som plassholdere i teksten. Varselet påstår ikke at
+brukeren har tastet feil, for det kan vi ikke vite, bare at teksten var
+villedende og at satsen bør sjekkes mot prislisten.
+
+Varselet er fiksbart. `ConfirmRepairFlow` alene holdt ikke: varselet reises på
+nytt ved hver oppstart så lenge entryet bruker egendefinerte satser, så en ren
+bekreftelse ville kommet tilbake neste gang HA startet.
+`EgendefinertSatserRepairFlow` i `repairs.py` skriver derfor
+`egendefinert_satser_bekreftet` på config entryet, og det er flagget sjekken
+leser før den reiser varselet igjen. Oppsett som gjøres etter rettingen får
+flagget satt i config-flowen med en gang, og ser aldri varselet.
+
+## Tester
+
+`tests/test_repairs_egendefinert.py` dekker begge sidene: at varselet reises for
+et egendefinert oppsett og ikke for et kjent nettselskap eller et som alt er
+bekreftet, at satsene og avgiftsbeløpet havner i teksten, at fix-flowen skriver
+bekreftelsen og at den tåler et entry som er slettet i mellomtiden.
+
+`tests/test_config_flow.py` har fått en innholdsvakt: ingen tekst som hører til
+energiledd-feltene får si «inkl. avgifter» eller «incl. taxes», i noen av de tre
+filene. Tekstdriften mellom filene vokter `test_oversettelser.py`; denne vokter
+at innholdet stemmer med koden selv om alle tre filene er enige.
+
+## Gjennomgang av de andre feltene
+
+Feilen sto i to språk uten at noen merket den, så resten av skjemaet ble lest
+mot koden. Ett funn: `export_power_sensor` var merket «Eksport-effektmåler
+(valgfri)» uten enhet, mens coordinatoren deler avlesningen på 1000 og altså
+krever watt. En kW-sensor ville gitt tusen ganger for høy eksportinntekt uten at
+noe sa fra. Effektmåleren for import står allerede merket «(W)». Labelen og
+beskrivelsen er rettet i alle tre filene.
+
+De øvrige feltene stemmer: spotpris-sensoren er merket NOK/kWh og valideres mot
+øre/kWh og kr-totaler ved oppsett, energimåleren er merket kWh, Norgespris-
+teksten oppgir riktige satser og kWh-grenser for begge soner, og
+avgiftssone-forklaringen er den som ble rettet etter incident 003.
+
+## Lærdom
+
+En label er en del av regnestykket. Står det noe annet over feltet enn koden
+venter, er tallet feil selv om all koden under er riktig, og ingen test av
+beregningene vil noen gang oppdage det.
+
+Malen er ikke det brukeren ser. `strings.json` sa riktig hele veien; feilen lå i
+de to filene Home Assistant faktisk serverer. Vakten må stå på oversettelsene,
+ikke på malen.
+
+Et varsel som kommer tilbake ved hver omstart er verre enn ingen varsel, fordi
+det trener brukeren i å overse Repairs. Er varselet reist fra en tilstand som
+ikke endrer seg av seg selv, må bekreftelsen lagres et sted som overlever en
+restart.
+
+## Kilder
+
+- `4f1dae2`, synken som avdekket avviket
+- `custom_components/stromkalkulator/const.py:compute_energiledd_inkl_mva`
+- Skatteetatens satser for elektrisk kraft 2026 (7,13 øre/kWh forbruksavgift,
+  1,0 øre/kWh Enova), som ligger til grunn for tallene over

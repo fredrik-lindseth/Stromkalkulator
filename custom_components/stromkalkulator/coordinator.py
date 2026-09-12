@@ -40,6 +40,7 @@ from .const import (
     DEFAULT_ENERGI_FROSSEN_TIMER,
     DEFAULT_KAPASITET_VARSEL_TERSKEL,
     DOMAIN,
+    DSO_EGENDEFINERT,
     DSO_LIST,
     ENOVA_AVGIFT,
     HELLIGDAGER_FASTE,
@@ -439,7 +440,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # den, og et entry som likevel bærer en (håndredigert .storage) skal gi
         # ukjent fastledd, ikke halve trinn.
         egne_trinn = entry.data.get(CONF_EGENDEFINERT_KAPASITETSTRINN)
-        if egne_trinn:
+        if egne_trinn and dso_id == DSO_EGENDEFINERT:
             try:
                 self.kapasitetstrinn = parse_kapasitetstrinn(str(egne_trinn))
             except ValueError:

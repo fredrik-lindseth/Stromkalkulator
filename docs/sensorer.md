@@ -48,7 +48,7 @@ Toppforbruk #1-3 har attributtene `dato` (YYYY-MM-DD) og `time` (0-23).
 
 Kapasitetsvarsel er en `binary_sensor` som slår til (on) når margin til neste trinn er under terskelen. Terskelen settes i options (Configure), default 2,0 kW. Bruk varselet i automasjoner som skrur ned last før du bikker over i et dyrere trinn.
 
-Kapasitetstrinn bærer `fastledd_metode` (nettselskapets modell) og `fastledd_grunnlag_kw` (kW-verdien den modellen faktisk slår opp med). For de 68 nettselskapene som bruker NVE-modellen er `fastledd_grunnlag_kw` det samme som `gjennomsnitt_kw`. To attributter dukker opp bare når de gjelder:
+Kapasitetstrinn bærer `fastledd_metode` (nettselskapets modell) og `fastledd_grunnlag_kw` (kW-verdien den modellen faktisk slår opp med). For de 69 oppføringene som bruker NVE-modellen er `fastledd_grunnlag_kw` det samme som `gjennomsnitt_kw`. To attributter dukker opp bare når de gjelder:
 
 | Attributt                   | Når                                                         |
 | --------------------------- | ----------------------------------------------------------- |

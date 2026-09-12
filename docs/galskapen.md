@@ -25,7 +25,7 @@ Ta én husholdning. Snitt av tre døgnmakser på eksakt 5,0 kW, 600 kWh på dagt
 | Vang Energiverk  | 264,12 kr  | 819 kr   | 1083,12 kr |
 | Elmea            | 411,10 kr  | 747 kr   | 1158,10 kr |
 
-Dyreste er 2,26 ganger billigste, og 69 av de 72 selskapene med
+Dyreste er 2,26 ganger billigste, og 67 av de 71 oppføringene med
 kW-trinn gir sin egen unike sum. At prisene varierer er greit nok. Mer interessant er
 fordelingen mellom de to leddene: hos Modalen er 74 % av nettleien energiledd,
 hos Noranett 14 %.
@@ -38,8 +38,8 @@ spareråd som lønner seg avhenger dermed av hvilket nettselskap kunden har.
 ## Fastleddet måler fem forskjellige ting
 
 Snitt av de tre høyeste døgnmaksene i måneden er den vanligste innretningen, og
-70 av 76 oppføringer bruker den.[^antall] De fem andre måler noe annet, og to av
-dem måler ikke effekt i det hele tatt.[^metoder]
+69 av de 74 oppføringene bruker den.[^antall] De fem andre måler noe annet, og
+to av dem måler ikke effekt i det hele tatt.[^metoder]
 
 Alut og Netera setter fastleddet etter hovedsikringen. Alut har to satser, over og
 under 3 x 125 A, og skriver det rett ut i prislisten.[^alut] Netera har fem rader,
@@ -201,21 +201,24 @@ prisliste gjør. Se [bidra med faktura](fakturaer/bidra-med-faktura.md).
     NVE-modellen i kode og dokumentasjon, fordi det er navnet bransjen bruker,
     men navnet er upresist.
 
-[^antall]: `DSO_LIST` i `dso.py` har 76 oppføringer: 75 nettselskap, der Area
-    Nett teller som tre siden prisområdene har hver sin tariff, og én
-    `Egendefinert` for dem som vil legge inn tall manuelt. Fri-nettleie har 74
-    tarifffiler, hvorav 73 har en aktiv husholdningstariff (den fjerde
-    Area-filen dekker bare fritidsbolig). Alle tall i dette dokumentet er lest ut
-    av `dso.py` eller fri-nettleie 29. juli 2026, eller fra nettselskapets egen
-    side der det står i teksten.
+[^antall]: `DSO_LIST` i `dso.py` har 76 oppføringer. Én er `Egendefinert` for
+    dem som vil legge inn tall manuelt, og én er den utfasede
+    Area Nett-samleoppføringen, som står med `supported: False` og bare finnes
+    for å gi eksisterende brukere et repair-varsel. Igjen står 74 valgbare
+    oppføringer, og det er dem tallene i dette dokumentet teller. De dekker 72
+    nettselskap, siden Area Nett har tre prisområder med hver sin tariff.
+    Fri-nettleie har 74 tarifffiler, hvorav 73 har en aktiv husholdningstariff
+    (den fjerde Area-filen dekker bare fritidsbolig). Alle tall i dette
+    dokumentet er lest ut av `dso.py` eller fri-nettleie, eller fra
+    nettselskapets egen side der det står i teksten.
 
 [^husholdning]: Regnet med satsene i `dso.py`: `600 × dagsats + 400 × nattsats`
     inkl. forbruksavgift, Enova og mva for selskapets avgiftssone, pluss
     fastleddet for 5,0 kW. Juli er valgt fordi det skiller sesongselskapene fra de
-    andre. Tre selskap er utelatt fordi de ikke har en kW-trinntabell i det hele
-    tatt (Alut, Netera, Fjellnett), så N = 69. Billigst er Stram med 512,40 kr og
-    dyrest Elmea med 1158,10 kr, begge i Nord-Norge uten mva. 67 av de 69 summene
-    er unike.
+    andre. Tre oppføringer er utelatt fordi de ikke har en kW-trinntabell i det
+    hele tatt (Alut, Netera, Fjellnett), så N = 71. Billigst er Stram med
+    512,40 kr og dyrest Elmea med 1158,10 kr, begge i Nord-Norge uten mva. 67 av
+    de 71 summene er unike; to par deler sum.
 
 [^andel]: Energileddets andel av nettleien i samme regnestykke: Modalen Kraftlag
     73,9 %, Havnett 59,7 %, Elvia 49,0 %, BKK 47,1 %, Stram 35,6 %, Vang
@@ -223,11 +226,11 @@ prisliste gjør. Se [bidra med faktura](fakturaer/bidra-med-faktura.md).
     delt på 14,4 er 5,1.
 
 [^metoder]: Fri-nettleies navn, som jeg har tatt inn i `fastledd_metode`:
-    `TRE_DØGNMAX_MND` (68 oppføringer, inkludert `Egendefinert`), `OV_TREFASE`
-    (Alut, Netera), `FEM_VEKTET_ÅR` (Fjellnett), `MND_MAX` (Sør Aurdal Energi) og
-    `UKJENT` (Tinfos, som ikke publiserer metoden sin, og der fri-nettleie har en
-    åpen forespørsel til selskapet). Alle fem er implementert. Hva de gjør og
-    hvordan, står i
+    `TRE_DØGNMAX_MND` (69 av de 74, og `Egendefinert` bruker den også),
+    `OV_TREFASE` (Alut, Netera), `FEM_VEKTET_ÅR` (Fjellnett), `MND_MAX`
+    (Sør Aurdal Energi) og `UKJENT` (Tinfos, som ikke publiserer metoden sin,
+    og der fri-nettleie har en åpen forespørsel til selskapet). Alle fem er
+    implementert. Hva de gjør og hvordan, står i
     [beregninger.md](beregninger.md#nettselskap-med-en-annen-metode).
 
 [^alut]: «For husholdning og hytter med etterspurt effekt/- overbelastningsvern
@@ -309,7 +312,7 @@ prisliste gjør. Se [bidra med faktura](fakturaer/bidra-med-faktura.md).
 [^soner]: Mva-fritaket følger av merverdiavgiftsloven § 6-6 og gjelder Nordland,
     Troms og Finnmark. Tiltakssonen har i tillegg fritak for forbruksavgift.
     Enova-avgiften på 1,00 øre gjelder overalt, også der alt annet er fritatt. Av
-    de 75 selskapene ligger 56 i standardsonen, 11 i Nord-Norge og 8 i
+    de 74 oppføringene ligger 56 i standardsonen, 11 i Nord-Norge og 7 i
     tiltakssonen. Sonen flytter mer enn nettleien: strømstøtte-terskelen er 96,25
     øre inkl. mva i sør og 77 øre der det ikke er mva, og Norgespris er 50 øre mot
     40. NO3-bommen står i

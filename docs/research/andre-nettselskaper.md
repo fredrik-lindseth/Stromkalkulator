@@ -11,6 +11,9 @@ Vi treffer godt på de aller største (Elvia, Tensio TS, Tensio TN, Glitre).
 Lnett og Lede har vesentlig feil priser i `dso.py`, vi har antakelig
 gamle tall (2024 eller tidligere).
 
+Alle avvik i dette dokumentet er regnet mot nettselskapets publiserte sats:
+`(vår sats - riktig sats) / riktig sats`.
+
 Ingen avvik på avregningsmodell: alle store DSO-er bruker "snitt av de
 tre høyeste døgnmaks" eller "snitt av tre høyeste timer i forskjellige
 døgn", funksjonelt identisk med vår implementasjon i
@@ -97,10 +100,10 @@ Kilde: [Lnett tariffhefte 2026 (PDF)](https://www.l-nett.no/getfile.php/13156920
 
 Energileddet har et stort avvik:
 
-|               | Lnett 2026 | Vår dso.py | Diff                   |
-| ------------- | ---------- | ---------- | ---------------------- |
-| Dag eks. mva  | 25,60 øre  | 17,47 øre  | +8,13 øre (~46% feil)  |
-| Natt eks. mva | 13,60 øre  | 5,47 øre   | +8,13 øre (~149% feil) |
+|               | Lnett 2026 | Vår dso.py | Vårt avvik mot Lnett |
+| ------------- | ---------- | ---------- | -------------------- |
+| Dag eks. mva  | 25,60 øre  | 17,47 øre  | -8,13 øre (-32 %)    |
+| Natt eks. mva | 13,60 øre  | 5,47 øre   | -8,13 øre (-60 %)    |
 
 Avviket på nøyaktig 8,13 øre = forbruksavgift (7,13) + Enova (1,0).
 Mistanke: gamle tall, eller avgifter trukket fra to ganger. Datoen i
@@ -133,7 +136,7 @@ forrige måned", som matcher.
 Kilde: [Lede nettleie privatkunder](https://lede.no/priser/nettleie-privatkunder/)
 
 Energileddet avviker. Lede 2026 har 14,26 øre/kWh flatt, uten dag/natt, mens
-vår dso.py har 24,382 flatt, altså 10,12 øre for høyt. Vi har antakelig
+vår dso.py har 24,382 flatt, altså 10,12 øre eller 71 % for høyt. Vi har antakelig
 2025-tall eller eldre. Verdt å notere: Lede har ikke dag/natt-differensiering
 for husholdning, kun for effekttariff på næring.
 
@@ -148,7 +151,7 @@ Kapasitetstrinnene avviker også:
 | 20-25 | 1 027,50  | 1 124      |
 | 25-50 | 1 596,25  | 1 746      |
 
-Alle våre tall er ~9-10% for høye. Match med kraftsystemet 2025?
+Alle våre tall er ~9,4 % for høye. Match med kraftsystemet 2025?
 Nettsiden har endret seg ifølge dso.py-kommentaren ("Kilde:
 kraftsystemet 2026"), men tallene matcher ikke faktiske 2026-priser.
 
@@ -158,7 +161,8 @@ Kilde: [Norgesnett nettleie privat](https://norgesnett.no/nettleie-privat/)
 
 Energileddet avviker. Norgesnett 2026 inkl. mva er 44,36 (dag) og 33,46
 (natt) øre/kWh. Eks. mva blir det 35,49 / 26,77, og som ren nettleie (-8,13)
-27,36 / 18,64. Vår dso.py har 20,262 / 13,286, altså 7+ øre for lavt.
+27,36 / 18,64. Vår dso.py har 20,262 / 13,286, altså 7,10 øre (26 %) for lavt
+på dag og 5,35 øre (29 %) på natt.
 Antakelig 2025-tall.
 
 ## Forbruksavgift 2026: sjekk const.py
@@ -182,12 +186,12 @@ Vår `const.py:182` har `ENOVA_AVGIFT = 0.01`: korrekt.
    Siste tuple `(float("inf"), 1150)` skal være `(50, 2150), (75, 3150),
    (100, 4150), (float("inf"), 7000)`. Påvirker brukere på trinn 7-10.
 
-2. Lnett (linje 239-240): energiledd er ~46-149% for lavt. Skal være
+2. Lnett (linje 239-240): energiledd er 32-60 % for lavt. Skal være
    0,2560 / 0,1360, ikke 0,1747 / 0,0547.
 
 3. Lede (linje 223-224): energiledd 0,24382 (flat) skal være 0,1426.
 
-4. Lede (linje 226-233): kapasitetstrinn ~9-10% for høyt.
+4. Lede (linje 226-233): kapasitetstrinn ~9,4 % for høyt.
 
 5. Norgesnett (linje 148-149): energiledd 0,20262 / 0,13286 skal være
    ~0,2736 / 0,1864 (basert på inkl-mva-tall fra 2026).
@@ -245,10 +249,10 @@ De sju konkrete buggene bør fikses i prioritert rekkefølge:
 | Prioritet | Bug                                       | Konsekvens for bruker                  |
 | --------- | ----------------------------------------- | -------------------------------------- |
 | P1        | Lnett: trinn over 25 kW mangler           | Helt feil pris for store husholdninger |
-| P1        | Lnett: energiledd er ~46% for lavt        | Konsistent for lav nettleie hver måned |
-| P1        | Lede: energiledd ~70% for høyt            | Konsistent for høy nettleie hver måned |
-| P2        | Lede: kapasitetstrinn ~10% for høyt       | Mindre, men systematisk feil           |
-| P2        | Norgesnett: energiledd ~30% for lavt      | Konsistent for lav nettleie            |
+| P1        | Lnett: energiledd 32-60 % for lavt        | Konsistent for lav nettleie hver måned |
+| P1        | Lede: energiledd 71 % for høyt            | Konsistent for høy nettleie hver måned |
+| P2        | Lede: kapasitetstrinn ~9,4 % for høyt     | Mindre, men systematisk feil           |
+| P2        | Norgesnett: energiledd 26-29 % for lavt   | Konsistent for lav nettleie            |
 | P3        | Elvia: kapasitetstrinn 6-10 har små avvik | Kun for husholdninger med >20 kW snitt |
 | P3        | Asker Nett: verifiseres mot 2026          | Sannsynligvis lignende feil            |
 

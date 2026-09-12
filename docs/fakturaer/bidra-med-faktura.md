@@ -73,4 +73,8 @@ Tar ~30 minutter per faktura å integrere.
 
 ## Takk
 
-Hver faktura som blir lagt inn dekker alle andre som bruker samme nettselskap.
+Takk for at du bidrar. En faktura verifiserer satsene og modellen for én
+kombinasjon: ett nettselskap, én avgiftssone, én tariffgruppe og den sesongen
+fakturaen dekker. Alle med samme kombinasjon vet da at tallene stemmer mot en
+ekte faktura. Og går den ikke gjennom, er feilen vi finner som regel en som
+rammer bredere enn ditt eget oppsett.

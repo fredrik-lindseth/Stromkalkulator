@@ -1,6 +1,6 @@
 # Bidra
 
-74 norske nettselskap er lagt inn med satser, og Egendefinert dekker resten. Priser endres årlig og feil kan forekomme.
+Nettselskapslisten har 74 oppføringer med satser, som dekker 72 norske nettselskap, og Egendefinert dekker resten. Priser endres årlig og feil kan forekomme.
 
 ## Egendefinert nettselskap
 

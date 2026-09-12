@@ -36,7 +36,7 @@ Hourly broadcast går ved ca. XX:00:10 til XX:00:13.
 
 IEC 62056-21 ed 1.0 (1996), ASCII serial protocol. Ikke arkivert lokalt: betalt IEC-standard uten redistribusjonsrett. Offisiell kilde (kjøp/lisens): [webstore.iec.ch/publication/6122](https://webstore.iec.ch/publication/6122).
 
-Standarden regulerer framing, baudrate og data-encoding, men sier ingenting om når kumulative timesverdier skal sendes. Hver målerprodusent velger egen timing. Den nyeste utgaven er bak IEC-paywall (~CHF 200), og vi har ikke behov for den, konklusjonen over er allerede uttømt.
+Standarden regulerer framing, baudrate og data-encoding, men sier ingenting om når kumulative timesverdier skal sendes. Hver målerprodusent velger egen timing. Den nyeste utgaven er bak IEC-paywall (~CHF 200). Vi har ikke kjøpt den, og trenger den ikke: spørsmålet vårt er når timesverdiene sendes, og det svarer standarden uansett ikke på. Målerspekkene over gjør det.
 
 ## Konklusjon på tvers av merker
 

@@ -17,8 +17,9 @@ Se selv hva en gitt versjon gir:
 python3 scripts/release_notes.py 1.16.0
 ```
 
-Exit 1 hvis seksjonen mangler eller er tom. Både `ci.yml` og `release.yml`
-henger på den exit-koden, så en versjon uten note blir aldri publisert.
+Exit 1 hvis seksjonen mangler, er tom, eller har en relativ lenke til en fil
+som ikke finnes. Både `ci.yml` og `release.yml` henger på den exit-koden, så en
+versjon uten note blir aldri publisert.
 
 ## Stil
 
@@ -28,18 +29,66 @@ henger på den exit-koden, så en versjon uten note blir aldri publisert.
 - Ingen AI-slop ("we're excited to announce", overdreven adjektivbruk)
 - Ingen em-dashes, bruk komma eller punktum
 - Krediter brukere som rapporterer bugs: `@brukernavn` + issue-referanse
-- Er det noe brukeren må gjøre selv (bytte entitets-id, bekrefte enhetsbytte,
-  velge et nytt felt), skal det stå tydelig, gjerne først
 
 Underoverskriftene er Keep a Changelog-kategoriene (`### Fikset`, `### Lagt
-til`, `### Endret`, `### Verifisert`, `### Dokumentert`). Ikke skriv noen
-`# v1.3.0`-heading, tittelen settes på selve releasen.
+til`, `### Endret`, `### Verifisert`, `### Dokumentert`), pluss `### Dette må
+du gjøre selv`. Ikke skriv noen `# v1.3.0`-heading, tittelen settes på selve
+releasen.
+
+## Dette må du gjøre selv
+
+Krever oppgraderingen noe aktivt av brukeren, bytte av entitets-id, bekreftelse
+av et enhetsbytte, et nytt felt som må velges, skal det stå i en egen
+`### Dette må du gjøre selv`-kategori. Kategorien er frivillig; de fleste
+releaser har ingenting der.
+
+```markdown
+## [1.17.0]
+
+### Dette må du gjøre selv
+
+- Sett terskelen for frossen energisensor under Innstillinger > Enheter og
+  tjenester > Strømkalkulator > Konfigurer. Default er 3 timer.
+
+### Lagt til
+
+- Ny `binary_sensor.maaledata_problem` som varsler når en input-sensor svikter
+```
+
+Du trenger ikke skrive den først i CHANGELOG; `release_notes.py` løfter den
+øverst i release-body-en uansett hvor i seksjonen den står, så den ikke drukner
+under «Lagt til» og «Fikset». Rekkefølgen skal ikke avhenge av at noen husker
+den. Overskriften matches uten hensyn til store bokstaver.
+
+Hvorfor den finnes: v1.15.0 byttet sensortyper og enheter, og noten på GitHub
+hadde en håndskrevet ramme om hva brukeren måtte gjøre. I CHANGELOG lå de samme
+fire punktene spredt under «Endret» og «Lagt til», så den som skummet fikk aldri
+beskjeden. Nå som CHANGELOG er eneste kilde, må formatet bære den selv.
+
+## Lenker
+
+Skriv relative lenker som ellers i repoet, altså
+`[incident 006](docs/incidents/006-kapasitetstrinn-uten-kilde.md)`.
+`release_notes.py` skriver dem om til absolutte URL-er mot taggen som slippes
+(`.../blob/v1.17.0/docs/...`) før de havner i release-body-en. Relative lenker
+er døde på en releaseside, og taggen brukes framfor `main` så lenken viser
+innholdet slik det var ved releasen, også om et år.
+
+- Absolutte URL-er står urørt
+- Anker uten fil (`#lagt-til`) peker på `CHANGELOG.md` i repoet, på riktig tag
+- Peker en relativ lenke på en fil som ikke finnes, feiler scriptet med exit 1
+  framfor å publisere en død lenke. Slett eller rett stien.
+
+Flytter du en fil det lenkes til fra en uslupen seksjon, fanges det av
+`pytest tests/test_release_notes.py` lokalt og av CI, ikke først i
+release-jobben.
 
 ## Hva workflowen legger til
 
 `release.yml` bygger body-en slik:
 
-1. CHANGELOG-seksjonen, ordrett
+1. CHANGELOG-seksjonen, med «Dette må du gjøre selv» løftet øverst og relative
+   lenker skrevet om til absolutte
 2. `## Verifisering` med SHA256-linjen og lenke til `SECURITY.md`
 3. `<details>`-fold med alle commits siden forrige tag
 

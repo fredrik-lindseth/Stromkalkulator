@@ -66,7 +66,7 @@ Strømstøtte, Norgespris og spotpris er ikke berørt.
    «angi energiledd-priser i NOK/kWh (inkl. avgifter)».
 3. Tast inn 0,369, altså BKKs energiledd med forbruksavgift og Enova lagt til,
    slik teksten ber om.
-4. `sensor.energiledd_dag` viser 56,29 øre/kWh der den skulle vist 46,13.
+4. `sensor.energiledd_dag` viser 0,5629 NOK/kWh der den skulle vist 0,4613.
 
 ## Fiksen
 

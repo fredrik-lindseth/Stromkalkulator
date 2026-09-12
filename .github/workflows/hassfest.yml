@@ -1,12 +1,16 @@
-name: Hassfest
+name: Hassfest (nattlig)
+
+# Samme begrunnelse som validate.yml: hassfest kjøres i ci.yml for hver PR og
+# hver releasekandidat, og om natten her, fordi Home Assistant kan skjerpe
+# kravene til manifest.json uten at vi har rørt filen.
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
   schedule:
     - cron: "0 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   validate:

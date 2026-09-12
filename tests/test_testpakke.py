@@ -13,6 +13,7 @@ verifiseres mot en kjørende HA. Det gjør scripts/sjekk_testpakke.py.
 from __future__ import annotations
 
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -21,8 +22,17 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
 
-yaml = pytest.importorskip("yaml", reason="pyyaml trengs for å lese testpakken")
+try:
+    import yaml  # noqa: F401
+except ModuleNotFoundError as feil:  # pragma: no cover
+    raise ModuleNotFoundError(
+        "pyyaml mangler, og da kan ikke testpakken sjekkes. "
+        "Kjør suiten med `pipx run --with hypothesis --with pyyaml pytest ...`, "
+        "eller installer pyyaml i miljøet. Denne filen skal feile, ikke skippe: "
+        "en vakt som hopper over seg selv vakter ingenting."
+    ) from feil
 
+import sjekk_testpakke  # noqa: E402
 from sjekk_testpakke import (  # noqa: E402
     definerte_entiteter,
     les_pakke,
@@ -132,3 +142,28 @@ def test_ingen_utdaterte_stromstotte_terskler() -> None:
         if "{%" in linje and ("0.9125" in linje or "0.9375" in linje)
     ]
     assert not aktive, f"utdatert strømstøtte-terskel i bruk: {aktive}"
+
+
+class TestHentFjernfil:
+    """«ssh feilet» og «filen finnes ikke» er to forskjellige svar.
+
+    Blandet sammen får du beskjed om å deploye en pakke som kanskje ligger på
+    HA alt, den dagen nettet er nede.
+    """
+
+    def _kjor(self, monkeypatch, returkode: int, stderr: str = "") -> str | None:
+        def falsk_run(*_args, **_kwargs):
+            return subprocess.CompletedProcess(args=[], returncode=returkode, stdout="innhold\n", stderr=stderr)
+
+        monkeypatch.setattr(sjekk_testpakke.subprocess, "run", falsk_run)
+        return sjekk_testpakke.hent_fjernfil("ha-local")
+
+    def test_ssh_feil_hever(self, monkeypatch):
+        with pytest.raises(RuntimeError, match="ssh mot ha-local feilet"):
+            self._kjor(monkeypatch, 255, stderr="Could not resolve hostname")
+
+    def test_manglende_fil_gir_none(self, monkeypatch):
+        assert self._kjor(monkeypatch, 1) is None
+
+    def test_funnet_fil_gir_innhold(self, monkeypatch):
+        assert self._kjor(monkeypatch, 0) == "innhold\n"

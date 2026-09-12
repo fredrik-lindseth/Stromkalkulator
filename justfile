@@ -69,8 +69,25 @@ deploy-testpakke host="ha-local":
     set -euo pipefail
     fjern=/config/packages/stromkalkulator_test.yaml
     lokal=packages/stromkalkulator_test.yaml
-    ssh -o IdentitiesOnly=yes {{host}} "cat $fjern" > /tmp/stromkalkulator_test_fjern.yaml 2>/dev/null || : > /tmp/stromkalkulator_test_fjern.yaml
-    if diff -u /tmp/stromkalkulator_test_fjern.yaml "$lokal" > /tmp/stromkalkulator_test.diff; then
+    tmp=/tmp/stromkalkulator_test_fjern.yaml
+    feil=/tmp/stromkalkulator_test_ssh.err
+    # ssh svarer 255 på sine egne feil (vert nede, auth, ukjent host). Da vet vi
+    # ikke om pakken ligger på HA, og skal ikke vise en diff som later som den
+    # mangler. Alt annet enn 0 kommer fra `cat` og betyr at filen ikke finnes.
+    set +e
+    ssh -o IdentitiesOnly=yes {{host}} "cat $fjern" > "$tmp" 2>"$feil"
+    kode=$?
+    set -e
+    if [[ $kode -eq 255 ]]; then
+        echo "ssh mot {{host}} feilet (255). Vet ikke om pakken ligger der, så ingen diff. Avbryter." >&2
+        cat "$feil" >&2
+        exit 1
+    fi
+    if [[ $kode -ne 0 ]]; then
+        echo "Fant ikke $fjern på {{host}} (cat ga $kode). Pakken er ikke lagt ut ennå."
+        : > "$tmp"
+    fi
+    if diff -u "$tmp" "$lokal" > /tmp/stromkalkulator_test.diff; then
         echo "Testpakken på {{host}} er allerede identisk med repoets. Gjør ingenting."
         exit 0
     fi

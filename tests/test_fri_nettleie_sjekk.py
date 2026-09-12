@@ -20,7 +20,15 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
-pytest.importorskip("yaml", reason="scriptet krever pyyaml")
+try:
+    import yaml  # noqa: F401
+except ModuleNotFoundError as feil:  # pragma: no cover
+    raise ModuleNotFoundError(
+        "pyyaml mangler, og da kan ikke drift-vakten for satsene sjekkes. "
+        "Kjør suiten med `pipx run --with hypothesis --with pyyaml pytest ...`, "
+        "eller installer pyyaml i miljøet. Denne filen skal feile, ikke skippe: "
+        "en vakt som hopper over seg selv vakter ingenting."
+    ) from feil
 sjekk = importlib.import_module("sjekk_mot_fri_nettleie")
 
 from datetime import date  # noqa: E402
@@ -110,16 +118,12 @@ class TestFastleddKonvertering:
         ]
 
     def test_mva_fri_sone_bruker_faktor_1(self):
-        tariff = {
-            "fastledd": {"metode": "TRE_DØGNMAX_MND", "terskler": [{"terskel": 0, "pris": 1200}]}
-        }
+        tariff = {"fastledd": {"metode": "TRE_DØGNMAX_MND", "terskler": [{"terskel": 0, "pris": 1200}]}}
         assert sjekk.deres_trinn(tariff, 1.0) == [(float("inf"), 100)]
 
     def test_halve_kroner_rundes_opp(self):
         """232,50 kr/mnd skal bli 233, som i dso.py. Innebygd round() gir 232."""
-        tariff = {
-            "fastledd": {"metode": "TRE_DØGNMAX_MND", "terskler": [{"terskel": 0, "pris": 2232}]}
-        }
+        tariff = {"fastledd": {"metode": "TRE_DØGNMAX_MND", "terskler": [{"terskel": 0, "pris": 2232}]}}
         assert sjekk.deres_trinn(tariff, 1.25) == [(float("inf"), 233)]
 
     @pytest.mark.parametrize("metode", ["OV_TREFASE", "FEM_VEKTET_ÅR"])
@@ -228,24 +232,18 @@ class TestSammenlignLineaer:
         assert "2589 vs 2534" in sjekk.sammenlign_lineaer(entry, tariff)
 
     def test_endret_grunnbeloep_rapporteres(self):
-        tariff = {
-            "fastledd": {"metode": "FEM_VEKTET_ÅR", "terskler": [{"terskel": 0, "pris": 2400}]}
-        }
+        tariff = {"fastledd": {"metode": "FEM_VEKTET_ÅR", "terskler": [{"terskel": 0, "pris": 2400}]}}
         entry = {"fastledd_lineaer": {"grunnbelop_aar_eks_mva": 2000, "sats_kw_aar_eks_mva": 534}}
         assert sjekk.sammenlign_lineaer(entry, tariff) is not None
 
     def test_en_krone_per_maaned_slack_tolereres(self):
         """Samme slack som trinnsammenligningen, oppgitt i kr/år."""
-        tariff = {
-            "fastledd": {"metode": "FEM_VEKTET_ÅR", "terskler": [{"terskel": 0, "pris": 2010}]}
-        }
+        tariff = {"fastledd": {"metode": "FEM_VEKTET_ÅR", "terskler": [{"terskel": 0, "pris": 2010}]}}
         entry = {"fastledd_lineaer": {"grunnbelop_aar_eks_mva": 2000, "sats_kw_aar_eks_mva": 534}}
         assert sjekk.sammenlign_lineaer(entry, tariff) is None
 
     def test_manglende_sats_hos_oss_rapporteres(self):
-        tariff = {
-            "fastledd": {"metode": "FEM_VEKTET_ÅR", "terskler": [{"terskel": 0, "pris": 2000}]}
-        }
+        tariff = {"fastledd": {"metode": "FEM_VEKTET_ÅR", "terskler": [{"terskel": 0, "pris": 2000}]}}
         assert sjekk.sammenlign_lineaer({}, tariff) is not None
 
 

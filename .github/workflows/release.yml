@@ -46,8 +46,14 @@ jobs:
 
   release:
     name: Publiser
+    # `needs` på en `uses:`-jobb venter på *alle* jobbene i ci.yml, altså
+    # test-unit, check, begge HA-målene, hacs og hassfest, og alle for denne
+    # kjøringens `github.sha`. Det er GitHub som holder den garantien, så den
+    # gjentas ikke i scriptet.
     needs: [ ci ]
     runs-on: ubuntu-latest
+    # Holder ikke concurrency-låsen lenger enn nødvendig om et API-kall henger.
+    timeout-minutes: 30
     permissions:
       contents: write
       id-token: write

@@ -30,17 +30,18 @@ intervallets **start**, ikke slutt. Alt annet regnes i UTC.
 Poll-tidspunktet er behandlingstid. Det har ingen plass i avregningen utover å
 være anledningen til at en avlesning ble hentet.
 
-### A2 Timeprisen er det uvektede snittet av kvarterprisene
+### A2 Timeprisen er det uvektede snittet av prisrutene
 
 Prisen for et avregningsintervall er Nord Pools publiserte day-ahead-pris for
 budområdet, i NOK/kWh eks. mva. Leveres prisen i kvartersoppløsning, er
 timeprisen det **uvektede aritmetiske snittet av de fire kvarterprisene, regnet
 ved full presisjon uten mellomavrunding**.
 
-Belegget er fakturaen: juni 2026-fakturaens Norgespris-linje reproduseres med
-0,00 kr avvik med Elhub-kWh ganger snittet av Nord Pools publiserte
-Final-kvarterpriser, og mai og juli innenfor 0,005 kr. Se
-[norgespris-eksakt-match.md](../research/norgespris-eksakt-match.md).
+Belegget er fakturaen: Norgespris-linjen reproduseres innenfor 0,005 kr for mai,
+juni og juli 2026 med Elhub-kWh ganger snittet av Nord Pools publiserte
+Final-kvarterpriser. Tallene per måned står i
+[verify_norgespris_eksakt.md](../research/_generated/verify_norgespris_eksakt.md),
+bakgrunnen i [norgespris-eksakt-match.md](../research/norgespris-eksakt-match.md).
 
 Alternativet var å bruke Nord Pools publiserte timespris slik den står, altså
 avrundet til to desimaler NOK/MWh. Forskjellen er målt på kvarterarkivet for
@@ -51,21 +52,79 @@ og tosifret avrunding er maks 0,005 og typisk 0,0025 NOK/MWh. For en måned på
 2000 kWh er det maks 1 øre, typisk et halvt. Valget er altså ikke materielt,
 og da velger vi den varianten som ikke kaster informasjon.
 
-**Fra prissensoren, ikke fra API-et.** I drift leser integrasjonen prisen fra
-brukerens prissensor, som er en trinnfunksjon av observerte states, ikke en
-liste med intervaller. Prisen for et avregningsintervall bygges slik:
+### A2.1 Prisruten, og hva det vil si at en prisprøve er observert
 
-1. Prøvene observert i `[start, slutt)` danner en trinnfunksjon i intervallet.
-2. Første prøve i intervallet utvides bakover til `start`. En prøve observert
-   før `start` bæres aldri inn i intervallet.
-3. Prisen er det tidsvektede snittet av trinnfunksjonen over hele intervallet.
-4. Har intervallet ingen egen prøve, har det **ingen pris**. Se C4.
+I drift leser integrasjonen prisen fra brukerens prissensor, ikke fra et API
+med ferdige intervaller. Da må det stå presist hva en prisprøve er, for de to
+nærliggende svarene er begge målt og begge gale:
 
-For en timesoppløst prissensor gir dette sensorens egen verdi. For en
-kvartersoppløst sensor der alle fire kvarterne kommer, gir det nøyaktig
-snittet i A2. Kommer bare noen av dem, blir prisen tidsvektet over de som kom,
-og intervallet merkes `pris_delvis` (`pris_prover` mot `pris_prover_ventet`,
-1 for time, 4 for kvarter).
+- Leser man prisprøvens observasjonstid av `last_updated`, slik B1 gjør for
+  energi, får to like priser på rad aldri prøve nummer to. HA oppdaterer ikke
+  `last_updated` når verdien er uendret, prøven kan ikke bæres inn (punkt 4
+  under), og intervallet blir permanent `uten_pris`. Ingen strømstøtte og ingen
+  Norgespris den timen.
+- Lar man prisen være en tidsvektet trinnfunksjon av polltiden, blir prisen
+  polltidsavhengig. Et etterslep på ti sekunder ved hver rutegrense gir en feil
+  i størrelsesorden 0,2 % av prishoppet, altså 1 til 2 kr i måneden ved store
+  hopp, og det bryter C2.6.
+
+Den tredje veien er å ta på alvor at **en pris gjelder for et intervall, ikke
+for et øyeblikk**. Nord Pool publiserer én pris per **prisrute**: et halvåpent
+UTC-vindu på `opplosning_minutter` (15 for en kvartersnativ prissensor, 60 for
+en timesoppløst), forankret i hele klokketimer. Et avregningsintervall på en
+time består av fire ruter ved kvartersoppløsning og én ved timesoppløsning.
+
+En prisprøve er derfor et par, `(rutestart, verdi)`, og ikke en state-avlesning
+med et klokkeslett. **B1s regel om `observed_at` fra `last_updated` gjelder
+energi, ikke pris.** Observasjonstiden til en prisprøve er rutestarten, snappet
+til gridet:
+
+1. **Rute.** Prøven tilordnes ruten som inneholder **polltiden**. Prissensoren
+   er en trinnfunksjon som per definisjon viser prisen for ruten som gjelder nå,
+   og det er den egenskapen vi leser, ikke når staten sist ble skrevet.
+2. **Settlevindu.** En prøve godtas bare når polltiden ligger minst
+   `PRIS_SETTLE_SEKUNDER` (60) etter rutestart. Prissensoren oppdateres noen
+   sekunder etter rutegrensen, og uten dette vinduet ville den første pollen i
+   ruten hatt forrige rutes pris. Vinduet er grensen for hvor sen en priskilde
+   kan være før den får feil rute, og 60 sekunder er seks ganger etterslepet som
+   er målt på en Nord Pool-sensor i drift (ti sekunder).
+3. **Siste godkjente prøve i ruten gjelder.** Flere polls treffer samme rute.
+   Kommer de med ulik verdi, har kilden publisert på nytt inne i ruten, og
+   verdien vi står igjen med er den kilden står ved.
+4. **Ingen bæring.** En prøve gjelder bare sin egen rute. Verken forrige eller
+   neste rutes verdi fyller et hull (C2.5).
+
+Prisen for avregningsintervallet er det **uvektede snittet av verdiene i de
+rutene som har en godkjent prøve**. Ingen tidsvekting: en rute teller likt
+uansett hvor i ruten prøven ble tatt og hvor mange polls som traff den. Det er
+nøyaktig samme regning som `scripts/research/verify_norgespris_eksakt.py` og
+`scripts/research/maal_fordelingsregel.py` gjør mot kvarterarkivet
+(`sum(kvarter) / len(kvarter) / 1000`), så drift og etterkontroll regner likt.
+
+`pris_prover` er antall ruter med godkjent prøve og `pris_prover_ventet` er
+`60 / opplosning_minutter`. Er de like, er intervallet `komplett`. Er
+`pris_prover` lavere og over null, er prisen snittet av rutene som kom, og
+intervallet er `delvis_pris`. Er den null, er intervallet `uten_pris` (C4).
+
+**Hvilken rutelengde?** Prisruten er 15 minutter, alltid, og integrasjonen
+spør ikke brukeren og gjetter ikke på sensoren. En kvartersnativ sensor gir da
+fire ulike verdier som snittes, altså A2 eksakt. En timesoppløst sensor holder
+samme verdi gjennom alle fire rutene, og det uvektede snittet av fire like tall
+er timesprisen selv. Den samme regelen gir altså rett svar for begge uten å
+vite hvilken sensor brukeren har, og det er grunnen til at den er valgt framfor
+et felt i oppsettet. `opplosning_minutter` på prisintervallet (B2) er derfor 15
+i v1. Den er ikke det samme tallet som avregningsintervallets lengde, som er 60
+(A1 og A5). Radene i C8 med 60 minutters rute viser at regelen er
+oppløsningsuavhengig; v1 kjører ikke i den moden.
+
+**Hva dette koster på invarianten.** C2.6 holder uavkortet så lenge hver rute
+har minst én poll i settlevinduet sitt, altså så lenge pollintervallet er
+kortere enn ruten minus 60 sekunder. Ved dagens poll hvert tiende sekund mot en
+rute på et kvarter er marginen stor. Skulle det ikke holde, er tapet en rute
+som mangler og som merker seg selv som `delvis_pris`, ikke en pris som glir med
+polltiden: verdien i en rute er den samme uansett når i ruten den ble lest.
+Fasit for regelen er prøvetabellen i C8, som `tests/test_avregningskontrakt.py`
+kjører.
 
 ### A3 Avrunding
 
@@ -106,11 +165,12 @@ transformerer timesverdiene til kvarter før rapportering til eSett
 12.09.2026). Husholdningen avregnes altså på time, selv om engrosmarkedet
 kjører kvarter.
 
-Bryteren for den dagen dette endrer seg: `opplosning_minutter` på prisintervall
-og avregnet intervall (60 i v1). Å sette den til 15 krever at både prissensoren
-er kvartersnativ og at målepunktet faktisk er kvartersavregnet hos Elhub. Alt
-annet i kontrakten er skrevet oppløsningsuavhengig, så bryteren skal ikke koste
-mer enn en konfigurasjonsverdi og et nytt sett fasittall.
+Bryteren for den dagen dette endrer seg er lengden på **avregningsintervallet**,
+60 minutter i v1. Å sette den til 15 krever at målepunktet faktisk er
+kvartersavregnet hos Elhub, og at prissensoren er kvartersnativ; da avregnes
+hver prisrute for seg i stedet for å snittes inn i timen. Prisrutene er 15
+minutter allerede i v1 (A2.1), så bryteren er ett tall og et nytt sett
+fasittall, ikke en ny regel.
 
 Ikke dekket i v1: kvartersavregnede målepunkt, næringskunder, plusskunder på
 egne avregningsregler for produksjon.
@@ -142,13 +202,15 @@ og skal kaste, ikke tolkes som lokal tid.
 | `slutt_utc` | datetime (UTC) | Eksklusiv. |
 | `nok_per_kwh_eks_mva` | float \| None | `None` betyr ingen pris. Aldri 0 som erstatning. |
 | `omrade` | str | NO1 til NO5. |
-| `opplosning_minutter` | int | 60 eller 15. |
+| `opplosning_minutter` | int | Lengden på en prisrute (A2.1). 15 i v1. |
 | `kilde` | enum | `sensor`, `arkiv`, `manuell`. |
 | `revisjon` | enum | `forelopig`, `final`, `ukjent`. |
-| `pris_prover` | int | Antall observerte prøver i intervallet. |
-| `pris_prover_ventet` | int | 1 ved timesoppløsning, 4 ved kvarter. |
+| `pris_prover` | int | Antall prisruter i intervallet med godkjent prøve (A2.1). |
+| `pris_prover_ventet` | int | `60 / opplosning_minutter`, altså 1 ved timesoppløsning og 4 ved kvarter. |
 
-Negative priser er gyldige og klippes ikke.
+Negative priser er gyldige og klippes ikke. `urimelig_verdi`-grensen i
+[input-og-konfig.md](input-og-konfig.md#1-typede-inputresultater) gjelder
+tallets absoluttverdi, så en negativ pris passerer den.
 
 ### B3 Avregnet intervall
 
@@ -161,9 +223,9 @@ Negative priser er gyldige og klippes ikke.
 | `lokal_time` | int | 0 til 23 i Europe/Oslo, avgjort av `start_utc`. |
 | `tariff` | enum | `dag` eller `natt`, avgjort av `start_utc` i Europe/Oslo. |
 | `pris` | prisintervall \| None | Se B2. |
-| `regelkilde` | str | Hvilken sats- og avgiftsårgang som ble brukt. |
+| `regelkilde` | str | `{tariffmodus}:{dso_id}:{avgiftsaar}`, for eksempel `catalog:bkk:2027`. Alle tre leddene avgjøres av `start_utc`, og avgiftsåret er året i Europe/Oslo (C3). |
 | `kvalitet` | enum | `komplett`, `delvis_pris`, `uten_pris`, `ufullstendig`. |
-| `apen` | bool | `True` så lenge `slutt_utc` ligger fram i tid. |
+| `apen` | bool | `True` så lenge `slutt_utc` ligger fram i tid. Se C6. |
 
 Fastledd (kapasitetsledd) er ikke energi og hører ikke hjemme i et avregnet
 intervall. Det akkumuleres over tid mot en egen NOK-per-periode-flate og
@@ -225,32 +287,42 @@ Randtilfeller:
    0, og ikke prisen fra et annet intervall. Se C4.
 6. **Polltidsuavhengighet.** To avspillinger av samme observerte historikk med
    ulike polltidspunkt gir samme avregning når avlesningene er de samme.
-   Endres avlesningenes `observed_at`, er historikken en annen.
+   Endres avlesningenes `observed_at`, er historikken en annen. For energi
+   gjelder dette uten forbehold. For pris gjelder det så lenge hver prisrute
+   har minst én poll i settlevinduet sitt (A2.1); en rute uten poll er en
+   merket mangel (`delvis_pris`), ikke en pris som flytter seg.
 7. **Restartlikhet.** Samme hendelsesrekke, med eller uten omstart midt i, gir
    samme avregning. Se C5.
 8. **Fastledd er utenfor.** Kapasitetsleddet akkumuleres tidsbasert og summerer
    ikke over energiintervaller.
 
-### C3 Sommertid
+### C3 Sommertid og årsskifte
 
 Fordi intervallene er UTC og halvåpne, er sommertidsskiftene ikke et
 spesialtilfelle i fordelingen: UTC-tidslinjen er sammenhengende gjennom begge.
 Det som er et spesialtilfelle er merkelappene, og de avgjøres alltid av
 `start_utc` omregnet til Europe/Oslo:
 
-| Sak | UTC-intervall | Lokal merkelapp | Fakturamåned |
-| --- | --- | --- | --- |
-| D1 | 2026-03-29T00:00Z | 2026-03-29 01:00 CET | 2026-03 |
-| D2 | 2026-03-29T01:00Z | 2026-03-29 03:00 CEST | 2026-03 |
-| D3 | 2026-10-25T00:00Z | 2026-10-25 02:00 CEST | 2026-10 |
-| D4 | 2026-10-25T01:00Z | 2026-10-25 02:00 CET | 2026-10 |
-| D5 | 2026-03-31T22:00Z | 2026-04-01 00:00 CEST | 2026-04 |
+| Sak | UTC-intervall | Lokal merkelapp | Fakturamåned | Avgiftsår i `regelkilde` |
+| --- | --- | --- | --- | --- |
+| D1 | 2026-03-29T00:00Z | 2026-03-29 01:00 CET | 2026-03 | 2026 |
+| D2 | 2026-03-29T01:00Z | 2026-03-29 03:00 CEST | 2026-03 | 2026 |
+| D3 | 2026-10-25T00:00Z | 2026-10-25 02:00 CEST | 2026-10 | 2026 |
+| D4 | 2026-10-25T01:00Z | 2026-10-25 02:00 CET | 2026-10 | 2026 |
+| D5 | 2026-03-31T22:00Z | 2026-04-01 00:00 CEST | 2026-04 | 2026 |
+| D6 | 2026-12-31T23:00Z | 2027-01-01 00:00 CET | 2027-01 | 2027 |
 
 D1 og D2 er vårskiftet: lokal time 02 finnes ikke, og det skal ikke finnes noe
 intervall med den merkelappen. D3 og D4 er høstskiftet: to ulike intervaller
 har samme lokale merkelapp `02:00`, og de skal holdes fra hverandre av
 `start_utc`, aldri av veggklokken. D5 viser at fakturamåneden skifter ved lokal
 midnatt, ikke ved UTC-midnatt.
+
+D6 er årsskiftet, og det er samme regel en gang til: intervallet som starter
+kl. 23 UTC 31. desember er allerede januar lokalt, og det er de nye
+avgiftssatsene som gjelder for det. `regelkilde` følger `start_utc` på alle tre
+leddene sine, så et intervall som ligger igjen i gammelt år beholder gammelt
+avgiftsår selv om det bokføres etter nyttår.
 
 Veggklokke-aritmetikk (`hour`-sammenligning, `utcoffset`-sjekker,
 `replace(hour=...)`) hører ikke hjemme i avregningskjernen. Den skal regne i
@@ -266,14 +338,25 @@ Tre ulike ting, som ikke skal blandes:
   den fylles ikke inn senere. Norgespris-kunder får fortsatt strømdelen sin,
   siden den er fastpris og ikke avhenger av spot; det er spotavhengige beløp
   som står stille.
-- **Delvis pris**: intervallet har færre prisprøver enn ventet
-  (`pris_prover < pris_prover_ventet`). Prisen er det tidsvektede snittet av
-  det som kom, kvaliteten er `delvis_pris`, og energien summeres i
-  `kwh_delvis_pris`. Dette er ikke en feil, bare en merket usikkerhet.
+- **Delvis pris**: intervallet har færre prisruter med prøve enn ventet
+  (`pris_prover < pris_prover_ventet`). Prisen er det uvektede snittet av de
+  rutene som kom (A2.1), kvaliteten er `delvis_pris`, og energien summeres i
+  `kwh_delvis_pris`. Dette er ikke en feil, bare en merket usikkerhet: prisen
+  er rett for de rutene vi så, og vi later ikke som vi så de andre.
 - **Uten data**: intervallet har ingen energi bokført. Det finnes da ikke i
   boken. Et hull i boken er ikke null forbruk, og skal ikke vises som det. Er
   hullet forårsaket av at integrasjonen var nede, er det synlig gjennom at
   `avregning_sist_observert` er eldre enn intervallet.
+
+**Bruker uten spotpris.** Er spotsensoren slettet, utilgjengelig eller aldri
+konfigurert, kommer det ingen prisprøve, og intervallene er `uten_pris` så
+lenge det varer. Det er hele følgen: energien bokføres som ellers, og
+integrasjonen kaster ikke `UpdateFailed`
+([input-og-konfig.md §1](input-og-konfig.md#1-typede-inputresultater)).
+Leverandørprisen er ikke en erstatning for spot og settes aldri inn i stedet:
+den er avtaleprisen kunden betaler, ikke markedsprisen strømstøtten og
+Norgespris regnes mot. Prissensorens visningscache er heller ingen kilde til
+avregningen, se samme paragraf.
 
 ### C5 Omstart
 
@@ -284,15 +367,56 @@ Ved omstart gjenopptas avregningen fra den persisterte boken, ikke fra null:
   lagrede, er deltaet 0 og baseline flyttes (K1).
 - Åpne intervaller leses tilbake med sin bokførte kWh og lukkes når tiden
   passerer `slutt_utc`, ikke ved første poll.
+- Prisrutene som alt er godkjent i et åpent intervall ligger i boken og leses
+  tilbake med det. Uten det ville en omstart midt i timen gjort et `komplett`
+  intervall til `delvis_pris`, og C2.7 ville brutt.
 - Første poll etter omstart er en helt vanlig avlesning. Den utløser ingen
   varsling i seg selv, og deltaet den bærer fordeles over intervallene det
   faktisk tilhører, ikke inn i timen HA kom opp igjen.
-- Er den lagrede observasjonen eldre enn `TPI_STALE_HOURS`, forkastes den, og
-  den første avlesningen etter omstart blir ny baseline uten å bokføre noe
-  delta. Da mangler intervallene i mellomtiden data (C4, «uten data»), og de
-  skal ikke fylles.
+- Den lagrede observasjonen har ingen aldersgrense. Er kilden den samme,
+  gjenopptas avregningen fra den uansett hvor lenge det er siden, og vernet mot
+  det gigantiske spranget er `MAX_ENERGY_DELTA_KWH`. Regelen eies av
+  [input-og-konfig.md §5](input-og-konfig.md#5-energibaseline) og står bare der.
+- Et strømbrudd er ikke et eget tilfelle. Det er en omstart med et gap foran
+  seg, og den første avlesningen etter bruddet bærer et delta som fordeles jevnt
+  over intervallene i gapet (C1). De fleste av dem har ingen prisprøve og blir
+  `uten_pris`, som er synlig i `kwh_uten_pris`. Er deltaet større enn
+  `MAX_ENERGY_DELTA_KWH`, avvises det og føres i `avregning_avvist_kwh` (C1).
+- Kort omstart og omstart etter et døgn er samme regel. Forskjellen er bare hvor
+  mange intervaller vinduet dekker og hvor mange av dem som mangler pris.
 
-### C6 Prøvetabell (normativ)
+### C6 Åpent, lukket og uforanderlig
+
+Et intervall er **åpent** til klokken i UTC har passert `slutt_utc`, og
+**lukket** etterpå. Lukkingen skjer av tiden alene, ikke av en poll.
+
+Et lukket intervall kan fortsatt få bokført kWh. Bokføring styres av
+avlesningens observasjonsvindu, aldri av om intervallet er åpent: en vanlig
+avlesning kl. 11:00:03 bokfører inn i 10:00-intervallet som nettopp lukket, og
+etter en omstart bokføres det inn i intervaller som er timer gamle. Alt annet
+ville brutt C2.6 og C2.7.
+
+Prisen står fast ved lukking, ikke ved arkivering. En prisprøve lander alltid i
+ruten polltiden faller i (A2.1), så et lukket intervall får aldri en ny prøve,
+og et `uten_pris`-intervall fylles ikke senere (C4). Energi og pris skiller lag
+her med vilje: energien kommer etterskuddsvis fra en teller og må kunne bokføres
+bakover, prisen leses i sanntid og kan ikke det.
+
+Et intervall blir **uforanderlig** når fakturamåneden det hører til arkiveres
+ved månedsrulleringen. Etter det tar det ikke imot mer energi heller, og
+`regelkilde` står som den var (A4).
+
+Månedsrulleringen skjer inne i bokføringen av den første avlesningen med
+`observed_at` i den nye måneden, ikke ved et klokkeslett: vinduet deles ved
+månedsgrensen, delen før grensen bokføres i den gamle måneden, måneden
+arkiveres, og resten bokføres i den nye. Fordi vinduene er sammenhengende,
+`(forrige observed_at, ny observed_at]`, kan ingen senere avlesning nå bakenfor
+et arkivert månedsskifte. En avlesning med `observed_at` eldre enn siste
+behandlede observasjon er forsinket og bokføres ikke (C2.3). Hvilken måned
+sensorene *viser* følger klokken som før; det er boken som rulleres ved
+bokføring.
+
+### C7 Prøvetabell for fordelingen (normativ)
 
 Radene er fasit for fordelingsregelen. `tests/test_avregningskontrakt.py`
 kjører dem, og L1 og L2 skal kjøre dem mot sin egen implementasjon.
@@ -309,6 +433,28 @@ kjører dem, og L1 og L2 skal kjøre dem mot sin egen implementasjon.
 F5 og F6 er de to sommertidsskiftene. At de ser trivielle ut er hele poenget:
 i UTC er de vanlige timer, og fordelingen skal ikke merke skiftet.
 
+### C8 Prøvetabell for prisruter (normativ)
+
+Radene er fasit for A2.1 og kjøres av samme testfil. Intervallet er
+`2026-06-15T10:00:00Z` til `11:00:00Z`, og polltidene er `mm:ss` etter
+intervallstart. `PRIS_SETTLE_SEKUNDER` er 60.
+
+| Sak | Oppløsning | Polls (mm:ss=NOK/kWh) | Ruter med prøve | Intervallpris | Kvalitet |
+| --- | --- | --- | --- | --- | --- |
+| P1 | 15 | 00:30=1.00; 02:00=1.00; 17:00=1.10; 32:00=1.20; 47:00=1.30 | 4 | 1.15 | komplett |
+| P2 | 15 | 02:00=1.00; 17:00=1.00; 32:00=1.00; 47:00=1.00 | 4 | 1.00 | komplett |
+| P3 | 15 | 00:10=0.90; 01:30=1.00; 16:00=1.00; 31:00=1.00; 46:00=1.00 | 4 | 1.00 | komplett |
+| P4 | 60 | 05:00=1.23 | 1 | 1.23 | komplett |
+| P5 | 15 | 02:00=1.00; 33:00=1.40 | 2 | 1.20 | delvis_pris |
+| P6 | 15 | 00:20=1.00; 15:30=1.10 | 0 | — | uten_pris |
+| P7 | 60 | 02:00=1.00; 10:00=1.40 | 1 | 1.40 | komplett |
+
+P2 er feilen som gjorde denne seksjonen nødvendig: fire like priser på rad er
+fire prøver, ikke én. P3 viser settlevinduet, der prøven ti sekunder etter
+rutestart fortsatt bærer forrige rutes pris og ikke teller. P6 er en sensor som
+bare ble lest inne i settlevinduene, og den gir ingen pris i det hele tatt,
+ikke en halv. P7 er en kilde som publiserte på nytt inne i ruten.
+
 ## D. Persistens og migrering
 
 Lagringsnøkkelen er `entry.entry_id`, som før ([incident
@@ -320,7 +466,7 @@ Store-versjonene:
 | --- | --- | --- |
 | 1 | dagens utgave | Månedssummer, døgnmakser, akkumulerte kroner. Ingen kildeidentitet, ingen observasjonstid. |
 | 2 | K1 | Som v1, pluss `source_identity` og normalisert kWh på baseline. |
-| 3 | denne serien | Som v2, pluss `skjema_versjon`, siste behandlede observasjon og åpne intervaller. |
+| 3 | denne serien | Som v2, pluss `skjema_versjon`, siste behandlede observasjon og åpne intervaller med bokførte kWh og godkjente prisruter. |
 
 Migrering v2 til v3 er enveis og gjør dette:
 

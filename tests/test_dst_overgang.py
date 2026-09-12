@@ -450,7 +450,6 @@ class TestLagretTidspunktVisesLokalt:
 
         plassholdere = self._plassholdere(coord_module, coord)
         assert plassholdere["forrige"] == "15.06.2026 kl. 10:00"
-        assert plassholdere["tidspunkt"] == "15.06.2026 kl. 10:05"
 
     def test_over_sommertidsskiftet_brukes_offseten_som_gjaldt_da(self, coord_module):
         """29.03: avlesningen ble gjort i CET, omstarten skjer i CEST.

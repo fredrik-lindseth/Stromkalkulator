@@ -589,7 +589,6 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             translation_placeholders={
                 "sensor": self.energy_sensor or "",
                 "kwh": f"{raw_delta:.1f}",
-                "tidspunkt": now.strftime("%d.%m.%Y kl. %H:%M"),
                 "forrige": forrige.strftime("%d.%m.%Y kl. %H:%M"),
             },
         )

@@ -2,9 +2,10 @@
 
 Antall nettselskap sto skrevet for hånd i sju dokumenter og hadde drevet fra
 hverandre: 74, «70 av 75», «70 av 76» og en fotnote med 68, alle om det samme.
-Her telles det ut av `DSO_LIST` og `docs/fakturaer/`, og hver påstand i
-dokumentene plukkes ut med regex og sammenlignes. Endrer du et nettselskap,
-feller denne testen dokumentene som ikke er oppdatert.
+Her telles det ut av `DSO_LIST` og `docs/fakturaer/`, og hver påstand plukkes
+ut med regex og sammenlignes. Endrer du et nettselskap, feller denne testen
+tekstene som ikke er oppdatert. Den dekker også AGENTS.md og docstringene i
+tests/test_fastledd_metoder.py, som drev fra hverandre på samme vis.
 
 Tellemåten er den samme som [^antall] i docs/galskapen.md beskriver:
 
@@ -148,6 +149,26 @@ PASTANDER: list[tuple[str, str, tuple[int, ...]]] = [
         (ANTALL_FAKTURARAPPORTER,),
     ),
     (
+        "AGENTS.md",
+        r"hvorfor (\d+) nettselskap tolker samme NVE-regel på (\d+) måter",
+        (ANTALL_SELSKAP, ANTALL_SELSKAP),
+    ),
+    (
+        "README.en.md",
+        r"The grid company list has (\d+) entries with rates, covering (\d+) grid companies",
+        (ANTALL_VALGBARE, ANTALL_SELSKAP),
+    ),
+    (
+        "tests/test_fastledd_metoder.py",
+        r"dekker (\d+) av de (\d+) valgbare oppføringene",
+        (ANTALL_NVE_MODELL, ANTALL_VALGBARE),
+    ),
+    (
+        "tests/test_fastledd_metoder.py",
+        r"(\d+) oppføringer skal oppføre seg helt som før",
+        (ANTALL_NVE_MODELL,),
+    ),
+    (
         "docs/fakturaer/referanse.md",
         r"\| BKK +\| NO5 +\| Standard +\| (\d+) ",
         (ANTALL_FAKTURARAPPORTER,),
@@ -198,6 +219,10 @@ def test_unike_husholdningssummer_i_galskapen() -> None:
         r"(\d+) av de (\d+) oppføringene med kW-trinn gir sin egen unike sum",
     ) == (unike, len(summer))
     assert _tall("docs/galskapen.md", r"så N = (\d+)") == (len(summer),)
+    # Overskriften teller ulike priser, ikke oppføringer: to par deler sum.
+    assert _tall("docs/galskapen.md", r"## Én husholdning, (\d+) priser") == (
+        len(set(summer)),
+    )
     assert _tall("docs/galskapen.md", r"(\d+) av de (\d+) summene er unike") == (
         unike,
         len(summer),

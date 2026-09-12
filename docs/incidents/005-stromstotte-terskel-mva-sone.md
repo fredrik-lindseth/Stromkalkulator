@@ -94,9 +94,10 @@ En konstant som er "riktig for standard" er en skjult sone-antagelse. 0,9625 så
 ut som en universell terskel, men bar i seg en 25 %-mva som ikke gjelder
 overalt. Slike verdier bør utledes via en sone-helper framfor å hardkodes.
 
-Fiks hele feilklassen med en gang. Incident 003 dokumenterte intensjonen (96,25
-for standard, 77 for nord), og at bare sør-siden ble fikset i 004 viser hvor
-mye det er verdt å lete etter speilingen av en feil i de andre sonene.
+Fiks hele feilklassen, ikke bare symptomet som ble observert. Incident 003
+dokumenterte intensjonen (96,25 for standard, 77 for nord), og at bare sør-siden
+ble fikset i 004 viser hvor mye det er verdt å lete etter speilingen av en feil i
+de andre sonene.
 
 ## Kilder
 

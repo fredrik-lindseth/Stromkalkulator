@@ -10,7 +10,7 @@ Sammenligner man prislistene til alle nettselskapene, er det åpenbart at de har
 brukt den friheten hver på sin måte. Denne integrasjonen skal regne ut nettleien og
 dekker alle nettselskapene, men oppgaven har ingen generell løsning.
 
-## Hva samme forbruk koster rundt i landet
+## Én husholdning, 69 priser
 
 Ta én husholdning. Snitt av tre døgnmakser på eksakt 5,0 kW, 600 kWh på dagtid og
 400 kWh om natten, i juli. Så flytter du den rundt i landet.[^husholdning]
@@ -67,8 +67,8 @@ vektes:[^fjellnett]
 | desember  | 0,95   | 4,75 kW                       |
 
 En topp i januar teller fullt og følger med i tolv måneder, mens den samme toppen
-i juli teller en fjerdedel. Hos BKK spiller måneden ingen rolle. To kunder kan
-altså gjøre det samme i samme sekund og få helt ulike regninger for det.
+i juli teller en fjerdedel. En Fjellnett-kunde og en BKK-kunde som gjør nøyaktig
+det samme i samme sekund, får to helt ulike regninger for det.
 
 Sør Aurdal Energi bruker månedens enkeltstående høyeste time, ikke snittet av
 tre.[^soraurdal] Én time med badstue og induksjonstopp avgjør dermed hele

@@ -134,13 +134,25 @@ def _parse_states(rå: str, kilde: str) -> dict[str, str]:
     return {e["entity_id"]: e.get("state", "") for e in data if "entity_id" in e}
 
 
+# ssh bruker 255 for sine egne feil (vert nede, auth, ukjent host). Alt annet
+# kommer fra kommandoen som kjørte på HA.
+SSH_EGEN_FEIL = 255
+
+
 def hent_fjernfil(host: str) -> str | None:
+    """Innholdet i pakkefilen på HA, eller None hvis filen ikke finnes.
+
+    Feiler ssh selv, er svaret ukjent og ikke «filen mangler». Da hever vi,
+    så ingen får beskjed om å deploye en pakke som kanskje ligger der alt.
+    """
     resultat = subprocess.run(
         ["ssh", *SSH_OPTS, host, f"cat {FJERN_STI}"],
         capture_output=True,
         text=True,
         check=False,
     )
+    if resultat.returncode == SSH_EGEN_FEIL:
+        raise RuntimeError(f"ssh mot {host} feilet ({resultat.returncode}): {resultat.stderr.strip()}")
     if resultat.returncode != 0:
         return None
     return resultat.stdout

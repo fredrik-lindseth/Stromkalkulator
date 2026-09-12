@@ -25,10 +25,13 @@ så releasen ble hoppet over.
 
 `--with hypothesis` trengs fordi `tests/test_property.py` bruker den; uten
 flagget feiler `pipx run pytest` allerede på collection. `--with pyyaml` trengs
-fordi `tests/test_fri_nettleie_sjekk.py` ellers skipper i sin helhet, og det er
-den som dekker drift-vakten for satsene. `--ignore` trengs fordi
-`test_smoke_ha.py` krever `pytest-homeassistant-custom-component` og kjører i en
-egen CI-jobb med `--noconftest`. Kjøres også via pre-commit hooks.
+fordi `tests/test_fri_nettleie_sjekk.py` og `tests/test_testpakke.py` ellers
+feiler på collection; de skipper ikke lenger, for en vakt som hopper over seg
+selv vakter ingenting. `--ignore` trengs fordi `test_smoke_ha.py` krever
+`pytest-homeassistant-custom-component` og kjører i en egen CI-jobb med
+`--noconftest`. Kjøres også via pre-commit hooks, men bare når de er installert:
+sjekk `git config core.hooksPath` (skal være tom) og kjør `pre-commit install`
+og `pre-commit install --hook-type pre-push` i en fersk klone.
 
 ## Viktige regler
 
@@ -43,15 +46,12 @@ egen CI-jobb med `--noconftest`. Kjøres også via pre-commit hooks.
 
 ## Issue-tracking
 
-Egne funn og oppgaver spores i dcat (dogcat), aldri som GitHub-issues. Kjør
-`dcat prime` ved sesjonsstart og etter compaction/clear, og sjekk `dcat list`
-før du oppretter noe nytt så du ikke dupliserer. GitHub Issues er kun for
-eksterne brukerrapporter; de besvares og lukkes der, men arbeidet de utløser
+Namespace i dcat er `stromkalkulator`. GitHub Issues er kun for eksterne
+brukerrapporter; de besvares og lukkes der, men arbeidet de utløser
 registreres i dcat.
 
-Issue-dataene ligger i den sentrale dogcat-basen (`~/dev/issues/.dogcats/`),
-ikke i repoet. Oppkoblingen er to gitignorede filer: `.dogcatrc` i repo-roten
-med stien til basen, og `.dogcats/config.local.toml` med
+Oppkoblingen mot den sentrale basen er to gitignorede filer: `.dogcatrc` i
+repo-roten med stien til basen, og `.dogcats/config.local.toml` med
 `namespace = "stromkalkulator"`. Mangler de (fersk klone), gjenskap dem etter
 mønsteret i leirnes.no-repoet. Issue-data skal aldri committes hit.
 

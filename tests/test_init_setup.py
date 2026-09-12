@@ -225,6 +225,12 @@ class TestUniqueIdSetup:
 LEVENDE_ENTRY = "01KFEFGNT6PZZFVPK0F0FSN40D"
 SLETTET_ENTRY = "01KNMS11PBKD0SPDPND2ZFB0JZ"
 
+# Entries opprettet før HA gikk over til ULID har 32 tegn heksadesimalt. De
+# lever fortsatt i gamle installasjoner (22 av 66 i Fredriks HA), så den grenen
+# i _ENTRY_ID_SUFFIX må ryddes like godt som ULID-grenen.
+LEVENDE_HEX_ENTRY = "3f0a1c9b4d6e8f2a7b5c0d1e2f3a4b5c"
+SLETTET_HEX_ENTRY = "a1b2c3d4e5f60718293a4b5c6d7e8f90"
+
 
 def _mock_ir_med_issues(issues):
     """Lag en ir-mock der issue-registeret inneholder de gitte (domene, id)-parene."""
@@ -306,3 +312,59 @@ class TestRepairOpprydding:
 
         assert "dso_migration_skiakernett_vevig" not in _slettede(mock_ir)
         assert all(call.args[1] == init_module.DOMAIN for call in mock_ir.async_delete_issue.call_args_list)
+
+    def test_setup_sletter_foreldrelost_issue_med_hex32_entry(self, init_module):
+        """Entries fra før ULID-skiftet er 32 hex-tegn og skal ryddes likt."""
+        hass = _make_hass()
+        entry = _make_entry(entry_id=LEVENDE_HEX_ENTRY, dso_id="bkk")
+        entry.unique_id = entry.entry_id
+        hass.config_entries.async_entries = MagicMock(return_value=[entry])
+        mock_ir = _mock_ir_med_issues(
+            [
+                (init_module.DOMAIN, f"spotpris_mva_check_{SLETTET_HEX_ENTRY}"),
+                (init_module.DOMAIN, f"spotpris_mva_check_{LEVENDE_HEX_ENTRY}"),
+                (init_module.DOMAIN, f"spotpris_mva_check_{SLETTET_ENTRY}"),
+            ],
+        )
+
+        with patch.object(init_module, "ir", mock_ir):
+            asyncio.run(init_module.async_setup_entry(hass, entry))
+
+        slettede = _slettede(mock_ir)
+        assert f"spotpris_mva_check_{SLETTET_HEX_ENTRY}" in slettede
+        assert f"spotpris_mva_check_{SLETTET_ENTRY}" in slettede
+        assert f"spotpris_mva_check_{LEVENDE_HEX_ENTRY}" not in slettede
+
+    def test_remove_entry_sletter_issues_for_hex32_entry(self, init_module):
+        hass = _make_hass()
+        entry = _make_entry(entry_id=SLETTET_HEX_ENTRY)
+        mock_ir = _mock_ir_med_issues(
+            [
+                (init_module.DOMAIN, f"spotpris_mva_check_{SLETTET_HEX_ENTRY}"),
+                (init_module.DOMAIN, f"spotpris_mva_check_{LEVENDE_HEX_ENTRY}"),
+                (init_module.DOMAIN, "satser_utdatert"),
+            ],
+        )
+
+        with patch.object(init_module, "ir", mock_ir):
+            asyncio.run(init_module.async_remove_entry(hass, entry))
+
+        assert _slettede(mock_ir) == [f"spotpris_mva_check_{SLETTET_HEX_ENTRY}"]
+
+    def test_hex32_med_versaler_er_ikke_et_entry_suffiks(self, init_module):
+        """Mønsteret er hex i minuskler eller ULID i versaler, ikke noe midt imellom.
+
+        En issue-id som slutter på 32 tegn i versaler er ingen av delene, og
+        skal stå i fred framfor å bli tolket som en foreldreløs entry.
+        """
+        hass = _make_hass()
+        entry = _make_entry(entry_id=LEVENDE_ENTRY, dso_id="bkk")
+        entry.unique_id = entry.entry_id
+        hass.config_entries.async_entries = MagicMock(return_value=[entry])
+        versaler = SLETTET_HEX_ENTRY.upper()
+        mock_ir = _mock_ir_med_issues([(init_module.DOMAIN, f"spotpris_mva_check_{versaler}")])
+
+        with patch.object(init_module, "ir", mock_ir):
+            asyncio.run(init_module.async_setup_entry(hass, entry))
+
+        assert f"spotpris_mva_check_{versaler}" not in _slettede(mock_ir)

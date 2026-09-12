@@ -479,6 +479,67 @@ class TestLastTpiKwhPersistens:
         assert coordinator2._last_tpi_kwh == 9876.5
 
 
+class TestLastEnergyIncreasePersistens:
+    """`last_energy_increase` er additiv: nye filer har den, gamle klarer seg uten.
+
+    Tidsstempelet er det frossen-deteksjonen måler fra. Uten persistens ville
+    hver omstart nullstille klokken, og et flere døgn langt utfall ville aldri
+    rekke over terskelen.
+    """
+
+    @staticmethod
+    def _make_store_factory(stored_data, saved_holder=None):
+        def make_store(hass, version, key):
+            store = MagicMock()
+            store.async_load = AsyncMock(return_value=stored_data)
+            if saved_holder is not None:
+                async def save(data):
+                    saved_holder.update(data)
+                store.async_save = AsyncMock(side_effect=save)
+            else:
+                store.async_save = AsyncMock()
+            store.async_remove = AsyncMock()
+            return store
+        return make_store
+
+    def test_roundtrip(self):
+        coord = _reload_coord()
+        saved: dict = {}
+        coord.Store = MagicMock(side_effect=self._make_store_factory(None, saved))
+
+        hass = MagicMock()
+        entry = _make_entry(energy_sensor="sensor.tpi")
+        coordinator = coord.NettleieCoordinator(hass, entry)
+        coordinator._last_energy_increase = datetime(2026, 7, 29, 10, 58)
+
+        asyncio.run(coordinator._save_stored_data())
+        assert saved["last_energy_increase"] == "2026-07-29T10:58:00"
+
+        coord.Store = MagicMock(side_effect=self._make_store_factory(saved))
+        gjenopptatt = coord.NettleieCoordinator(hass, entry)
+        asyncio.run(gjenopptatt._load_stored_data())
+        assert gjenopptatt._last_energy_increase == datetime(2026, 7, 29, 10, 58)
+
+    def test_gammel_lagringsfil_uten_nokkelen(self):
+        """Fil skrevet før v1.17.0: ingen nøkkel, ingen krasj, står på None."""
+        coord = _reload_coord()
+        coord.Store = MagicMock(
+            side_effect=self._make_store_factory({"daily_max_power": {}, "monthly_consumption": {}})
+        )
+        coordinator = coord.NettleieCoordinator(MagicMock(), _make_entry(energy_sensor="sensor.tpi"))
+        asyncio.run(coordinator._load_stored_data())
+        assert coordinator._last_energy_increase is None
+
+    def test_ulesbart_tidsstempel_droppes(self):
+        coord = _reload_coord()
+        coord.Store = MagicMock(
+            side_effect=self._make_store_factory({"last_energy_increase": "i går"})
+        )
+        coordinator = coord.NettleieCoordinator(MagicMock(), _make_entry(energy_sensor="sensor.tpi"))
+        asyncio.run(coordinator._load_stored_data())
+        assert coordinator._last_energy_increase is None
+
+
 class TestMigrationFromDSOStorage:
     """Migration from old DSO-based storage to entry-based storage."""
 
@@ -706,6 +767,7 @@ class TestSaveDataStructure:
             "last_update",
             "last_tpi_kwh",
             "weekly_max_power",
+            "last_energy_increase",
         }
         assert expected_keys == set(saved_data.keys())
 

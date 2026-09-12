@@ -88,12 +88,14 @@ from stromkalkulator.const import (  # noqa: E402
     CONF_AVGIFTSSONE,
     CONF_BOLIGTYPE,
     CONF_DSO,
+    CONF_ENERGI_FROSSEN_TIMER,
     CONF_ENERGILEDD_DAG,
     CONF_ENERGILEDD_NATT,
     CONF_HAR_NORGESPRIS,
     CONF_KAPASITET_VARSEL_TERSKEL,
     CONF_POWER_SENSOR,
     CONF_SPOT_PRICE_SENSOR,
+    DEFAULT_ENERGI_FROSSEN_TIMER,
     DOMAIN,
 )
 from stromkalkulator.sensor import (  # noqa: E402
@@ -257,6 +259,48 @@ class TestOptionsFlowValidReconfiguration:
 
         # Flow should create entry (completion)
         flow.async_create_entry.assert_called_once()
+
+
+class TestFrossenTerskelFelt:
+    """Frossen-terskelen skal kunne settes fra både options og reconfigure.
+
+    Feltet er konfigurerbart fordi en hytte med hovedbryteren av står stille i
+    dagevis uten at noe er galt. Skjemaet bygges av samme funksjon for begge
+    inngangene, så én sjekk dekker begge.
+    """
+
+    def test_feltet_finnes_i_skjemaet(self):
+        cf_mod = _reload_config_flow()
+        felter = cf_mod._config_data_schema(_make_entry().data)
+        assert CONF_ENERGI_FROSSEN_TIMER in felter
+
+    def test_verdien_lagres_paa_entryet(self):
+        entry = _make_entry()
+        flow = _make_options_flow(entry)
+
+        user_input = {
+            CONF_DSO: "bkk",
+            CONF_BOLIGTYPE: "bolig",
+            CONF_AVGIFTSSONE: "standard",
+            CONF_HAR_NORGESPRIS: False,
+            CONF_POWER_SENSOR: "sensor.power_1",
+            CONF_SPOT_PRICE_SENSOR: "sensor.spot_price",
+            CONF_ENERGILEDD_DAG: 0.4613,
+            CONF_ENERGILEDD_NATT: 0.2329,
+            CONF_KAPASITET_VARSEL_TERSKEL: 2.0,
+            CONF_ENERGI_FROSSEN_TIMER: 12,
+        }
+        asyncio.run(flow.async_step_init(user_input))
+
+        call_args = flow.hass.config_entries.async_update_entry.call_args
+        updated_data = call_args.kwargs.get("data") or call_args[1].get("data") or call_args[0][1]
+        assert updated_data[CONF_ENERGI_FROSSEN_TIMER] == 12
+
+    def test_entry_uten_feltet_bruker_default(self):
+        """Eksisterende oppsett har ikke feltet, og skal lande på tre timer."""
+        entry = _make_entry()
+        assert CONF_ENERGI_FROSSEN_TIMER not in entry.data
+        assert DEFAULT_ENERGI_FROSSEN_TIMER == 3.0
 
 
 # ===========================================================================

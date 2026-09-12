@@ -167,6 +167,44 @@ Hvis sensoren din allerede leverer inkl. mva (f.eks. eldre `custom_components/no
 
 Verifiser ved å sammenligne med Nord Pool sin nettside (som viser eks. mva).
 
+## Når en input dør
+
+Integrasjonen regner bare på det sensorene forteller. Dør en av dem, stopper
+tallene uten å se feil ut, og det er verre enn en åpenbar feilmelding. Sommeren
+2026 lå HAN-leseren nede i 237 timer i strekk, og det ble oppdaget ti dager for
+sent, da fakturaen skulle verifiseres. Derfor står det nå et vakthold på
+inputene.
+
+Vaktholdet ser etter tre ting:
+
+| Situasjon                                              | Hva som skjer                                      |
+| ------------------------------------------------------ | -------------------------------------------------- |
+| Entiteten er `unavailable` eller `unknown` over 30 min | Måledata-problem slår på, og du får et reparasjonsvarsel |
+| Energitelleren rapporterer, men øker ikke på tre timer  | Samme, med typen «frossen»                          |
+| Spotprisen har vært borte lenger enn cachen på to timer | Samme, med typen «spot_utlopt»                      |
+
+Du ser det på `binary_sensor`-en «Måledata-problem» og under Innstillinger >
+Reparasjoner. Varslene forsvinner av seg selv når inputen er tilbake.
+Integrasjonen sender ikke varsler selv; bygg en automasjon på binary_sensoren
+hvis du vil ha push.
+
+Tretimersgrensen for frossen teller er justerbar under Configure (1 til 48
+timer). Hev den på en hytte eller et anlegg som står uten forbruk i perioder,
+ellers varsler den hver gang hovedbryteren er av.
+
+Hva som skjer med tallene mens en input er nede:
+
+- **Effektmåler nede:** døgnmaks og dermed kapasitetstrinnet blir for lavt.
+  Timene i hullet finnes ikke.
+- **Energimåler nede:** månedsforbruket blir for lavt. Når måleren kommer
+  tilbake, kan hele hullet komme som ett sprang. Er spranget over 100 kWh,
+  forkastes det, og du får et eget varsel med tallet, siden et sprang like
+  gjerne kan være et målerbytte som ekte forbruk.
+- **Spotpris nede:** kWh telles videre, men kostnad, strømstøtte og
+  Norgespris-sammenligning fryser når cachen på to timer er tom.
+- **Strømleverandør-sensor nede:** bare sammenligningssensoren «Total strømpris
+  (strømavtale)» blir borte. Ingen alarm, bare et attributt.
+
 ## Feilsøking
 
 ### Forbruks-totaler matcher ikke fakturaen

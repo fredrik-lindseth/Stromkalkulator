@@ -177,6 +177,49 @@ For plusskunder. Krever konfigurert eksport-effektsensor. Alle deaktivert som st
 
 ---
 
+## Vakthold på måledataene
+
+| Sensor                            | Enhet  | Beskrivelse                              |
+| --------------------------------- | ------ | ---------------------------------------- |
+| Måledata-problem (binary_sensor)  | on/off | På når en input-sensor har sviktet       |
+
+Sensoren er `device_class: problem` og ligger under Diagnostikk. Den er aldri
+spot-gatet: et bortfall av spotprisen er nettopp et av tilfellene den skal
+melde, så den må virke når spotprisen mangler.
+
+Tre ting slår den på:
+
+- **Utfall.** En konfigurert input har stått `unavailable` eller `unknown` i mer
+  enn 30 minutter. Grensen er fast og dekker HA-restart, oppdatering av en
+  integrasjon og en nettverksglipp.
+- **Frossen energiteller.** Energimåleren rapporterer, men tallet har ikke økt
+  på flere timer enn terskelen. Terskelen settes under Configure, default tre
+  timer. Hev den på en hytte eller et anlegg som står tomt i perioder.
+- **Utløpt spotpris.** Spotprisen har vært borte lenger enn cachen på to timer.
+  Forbruket telles fortsatt i kWh, men kostnad, strømstøtte og
+  Norgespris-sammenligning står stille til prisen er tilbake.
+
+Attributter:
+
+| Attributt               | Innhold                                                        |
+| ----------------------- | -------------------------------------------------------------- |
+| `problemer`             | Én rad per aktivt problem: type, input, entity_id, siden, timer |
+| `antall_problemer`      | Antall aktive problemer                                         |
+| `berorte_inputer`       | Rollene som svikter, f.eks. `["energi"]`                        |
+| `sist_energi_okning`    | Da energitelleren sist økte                                     |
+| `spotpris_gyldig`       | Om spotprisen kan regnes med nå                                 |
+| `leverandorpris_gyldig` | Om leverandør-sensoren leverer, `null` hvis den ikke er satt opp |
+| `frossen_terskel_timer` | Terskelen som gjelder                                           |
+
+Hvert problem gir i tillegg et varsel under Innstillinger > Reparasjoner, så du
+ser det uten å ha satt opp noe. Varselet forsvinner av seg selv når inputen er
+tilbake. Et sprang i energitelleren som ble forkastet (målerbytte, sensorhikk
+eller ekte forbruk som kom i ett jafs) gir sitt eget varsel med kWh-tallet, som
+du bekrefter selv.
+
+Strømleverandør-sensoren er med i oversikten, men alarmerer ikke: den mater bare
+sammenligningssensoren «Total strømpris (strømavtale)».
+
 ## Energy Dashboard
 
 To alternativer for kostnadsdelen.

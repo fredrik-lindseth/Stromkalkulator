@@ -160,6 +160,49 @@ For prosumers. Requires a configured export power sensor. All disabled by defaul
 
 ---
 
+## Measurement data watchdog
+
+| Sensor                                    | Unit   | Description                          |
+| ----------------------------------------- | ------ | ------------------------------------ |
+| Measurement data problem (binary_sensor)  | on/off | On when an input sensor has failed   |
+
+The sensor is `device_class: problem` and sits under Diagnostics. It is never
+gated on the spot price: a spot price outage is exactly one of the cases it
+reports, so it has to work when the price is missing.
+
+Three things turn it on:
+
+- **Outage.** A configured input has been `unavailable` or `unknown` for more
+  than 30 minutes. The limit is fixed and covers HA restarts, integration
+  updates and a network hiccup.
+- **Frozen energy counter.** The energy meter reports, but the number has not
+  increased for more hours than the threshold. Set it under Configure, default
+  three hours. Raise it for a cabin or site that sits idle for stretches.
+- **Expired spot price.** The spot price has been gone longer than the two hour
+  cache. Consumption is still counted in kWh, but cost, subsidy and the
+  Norgespris comparison stand still until the price returns.
+
+Attributes:
+
+| Attribute               | Contents                                                          |
+| ----------------------- | ----------------------------------------------------------------- |
+| `problemer`             | One row per active problem: type, input, entity_id, since, hours   |
+| `antall_problemer`      | Number of active problems                                          |
+| `berorte_inputer`       | The failing roles, e.g. `["energi"]`                               |
+| `sist_energi_okning`    | When the energy counter last increased                             |
+| `spotpris_gyldig`       | Whether the spot price can be used right now                       |
+| `leverandorpris_gyldig` | Whether the provider sensor delivers, `null` if it is not set up   |
+| `frossen_terskel_timer` | The threshold in effect                                            |
+
+Each problem also raises a notice under Settings > Repairs, so you see it
+without having set anything up. It clears itself once the input returns. A jump
+in the energy counter that was discarded (meter swap, sensor glitch, or real
+usage arriving all at once) gets its own notice with the kWh figure, which you
+confirm yourself.
+
+The electricity provider sensor is listed but never alarms: it only feeds the
+comparison sensor "Total strømpris (strømavtale)".
+
 ## Energy Dashboard
 
 Two options for the cost component.

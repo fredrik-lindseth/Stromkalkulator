@@ -9,6 +9,7 @@ from datetime import date, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from typing import TYPE_CHECKING, Any, cast
 
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
@@ -20,6 +21,7 @@ from .const import (
     CONF_BOLIGTYPE,
     CONF_DSO,
     CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
+    CONF_ENERGI_FROSSEN_TIMER,
     CONF_ENERGILEDD_DAG,
     CONF_ENERGILEDD_NATT,
     CONF_ENERGY_SENSOR,
@@ -33,18 +35,30 @@ from .const import (
     DAY_RATE_END_HOUR,
     DAY_RATE_START_HOUR,
     DEFAULT_DSO,
+    DEFAULT_ENERGI_FROSSEN_TIMER,
     DEFAULT_KAPASITET_VARSEL_TERSKEL,
     DOMAIN,
     DSO_LIST,
     ENOVA_AVGIFT,
     HELLIGDAGER_FASTE,
+    INPUT_ROLLE_EFFEKT,
+    INPUT_ROLLE_EKSPORT,
+    INPUT_ROLLE_ENERGI,
+    INPUT_ROLLE_LEVERANDORPRIS,
+    INPUT_ROLLE_SPOTPRIS,
+    INPUT_UTFALL_GRACE_MINUTTER,
     MAX_ELAPSED_HOURS,
+    MAX_ENERGI_FROSSEN_TIMER,
     MAX_ENERGY_DELTA_KWH,
     MAX_POWER_CLAMP_W,
+    MIN_ENERGI_FROSSEN_TIMER,
     STROMSTOTTE_LEVEL,
     STROMSTOTTE_RATE,
     TPI_STALE_HOURS,
     UPDATE_INTERVAL_MINUTES,
+    VAKTHOLD_FROSSEN,
+    VAKTHOLD_SPOT_UTLOPT,
+    VAKTHOLD_UTFALL,
     WEEKEND_WEEKDAY_START,
     _bevegelige_helligdager,
     compute_energiledd_inkl_mva,
@@ -125,6 +139,24 @@ def days_in_month(now: datetime) -> int:
 
 _SPOT_CACHE_MAX_AGE = timedelta(hours=2)
 
+# Repair-issue-id per problemtype. Id-en suffikses med entry_id (incident 001),
+# så to instanser aldri deler varsel.
+_VAKTHOLD_ISSUE_PREFIX: dict[str, str] = {
+    VAKTHOLD_UTFALL: "input_utfall",
+    VAKTHOLD_FROSSEN: "energi_frossen",
+    VAKTHOLD_SPOT_UTLOPT: "spot_utfall",
+}
+
+# Rollenavnene slik de vises i repair-teksten. Attributtene bruker
+# maskinnavnene, varselet leses av et menneske.
+_ROLLE_TEKST: dict[str, str] = {
+    INPUT_ROLLE_EFFEKT: "effektmåleren",
+    INPUT_ROLLE_ENERGI: "energimåleren",
+    INPUT_ROLLE_SPOTPRIS: "spotpris-sensoren",
+    INPUT_ROLLE_EKSPORT: "eksportmåleren",
+    INPUT_ROLLE_LEVERANDORPRIS: "strømleverandør-sensoren",
+}
+
 
 class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Coordinator for Nettleie data."""
@@ -181,6 +213,11 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     _monthly_accumulated_cost_kapasitetsledd: float
     _store: Store[dict[str, Any]]
     _store_loaded: bool
+    energi_frossen_terskel_timer: float
+    _input_sist_gyldig: dict[str, datetime]
+    _last_energy_increase: datetime | None
+    _vakthold_issues: set[str]
+    _vakthold_issues_synket: bool
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize the coordinator."""
@@ -354,6 +391,25 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._last_spot_price: float | None = None
         self._last_spot_price_time: datetime | None = None
 
+        # Vakthold på input-sensorene. Per rolle: siste gang entiteten leverte et
+        # tall. Utfallet måles fra det tidspunktet, ikke fra første poll som ser
+        # feilen, slik at et hull mellom to polls ikke nullstiller klokken.
+        try:
+            terskel = float(entry.data.get(CONF_ENERGI_FROSSEN_TIMER, DEFAULT_ENERGI_FROSSEN_TIMER))
+        except (ValueError, TypeError):
+            terskel = DEFAULT_ENERGI_FROSSEN_TIMER
+        if not math.isfinite(terskel):
+            terskel = DEFAULT_ENERGI_FROSSEN_TIMER
+        self.energi_frossen_terskel_timer = min(
+            max(terskel, MIN_ENERGI_FROSSEN_TIMER), MAX_ENERGI_FROSSEN_TIMER
+        )
+        self._input_sist_gyldig = {}
+        # Settes fra Store ved oppstart, ellers på første poll. None betyr
+        # "vet ikke ennå", og da kan telleren ikke meldes frossen.
+        self._last_energy_increase = None
+        self._vakthold_issues = set()
+        self._vakthold_issues_synket = False
+
         # Persistent storage - keyed by entry_id for multi-instance isolation
         self._store = Store(hass, 1, f"{DOMAIN}_{entry.entry_id}")
         self._store_loaded = False
@@ -403,13 +459,17 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 return raw
         return None
 
-    def _compute_energy_delta(self) -> float:
+    def _compute_energy_delta(self, now: datetime | None = None) -> float:
         """Beregn forbruk siden forrige poll fra kumulativ energi-sensor.
 
         Leser energy_sensor (kWh) og returnerer differansen mot forrige avlesning.
         Negative deltas (counter reset, meter-bytte) og urealistisk store deltas
         ignoreres. Oppdaterer _last_tpi_kwh som side-effekt. Hvis sensoren er
         unavailable beholdes _last_tpi_kwh slik at neste poll kan plukke opp.
+
+        Et forkastet delta er ikke lenger bare en loggelinje: det er kWh som
+        forsvinner fra månedsforbruket, så det reises et fiksbart repair-varsel
+        med tallet slik at brukeren kan korrigere mot fakturaen.
         """
         if not self.energy_sensor:
             return 0.0
@@ -423,11 +483,13 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if not math.isfinite(current_tpi) or current_tpi <= 0:
             return 0.0
 
+        tidspunkt = now if now is not None else dt_util.now()
         delta = 0.0
         if self._last_tpi_kwh is not None and self._last_tpi_kwh > 0:
             raw_delta = current_tpi - self._last_tpi_kwh
             if 0 < raw_delta < MAX_ENERGY_DELTA_KWH:
                 delta = raw_delta
+                self._last_energy_increase = tidspunkt
             elif raw_delta < 0:
                 _LOGGER.warning(
                     "energy_sensor %s gikk nedover (%.3f -> %.3f). Counter reset eller meter-bytte? Ignorerer delta.",
@@ -435,6 +497,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     self._last_tpi_kwh,
                     current_tpi,
                 )
+                self._meld_forkastet_delta(tidspunkt, raw_delta)
             elif raw_delta >= MAX_ENERGY_DELTA_KWH:
                 _LOGGER.warning(
                     "energy_sensor %s delta %.1f kWh > %.0f kWh. Ignorerer som outlier.",
@@ -442,8 +505,161 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     raw_delta,
                     MAX_ENERGY_DELTA_KWH,
                 )
+                self._meld_forkastet_delta(tidspunkt, raw_delta)
         self._last_tpi_kwh = current_tpi
         return delta
+
+    def _meld_forkastet_delta(self, now: datetime, raw_delta: float) -> None:
+        """Reis et fiksbart repair-varsel om kWh som ble kastet.
+
+        Fiksbart fordi det eneste som skal skje er at brukeren ser tallet og
+        bekrefter; integrasjonen kan ikke gjenskape forbruket selv.
+        """
+        ir.async_create_issue(
+            self.hass,
+            DOMAIN,
+            f"energi_delta_forkastet_{self.entry.entry_id}",
+            is_fixable=True,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="energi_delta_forkastet",
+            translation_placeholders={
+                "sensor": self.energy_sensor or "",
+                "kwh": f"{raw_delta:.1f}",
+                "tidspunkt": now.strftime("%d.%m.%Y kl. %H:%M"),
+            },
+        )
+
+    # ------------------------------------------------------------------
+    # Vakthold på input-sensorene
+    #
+    # Bakgrunn: HAN-leseren lå nede 237 timer sommeren 2026 mens integrasjonen
+    # rapporterte videre som om ingenting var galt, og det ble oppdaget ti dager
+    # for sent. Tre deteksjoner dekker de tre måtene input dør på: entiteten
+    # forsvinner, telleren fryser mens entiteten ser frisk ut, og prisen blir
+    # for gammel til å regne kostnad av.
+    # ------------------------------------------------------------------
+
+    def _konfigurerte_inputer(self) -> list[tuple[str, str]]:
+        """(rolle, entity_id) for hver input brukeren faktisk har satt opp."""
+        kandidater: list[tuple[str, str | None]] = [
+            (INPUT_ROLLE_EFFEKT, self.power_sensor),
+            (INPUT_ROLLE_SPOTPRIS, self.spot_price_sensor),
+            (INPUT_ROLLE_ENERGI, self.energy_sensor),
+            (INPUT_ROLLE_EKSPORT, self.export_power_sensor),
+            (INPUT_ROLLE_LEVERANDORPRIS, self.electricity_company_price_sensor),
+        ]
+        return [(rolle, eid) for rolle, eid in kandidater if eid]
+
+    def _input_er_gyldig(self, entity_id: str) -> bool:
+        """Om entiteten leverer et tall akkurat nå.
+
+        Manglende entitet, unavailable/unknown og uleselige verdier er samme sak
+        for vaktholdet: det kommer ingen måling inn.
+        """
+        state = self.hass.states.get(entity_id)
+        if state is None or state.state in ("unknown", "unavailable"):
+            return False
+        try:
+            verdi = float(state.state)
+        except (ValueError, TypeError):
+            return False
+        return math.isfinite(verdi)
+
+    @staticmethod
+    def _vakthold_problem(
+        type_: str, rolle: str, entity_id: str, siden: datetime, now: datetime
+    ) -> dict[str, Any]:
+        """Én rad i data["input_problemer"]."""
+        minutter = max(0, int((now - siden).total_seconds() // 60))
+        return {
+            "type": type_,
+            "input": rolle,
+            "entity_id": entity_id,
+            "siden": siden.isoformat(),
+            "minutter": minutter,
+            "timer": round(minutter / 60, 1),
+        }
+
+    def _oppdater_vakthold(self, now: datetime, *, spot_price_valid: bool) -> list[dict[str, Any]]:
+        """Vurder alle inputene og returner de aktive problemene.
+
+        Rekkefølgen er stabil (utfall før frossen før spot) slik at attributtene
+        ikke blafrer mellom polls.
+        """
+        grace = timedelta(minutes=INPUT_UTFALL_GRACE_MINUTTER)
+        problemer: list[dict[str, Any]] = []
+
+        for rolle, entity_id in self._konfigurerte_inputer():
+            if self._input_er_gyldig(entity_id):
+                self._input_sist_gyldig[rolle] = now
+                continue
+            siden = self._input_sist_gyldig.setdefault(rolle, now)
+            if rolle == INPUT_ROLLE_LEVERANDORPRIS:
+                # Leverandørprisen mater bare sammenligningssensoren. Den
+                # rapporteres som attributt og skal ikke heve vaktholdet.
+                continue
+            if now - siden > grace:
+                problemer.append(
+                    self._vakthold_problem(VAKTHOLD_UTFALL, rolle, entity_id, siden, now)
+                )
+
+        if self.energy_sensor:
+            if self._last_energy_increase is None:
+                # Fersk installasjon, eller lagret verdi som manglet: start
+                # klokken nå framfor å melde frossen på null grunnlag.
+                self._last_energy_increase = now
+            elif now - self._last_energy_increase > timedelta(
+                hours=self.energi_frossen_terskel_timer
+            ):
+                problemer.append(
+                    self._vakthold_problem(
+                        VAKTHOLD_FROSSEN,
+                        INPUT_ROLLE_ENERGI,
+                        self.energy_sensor,
+                        self._last_energy_increase,
+                        now,
+                    )
+                )
+
+        if not spot_price_valid and self.spot_price_sensor:
+            siden = self._input_sist_gyldig.get(INPUT_ROLLE_SPOTPRIS, now)
+            problemer.append(
+                self._vakthold_problem(
+                    VAKTHOLD_SPOT_UTLOPT, INPUT_ROLLE_SPOTPRIS, self.spot_price_sensor, siden, now
+                )
+            )
+
+        self._oppdater_vakthold_issues(problemer)
+        return problemer
+
+    def _oppdater_vakthold_issues(self, problemer: list[dict[str, Any]]) -> None:
+        """Opprett og slett repair-issues ved overgang, ikke ved hver poll."""
+        aktive = {p["type"] for p in problemer}
+        for type_, prefix in _VAKTHOLD_ISSUE_PREFIX.items():
+            issue_id = f"{prefix}_{self.entry.entry_id}"
+            if type_ in aktive:
+                if type_ in self._vakthold_issues:
+                    continue
+                forste = next(p for p in problemer if p["type"] == type_)
+                ir.async_create_issue(
+                    self.hass,
+                    DOMAIN,
+                    issue_id,
+                    is_fixable=False,
+                    severity=ir.IssueSeverity.WARNING,
+                    translation_key=f"vakthold_{type_}",
+                    translation_placeholders={
+                        "input": _ROLLE_TEKST.get(forste["input"], forste["input"]),
+                        "entity_id": forste["entity_id"],
+                        "timer": f"{forste['timer']:.1f}",
+                    },
+                )
+                self._vakthold_issues.add(type_)
+            elif type_ in self._vakthold_issues or not self._vakthold_issues_synket:
+                # Første poll rydder også issues som overlevde en omstart.
+                ir.async_delete_issue(self.hass, DOMAIN, issue_id)
+                self._vakthold_issues.discard(type_)
+        self._vakthold_issues_synket = True
 
     async def _handle_month_rollover(self, now: datetime) -> None:
         """Archive previous month's data and reset accumulators."""
@@ -583,7 +799,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         energy_kwh = 0.0
         dirty = False
         if self.energy_sensor:
-            energy_kwh = self._compute_energy_delta()
+            energy_kwh = self._compute_energy_delta(now)
         elif elapsed_hours > 0 and current_power_kw > 0:
             energy_kwh = current_power_kw * elapsed_hours
 
@@ -698,6 +914,10 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         else:
             spot_price_raw = 0.0
             spot_price_valid = False
+
+        # Vaktholdet vurderes her fordi spot_price_valid nettopp er avgjort, og
+        # før noen beregning kan skjule at inputen er borte.
+        input_problemer = self._oppdater_vakthold(now, spot_price_valid=spot_price_valid)
 
         # Normaliser til inkl. mva. Resten av kjeden behandler spot_price som inkl. mva,
         # samme enhet som STROMSTOTTE_LEVEL og NORGESPRIS_INKL_MVA. Se incident 004.
@@ -895,6 +1115,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             margin_neste_trinn=margin_neste_trinn,
             neste_trinn_pris=neste_trinn_pris,
             kapasitet_varsel=kapasitet_varsel,
+            input_problemer=input_problemer,
         )
 
     def _build_data_dict(self, **kw: Any) -> dict[str, Any]:
@@ -974,6 +1195,19 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "margin_neste_trinn_kw": kw["margin_neste_trinn"],
             "neste_trinn_pris": kw["neste_trinn_pris"],
             "kapasitet_varsel": kw["kapasitet_varsel"],
+            # Vakthold på input-sensorene. maaledata_problem er sannheten
+            # binary_sensoren leser; listen forteller hvilken input og hvor lenge.
+            "input_problemer": kw["input_problemer"],
+            "maaledata_problem": bool(kw["input_problemer"]),
+            "sist_energi_okning": (
+                self._last_energy_increase.isoformat() if self._last_energy_increase else None
+            ),
+            "energi_frossen_terskel_timer": self.energi_frossen_terskel_timer,
+            "leverandorpris_gyldig": (
+                None
+                if not self.electricity_company_price_sensor
+                else self._input_er_gyldig(self.electricity_company_price_sensor)
+            ),
             "monthly_norgespris_diff_kr": round(self._monthly_norgespris_diff, 2),
             "previous_month_norgespris_diff_kr": round(self._previous_month_norgespris_diff, 2),
             "monthly_norgespris_compensation_kr": round(self._monthly_norgespris_compensation, 2),
@@ -1327,6 +1561,17 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         # Set to stored month so the normal month-transition in
                         # _async_update_data fires and properly archives previous month data
                         self._current_month = stored_month
+                # Additiv nøkkel: mangler den, står vi på None og vaktholdet
+                # starter klokken ved første poll i stedet for å melde frossen.
+                stored_increase = data.get("last_energy_increase")
+                if stored_increase:
+                    try:
+                        self._last_energy_increase = datetime.fromisoformat(stored_increase)
+                    except (ValueError, TypeError):
+                        _LOGGER.warning(
+                            "Kunne ikke lese last_energy_increase fra storage: %s", stored_increase
+                        )
+
                 stored_last_update = data.get("last_update")
                 last_update_age_hours: float | None = None
                 if stored_last_update:
@@ -1499,6 +1744,11 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "previous_month_cost": self._previous_month_cost,
             "last_update": self._last_update.isoformat() if self._last_update else None,
             "last_tpi_kwh": self._last_tpi_kwh,
+            # Additiv nøkkel (v1.17.0). Eldre lagringsfiler mangler den og
+            # faller tilbake til "vet ikke" ved oppstart, uten versjonsbump.
+            "last_energy_increase": (
+                self._last_energy_increase.isoformat() if self._last_energy_increase else None
+            ),
         }
         try:
             await self._store.async_save(data)

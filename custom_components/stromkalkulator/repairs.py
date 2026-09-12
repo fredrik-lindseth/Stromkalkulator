@@ -1,12 +1,13 @@
 """Repairs-plattform for Strømkalkulator.
 
 Home Assistant oppdager fix-flows via denne plattformfilen (repairs.py) og
-`async_create_fix_flow`. Fiksbare issues registreres med `async_create_issue`
-i __init__.py; den eneste fiksbare issuen er DSO-fusjonen (dso_migration_*),
-som bare trenger en bekreftelse for å lukkes. ConfirmRepairFlow-helperen viser
-et confirm-steg og lukker issuen når brukeren bekrefter. Tittel og beskrivelse
-hentes fra issuens translation_key (tso_migrated), seksjon
-`issues.tso_migrated.fix_flow` i strings.json.
+`async_create_fix_flow`. To issues er fiksbare, og begge trenger bare en
+bekreftelse for å lukkes: DSO-fusjonen (dso_migration_*, reist i __init__.py) og
+forkastet energi-delta (energi_delta_forkastet_*, reist fra coordinatoren når en
+avlesning hoppet så mye at den ble kastet). ConfirmRepairFlow-helperen viser et
+confirm-steg og lukker issuen når brukeren bekrefter. Tittel og beskrivelse
+hentes fra issuens translation_key, seksjonene `issues.tso_migrated.fix_flow` og
+`issues.energi_delta_forkastet.fix_flow` i strings.json.
 """
 
 from __future__ import annotations
@@ -26,7 +27,8 @@ async def async_create_fix_flow(
 ) -> RepairsFlow:
     """Lag fix-flow for en fiksbar repair-issue.
 
-    Kun DSO-fusjons-issuen (dso_migration_*) er fiksbar, og den krever bare en
-    bekreftelse for å lukkes, så ConfirmRepairFlow er tilstrekkelig.
+    Begge de fiksbare issuene (dso_migration_*, energi_delta_forkastet_*) krever
+    bare en bekreftelse for å lukkes, så ConfirmRepairFlow er tilstrekkelig.
+    Integrasjonen kan ikke gjenskape forbruket som gikk tapt, bare vise tallet.
     """
     return ConfirmRepairFlow()

@@ -43,7 +43,7 @@ til`, `### Endret`, `### Verifisert`, `### Dokumentert`). Ikke skriv noen
 2. `## Verifisering` med SHA256-linjen og lenke til `SECURITY.md`
 3. `<details>`-fold med alle commits siden forrige tag
 
-De tre siste er automatiske. Ikke skriv dem inn i CHANGELOG.
+De to siste er automatiske. Ikke skriv dem inn i CHANGELOG.
 
 ## En sluppet seksjon er historikk
 

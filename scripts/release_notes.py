@@ -54,7 +54,7 @@ def finn_seksjon(changelog: str, versjon: str) -> str | None:
         return None
 
     tekst = "\n".join(linjer[start:slutt]).strip("\n")
-    return tekst or None
+    return tekst if tekst.strip() else None
 
 
 def kjente_versjoner(changelog: str) -> list[str]:

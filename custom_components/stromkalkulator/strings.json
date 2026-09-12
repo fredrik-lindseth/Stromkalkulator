@@ -337,7 +337,7 @@
         "step": {
           "confirm": {
             "title": "Et sprang i energimåleren ble forkastet",
-            "description": "{sensor} hoppet {kwh} kWh på ett minutt {tidspunkt}. Spranget er holdt utenfor månedsforbruket, fordi det like gjerne kan være en målerbytte eller et sensorhikk som ekte forbruk. Var det ekte, mangler de kWh-ene nå i månedstallet, og fakturaen blir høyere enn estimatet. Bekreft for å lukke varselet."
+            "description": "{sensor} hoppet {kwh} kWh siden forrige avlesning {forrige}. Spranget er holdt utenfor månedsforbruket, fordi det like gjerne kan være en målerbytte eller et sensorhikk som ekte forbruk. Var det ekte, mangler de kWh-ene nå i månedstallet, og fakturaen blir høyere enn estimatet. Bekreft for å lukke varselet."
           }
         }
       }

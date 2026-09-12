@@ -22,11 +22,11 @@ Trinn-tabell og priser ligger per nettselskap i [`dso.py`](../custom_components/
 
 #### Nettselskap med en annen metode
 
-Modellen over kalles NVE-modellen i bransjen, og 70 av 75 nettselskap bruker den. Navnet er upresist: RME påbyr ingen bestemt modell, bare at fastleddet differensieres etter kundens etterspørsel etter effekt, og nevner selv sikringsstørrelse som et lovlig alternativ ([RME: Nettleie for forbruk](https://www.nve.no/reguleringsmyndigheten/regulering/nettvirksomhet/nettleie/nettleie-for-forbruk/)). Fem gjør noe annet, og hos dem stemmer beløpet bare hvis modellen er riktig, uansett hvor riktige satsene er. Metoden ligger i `fastledd_metode` per nettselskap, med fri-nettleies navn slik at drift-vakten kan sammenligne dem direkte. Er feltet ikke satt, gjelder NVE-modellen.
+Modellen over kalles NVE-modellen i bransjen, og 69 av de 74 valgbare oppføringene i `dso.py` bruker den. Navnet er upresist: RME påbyr ingen bestemt modell, bare at fastleddet differensieres etter kundens etterspørsel etter effekt, og nevner selv sikringsstørrelse som et lovlig alternativ ([RME: Nettleie for forbruk](https://www.nve.no/reguleringsmyndigheten/regulering/nettvirksomhet/nettleie/nettleie-for-forbruk/)). Fem gjør noe annet, og hos dem stemmer beløpet bare hvis modellen er riktig, uansett hvor riktige satsene er. Metoden ligger i `fastledd_metode` per nettselskap, med fri-nettleies navn slik at drift-vakten kan sammenligne dem direkte. Er feltet ikke satt, gjelder NVE-modellen.
 
 | Metode            | Grunnlag                                            | Nettselskap       |
 | ----------------- | --------------------------------------------------- | ----------------- |
-| `TRE_DØGNMAX_MND` | Snitt av tre høyeste døgnmakser i måneden (default) | 68 nettselskap    |
+| `TRE_DØGNMAX_MND` | Snitt av tre høyeste døgnmakser i måneden (default) | 69 oppføringer    |
 | `MND_MAX`         | Månedens enkeltstående høyeste time                 | Sør Aurdal Energi |
 | `OV_TREFASE`      | Hovedsikringens størrelse, ikke målt effekt         | Alut, Netera      |
 | `FEM_VEKTET_ÅR`   | Fem sesongvektede ukestopper, løpende tolv måneder  | Fjellnett         |

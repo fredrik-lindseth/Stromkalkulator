@@ -137,17 +137,29 @@ Andre kombinasjoner kan ha annen sample-timing, andre data-forsinkelser, og andr
 
 ```bash
 # Fra HA-host: eksporter HAN-data for ønsket måned
-ssh ha-local "python3 /tmp/export_hourly.py"  # se scripts/research/ (TBD)
+scp scripts/research/export_invoice_hourly.py ha-local:/tmp/
+ssh ha-local "python3 /tmp/export_invoice_hourly.py \
+    --year 2026 --month 4 \
+    --output /tmp/bkk_april_2026_hourly.json \
+    --fakturanr <fakturanr>"
 scp ha-local:/tmp/bkk_april_2026_hourly.json tests/fixtures/
 
 # Last ned Elhub-CSV manuelt fra elhub.no
-# Plasser i Måleverdier/
+# Plasser i _private/Måleverdier/
 
-# Sammenlign
-python3 scripts/research/sammenlign_elhub_han_faktura.py  # TBD
+# Sammenlign HAN-data mot faktura
+python3 scripts/research/verify_invoice_hourly.py \
+    --hourly tests/fixtures/bkk_april_2026_hourly.json \
+    --faktura april_2026
 ```
 
-Foreløpig er sammenligningen kjørt ad-hoc i Bash-prompts. Skal pakkes i et permanent script i fase 3 av prosjektet, se [fakturaverifisering-prosjekt.md](../fakturaverifisering-prosjekt.md).
+`export_hourly.py` og `sammenlign_elhub_han_faktura.py` sto her som planlagte
+navn og ble aldri skrevet. Fase 3 leverte jobben som `export_invoice_hourly.py`
+og `verify_invoice_hourly.py`, se
+[fakturaverifisering-prosjekt.md](../fakturaverifisering-prosjekt.md). Elhub-siden
+av sammenligningen er fortsatt ad-hoc: `verify_invoice_hourly.py` måler HAN mot
+faktura, og Elhub-CSV-en brukes som kWh-fasit der recorderen har hull, gjennom
+`fyll_datahull_fra_elhub.py`.
 
 ## Åpne spørsmål
 

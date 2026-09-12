@@ -8,7 +8,7 @@ All faktura-verifisering er gjort mot eget oppsett:
 
 | Komponent               | Verdi                                   |
 | ----------------------- | --------------------------------------- |
-| Nettselskap             | BKK (NO5), verifisert mot 8 fakturaer   |
+| Nettselskap             | BKK (NO5), verifisert mot 10 fakturaer  |
 | Måler                   | Kaifa MA304H3E                          |
 | HAN-leser               | Pow-U (AMSleser.no, AmsToMqtt-firmware) |
 | Strømleverandør         | Tibber Norge AS                         |
@@ -77,7 +77,7 @@ Bevisst valg. En tidsriktig spot-korreksjon krever historiske timespriser for ga
 
 ## 9. Fem nettselskap har en annen kapasitetsledd-modell
 
-Kapasitetsleddet beregnes som snittet av de tre høyeste døgnmaksene i måneden. Det er den vanligste innretningen, og 70 av 75 nettselskap bruker den. RME anbefaler den ikke, de skriver at nettselskapene «har en viss frihet til å bestemme hvordan de vil differensiere» fastleddet, og nevner både døgnmaks, snitt av flere døgnmakser og sikringsstørrelse som lovlige innretninger ([RME: Nettleie for forbruk](https://www.nve.no/reguleringsmyndigheten/regulering/nettvirksomhet/nettleie/nettleie-for-forbruk/)). De fem under bryter altså ingen regel. Alle fem er implementert etter sin egen modell, men de har hver sin restbegrensning:
+Kapasitetsleddet beregnes som snittet av de tre høyeste døgnmaksene i måneden. Det er den vanligste innretningen, og 69 av de 74 valgbare oppføringene i `dso.py` bruker den. RME anbefaler den ikke, de skriver at nettselskapene «har en viss frihet til å bestemme hvordan de vil differensiere» fastleddet, og nevner både døgnmaks, snitt av flere døgnmakser og sikringsstørrelse som lovlige innretninger ([RME: Nettleie for forbruk](https://www.nve.no/reguleringsmyndigheten/regulering/nettvirksomhet/nettleie/nettleie-for-forbruk/)). De fem under bryter altså ingen regel. Alle fem er implementert etter sin egen modell, men de har hver sin restbegrensning:
 
 | Nettselskap       | Metode          | Hva som gjelder nå                                                             |
 | ----------------- | --------------- | ------------------------------------------------------------------------------ |

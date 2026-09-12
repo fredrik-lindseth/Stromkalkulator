@@ -137,7 +137,7 @@ Klikk på en sensor for detaljer som topp-3 effektdager og kostnader fordelt på
 
 ## Støttede nettselskap
 
-74 nettselskap er lagt inn med satser, og Egendefinert dekker resten (du legger inn energiledd og avgiftssone selv). Prisene oppdateres årlig ved nyttår. Finner du feil, [lag en PR](docs/contributing.md) eller åpne et issue.
+Nettselskapslisten har 74 oppføringer med satser, som dekker 72 nettselskap (Area Nett har en oppføring per prisområde). Er ditt ikke med, dekker Egendefinert resten: du legger inn energiledd og avgiftssone selv. Prisene oppdateres årlig ved nyttår. Finner du feil, [lag en PR](docs/contributing.md) eller åpne et issue.
 
 ## Fusjon av nettselskap
 

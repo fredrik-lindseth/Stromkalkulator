@@ -64,6 +64,7 @@ from .const import (
     CONF_SIKRINGSTRINN,
     CONF_SPOT_PRICE_SENSOR,
     CONF_SPOTPRIS_INKL_MVA,
+    CONF_TARIFFMODUS,
     DOMAIN,
     INPUT_ROLLE_EFFEKT,
     INPUT_ROLLE_EKSPORT,
@@ -71,6 +72,7 @@ from .const import (
     INPUT_ROLLE_LEVERANDORPRIS,
     INPUT_ROLLE_SPOTPRIS,
     INPUT_UTFALL_GRACE_MINUTTER,
+    TARIFFMODUS_ALLE,
     VAKTHOLD_FROSSEN,
     VAKTHOLD_SPOT_UTLOPT,
     VAKTHOLD_UTFALL,
@@ -98,6 +100,7 @@ VALG_ALLOWLIST: tuple[str, ...] = (
     CONF_ENERGI_FROSSEN_TIMER,
     CONF_EGENDEFINERT_SATSER_BEKREFTET,
     CONF_PRISENHET_BEKREFTET,
+    CONF_TARIFFMODUS,
 )
 
 # Inputrollene. Selve entity-id-en aliaseres; her står bare koblingen fra
@@ -118,6 +121,10 @@ BEREGNING_ALLOWLIST: tuple[str, ...] = (
     "energiledd_natt",
     "energiledd_perioder",
     "aktiv_energiledd_periode",
+    # Tarifforigin fra K2: modus, om sesongperioder styrer og satsene som
+    # faktisk ble brukt i denne oppdateringen. Ingen entity-id og ingen
+    # kildeidentitet, så den kan vises som den er.
+    "tarifforigin",
     "kapasitetsledd",
     "kapasitetstrinn_nummer",
     "kapasitetstrinn_intervall",
@@ -271,8 +278,21 @@ ENTRY_KILDER: frozenset[str] = frozenset(
 )
 
 # Nøkler som står inne i verdiene, ikke på dem: energiledd-periodene og
-# dagsmaks-postene er dicter coordinatoren bygger selv.
-NESTEDE_NOKLER: frozenset[str] = frozenset({"fra", "til", "dag", "natt", "kw", "hour"})
+# dagsmaks-postene er dicter coordinatoren bygger selv, og tarifforigin er
+# K2s redegjørelse for hvor satsene i denne oppdateringen kom fra.
+NESTEDE_NOKLER: frozenset[str] = frozenset(
+    {"fra", "til", "dag", "natt", "kw", "hour"}
+    | {
+        "modus",
+        "dso",
+        "sesongperioder_styrer",
+        "manual_ignorert",
+        "energiledd_dag_eks_mva",
+        "energiledd_natt_eks_mva",
+        "energiledd_dag_inkl_mva",
+        "energiledd_natt_inkl_mva",
+    }
+)
 
 TEKST_MARKOR = "<tekst utelatt>"
 NOKKEL_MARKOR = "<nøkkel utelatt>"
@@ -295,6 +315,7 @@ TEKST_VOKABULAR: frozenset[str] = frozenset(
     | set(BEREGNING_ALLOWLIST)
     | set(PROBLEM_ALLOWLIST)
     | {VAKTHOLD_UTFALL, VAKTHOLD_FROSSEN, VAKTHOLD_SPOT_UTLOPT}
+    | set(TARIFFMODUS_ALLE)
 )
 
 # Strengene som ikke er et fast ord, men et format koden selv lager.

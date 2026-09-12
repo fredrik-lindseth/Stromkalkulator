@@ -32,6 +32,7 @@ from .const import (
     CONF_SIKRINGSTRINN,
     CONF_SPOT_PRICE_SENSOR,
     CONF_SPOTPRIS_INKL_MVA,
+    CONF_TARIFFMODUS,
     DEFAULT_DSO,
     DEFAULT_ENERGI_FROSSEN_TIMER,
     DEFAULT_ENERGILEDD_DAG,
@@ -48,6 +49,9 @@ from .const import (
     INPUT_ROLLE_SPOTPRIS,
     MAX_ENERGI_FROSSEN_TIMER,
     MIN_ENERGI_FROSSEN_TIMER,
+    TARIFFMODUS_CATALOG,
+    TARIFFMODUS_MANUAL,
+    compute_energiledd_inkl_mva,
     resolve_avgiftssone,
 )
 from .dso import FASTLEDD_OV_TREFASE, finn_sikringstrinn, hent_fastledd_metode
@@ -268,30 +272,13 @@ def _config_data_schema(current: dict[str, Any]) -> vol.Schema:
                     device_class="power",
                 ),
             ),
-            vol.Required(
-                CONF_ENERGILEDD_DAG,
-                default=current.get(CONF_ENERGILEDD_DAG, DEFAULT_ENERGILEDD_DAG),
-            ): selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=0,
-                    max=2,
-                    step="any",
-                    unit_of_measurement="NOK/kWh",
-                    mode=selector.NumberSelectorMode.BOX,
-                ),
-            ),
-            vol.Required(
-                CONF_ENERGILEDD_NATT,
-                default=current.get(CONF_ENERGILEDD_NATT, DEFAULT_ENERGILEDD_NATT),
-            ): selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=0,
-                    max=2,
-                    step="any",
-                    unit_of_measurement="NOK/kWh",
-                    mode=selector.NumberSelectorMode.BOX,
-                ),
-            ),
+            # Energiledd er et overstyringsfelt, ikke et påkrevd tall med
+            # forrige verdi som default (kontrakt §6). Var det påkrevd, ville
+            # hver eneste lagring i innstillingene fryst katalogens sats på
+            # entryet, og det var nettopp den mekanismen som gjorde at en
+            # tariffendring aldri nådde fram. Tomt felt betyr «følg katalogen».
+            # Egendefinert har ingen katalog og beholder derfor sitt tall.
+            **_energiledd_felt(current, dso_id == DSO_EGENDEFINERT),
             vol.Optional(
                 CONF_ENERGI_FROSSEN_TIMER,
                 default=current.get(CONF_ENERGI_FROSSEN_TIMER, DEFAULT_ENERGI_FROSSEN_TIMER),
@@ -322,27 +309,173 @@ def _config_data_schema(current: dict[str, Any]) -> vol.Schema:
     return vol.Schema(felter)
 
 
-def _apply_dso_derivation(user_input: dict[str, Any], old_dso: str | None) -> None:
-    """Re-avled energiledd og avgiftssone ved bytte til et kjent nettselskap.
+def _energiledd_sats_selector() -> selector.NumberSelector:
+    """Tallfeltet for et energiledd, i NOK/kWh eks. mva og avgifter."""
+    return selector.NumberSelector(
+        selector.NumberSelectorConfig(
+            min=0,
+            max=2,
+            step="any",
+            unit_of_measurement="NOK/kWh",
+            mode=selector.NumberSelectorMode.BOX,
+        ),
+    )
 
-    Skjemaets energiledd-felter defaulter til forrige DSOs lagrede verdier, så
-    uten dette ville et bytte f.eks. gi BKK-energiledd med Elvia-kapasitetstrinn.
-    Egendefinert DSO beholder brukerens felter (samme som ved oppsett).
+
+def _energiledd_felt(current: dict[str, Any], egendefinert: bool) -> dict[Any, Any]:
+    """Energiledd-feltene, som overstyring eller som påkrevd tall.
+
+    `suggested_value` og ikke `default`: et default fyller feltet på nytt hver
+    gang skjemaet åpnes, og da kan overstyringen aldri fjernes igjen. Et
+    suggested_value er brukerens eget tall når det finnes, og tomt ellers.
     """
+    if egendefinert:
+        return {
+            vol.Required(
+                CONF_ENERGILEDD_DAG,
+                default=current.get(CONF_ENERGILEDD_DAG, DEFAULT_ENERGILEDD_DAG),
+            ): _energiledd_sats_selector(),
+            vol.Required(
+                CONF_ENERGILEDD_NATT,
+                default=current.get(CONF_ENERGILEDD_NATT, DEFAULT_ENERGILEDD_NATT),
+            ): _energiledd_sats_selector(),
+        }
+    return {
+        vol.Optional(
+            CONF_ENERGILEDD_DAG,
+            description={"suggested_value": current.get(CONF_ENERGILEDD_DAG)},
+        ): _energiledd_sats_selector(),
+        vol.Optional(
+            CONF_ENERGILEDD_NATT,
+            description={"suggested_value": current.get(CONF_ENERGILEDD_NATT)},
+        ): _energiledd_sats_selector(),
+    }
+
+
+def _ore(verdi: float) -> str:
+    """Sats i NOK/kWh vist som øre med norsk desimalkomma."""
+    return f"{verdi * 100:.2f}".replace(".", ",")
+
+
+def _tariffhint(current: dict[str, Any]) -> dict[str, str]:
+    """Plassholderne som forteller hva nettselskapets prisliste fører nå.
+
+    Katalogtallene vises inkl. forbruksavgift, Enova og mva, fordi det er
+    tallet brukeren kjenner igjen fra fakturaen. Selve feltene tas imot eks.
+    avgifter, og det står i teksten over dem.
+    """
+    dso_id: str = current.get(CONF_DSO, DEFAULT_DSO)
+    dso = DSO_LIST.get(dso_id)
+    sone: str = current.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
+    if dso is None or dso_id == DSO_EGENDEFINERT:
+        # Egendefinert har ingen prisliste å lese fra. Strekene står der
+        # framfor et plausibelt tall (incident 006), og setningen etter i
+        # teksten forklarer hvorfor de er tomme.
+        return {"dso": "Egendefinert", "katalog_dag": "-", "katalog_natt": "-"}
+    return {
+        "dso": dso["name"],
+        "katalog_dag": _ore(compute_energiledd_inkl_mva(dso["energiledd_dag_eks_mva"], sone)),
+        "katalog_natt": _ore(compute_energiledd_inkl_mva(dso["energiledd_natt_eks_mva"], sone)),
+    }
+
+
+# Valgfrie entitetsfelt som skal kunne tømmes igjen. Home Assistant utelater et
+# tømt `vol.Optional`-felt fra user_input, så et rett `{**current, **user_input}`
+# gjeninnfører bindingen brukeren nettopp fjernet. Det er grunnen til at ingen
+# har fått fjernet en valgfri sensor de en gang valgte.
+_TOMBARE_FELT: tuple[str, ...] = (
+    CONF_ENERGY_SENSOR,
+    CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
+    CONF_EXPORT_POWER_SENSOR,
+)
+
+
+def _ny_entry_data(current: dict[str, Any], user_input: dict[str, Any]) -> dict[str, Any]:
+    """Slå skjemaet sammen med det som alt står på entryet.
+
+    Tre ting skjer her som en rett sammenslåing ikke gjør: tømte valgfrie
+    entitetsfelt fjernes, tariffmodusen settes ut fra om energiledd-feltet er
+    fylt ut, og et bytte av nettselskap tar med seg avgiftssone og sikringstrinn.
+    """
+    ny: dict[str, Any] = {**current, **user_input}
+
+    for felt in _TOMBARE_FELT:
+        if not user_input.get(felt):
+            ny.pop(felt, None)
+
+    _sett_tariffmodus(ny, user_input, gammel_dso=current.get(CONF_DSO))
+    return ny
+
+
+def _sett_tariffmodus(ny: dict[str, Any], user_input: dict[str, Any], *, gammel_dso: str | None) -> None:
+    """Avgjør hvor satsene skal komme fra etter denne lagringen (kontrakt §6).
+
+    Tomt energiledd-felt betyr `catalog`, utfylt betyr `manual`. Det gjelder
+    også den som står i `legacy_unconfirmed`: åpner de innstillingene og lagrer
+    uten å røre feltet, er svaret «følg katalogen».
+    """
+    ny_dso = ny.get(CONF_DSO, DEFAULT_DSO)
+
+    if ny_dso == DSO_EGENDEFINERT:
+        # Ingen katalog å falle tilbake på, så satsene er alltid brukerens.
+        ny[CONF_TARIFFMODUS] = TARIFFMODUS_MANUAL
+        return
+
+    if ny_dso != gammel_dso:
+        # Et energiledd hører til ett nettselskaps prisliste. Overlever det et
+        # bytte, får brukeren BKKs sats med Elvias kapasitetstrinn.
+        ny[CONF_TARIFFMODUS] = TARIFFMODUS_CATALOG
+        ny.pop(CONF_ENERGILEDD_DAG, None)
+        ny.pop(CONF_ENERGILEDD_NATT, None)
+        return
+
+    overstyrt = False
+    for felt in (CONF_ENERGILEDD_DAG, CONF_ENERGILEDD_NATT):
+        if user_input.get(felt) is None:
+            ny.pop(felt, None)
+        else:
+            overstyrt = True
+    ny[CONF_TARIFFMODUS] = TARIFFMODUS_MANUAL if overstyrt else TARIFFMODUS_CATALOG
+
+
+def _apply_dso_derivation(user_input: dict[str, Any], current: dict[str, Any]) -> None:
+    """Ta med avgiftssone og satser over til det nye nettselskapet.
+
+    Energileddet re-avledes ikke lenger her: et kjent nettselskap får
+    `catalog`-modus av `_sett_tariffmodus`, og da er katalogen satsen. Det som
+    trengs her er avgiftssonen, og at Egendefinert får med seg et tall å starte
+    fra, siden det er brukerens eget felt og ingen katalog finnes.
+    """
+    old_dso = current.get(CONF_DSO)
     new_dso = user_input.get(CONF_DSO)
     if new_dso == old_dso:
         return
 
     if new_dso != DSO_EGENDEFINERT and new_dso in DSO_LIST:
         dso: DSOEntry = DSO_LIST[new_dso]
-        user_input[CONF_ENERGILEDD_DAG] = dso["energiledd_dag_eks_mva"]
-        user_input[CONF_ENERGILEDD_NATT] = dso["energiledd_natt_eks_mva"]
         user_input[CONF_AVGIFTSSONE] = resolve_avgiftssone(dso)
 
-    # Bytter man til Egendefinert nå, står satsene med rettet merking i skjemaet,
-    # så varselet om den gamle «inkl. avgifter»-teksten er ikke relevant.
     if new_dso == DSO_EGENDEFINERT:
+        # Bytter man til Egendefinert nå, står satsene med rettet merking i
+        # skjemaet, så varselet om den gamle «inkl. avgifter»-teksten er ikke
+        # relevant.
         user_input[CONF_EGENDEFINERT_SATSER_BEKREFTET] = True
+        # Skjemaet ble tegnet for det gamle nettselskapet, så energiledd-feltet
+        # kan stå tomt fordi katalogen gjaldt. Egendefinert har ingen katalog,
+        # og et tomt felt ville gitt en sats fra ingensteds. Vi starter der
+        # anlegget faktisk lå, og brukeren retter tallet mot sin egen prisliste.
+        forrige = DSO_LIST.get(old_dso or "")
+        for felt, katalognokkel in (
+            (CONF_ENERGILEDD_DAG, "energiledd_dag_eks_mva"),
+            (CONF_ENERGILEDD_NATT, "energiledd_natt_eks_mva"),
+        ):
+            if user_input.get(felt) is not None:
+                continue
+            arvet = current.get(felt)
+            if arvet is None and forrige is not None:
+                arvet = forrige[katalognokkel]  # type: ignore[literal-required]
+            if arvet is not None:
+                user_input[felt] = arvet
 
     # Et sikringstrinn hører til ett nettselskaps prisliste. Overlever id-en et
     # bytte, ville den enten peke i tomme luften eller, verre, treffe en rad med
@@ -388,7 +521,10 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
     # Det gamle skjemaet brakk ved rename av power-sensoren og bandt
     # duplikatvernet til sensornavnet. entry_id er stabilt og kollisjonsfritt;
     # duplikatvernet er nå en eksplisitt sjekk mot eksisterende entries' data.
-    VERSION: int = 4
+    # VERSION 5: `tariffmodus` sier hvor energiledd-satsen kommer fra. Før vant
+    # en sats lagret på entryet over dso.py, og oppsettet lagret katalogens sats
+    # på alle, så en tariffendring nådde aldri fram. Se kontrakt §6 og §7.
+    VERSION: int = 5
 
     def __init__(self) -> None:
         """Initialize the config flow."""
@@ -461,9 +597,11 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
                 dso: DSOEntry = DSO_LIST[self._data[CONF_DSO]]
                 self._data[CONF_AVGIFTSSONE] = resolve_avgiftssone(dso)
 
-                # Lagre eks-mva-verdier; brukeren kan overstyre dem via Options.
-                self._data[CONF_ENERGILEDD_DAG] = dso["energiledd_dag_eks_mva"]
-                self._data[CONF_ENERGILEDD_NATT] = dso["energiledd_natt_eks_mva"]
+                # Ingen sats lagres på entryet. Katalogen i dso.py gjelder
+                # løpende, så en tariffendring når fram uten at brukeren må
+                # gjøre noe. Det er hele poenget med kontrakt §6: før lagret
+                # dette steget katalogens sats, og da frøs den for godt.
+                self._data[CONF_TARIFFMODUS] = TARIFFMODUS_CATALOG
 
                 # Sikringsbasert fastledd kan ikke måles, og et gjettet trinn
                 # ville gitt et plausibelt men feil beløp. Spør nå, i oppsettet,
@@ -535,6 +673,9 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
             # riktig beskjed og skal ikke møte varselet om feilmerkingen
             # (incident 007).
             self._data[CONF_EGENDEFINERT_SATSER_BEKREFTET] = True
+            # Egendefinert har ingen katalog å falle tilbake på; tallene her er
+            # brukerens egne og skal aldri overskrives av dso.py.
+            self._data[CONF_TARIFFMODUS] = TARIFFMODUS_MANUAL
             return self._create_entry()
 
         return self.async_show_form(
@@ -608,8 +749,8 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
         if user_input is not None:
             errors = _validate_options_input(self.hass, user_input, entry.entry_id, entry.data)
             if not errors:
-                _apply_dso_derivation(user_input, entry.data.get(CONF_DSO))
-                new_data: dict[str, Any] = {**entry.data, **user_input}
+                _apply_dso_derivation(user_input, dict(entry.data))
+                new_data: dict[str, Any] = _ny_entry_data(dict(entry.data), user_input)
                 return self.async_update_reload_and_abort(
                     entry,
                     data=new_data,
@@ -619,6 +760,7 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
             step_id="reconfigure",
             data_schema=_config_data_schema(entry.data),
             errors=errors,
+            description_placeholders=_tariffhint(dict(entry.data)),
         )
 
     @staticmethod
@@ -641,9 +783,9 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):
         if user_input is not None:
             errors = _validate_options_input(self.hass, user_input, self.config_entry.entry_id, current)
             if not errors:
-                _apply_dso_derivation(user_input, current.get(CONF_DSO))
+                _apply_dso_derivation(user_input, dict(current))
 
-                new_data: dict[str, Any] = {**current, **user_input}
+                new_data: dict[str, Any] = _ny_entry_data(dict(current), user_input)
                 # unique_id er entry_id (stabil) og skal ikke røres når power-
                 # sensoren endres. Duplikatvern håndteres av
                 # _validate_options_input over.
@@ -654,4 +796,5 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):
             step_id="init",
             data_schema=_config_data_schema(current),
             errors=errors,
+            description_placeholders=_tariffhint(dict(current)),
         )

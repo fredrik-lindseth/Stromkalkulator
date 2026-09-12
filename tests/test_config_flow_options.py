@@ -88,13 +88,17 @@ from stromkalkulator.const import (  # noqa: E402
     CONF_AVGIFTSSONE,
     CONF_BOLIGTYPE,
     CONF_DSO,
+    CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
     CONF_ENERGI_FROSSEN_TIMER,
     CONF_ENERGILEDD_DAG,
     CONF_ENERGILEDD_NATT,
+    CONF_ENERGY_SENSOR,
+    CONF_EXPORT_POWER_SENSOR,
     CONF_HAR_NORGESPRIS,
     CONF_KAPASITET_VARSEL_TERSKEL,
     CONF_POWER_SENSOR,
     CONF_SPOT_PRICE_SENSOR,
+    CONF_TARIFFMODUS,
     DEFAULT_ENERGI_FROSSEN_TIMER,
     DOMAIN,
 )
@@ -140,6 +144,52 @@ def _make_entry(
         CONF_KAPASITET_VARSEL_TERSKEL: 2.0,
     }
     return entry
+
+
+def _full_entry(entry_id: str = "entry1", dso: str = "bkk") -> MagicMock:
+    """Entry med alle tre valgfrie bindingene satt, klar til å tømmes."""
+    entry = _make_entry(entry_id=entry_id, dso=dso)
+    entry.data = {
+        **entry.data,
+        CONF_ENERGY_SENSOR: "sensor.energy_1",
+        CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR: "sensor.leverandorpris",
+        CONF_EXPORT_POWER_SENSOR: "sensor.export_power",
+    }
+    return entry
+
+
+def _skjema_uten_valgfrie() -> dict:
+    """Submit der de valgfrie feltene er tømt.
+
+    Home Assistant sender ikke med et tomt `vol.Optional`-felt i det hele tatt,
+    så et tømt felt ser ut som et felt brukeren aldri rørte. Det er nettopp
+    derfor `{**current, **user_input}` ikke holder.
+    """
+    return {
+        CONF_DSO: "bkk",
+        CONF_BOLIGTYPE: "bolig",
+        CONF_AVGIFTSSONE: "standard",
+        CONF_HAR_NORGESPRIS: False,
+        CONF_POWER_SENSOR: "sensor.power_1",
+        CONF_SPOT_PRICE_SENSOR: "sensor.spot_price",
+        CONF_KAPASITET_VARSEL_TERSKEL: 2.0,
+    }
+
+
+def _rolle_state(entity_id: str) -> MagicMock:
+    """State med en enhet og state_class som passer rollen entity-id-en antyder."""
+    state = MagicMock()
+    state.last_updated = None
+    if "power" in entity_id or "export" in entity_id:
+        state.state = "5000"
+        state.attributes = {"unit_of_measurement": "W"}
+    elif "energy" in entity_id:
+        state.state = "1000"
+        state.attributes = {"unit_of_measurement": "kWh", "state_class": "total_increasing"}
+    else:
+        state.state = "1.2"
+        state.attributes = {"unit_of_measurement": "NOK/kWh"}
+    return state
 
 
 def _make_options_flow(config_entry: MagicMock, existing_entries: list[MagicMock] | None = None):
@@ -492,6 +542,74 @@ class TestReconfigureFlow:
         flow.async_update_reload_and_abort.assert_not_called()
         flow.async_show_form.assert_called_once()
         assert flow.async_show_form.call_args[1]["errors"][CONF_POWER_SENSOR] == "already_configured"
+
+
+class TestTommeValgfrieFelt:
+    """Et tømt valgfritt felt skal fjerne bindingen, i begge inngangene.
+
+    Før gjeninnførte `{**current, **user_input}` den gamle verdien, og da kunne
+    ingen fjerne en energisensor, en leverandørprissensor eller en eksportmåler
+    de en gang hadde valgt (stromkalkulator-2zskcrd).
+    """
+
+    def test_options_fjerner_alle_tre_bindingene(self):
+        entry = _full_entry()
+        flow = _make_options_flow(entry)
+
+        asyncio.run(flow.async_step_init(_skjema_uten_valgfrie()))
+
+        data = flow.hass.config_entries.async_update_entry.call_args.kwargs["data"]
+        assert CONF_ENERGY_SENSOR not in data
+        assert CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR not in data
+        assert CONF_EXPORT_POWER_SENSOR not in data
+
+    def test_reconfigure_fjerner_alle_tre_bindingene(self):
+        entry = _full_entry()
+        flow = _make_reconfigure_flow(entry)
+
+        asyncio.run(flow.async_step_reconfigure(_skjema_uten_valgfrie()))
+
+        data = flow.async_update_reload_and_abort.call_args.kwargs["data"]
+        assert CONF_ENERGY_SENSOR not in data
+        assert CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR not in data
+        assert CONF_EXPORT_POWER_SENSOR not in data
+
+    def test_utfylt_felt_beholdes(self):
+        """Negativ prøve: et felt som står igjen skal ikke bli fjernet."""
+        entry = _full_entry()
+        flow = _make_options_flow(entry)
+        flow.hass.states.get = MagicMock(side_effect=_rolle_state)
+
+        user_input = {**_skjema_uten_valgfrie(), CONF_ENERGY_SENSOR: "sensor.energy_1"}
+        asyncio.run(flow.async_step_init(user_input))
+
+        data = flow.hass.config_entries.async_update_entry.call_args.kwargs["data"]
+        assert data[CONF_ENERGY_SENSOR] == "sensor.energy_1"
+        assert CONF_EXPORT_POWER_SENSOR not in data
+
+    def test_bytte_av_valgfri_sensor_gaar_gjennom(self):
+        """En ny entitet i feltet skal erstatte den gamle, ikke bli ignorert."""
+        entry = _full_entry()
+        flow = _make_options_flow(entry)
+        flow.hass.states.get = MagicMock(side_effect=_rolle_state)
+
+        user_input = {**_skjema_uten_valgfrie(), CONF_ENERGY_SENSOR: "sensor.energy_2"}
+        asyncio.run(flow.async_step_init(user_input))
+
+        data = flow.hass.config_entries.async_update_entry.call_args.kwargs["data"]
+        assert data[CONF_ENERGY_SENSOR] == "sensor.energy_2"
+
+    def test_tomt_energiledd_gir_katalog_i_reconfigure(self):
+        """Samme overstyringsregel i reconfigure som i options (kontrakt §6)."""
+        entry = _full_entry()
+        flow = _make_reconfigure_flow(entry)
+
+        asyncio.run(flow.async_step_reconfigure(_skjema_uten_valgfrie()))
+
+        data = flow.async_update_reload_and_abort.call_args.kwargs["data"]
+        assert data[CONF_TARIFFMODUS] == "catalog"
+        assert CONF_ENERGILEDD_DAG not in data
+        assert CONF_ENERGILEDD_NATT not in data
 
 
 # ===========================================================================

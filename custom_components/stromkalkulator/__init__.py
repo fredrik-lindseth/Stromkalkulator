@@ -22,6 +22,7 @@ from .const import (
     CONF_HAR_NORGESPRIS,
     CONF_SIKRINGSTRINN,
     CONF_SPOTPRIS_INKL_MVA,
+    CONF_TARIFFMODUS,
     DEFAULT_DSO,
     DOMAIN,
     DSO_EGENDEFINERT,
@@ -29,8 +30,16 @@ from .const import (
     ENOVA_AVGIFT,
     NORGESPRIS_SLUTT_AAR,
     SATSER_GJELDER_AAR,
+    TARIFF_ISSUE_PREFIX,
+    TARIFFMODUS_CATALOG,
+    TARIFFMODUS_LEGACY,
+    TARIFFMODUS_MANUAL,
+    compute_energiledd_inkl_mva,
+    energiledd_avviker,
     get_forbruksavgift,
     get_mva_sats,
+    har_lagret_energiledd,
+    les_tariffmodus,
     resolve_avgiftssone,
 )
 from .coordinator import NettleieCoordinator
@@ -116,11 +125,18 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     kollisjonsfritt. Endringen er på entry-nivå: entitetene har egne unique_id-er
     i entity-registeret (utledet fra entry_id, ikke entry.unique_id), så de
     beholdes uendret.
+
+    v4 -> v5: Setter `tariffmodus` på hver entry, se kontrakt §7. Fram til nå
+    vant en sats lagret på entryet over `dso.py`, og oppsettsflyten lagret
+    katalogens sats på hvert eneste oppsett. En tariffendring i katalogen nådde
+    derfor aldri fram til en bruker som allerede hadde satt opp anlegget sitt.
+    Migreringen rører kun `entry.data`, aldri lagringsfilen med måledata, og
+    aldri entry_id eller entitetenes unique-id-er: ingen akkumulator går tapt.
     """
     # Nedgraderingsvern: en entry med høyere versjon enn koden kjenner kommer
     # fra en nyere installasjon som er rullet tilbake. Ikke last den med et
-    # ukjent skjema. Gjeldende versjon er 4 (config_flow VERSION).
-    if entry.version > 4:
+    # ukjent skjema. Gjeldende versjon er 5 (config_flow VERSION).
+    if entry.version > 5:
         return False
 
     if entry.version == 1:
@@ -192,7 +208,65 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             entry.entry_id,
         )
 
+    if entry.version == 4:
+        new_data = {**entry.data}
+        modus = _avled_tariffmodus(new_data)
+        new_data[CONF_TARIFFMODUS] = modus
+        if modus == TARIFFMODUS_CATALOG:
+            # Katalogen gjelder, og da skal det ikke ligge igjen et tall som
+            # ser ut som en regel. Ble det stående, ville entryet drifte fra
+            # katalogen på nytt ved neste prisendring, og vi ville vært tilbake
+            # der vi startet. Brukeren merker ingenting: tallet er enten det
+            # samme som katalogens, eller det gjaldt ikke fra før.
+            new_data.pop(CONF_ENERGILEDD_DAG, None)
+            new_data.pop(CONF_ENERGILEDD_NATT, None)
+        hass.config_entries.async_update_entry(entry, data=new_data, version=5)
+        _LOGGER.info(
+            "Migrerte config entry %s fra v4 til v5 (tariffmodus=%s)",
+            entry.entry_id,
+            modus,
+        )
+
     return True
+
+
+def _avled_tariffmodus(data: dict[str, object]) -> str:
+    """Hvilken tariffmodus en v4-entry skal ha, etter tabellen i kontrakt §7.
+
+    Hovedregelen er at tall-likhet ikke er brukerintensjon. At en lagret sats
+    tilfeldigvis er lik katalogens betyr ikke at brukeren valgte den, og at den
+    er ulik betyr ikke at brukeren skrev den: oppsettsflyten lagret katalogens
+    sats på alle. Derfor blir ingen `manual` her uten at nettselskapet er
+    Egendefinert; de som avviker får `legacy_unconfirmed` og et valg.
+    """
+    dso_id = data.get(CONF_DSO, DEFAULT_DSO)
+    dso = DSO_LIST.get(str(dso_id))
+
+    # Egendefinert har ingen katalog å falle tilbake på, og det samme gjelder
+    # et nettselskap som ikke finnes i listen i det hele tatt (håndredigert
+    # .storage). Satsen på entryet er alt de har.
+    if dso_id == DSO_EGENDEFINERT or dso is None:
+        return TARIFFMODUS_MANUAL
+
+    if not har_lagret_energiledd(data):
+        return TARIFFMODUS_CATALOG
+
+    # Sesongperioder styrte allerede over den lagrede satsen, så tallene endrer
+    # seg ikke av at den forsvinner.
+    if dso.get("energiledd_perioder"):
+        return TARIFFMODUS_CATALOG
+
+    # Et nettselskap som er fusjonert inn i et annet, eller som ikke lenger
+    # vedlikeholdes: den lagrede satsen hører til selskapet de forlater.
+    # `dso_migration`-varselet forteller allerede hva som skjedde, og et
+    # tariffvarsel i tillegg ville vært to varsler om samme flytting.
+    if str(dso_id) in _MIGRATION_INDEX or not dso.get("supported", False):
+        return TARIFFMODUS_CATALOG
+
+    sone = data.get(CONF_AVGIFTSSONE) or resolve_avgiftssone(dso)
+    if energiledd_avviker(data, dso, str(sone)):
+        return TARIFFMODUS_LEGACY
+    return TARIFFMODUS_CATALOG
 
 
 def _issues_for_entry(hass: HomeAssistant, entry_id: str) -> list[str]:
@@ -318,6 +392,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: StromkalkulatorConfigEnt
     _check_sikringstrinn(hass, entry)
     _check_delt_dso(hass, entry)
     _check_egendefinerte_satser(hass, entry)
+    _check_tariffmodus(hass, entry)
 
     return True
 
@@ -362,6 +437,59 @@ def _check_egendefinerte_satser(hass: HomeAssistant, entry: StromkalkulatorConfi
             "avgifter": _ore(get_forbruksavgift(sone) + ENOVA_AVGIFT),
             "dag": _ore(entry.data.get(CONF_ENERGILEDD_DAG)),
             "natt": _ore(entry.data.get(CONF_ENERGILEDD_NATT)),
+        },
+    )
+
+
+def _check_tariffmodus(hass: HomeAssistant, entry: StromkalkulatorConfigEntry) -> None:
+    """Be brukeren velge når entryets lagrede sats ikke er den katalogen fører.
+
+    Varselet reises kun der satsene faktisk spriker (kontrakt §8). Den som
+    allerede ligger riktig skal ikke merke at modusen finnes, og et varsel hos
+    alle ville vært en falsk positiv hos de fleste.
+
+    Sjekken kjøres på nytt ved hver oppstart, ikke bare i migreringen. Blir
+    katalogen oppdatert til det entryet alt har lagret, forsvinner varselet av
+    seg selv, og da er det ingenting å velge mellom.
+
+    Så lenge varselet står ubesvart regner entryet med katalogen. Å la brukeren
+    bli stående på en utdatert sats mens vi venter på svar ville vært å
+    videreføre nettopp feilen dette retter.
+    """
+    issue_id = f"{TARIFF_ISSUE_PREFIX}{entry.entry_id}"
+    dso = DSO_LIST.get(entry.data.get(CONF_DSO, DEFAULT_DSO))
+    sone = entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
+
+    uavklart = (
+        les_tariffmodus(entry.data) == TARIFFMODUS_LEGACY
+        and dso is not None
+        and not dso.get("energiledd_perioder")
+        and energiledd_avviker(entry.data, dso, sone)
+    )
+    if not uavklart or dso is None:
+        ir.async_delete_issue(hass, DOMAIN, issue_id)
+        return
+
+    def inkl(verdi: object) -> str:
+        try:
+            return _ore(compute_energiledd_inkl_mva(float(verdi), sone))  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            return "?"
+
+    ir.async_create_issue(
+        hass,
+        DOMAIN,
+        issue_id,
+        is_fixable=True,
+        severity=ir.IssueSeverity.WARNING,
+        translation_key="tariff_ubekreftet",
+        data={"entry_id": entry.entry_id},
+        translation_placeholders={
+            "dso": dso["name"],
+            "lagret_dag": inkl(entry.data.get(CONF_ENERGILEDD_DAG, dso["energiledd_dag_eks_mva"])),
+            "lagret_natt": inkl(entry.data.get(CONF_ENERGILEDD_NATT, dso["energiledd_natt_eks_mva"])),
+            "katalog_dag": inkl(dso["energiledd_dag_eks_mva"]),
+            "katalog_natt": inkl(dso["energiledd_natt_eks_mva"]),
         },
     )
 

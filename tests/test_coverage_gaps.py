@@ -529,7 +529,7 @@ class TestCoordinatorInitFallbacks:
     def test_invalid_energiledd_dag_falls_back(self, coord_module):
         """Non-numeric energiledd_dag should fall back to DSO default."""
         hass = MagicMock()
-        entry = _make_entry(extra_data={"energiledd_dag": "invalid"})
+        entry = _make_entry(extra_data={"energiledd_dag": "invalid", "tariffmodus": "manual"})
         coordinator = coord_module.NettleieCoordinator(hass, entry)
 
         # BKK default eks-mva = 0.28770; coordinator regner inkl-mva fra det.
@@ -538,7 +538,7 @@ class TestCoordinatorInitFallbacks:
     def test_invalid_energiledd_natt_falls_back(self, coord_module):
         """Non-numeric energiledd_natt should fall back to DSO default."""
         hass = MagicMock()
-        entry = _make_entry(extra_data={"energiledd_natt": None})
+        entry = _make_entry(extra_data={"energiledd_natt": None, "tariffmodus": "manual"})
         coordinator = coord_module.NettleieCoordinator(hass, entry)
 
         assert coordinator.energiledd_natt_eks_mva == pytest.approx(0.10500)
@@ -552,15 +552,18 @@ class TestCoordinatorInitFallbacks:
         assert coordinator.kapasitet_varsel_terskel == 2.0
 
     def test_valid_custom_energiledd_used(self, coord_module):
-        """Valid custom energiledd should override DSO defaults.
+        """En overstyring gjelder når entryet står i manual.
 
         Brukerens override er eks-mva. Coordinator beregner inkl-mva fra sone.
+        Uten `tariffmodus: manual` ville katalogen gjeldt: et tall på entryet er
+        ikke lenger nok til å slå dso.py (kontrakt §6).
         """
         hass = MagicMock()
         entry = _make_entry(
             extra_data={
                 "energiledd_dag": 0.40,
                 "energiledd_natt": 0.20,
+                "tariffmodus": "manual",
             }
         )
         coordinator = coord_module.NettleieCoordinator(hass, entry)

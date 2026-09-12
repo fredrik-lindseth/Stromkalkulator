@@ -55,6 +55,7 @@ from .const import (
     MIN_ENERGI_FROSSEN_TIMER,
     STROMSTOTTE_LEVEL,
     STROMSTOTTE_RATE,
+    TARIFFMODUS_MANUAL,
     UPDATE_INTERVAL_MINUTES,
     VAKTHOLD_ENHET,
     VAKTHOLD_FROSSEN,
@@ -69,6 +70,7 @@ from .const import (
     get_norgespris_max_kwh,
     get_stromstotte_max_kwh,
     get_stromstotte_terskel,
+    les_tariffmodus,
 )
 from .dso import (
     FASTLEDD_FEM_VEKTET_AR,
@@ -183,6 +185,19 @@ def _toppdato(nokkel: str, entry: WeeklyMaxEntry) -> date:
     return date.min
 
 
+def _som_sats(raa: object, fallback: float) -> float:
+    """Lagret energiledd som tall, med katalogens sats for noe uleselig.
+
+    En overstyring som ikke er et tall er ikke en sats, og da er katalogen det
+    beste vi har. Alternativet, å la entryet regne med 0, ville gitt en
+    nettleie som ser billig og riktig ut.
+    """
+    try:
+        return float(raa)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return fallback
+
+
 def sekunder_mellom(fra: datetime, til: datetime) -> float:
     """Ekte tid mellom to tidspunkt, i sekunder.
 
@@ -284,6 +299,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     energiledd_dag: float  # inkl. forbruksavgift, Enova og mva (aktiv sats, oppdateres ved sesongbytte)
     energiledd_natt: float
     _energiledd_perioder_inkl: list[tuple[str, str, float, float]]  # (fra, til, dag_inkl, natt_inkl)
+    _energiledd_perioder_eks: list[tuple[str, str, float, float]]  # samme, uten avgifter og mva
     kapasitetstrinn: list[tuple[float, int]]
     fastledd_metode: str
     fastledd_lineaer: FastleddLineaer | None
@@ -366,42 +382,44 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Eldre konfig ble migrert til True i v3 for å bevare oppførsel.
         self.spotpris_inkl_mva = entry.data.get(CONF_SPOTPRIS_INKL_MVA, False)
 
-        # Energiledd lagres i DSO som ren nettleie eks. mva og avgifter.
-        # Bruker kan overstyre via config (CONF_ENERGILEDD_*), også eks. mva.
-        # Vi beregner inkl-mva-verdier her én gang basert på avgiftssone slik
-        # at sensorene kan bruke de ferdige verdiene direkte.
+        # Energiledd lagres i DSO som ren nettleie eks. mva og avgifter, og
+        # hvor satsen kommer fra avgjøres av tariffmodusen (kontrakt §6), ikke
+        # av om det tilfeldigvis ligger et tall på entryet. Den gamle regelen,
+        # «lagret verdi vinner», var grunnen til at en satsoppdatering i dso.py
+        # aldri nådde fram til noen som allerede hadde satt opp anlegget sitt.
         #
-        # Sesongprising: hvis DSO har `energiledd_perioder`, ignoreres CONF-
-        # overstyring og periodene driver aktiv sats. CONF-overstyring gir
-        # lite mening på en DSO som bytter pris flere ganger i året.
+        # catalog og legacy_unconfirmed regner begge med katalogen. Bare manual
+        # leser entryets egne tall, og heller ikke den på et nettselskap med
+        # sesongperioder: der styrer periodene hele året, og en fast dag- og
+        # nattsats gir ikke mening. At den ble ignorert er synlig i attributtet
+        # `manual_ignorert` framfor å skje i stillhet.
+        self.tariffmodus = les_tariffmodus(entry.data)
         raw_perioder: list[EnergileddPeriode] = self.dso.get("energiledd_perioder", [])
-        if not raw_perioder:
-            try:
-                self.energiledd_dag_eks_mva = float(
-                    entry.data.get(CONF_ENERGILEDD_DAG, self.dso["energiledd_dag_eks_mva"])
-                )
-            except (ValueError, TypeError):
-                self.energiledd_dag_eks_mva = float(self.dso["energiledd_dag_eks_mva"])
-            try:
-                self.energiledd_natt_eks_mva = float(
-                    entry.data.get(CONF_ENERGILEDD_NATT, self.dso["energiledd_natt_eks_mva"])
-                )
-            except (ValueError, TypeError):
-                self.energiledd_natt_eks_mva = float(self.dso["energiledd_natt_eks_mva"])
+        self.sesong_styrer = bool(raw_perioder)
+        self.manual_ignorert = self.tariffmodus == TARIFFMODUS_MANUAL and self.sesong_styrer
+
+        katalog_dag_eks = float(self.dso["energiledd_dag_eks_mva"])
+        katalog_natt_eks = float(self.dso["energiledd_natt_eks_mva"])
+        if self.tariffmodus == TARIFFMODUS_MANUAL and not self.sesong_styrer:
+            self.energiledd_dag_eks_mva = _som_sats(entry.data.get(CONF_ENERGILEDD_DAG), katalog_dag_eks)
+            self.energiledd_natt_eks_mva = _som_sats(entry.data.get(CONF_ENERGILEDD_NATT), katalog_natt_eks)
         else:
-            self.energiledd_dag_eks_mva = float(self.dso["energiledd_dag_eks_mva"])
-            self.energiledd_natt_eks_mva = float(self.dso["energiledd_natt_eks_mva"])
+            self.energiledd_dag_eks_mva = katalog_dag_eks
+            self.energiledd_natt_eks_mva = katalog_natt_eks
 
         self.energiledd_dag = compute_energiledd_inkl_mva(self.energiledd_dag_eks_mva, self.avgiftssone)
         self.energiledd_natt = compute_energiledd_inkl_mva(self.energiledd_natt_eks_mva, self.avgiftssone)
+        self._energiledd_perioder_eks = [
+            (p["fra"], p["til"], float(p["dag_eks_mva"]), float(p["natt_eks_mva"])) for p in raw_perioder
+        ]
         self._energiledd_perioder_inkl = [
             (
-                p["fra"],
-                p["til"],
-                compute_energiledd_inkl_mva(p["dag_eks_mva"], self.avgiftssone),
-                compute_energiledd_inkl_mva(p["natt_eks_mva"], self.avgiftssone),
+                fra,
+                til,
+                compute_energiledd_inkl_mva(dag, self.avgiftssone),
+                compute_energiledd_inkl_mva(natt, self.avgiftssone),
             )
-            for p in raw_perioder
+            for fra, til, dag, natt in self._energiledd_perioder_eks
         ]
 
         # Get kapasitetstrinn from DSO
@@ -1355,6 +1373,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "energiledd_natt": aktiv_natt,
             "energiledd_perioder": perioder_meta,
             "aktiv_energiledd_periode": aktiv_periode,
+            "tarifforigin": self._tarifforigin(now, aktiv_dag, aktiv_natt),
             "kapasitetsledd": kw["kapasitetsledd"],
             "kapasitetstrinn_nummer": kw["trinn_nummer"],
             "kapasitetstrinn_intervall": kw["trinn_intervall"],
@@ -1641,6 +1660,51 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 return f"{fra} til {til}"
         return None
 
+    def _tarifforigin(self, now: datetime, aktiv_dag: float, aktiv_natt: float) -> dict[str, Any]:
+        """Hvor satsene i denne oppdateringen kom fra (kontrakt §10).
+
+        D2 leser dette framfor å tolke `entry.data` på nytt, slik at
+        diagnostikken forteller hvilke tall som faktisk ble brukt, ikke hvilke
+        som ligger lagret. På en sesong-DSO er det periodens satser.
+        """
+        aktiv_dag_eks, aktiv_natt_eks = self._slaa_opp_periode(
+            now,
+            self._energiledd_perioder_eks,
+            (self.energiledd_dag_eks_mva, self.energiledd_natt_eks_mva),
+        )
+        return {
+            "modus": self.tariffmodus,
+            "dso": self._dso_id,
+            "sesongperioder_styrer": self.sesong_styrer,
+            "manual_ignorert": self.manual_ignorert,
+            "energiledd_dag_eks_mva": round(aktiv_dag_eks, 5),
+            "energiledd_natt_eks_mva": round(aktiv_natt_eks, 5),
+            "energiledd_dag_inkl_mva": round(aktiv_dag, 5),
+            "energiledd_natt_inkl_mva": round(aktiv_natt, 5),
+        }
+
+    @staticmethod
+    def _slaa_opp_periode(
+        now: datetime,
+        perioder: list[tuple[str, str, float, float]],
+        fallback: tuple[float, float],
+    ) -> tuple[float, float]:
+        """Periodens (dag, natt) for datoen, eller fallback om ingen treffer.
+
+        En periode som krysser nyttår har `fra` etter `til`, og treffer da alt
+        som ligger på eller etter `fra` eller på eller før `til`.
+        """
+        if not perioder:
+            return fallback
+        mm_dd = now.strftime("%m-%d")
+        for fra, til, dag, natt in perioder:
+            if fra <= til:
+                if fra <= mm_dd <= til:
+                    return dag, natt
+            elif mm_dd >= fra or mm_dd <= til:
+                return dag, natt
+        return fallback
+
     def _get_aktive_energileddsatser(self, now: datetime) -> tuple[float, float]:
         """Returner (dag, natt) energileddsatser inkl. avgifter for nåværende dato.
 
@@ -1649,16 +1713,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         treffer (skal ikke skje hvis periodene dekker hele året, men er en
         trygg fallback).
         """
-        if not self._energiledd_perioder_inkl:
-            return self.energiledd_dag, self.energiledd_natt
-        mm_dd = now.strftime("%m-%d")
-        for fra, til, dag, natt in self._energiledd_perioder_inkl:
-            if fra <= til:
-                if fra <= mm_dd <= til:
-                    return dag, natt
-            elif mm_dd >= fra or mm_dd <= til:
-                return dag, natt
-        return self.energiledd_dag, self.energiledd_natt
+        return self._slaa_opp_periode(
+            now, self._energiledd_perioder_inkl, (self.energiledd_dag, self.energiledd_natt)
+        )
 
     def _get_energiledd(self, now: datetime) -> float:
         """Get energiledd based on time of day."""

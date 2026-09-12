@@ -338,11 +338,18 @@ class EnergileddSensor(NettleieBaseSensor):
                 "energiledd_natt": self.coordinator.data.get("energiledd_natt"),
                 "dso": self.coordinator.data.get("dso"),
             }
+            opprinnelse = self.coordinator.data.get("tarifforigin") or {}
+            attrs["tariffmodus"] = opprinnelse.get("modus")
             perioder = self.coordinator.data.get("energiledd_perioder")
             if perioder:
                 attrs["sesongprising"] = True
                 attrs["aktiv_periode"] = self.coordinator.data.get("aktiv_energiledd_periode")
                 attrs["perioder"] = perioder
+            # Brukeren har tastet en fast sats, men nettselskapet bytter pris
+            # flere ganger i året og periodene styrer. Sies rett ut her framfor
+            # å la satsen se ut som om den gjelder.
+            if opprinnelse.get("manual_ignorert"):
+                attrs["manual_ignorert"] = True
             return attrs
         return None
 

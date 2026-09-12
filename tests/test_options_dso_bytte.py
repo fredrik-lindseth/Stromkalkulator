@@ -68,6 +68,7 @@ from stromkalkulator.const import (  # noqa: E402
     CONF_KAPASITET_VARSEL_TERSKEL,
     CONF_POWER_SENSOR,
     CONF_SPOT_PRICE_SENSOR,
+    CONF_TARIFFMODUS,
     DOMAIN,
     DSO_LIST,
     resolve_avgiftssone,
@@ -196,8 +197,14 @@ def _base_input(dso: str, **overrides) -> dict:
 
 
 class TestDsoBytteReResolverSatser:
-    def test_dso_change_reresolves_energiledd(self):
-        """Bytte BKK -> Elvia skal overskrive de arvede BKK-energileddene."""
+    def test_dso_change_dropper_arvet_energiledd(self):
+        """Bytte BKK -> Elvia skal kvitte seg med de arvede BKK-energileddene.
+
+        Før ble de skrevet om til Elvias katalogverdier. Nå fjernes de helt og
+        entryet settes i `catalog`, som er det samme tallet og i tillegg følger
+        prislisten videre. Hadde de blitt stående, ville brukeren fått BKKs sats
+        med Elvias kapasitetstrinn.
+        """
         entry = _make_entry(dso="bkk")
         flow = _make_options_flow(entry)
 
@@ -207,8 +214,9 @@ class TestDsoBytteReResolverSatser:
 
         data = _submitted_data(flow)
         assert data[CONF_DSO] == "elvia"
-        assert data[CONF_ENERGILEDD_DAG] == ELVIA["energiledd_dag_eks_mva"]
-        assert data[CONF_ENERGILEDD_NATT] == ELVIA["energiledd_natt_eks_mva"]
+        assert data[CONF_TARIFFMODUS] == "catalog"
+        assert CONF_ENERGILEDD_DAG not in data
+        assert CONF_ENERGILEDD_NATT not in data
 
     def test_dso_change_reresolves_avgiftssone(self):
         """Bytte BKK (NO5, standard) -> Arva (NO4, nord_norge) skal re-resolve sonen."""
@@ -238,6 +246,23 @@ class TestDsoBytteReResolverSatser:
         data = _submitted_data(flow)
         assert data[CONF_ENERGILEDD_DAG] == 0.5000
         assert data[CONF_ENERGILEDD_NATT] == 0.4000
+        assert data[CONF_TARIFFMODUS] == "manual"
+
+    def test_tomt_energiledd_gir_katalog(self):
+        """Lagring med tomt overstyringsfelt betyr «følg katalogen» (kontrakt §6)."""
+        entry = _make_entry(dso="bkk", energiledd_dag=0.5000, energiledd_natt=0.4000)
+        entry.data[CONF_TARIFFMODUS] = "legacy_unconfirmed"
+        flow = _make_options_flow(entry)
+
+        user_input = _base_input("bkk")
+        user_input.pop(CONF_ENERGILEDD_DAG)
+        user_input.pop(CONF_ENERGILEDD_NATT)
+        asyncio.run(flow.async_step_init(user_input))
+
+        data = _submitted_data(flow)
+        assert data[CONF_TARIFFMODUS] == "catalog"
+        assert CONF_ENERGILEDD_DAG not in data
+        assert CONF_ENERGILEDD_NATT not in data
 
     def test_switch_to_custom_keeps_user_energiledd(self):
         """Bytte til Egendefinert skal beholde brukerens egne energiledd og sone."""
@@ -259,6 +284,29 @@ class TestDsoBytteReResolverSatser:
         assert data[CONF_ENERGILEDD_DAG] == 0.3333
         assert data[CONF_ENERGILEDD_NATT] == 0.2222
         assert data[CONF_AVGIFTSSONE] == "nord_norge"
+        assert data[CONF_TARIFFMODUS] == "manual"
+
+    def test_switch_to_custom_arver_satsen_anlegget_laa_paa(self):
+        """Tomt energiledd-felt ved bytte til Egendefinert skal ikke gi ingenting.
+
+        Skjemaet ble tegnet for BKK, der feltet er en overstyring og står tomt
+        når katalogen gjelder. Egendefinert har ingen katalog, så tallet må
+        komme et sted fra, og da er det der anlegget faktisk lå.
+        """
+        entry = _make_entry(dso="bkk")
+        del entry.data[CONF_ENERGILEDD_DAG]
+        del entry.data[CONF_ENERGILEDD_NATT]
+        flow = _make_options_flow(entry)
+
+        user_input = _base_input("custom")
+        user_input.pop(CONF_ENERGILEDD_DAG)
+        user_input.pop(CONF_ENERGILEDD_NATT)
+        asyncio.run(flow.async_step_init(user_input))
+
+        data = _submitted_data(flow)
+        assert data[CONF_TARIFFMODUS] == "manual"
+        assert data[CONF_ENERGILEDD_DAG] == BKK["energiledd_dag_eks_mva"]
+        assert data[CONF_ENERGILEDD_NATT] == BKK["energiledd_natt_eks_mva"]
 
 
 # ===========================================================================

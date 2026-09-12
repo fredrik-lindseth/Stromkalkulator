@@ -34,7 +34,7 @@ import random
 from bisect import bisect_right
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Final
 from unittest.mock import MagicMock
 
 from tests.conftest import _make_entry
@@ -52,24 +52,49 @@ UPDATE_INTERVAL_SEKUNDER = 60
 
 
 class FalskState:
-    """HA-state med både verdi og `last_updated`.
+    """HA-state med verdi, `last_updated` og enhetsattributter.
 
     `tests.conftest._make_state` gir bare `.state`. Den holder for en test som
     ikke bryr seg om når verdien ble satt, men hele denne filen handler om
     nettopp det, så staten her bærer observasjonstiden sin.
+
+    Attributtene er ikke pynt. Coordinatoren leser input gjennom
+    `inputadapter.les_input`, som avviser en energisensor uten kumulativ
+    `state_class` og regner om verdien etter `unit_of_measurement`. En state
+    uten de attributtene er ikke en sensor som finnes i Home Assistant, og en
+    replay som matet slike ville målt adapterens nei framfor avregningen.
     """
 
     __slots__ = ("attributes", "entity_id", "last_changed", "last_updated", "state")
 
-    def __init__(self, entity_id: str, verdi: Any, last_updated: datetime) -> None:
+    def __init__(
+        self,
+        entity_id: str,
+        verdi: Any,
+        last_updated: datetime,
+        attributter: dict[str, Any] | None = None,
+    ) -> None:
         self.entity_id = entity_id
         self.state = "unavailable" if verdi is None else str(verdi)
         self.last_updated = last_updated
         self.last_changed = last_updated
-        self.attributes: dict[str, Any] = {}
+        self.attributes: dict[str, Any] = dict(attributter or {})
 
     def __repr__(self) -> str:  # pragma: no cover - kun for feilsøking
         return f"<FalskState {self.entity_id}={self.state} @ {self.last_updated.isoformat()}>"
+
+
+#: Attributtene de tre inputsensorene har i drift. Energien er en teller, så
+#: den har `total_increasing`; verdiene er alt i enhetene adapteren
+#: normaliserer til, slik at omregningsfaktoren er 1 og replayen måler
+#: avregningen framfor enhetstabellen. Selve tabellen prøves i
+#: `tests/test_inputadapter.py`.
+ATTR_EFFEKT: Final[dict[str, str]] = {"unit_of_measurement": "W"}
+ATTR_ENERGI: Final[dict[str, str]] = {
+    "unit_of_measurement": "kWh",
+    "state_class": "total_increasing",
+}
+ATTR_SPOTPRIS: Final[dict[str, str]] = {"unit_of_measurement": "NOK/kWh"}
 
 
 class FalskDtUtil:
@@ -262,25 +287,25 @@ class Replay:
         if entity_id == self.spot_sensor:
             rute = prisrutestart(naa, self.opplosning_minutter)
             if rute in self._pris_hull:
-                return FalskState(entity_id, None, rute)
+                return FalskState(entity_id, None, rute, ATTR_SPOTPRIS)
             verdi = self.hendelser.pris_ved(naa)
             if verdi is not None and (
                 not self.observerte_priser or self.observerte_priser[-1] != (naa, verdi)
             ):
                 self.observerte_priser.append((naa, verdi))
-            return FalskState(entity_id, verdi, rute)
+            return FalskState(entity_id, verdi, rute, ATTR_SPOTPRIS)
         if entity_id == self.energy_sensor:
             if any(fra <= naa < til for fra, til in self._teller_borte):
-                return FalskState(entity_id, None, naa)
+                return FalskState(entity_id, None, naa, ATTR_ENERGI)
             treff = self.hendelser.teller_ved(naa)
             if treff is None:
-                return FalskState(entity_id, None, naa)
+                return FalskState(entity_id, None, naa, ATTR_ENERGI)
             observert, verdi = treff
             if not self.observerte_malinger or self.observerte_malinger[-1] != treff:
                 self.observerte_malinger.append(treff)
-            return FalskState(entity_id, verdi, observert)
+            return FalskState(entity_id, verdi, observert, ATTR_ENERGI)
         if entity_id == self.power_sensor:
-            return FalskState(entity_id, self._effekt(naa), naa)
+            return FalskState(entity_id, self._effekt(naa), naa, ATTR_EFFEKT)
         return None
 
     def _effekt(self, naa: datetime) -> float:

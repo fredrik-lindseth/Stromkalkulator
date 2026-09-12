@@ -35,14 +35,66 @@ og `pre-commit install --hook-type pre-push` i en fersk klone.
 
 ## Viktige regler
 
-- **Lagring**: bruk `entry.entry_id` som lagringsnøkkel, aldri DSO-id eller brukervalgt konfigurasjon. Se [incident 001](docs/incidents/001-delt-data-mellom-instanser.md).
-- **Sensor-enheter**: `MONETARY` krever ISO 4217 (`NOK`), satser skal ikke ha `device_class` og beholder `NOK/kWh` eller `kr/mnd`. Å bytte enhet på en sensor med `state_class` gir én repair hos hver bruker, så gjør det bare når gevinsten er reell. Se [domain-rules.md](docs/domain-rules.md#sensor-enheter-og-device_class).
-- **Satser**: endringer i `const.py` (avgifter, terskel) eller `dso.py` (energiledd, kapasitetstrinn) krever offisiell kilde og bestått testsuite. Kjør `uv run --with pyyaml python scripts/sjekk_mot_fri_nettleie.py --bare-avvik` for å fange pris-drift mot fri-nettleie før du endrer eller committer satser. Den sjekker både energiledd og fastledd; avvik i begge feller exit-koden.
-- **CHANGELOG**: en sluppet seksjon er historikk. Sjekk `gh release list` før du skriver, og lag en ny seksjon hvis den øverste allerede er publisert. Versjonen i `manifest.json` er bumpet ved release, så filen ser ut som om den gjelder det du jobber med. Seksjonen er release-noten: `scripts/release_notes.py` henter den og gjør relative lenker absolutte mot taggen, så skriv lenkene relativt som ellers, men pek bare på filer som finnes (en død lenke feller release-jobben). Krever releasen noe av brukeren, skriv det i en `### Dette må du gjøre selv`-kategori; den løftes øverst i release-body-en, og står den tom, stopper jobben. Se [release-notes.md](docs/release-notes.md#changelogmd).
-- **Kapasitetstrinn**: aldri mal, gjetning eller gjenbruk fra et annet nettselskap. Mangler kilde, la `supported` stå `False`. Se [incident 006](docs/incidents/006-kapasitetstrinn-uten-kilde.md) og [domain-rules.md](docs/domain-rules.md#kapasitetstrinn-krever-kilde-per-nettselskap).
-- **DSO-helligdager**: `helligdager_ekstra` i `dso.py` (f.eks. `["12-24", "12-31"]` for BKK) skal kun legges til når en ekte faktura fra DSO-en bekrefter at hele dagen behandles som natt-tariff. Default er kun offisielle norske helligdager.
-- **Månedsskifte**: ikke nullstill `_daily_max_power`, `_monthly_consumption` eller `_previous_month_*` manuelt. Skjer automatisk.
-- **Kursarkiv (kjør månedlig)**: `just snapshot-kurs` arkiverer Nord Pools daglige `exchangeRate` og de publiserte NOK-kvarterprisene i `_private/Måleverdier/`. Gratis-API-et rekker bare ~2 måneder bakover, så kjør den hver gang du er i repoet (minst månedlig) før fakturamånedene faller ut. Kvarterprisene er fasiten BKK fakturerer fra; med dem reproduseres Norgespris-linjen eksakt (verifisert juni 2026). HA-recorderen lagrer prisene slik de så ut ved publisering og kan ha foreløpig valutakurs på søndager, så den duger ikke som fasit. Bakgrunn: [docs/research/norgespris-eksakt-match.md](docs/research/norgespris-eksakt-match.md).
+### Lagring
+
+Bruk `entry.entry_id` som lagringsnøkkel, aldri DSO-id eller brukervalgt
+konfigurasjon. Se [incident 001](docs/incidents/001-delt-data-mellom-instanser.md).
+
+### Sensor-enheter
+
+`MONETARY` krever ISO 4217 (`NOK`), satser skal ikke ha `device_class` og
+beholder `NOK/kWh` eller `kr/mnd`. Å bytte enhet på en sensor med `state_class`
+gir én repair hos hver bruker, så gjør det bare når gevinsten er reell. Se
+[domain-rules.md](docs/domain-rules.md#sensor-enheter-og-device_class).
+
+### Satser
+
+Endringer i `const.py` (avgifter, terskel) eller `dso.py` (energiledd,
+kapasitetstrinn) krever offisiell kilde og bestått testsuite. Kjør
+`uv run --with pyyaml python scripts/sjekk_mot_fri_nettleie.py --bare-avvik` for
+å fange pris-drift mot fri-nettleie før du endrer eller committer satser. Den
+sjekker både energiledd og fastledd; avvik i begge feller exit-koden.
+
+### CHANGELOG
+
+En sluppet seksjon er historikk. Sjekk `gh release list` før du skriver, og lag
+en ny seksjon hvis den øverste allerede er publisert. Versjonen i
+`manifest.json` er bumpet ved release, så filen ser ut som om den gjelder det du
+jobber med. Seksjonen er release-noten: `scripts/release_notes.py` henter den og
+gjør relative lenker absolutte mot taggen, så skriv lenkene relativt som ellers,
+men pek bare på filer som finnes (en død lenke feller release-jobben). Krever
+releasen noe av brukeren, skriv det i en `### Dette må du gjøre selv`-kategori;
+den løftes øverst i release-body-en, og står den tom, stopper jobben. Se
+[release-notes.md](docs/release-notes.md#changelogmd).
+
+### Kapasitetstrinn
+
+Aldri mal, gjetning eller gjenbruk fra et annet nettselskap. Mangler kilde, la
+`supported` stå `False`. Se
+[incident 006](docs/incidents/006-kapasitetstrinn-uten-kilde.md) og
+[domain-rules.md](docs/domain-rules.md#kapasitetstrinn-krever-kilde-per-nettselskap).
+
+### DSO-helligdager
+
+`helligdager_ekstra` i `dso.py` (f.eks. `["12-24", "12-31"]` for BKK) skal kun
+legges til når en ekte faktura fra DSO-en bekrefter at hele dagen behandles som
+natt-tariff. Default er kun offisielle norske helligdager.
+
+### Månedsskifte
+
+Ikke nullstill `_daily_max_power`, `_monthly_consumption` eller
+`_previous_month_*` manuelt. Skjer automatisk.
+
+### Kursarkiv (kjør månedlig)
+
+`just snapshot-kurs` arkiverer Nord Pools daglige `exchangeRate` og de
+publiserte NOK-kvarterprisene i `_private/Måleverdier/`. Gratis-API-et rekker
+bare ~2 måneder bakover, så kjør den hver gang du er i repoet (minst månedlig)
+før fakturamånedene faller ut. Kvarterprisene er fasiten BKK fakturerer fra; med
+dem reproduseres Norgespris-linjen eksakt (verifisert juni 2026). HA-recorderen
+lagrer prisene slik de så ut ved publisering og kan ha foreløpig valutakurs på
+søndager, så den duger ikke som fasit. Bakgrunn:
+[docs/research/norgespris-eksakt-match.md](docs/research/norgespris-eksakt-match.md).
 
 ## Issue-tracking
 

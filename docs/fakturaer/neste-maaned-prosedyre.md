@@ -72,8 +72,19 @@ rett før et hull fylles automatisk når verdien både ligger innenfor 0,5 øre/
 av forrige døgns 23:45-kvarter og minst 0,2 øre/kWh lenger unna sin egen
 publiserte time enn den ligger fra det kvarteret. Begge kravene trengs: på en
 natt med flat pris treffer en ekte måling 23:45-kvarteret også, og det er bare
-avstanden til sin egen time som skiller en båret verdi fra en måling. Er
-verdien nær begge, skriver scriptet ut timen og lar den stå. Da må du avgjøre
+avstanden til sin egen time som skiller en båret verdi fra en måling.
+
+Begge avstandene måles mot kurs-årgangsjustert pris, ikke mot arkivprisen rå.
+23:45-kvarteret justeres med kurs-årgangen kvelden før, siden det er derfra
+verdien er båret, og timens egen pris med årgangen på sitt eget døgn. Ellers
+bommer en ekte måling på sin egen time på en årgangsdag uten at det har noe med
+hullet å gjøre. Årgangen regnes ut av døgnets egne ekte timer, så et helt hullet
+døgn, under seks ekte timer, eller en faktor som ikke er konstant, gir ingen
+målt årgang. Da sammenlignes det mot rå publisert pris som før, og utskriften
+sier «kurs-årgang umålt». Hver time 00 foran et hull skrives ut med begge
+avstandene og hvilken årgang de er målt med, uansett utfall.
+
+Er verdien nær begge, skriver scriptet ut timen og lar den stå. Da må du avgjøre
 selv, med `--overstyr` hvis den likevel hører til hullet. Fylte randtimer føres
 under `spothull.fylt_fra_nordpool.randtimer` i metadata. Se
 [bkk-august-2026.md](bkk-august-2026.md) for gjennomgangen.
@@ -128,7 +139,7 @@ delta mellom nabotimer (skjedde 2. pinsedag 2026). Se
 [../research/norgespris-eksakt-match.md](../research/norgespris-eksakt-match.md).
 Avgiftslinjene har et gulv på 1-2 øre som er BKKs interne avrunding.
 
-Hvis avvik er innenfor: alt fungerer som dokumentert.
+Hvis avvik er innenfor: alt stemmer med dokumentasjonen.
 
 Hvis avviket er vesentlig større: undersøk. Mulige årsaker:
 

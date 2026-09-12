@@ -138,10 +138,12 @@ publiseringskursen og arkivets.
 Time 00 i et hulldøgn er altså ikke en måling, og skal behandles som del av
 hullet. `scripts/research/fyll_spothull_fra_nordpool.py` kjenner den igjen
 automatisk (time 00 rett før et hull, innenfor 0,5 øre/kWh av forrige døgns
-23:45-kvarter), fyller den fra det publiserte arkivet og fører begrunnelsen i
-fixturens metadata. Merkingen gjør at prisfidelitets-tellingen holder timen
-utenfor. Hvorfor den offisielle Nord Pool-integrasjonen faller ut ved
-døgnskiftet er fortsatt ukjent, og HA-loggen dekker bare siste boot.
+23:45-kvarter og minst 0,2 øre/kWh lenger unna sin egen publiserte time enn den
+ligger fra kvarteret, begge avstandene målt mot kurs-årgangsjustert pris), fyller
+den fra det publiserte arkivet og fører begrunnelsen i fixturens metadata.
+Merkingen gjør at prisfidelitets-tellingen holder timen utenfor. Hvorfor den
+offisielle Nord Pool-integrasjonen faller ut ved døgnskiftet er fortsatt ukjent,
+og HA-loggen dekker bare siste boot.
 
 ## Konsekvenser i repoet
 

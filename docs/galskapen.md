@@ -208,9 +208,10 @@ prisliste gjør. Se [bidra med faktura](fakturaer/bidra-med-faktura.md).
     oppføringer, og det er dem tallene i dette dokumentet teller. De dekker 72
     nettselskap, siden Area Nett har tre prisområder med hver sin tariff.
     Fri-nettleie har 74 tarifffiler, hvorav 73 har en aktiv husholdningstariff
-    (den fjerde Area-filen dekker bare fritidsbolig). Alle tall i dette
-    dokumentet er lest ut av `dso.py` eller fri-nettleie, eller fra
-    nettselskapets egen side der det står i teksten.
+    (den fjerde Area-filen dekker bare fritidsbolig), lest 29. juli 2026.
+    Tallene om `DSO_LIST` holdes i takt av `tests/test_dokumenttall.py`; resten
+    av tallene i dette dokumentet er lest ut av fri-nettleie samme dag, eller
+    fra nettselskapets egen side der det står i teksten.
 
 [^husholdning]: Regnet med satsene i `dso.py`: `600 × dagsats + 400 × nattsats`
     inkl. forbruksavgift, Enova og mva for selskapets avgiftssone, pluss

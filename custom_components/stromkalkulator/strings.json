@@ -99,8 +99,12 @@
     "error": {
       "sensor_not_found": "Sensor ikke funnet",
       "already_configured": "Denne effektmåleren er allerede i bruk av en annen Strømkalkulator-instans",
-      "spot_unit_invalid": "Sensoren har ikke en pris-enhet kalkulatoren kan bruke direkte. Prisen må være i NOK/kWh (eller EUR/MWh). Øre/kWh godtas ikke, siden verdien da tolkes som NOK/kWh og gir 100x feil pris. Konverter til NOK/kWh først, eller velg en spotpris-sensor fra Nord Pool-integrasjonen.",
-      "spot_value_unreasonable": "Sensorverdien er for høy til å være en spotpris. Du har sannsynligvis valgt en kr-totalsensor i stedet for en spotpris-sensor."
+      "spot_unit_invalid": "Sensoren har ikke en pris-enhet kalkulatoren kan regne om. NOK/kWh, kr/kWh, øre/kWh og NOK/MWh går bra og regnes om automatisk. EUR går ikke, siden vi ikke har noen valutakurs.",
+      "spot_value_unreasonable": "Verdien er for høy til å være en strømpris. Regnet om til NOK/kWh blir den over 100 kroner, og da har du sannsynligvis valgt en totalkostnad i kroner i stedet for en pris.",
+      "enhet_ukjent": "Kalkulatoren kjenner ikke igjen enheten sensoren oppgir, og kan derfor ikke regne om verdien. Effekt må være W, kW eller MW. Energi må være Wh, kWh eller MWh. Pris må være NOK/kWh, kr/kWh, øre/kWh eller NOK/MWh.",
+      "enhet_feil_dimensjon": "Sensoren måler noe annet enn feltet spør etter. Sjekk at effektfeltet peker på en effektsensor, energifeltet på en kumulativ kWh-teller og prisfeltene på en pris per kWh.",
+      "enhet_feil_valuta": "Prisen er i en annen valuta enn kroner. Kalkulatoren har ingen valutakurs, så en EUR-sensor kan ikke brukes direkte. Velg en sensor i NOK/kWh eller øre/kWh, eller lag en malsensor som regner om.",
+      "energi_ikke_kumulativ": "Energisensoren må være en teller som bare går oppover, altså state_class total_increasing eller total. Vi måler differansen mellom avlesninger, og en sensor som viser forbruket akkurat nå har ingen differanse å måle."
     },
     "abort": {
       "already_configured": "Allerede konfigurert"
@@ -145,6 +149,16 @@
           "energi_frossen_timer": "Meld fra når energimåleren ikke har økt på så mange timer. Standard: 3. Sett den høyere på en hytte eller et anlegg som står tomt i perioder, ellers varsler den hver gang hovedbryteren er av."
         }
       }
+    },
+    "error": {
+      "sensor_not_found": "Sensor ikke funnet",
+      "already_configured": "Denne effektmåleren er allerede i bruk av en annen Strømkalkulator-instans",
+      "spot_unit_invalid": "Sensoren har ikke en pris-enhet kalkulatoren kan regne om. NOK/kWh, kr/kWh, øre/kWh og NOK/MWh går bra og regnes om automatisk. EUR går ikke, siden vi ikke har noen valutakurs.",
+      "spot_value_unreasonable": "Verdien er for høy til å være en strømpris. Regnet om til NOK/kWh blir den over 100 kroner, og da har du sannsynligvis valgt en totalkostnad i kroner i stedet for en pris.",
+      "enhet_ukjent": "Kalkulatoren kjenner ikke igjen enheten sensoren oppgir, og kan derfor ikke regne om verdien. Effekt må være W, kW eller MW. Energi må være Wh, kWh eller MWh. Pris må være NOK/kWh, kr/kWh, øre/kWh eller NOK/MWh.",
+      "enhet_feil_dimensjon": "Sensoren måler noe annet enn feltet spør etter. Sjekk at effektfeltet peker på en effektsensor, energifeltet på en kumulativ kWh-teller og prisfeltene på en pris per kWh.",
+      "enhet_feil_valuta": "Prisen er i en annen valuta enn kroner. Kalkulatoren har ingen valutakurs, så en EUR-sensor kan ikke brukes direkte. Velg en sensor i NOK/kWh eller øre/kWh, eller lag en malsensor som regner om.",
+      "energi_ikke_kumulativ": "Energisensoren må være en teller som bare går oppover, altså state_class total_increasing eller total. Vi måler differansen mellom avlesninger, og en sensor som viser forbruket akkurat nå har ingen differanse å måle."
     }
   },
   "entity": {
@@ -380,6 +394,21 @@
           "confirm": {
             "title": "Sjekk energiledd-satsen du har lagt inn",
             "description": "Nettselskapet ditt ligger ikke i listen, så du har lagt inn energiledd-satsen selv. Til og med versjon 1.16.0 sto feltet merket «inkl. avgifter», mens integrasjonen regner satsen som ren nettleie og legger forbruksavgift, Enova og mva på selv. Fulgte du den teksten, telles avgiftene to ganger, og satsen ligger rundt {avgifter} øre/kWh for høyt før mva.\n\nVi kan ikke se hva du tastet, bare at teksten var villedende. Du har nå {dag} øre/kWh for dag og {natt} øre/kWh for natt og helg. Sammenlign med linjen «energiledd» eller «overføring» på prislisten fra nettselskapet, den før avgifter og mva. Må den rettes, gjør det i Innstillinger > Enheter og tjenester > Strømkalkulator > Konfigurer. Bekreft her når satsen er sjekket, så er varselet borte for godt."
+          }
+        }
+      }
+    },
+    "vakthold_enhet": {
+      "title": "Strømkalkulator kan ikke regne på {input}",
+      "description": "{entity_id} rapporterer nå i enheten {enhet}, og den kan kalkulatoren ikke regne om. Så lenge sensoren står slik kommer det ingen tall fra den, og det som er avhengig av den står stille. Sjekk integrasjonen som eier sensoren, eller velg en annen i Innstillinger > Enheter og tjenester > Strømkalkulator > Konfigurer."
+    },
+    "prisenhet_ubekreftet": {
+      "title": "Bekreft enheten på prissensoren",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Bekreft enheten på prissensoren",
+            "description": "{entity_id} oppgir ingen enhet, og kalkulatoren regner med at prisen er i NOK/kWh. Det gjelder {roller}. Stemmer det, trenger du ikke gjøre noe annet enn å bekrefte her, så er varselet borte.\n\nEr sensoren i øre/kWh eller NOK/MWh, blir tallene henholdsvis hundre og tusen ganger feil. Sett da riktig enhet på sensoren, eller velg en annen sensor, før du bekrefter."
           }
         }
       }

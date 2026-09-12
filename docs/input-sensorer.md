@@ -40,6 +40,59 @@ Enheten er `kWh` og verdien er stor (typisk over 1000 kWh) og stiger sakte.
 
 Den gir eksakt forbruk i hver måned, identisk med fakturaen. Forskjellen forklares under «Riemann-summering vs delta-akkumulering» lenger ned.
 
+## Enheter integrasjonen godtar
+
+Alle sensorverdier går gjennom én adapter som leser `unit_of_measurement` og
+regner om til den enheten resten av koden bruker. Det er nytt fra 1.17: før ble
+tallet lest rått, så en kW-sensor ble lest som watt og en NOK/MWh-sensor som
+kroner per kWh. Begge deler er tusen ganger feil, og ingenting sa fra.
+
+| Rolle                          | Godtatte enheter                              |
+| ------------------------------ | --------------------------------------------- |
+| Effektmåler, eksport-effektmåler | `W`, `kW`, `MW`                             |
+| Energimåler                    | `Wh`, `kWh`, `MWh`                            |
+| Spotpris, strømleverandørpris  | `NOK/kWh`, `kr/kWh`, `øre/kWh`, `NOK/MWh`, `øre/MWh` |
+
+Store og små bokstaver spiller ingen rolle, og `ore` godtas som skrivemåte for
+`øre`.
+
+Alt annet avvises, både når du setter opp og hvis en sensor bytter enhet under
+drift. EUR er det vanligste tilfellet: integrasjonen har ingen valutakurs, og å
+lese euro som kroner ville vært verre enn å si nei. Trenger du en EUR-sensor,
+lag en malsensor som regner om til kroner først.
+
+Energimåleren må i tillegg ha `state_class` `total_increasing` eller `total`.
+Vi måler differansen mellom avlesninger, og en sensor som viser forbruket akkurat
+nå (`measurement`) har ingen differanse å måle.
+
+Mangler prissensoren enhet helt, godtas den som NOK/kWh, men du får ett
+reparasjonsvarsel som ber deg bekrefte at det stemmer. Bekrefter du, kommer det
+ikke igjen. Er sensoren egentlig i øre/kWh, retter du enheten på sensoren i
+stedet.
+
+## Når du bytter måler
+
+Integrasjonen husker den siste avlesningen fra energimåleren for å kunne regne
+differansen ved neste poll. Fra 1.17 er den avlesningen bundet til måleren den
+kom fra, gjennom entitetens `unique_id` i Home Assistants entitetsregister.
+
+Bytter du fysisk måler, eller peker energifeltet mot en annen sensor, starter
+en ny baseline. Første avlesning fra den nye kilden gir 0 kWh forbruk, og
+månedstallene dine står urørt. Før denne endringen ble forskjellen mellom den
+gamle og den nye telleren tolket som forbruk: en ny måler som sto på 1020 der
+den gamle sto på 1000 ga 20 kWh du aldri hadde brukt.
+
+En vanlig omstart med samme måler gjenopptar der den slapp, uansett hvor lenge
+Home Assistant har vært nede. En hytte som står avslått i en uke mister ikke
+baselinen sin. Kommer telleren tilbake med et sprang over 100 kWh, forkastes
+spranget og du får et varsel med tallet, siden et sprang like gjerne kan være
+et målerbytte som ekte forbruk.
+
+Ved oppgraderingen til 1.17 forkastes den lagrede avlesningen én gang, fordi de
+gamle filene verken sier hvilken måler den kom fra eller hvilken enhet den var
+i. Det koster deg inntil ett pollintervall med forbruk. Månedsdata,
+døgnmaksimum og akkumulerte kroner beholdes.
+
 ## OBIS-koder forklart
 
 OBIS = Object Identification System. Det er en standardisert måte å identifisere måleverdier på elektrisitetsmålere over hele Europa.
@@ -59,7 +112,10 @@ Når dokumentasjonen sier «OBIS 1.8.0», menes altså bare «kumulativ kWh-tell
 
 Sensoren viser gjeldende spotpris fra Nord Pool i NOK/kWh. Den offisielle Nord Pool-integrasjonen i Home Assistant gir en `Current price`-sensor, og den eldre custom-integrasjonen `custom_components/nordpool` gir en lignende.
 
-Formatet skal være NOK per kWh, ikke kr/MWh. Viser sensoren din tall som 850 (kr/MWh), må du dele på 1000.
+Enheten kan være NOK/kWh, kr/kWh, øre/kWh eller NOK/MWh. Integrasjonen leser
+`unit_of_measurement` og regner om selv, så en sensor som viser 850 NOK/MWh
+eller 85 øre/kWh blir 0,85 NOK/kWh uten at du trenger en malsensor. Se
+[Enheter integrasjonen godtar](#enheter-integrasjonen-godtar).
 
 Mva er en sak for seg, se egen seksjon under.
 
@@ -163,13 +219,18 @@ tallene uten å se feil ut, og det er verre enn en åpenbar feilmelding. Sommere
 sent, da fakturaen skulle verifiseres. Derfor står det nå et vakthold på
 inputene.
 
-Vaktholdet ser etter tre ting:
+Vaktholdet ser etter fire ting:
 
-| Situasjon                                               | Hva som skjer                                            |
-| ------------------------------------------------------- | -------------------------------------------------------- |
-| Entiteten er `unavailable` eller `unknown` over 30 min  | Måledata-problem slår på, og du får et reparasjonsvarsel |
-| Energitelleren rapporterer, men øker ikke på tre timer  | Samme, med typen «frossen»                               |
-| Spotprisen har vært borte lenger enn cachen på to timer | Samme, med typen «spot_utlopt»                           |
+| Situasjon                                                  | Hva som skjer                                            |
+| ---------------------------------------------------------- | -------------------------------------------------------- |
+| Entiteten er `unavailable`, `unknown` eller slettet over 30 min | Måledata-problem slår på, og du får et reparasjonsvarsel |
+| Energitelleren rapporterer, men øker ikke på tre timer     | Samme, med typen «frossen»                               |
+| Spotprisen har vært borte lenger enn cachen på to timer    | Samme, med typen «spot_utlopt»                           |
+| Sensoren bytter til en enhet vi ikke kan regne om          | Samme, med typen «enhet», og uten 30-minuttersfristen     |
+
+En slettet entitet felte tidligere hele oppdateringen, så alt sto stille selv
+om de andre sensorene leverte som normalt. Nå meldes den som et utfall, og alt
+som fortsatt har datagrunnlag regnes videre.
 
 Du ser det på `binary_sensor`-en «Måledata-problem» og under Innstillinger >
 Reparasjoner. Varslene forsvinner av seg selv når inputen er tilbake.

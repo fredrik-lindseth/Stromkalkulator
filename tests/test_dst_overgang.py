@@ -390,8 +390,8 @@ class TestVaktholdOverDst:
 class TestLagretTidspunktVisesLokalt:
     """Lagrede tidsstempel skrives i UTC, men skal vises som klokken på veggen.
 
-    `last_tpi_time` er tidspunktet varselet om forkastede kWh måler spranget
-    fra. Lastes det tilbake uten omregning, viser varselet UTC etter en omstart,
+    Baselinens `observed_at` er tidspunktet varselet om forkastede kWh måler
+    spranget fra. Lastes det tilbake uten omregning, viser varselet UTC etter en omstart,
     altså to timer feil om sommeren. Omregningen skal bruke offseten som gjaldt
     da avlesningen ble gjort, ikke den som gjelder nå.
     """
@@ -404,8 +404,13 @@ class TestLagretTidspunktVisesLokalt:
         coord._current_month = na.strftime("%Y-%m")
         coord._current_date = na.strftime("%Y-%m-%d")
         coord._store.async_load.return_value = {
-            "last_tpi_kwh": 1000.0,
-            "last_tpi_time": lagret_utc,
+            "energi_baseline": {
+                "schema_version": 2,
+                "source_identity": None,
+                "entity_id": "sensor.tpi",
+                "value_kwh": 1000.0,
+                "observed_at": lagret_utc,
+            },
             "last_update": lagret_utc,
             "last_energy_increase": lagret_utc,
         }

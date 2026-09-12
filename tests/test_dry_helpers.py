@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib
 import sys
+from datetime import datetime
 from unittest.mock import MagicMock
 
 import pytest
@@ -104,11 +105,15 @@ def _patch_coordinator_base():
     _coord_mod.DataUpdateCoordinator = original
 
 
-class TestReadSensorFloat:
-    """Tests for _read_sensor_float helper."""
+class TestEffektWatt:
+    """Effektavlesningen, etter at adapteren tok over enhetene.
 
-    def _make_coordinator(self, cls, sensor_value):
-        """Create a coordinator instance with a mocked hass that returns sensor_value."""
+    `_read_sensor_float` er borte. Den returnerte 0.0 for alt som ikke var et
+    tall, og en 0 er en måling som sier at anlegget ikke bruker noe. Nå er
+    utfall None, og det er en annen påstand.
+    """
+
+    def _make_coordinator(self, cls, sensor_value, unit=None):
         hass = MagicMock()
         entry = MagicMock()
         entry.data = {
@@ -120,12 +125,12 @@ class TestReadSensorFloat:
         entry.entry_id = "test_entry"
         state = MagicMock()
         state.state = sensor_value
+        state.attributes = {"unit_of_measurement": unit} if unit else {}
+        state.last_updated = None
         hass.states.get = MagicMock(return_value=state)
-        coord = cls(hass, entry)
-        return coord
+        return cls(hass, entry)
 
     def _make_coordinator_none(self, cls):
-        """Create a coordinator where hass.states.get returns None."""
         hass = MagicMock()
         entry = MagicMock()
         entry.data = {
@@ -136,47 +141,55 @@ class TestReadSensorFloat:
         }
         entry.entry_id = "test_entry"
         hass.states.get = MagicMock(return_value=None)
-        coord = cls(hass, entry)
-        return coord
+        return cls(hass, entry)
+
+    def _les(self, coord, rolle="effekt"):
+        coord._les_inputer(datetime(2026, 6, 15, 12, 0))
+        return coord._effekt_watt(rolle)
 
     def test_normal_value(self, _patch_coordinator_base):
         coord = self._make_coordinator(_patch_coordinator_base, "5000")
-        assert coord._read_sensor_float("sensor.power") == 5000.0
+        assert self._les(coord) == 5000.0
+
+    def test_kilowatt_normaliseres_til_watt(self, _patch_coordinator_base):
+        """Funnet som ga tusen ganger for lite: en kW-sensor ble lest som W."""
+        coord = self._make_coordinator(_patch_coordinator_base, "5", unit="kW")
+        assert self._les(coord) == 5000.0
 
     def test_unavailable(self, _patch_coordinator_base):
         coord = self._make_coordinator(_patch_coordinator_base, "unavailable")
-        assert coord._read_sensor_float("sensor.power") == 0.0
+        assert self._les(coord) is None
 
     def test_unknown(self, _patch_coordinator_base):
         coord = self._make_coordinator(_patch_coordinator_base, "unknown")
-        assert coord._read_sensor_float("sensor.power") == 0.0
+        assert self._les(coord) is None
 
     def test_none_state(self, _patch_coordinator_base):
         coord = self._make_coordinator_none(_patch_coordinator_base)
-        assert coord._read_sensor_float("sensor.power") == 0.0
+        assert self._les(coord) is None
 
     def test_non_numeric(self, _patch_coordinator_base):
         coord = self._make_coordinator(_patch_coordinator_base, "abc")
-        assert coord._read_sensor_float("sensor.power") == 0.0
+        assert self._les(coord) is None
 
     def test_nan(self, _patch_coordinator_base):
         coord = self._make_coordinator(_patch_coordinator_base, "nan")
-        assert coord._read_sensor_float("sensor.power") == 0.0
+        assert self._les(coord) is None
 
     def test_inf(self, _patch_coordinator_base):
         coord = self._make_coordinator(_patch_coordinator_base, "inf")
-        assert coord._read_sensor_float("sensor.power") == 0.0
+        assert self._les(coord) is None
 
-    def test_over_500kw_clamped(self, _patch_coordinator_base):
+    def test_over_500kw_avvises(self, _patch_coordinator_base):
         coord = self._make_coordinator(_patch_coordinator_base, "600000")
-        assert coord._read_sensor_float("sensor.power") == 0.0
+        assert self._les(coord) is None
 
     def test_negative(self, _patch_coordinator_base):
-        # Negativ effekt klippes til 0 (clamp_min): power_sensor er unidireksjonell
-        # import, negative verdier er sensorstøy/feilkonfig og skal ikke telle.
+        # Negativ effekt klippes til 0: power_sensor er unidireksjonell import,
+        # negative verdier er sensorstøy eller feilkonfig og skal ikke telle.
         coord = self._make_coordinator(_patch_coordinator_base, "-100")
-        assert coord._read_sensor_float("sensor.power") == 0.0
+        assert self._les(coord) == 0.0
 
-    def test_no_entity_id(self, _patch_coordinator_base):
+    def test_rolle_uten_entitet(self, _patch_coordinator_base):
         coord = self._make_coordinator(_patch_coordinator_base, "5000")
-        assert coord._read_sensor_float(None) == 0.0
+        assert self._les(coord, rolle="eksport") is None

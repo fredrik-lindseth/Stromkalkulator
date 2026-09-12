@@ -106,7 +106,12 @@ class TestBasicUpdate:
         result = _run_update(coord_module, coordinator)
         assert result["current_power_kw"] == 7.5
 
-    def test_zero_power_when_sensor_unavailable(self, coord_module):
+    def test_ingen_effekt_naar_sensoren_er_unavailable(self, coord_module):
+        """Uteblitt måling er None, ikke 0.
+
+        En 0 sier at anlegget ikke bruker noe, og det er en annen påstand enn
+        at vi ikke vet.
+        """
         hass = MagicMock()
         unavailable = MagicMock()
         unavailable.state = "unavailable"
@@ -117,7 +122,7 @@ class TestBasicUpdate:
         coordinator = coord_module.NettleieCoordinator(hass, entry)
         result = _run_update(coord_module, coordinator)
 
-        assert result["current_power_kw"] == 0
+        assert result["current_power_kw"] is None
 
     def test_spot_price_passthrough(self, coord_module):
         hass = _make_hass(spot_price=1.50)

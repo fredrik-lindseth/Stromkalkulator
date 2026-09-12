@@ -1,4 +1,4 @@
-# Strømkalkulator — repro-targets for research-verifisering.
+# Strømkalkulator: repro-targets for research-verifisering.
 #
 # Krever `just` (https://github.com/casey/just). På macOS: `brew install just`.
 # Lag en Makefile-shim om `just` ikke er ønskelig i miljøet ditt.
@@ -9,7 +9,7 @@ default:
     @just --list
 
 # Kjør alle verify-scripts som støtter --emit-markdown og oppdater
-# docs/research/_generated/. Krever ikke internett — bruker kun lokale
+# docs/research/_generated/. Krever ikke internett, bruker kun lokale
 # fixturer i tests/fixtures/ og Måleverdier/.
 verify-all:
     @echo "→ match_norgespris_variants (april 2026)"

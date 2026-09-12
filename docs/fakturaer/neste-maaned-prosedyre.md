@@ -80,14 +80,23 @@ verdien er båret, og timens egen pris med årgangen på sitt eget døgn. Ellers
 bommer en ekte måling på sin egen time på en årgangsdag uten at det har noe med
 hullet å gjøre. Årgangen regnes ut av døgnets egne ekte timer, så et helt hullet
 døgn, under seks ekte timer, eller en faktor som ikke er konstant, gir ingen
-målt årgang. Da sammenlignes det mot rå publisert pris som før, og utskriften
-sier «kurs-årgang umålt». Hver time 00 foran et hull skrives ut med begge
-avstandene og hvilken årgang de er målt med, uansett utfall.
+målt årgang. Da kan ikke kravene prøves, og timen blir stående som målt. Hver
+time 00 foran et hull skrives ut med begge avstandene og hvilken årgang de er
+målt med, uansett utfall.
 
-Er verdien nær begge, skriver scriptet ut timen og lar den stå. Da må du avgjøre
-selv, med `--overstyr` hvis den likevel hører til hullet. Fylte randtimer føres
-under `spothull.fylt_fra_nordpool.randtimer` i metadata. Se
-[bkk-august-2026.md](bkk-august-2026.md) for gjennomgangen.
+Er verdien nær begge, eller lot årgangen seg ikke måle, skriver scriptet ut
+timen og lar den stå. Da må du avgjøre selv, med `--overstyr TIME=BEGRUNNELSE`
+hvis den likevel hører til hullet. 31.08.2026 kl. 00 er et slikt tilfelle og
+venter på svar, se [bkk-august-2026.md](bkk-august-2026.md).
+
+Proveniensen tåler gjentatte kjøringer. Fylte randtimer føres under
+`spothull.fylt_fra_nordpool.randtimer` i metadata, manuelle overstyringer under
+`overstyrte_timer` med recorder-verdien fra før overstyringen, og begge står
+gjennom senere kjøringer uten at du må gjenta flaggene. Kjører du med samme
+`--overstyr` om igjen, skjer ingenting; med en ny begrunnelse erstattes den, og
+den gamle føres i `tidligere_begrunnelser`. Veien tilbake er `--angre TIME`, som
+legger recorder-målingen tilbake i timen og sletter oppføringen. En kjøring som
+ikke endrer noe, skriver ikke engang en ny dato i metadata.
 
 Var HAN-leseren nede ved periodestart, er `metadata.tpi_start_kwh` også `null`.
 Sett den til tpi ved første målte time minus Elhub-forbruket fram dit; ellers

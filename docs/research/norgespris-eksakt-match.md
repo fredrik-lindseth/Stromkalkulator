@@ -141,7 +141,15 @@ automatisk (time 00 rett før et hull, innenfor 0,5 øre/kWh av forrige døgns
 23:45-kvarter og minst 0,2 øre/kWh lenger unna sin egen publiserte time enn den
 ligger fra kvarteret, begge avstandene målt mot kurs-årgangsjustert pris), fyller
 den fra det publiserte arkivet og fører begrunnelsen i fixturens metadata.
-Merkingen gjør at prisfidelitets-tellingen holder timen utenfor. Hvorfor den
+Merkingen gjør at prisfidelitets-tellingen holder timen utenfor. Regelen står
+skrevet ut i scriptets docstring; er den endret, er det den som gjelder.
+
+Lar kurs-årgangen seg ikke måle, fordi døgnet er helt hullet, har under seks
+ekte timer eller ikke er lagret med én konstant kurs, fyller ikke scriptet. Da
+er ikke forutsetningen for regelen etterprøvbar, og et proveniensmerke som sier
+«kjent igjen som randtime» ville vært usant. Timen står med recorder-verdien og
+skrives ut, og avgjøres for hånd med `--overstyr TIME=BEGRUNNELSE`. 31.08.2026
+kl. 00 er det eneste kjente tilfellet så langt, og står ubesvart. Hvorfor den
 offisielle Nord Pool-integrasjonen faller ut ved døgnskiftet er fortsatt ukjent,
 og HA-loggen dekker bare siste boot.
 

@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import importlib
-from datetime import datetime
+from datetime import date, datetime
 from unittest.mock import MagicMock
 
 import pytest
@@ -290,6 +290,41 @@ class TestFemVektetAr:
         _run_update(coord_module, coord)
         assert "2024-12-30" not in coord._weekly_max_power
 
+    def test_uke_over_maanedsskifte_vektes_med_mandagens_maaned(self, coord_module):
+        """Fellesbestemmelsene: mandagen i uken bestemmer sesongfaktoren.
+
+        Uken 30. mars til 5. april 2026 har mandag i mars, så hele uken vektes
+        med 85 %, også toppen som falt 2. april (april alene er 50 %).
+        """
+        coord = self._coord(coord_module)
+        coord._weekly_max_power = {
+            "2026-03-30": coord_module.WeeklyMaxEntry(kw=10.0, dato="2026-04-02", hour=8),
+        }
+        assert coord._fastledd_grunnlag() == pytest.approx(8.5)
+
+    def test_uke_over_aarsskifte_vektes_med_desember(self, coord_module):
+        coord = self._coord(coord_module)
+        coord._weekly_max_power = {
+            "2025-12-29": coord_module.WeeklyMaxEntry(kw=10.0, dato="2026-01-02", hour=8),
+        }
+        # Desember er 95 %, januar 100 %. Mandagen lå i desember.
+        assert coord._fastledd_grunnlag() == pytest.approx(9.5)
+
+    def test_ukestoppen_er_hoeyeste_raa_time_ogsaa_over_maanedsskifte(self, coord_module):
+        """Vektingen skiller ikke timer innenfor samme uke, så rå kW vinner.
+
+        Før vektet vi hver time med sin egen måned og kunne la en lav
+        mars-time slå en høy april-time i samme uke. Fjellnett plukker ukens
+        høyeste time, og vekter den etterpå.
+        """
+        coord = self._coord(coord_module)
+        coord._registrer_ukesmaks("2026-03-31", 6.0, 8)
+        coord._registrer_ukesmaks("2026-04-02", 9.0, 17)
+        uke = coord._weekly_max_power["2026-03-30"]
+        assert uke.kw == pytest.approx(9.0)
+        assert uke.dato == "2026-04-02"
+        assert coord._fastledd_grunnlag() == pytest.approx(7.65)
+
     def test_timesmaks_registreres_som_ukesmaks(self, coord_module):
         coord = self._coord(coord_module)
         coord._current_hour_energy = 3.5
@@ -305,6 +340,59 @@ class TestFemVektetAr:
         data = _run_update(coord_module, coord)
         assert data["kapasitet_varsel"] is False
         assert data["kapasitetstrinn_nummer"] is None
+
+
+class TestFemVektetVindu:
+    """Tolvmånedersvinduet hos Fjellnett: kalendermåneder mot toppens egen dato.
+
+    Kilde: "Nettleieforklaring og fellesbestemmelser 2026" på fjellnett.no,
+    "de fem høyeste effektene, løpende siste 12 mnd, forut for fakturatermin".
+    """
+
+    def _coord(self, coord_module):
+        return _lag_coordinator(coord_module, "fjellnett")
+
+    def _med_topp(self, coord_module, nokkel, dato):
+        coord = self._coord(coord_module)
+        coord._weekly_max_power = {nokkel: coord_module.WeeklyMaxEntry(kw=9.0, dato=dato, hour=8)}
+        return coord
+
+    def test_topp_lever_til_vinduets_slutt_og_ikke_en_dag_foer(self, coord_module):
+        """Toppen 3. oktober 2025 ligger i uken som starter 29. september.
+
+        Med 364 dager målt mot mandagsnøkkelen døde den 29. september 2026,
+        nesten en uke for tidlig. Nå måles den mot sin egen dato.
+        """
+        coord = self._med_topp(coord_module, "2025-09-29", "2025-10-03")
+        assert coord._prune_ukesmaks(datetime(2026, 9, 29, 12, 0)) is False
+        assert coord._prune_ukesmaks(datetime(2026, 10, 2, 23, 59)) is False
+        assert "2025-09-29" in coord._weekly_max_power
+
+        assert coord._prune_ukesmaks(datetime(2026, 10, 3, 0, 1)) is True
+        assert coord._weekly_max_power == {}
+
+    def test_skuddaarsdag_klemmes_til_28_februar(self, coord_module):
+        """29. februar finnes ikke året før. Klem nedover, aldri oppover."""
+        assert coord_module._tolv_maaneder_tilbake(date(2028, 2, 29)) == date(2027, 2, 28)
+        assert coord_module._tolv_maaneder_tilbake(date(2029, 3, 1)) == date(2028, 3, 1)
+
+    def test_topp_paa_skuddaarsdagen_lever_tolv_maaneder(self, coord_module):
+        coord = self._med_topp(coord_module, "2028-02-28", "2028-02-29")
+        assert coord._prune_ukesmaks(datetime(2029, 2, 28, 12, 0)) is False
+        assert "2028-02-28" in coord._weekly_max_power
+        assert coord._prune_ukesmaks(datetime(2029, 3, 1, 12, 0)) is True
+
+    def test_udaterbar_post_ryddes_bort(self, coord_module):
+        """En post verken nøkkel eller dato kan datere, skal ikke leve evig."""
+        coord = self._coord(coord_module)
+        coord._weekly_max_power = {"tull": coord_module.WeeklyMaxEntry(kw=9.0, dato="ikke-en-dato", hour=8)}
+        assert coord._prune_ukesmaks(datetime(2026, 6, 15, 12, 0)) is True
+        assert coord._weekly_max_power == {}
+
+    def test_ukenoekkel_utenfor_vinduet_stopper_ikke_en_topp_innenfor(self, coord_module):
+        coord = self._med_topp(coord_module, "2025-09-29", "2025-10-03")
+        coord._prune_ukesmaks(datetime(2026, 10, 1, 12, 0))
+        assert coord._weekly_max_power["2025-09-29"].kw == pytest.approx(9.0)
 
 
 class TestUkjentMetode:

@@ -1080,14 +1080,20 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         # Kilde: fjellnett.no/nettleie/nettleiepriser/ "Privatkunder fra
         # 1.7.2026". Siden oppgir selv eks-avgift-tallene: energiledd 14,80
         # øre/kWh, grunnbeløp 2 000 kr/år, fastledd effekt 589 kr/kW/år.
-        # fri-nettleie fjellnett.yml ligger én tariff bak (1.1.2026: 12,90
-        # øre og 534 kr/kW), se KJENTE_AVVIK i scripts/sjekk_mot_fri_nettleie.py.
+        # fri-nettleie fjellnett.yml har samme tariff fra 2026-07-01 (hentet
+        # 2026-09-12).
         "energiledd_dag_eks_mva": 0.148,  # 14,80 øre/kWh ren energiledd (01.07.2026)
         "energiledd_natt_eks_mva": 0.148,  # Flat sats - ingen dag/natt-differensiering
         "url": "https://www.fjellnett.no/nettleie/nettleiepriser/",
         # Fjellnett har ingen trinn: fastleddet er grunnbeløp + sats per kW, der
         # kW er snittet av de fem høyeste sesongvektede ukestoppene over
         # løpende tolv måneder. Sesongfaktorene står i samme tabell på siden.
+        # Modellen i detalj står i "Nettleieforklaring og fellesbestemmelser
+        # 2026" (fjellnett.no/nettleie/avtaler-og-vilkar/fellesbestemmelser/,
+        # lest 2026-09-12), som er kilden for tre ting prislisten ikke sier:
+        # kun én effekt per uke teller, hele uken vektes med mandagens måned
+        # også når uken krysser et månedsskifte, og en ny kunde regnes "fra
+        # oppstart av kontrakt" framfor å vente på tolv måneders historikk.
         "fastledd_metode": FASTLEDD_FEM_VEKTET_AR,
         "fastledd_lineaer": {
             "grunnbelop_aar_eks_mva": 2000,

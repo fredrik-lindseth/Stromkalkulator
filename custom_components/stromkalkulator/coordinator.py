@@ -88,9 +88,9 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
-# FEM_VEKTET_ÅR ser tolv måneder bakover. 52 uker holder vinduet i takt med
-# ukesnøklene (mandagsdatoer) uten å måtte regne på månedslengder.
-FEM_VEKTET_VINDU_DAGER = 364
+# FEM_VEKTET_ÅR ser tolv måneder bakover. Fjellnett skriver «løpende siste 12
+# mnd», ikke 52 uker, så vinduet regnes i kalendermåneder mot toppens egen dato.
+FEM_VEKTET_VINDU_MAANEDER = 12
 FEM_VEKTET_ANTALL_TOPPER = 5
 
 
@@ -106,9 +106,11 @@ class DailyMaxEntry:
 class WeeklyMaxEntry:
     """Én ukes høyeste timessnitt, for nettselskap som avregner årstopper.
 
-    `dato` er dagen toppen falt på, og avgjør hvilken sesongvekt den får.
-    Uken identifiseres av mandagens dato, som både sorterer kronologisk og lar
-    oss kutte vinduet uten å regne ISO-uker om til datoer igjen.
+    `dato` er dagen toppen falt på, og avgjør når toppen faller ut av
+    tolvmånedersvinduet. Sesongvekten følger derimot mandagen i uken toppen
+    ligger i, ikke toppens egen måned: Fjellnetts fellesbestemmelser sier at en
+    uke som krysser et månedsskifte vektes med mandagens måned hele veien.
+    Uken identifiseres av mandagens dato, som sorterer kronologisk.
     """
 
     kw: float
@@ -138,6 +140,33 @@ def days_in_month(now: datetime) -> int:
 
 
 _SPOT_CACHE_MAX_AGE = timedelta(hours=2)
+
+
+def _tolv_maaneder_tilbake(dag: date) -> date:
+    """Samme dato tolv kalendermåneder tidligere.
+
+    29. februar finnes ikke året før, og klemmes til 28. Det gjør vinduet ett
+    døgn lengre det ene året, aldri kortere, så ingen topp dør for tidlig.
+    """
+    aar = dag.year - FEM_VEKTET_VINDU_MAANEDER // 12
+    try:
+        return dag.replace(year=aar)
+    except ValueError:
+        return dag.replace(year=aar, day=28)
+
+
+def _toppdato(nokkel: str, entry: WeeklyMaxEntry) -> date:
+    """Datoen ukestoppen falt på.
+
+    Faller tilbake til ukenøkkelen om `dato` er ubrukelig, og til date.min om
+    begge er det. En post ingen kan datere hører ikke hjemme i vinduet.
+    """
+    for kandidat in (entry.dato, nokkel):
+        try:
+            return date.fromisoformat(kandidat)
+        except ValueError:
+            continue
+    return date.min
 
 
 def sekunder_mellom(fra: datetime, til: datetime) -> float:
@@ -1347,6 +1376,11 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Vektfaktor for en måned. 1,0 når nettselskapet ikke sesongvekter."""
         return self.fastledd_sesongfaktor.get(maaned, 1.0)
 
+    @staticmethod
+    def _ukestart(dag: date) -> date:
+        """Mandagen i uken dagen ligger i."""
+        return dag - timedelta(days=dag.weekday())
+
     def _registrer_timesmaks(self, dato: str, kwh: float, hour: int | None) -> bool:
         """Bokfør en fullført times snitteffekt. True hvis noe ble endret.
 
@@ -1365,36 +1399,51 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return endret
 
     def _registrer_ukesmaks(self, dato: str, kw: float, hour: int | None) -> bool:
-        """Hold ukens høyeste sesongvektede time. Nøkkelen er mandagens dato.
+        """Hold ukens høyeste time. Nøkkelen er mandagens dato.
 
-        Sammenligningen skjer på vektet verdi, ikke rå kW, fordi nettselskapet
-        vekter før det plukker ukestoppen. Det gir bare utslag i uker som krysser
-        et månedsskifte, men det er de ukene som ellers ville blitt feil.
+        Hele uken vektes med mandagens måned, så alle timene i uken har samme
+        vekt og den høyeste rå kW-en er også den høyeste vektede. Derfor
+        sammenlignes rå kW her. Vektingen skjer i `_vektet`, før de fem høyeste
+        plukkes ut, slik fellesbestemmelsene beskriver rekkefølgen.
         """
         try:
             dag = date.fromisoformat(dato)
         except ValueError:
             _LOGGER.warning("Ugyldig dato for ukesmaks: %s", dato)
             return False
-        nokkel = (dag - timedelta(days=dag.weekday())).isoformat()
+        nokkel = self._ukestart(dag).isoformat()
         forrige = self._weekly_max_power.get(nokkel)
-        if forrige is not None and kw * self._sesongvekt(dag.month) <= self._vektet(forrige):
+        if forrige is not None and kw <= forrige.kw:
             return False
         self._weekly_max_power[nokkel] = WeeklyMaxEntry(kw=kw, dato=dato, hour=hour)
         return True
 
     def _vektet(self, entry: WeeklyMaxEntry) -> float:
-        """Ukestoppens sesongvektede effekt."""
+        """Ukestoppens sesongvektede effekt.
+
+        Vekten følger mandagen i uken, ikke toppens egen måned. Fjellnett:
+        «Når ei uke går over et månedsskift, vil det være mandag i starten på
+        uka som bestemmer hvilken sesongfaktor som effekten blir vekta med.»
+        """
         try:
-            maaned = date.fromisoformat(entry.dato).month
+            dag = date.fromisoformat(entry.dato)
         except ValueError:
             return entry.kw
-        return entry.kw * self._sesongvekt(maaned)
+        return entry.kw * self._sesongvekt(self._ukestart(dag).month)
 
     def _prune_ukesmaks(self, now: datetime) -> bool:
-        """Kast ukestopper som har falt ut av tolvmånedersvinduet."""
-        grense = (now.date() - timedelta(days=FEM_VEKTET_VINDU_DAGER)).isoformat()
-        utgaatt = [nokkel for nokkel in self._weekly_max_power if nokkel < grense]
+        """Kast ukestopper som har falt ut av tolvmånedersvinduet.
+
+        Vinduet er halvåpent: en topp datert nøyaktig tolv kalendermåneder
+        tilbake er ute, dagen etter er inne. Grensen måles mot toppens egen
+        dato, ikke mot mandagsnøkkelen, for det er effekten som skal være
+        «løpende siste 12 mnd». En topp på en søndag ville ellers dødd seks
+        dager for tidlig.
+        """
+        grense = _tolv_maaneder_tilbake(now.date())
+        utgaatt = [
+            nokkel for nokkel, entry in self._weekly_max_power.items() if _toppdato(nokkel, entry) <= grense
+        ]
         for nokkel in utgaatt:
             del self._weekly_max_power[nokkel]
         return bool(utgaatt)

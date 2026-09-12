@@ -2,14 +2,15 @@
 
 **Dato:** 12. september 2026
 **Status:** teksten rettet i `4f1dae2`, varsel til de berørte i denne fiksen
-**Berørte versjoner:** til og med 1.16.0, kun oppsett med egendefinert nettselskap
+**Berørte versjoner:** 1.12.0 til og med 1.16.0, kun oppsett med egendefinert
+nettselskap
 
 ## Symptomer
 
 Ingen bruker meldte fra. Feilen ble funnet under en synk av `translations/nb.json`
 mot `strings.json`: steget for egendefinerte priser ba om energiledd
 «(inkl. avgifter)» på norsk og «(incl. taxes)» på engelsk, mens malen i
-`strings.json` hele tiden har sagt eks. mva og avgifter.
+`strings.json` og koden under hadde bedt om eks. mva og avgifter siden 1.12.0.
 
 Det er nettopp derfor den er alvorlig. En bruker som taster inn en for høy sats
 får tall som ser plausible ut: nettleien er høyere enn naboens, men den er også
@@ -25,14 +26,39 @@ def compute_energiledd_inkl_mva(energiledd_eks_mva: float, avgiftssone: str) -> 
     return (energiledd_eks_mva + forbruksavgift + ENOVA_AVGIFT) * (1 + mva_sats)
 ```
 
-Labelen over feltet lovet det motsatte. Taster brukeren inn en sats som alt
-inneholder avgiftene, legges de på en gang til. Samme klasse dobbelttelling som
-regresjonstesten `test_maanedlig_total_sensor_matcher_faktura` i
-`tests/test_faktura_bkk.py` vokter mot for de kjente nettselskapene, men den
-testen dekker DSO-satser fra `dso.py`, ikke tall brukeren taster selv.
+Slik har det vært siden `6080f93`, DSO-refactoren som la om fra lagrede
+inkl-mva-priser til eks-mva-priser. Den commiten gjorde tre ting riktig og én
+feil: koden ble lagt om, `strings.json` ble rettet fra «(inkl. avgifter)» til
+«eks. mva og eks. forbruksavgift/Enova», og en v1-til-v2-migrering konverterte
+satsene som allerede lå lagret. Men `translations/nb.json` og `translations/en.json`
+ble ikke rørt, og det er de to filene Home Assistant faktisk serverer. Malen er
+bare kilde for oversettelsesverktøyet.
 
-Feilen sto i to språkfiler samtidig fordi paritetstestene i `test_config_flow.py`
-bare sammenlignet nøkkelsett på ett nivå. Tekstinnholdet var det ingen som så på.
+Før `6080f93` var teksten riktig: alle tre filene sa «inkl. avgifter», og koden
+forventet nettopp det. Feilen oppsto altså ikke fordi noen skrev feil tekst, men
+fordi en commit rettet malen og koden uten å ta med oversettelsene.
+
+Slik så det ut i vinduet:
+
+| Fil                    | Til og med 1.11.x | 1.12.0 til 1.16.0 | Fra 1.17.0  |
+| ---------------------- | ----------------- | ----------------- | ----------- |
+| `const.py` (koden)     | inkl. avgifter    | eks. avgifter     | eks.        |
+| `strings.json` (malen) | inkl. avgifter    | eks. avgifter     | eks.        |
+| `nb.json`              | inkl. avgifter    | inkl. avgifter    | eks.        |
+| `en.json`              | inkl. avgifter    | inkl. avgifter    | eks.        |
+
+Integrasjonen har bare nb og en, og engelsk er fallbacken for alle andre språk,
+så det fantes ikke en språkkombinasjon som viste den riktige teksten i vinduet.
+
+Teksten sto i beskrivelsen over `pricing`-steget, altså førstegangsoppsettet.
+Fra 1.14.0 fikk `options`- og `reconfigure`-stegene en `data_description` under
+selve feltet som sa «Ren nettleie eks. mva og avgifter», også i nb og en. Den som
+gikk inn og redigerte satsen etter 1.14.0 fikk altså riktig veiledning, mens den
+som satte opp for første gang fortsatt ble bedt om å ta med avgiftene.
+
+At feilen fikk stå i to språkfiler i fem versjoner, skyldes at paritetstestene i
+`test_config_flow.py` bare sammenlignet nøkkelsett på ett nivå. Tekstinnholdet
+var det ingen som så på.
 
 ## Hvor mye det utgjør
 
@@ -40,16 +66,16 @@ Avgiftene er 7,13 øre/kWh forbruksavgift pluss 1,0 øre/kWh Enova, altså 8,13
 øre/kWh eks. mva. Hvor galt det blir, avhenger av hva brukeren leste «inkl.
 avgifter» som:
 
-| Tolkning                                 | Feil per kWh (Sør-Norge) | 1500 kWh/mnd | Per år   |
-| ---------------------------------------- | ------------------------ | ------------ | -------- |
-| Energiledd + forbruksavgift + Enova       | 10,16 øre                | 152 kr       | 1830 kr  |
-| Hele linjen fra fakturaen, altså inkl. mva | 21,69 øre                | 325 kr       | 3900 kr  |
+| Tolkning                                   | Feil per kWh (Sør-Norge) | 1500 kWh/mnd | Per år   |
+| ------------------------------------------ | ------------------------ | ------------ | -------- |
+| Energiledd + forbruksavgift + Enova         | 10,16 øre                | 152 kr       | 1829 kr  |
+| Hele linjen fra fakturaen, altså inkl. mva  | 21,69 øre                | 325 kr       | 3905 kr  |
 
 Regnestykket for den første raden, med BKK-satsen som står som default i
 skjemaet (28,77 øre/kWh eks. mva):
 
-- Riktig: `(0,2877 + 0,0813) × 1,25 = 0,46125 kr/kWh`
-- Tastet 0,369 etter teksten: `(0,369 + 0,0813) × 1,25 = 0,56288 kr/kWh`
+- Riktig: `(0,2877 + 0,0813) x 1,25 = 0,46125 kr/kWh`
+- Tastet 0,369 etter teksten: `(0,369 + 0,0813) x 1,25 = 0,56288 kr/kWh`
 - Differanse: `0,10163 kr/kWh`, som er avgiftene med mva på.
 
 I Nord-Norge og tiltakssonen er det mindre: uten mva blir første rad 8,13
@@ -105,10 +131,22 @@ at innholdet stemmer med koden selv om alle tre filene er enige.
 
 Feilen sto i to språk uten at noen merket den, så resten av skjemaet ble lest
 mot koden. Ett funn: `export_power_sensor` var merket «Eksport-effektmåler
-(valgfri)» uten enhet, mens coordinatoren deler avlesningen på 1000 og altså
-krever watt. En kW-sensor ville gitt tusen ganger for høy eksportinntekt uten at
-noe sa fra. Effektmåleren for import står allerede merket «(W)». Labelen og
-beskrivelsen er rettet i alle tre filene.
+(valgfri)» uten enhet, mens coordinatoren deler avlesningen på 1000
+(`coordinator.py:889`) og altså krever watt. En kW-sensor blir dermed delt på
+1000 en gang for mye, og eksportinntekten blir tusen ganger for lav.
+Effektmåleren for import står allerede merket «(W)», og har samme regnestykke på
+linje 859. Labelen og beskrivelsen på eksport er rettet i alle tre filene.
+
+Det funnet er mindre alvorlig enn energiledd-feilen, ikke mer. En månedlig
+eksportinntekt nær null er synlig gal for den som har solceller, så feilen
+melder seg selv. En nettleie som er 10 øre/kWh for høy ser derimot ut som et
+plausibelt tall, og ingenting avslører den før fakturaen kommer.
+
+Enheten er likevel en regel uten håndhevelse. `EntitySelector` filtrerer bare på
+`device_class="power"` for både import og eksport, og ingen leser
+`unit_of_measurement`, så en kW-sensor slipper gjennom oppsettet uten et pip.
+Riktig løsning er å konvertere etter enheten sensoren faktisk oppgir, eventuelt
+avvise kW ved oppsett. Ikke gjort her, ført som eget punkt.
 
 De øvrige feltene stemmer: spotpris-sensoren er merket NOK/kWh og valideres mot
 øre/kWh og kr-totaler ved oppsett, energimåleren er merket kWh, Norgespris-
@@ -121,9 +159,11 @@ En label er en del av regnestykket. Står det noe annet over feltet enn koden
 venter, er tallet feil selv om all koden under er riktig, og ingen test av
 beregningene vil noen gang oppdage det.
 
-Malen er ikke det brukeren ser. `strings.json` sa riktig hele veien; feilen lå i
-de to filene Home Assistant faktisk serverer. Vakten må stå på oversettelsene,
-ikke på malen.
+Malen er ikke det brukeren ser. `strings.json` ble rettet sammen med koden, så
+for den som leser malen så alt riktig ut i fem versjoner. Home Assistant serverer
+`translations/`, og det var de filene som løy. Retter du en tekst som hører til
+en regneregel, må alle språkfilene med i samme commit, og vakten må stå på
+oversettelsene, ikke på malen.
 
 Et varsel som kommer tilbake ved hver omstart er verre enn ingen varsel, fordi
 det trener brukeren i å overse Repairs. Er varselet reist fra en tilstand som
@@ -132,6 +172,7 @@ restart.
 
 ## Kilder
 
+- `6080f93`, DSO-refactoren som la om koden og malen uten oversettelsene (v1.12.0)
 - `4f1dae2`, synken som avdekket avviket
 - `custom_components/stromkalkulator/const.py:compute_energiledd_inkl_mva`
 - Skatteetatens satser for elektrisk kraft 2026 (7,13 øre/kWh forbruksavgift,

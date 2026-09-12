@@ -15,6 +15,7 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import icon
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.stromkalkulator.const import (
@@ -71,8 +72,9 @@ async def test_setup_entry_loads_and_registers_entities(hass: HomeAssistant) -> 
     registry = er.async_get(hass)
     entities = er.async_entries_for_config_entry(registry, entry.entry_id)
 
-    # 53 sensorer + 1 knapp. Nedre grense heller enn eksakt tall for å tåle at
-    # sensorlista utvides, men høy nok til å fange en ødelagt plattform-setup.
+    # Én knapp, fire binærsensorer og resten sensorer. Nedre grense heller enn
+    # eksakt tall for å tåle at sensorlista utvides, men høy nok til å fange en
+    # ødelagt plattform-setup.
     assert len(entities) >= 50, f"forventet >=50 entiteter, fikk {len(entities)}"
     domains = {e.domain for e in entities}
     assert "sensor" in domains
@@ -89,3 +91,39 @@ async def test_config_flow_user_step_renders_form(hass: HomeAssistant) -> None:
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "user"
     assert result.get("errors") in (None, {})
+
+
+async def test_ikonene_naar_fram_via_icons_json(hass: HomeAssistant) -> None:
+    """Hver registrerte entitet får ikonet sitt fra icons.json.
+
+    Ikonene lå som `_attr_icon` i entitetsklassene fram til september 2026.
+    Etter flyttingen til icons.json er det Home Assistant som slår dem opp per
+    translation_key, og en feilstavet nøkkel eller en glemt plattform gir en
+    entitet uten ikon uten at noe annet blir rødt. Unit-testene ser bare på
+    filene; dette er beviset på at HA faktisk finner dem.
+    """
+    hass.states.async_set(POWER_SENSOR, "1500", {"unit_of_measurement": "W", "device_class": "power"})
+    hass.states.async_set(SPOT_SENSOR, "1.20", {"unit_of_measurement": "NOK/kWh"})
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data=_entry_data(),
+        version=3,
+        unique_id=f"{DOMAIN}_{POWER_SENSOR}",
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    ikoner = await icon.async_get_icons(hass, "entity", integrations=[DOMAIN])
+    entitetsikoner = ikoner[DOMAIN]
+
+    registry = er.async_get(hass)
+    uten: list[str] = []
+    for oppforing in er.async_entries_for_config_entry(registry, entry.entry_id):
+        assert oppforing.translation_key, f"{oppforing.entity_id} mangler translation_key"
+        oppslag = entitetsikoner.get(oppforing.domain, {}).get(oppforing.translation_key, {})
+        if not oppslag.get("default"):
+            uten.append(f"{oppforing.domain}.{oppforing.translation_key}")
+
+    assert not uten, f"entiteter uten ikon i icons.json: {sorted(set(uten))}"

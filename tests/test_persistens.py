@@ -513,7 +513,9 @@ class TestLastEnergyIncreasePersistens:
         coordinator = coord.NettleieCoordinator(hass, entry)
         coordinator._last_energy_increase = datetime(2026, 6, 15, 10, 58)
         coordinator._last_tpi_kwh = 133282.18
-        coordinator._last_update = datetime(2026, 6, 15, 11, 0)
+        # Samme klokkeslett som dt_util.now() i testene, altså en omstart uten
+        # nedetid. Nedetid skyver klokken fram, og det er en annen test.
+        coordinator._last_update = datetime(2026, 6, 15, 12, 0)
 
         asyncio.run(coordinator._save_stored_data())
         assert saved["last_energy_increase"] == "2026-06-15T10:58:00"
@@ -546,8 +548,13 @@ class TestLastEnergyIncreasePersistens:
         assert coordinator._last_tpi_kwh is None, "baseline skal droppes som foreldet"
         assert coordinator._last_energy_increase is None
 
-    def test_kort_omstart_beholder_klokken(self):
-        """Motprøve: fem timer nede, baseline i behold, klokken går videre."""
+    def test_nedetiden_teller_ikke_paa_klokken(self):
+        """Fem timer nede: timen vi så beholdes, de blinde fem gjør ikke.
+
+        Baselinen er i behold, så klokken overlever omstarten, men den skyves
+        fram med nedetiden. Ingen kunne se telleren øke mens HA var av, og et
+        strømbrudd på en natt skal ikke bli et frossen-varsel ved første poll.
+        """
         coord = _reload_coord()
         coord.Store = MagicMock(
             side_effect=self._make_store_factory(
@@ -561,8 +568,10 @@ class TestLastEnergyIncreasePersistens:
         coordinator = coord.NettleieCoordinator(MagicMock(), _make_entry(energy_sensor="sensor.tpi"))
         asyncio.run(coordinator._load_stored_data())
 
+        # dt_util.now() er 12:00: en time var observert før avstengningen 07:00,
+        # så klokken står på 11:00 og har to timer igjen til terskelen.
         assert coordinator._last_tpi_kwh == 133282.18
-        assert coordinator._last_energy_increase == datetime(2026, 6, 15, 6, 0)
+        assert coordinator._last_energy_increase == datetime(2026, 6, 15, 11, 0)
 
     def test_tidsstempel_lagres_i_utc(self):
         """Tidssonebevisst tidsstempel skal lagres som UTC, ikke lokal sone.

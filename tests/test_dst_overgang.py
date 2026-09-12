@@ -403,3 +403,67 @@ class TestVaktholdOverDst:
         resultat = _poll(coord_module, coord, _real_datetime(*HOST_SONDAG, 4, 5, tzinfo=OSLO))
         problem = next(p for p in resultat["input_problemer"] if p["type"] == "frossen")
         assert problem["timer"] == 3.1
+
+
+class TestLagretTidspunktVisesLokalt:
+    """Lagrede tidsstempel skrives i UTC, men skal vises som klokken på veggen.
+
+    `last_tpi_time` er tidspunktet varselet om forkastede kWh måler spranget
+    fra. Lastes det tilbake uten omregning, viser varselet UTC etter en omstart,
+    altså to timer feil om sommeren. Omregningen skal bruke offseten som gjaldt
+    da avlesningen ble gjort, ikke den som gjelder nå.
+    """
+
+    @staticmethod
+    def _coord_etter_omstart(coord_module, benk, na, lagret_utc):
+        coord_module.dt_util.now.return_value = na
+        coord_module.dt_util.as_local = lambda tidspunkt: tidspunkt.astimezone(OSLO)
+        coord = _lag_coordinator(coord_module, benk)
+        coord._current_month = na.strftime("%Y-%m")
+        coord._current_date = na.strftime("%Y-%m-%d")
+        coord._store.async_load.return_value = {
+            "last_tpi_kwh": 1000.0,
+            "last_tpi_time": lagret_utc,
+            "last_update": lagret_utc,
+            "last_energy_increase": lagret_utc,
+        }
+        return coord
+
+    @staticmethod
+    def _plassholdere(coord_module, coord):
+        kall = next(
+            k
+            for k in coord_module.ir.async_create_issue.call_args_list
+            if k.args[2] == f"energi_delta_forkastet_{coord.entry.entry_id}"
+        )
+        return kall.kwargs["translation_placeholders"]
+
+    def test_sommertid_vises_i_lokal_tid(self, coord_module):
+        """Lagret 08:00 UTC er 10:00 i Bergen, og det er klokkeslettet brukeren kjenner."""
+        benk = Sensorbenk()
+        na = _real_datetime(2026, 6, 15, 10, 5, tzinfo=OSLO)
+        coord = self._coord_etter_omstart(coord_module, benk, na, "2026-06-15T08:00:00+00:00")
+
+        # 200 kWh over grensen, så spranget forkastes og varselet reises.
+        benk.sett("sensor.tpi", 1200.0)
+        _poll(coord_module, coord, na)
+
+        plassholdere = self._plassholdere(coord_module, coord)
+        assert plassholdere["forrige"] == "15.06.2026 kl. 10:00"
+        assert plassholdere["tidspunkt"] == "15.06.2026 kl. 10:05"
+
+    def test_over_sommertidsskiftet_brukes_offseten_som_gjaldt_da(self, coord_module):
+        """29.03: avlesningen ble gjort i CET, omstarten skjer i CEST.
+
+        Lagret 00:30 UTC er 01:30 norsk tid, ikke 02:30. Skyver man bare med
+        offseten som gjelder nå, bommer man med den ene timen skiftet la til.
+        """
+        benk = Sensorbenk()
+        na = _real_datetime(*VAR_SONDAG, 3, 30, tzinfo=OSLO)
+        coord = self._coord_etter_omstart(coord_module, benk, na, "2026-03-29T00:30:00+00:00")
+
+        benk.sett("sensor.tpi", 1200.0)
+        _poll(coord_module, coord, na)
+
+        plassholdere = self._plassholdere(coord_module, coord)
+        assert plassholdere["forrige"] == "29.03.2026 kl. 01:30"

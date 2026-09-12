@@ -324,6 +324,71 @@ class TestOmstart:
         assert coord._last_energy_increase == start
 
 
+class TestStrombrudd:
+    """Strømbrudd i huset: HA er av, og telleren står stille fordi den er strømløs.
+
+    Vakthold som roper ulv hver gang strømmen har vært borte, blir slått av, og
+    da er det verdiløst. Samme forveksling som resten av vaktholdet er ryddet
+    for: at vi ikke har sett en økning er ikke det samme som at måleren står
+    stille. Vi var blinde i gapet, så det gapet teller ikke.
+    """
+
+    @staticmethod
+    def _coord_etter_strombrudd(coord_module, benk, start, timer_nede):
+        nede_fra = start - timedelta(hours=timer_nede)
+        coord = _lag_coordinator(coord_module, benk)
+        coord._store.async_load.return_value = {
+            # Siste økning kom 20 minutter før strømmen gikk. Uten den detaljen
+            # ville et brudd på nøyaktig terskelen falle akkurat på grensen.
+            "last_energy_increase": (nede_fra - timedelta(minutes=20)).isoformat(),
+            "last_update": nede_fra.isoformat(),
+            "last_tpi_kwh": 1000.0,
+            "last_tpi_time": nede_fra.isoformat(),
+        }
+        # Telleren viser samme tall som før: den fikk ikke strøm den heller.
+        benk.sett("sensor.tpi", 1000.0)
+        return coord
+
+    @pytest.mark.parametrize("timer_nede", [3, 12, 24])
+    def test_strombrudd_gir_ikke_frossen_ved_forste_poll(self, coord_module, timer_nede):
+        benk = Sensorbenk()
+        start = datetime(2026, 1, 15, 6, 0)
+        coord = self._coord_etter_strombrudd(coord_module, benk, start, timer_nede)
+
+        resultat = _poll(coord_module, coord, start)
+
+        assert FROSSEN not in _typer(resultat)
+        assert not [i for i in _issue_ids(coord_module.ir) if i.startswith("energi_frossen_")]
+
+    def test_frossen_meldes_likevel_tre_timer_etter_omstarten(self, coord_module):
+        """Motprøve: står telleren stille etter at strømmen er tilbake, varsles det."""
+        benk = Sensorbenk()
+        start = datetime(2026, 1, 15, 6, 0)
+        coord = self._coord_etter_strombrudd(coord_module, benk, start, 5)
+
+        assert FROSSEN not in _typer(_poll(coord_module, coord, start))
+        resultat = _poll(coord_module, coord, start + timedelta(hours=3, minutes=10))
+
+        assert FROSSEN in _typer(resultat)
+        assert f"energi_frossen_{coord.entry.entry_id}" in _issue_ids(coord_module.ir)
+
+    def test_maaler_som_staar_stille_mens_ha_kjorer_varsles(self, coord_module):
+        """Motprøve: uten nedetid er stillstand nettopp det vaktholdet er til for.
+
+        Dette er HAN-leseren slik den sto sommeren 2026: entiteten rapporterte,
+        tallet rørte seg ikke.
+        """
+        benk = Sensorbenk()
+        coord = _lag_coordinator(coord_module, benk)
+        start = datetime(2026, 1, 15, 6, 0)
+        _poll(coord_module, coord, start)
+
+        resultat = _poll(coord_module, coord, start + timedelta(hours=3, minutes=10))
+
+        assert FROSSEN in _typer(resultat)
+        assert f"energi_frossen_{coord.entry.entry_id}" in _issue_ids(coord_module.ir)
+
+
 class TestEnRangering:
     """Én årsak skal gi ett varsel, ikke to."""
 

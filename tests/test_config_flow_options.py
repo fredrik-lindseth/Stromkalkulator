@@ -107,12 +107,14 @@ from stromkalkulator.sensor import (  # noqa: E402
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _reload_config_flow():
     """Reload config_flow module with proper base class stubs."""
     # Ensure stubs are in place before reload
     _ce_mod.ConfigFlow = _FakeConfigFlow
     _ce_mod.OptionsFlow = _FakeOptionsFlow
     import stromkalkulator.config_flow as cf_mod
+
     importlib.reload(cf_mod)
     return cf_mod
 
@@ -533,10 +535,13 @@ class TestForrigeMaanedNorgesprisKompensasjonSensor:
 class TestNorgesprisKompensasjonSensorsNoneData:
     """Both compensation sensors return None when coordinator has no data."""
 
-    @pytest.mark.parametrize("sensor_class", [
-        MaanedligNorgesprisKompensasjonSensor,
-        ForrigeMaanedNorgesprisKompensasjonSensor,
-    ])
+    @pytest.mark.parametrize(
+        "sensor_class",
+        [
+            MaanedligNorgesprisKompensasjonSensor,
+            ForrigeMaanedNorgesprisKompensasjonSensor,
+        ],
+    )
     def test_returns_none_without_data(self, sensor_class):
         coordinator = MagicMock()
         coordinator.data = None
@@ -545,10 +550,13 @@ class TestNorgesprisKompensasjonSensorsNoneData:
         sensor = sensor_class(coordinator, entry)
         assert sensor.native_value is None
 
-    @pytest.mark.parametrize("sensor_class,key", [
-        (MaanedligNorgesprisKompensasjonSensor, "monthly_norgespris_compensation_kr"),
-        (ForrigeMaanedNorgesprisKompensasjonSensor, "previous_month_norgespris_compensation_kr"),
-    ])
+    @pytest.mark.parametrize(
+        "sensor_class,key",
+        [
+            (MaanedligNorgesprisKompensasjonSensor, "monthly_norgespris_compensation_kr"),
+            (ForrigeMaanedNorgesprisKompensasjonSensor, "previous_month_norgespris_compensation_kr"),
+        ],
+    )
     def test_returns_none_when_key_missing(self, sensor_class, key):
         coordinator = MagicMock()
         coordinator.data = {}  # Data exists but key is absent

@@ -97,9 +97,7 @@ class TestAkkumulatorOverDst:
         """Vår-DST: 2-timers naiv klokke-delta cappes til 6 min."""
         coord = _coord(coord_module, power_w=6000)
         _run_update(coord_module, coord, now=_real_datetime(*VAR_SONDAG, 1, 30))
-        result = _run_update(
-            coord_module, coord, now=_real_datetime(*VAR_SONDAG, 3, 30)
-        )
+        result = _run_update(coord_module, coord, now=_real_datetime(*VAR_SONDAG, 3, 30))
         total = result["monthly_consumption_total_kwh"]
         # Cap: 6 kW * 0.1 t = 0.6 kWh, ikke 12 kWh
         assert 0.0 < total < 1.0, f"forventet at cap forhindrer dobbelt-telling, fikk {total}"
@@ -109,9 +107,7 @@ class TestAkkumulatorOverDst:
         coord = _coord(coord_module, power_w=6000)
         # 01:58 -> 03:03 lokalt = 5 min reell tid (1 t 5 min naivt)
         _run_update(coord_module, coord, now=_real_datetime(*VAR_SONDAG, 1, 58))
-        result = _run_update(
-            coord_module, coord, now=_real_datetime(*VAR_SONDAG, 3, 3)
-        )
+        result = _run_update(coord_module, coord, now=_real_datetime(*VAR_SONDAG, 3, 3))
         total = result["monthly_consumption_total_kwh"]
         assert 0.0 < total <= 0.7
 
@@ -122,9 +118,7 @@ class TestAkkumulatorOverDst:
         _run_update(coord_module, coord, now=first)
 
         next_step = _real_datetime(*HOST_SONDAG, 2, 35)
-        first_total = _run_update(coord_module, coord, now=next_step)[
-            "monthly_consumption_total_kwh"
-        ]
+        first_total = _run_update(coord_module, coord, now=next_step)["monthly_consumption_total_kwh"]
         assert 0.2 < first_total < 0.3  # 3 kW * 5/60 t = 0.25 kWh
 
         # Andre passering av samme klokketid -> ingen ny energi
@@ -181,9 +175,7 @@ class TestHostDstDobleltTimeBucket:
             )
 
         # Flush ved 03:00 CET (fold irrelevant, time bytter til 3)
-        _run_update(
-            coord_module, coord, now=_real_datetime(*HOST_SONDAG, 3, 0, tzinfo=OSLO, fold=1)
-        )
+        _run_update(coord_module, coord, now=_real_datetime(*HOST_SONDAG, 3, 0, tzinfo=OSLO, fold=1))
 
         entry = coord._daily_max_power.get("2026-10-25")
         assert entry is not None, "maks-time for 25.10 burde være lagret"
@@ -239,13 +231,9 @@ class TestHostDstDobleltTimeBucket:
         # Hele første time 02 CEST + bytte til 02 CET + hele andre time + 03 CET
         timestamps = []
         for minute in range(0, 60, 5):
-            timestamps.append(
-                _real_datetime(*HOST_SONDAG, 2, minute, tzinfo=OSLO, fold=0)
-            )
+            timestamps.append(_real_datetime(*HOST_SONDAG, 2, minute, tzinfo=OSLO, fold=0))
         for minute in range(0, 60, 5):
-            timestamps.append(
-                _real_datetime(*HOST_SONDAG, 2, minute, tzinfo=OSLO, fold=1)
-            )
+            timestamps.append(_real_datetime(*HOST_SONDAG, 2, minute, tzinfo=OSLO, fold=1))
         timestamps.append(_real_datetime(*HOST_SONDAG, 3, 0, tzinfo=OSLO, fold=1))
 
         for dt in timestamps:
@@ -279,9 +267,7 @@ class TestTopp3RundtDst:
         """Time fullført kl 07:00 mandag 30.03 lagres som 2026-03-30."""
         coord = _coord(coord_module, power_w=4000)
         for minute in (0, 15, 30, 45, 59):
-            _run_update(
-                coord_module, coord, now=_real_datetime(*VAR_MANDAG, 6, minute)
-            )
+            _run_update(coord_module, coord, now=_real_datetime(*VAR_MANDAG, 6, minute))
         _run_update(coord_module, coord, now=_real_datetime(*VAR_MANDAG, 7, 0))
         assert "2026-03-30" in coord._daily_max_power
         assert "2026-03-29" not in coord._daily_max_power
@@ -293,9 +279,7 @@ class TestTidsstempelKonsistens:
     def test_full_update_pa_var_sondag(self, coord_module):
         """Full _async_update_data på DST-søndag returnerer natt-tariff."""
         coord = _coord(coord_module, power_w=3000)
-        result = _run_update(
-            coord_module, coord, now=_real_datetime(*VAR_SONDAG, 14, 0)
-        )
+        result = _run_update(coord_module, coord, now=_real_datetime(*VAR_SONDAG, 14, 0))
         assert result["is_day_rate"] is False
         assert "monthly_consumption_total_kwh" in result
 
@@ -386,9 +370,7 @@ class TestVaktholdOverDst:
         _poll(coord_module, coord, start)
 
         benk.sett("sensor.power", "unavailable")
-        resultat = _poll(
-            coord_module, coord, _real_datetime(*HOST_SONDAG, 2, 15, tzinfo=OSLO, fold=1)
-        )
+        resultat = _poll(coord_module, coord, _real_datetime(*HOST_SONDAG, 2, 15, tzinfo=OSLO, fold=1))
 
         problem = next(p for p in resultat["input_problemer"] if p["type"] == "utfall")
         assert problem["minutter"] == 45

@@ -59,7 +59,9 @@ class TestLnett2026:
     def test_dag_inkl_mva_matcher_pdf_32_ore(self, lnett):
         """Inkl. alt skal være 32 øre/kWh (matcher Lnett PDF inkl. mva)."""
         inkl = energiledd_inkl_mva(lnett["energiledd_dag_eks_mva"])
-        assert inkl == pytest.approx(0.4216, abs=0.001)  # 32 øre/kWh ÷ 1,25 * 1,25... PDF: 32 inkl. mva (uten forbruks/Enova?)
+        assert inkl == pytest.approx(
+            0.4216, abs=0.001
+        )  # 32 øre/kWh ÷ 1,25 * 1,25... PDF: 32 inkl. mva (uten forbruks/Enova?)
         # PDF viser 32 inkl. mva = 25,60 eks. mva (ren nettleie + mva).
         # Vår inkl-mva-pris er 25,60 + 7,13 + 1,0 = 33,73 eks. mva, * 1,25 = 42,16 inkl. alt.
 
@@ -70,25 +72,22 @@ class TestLnett2026:
     @pytest.mark.parametrize(
         ("avg_power", "expected_kr_mnd"),
         [
-            (1.0, 150),     # trinn 1: 0-2 kW
-            (2.0, 250),     # eksakt grensetreff -> høyere trinn (terskel_inkludert)
-            (2.5, 250),     # trinn 2: 2-5 kW
-            (5.0, 400),     # eksakt grensetreff -> høyere trinn
-            (7.0, 400),     # trinn 3: 5-10 kW
-            (12.0, 650),    # trinn 4: 10-15 kW
-            (17.5, 900),    # trinn 5: 15-20 kW
-            (22.0, 1150),   # trinn 6: 20-25 kW
-            (30.0, 2150),   # trinn 7: 25-50 kW (var manglende!)
-            (60.0, 3150),   # trinn 8: 50-75 kW (var manglende!)
-            (85.0, 4150),   # trinn 9: 75-100 kW (var manglende!)
+            (1.0, 150),  # trinn 1: 0-2 kW
+            (2.0, 250),  # eksakt grensetreff -> høyere trinn (terskel_inkludert)
+            (2.5, 250),  # trinn 2: 2-5 kW
+            (5.0, 400),  # eksakt grensetreff -> høyere trinn
+            (7.0, 400),  # trinn 3: 5-10 kW
+            (12.0, 650),  # trinn 4: 10-15 kW
+            (17.5, 900),  # trinn 5: 15-20 kW
+            (22.0, 1150),  # trinn 6: 20-25 kW
+            (30.0, 2150),  # trinn 7: 25-50 kW (var manglende!)
+            (60.0, 3150),  # trinn 8: 50-75 kW (var manglende!)
+            (85.0, 4150),  # trinn 9: 75-100 kW (var manglende!)
             (150.0, 7000),  # trinn 10: 100+ kW (var manglende!)
         ],
     )
     def test_kapasitetsledd_per_trinn(self, lnett, avg_power, expected_kr_mnd):
-        assert (
-            kapasitetsledd_for_power(avg_power, lnett)
-            == expected_kr_mnd
-        )
+        assert kapasitetsledd_for_power(avg_power, lnett) == expected_kr_mnd
 
     def test_eksempel_husstand_30_kwh_dagforbruk(self, lnett):
         """Husholdning forbruker 30 kWh på dag-tid:
@@ -139,12 +138,12 @@ class TestLede2026:
     def test_kapasitetsledd_trinn_har_korrekte_priser(self, lede):
         """Lede 2026 priser fra lede.no/priser/nettleie-privatkunder/."""
         trinn = dict(lede["kapasitetstrinn"][:6])
-        assert trinn[5] == 269     # 0-5 kW: 268,75 ≈ 269
-        assert trinn[10] == 459    # 5-10 kW: 458,75 ≈ 459
-        assert trinn[15] == 648    # 10-15 kW: 647,50 ≈ 648
-        assert trinn[20] == 838    # 15-20 kW: 837,50 ≈ 838
-        assert trinn[25] == 1028   # 20-25 kW: 1027,50 ≈ 1028
-        assert trinn[50] == 1596   # 25-50 kW: 1596,25 ≈ 1596
+        assert trinn[5] == 269  # 0-5 kW: 268,75 ≈ 269
+        assert trinn[10] == 459  # 5-10 kW: 458,75 ≈ 459
+        assert trinn[15] == 648  # 10-15 kW: 647,50 ≈ 648
+        assert trinn[20] == 838  # 15-20 kW: 837,50 ≈ 838
+        assert trinn[25] == 1028  # 20-25 kW: 1027,50 ≈ 1028
+        assert trinn[50] == 1596  # 25-50 kW: 1596,25 ≈ 1596
 
     def test_har_trinn_over_50_kw_via_kraftsystemet(self, lede):
         """Lede har trinn også for 50-200+ kW (fra kraftsystemet.no)."""
@@ -156,11 +155,11 @@ class TestLede2026:
     @pytest.mark.parametrize(
         ("avg_power", "expected_kr_mnd"),
         [
-            (3.0, 269),    # 0-5 kW
-            (5.0, 459),    # eksakt grensetreff -> høyere trinn
-            (7.5, 459),    # 5-10 kW
-            (12.0, 648),   # 10-15 kW
-            (17.0, 838),   # 15-20 kW
+            (3.0, 269),  # 0-5 kW
+            (5.0, 459),  # eksakt grensetreff -> høyere trinn
+            (7.5, 459),  # 5-10 kW
+            (12.0, 648),  # 10-15 kW
+            (17.0, 838),  # 15-20 kW
             (22.0, 1028),  # 20-25 kW
             (35.0, 1596),  # 25-50 kW
             (60.0, 2545),  # 50-75 kW (ny)
@@ -168,10 +167,7 @@ class TestLede2026:
         ],
     )
     def test_kapasitetsledd_per_trinn(self, lede, avg_power, expected_kr_mnd):
-        assert (
-            kapasitetsledd_for_power(avg_power, lede)
-            == expected_kr_mnd
-        )
+        assert kapasitetsledd_for_power(avg_power, lede) == expected_kr_mnd
 
 
 # ============================================================================
@@ -210,23 +206,20 @@ class TestElvia2026:
     @pytest.mark.parametrize(
         ("avg_power", "expected_kr_mnd"),
         [
-            (1.0, 150),     # trinn 1: 0-2 kW   (var 125)
-            (3.0, 250),     # trinn 2: 2-5 kW   (var 190)
-            (7.0, 420),     # trinn 3: 5-10 kW  (var 300)
-            (12.0, 585),    # trinn 4: 10-15 kW (var 410)
-            (17.0, 755),    # trinn 5: 15-20 kW (var 520)
-            (22.0, 925),    # trinn 6: 20-25 kW (var 630)
-            (30.0, 1760),   # trinn 7: 25-50 kW (var 1175)
-            (60.0, 2600),   # trinn 8: 50-75 kW (var 1720)
-            (85.0, 3440),   # trinn 9: 75-100 kW (var 2270)
+            (1.0, 150),  # trinn 1: 0-2 kW   (var 125)
+            (3.0, 250),  # trinn 2: 2-5 kW   (var 190)
+            (7.0, 420),  # trinn 3: 5-10 kW  (var 300)
+            (12.0, 585),  # trinn 4: 10-15 kW (var 410)
+            (17.0, 755),  # trinn 5: 15-20 kW (var 520)
+            (22.0, 925),  # trinn 6: 20-25 kW (var 630)
+            (30.0, 1760),  # trinn 7: 25-50 kW (var 1175)
+            (60.0, 2600),  # trinn 8: 50-75 kW (var 1720)
+            (85.0, 3440),  # trinn 9: 75-100 kW (var 2270)
             (150.0, 6800),  # trinn 10: over 100 kW (var 4570)
         ],
     )
     def test_kapasitetsledd_per_trinn(self, elvia, avg_power, expected_kr_mnd):
-        assert (
-            kapasitetsledd_for_power(avg_power, elvia)
-            == expected_kr_mnd
-        )
+        assert kapasitetsledd_for_power(avg_power, elvia) == expected_kr_mnd
 
     def test_rakkestad_folger_elvia(self):
         """Rakkestad Energi er del av Elvia og skal ha identisk tariff."""
@@ -269,21 +262,18 @@ class TestNettselskapet2026:
     @pytest.mark.parametrize(
         ("avg_power", "expected_kr_mnd"),
         [
-            (1.0, 163),    # 0-2 kW: 162,50   (var 137,50)
-            (3.0, 300),    # 2-5 kW: 300      (var 250)
-            (7.0, 513),    # 5-10 kW: 512,50  (var 425)
-            (12.0, 763),   # 10-15 kW: 762,50 (var 625)
-            (17.0, 988),   # 15-20 kW: 987,50 (var 812,50)
+            (1.0, 163),  # 0-2 kW: 162,50   (var 137,50)
+            (3.0, 300),  # 2-5 kW: 300      (var 250)
+            (7.0, 513),  # 5-10 kW: 512,50  (var 425)
+            (12.0, 763),  # 10-15 kW: 762,50 (var 625)
+            (17.0, 988),  # 15-20 kW: 987,50 (var 812,50)
             (22.0, 1238),  # 20-25 kW: 1237,50 (var 1025)
             (30.0, 2125),  # 25-50 kW: 2125   (var 1750)
             (60.0, 3325),  # 50-75 kW: 3325   (var 2750)
         ],
     )
     def test_kapasitetsledd_per_trinn(self, nettselskapet, avg_power, expected_kr_mnd):
-        assert (
-            kapasitetsledd_for_power(avg_power, nettselskapet)
-            == expected_kr_mnd
-        )
+        assert kapasitetsledd_for_power(avg_power, nettselskapet) == expected_kr_mnd
 
 
 # ============================================================================

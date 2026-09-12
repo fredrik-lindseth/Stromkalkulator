@@ -16,24 +16,36 @@ import pytest
 # We need to set up the mocked HA modules more carefully for sensor classes
 # because they reference SensorDeviceClass, SensorStateClass, etc.
 _sensor_mod = sys.modules["homeassistant.components.sensor"]
-_sensor_mod.SensorDeviceClass = type("SensorDeviceClass", (), {
-    "MONETARY": "monetary",
-    "POWER": "power",
-    "ENERGY": "energy",
-    "ENUM": "enum",
-})
+_sensor_mod.SensorDeviceClass = type(
+    "SensorDeviceClass",
+    (),
+    {
+        "MONETARY": "monetary",
+        "POWER": "power",
+        "ENERGY": "energy",
+        "ENUM": "enum",
+    },
+)
 _sensor_mod.SensorEntity = type("SensorEntity", (), {})
-_sensor_mod.SensorStateClass = type("SensorStateClass", (), {
-    "MEASUREMENT": "measurement",
-    "TOTAL": "total",
-    "TOTAL_INCREASING": "total_increasing",
-})
+_sensor_mod.SensorStateClass = type(
+    "SensorStateClass",
+    (),
+    {
+        "MEASUREMENT": "measurement",
+        "TOTAL": "total",
+        "TOTAL_INCREASING": "total_increasing",
+    },
+)
 
 _const_mod = sys.modules["homeassistant.const"]
-_const_mod.EntityCategory = type("EntityCategory", (), {
-    "DIAGNOSTIC": "diagnostic",
-    "CONFIG": "config",
-})
+_const_mod.EntityCategory = type(
+    "EntityCategory",
+    (),
+    {
+        "DIAGNOSTIC": "diagnostic",
+        "CONFIG": "config",
+    },
+)
 
 _entity_mod = sys.modules["homeassistant.helpers.entity"]
 # Ensure EntityCategory is accessible from the entity module too
@@ -154,8 +166,16 @@ def mock_coordinator():
     coordinator = MagicMock()
     coordinator.data = SAMPLE_DATA.copy()
     coordinator.kapasitetstrinn = [
-        (2, 155), (5, 250), (10, 415), (15, 600), (20, 770),
-        (25, 940), (50, 1800), (75, 2650), (100, 3500), (float("inf"), 6900),
+        (2, 155),
+        (5, 250),
+        (10, 415),
+        (15, 600),
+        (20, 770),
+        (25, 940),
+        (50, 1800),
+        (75, 2650),
+        (100, 3500),
+        (float("inf"), 6900),
     ]
     return coordinator
 
@@ -178,24 +198,27 @@ def mock_entry():
 class TestSensorNoneWhenNoData:
     """Sensors should return None when coordinator.data is None/empty."""
 
-    @pytest.mark.parametrize("sensor_class", [
-        EnergileddSensor,
-        KapasitetstrinnSensor,
-        MarginNesteTrinnSensor,
-        TotalPriceSensor,
-        StromstotteSensor,
-        SpotprisEtterStotteSensor,
-        TotalPrisEtterStotteSensor,
-        TotalPrisInklAvgifterSensor,
-        TotalPrisNorgesprisSensor,
-        StromprisNorgesprisSensor,
-        PrisforskjellNorgesprisSensor,
-        TariffSensor,
-        StromprisPerKwhSensor,
-        StromprisPerKwhEtterStotteSensor,
-        StromstotteGjenstaaendeSensor,
-        ElectricityCompanyTotalSensor,
-    ])
+    @pytest.mark.parametrize(
+        "sensor_class",
+        [
+            EnergileddSensor,
+            KapasitetstrinnSensor,
+            MarginNesteTrinnSensor,
+            TotalPriceSensor,
+            StromstotteSensor,
+            SpotprisEtterStotteSensor,
+            TotalPrisEtterStotteSensor,
+            TotalPrisInklAvgifterSensor,
+            TotalPrisNorgesprisSensor,
+            StromprisNorgesprisSensor,
+            PrisforskjellNorgesprisSensor,
+            TariffSensor,
+            StromprisPerKwhSensor,
+            StromprisPerKwhEtterStotteSensor,
+            StromstotteGjenstaaendeSensor,
+            ElectricityCompanyTotalSensor,
+        ],
+    )
     def test_returns_none_without_data(self, sensor_class, mock_entry):
         coordinator = MagicMock()
         coordinator.data = None
@@ -309,28 +332,31 @@ class TestSensorUniqueId:
 class TestSensorDeviceClassAndUnit:
     """Verify sensors have correct device class, state class and unit."""
 
-    @pytest.mark.parametrize("sensor_class,expected_unit", [
-        (EnergileddSensor, "NOK/kWh"),
-        (KapasitetstrinnSensor, "kr/mnd"),
-        (TotalPriceSensor, "NOK/kWh"),
-        (StromstotteSensor, "NOK/kWh"),
-        (SpotprisEtterStotteSensor, "NOK/kWh"),
-        (TotalPrisEtterStotteSensor, "NOK/kWh"),
-        (TotalPrisInklAvgifterSensor, "NOK/kWh"),
-        (TotalPrisNorgesprisSensor, "NOK/kWh"),
-        (StromprisNorgesprisSensor, "NOK/kWh"),
-        (PrisforskjellNorgesprisSensor, "NOK/kWh"),
-        (StromprisPerKwhSensor, "NOK/kWh"),
-        (StromprisPerKwhEtterStotteSensor, "NOK/kWh"),
-        (ElectricityCompanyTotalSensor, "NOK/kWh"),
-        (MarginNesteTrinnSensor, "kW"),
-        (StromstotteGjenstaaendeSensor, "kWh"),
-        (MaanedligForbrukDagSensor, "kWh"),
-        (MaanedligForbrukNattSensor, "kWh"),
-        (MaanedligForbrukTotalSensor, "kWh"),
-        (MaanedligNettleieSensor, "NOK"),
-        (MaanedligTotalSensor, "NOK"),
-    ])
+    @pytest.mark.parametrize(
+        "sensor_class,expected_unit",
+        [
+            (EnergileddSensor, "NOK/kWh"),
+            (KapasitetstrinnSensor, "kr/mnd"),
+            (TotalPriceSensor, "NOK/kWh"),
+            (StromstotteSensor, "NOK/kWh"),
+            (SpotprisEtterStotteSensor, "NOK/kWh"),
+            (TotalPrisEtterStotteSensor, "NOK/kWh"),
+            (TotalPrisInklAvgifterSensor, "NOK/kWh"),
+            (TotalPrisNorgesprisSensor, "NOK/kWh"),
+            (StromprisNorgesprisSensor, "NOK/kWh"),
+            (PrisforskjellNorgesprisSensor, "NOK/kWh"),
+            (StromprisPerKwhSensor, "NOK/kWh"),
+            (StromprisPerKwhEtterStotteSensor, "NOK/kWh"),
+            (ElectricityCompanyTotalSensor, "NOK/kWh"),
+            (MarginNesteTrinnSensor, "kW"),
+            (StromstotteGjenstaaendeSensor, "kWh"),
+            (MaanedligForbrukDagSensor, "kWh"),
+            (MaanedligForbrukNattSensor, "kWh"),
+            (MaanedligForbrukTotalSensor, "kWh"),
+            (MaanedligNettleieSensor, "NOK"),
+            (MaanedligTotalSensor, "NOK"),
+        ],
+    )
     def test_unit_of_measurement(self, sensor_class, expected_unit, mock_coordinator, mock_entry):
         sensor = sensor_class(mock_coordinator, mock_entry)
         assert sensor._attr_native_unit_of_measurement == expected_unit
@@ -339,26 +365,29 @@ class TestSensorDeviceClassAndUnit:
     # MONETARY for ISO 4217-beløp og holder MONETARY-sensorer utenfor
     # measurement-statistikken. Satsene skal derfor ikke ha device_class, men
     # state_class MEASUREMENT så de fortsatt får statistikk (min/snitt/maks).
-    @pytest.mark.parametrize("sensor_class", [
-        EnergileddSensor,
-        EnergileddDagSensor,
-        EnergileddNattSensor,
-        KapasitetstrinnSensor,
-        OffentligeAvgifterSensor,
-        ForbruksavgiftSensor,
-        EnovaavgiftSensor,
-        TotalPriceSensor,
-        ElectricityCompanyTotalSensor,
-        StromprisPerKwhSensor,
-        StromprisPerKwhEtterStotteSensor,
-        StromstotteSensor,
-        SpotprisEtterStotteSensor,
-        TotalPrisEtterStotteSensor,
-        TotalPrisInklAvgifterSensor,
-        TotalPrisNorgesprisSensor,
-        StromprisNorgesprisSensor,
-        PrisforskjellNorgesprisSensor,
-    ])
+    @pytest.mark.parametrize(
+        "sensor_class",
+        [
+            EnergileddSensor,
+            EnergileddDagSensor,
+            EnergileddNattSensor,
+            KapasitetstrinnSensor,
+            OffentligeAvgifterSensor,
+            ForbruksavgiftSensor,
+            EnovaavgiftSensor,
+            TotalPriceSensor,
+            ElectricityCompanyTotalSensor,
+            StromprisPerKwhSensor,
+            StromprisPerKwhEtterStotteSensor,
+            StromstotteSensor,
+            SpotprisEtterStotteSensor,
+            TotalPrisEtterStotteSensor,
+            TotalPrisInklAvgifterSensor,
+            TotalPrisNorgesprisSensor,
+            StromprisNorgesprisSensor,
+            PrisforskjellNorgesprisSensor,
+        ],
+    )
     def test_rate_sensors_are_measurement_not_monetary(self, sensor_class, mock_coordinator, mock_entry):
         sensor = sensor_class(mock_coordinator, mock_entry)
         assert getattr(sensor, "_attr_device_class", None) is None
@@ -367,11 +396,14 @@ class TestSensorDeviceClassAndUnit:
     # Faktiske kronebeløp (månedskostnader, differanser, inntekter) er ekte
     # pengeverdier med MONETARY device_class og enhet "NOK" (ISO 4217). Satser
     # hører ikke hjemme her, se docs/domain-rules.md.
-    @pytest.mark.parametrize("sensor_class", [
-        MaanedligNettleieSensor,
-        MaanedligTotalSensor,
-        MaanedligNorgesprisDifferanseSensor,
-    ])
+    @pytest.mark.parametrize(
+        "sensor_class",
+        [
+            MaanedligNettleieSensor,
+            MaanedligTotalSensor,
+            MaanedligNorgesprisDifferanseSensor,
+        ],
+    )
     def test_amount_sensors_stay_monetary(self, sensor_class, mock_coordinator, mock_entry):
         sensor = sensor_class(mock_coordinator, mock_entry)
         assert sensor._attr_device_class == "monetary"

@@ -140,9 +140,7 @@ def _make_options_flow(entry: MagicMock, spot_state: MagicMock | None = None):
     default_spot = spot_state if spot_state is not None else _state("1.2", "NOK/kWh")
     flow.hass.states.get = MagicMock(return_value=default_spot)
 
-    flow.async_create_entry = MagicMock(
-        return_value={"type": "create_entry", "title": "", "data": {}}
-    )
+    flow.async_create_entry = MagicMock(return_value={"type": "create_entry", "title": "", "data": {}})
     flow.async_show_form = MagicMock(return_value={"type": "form", "step_id": "init"})
     return flow
 
@@ -207,9 +205,7 @@ class TestDsoBytteReResolverSatser:
 
     def test_no_dso_change_preserves_energiledd_override(self):
         """Uten DSO-bytte skal brukerens energiledd-overstyring bevares."""
-        entry = _make_entry(
-            dso="bkk", energiledd_dag=0.5000, energiledd_natt=0.4000
-        )
+        entry = _make_entry(dso="bkk", energiledd_dag=0.5000, energiledd_natt=0.4000)
         flow = _make_options_flow(entry)
 
         user_input = _base_input(

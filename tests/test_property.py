@@ -110,18 +110,14 @@ def _make_coordinator(dso_id: str = "bkk") -> NettleieCoordinator:
     return NettleieCoordinator(hass, entry)
 
 
-def _avg_top_3_via_coordinator(
-    coordinator: NettleieCoordinator, daily_max: dict[str, float]
-) -> float:
+def _avg_top_3_via_coordinator(coordinator: NettleieCoordinator, daily_max: dict[str, float]) -> float:
     """Kjør avg-top-3-logikken via coordinator._get_top_3_days().
 
     Speiler nøyaktig regnestykket i coordinator._async_update_data:
       top_3 = self._get_top_3_days()
       avg = sum(kw) / 3 if len >= 3 else sum(kw) / max(len, 1)
     """
-    coordinator._daily_max_power = {
-        date: DailyMaxEntry(kw=kw, hour=None) for date, kw in daily_max.items()
-    }
+    coordinator._daily_max_power = {date: DailyMaxEntry(kw=kw, hour=None) for date, kw in daily_max.items()}
     top_3 = coordinator._get_top_3_days()
     kw_values = [entry.kw for entry in top_3.values()]
     if not kw_values:
@@ -548,9 +544,7 @@ def test_differential_stromstotte_two_implementations(price: float) -> None:
     """
     impl1 = _calculate_stromstotte(price)
     impl2 = _alt_stromstotte(price)
-    assert abs(impl1 - impl2) < 1e-10, (
-        f"Implementations disagree at price={price}: {impl1} vs {impl2}"
-    )
+    assert abs(impl1 - impl2) < 1e-10, f"Implementations disagree at price={price}: {impl1} vs {impl2}"
 
 
 def _alt_is_day_rate(dt: datetime) -> bool:
@@ -567,9 +561,7 @@ def _alt_is_day_rate(dt: datetime) -> bool:
     fixed = {(int(h[:2]), int(h[3:])) for h in HELLIGDAGER_FASTE}
     # Inkluder BKKs DSO-spesifikke ekstra (24.12, 31.12) siden _is_day_rate
     # går mot BKK-coordinator.
-    bkk_extra = {
-        (int(h[:2]), int(h[3:])) for h in DSO_LIST["bkk"].get("helligdager_ekstra", [])
-    }
+    bkk_extra = {(int(h[:2]), int(h[3:])) for h in DSO_LIST["bkk"].get("helligdager_ekstra", [])}
     if (dt.month, dt.day) in fixed or (dt.month, dt.day) in bkk_extra:
         return False
 
@@ -633,6 +625,4 @@ def test_differential_avg_top3_two_implementations(values: list[float]) -> None:
     daily_max = {f"2026-01-{i + 1:02d}": v for i, v in enumerate(values)}
     result1 = _avg_top_3_via_coordinator(_bkk_coordinator(), daily_max)
     result2 = _alt_avg_top3(daily_max)
-    assert abs(result1 - result2) < 1e-10, (
-        f"Implementations disagree: {result1} vs {result2} for {values}"
-    )
+    assert abs(result1 - result2) < 1e-10, f"Implementations disagree: {result1} vs {result2} for {values}"

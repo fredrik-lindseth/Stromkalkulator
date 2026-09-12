@@ -58,8 +58,9 @@ def inject_one(md_path: Path) -> list[str]:
 
 def main() -> int:
     if not GENERATED_DIR.exists():
-        print(f"Ingen {GENERATED_DIR.relative_to(ROOT)}/-mappe. Har du kjørt verify-scriptene?",
-              file=sys.stderr)
+        print(
+            f"Ingen {GENERATED_DIR.relative_to(ROOT)}/-mappe. Har du kjørt verify-scriptene?", file=sys.stderr
+        )
         return 1
 
     total_changed = 0

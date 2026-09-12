@@ -70,11 +70,11 @@ class TestHolidaysBeyond2030:
         expected_dates = [
             (easter - timedelta(days=3)).isoformat(),  # Skjærtorsdag
             (easter - timedelta(days=2)).isoformat(),  # Langfredag
-            easter.isoformat(),                         # 1. påskedag
+            easter.isoformat(),  # 1. påskedag
             (easter + timedelta(days=1)).isoformat(),  # 2. påskedag
-            (easter + timedelta(days=39)).isoformat(), # Kr. himmelfart
-            (easter + timedelta(days=49)).isoformat(), # 1. pinsedag
-            (easter + timedelta(days=50)).isoformat(), # 2. pinsedag
+            (easter + timedelta(days=39)).isoformat(),  # Kr. himmelfart
+            (easter + timedelta(days=49)).isoformat(),  # 1. pinsedag
+            (easter + timedelta(days=50)).isoformat(),  # 2. pinsedag
         ]
         assert holidays == expected_dates
 
@@ -87,6 +87,4 @@ class TestHolidaysBeyond2030:
         """
         holidays_2031 = _bevegelige_helligdager(2031)
         for h in holidays_2031:
-            assert h not in HELLIGDAGER_BEVEGELIGE, (
-                f"{h} found in precomputed list, update const.py?"
-            )
+            assert h not in HELLIGDAGER_BEVEGELIGE, f"{h} found in precomputed list, update const.py?"

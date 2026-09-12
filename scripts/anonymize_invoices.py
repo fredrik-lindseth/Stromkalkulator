@@ -140,10 +140,14 @@ def run_inplace_mode(config: dict, dry_run: bool) -> None:
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument(
-        "--inplace", action="store_true", help="Anonymiser filer fra anonymize_inplace_globs direkte (overwrite)."
+        "--inplace",
+        action="store_true",
+        help="Anonymiser filer fra anonymize_inplace_globs direkte (overwrite).",
     )
     p.add_argument(
-        "--dry-run", action="store_true", help="Med --inplace: vis hva som ville blitt endret, men skriv ikke."
+        "--dry-run",
+        action="store_true",
+        help="Med --inplace: vis hva som ville blitt endret, men skriv ikke.",
     )
     return p.parse_args()
 

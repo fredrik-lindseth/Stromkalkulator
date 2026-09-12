@@ -25,9 +25,7 @@ OSLO = ZoneInfo("Europe/Oslo")
 def lokal_midnatt():
     """Gi sensor-modulens mockede dt_util en ekte start_of_local_day."""
     with patch("stromkalkulator.sensor.dt_util") as mock_dt:
-        mock_dt.start_of_local_day.side_effect = lambda d: datetime.combine(
-            d.date(), time(), tzinfo=OSLO
-        )
+        mock_dt.start_of_local_day.side_effect = lambda d: datetime.combine(d.date(), time(), tzinfo=OSLO)
         yield mock_dt
 
 
@@ -54,9 +52,7 @@ def _kjor_maanedsskifte(coord_module):
 class TestMaanedsskifte:
     """Månedssensorene flytter last_reset i samme oppdatering som nullstillingen."""
 
-    def test_akkumulert_kostnad_nullstilles_og_flytter_last_reset(
-        self, coord_module, lokal_midnatt
-    ):
+    def test_akkumulert_kostnad_nullstilles_og_flytter_last_reset(self, coord_module, lokal_midnatt):
         """Verdien faller til 0 og last_reset flytter til 1. juli i samme data-dict."""
         from stromkalkulator.sensor import AkkumulertKostnadSensor
 
@@ -115,9 +111,7 @@ class TestMaanedsskifte:
         """Månedsforbruket nullstilles, så MaanedligTotal faller sammen med last_reset."""
         from stromkalkulator.sensor import MaanedligTotalSensor
 
-        c = coord_module.NettleieCoordinator(
-            _make_hass(power_w=5000, spot_price=1.20), _make_entry()
-        )
+        c = coord_module.NettleieCoordinator(_make_hass(power_w=5000, spot_price=1.20), _make_entry())
         c._monthly_consumption = coord_module.ConsumptionData(dag=500.0, natt=200.0)
 
         juni_data = _run_update(coord_module, c, _real_datetime(2026, 6, 30, 23, 58))
@@ -139,9 +133,7 @@ class TestDognskifte:
         """Verdien faller og last_reset flytter til det nye døgnet."""
         from stromkalkulator.sensor import DagskostnadSensor
 
-        c = coord_module.NettleieCoordinator(
-            _make_hass(power_w=5000, spot_price=1.20), _make_entry()
-        )
+        c = coord_module.NettleieCoordinator(_make_hass(power_w=5000, spot_price=1.20), _make_entry())
 
         # Bygg opp en times dagskostnad i 5-minutters steg.
         start = _real_datetime(2026, 6, 15, 23, 0)
@@ -165,21 +157,17 @@ class TestPeriodestart:
     """Utleding av periodestart fra coordinator-merkelappene."""
 
     def test_maanedsstart_er_lokal_midnatt(self, lokal_midnatt):
-        """"2026-07" gir 1. juli kl. 00:00 lokal tid."""
+        """ "2026-07" gir 1. juli kl. 00:00 lokal tid."""
         from stromkalkulator.sensor import AkkumulertKostnadSensor
 
-        sensor = AkkumulertKostnadSensor(
-            _make_coordinator({"current_month": "2026-07"}), _make_entry()
-        )
+        sensor = AkkumulertKostnadSensor(_make_coordinator({"current_month": "2026-07"}), _make_entry())
         assert sensor.last_reset == datetime(2026, 7, 1, tzinfo=OSLO)
 
     def test_dognstart_er_lokal_midnatt(self, lokal_midnatt):
-        """"2026-07-15" gir 15. juli kl. 00:00 lokal tid."""
+        """ "2026-07-15" gir 15. juli kl. 00:00 lokal tid."""
         from stromkalkulator.sensor import DagskostnadSensor
 
-        sensor = DagskostnadSensor(
-            _make_coordinator({"current_date": "2026-07-15"}), _make_entry()
-        )
+        sensor = DagskostnadSensor(_make_coordinator({"current_date": "2026-07-15"}), _make_entry())
         assert sensor.last_reset == datetime(2026, 7, 15, tzinfo=OSLO)
 
     @pytest.mark.parametrize("data", [None, {}, {"current_month": "tull"}, {"current_month": 7}])
@@ -207,9 +195,7 @@ class TestCoordinatorKontrakt:
 
     def test_data_inneholder_periodemerkelapper(self, coord_module):
         """current_month og current_date følger hver oppdatering."""
-        c = coord_module.NettleieCoordinator(
-            _make_hass(power_w=5000, spot_price=1.20), _make_entry()
-        )
+        c = coord_module.NettleieCoordinator(_make_hass(power_w=5000, spot_price=1.20), _make_entry())
         data = _run_update(coord_module, c, _real_datetime(2026, 6, 15, 12, 0))
 
         assert data["current_month"] == "2026-06"

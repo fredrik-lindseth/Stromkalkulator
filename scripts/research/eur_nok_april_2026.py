@@ -80,7 +80,7 @@ def main() -> None:
     print(f"  HA-cache: {ha_eur_mwh:.3f} EUR/MWh")
     print(f"  Faktura:  {fakt_eur_mwh:.3f} EUR/MWh")
     diff_eur = ha_eur_mwh - fakt_eur_mwh
-    print(f"  Diff:     {diff_eur:+.3f} EUR/MWh ({diff_eur/fakt_eur_mwh*100:+.3f}%)")
+    print(f"  Diff:     {diff_eur:+.3f} EUR/MWh ({diff_eur / fakt_eur_mwh * 100:+.3f}%)")
     print()
 
     implied_kurs = HA_CACHE_NOK_PER_KWH_EKS_MVA * 1000 / fakt_eur_mwh

@@ -22,17 +22,25 @@ from tests.conftest import _make_hass as _base_make_hass
 
 # ---- HA module mocks for sensor-instansiering (samme mønster som test_sensor_classes) ----
 _sensor_mod = sys.modules["homeassistant.components.sensor"]
-_sensor_mod.SensorDeviceClass = type("SensorDeviceClass", (), {
-    "MONETARY": "monetary",
-    "POWER": "power",
-    "ENERGY": "energy",
-})
+_sensor_mod.SensorDeviceClass = type(
+    "SensorDeviceClass",
+    (),
+    {
+        "MONETARY": "monetary",
+        "POWER": "power",
+        "ENERGY": "energy",
+    },
+)
 _sensor_mod.SensorEntity = type("SensorEntity", (), {})
-_sensor_mod.SensorStateClass = type("SensorStateClass", (), {
-    "MEASUREMENT": "measurement",
-    "TOTAL": "total",
-    "TOTAL_INCREASING": "total_increasing",
-})
+_sensor_mod.SensorStateClass = type(
+    "SensorStateClass",
+    (),
+    {
+        "MEASUREMENT": "measurement",
+        "TOTAL": "total",
+        "TOTAL_INCREASING": "total_increasing",
+    },
+)
 _const_mod = sys.modules["homeassistant.const"]
 _const_mod.EntityCategory = type("EntityCategory", (), {"DIAGNOSTIC": "diagnostic", "CONFIG": "config"})
 _entity_mod = sys.modules["homeassistant.helpers.entity"]
@@ -56,8 +64,8 @@ from stromkalkulator.sensor import StromstotteSensor  # noqa: E402
 
 # Terskler per sone (NOK/kWh, samme enhet som normalisert spotpris)
 TERSKEL = {
-    "standard": 0.9625,   # 77 øre * 1.25
-    "nord_norge": 0.77,   # mva-fritak
+    "standard": 0.9625,  # 77 øre * 1.25
+    "nord_norge": 0.77,  # mva-fritak
     "tiltakssone": 0.77,  # mva-fritak
 }
 
@@ -111,7 +119,7 @@ class TestSonebevisstStotte:
             ("standard", 0.76),
             # nord_norge rundt 77
             ("nord_norge", 0.76),
-            ("nord_norge", 0.87),   # regresjon: flat terskel ga 0 her
+            ("nord_norge", 0.87),  # regresjon: flat terskel ga 0 her
             # nord_norge videre opp mot/over 96,25 (lineær fra 77)
             ("nord_norge", 0.96),
             ("nord_norge", 1.07),

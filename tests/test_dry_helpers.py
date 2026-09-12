@@ -11,23 +11,35 @@ import pytest
 # Patch HA modules so sensor.py classes can be imported without a live HA instance.
 # This must mirror what test_sensor_classes.py does to avoid metaclass conflicts.
 _sensor_mod = sys.modules["homeassistant.components.sensor"]
-_sensor_mod.SensorDeviceClass = type("SensorDeviceClass", (), {
-    "MONETARY": "monetary",
-    "POWER": "power",
-    "ENERGY": "energy",
-})
+_sensor_mod.SensorDeviceClass = type(
+    "SensorDeviceClass",
+    (),
+    {
+        "MONETARY": "monetary",
+        "POWER": "power",
+        "ENERGY": "energy",
+    },
+)
 _sensor_mod.SensorEntity = type("SensorEntity", (), {})
-_sensor_mod.SensorStateClass = type("SensorStateClass", (), {
-    "MEASUREMENT": "measurement",
-    "TOTAL": "total",
-    "TOTAL_INCREASING": "total_increasing",
-})
+_sensor_mod.SensorStateClass = type(
+    "SensorStateClass",
+    (),
+    {
+        "MEASUREMENT": "measurement",
+        "TOTAL": "total",
+        "TOTAL_INCREASING": "total_increasing",
+    },
+)
 
 _const_mod = sys.modules["homeassistant.const"]
-_const_mod.EntityCategory = type("EntityCategory", (), {
-    "DIAGNOSTIC": "diagnostic",
-    "CONFIG": "config",
-})
+_const_mod.EntityCategory = type(
+    "EntityCategory",
+    (),
+    {
+        "DIAGNOSTIC": "diagnostic",
+        "CONFIG": "config",
+    },
+)
 
 _entity_mod = sys.modules["homeassistant.helpers.entity"]
 _entity_mod.EntityCategory = _const_mod.EntityCategory
@@ -86,6 +98,7 @@ def _patch_coordinator_base():
     original = getattr(_coord_mod, "DataUpdateCoordinator", None)
     _coord_mod.DataUpdateCoordinator = _FakeDataUpdateCoordinator
     import stromkalkulator.coordinator as coord
+
     importlib.reload(coord)
     yield coord.NettleieCoordinator
     _coord_mod.DataUpdateCoordinator = original
@@ -98,7 +111,12 @@ class TestReadSensorFloat:
         """Create a coordinator instance with a mocked hass that returns sensor_value."""
         hass = MagicMock()
         entry = MagicMock()
-        entry.data = {"tso": "bkk", "power_sensor": "sensor.power", "spot_price_sensor": "sensor.spot", "spotpris_inkl_mva": True}
+        entry.data = {
+            "tso": "bkk",
+            "power_sensor": "sensor.power",
+            "spot_price_sensor": "sensor.spot",
+            "spotpris_inkl_mva": True,
+        }
         entry.entry_id = "test_entry"
         state = MagicMock()
         state.state = sensor_value
@@ -110,7 +128,12 @@ class TestReadSensorFloat:
         """Create a coordinator where hass.states.get returns None."""
         hass = MagicMock()
         entry = MagicMock()
-        entry.data = {"tso": "bkk", "power_sensor": "sensor.power", "spot_price_sensor": "sensor.spot", "spotpris_inkl_mva": True}
+        entry.data = {
+            "tso": "bkk",
+            "power_sensor": "sensor.power",
+            "spot_price_sensor": "sensor.spot",
+            "spotpris_inkl_mva": True,
+        }
         entry.entry_id = "test_entry"
         hass.states.get = MagicMock(return_value=None)
         coord = cls(hass, entry)

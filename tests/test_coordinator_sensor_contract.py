@@ -22,23 +22,35 @@ _real_datetime = datetime
 # ---------------------------------------------------------------------------
 
 _sensor_mod = sys.modules["homeassistant.components.sensor"]
-_sensor_mod.SensorDeviceClass = type("SensorDeviceClass", (), {
-    "MONETARY": "monetary",
-    "POWER": "power",
-    "ENERGY": "energy",
-})
+_sensor_mod.SensorDeviceClass = type(
+    "SensorDeviceClass",
+    (),
+    {
+        "MONETARY": "monetary",
+        "POWER": "power",
+        "ENERGY": "energy",
+    },
+)
 _sensor_mod.SensorEntity = type("SensorEntity", (), {})
-_sensor_mod.SensorStateClass = type("SensorStateClass", (), {
-    "MEASUREMENT": "measurement",
-    "TOTAL": "total",
-    "TOTAL_INCREASING": "total_increasing",
-})
+_sensor_mod.SensorStateClass = type(
+    "SensorStateClass",
+    (),
+    {
+        "MEASUREMENT": "measurement",
+        "TOTAL": "total",
+        "TOTAL_INCREASING": "total_increasing",
+    },
+)
 
 _const_mod = sys.modules["homeassistant.const"]
-_const_mod.EntityCategory = type("EntityCategory", (), {
-    "DIAGNOSTIC": "diagnostic",
-    "CONFIG": "config",
-})
+_const_mod.EntityCategory = type(
+    "EntityCategory",
+    (),
+    {
+        "DIAGNOSTIC": "diagnostic",
+        "CONFIG": "config",
+    },
+)
 
 _entity_mod = sys.modules["homeassistant.helpers.entity"]
 _entity_mod.EntityCategory = _const_mod.EntityCategory

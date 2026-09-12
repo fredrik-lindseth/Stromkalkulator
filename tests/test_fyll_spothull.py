@@ -170,7 +170,9 @@ def test_time_00_langt_fra_forrige_kvarter_star_urort(tmp_path: Path) -> None:
     assert "spot_kilde" not in ut["hours"][24]
 
 
-def test_ekte_maaling_i_time_00_pa_flat_natt_star_urort(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_ekte_maaling_i_time_00_pa_flat_natt_star_urort(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     """Hullet starter kl. 01 på en flat natt, og time 00 er en ekte måling.
 
     Prisen står stille gjennom natten, så målingen i time 00 havner tilfeldig

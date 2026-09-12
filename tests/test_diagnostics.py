@@ -29,8 +29,16 @@ def mock_coordinator():
     coordinator.energiledd_dag = 0.46125
     coordinator.energiledd_natt = 0.23275
     coordinator.kapasitetstrinn = [
-        (2, 155), (5, 250), (10, 415), (15, 600), (20, 770),
-        (25, 940), (50, 1800), (75, 2650), (100, 3500), (float("inf"), 6900),
+        (2, 155),
+        (5, 250),
+        (10, 415),
+        (15, 600),
+        (20, 770),
+        (25, 940),
+        (50, 1800),
+        (75, 2650),
+        (100, 3500),
+        (float("inf"), 6900),
     ]
     coordinator.data = {
         "energiledd": 0.4613,

@@ -147,6 +147,7 @@ class Avvik:
 def gh_get_json(url: str) -> Any:
     with urllib.request.urlopen(url, timeout=30) as r:
         import json
+
         return json.loads(r.read())
 
 
@@ -191,8 +192,18 @@ def aktiv_tariff(data: dict[str, Any], paa: date, kundegruppe: str = "husholdnin
 
 
 MAANED_MAP = {
-    "januar": 1, "februar": 2, "mars": 3, "april": 4, "mai": 5, "juni": 6,
-    "juli": 7, "august": 8, "september": 9, "oktober": 10, "november": 11, "desember": 12,
+    "januar": 1,
+    "februar": 2,
+    "mars": 3,
+    "april": 4,
+    "mai": 5,
+    "juni": 6,
+    "juli": 7,
+    "august": 8,
+    "september": 9,
+    "oktober": 10,
+    "november": 11,
+    "desember": 12,
 }
 
 
@@ -286,9 +297,7 @@ def deres_trinn(tariff: dict[str, Any], mva_faktor: float) -> list[tuple[float, 
     return ut
 
 
-def sammenlign_sikringstrinn(
-    entry: dict[str, Any], tariff: dict[str, Any], mva_faktor: float
-) -> str | None:
+def sammenlign_sikringstrinn(entry: dict[str, Any], tariff: dict[str, Any], mva_faktor: float) -> str | None:
     """Sammenlign sikringsbaserte fastledd-satser. None hvis likt.
 
     Vi kan ha flere rader enn fri-nettleie: de koder bare én spenningskolonne,
@@ -334,9 +343,7 @@ def sammenlign_lineaer(entry: dict[str, Any], tariff: dict[str, Any]) -> str | N
     return None
 
 
-def sammenlign_fastledd(
-    vaare: list[tuple[float, int]], deres: list[tuple[float, int]]
-) -> str | None:
+def sammenlign_fastledd(vaare: list[tuple[float, int]], deres: list[tuple[float, int]]) -> str | None:
     """Returner en beskrivelse av første fastledd-avvik, eller None hvis likt.
 
     Vi kollapser gjerne de øverste trinnene til ett `inf`-trinn der DSO-en selv
@@ -356,7 +363,9 @@ def sammenlign_fastledd(
     return None
 
 
-def sammenlign(remote_slugs: set[str], paa: date, bare_avvik: bool, filter_ids: set[str] | None) -> list[Avvik]:
+def sammenlign(
+    remote_slugs: set[str], paa: date, bare_avvik: bool, filter_ids: set[str] | None
+) -> list[Avvik]:
     avvik: list[Avvik] = []
     for var_id, entry in sorted(DSO_LIST.items()):
         if filter_ids and var_id not in filter_ids:
@@ -415,9 +424,7 @@ def sammenlign(remote_slugs: set[str], paa: date, bare_avvik: bool, filter_ids: 
         their_metode = deres_metode(tariff)
         if their_metode and var_metode != their_metode:
             avvik.append(Avvik(var_id, "metode", None, None))
-            print(
-                f"[M] {var_id:20s} ({slug:25s})  fastledd-metode {var_metode} vs {their_metode}"
-            )
+            print(f"[M] {var_id:20s} ({slug:25s})  fastledd-metode {var_metode} vs {their_metode}")
             avvikende = True
 
         if var_metode == FASTLEDD_OV_TREFASE:
@@ -448,10 +455,13 @@ def sammenlign(remote_slugs: set[str], paa: date, bare_avvik: bool, filter_ids: 
 
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--dato", type=date.fromisoformat, default=date.today(),
-                   help="Dato å sammenligne for (YYYY-MM-DD), default: i dag")
-    p.add_argument("--bare-avvik", action="store_true",
-                   help="Skriv bare ut avvik, ikke OK-rader")
+    p.add_argument(
+        "--dato",
+        type=date.fromisoformat,
+        default=date.today(),
+        help="Dato å sammenligne for (YYYY-MM-DD), default: i dag",
+    )
+    p.add_argument("--bare-avvik", action="store_true", help="Skriv bare ut avvik, ikke OK-rader")
     p.add_argument("--dso", help="Komma-separert liste over DSO-IDer å sjekke")
     args = p.parse_args()
 
@@ -486,7 +496,9 @@ def main() -> int:
             f"{', '.join(sorted(a.dso_id for a in metode_avvik))}"
         )
     if kjente:
-        print(f"# {len(kjente)} kjent(e) avvik (følger nettselskapets egen side, ikke drift): {', '.join(kjente)}")
+        print(
+            f"# {len(kjente)} kjent(e) avvik (følger nettselskapets egen side, ikke drift): {', '.join(kjente)}"
+        )
         for dso_id in kjente:
             print(f"#   {dso_id}: {KJENTE_AVVIK[dso_id]}")
     # Umatchede DSO-er kan ikke auto-sjekkes og må verifiseres manuelt mot kilde.

@@ -54,9 +54,7 @@ if TYPE_CHECKING:
 _LOGGER: logging.Logger = logging.getLogger(__name__)
 
 # Enheter som ikke kan være en spotpris (mangler /-tegnet) eller er valuta uten energi-divisor.
-_INVALID_SPOT_UNITS: frozenset[str] = frozenset(
-    {"kr", "nok", "eur", "kwh", "mwh", "wh"}
-)
+_INVALID_SPOT_UNITS: frozenset[str] = frozenset({"kr", "nok", "eur", "kwh", "mwh", "wh"})
 # Spotpris er typisk -1 til ~10 NOK/kWh, eller -100 til 1000 øre/kWh, eller -10 til
 # ~100 EUR/MWh. Et tall over denne grensen er nesten garantert ikke en spotpris.
 _MAX_REASONABLE_SPOT_VALUE: float = 2000.0
@@ -118,9 +116,7 @@ def _sikringstrinn_selector(dso_id: str) -> selector.SelectSelector:
     trinn = DSO_LIST[dso_id].get("fastledd_sikringstrinn", [])
     return selector.SelectSelector(
         selector.SelectSelectorConfig(
-            options=[
-                selector.SelectOptionDict(value=t["id"], label=t["label"]) for t in trinn
-            ],
+            options=[selector.SelectOptionDict(value=t["id"], label=t["label"]) for t in trinn],
             mode=selector.SelectSelectorMode.LIST,
         ),
     )
@@ -504,9 +500,7 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
 
         return self.async_show_form(
             step_id="sikring",
-            data_schema=vol.Schema(
-                {vol.Required(CONF_SIKRINGSTRINN): _sikringstrinn_selector(dso_id)}
-            ),
+            data_schema=vol.Schema({vol.Required(CONF_SIKRINGSTRINN): _sikringstrinn_selector(dso_id)}),
             description_placeholders={"dso": DSO_LIST[dso_id]["name"]},
         )
 
@@ -535,7 +529,9 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
                             mode=selector.SelectSelectorMode.DROPDOWN,
                         ),
                     ),
-                    vol.Required(CONF_ENERGILEDD_DAG, default=DEFAULT_ENERGILEDD_DAG): selector.NumberSelector(
+                    vol.Required(
+                        CONF_ENERGILEDD_DAG, default=DEFAULT_ENERGILEDD_DAG
+                    ): selector.NumberSelector(
                         selector.NumberSelectorConfig(
                             min=0,
                             max=2,
@@ -544,7 +540,9 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
                             mode=selector.NumberSelectorMode.BOX,
                         ),
                     ),
-                    vol.Required(CONF_ENERGILEDD_NATT, default=DEFAULT_ENERGILEDD_NATT): selector.NumberSelector(
+                    vol.Required(
+                        CONF_ENERGILEDD_NATT, default=DEFAULT_ENERGILEDD_NATT
+                    ): selector.NumberSelector(
                         selector.NumberSelectorConfig(
                             min=0,
                             max=2,
@@ -574,9 +572,7 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
             data=self._data,
         )
 
-    async def async_step_reconfigure(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Reconfigure an existing entry via the standard HA entry menu.
 
         Reuses the same schema, validation and DSO-derivation as the options
@@ -589,9 +585,7 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            errors = _validate_options_input(
-                self.hass, user_input, entry.entry_id, entry.data
-            )
+            errors = _validate_options_input(self.hass, user_input, entry.entry_id, entry.data)
             if not errors:
                 _apply_dso_derivation(user_input, entry.data.get(CONF_DSO))
                 new_data: dict[str, Any] = {**entry.data, **user_input}
@@ -624,9 +618,7 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):
         current: dict[str, Any] = self.config_entry.data
 
         if user_input is not None:
-            errors = _validate_options_input(
-                self.hass, user_input, self.config_entry.entry_id, current
-            )
+            errors = _validate_options_input(self.hass, user_input, self.config_entry.entry_id, current)
             if not errors:
                 _apply_dso_derivation(user_input, current.get(CONF_DSO))
 

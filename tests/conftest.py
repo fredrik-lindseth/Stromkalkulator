@@ -203,6 +203,7 @@ def _patch_update_coordinator():
 
     original_uf = getattr(mod, "UpdateFailed", None)
     if not isinstance(original_uf, type) or not issubclass(original_uf, BaseException):
+
         class UpdateFailed(Exception):
             pass
 

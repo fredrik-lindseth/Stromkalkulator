@@ -92,9 +92,7 @@ class TestExportAccumulation:
         """
         spot_price_inkl_mva = 1.50
         export_w = 6000
-        hass = _make_hass(
-            power_w=5000, spot_price=spot_price_inkl_mva, export_power_w=export_w
-        )
+        hass = _make_hass(power_w=5000, spot_price=spot_price_inkl_mva, export_power_w=export_w)
         # Test-fixture har spotpris_inkl_mva=True (1.50 brukes direkte som inkl-mva-pris)
         entry = _make_entry(export_power_sensor="sensor.export_power")
         coordinator = coord_module.NettleieCoordinator(hass, entry)
@@ -117,13 +115,9 @@ class TestExportAccumulation:
         """For eks-mva-sensor brukes verdien direkte uten konvertering."""
         spot_price_eks_mva = 1.20
         export_w = 6000
-        hass = _make_hass(
-            power_w=5000, spot_price=spot_price_eks_mva, export_power_w=export_w
-        )
+        hass = _make_hass(power_w=5000, spot_price=spot_price_eks_mva, export_power_w=export_w)
         # Spotpris-sensor leverer eks. mva (HA-core nordpool)
-        entry = _make_entry(
-            export_power_sensor="sensor.export_power", spotpris_inkl_mva=False
-        )
+        entry = _make_entry(export_power_sensor="sensor.export_power", spotpris_inkl_mva=False)
         coordinator = coord_module.NettleieCoordinator(hass, entry)
 
         t0 = _real_datetime(2026, 6, 15, 12, 0)
@@ -139,12 +133,8 @@ class TestExportAccumulation:
         """Nord-Norge har 0 % mva, eks=inkl, ingen konvertering."""
         spot_price = 1.20
         export_w = 6000
-        hass = _make_hass(
-            power_w=5000, spot_price=spot_price, export_power_w=export_w
-        )
-        entry = _make_entry(
-            export_power_sensor="sensor.export_power", avgiftssone="nord_norge"
-        )
+        hass = _make_hass(power_w=5000, spot_price=spot_price, export_power_w=export_w)
+        entry = _make_entry(export_power_sensor="sensor.export_power", avgiftssone="nord_norge")
         coordinator = coord_module.NettleieCoordinator(hass, entry)
 
         t0 = _real_datetime(2026, 6, 15, 12, 0)

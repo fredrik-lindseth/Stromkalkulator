@@ -50,8 +50,18 @@ FIXTURES: Final[Path] = ROOT / "tests" / "fixtures"
 GENERATED: Final[Path] = ROOT / "docs" / "research" / "_generated" / "verify_norgespris_eksakt.md"
 
 MND_NR: Final[dict[str, int]] = {
-    "januar": 1, "februar": 2, "mars": 3, "april": 4, "mai": 5, "juni": 6,
-    "juli": 7, "august": 8, "september": 9, "oktober": 10, "november": 11, "desember": 12,
+    "januar": 1,
+    "februar": 2,
+    "mars": 3,
+    "april": 4,
+    "mai": 5,
+    "juni": 6,
+    "juli": 7,
+    "august": 8,
+    "september": 9,
+    "oktober": 10,
+    "november": 11,
+    "desember": 12,
 }
 UKEDAG: Final[list[str]] = ["man", "tir", "ons", "tor", "fre", "lør", "søn"]
 
@@ -130,8 +140,7 @@ def last_elhub(navn: str) -> dict[str, float] | None:
 def komp_sum(kwhs: list[float], priser: list[float]) -> float:
     """Norgespris-kompensasjon: sum av (0,50 - spot inkl. mva) x kWh. Negativ = tilgode."""
     return sum(
-        (vih.NORGESPRIS_INKL_MVA - p * vih.MVA_SATS) * kwh
-        for kwh, p in zip(kwhs, priser, strict=True)
+        (vih.NORGESPRIS_INKL_MVA - p * vih.MVA_SATS) * kwh for kwh, p in zip(kwhs, priser, strict=True)
     )
 
 
@@ -149,9 +158,7 @@ def analyser_maaned(navn: str, shift_seconds: int) -> dict[str, Any] | None:
     # sammenlignes med fakturaen. Det gjelder også timer som senere er fylt
     # fra Elhub (kwh_kilde == "elhub", se fyll_datahull_fra_elhub.py): de er
     # ikke HAN-data, og Elhub-varianten leser uansett CSV-en direkte.
-    alle_han = [
-        {**h, "kwh": None} if h.get("kwh_kilde") == "elhub" else h for h in alle
-    ]
+    alle_han = [{**h, "kwh": None} if h.get("kwh_kilde") == "elhub" else h for h in alle]
     korrigert = vih.shift_korriger(alle_han, shift_seconds)
     manglende_timer = sum(1 for k in korrigert if k is None)
     hours = [h for h, k in zip(alle, korrigert, strict=True) if k is not None]
@@ -184,13 +191,15 @@ def analyser_maaned(navn: str, shift_seconds: int) -> dict[str, Any] | None:
             continue
         snitt = sum(ratioer) / len(ratioer)
         konstant = max(ratioer) - min(ratioer) < 5e-4
-        aargang.append({
-            "dag": dag,
-            "ukedag": UKEDAG[datetime.fromisoformat(dag).weekday()],
-            "ratio": snitt,
-            "konstant": konstant,
-            "timer": len(par),
-        })
+        aargang.append(
+            {
+                "dag": dag,
+                "ukedag": UKEDAG[datetime.fromisoformat(dag).weekday()],
+                "ratio": snitt,
+                "konstant": konstant,
+                "timer": len(par),
+            }
+        )
 
     # Symmetri: timer der spot inkl. mva < 50 øre (kunden betaler mellomlegg)
     betaletimer = sum(1 for p in np_ if vih.NORGESPRIS_INKL_MVA - p * vih.MVA_SATS > 0)
@@ -238,20 +247,30 @@ def analyser_maaned(navn: str, shift_seconds: int) -> dict[str, Any] | None:
 
 def print_konsoll(res: dict[str, Any]) -> None:
     print(f"=== {res['navn']}: Norgespris mot publiserte Final-priser ===")
-    print(f"  priskilde: {res['kilder']['arkiv']} timer NOK-arkiv, "
-          f"{res['kilder']['fallback']} timer EUR x EXR-fallback")
-    print(f"  prisfidelitet HA vs publisert: {res['bitlike']}/{res['n_fidelitet']} bit-like, "
-          f"{res['naere']}/{res['n_fidelitet']} innenfor 0,01 øre/kWh")
+    print(
+        f"  priskilde: {res['kilder']['arkiv']} timer NOK-arkiv, "
+        f"{res['kilder']['fallback']} timer EUR x EXR-fallback"
+    )
+    print(
+        f"  prisfidelitet HA vs publisert: {res['bitlike']}/{res['n_fidelitet']} bit-like, "
+        f"{res['naere']}/{res['n_fidelitet']} innenfor 0,01 øre/kWh"
+    )
     if res["n_fylt_spot"]:
-        print(f"    ({res['n_fylt_spot']} timer holdt utenfor: recorder-hullet er fylt "
-              f"fra det publiserte arkivet)")
+        print(
+            f"    ({res['n_fylt_spot']} timer holdt utenfor: recorder-hullet er fylt "
+            f"fra det publiserte arkivet)"
+        )
     if res["aargang"]:
         print("  prisårgang (hele dager der HA-prisen er en annen kurs-årgang):")
         for a in res["aargang"]:
             merke = "konstant faktor" if a["konstant"] else "varierende"
-            print(f"    {a['dag']} {a['ukedag']}: HA/publisert = {a['ratio']:.5f} ({merke}, {a['timer']} timer)")
-    print(f"  symmetri: {res['betaletimer']} timer med spot < 50 øre inkl. mva; "
-          f"å klippe dem ville flyttet summen {res['clamp_avvik']:+.2f} kr")
+            print(
+                f"    {a['dag']} {a['ukedag']}: HA/publisert = {a['ratio']:.5f} ({merke}, {a['timer']} timer)"
+            )
+    print(
+        f"  symmetri: {res['betaletimer']} timer med spot < 50 øre inkl. mva; "
+        f"å klippe dem ville flyttet summen {res['clamp_avvik']:+.2f} kr"
+    )
     rader = [
         ("HAN-kWh x HA-recorder ", res["komp_ha"], False),
         ("HAN-kWh x Final       ", res["komp_np"], False),
@@ -259,19 +278,25 @@ def print_konsoll(res: dict[str, Any]) -> None:
     if res["komp_elhub"] is not None:
         rader.append(("Elhub-kWh x Final     ", res["komp_elhub"], res["elhub_full"]))
     if res["manglende_timer"]:
-        print(f"  DELVIS: {res['manglende_timer']} timer mangler måling i HAN-fixturen. "
-              f"HAN-summene under dekker bare de {res['n_timer']} målte timene og kan ikke "
-              f"sammenlignes med fakturalinjen ({res['faktura']:+.2f} kr for hele måneden).")
+        print(
+            f"  DELVIS: {res['manglende_timer']} timer mangler måling i HAN-fixturen. "
+            f"HAN-summene under dekker bare de {res['n_timer']} målte timene og kan ikke "
+            f"sammenlignes med fakturalinjen ({res['faktura']:+.2f} kr for hele måneden)."
+        )
         for kilde, verdi, hel_maaned in rader:
             if hel_maaned:
-                print(f"  Norgespris, {kilde}: {verdi:+10.2f} kr, faktura {res['faktura']:+.2f}, "
-                      f"avvik {verdi - res['faktura']:+.3f} (hele måneden, uavhengig av HAN)")
+                print(
+                    f"  Norgespris, {kilde}: {verdi:+10.2f} kr, faktura {res['faktura']:+.2f}, "
+                    f"avvik {verdi - res['faktura']:+.3f} (hele måneden, uavhengig av HAN)"
+                )
             else:
                 print(f"  Norgespris, {kilde}: {verdi:+10.2f} kr (delvis)")
     else:
         for kilde, verdi, _hel_maaned in rader:
-            print(f"  Norgespris, {kilde}: {verdi:+10.2f} kr, faktura {res['faktura']:+.2f}, "
-                  f"avvik {verdi - res['faktura']:+.3f}")
+            print(
+                f"  Norgespris, {kilde}: {verdi:+10.2f} kr, faktura {res['faktura']:+.2f}, "
+                f"avvik {verdi - res['faktura']:+.3f}"
+            )
     if res["komp_elhub"] is None:
         print("  (ingen Elhub-CSV som dekker måneden; last ned fra elhub.no for skarpeste sjekk)")
     print()
@@ -336,15 +361,23 @@ def emit_markdown(resultater: list[dict[str, Any]]) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--faktura", choices=sorted(vih.FAKTURAER.keys()),
-                   help="Kjør kun én måned (default: alle med prisdekning)")
+    p.add_argument(
+        "--faktura",
+        choices=sorted(vih.FAKTURAER.keys()),
+        help="Kjør kun én måned (default: alle med prisdekning)",
+    )
     p.add_argument("--shift-seconds", type=int, default=13)
-    p.add_argument("--emit-markdown", action="store_true",
-                   help=f"Skriv {GENERATED.relative_to(ROOT)} for inject_generated.py")
+    p.add_argument(
+        "--emit-markdown",
+        action="store_true",
+        help=f"Skriv {GENERATED.relative_to(ROOT)} for inject_generated.py",
+    )
     args = p.parse_args(argv if argv is not None else sys.argv[1:])
 
-    navn = [args.faktura] if args.faktura else sorted(
-        vih.FAKTURAER, key=lambda n: (int(n.split("_")[1]), MND_NR[n.split("_")[0]])
+    navn = (
+        [args.faktura]
+        if args.faktura
+        else sorted(vih.FAKTURAER, key=lambda n: (int(n.split("_")[1]), MND_NR[n.split("_")[0]]))
     )
     resultater = []
     for n in navn:

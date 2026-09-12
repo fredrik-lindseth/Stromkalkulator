@@ -74,10 +74,7 @@ class HourPoint:
 
 def load_hours() -> list[HourPoint]:
     data = json.loads(FIXTURE.read_text())
-    return [
-        HourPoint(h["start_local"], h["kwh"], h["spot_nok_kwh_eks_mva"])
-        for h in data["hours"]
-    ]
+    return [HourPoint(h["start_local"], h["kwh"], h["spot_nok_kwh_eks_mva"]) for h in data["hours"]]
 
 
 def netto_spot_etter_stotte(
@@ -149,9 +146,7 @@ def report(label: str, netto: float) -> None:
         marker = "  ← MATCH BKK"
     elif abs(diff_us) < 1.0:
         marker = "  ← match brukerens 1347"
-    print(
-        f"  {label:<58} netto={netto:8.2f}  Δbkk={diff_bkk:+7.2f}  Δ1347={diff_us:+7.2f}{marker}"
-    )
+    print(f"  {label:<58} netto={netto:8.2f}  Δbkk={diff_bkk:+7.2f}  Δ1347={diff_us:+7.2f}{marker}")
 
 
 def compute_markdown_rows(hours: list[HourPoint]) -> tuple[list[dict], dict]:
@@ -162,13 +157,15 @@ def compute_markdown_rows(hours: list[HourPoint]) -> tuple[list[dict], dict]:
     rows: list[dict] = []
 
     def add(label: str, netto: float, kategori: str) -> None:
-        rows.append({
-            "kategori": kategori,
-            "label": label,
-            "netto": netto,
-            "delta_bkk": netto - TARGET_BKK,
-            "delta_us": netto - USER_OBSERVED_OURS,
-        })
+        rows.append(
+            {
+                "kategori": kategori,
+                "label": label,
+                "netto": netto,
+                "delta_bkk": netto - TARGET_BKK,
+                "delta_us": netto - USER_OBSERVED_OURS,
+            }
+        )
 
     # A: forskriftens metode (time-for-time), viser bare gjeldende kombinasjon + 2025
     for tname, terskel in TERSKLER_INKL.items():
@@ -189,9 +186,7 @@ def compute_markdown_rows(hours: list[HourPoint]) -> tuple[list[dict], dict]:
     # D: avrunding (gjeldende terskel 96,25 øre, 90 %)
     for round_h in [None, 4, 5]:
         for round_d in [None, 2, 4]:
-            _, _, netto = netto_spot_etter_stotte(
-                hours, 0.9625, 0.90, round_hour=round_h, round_day=round_d
-            )
+            _, _, netto = netto_spot_etter_stotte(hours, 0.9625, 0.90, round_hour=round_h, round_day=round_d)
             add(f"round_hour={round_h}, round_day={round_d}", netto, "D: avrunding")
 
     # E: brute-force minste avvik for terskel og rate
@@ -250,7 +245,7 @@ def render_markdown(rows: list[dict], meta: dict) -> str:
     )
     lines.append("")
     lines.append(
-        f"Referansetall: BKK \"uten Norgespris\" = {meta['target_bkk']:.2f} kr, "
+        f'Referansetall: BKK "uten Norgespris" = {meta["target_bkk"]:.2f} kr, '
         f"brukers observerte fra vår kode = {meta['user_observed_ours']:.2f} kr."
     )
     lines.append("")
@@ -269,10 +264,7 @@ def render_markdown(rows: list[dict], meta: dict) -> str:
             elif abs(r["delta_us"]) < 1.0:
                 marker = " match vår"
             lines.append(
-                f"| {r['label']}{marker} "
-                f"| {r['netto']:.2f} "
-                f"| {r['delta_bkk']:+.2f} "
-                f"| {r['delta_us']:+.2f} |"
+                f"| {r['label']}{marker} | {r['netto']:.2f} | {r['delta_bkk']:+.2f} | {r['delta_us']:+.2f} |"
             )
         lines.append("")
     lines.append("### Brute-force minste avvik")
@@ -281,13 +273,13 @@ def render_markdown(rows: list[dict], meta: dict) -> str:
     lines.append("| --- | ---: | ---: | ---: |")
     lines.append(
         f"| Terskel (rate=90 % fast) "
-        f"| {meta['best_terskel']:.4f} inkl. mva ({meta['best_terskel']/MVA*100:.3f} øre) "
+        f"| {meta['best_terskel']:.4f} inkl. mva ({meta['best_terskel'] / MVA * 100:.3f} øre) "
         f"| {meta['best_terskel_netto']:.2f} "
         f"| {meta['best_terskel_netto'] - meta['target_bkk']:+.2f} |"
     )
     lines.append(
         f"| Rate (terskel=0.9625 fast) "
-        f"| {meta['best_rate']*100:.0f} % "
+        f"| {meta['best_rate'] * 100:.0f} % "
         f"| {meta['best_rate_netto']:.2f} "
         f"| {meta['best_rate_netto'] - meta['target_bkk']:+.2f} |"
     )
@@ -305,8 +297,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--output",
         type=Path,
         default=None,
-        help="Output-sti (default: docs/research/_generated/"
-             "match_strommstotte_variants.md)",
+        help="Output-sti (default: docs/research/_generated/match_strommstotte_variants.md)",
     )
     return p.parse_args(argv)
 
@@ -332,11 +323,11 @@ def _print_full_report(hours: list[HourPoint]) -> int:
 
     print("=== Strømstøtte-variant-matrise, april 2026 (NO5, BKK) ===\n")
     print(f"Datapunkter: {len(hours)} timer, total {total_kwh:.3f} kWh")
-    print(f"Vektet snitt spotpris eks. mva: {spot_kost_inkl/MVA/total_kwh:.6f}")
-    print(f"Vektet snitt spotpris inkl. mva: {spot_kost_inkl/total_kwh:.6f}")
+    print(f"Vektet snitt spotpris eks. mva: {spot_kost_inkl / MVA / total_kwh:.6f}")
+    print(f"Vektet snitt spotpris inkl. mva: {spot_kost_inkl / total_kwh:.6f}")
     print(f"Total spot inkl. mva (uten støtte): {spot_kost_inkl:.2f} kr")
     print()
-    print(f"Mål: BKK \"uten Norgespris\"           = {TARGET_BKK:.2f} kr")
+    print(f'Mål: BKK "uten Norgespris"           = {TARGET_BKK:.2f} kr')
     print(f"Brukers observerte tall fra vår kode = {USER_OBSERVED_OURS:.2f} kr")
     print()
 
@@ -378,9 +369,7 @@ def _print_full_report(hours: list[HourPoint]) -> int:
     base = 0.9625
     for round_h in [None, 4, 5]:
         for round_d in [None, 2, 4]:
-            _, _, netto = netto_spot_etter_stotte(
-                hours, base, 0.90, round_hour=round_h, round_day=round_d
-            )
+            _, _, netto = netto_spot_etter_stotte(hours, base, 0.90, round_hour=round_h, round_day=round_d)
             report(f"round_hour={round_h} round_day={round_d}", netto)
     print()
 
@@ -398,7 +387,7 @@ def _print_full_report(hours: list[HourPoint]) -> int:
             best_terskel = t
             best_netto = netto
     print(f"    Beste match (rate 90 %): terskel={best_terskel:.4f} inkl. mva")
-    print(f"      → eks. mva: {best_terskel/MVA*100:.3f} øre")
+    print(f"      → eks. mva: {best_terskel / MVA * 100:.3f} øre")
     print(f"      → netto: {best_netto:.2f} kr (avvik {best_netto - TARGET_BKK:+.2f} kr)")
     print()
     print("    Brute-force på rate (terskel 0.9625 fast):")
@@ -412,7 +401,7 @@ def _print_full_report(hours: list[HourPoint]) -> int:
             best_diff = d
             best_rate = r
             best_netto = netto
-    print(f"    Beste match (terskel 0.9625): rate={best_rate*100:.0f} %")
+    print(f"    Beste match (terskel 0.9625): rate={best_rate * 100:.0f} %")
     print(f"      → netto: {best_netto:.2f} kr (avvik {best_netto - TARGET_BKK:+.2f} kr)")
     print()
 
@@ -426,11 +415,9 @@ def _print_full_report(hours: list[HourPoint]) -> int:
     print("    Påslag fra kraftleverandør inngår ikke. Sjekk likevel:")
     for paaslag in [0.01, 0.03, 0.0399, 0.05, 0.10]:
         # Hvis vi feilaktig brukte (spot + påslag) som basis for støtteberegning:
-        new_hours = [
-            HourPoint(h.iso, h.kwh, h.spot_eks_mva + paaslag) for h in hours
-        ]
+        new_hours = [HourPoint(h.iso, h.kwh, h.spot_eks_mva + paaslag) for h in hours]
         _, _, netto = netto_spot_etter_stotte(new_hours, 0.9625, 0.90)
-        report(f"hvis vi la til {paaslag*100:.2f} øre påslag på spot", netto)
+        report(f"hvis vi la til {paaslag * 100:.2f} øre påslag på spot", netto)
     print()
 
     # === G: Verifisering av "vår faktiske" beregning ===

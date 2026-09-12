@@ -135,17 +135,34 @@ class TestMaanedligStromstotteSensor:
     def _setup_ha_mocks(self):
         """Set up HA module mocks for sensor imports."""
         _sensor_mod = sys.modules["homeassistant.components.sensor"]
-        _sensor_mod.SensorDeviceClass = type("SensorDeviceClass", (), {
-            "MONETARY": "monetary", "POWER": "power", "ENERGY": "energy",
-        })
+        _sensor_mod.SensorDeviceClass = type(
+            "SensorDeviceClass",
+            (),
+            {
+                "MONETARY": "monetary",
+                "POWER": "power",
+                "ENERGY": "energy",
+            },
+        )
         _sensor_mod.SensorEntity = type("SensorEntity", (), {})
-        _sensor_mod.SensorStateClass = type("SensorStateClass", (), {
-            "MEASUREMENT": "measurement", "TOTAL": "total", "TOTAL_INCREASING": "total_increasing",
-        })
+        _sensor_mod.SensorStateClass = type(
+            "SensorStateClass",
+            (),
+            {
+                "MEASUREMENT": "measurement",
+                "TOTAL": "total",
+                "TOTAL_INCREASING": "total_increasing",
+            },
+        )
         _const_mod = sys.modules["homeassistant.const"]
-        _const_mod.EntityCategory = type("EntityCategory", (), {
-            "DIAGNOSTIC": "diagnostic", "CONFIG": "config",
-        })
+        _const_mod.EntityCategory = type(
+            "EntityCategory",
+            (),
+            {
+                "DIAGNOSTIC": "diagnostic",
+                "CONFIG": "config",
+            },
+        )
         _entity_mod = sys.modules["homeassistant.helpers.entity"]
         _entity_mod.EntityCategory = _const_mod.EntityCategory
         _coord_mod = sys.modules["homeassistant.helpers.update_coordinator"]
@@ -168,26 +185,32 @@ class TestMaanedligStromstotteSensor:
 
     def test_normal_calculation(self):
         """400 kWh * 0.50 strømstøtte = 200 kr."""
-        sensor = self._make_sensor({
-            "monthly_consumption_total_kwh": 400.0,
-            "stromstotte": 0.50,
-        })
+        sensor = self._make_sensor(
+            {
+                "monthly_consumption_total_kwh": 400.0,
+                "stromstotte": 0.50,
+            }
+        )
         assert sensor.native_value == 200.0
 
     def test_zero_stromstotte(self):
         """No subsidy -> 0 kr."""
-        sensor = self._make_sensor({
-            "monthly_consumption_total_kwh": 400.0,
-            "stromstotte": 0,
-        })
+        sensor = self._make_sensor(
+            {
+                "monthly_consumption_total_kwh": 400.0,
+                "stromstotte": 0,
+            }
+        )
         assert sensor.native_value == 0.0
 
     def test_zero_consumption(self):
         """No consumption -> 0 kr."""
-        sensor = self._make_sensor({
-            "monthly_consumption_total_kwh": 0,
-            "stromstotte": 0.50,
-        })
+        sensor = self._make_sensor(
+            {
+                "monthly_consumption_total_kwh": 0,
+                "stromstotte": 0.50,
+            }
+        )
         assert sensor.native_value == 0.0
 
     def test_returns_none_when_no_data(self):
@@ -195,11 +218,13 @@ class TestMaanedligStromstotteSensor:
         assert sensor.native_value is None
 
     def test_attributes_include_merknad(self):
-        sensor = self._make_sensor({
-            "monthly_consumption_total_kwh": 100.0,
-            "stromstotte": 0.30,
-            "har_norgespris": False,
-        })
+        sensor = self._make_sensor(
+            {
+                "monthly_consumption_total_kwh": 100.0,
+                "stromstotte": 0.30,
+                "har_norgespris": False,
+            }
+        )
         attrs = sensor.extra_state_attributes
         assert "merknad" in attrs
         assert attrs["stromstotte_per_kwh"] == 0.30
@@ -322,17 +347,34 @@ class TestEnergileddReverseCalculation:
     @pytest.fixture(autouse=True)
     def _setup_ha_mocks(self):
         _sensor_mod = sys.modules["homeassistant.components.sensor"]
-        _sensor_mod.SensorDeviceClass = type("SensorDeviceClass", (), {
-            "MONETARY": "monetary", "POWER": "power", "ENERGY": "energy",
-        })
+        _sensor_mod.SensorDeviceClass = type(
+            "SensorDeviceClass",
+            (),
+            {
+                "MONETARY": "monetary",
+                "POWER": "power",
+                "ENERGY": "energy",
+            },
+        )
         _sensor_mod.SensorEntity = type("SensorEntity", (), {})
-        _sensor_mod.SensorStateClass = type("SensorStateClass", (), {
-            "MEASUREMENT": "measurement", "TOTAL": "total", "TOTAL_INCREASING": "total_increasing",
-        })
+        _sensor_mod.SensorStateClass = type(
+            "SensorStateClass",
+            (),
+            {
+                "MEASUREMENT": "measurement",
+                "TOTAL": "total",
+                "TOTAL_INCREASING": "total_increasing",
+            },
+        )
         _const_mod = sys.modules["homeassistant.const"]
-        _const_mod.EntityCategory = type("EntityCategory", (), {
-            "DIAGNOSTIC": "diagnostic", "CONFIG": "config",
-        })
+        _const_mod.EntityCategory = type(
+            "EntityCategory",
+            (),
+            {
+                "DIAGNOSTIC": "diagnostic",
+                "CONFIG": "config",
+            },
+        )
         _entity_mod = sys.modules["homeassistant.helpers.entity"]
         _entity_mod.EntityCategory = _const_mod.EntityCategory
         _coord_mod = sys.modules["homeassistant.helpers.update_coordinator"]
@@ -507,10 +549,12 @@ class TestCoordinatorInitFallbacks:
         Brukerens override er eks-mva. Coordinator beregner inkl-mva fra sone.
         """
         hass = MagicMock()
-        entry = _make_entry(extra_data={
-            "energiledd_dag": 0.40,
-            "energiledd_natt": 0.20,
-        })
+        entry = _make_entry(
+            extra_data={
+                "energiledd_dag": 0.40,
+                "energiledd_natt": 0.20,
+            }
+        )
         coordinator = coord_module.NettleieCoordinator(hass, entry)
 
         assert coordinator.energiledd_dag_eks_mva == 0.40
@@ -567,11 +611,13 @@ class TestElectricityCompanyPriceBadValues:
 
         hass.states.get = MagicMock(side_effect=get_state_valid)
 
-        entry = _make_entry(extra_data={
-            "electricity_provider_price_sensor": "sensor.elco",
-            "spot_price_sensor": "sensor.spot_price",
-            "spotpris_inkl_mva": True,
-        })
+        entry = _make_entry(
+            extra_data={
+                "electricity_provider_price_sensor": "sensor.elco",
+                "spot_price_sensor": "sensor.spot_price",
+                "spotpris_inkl_mva": True,
+            }
+        )
         coordinator = coord_module.NettleieCoordinator(hass, entry)
         _run_update(coord_module, coordinator)  # cache 0.85
 
@@ -611,11 +657,13 @@ class TestElectricityCompanyPriceBadValues:
 
         hass.states.get = MagicMock(side_effect=get_state)
 
-        entry = _make_entry(extra_data={
-            "electricity_provider_price_sensor": "sensor.elco",
-            "spot_price_sensor": "sensor.spot_price",
-            "spotpris_inkl_mva": True,
-        })
+        entry = _make_entry(
+            extra_data={
+                "electricity_provider_price_sensor": "sensor.elco",
+                "spot_price_sensor": "sensor.spot_price",
+                "spotpris_inkl_mva": True,
+            }
+        )
         coordinator = coord_module.NettleieCoordinator(hass, entry)
 
         result = _run_update(coord_module, coordinator)
@@ -639,11 +687,13 @@ class TestElectricityCompanyPriceBadValues:
 
         hass.states.get = MagicMock(side_effect=get_state)
 
-        entry = _make_entry(extra_data={
-            "electricity_provider_price_sensor": "sensor.elco",
-            "spot_price_sensor": "sensor.spot_price",
-            "spotpris_inkl_mva": True,
-        })
+        entry = _make_entry(
+            extra_data={
+                "electricity_provider_price_sensor": "sensor.elco",
+                "spot_price_sensor": "sensor.spot_price",
+                "spotpris_inkl_mva": True,
+            }
+        )
         coordinator = coord_module.NettleieCoordinator(hass, entry)
 
         result = _run_update(coord_module, coordinator)

@@ -74,13 +74,10 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
             "grace_minutter": INPUT_UTFALL_GRACE_MINUTTER,
             "frossen_terskel_timer": coordinator.energi_frossen_terskel_timer,
             "sist_energi_okning": (
-                coordinator._last_energy_increase.isoformat()
-                if coordinator._last_energy_increase
-                else None
+                coordinator._last_energy_increase.isoformat() if coordinator._last_energy_increase else None
             ),
             "input_sist_gyldig": {
-                rolle: naar.isoformat()
-                for rolle, naar in coordinator._input_sist_gyldig.items()
+                rolle: naar.isoformat() for rolle, naar in coordinator._input_sist_gyldig.items()
             },
             "aktive_issues": sorted(coordinator._vakthold_issues),
             "input_problemer": (coordinator.data or {}).get("input_problemer", []),

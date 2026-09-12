@@ -182,9 +182,7 @@ class TestOvTrefase:
     """Alut og Netera fakturerer etter sikringsstørrelse, ikke målt effekt."""
 
     def test_valgt_trinn_styrer_beloepet(self, coord_module):
-        coord = _lag_coordinator(
-            coord_module, "netera", extra_data={"sikringstrinn": "400v_40_80"}
-        )
+        coord = _lag_coordinator(coord_module, "netera", extra_data={"sikringstrinn": "400v_40_80"})
         coord._daily_max_power = {"2026-06-01": coord_module.DailyMaxEntry(kw=0.1, hour=8)}
         data = _run_update(coord_module, coord)
         # 8000 kr/år inkl. mva / 12 = 666,67 -> 667 kr/mnd, uavhengig av effekt.
@@ -192,9 +190,7 @@ class TestOvTrefase:
         assert data["fastledd_mangler_sikringsvalg"] is False
 
     def test_maalt_effekt_paavirker_ikke(self, coord_module):
-        coord = _lag_coordinator(
-            coord_module, "netera", extra_data={"sikringstrinn": "230v_0_10"}
-        )
+        coord = _lag_coordinator(coord_module, "netera", extra_data={"sikringstrinn": "230v_0_10"})
         coord._daily_max_power = {
             "2026-06-01": coord_module.DailyMaxEntry(kw=40.0, hour=8),
             "2026-06-02": coord_module.DailyMaxEntry(kw=39.0, hour=8),
@@ -204,9 +200,7 @@ class TestOvTrefase:
         assert data["kapasitetsledd"] == 167
 
     def test_alut_trinn_fra_egen_prisliste(self, coord_module):
-        coord = _lag_coordinator(
-            coord_module, "alut", extra_data={"sikringstrinn": "inntil_3x125a"}
-        )
+        coord = _lag_coordinator(coord_module, "alut", extra_data={"sikringstrinn": "inntil_3x125a"})
         data = _run_update(coord_module, coord)
         # NO4 husholdning har mva-fritak: 3500 kr/år / 12 = 291,67 -> 292 kr/mnd.
         assert data["kapasitetsledd"] == 292
@@ -228,9 +222,7 @@ class TestOvTrefase:
 
     def test_ingen_trinnvarsel_paa_sikringsbasert_fastledd(self, coord_module):
         """Fastleddet endrer seg ikke med forbruket, så et varsel er meningsløst."""
-        coord = _lag_coordinator(
-            coord_module, "netera", extra_data={"sikringstrinn": "230v_11_63"}
-        )
+        coord = _lag_coordinator(coord_module, "netera", extra_data={"sikringstrinn": "230v_11_63"})
         coord._daily_max_power = {"2026-06-01": coord_module.DailyMaxEntry(kw=9.9, hour=8)}
         data = _run_update(coord_module, coord)
         assert data["kapasitet_varsel"] is False
@@ -259,9 +251,7 @@ class TestFemVektetAr:
         coord = self._coord(coord_module)
         mandager = ["01-05", "01-12", "01-19", "01-26", "02-02", "02-09", "02-16"]
         coord._weekly_max_power = {
-            f"2026-{mandag}": coord_module.WeeklyMaxEntry(
-                kw=float(kw), dato=f"2026-{mandag}", hour=8
-            )
+            f"2026-{mandag}": coord_module.WeeklyMaxEntry(kw=float(kw), dato=f"2026-{mandag}", hour=8)
             for mandag, kw in zip(mandager, [9, 8, 7, 6, 5, 4, 3], strict=True)
         }
         # Januar og februar vektes 100 %, så snittet er (9+8+7+6+5)/5 = 7,0.
@@ -394,9 +384,7 @@ class TestUkesmaksPersistens:
         lagret = {}
         coord._store.async_save.side_effect = lambda data: lagret.update(data)
         asyncio.run(coord._save_stored_data())
-        assert lagret["weekly_max_power"] == {
-            "2026-01-05": {"kw": 7.5, "dato": "2026-01-08", "hour": 17}
-        }
+        assert lagret["weekly_max_power"] == {"2026-01-05": {"kw": 7.5, "dato": "2026-01-08", "hour": 17}}
 
         ny = _lag_coordinator(coord_module, "fjellnett")
         ny._store.async_load.return_value = lagret
@@ -479,9 +467,7 @@ class TestKapasitetstrinnSensor:
         return KapasitetstrinnSensor(coordinator, _make_entry())
 
     def test_ukjent_naar_sikringsvalg_mangler(self):
-        sensor = self._sensor(
-            {"kapasitetsledd": 0, "fastledd_mangler_sikringsvalg": True}
-        )
+        sensor = self._sensor({"kapasitetsledd": 0, "fastledd_mangler_sikringsvalg": True})
         assert sensor.native_value is None
         assert sensor.extra_state_attributes["mangler_sikringsstorrelse"] is True
 
@@ -497,15 +483,11 @@ class TestKapasitetstrinnSensor:
         assert "mangler_sikringsstorrelse" not in sensor.extra_state_attributes
 
     def test_uverifisert_metode_flagges(self):
-        sensor = self._sensor(
-            {"kapasitetsledd": 516, "fastledd_metode": FASTLEDD_UKJENT}
-        )
+        sensor = self._sensor({"kapasitetsledd": 516, "fastledd_metode": FASTLEDD_UKJENT})
         assert sensor.extra_state_attributes["metode_uverifisert"] is True
 
     def test_vanlig_dso_har_ingen_ekstra_flagg(self):
-        sensor = self._sensor(
-            {"kapasitetsledd": 250, "fastledd_metode": FASTLEDD_TRE_DOGNMAX_MND}
-        )
+        sensor = self._sensor({"kapasitetsledd": 250, "fastledd_metode": FASTLEDD_TRE_DOGNMAX_MND})
         attrs = sensor.extra_state_attributes
         assert "metode_uverifisert" not in attrs
         assert "mangler_sikringsstorrelse" not in attrs

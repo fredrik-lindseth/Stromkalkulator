@@ -211,9 +211,7 @@ def finn_sikringstrinn(
     return None
 
 
-def grunnlag_i_lavere_trinn(
-    grunnlag_kw: float, terskel: float, terskel_inkludert: bool
-) -> bool:
+def grunnlag_i_lavere_trinn(grunnlag_kw: float, terskel: float, terskel_inkludert: bool) -> bool:
     """Om effektgrunnlaget hører til trinnet under denne terskelen.
 
     De fleste nettselskap legger eksakt grensetreff i trinnet over, altså `<`.
@@ -245,9 +243,7 @@ def finn_kapasitetstrinn(
     return trinn[-1][1], siste, f">{forrige:.0f} kW"
 
 
-def finn_aktiv_periode(
-    perioder: list[EnergileddPeriode], mm_dd: str
-) -> EnergileddPeriode | None:
+def finn_aktiv_periode(perioder: list[EnergileddPeriode], mm_dd: str) -> EnergileddPeriode | None:
     """Finn perioden som dekker `mm_dd` ("MM-DD"). None hvis ingen treffer.
 
     Krysser en periode nyttår (fra > til), tolkes det som union av

@@ -64,8 +64,7 @@ MVA_SATS: Final[float] = 1.25
 #   inkl_mva = 0.50 - rate_per_kwh = 1.5333...
 #   eks_mva = 1.5333 / 1.25 = 1.22667...
 FAKTURA_IMPLISITT_EKS_MVA: Final[float] = (
-    NORGESPRIS_FASTPRIS_INKL_MVA
-    - (FAKTURA_NORGESPRIS_KOMPENSASJON_KR / FAKTURA_FORBRUK_KWH)
+    NORGESPRIS_FASTPRIS_INKL_MVA - (FAKTURA_NORGESPRIS_KOMPENSASJON_KR / FAKTURA_FORBRUK_KWH)
 ) / MVA_SATS
 
 HKS_URL: Final[str] = (
@@ -75,12 +74,12 @@ HKS_URL: Final[str] = (
 
 @dataclass(frozen=True)
 class HourPoint:
-    iso: str          # ISO-time med +HH:MM offset
-    day: str          # YYYY-MM-DD
+    iso: str  # ISO-time med +HH:MM offset
+    day: str  # YYYY-MM-DD
     eur_per_kwh: float
     eur_mwh: float
     nordpool_exr: float
-    nordpool_nok_per_kwh: float   # NOK_per_kWh rett fra HKS (Nord Pool sin egen avrunding)
+    nordpool_nok_per_kwh: float  # NOK_per_kWh rett fra HKS (Nord Pool sin egen avrunding)
     kwh: float
 
 
@@ -154,9 +153,7 @@ def fetch_april_hours(area: str) -> list[HourPoint]:
         entries = fetch_hks_day(d, area)
         for e in entries:
             iso = e["time_start"]  # 2026-04-15T00:00:00+02:00
-            hour_iso = datetime.fromisoformat(iso).replace(
-                minute=0, second=0, microsecond=0
-            ).isoformat()
+            hour_iso = datetime.fromisoformat(iso).replace(minute=0, second=0, microsecond=0).isoformat()
             points.append(
                 HourPoint(
                     iso=hour_iso,
@@ -216,10 +213,7 @@ def attach_kwh(points: list[HourPoint], elhub: dict[str, float]) -> list[HourPoi
         # Elhub ISO bruker samme format som HKS time_start
         kwh = elhub.get(p.iso, 0.0)
         out.append(
-            HourPoint(
-                p.iso, p.day, p.eur_per_kwh, p.eur_mwh,
-                p.nordpool_exr, p.nordpool_nok_per_kwh, kwh
-            )
+            HourPoint(p.iso, p.day, p.eur_per_kwh, p.eur_mwh, p.nordpool_exr, p.nordpool_nok_per_kwh, kwh)
         )
     return out
 
@@ -252,7 +246,7 @@ def print_variant(
         f"  {name:<46} "
         f"snitt={snitt_eks_mva:.6f}  "
         f"komp={komp:+.2f}  "
-        f"avvik={avvik:+.2f} kr  ({avvik/abs(FAKTURA_NORGESPRIS_KOMPENSASJON_KR)*100:+.3f}%)"
+        f"avvik={avvik:+.2f} kr  ({avvik / abs(FAKTURA_NORGESPRIS_KOMPENSASJON_KR) * 100:+.3f}%)"
     )
 
 
@@ -315,14 +309,16 @@ def compute_variants(
     def add(label: str, snitt: float, note: str = "") -> None:
         komp = kompensasjon(snitt, FAKTURA_FORBRUK_KWH)
         avvik = komp - FAKTURA_NORGESPRIS_KOMPENSASJON_KR
-        rows.append({
-            "label": label,
-            "snitt_eks_mva": snitt,
-            "komp_kr": komp,
-            "avvik_kr": avvik,
-            "avvik_pct": avvik / abs(FAKTURA_NORGESPRIS_KOMPENSASJON_KR) * 100,
-            "note": note,
-        })
+        rows.append(
+            {
+                "label": label,
+                "snitt_eks_mva": snitt,
+                "komp_kr": komp,
+                "avvik_kr": avvik,
+                "avvik_pct": avvik / abs(FAKTURA_NORGESPRIS_KOMPENSASJON_KR) * 100,
+                "note": note,
+            }
+        )
 
     for label, fn, n in [
         ("A: Nord Pool EXR (daglig)", rate_exr, exr_note),
@@ -359,9 +355,7 @@ def compute_variants(
         "nb_arith_avg": nb_arith_avg,
         "nb_weighted_avg": nb_weighted_avg,
         "exr_arith_avg": sum(p.nordpool_exr for p in points) / len(points) if points else 0.0,
-        "exr_weighted_avg": (
-            sum(p.nordpool_exr * p.kwh for p in points) / total_kwh if total_kwh else 0.0
-        ),
+        "exr_weighted_avg": (sum(p.nordpool_exr * p.kwh for p in points) / total_kwh if total_kwh else 0.0),
         "no_network": no_network,
     }
     return rows, meta
@@ -395,8 +389,7 @@ def render_markdown(rows: list[dict], meta: dict) -> str:
         )
     lines.append("")
     lines.append(
-        f"**Beste variant:** {best['label']} "
-        f"({best['avvik_kr']:+.2f} kr / {best['avvik_pct']:+.3f} %)."
+        f"**Beste variant:** {best['label']} ({best['avvik_kr']:+.2f} kr / {best['avvik_pct']:+.3f} %)."
     )
     lines.append("")
     lines.append("### Reverse-engineering")
@@ -422,8 +415,9 @@ def render_markdown(rows: list[dict], meta: dict) -> str:
 
 def print_text_report(rows: list[dict], meta: dict) -> None:
     print(f"=== Variant-matrise for Norgespris-spot {YEAR}-{MONTH:02d} ({DELIVERY_AREA}) ===\n")
-    print(f"Faktura: forbruk {FAKTURA_FORBRUK_KWH} kWh, "
-          f"Norgespris-komp {FAKTURA_NORGESPRIS_KOMPENSASJON_KR} kr")
+    print(
+        f"Faktura: forbruk {FAKTURA_FORBRUK_KWH} kWh, Norgespris-komp {FAKTURA_NORGESPRIS_KOMPENSASJON_KR} kr"
+    )
     print(f"Implisitt snittspot eks. mva: {FAKTURA_IMPLISITT_EKS_MVA:.6f} NOK/kWh\n")
     print(f"=== Varianter (avvik vs faktura {FAKTURA_NORGESPRIS_KOMPENSASJON_KR:.2f} kr) ===\n")
     for r in rows:
@@ -449,7 +443,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--emit-markdown",
         action="store_true",
         help="Skriv resultatet som Markdown til docs/research/_generated/ "
-             "(impliserer --no-network for reproduserbarhet)",
+        "(impliserer --no-network for reproduserbarhet)",
     )
     p.add_argument(
         "--no-network",
@@ -460,8 +454,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--output",
         type=Path,
         default=None,
-        help="Sti for Markdown-output (default: docs/research/_generated/"
-             "match_norgespris_variants.md)",
+        help="Sti for Markdown-output (default: docs/research/_generated/match_norgespris_variants.md)",
     )
     return p.parse_args(argv)
 

@@ -41,11 +41,7 @@ YEAR: Final[int] = 2026
 MONTH: Final[int] = 4  # april
 DELIVERY_AREA: Final[str] = "NO5"
 
-ELHUB_CSV: Final[Path] = (
-    Path(__file__).resolve().parent.parent.parent
-    / "Måleverdier"
-    / "elhub_april.csv"
-)
+ELHUB_CSV: Final[Path] = Path(__file__).resolve().parent.parent.parent / "Måleverdier" / "elhub_april.csv"
 
 # Fakturadata for sammenligning (april 2026)
 FAKTURA_FORBRUK_KWH: Final[float] = 1381.83
@@ -110,9 +106,7 @@ def fetch_nb_eur_nok(start: date, end: date) -> dict[str, float]:
     return {periods[int(i)]["id"]: float(v[0]) for i, v in obs.items()}
 
 
-def load_nordpool_snapshot(
-    path: Path, year: int, month: int
-) -> dict[str, float] | None:
+def load_nordpool_snapshot(path: Path, year: int, month: int) -> dict[str, float] | None:
     """Les lokal snapshot og returner {iso_local_hour: eur_mwh} for én måned.
 
     Returnerer None hvis snapshot mangler eller ikke dekker måneden.
@@ -136,11 +130,7 @@ def load_nb_snapshot(path: Path, start: date, end: date) -> dict[str, float] | N
     if not path.exists():
         return None
     data = json.loads(path.read_text())
-    return {
-        e["date"]: e["rate"]
-        for e in data["daily"]
-        if start.isoformat() <= e["date"] <= end.isoformat()
-    }
+    return {e["date"]: e["rate"] for e in data["daily"] if start.isoformat() <= e["date"] <= end.isoformat()}
 
 
 def aggregate_to_local_hours(
@@ -252,13 +242,15 @@ def main() -> None:
     print(f"  NP+NB forbruksvektet (same-day kurs):   {weighted_nok_kwh:.6f}")
     print(f"  NP+NB aritmetisk:                        {arith_nok_kwh:.6f}")
     diff = weighted_nok_kwh - impl_eks_mva
-    print(f"  Diff vektet vs faktura: {diff*1000:+.4f} milli-NOK/kWh ({diff/impl_eks_mva*100:+.4f}%)")
+    print(f"  Diff vektet vs faktura: {diff * 1000:+.4f} milli-NOK/kWh ({diff / impl_eks_mva * 100:+.4f}%)")
 
     # Norgespris-kompensasjon
     beregnet_komp = (NORGESPRIS_FASTPRIS_INKL_MVA - weighted_nok_kwh * MVA_SATS) * FAKTURA_FORBRUK_KWH
     print(f"\n=== Norgespris-kompensasjon på {FAKTURA_FORBRUK_KWH} kWh ===")
     print(f"  Faktura:                {FAKTURA_NORGESPRIS_KOMPENSASJON_KR:.2f} kr")
-    print(f"  Beregnet (NP+NB vektet): {beregnet_komp:.2f} kr  (avvik {beregnet_komp - FAKTURA_NORGESPRIS_KOMPENSASJON_KR:+.2f} kr)")
+    print(
+        f"  Beregnet (NP+NB vektet): {beregnet_komp:.2f} kr  (avvik {beregnet_komp - FAKTURA_NORGESPRIS_KOMPENSASJON_KR:+.2f} kr)"
+    )
 
     # Hva slags kurs ville matchet perfekt?
     weighted_eur_per_kwh = sum(p.eur_mwh * p.kwh for p in series) / total_kwh
@@ -268,7 +260,7 @@ def main() -> None:
     print(f"  Forbruksvektet EUR/MWh: {weighted_eur_per_kwh:.4f}")
     print(f"  Implisitt kurs:         {implied_rate:.4f} NOK/EUR")
     if nb_apr:
-        print(f"  NB aritmetisk månedssnitt: {sum(nb_apr)/len(nb_apr):.4f}")
+        print(f"  NB aritmetisk månedssnitt: {sum(nb_apr) / len(nb_apr):.4f}")
 
     print("\nKonklusjon: forward-fill (same-day NB-kurs) gjengir fakturaen innenfor")
     print("avrundingsfeil. HA-cachens 0,14 %-avvik stammer fra HA nordpool-integrasjonens")

@@ -36,14 +36,10 @@ from stromkalkulator.dso import (
 ROT = Path(__file__).parent.parent
 
 VALGBARE = {
-    dso_id: entry
-    for dso_id, entry in DSO_LIST.items()
-    if dso_id != "custom" and entry.get("supported", True)
+    dso_id: entry for dso_id, entry in DSO_LIST.items() if dso_id != "custom" and entry.get("supported", True)
 }
 # Et selskap som er delt i prisområder ligger som én oppføring per område.
-DELTE_EKSTRAOPPFORINGER = sum(
-    len(entry["delt_i"]) - 1 for entry in DSO_LIST.values() if "delt_i" in entry
-)
+DELTE_EKSTRAOPPFORINGER = sum(len(entry["delt_i"]) - 1 for entry in DSO_LIST.values() if "delt_i" in entry)
 
 ANTALL_OPPFORINGER = len(DSO_LIST)
 ANTALL_VALGBARE = len(VALGBARE)
@@ -177,9 +173,7 @@ PASTANDER: list[tuple[str, str, tuple[int, ...]]] = [
 
 
 @pytest.mark.parametrize(("sti", "monster", "ventet"), PASTANDER, ids=lambda v: str(v)[:60])
-def test_dokumenttall_stemmer_med_dso_list(
-    sti: str, monster: str, ventet: tuple[int, ...]
-) -> None:
+def test_dokumenttall_stemmer_med_dso_list(sti: str, monster: str, ventet: tuple[int, ...]) -> None:
     """Tallet i dokumentet er det samme som en telling av kilden gir."""
     assert _tall(sti, monster) == ventet
 
@@ -197,9 +191,7 @@ def _husholdningssum(entry: dict[str, Any]) -> float:
     periode = finn_aktiv_periode(entry.get("energiledd_perioder", []), "07-15")
     if periode is not None:
         dag, natt = periode["dag_eks_mva"], periode["natt_eks_mva"]
-    energiledd = 600 * compute_energiledd_inkl_mva(
-        dag, sone
-    ) + 400 * compute_energiledd_inkl_mva(natt, sone)
+    energiledd = 600 * compute_energiledd_inkl_mva(dag, sone) + 400 * compute_energiledd_inkl_mva(natt, sone)
 
     trinn = entry["kapasitetstrinn"]
     if trinn and isinstance(trinn[0], dict):
@@ -220,9 +212,7 @@ def test_unike_husholdningssummer_i_galskapen() -> None:
     ) == (unike, len(summer))
     assert _tall("docs/galskapen.md", r"så N = (\d+)") == (len(summer),)
     # Overskriften teller ulike priser, ikke oppføringer: to par deler sum.
-    assert _tall("docs/galskapen.md", r"## Én husholdning, (\d+) priser") == (
-        len(set(summer)),
-    )
+    assert _tall("docs/galskapen.md", r"## Én husholdning, (\d+) priser") == (len(set(summer)),)
     assert _tall("docs/galskapen.md", r"(\d+) av de (\d+) summene er unike") == (
         unike,
         len(summer),

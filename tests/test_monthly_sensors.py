@@ -16,23 +16,35 @@ import pytest
 
 # ---- HA module mocks (must match conftest / test_sensor_classes) ----
 _sensor_mod = sys.modules["homeassistant.components.sensor"]
-_sensor_mod.SensorDeviceClass = type("SensorDeviceClass", (), {
-    "MONETARY": "monetary",
-    "POWER": "power",
-    "ENERGY": "energy",
-})
+_sensor_mod.SensorDeviceClass = type(
+    "SensorDeviceClass",
+    (),
+    {
+        "MONETARY": "monetary",
+        "POWER": "power",
+        "ENERGY": "energy",
+    },
+)
 _sensor_mod.SensorEntity = type("SensorEntity", (), {})
-_sensor_mod.SensorStateClass = type("SensorStateClass", (), {
-    "MEASUREMENT": "measurement",
-    "TOTAL": "total",
-    "TOTAL_INCREASING": "total_increasing",
-})
+_sensor_mod.SensorStateClass = type(
+    "SensorStateClass",
+    (),
+    {
+        "MEASUREMENT": "measurement",
+        "TOTAL": "total",
+        "TOTAL_INCREASING": "total_increasing",
+    },
+)
 
 _const_mod = sys.modules["homeassistant.const"]
-_const_mod.EntityCategory = type("EntityCategory", (), {
-    "DIAGNOSTIC": "diagnostic",
-    "CONFIG": "config",
-})
+_const_mod.EntityCategory = type(
+    "EntityCategory",
+    (),
+    {
+        "DIAGNOSTIC": "diagnostic",
+        "CONFIG": "config",
+    },
+)
 
 _entity_mod = sys.modules["homeassistant.helpers.entity"]
 _entity_mod.EntityCategory = _const_mod.EntityCategory
@@ -68,8 +80,16 @@ from stromkalkulator.sensor import (  # noqa: E402
 # ---------------------------------------------------------------------------
 
 BKK_KAPASITETSTRINN = [
-    (2, 155), (5, 250), (10, 415), (15, 600), (20, 770),
-    (25, 940), (50, 1800), (75, 2650), (100, 3500), (float("inf"), 6900),
+    (2, 155),
+    (5, 250),
+    (10, 415),
+    (15, 600),
+    (20, 770),
+    (25, 940),
+    (50, 1800),
+    (75, 2650),
+    (100, 3500),
+    (float("inf"), 6900),
 ]
 
 
@@ -170,9 +190,7 @@ class TestMaanedligAvgifterSensor:
         """Standard: full forbruksavgift + 25% mva."""
         total_kwh = 400.0
         data = {"monthly_consumption_total_kwh": total_kwh}
-        sensor = MaanedligAvgifterSensor(
-            _make_coordinator(data), _make_entry("standard")
-        )
+        sensor = MaanedligAvgifterSensor(_make_coordinator(data), _make_entry("standard"))
         forbruksavgift_inkl = FORBRUKSAVGIFT_ALMINNELIG * 1.25
         enova_inkl = ENOVA_AVGIFT * 1.25
         expected = round(total_kwh * (forbruksavgift_inkl + enova_inkl), 2)
@@ -182,9 +200,7 @@ class TestMaanedligAvgifterSensor:
         """Nord-Norge: same forbruksavgift as standard from 2026, but 0% mva."""
         total_kwh = 400.0
         data = {"monthly_consumption_total_kwh": total_kwh}
-        sensor = MaanedligAvgifterSensor(
-            _make_coordinator(data), _make_entry("nord_norge")
-        )
+        sensor = MaanedligAvgifterSensor(_make_coordinator(data), _make_entry("nord_norge"))
         # No mva
         forbruksavgift_inkl = FORBRUKSAVGIFT_ALMINNELIG  # * 1.0
         enova_inkl = ENOVA_AVGIFT  # * 1.0
@@ -195,9 +211,7 @@ class TestMaanedligAvgifterSensor:
         """Tiltakssone: 0 forbruksavgift, 0% mva, only Enova."""
         total_kwh = 400.0
         data = {"monthly_consumption_total_kwh": total_kwh}
-        sensor = MaanedligAvgifterSensor(
-            _make_coordinator(data), _make_entry("tiltakssone")
-        )
+        sensor = MaanedligAvgifterSensor(_make_coordinator(data), _make_entry("tiltakssone"))
         # forbruksavgift = 0, mva = 0%, only enova
         expected = round(total_kwh * ENOVA_AVGIFT, 2)
         assert sensor.native_value == expected
@@ -205,9 +219,7 @@ class TestMaanedligAvgifterSensor:
     def test_zero_consumption(self):
         """0 kWh -> 0 kr avgifter."""
         data = {"monthly_consumption_total_kwh": 0}
-        sensor = MaanedligAvgifterSensor(
-            _make_coordinator(data), _make_entry("standard")
-        )
+        sensor = MaanedligAvgifterSensor(_make_coordinator(data), _make_entry("standard"))
         assert sensor.native_value == 0.0
 
     def test_returns_none_when_no_data(self):
@@ -297,9 +309,7 @@ class TestMaanedligTotalSensor:
     def test_extra_state_attributes(self, base_data):
         """Attributes should contain nettleie, strømstøtte breakdown."""
         base_data["stromstotte"] = 0.20
-        sensor = MaanedligTotalSensor(
-            _make_coordinator(base_data), _make_entry("standard")
-        )
+        sensor = MaanedligTotalSensor(_make_coordinator(base_data), _make_entry("standard"))
         attrs = sensor.extra_state_attributes
         assert "nettleie_kr" in attrs
         assert "stromstotte_kr" in attrs
@@ -312,9 +322,7 @@ class TestMaanedligTotalSensor:
         base_data["monthly_consumption_dag_kwh"] = 500.0
         base_data["monthly_consumption_natt_kwh"] = 200.0
         base_data["stromstotte"] = 0.10
-        sensor = MaanedligTotalSensor(
-            _make_coordinator(base_data), _make_entry("standard")
-        )
+        sensor = MaanedligTotalSensor(_make_coordinator(base_data), _make_entry("standard"))
         total_kwh = 500.0 + 200.0
         expected = round(sensor.native_value / total_kwh, 4)
         attrs = sensor.extra_state_attributes
@@ -330,9 +338,7 @@ class TestMaanedligTotalSensor:
             "kapasitetsledd": 415,
             "stromstotte": 0.0,
         }
-        sensor = MaanedligTotalSensor(
-            _make_coordinator(data), _make_entry("standard")
-        )
+        sensor = MaanedligTotalSensor(_make_coordinator(data), _make_entry("standard"))
         attrs = sensor.extra_state_attributes
         assert attrs["vektet_snittpris_kr_per_kwh"] is None
 
@@ -491,9 +497,7 @@ class TestEstimertMaanedskostnadSensor:
         # April has 30 days, mock day 15
         mock_dt.now.return_value = datetime(2026, 4, 15, 12, 0, 0)
         data = self._base_data()
-        sensor = EstimertMaanedskostnadSensor(
-            _make_coordinator(data), _make_entry("standard")
-        )
+        sensor = EstimertMaanedskostnadSensor(_make_coordinator(data), _make_entry("standard"))
         value = sensor.native_value
         assert value is not None
 
@@ -514,9 +518,7 @@ class TestEstimertMaanedskostnadSensor:
         """Dag 1 skal returnere en verdi (ikke None eller krasje)."""
         mock_dt.now.return_value = datetime(2026, 4, 1, 8, 0, 0)
         data = self._base_data()
-        sensor = EstimertMaanedskostnadSensor(
-            _make_coordinator(data), _make_entry("standard")
-        )
+        sensor = EstimertMaanedskostnadSensor(_make_coordinator(data), _make_entry("standard"))
         value = sensor.native_value
         assert value is not None
         # On day 1, variable cost projected to full month + kapasitet
@@ -536,9 +538,7 @@ class TestEstimertMaanedskostnadSensor:
         """Desember har 31 dager (spesialcase i koden)."""
         mock_dt.now.return_value = datetime(2026, 12, 10, 12, 0, 0)
         data = self._base_data()
-        sensor = EstimertMaanedskostnadSensor(
-            _make_coordinator(data), _make_entry("standard")
-        )
+        sensor = EstimertMaanedskostnadSensor(_make_coordinator(data), _make_entry("standard"))
         value = sensor.native_value
         assert value is not None
         # Just verify it computes without error and is positive

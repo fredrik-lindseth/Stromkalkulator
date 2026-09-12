@@ -229,7 +229,9 @@ class TestEkteChangelog:
         bare har en `[Ikke sluppet]`-seksjon å skrive i.
         """
         manifest = json.loads(
-            (REPO_ROOT / "custom_components" / "stromkalkulator" / "manifest.json").read_text(encoding="utf-8")
+            (REPO_ROOT / "custom_components" / "stromkalkulator" / "manifest.json").read_text(
+                encoding="utf-8"
+            )
         )
         changelog = (REPO_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         versjoner = release_notes.kjente_versjoner(changelog)

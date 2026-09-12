@@ -31,7 +31,7 @@ just test-ha target=minimum
 just test-ha target=current
 ```
 
-`minimum` er HA 2025.1.0, versjonen `hacs.json` lover brukerne, og `current` er
+`minimum` er versjonen `hacs.json` lover brukerne, og `current` er
 nyeste versjon vi har prøvd. Begge må være grønne. Feiler `minimum`, er det
 kompatibiliteten som skal rettes, eller minimum som skal heves med en begrunnet
 beslutning i CHANGELOG og `hacs.json`. Ikke hev det stille.

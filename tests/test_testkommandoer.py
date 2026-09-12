@@ -13,6 +13,7 @@ enige. Den kjører ingen tester; den sjekker at kommandoene er de samme.
 
 from __future__ import annotations
 
+import json
 import re
 import tomllib
 from pathlib import Path
@@ -28,6 +29,14 @@ TESTING = REPO / "docs" / "testing.md"
 DEVELOPMENT = REPO / "docs" / "development.md"
 PRECOMMIT = REPO / ".pre-commit-config.yaml"
 CI = REPO / ".github" / "workflows" / "ci.yml"
+HACS = REPO / "hacs.json"
+UV_LOCK = REPO / "uv.lock"
+
+# Filene som har lov til å nevne en HA-versjon i klartekst. Hver forekomst
+# sjekkes mot hacs.json og uv.lock, så en kopi som ikke er oppdatert feller.
+FILER_MED_HA_VERSJON = (JUSTFILE, AGENTS, TESTING, DEVELOPMENT, REPO / "pyproject.toml", HACS)
+
+HA_VERSJON = re.compile(r"\b20\d\d\.\d+\.\d+\b")
 
 # Oppskriftene som utgjør testinngangen. Andre just-oppskrifter (deploy,
 # snapshot, verify) er ikke denne filas ansvar.
@@ -35,7 +44,41 @@ TEST_RECIPES = {"test", "test-unit", "check", "test-ha", "test-e2e"}
 
 HA_TARGETS = {"minimum", "current"}
 
+# Det `just check` faktisk skal gjøre. Vakten sjekket at oppskriften het
+# «check», ikke at den kjørte noe, så mypy, ruff format eller vulture kunne
+# falle ut uten at noe felte. Bredden står med: `ruff check .` dekker hele
+# repoet, og en smalning til custom_components/ ville gått grønt på scripts/.
+CHECK_KOMMANDOER: tuple[tuple[str, str], ...] = (
+    ("ruff check .", "ruff"),
+    ("ruff format --check .", "format"),
+    ("mypy custom_components/stromkalkulator/", "mypy"),
+    ("vulture custom_components/stromkalkulator", "vulture"),
+)
+
 DOCS_MED_KOMMANDOER = (AGENTS, TESTING, DEVELOPMENT)
+
+
+def _ha_versjon_per_mal(recipes: dict[str, list[str]]) -> dict[str, str]:
+    """HA-versjonen hver ha-gruppe faktisk løser til, lest ut av uv.lock.
+
+    Gruppene pinner en plugin-versjon, og det er den som drar inn
+    homeassistant. Uten dette oppslaget kan noen heve hacs.json uten at
+    `just test-ha target=minimum` tester noe annet enn før.
+    """
+    lock = tomllib.loads(_les(UV_LOCK))
+    pakker = [p for p in lock["package"] if p["name"] == "homeassistant"]
+    assert pakker, "uv.lock har ingen homeassistant. Da vakter denne testen ingenting."
+
+    kropp = "\n".join(recipes["test-ha"])
+    per_mal: dict[str, str] = {}
+    for mal in sorted(HA_TARGETS):
+        (python,) = re.findall(rf"^\s*{mal}\)\s*python=(3\.\d+)", kropp, re.MULTILINE)
+        treff = [p for p in pakker if any(python in m for m in p.get("resolution-markers", []))]
+        assert len(treff) == 1, (
+            f"fant {len(treff)} homeassistant i uv.lock for Python {python} ({mal}); forventet nøyaktig én"
+        )
+        per_mal[mal] = treff[0]["version"]
+    return per_mal
 
 
 def _les(sti: Path) -> str:
@@ -87,6 +130,34 @@ def test_just_test_er_unit_pluss_kvalitet(recipes: dict[str, list[str]]) -> None
     assert "test-unit" in kropp and "check" in kropp, (
         "`just test` skal være test-unit + check, ellers betyr AGENTS.md sin "
         f"ene kommando noe annet enn den sier. Fant: {kropp!r}"
+    )
+
+
+def test_just_check_kjorer_alle_fire_sjekkene(recipes: dict[str, list[str]]) -> None:
+    """AGENTS.md lover fire sjekker. Faller én ut, skal vakten felle det."""
+    kropp = "\n".join(recipes["check"])
+    for kommando, _ in CHECK_KOMMANDOER:
+        assert kommando in kropp, (
+            f"`just check` kjører ikke {kommando!r}. AGENTS.md lover ruff check, "
+            "ruff format --check, mypy og vulture, og det er denne oppskriften "
+            "som er lovet."
+        )
+
+
+def test_agents_md_navngir_de_samme_fire_sjekkene() -> None:
+    """Teksten skal ikke kunne love tre av fire uten at noe sier fra."""
+    tekst = _les(AGENTS)
+    for _, verktoy in CHECK_KOMMANDOER:
+        assert verktoy in tekst, (
+            f"AGENTS.md nevner ikke {verktoy} i «Før commit», men `just check` kjører den"
+        )
+
+
+def test_just_test_unit_kjorer_hele_testtreet(recipes: dict[str, list[str]]) -> None:
+    """En smalning til én fil ville gitt grønt på resten uten å si fra."""
+    kropp = " ".join(recipes["test-unit"])
+    assert re.search(r"pytest tests/(?:\s|$|\{)", kropp), (
+        f"`just test-unit` kjører ikke hele tests/. Fant: {kropp!r}"
     )
 
 
@@ -219,3 +290,40 @@ def test_ci_kjorer_bare_just_oppskrifter(recipes: dict[str, list[str]]) -> None:
     assert {"test-unit", "check", "test-ha"} <= kalt, (
         f"ci.yml kaller bare {sorted(kalt)}; forventet test-unit, check og test-ha"
     )
+
+
+def test_hacs_json_er_kilden_til_minimumsversjonen(recipes: dict[str, list[str]]) -> None:
+    """`just test-ha target=minimum` må teste det hacs.json lover brukerne.
+
+    Uten denne koblingen kan hacs.json heves uten at minimum-miljøet endrer
+    seg, og da tester vi noe annet enn løftet.
+    """
+    lovet = json.loads(_les(HACS))["homeassistant"]
+    testet = _ha_versjon_per_mal(recipes)["minimum"]
+    assert lovet == testet, (
+        f"hacs.json lover HA {lovet}, men ha-minimum i uv.lock løser til {testet}. Hev begge, eller ingen."
+    )
+
+
+def test_ingen_ha_versjon_star_skrevet_for_hand(recipes: dict[str, list[str]]) -> None:
+    """Ni kopier av «2025.1.0» hadde ingenting som holdt dem i synk.
+
+    Nå har de det: hver HA-versjon som står i klartekst i justfile, AGENTS.md,
+    docs eller pyproject må være en av de to uv.lock faktisk løser.
+    """
+    gyldige = set(_ha_versjon_per_mal(recipes).values())
+    for sti in FILER_MED_HA_VERSJON:
+        for linjenr, linje in enumerate(_les(sti).splitlines(), start=1):
+            for funnet in HA_VERSJON.findall(linje):
+                assert funnet in gyldige, (
+                    f"{sti.relative_to(REPO)}:{linjenr} nevner HA {funnet}, men uv.lock "
+                    f"løser {sorted(gyldige)}. Rett kopien eller lås gruppen på nytt."
+                )
+
+
+def test_begge_ha_versjonene_star_i_versjonstabellen(recipes: dict[str, list[str]]) -> None:
+    tabell = _les(TESTING)
+    for mal, versjon in _ha_versjon_per_mal(recipes).items():
+        assert versjon in tabell, (
+            f"`just test-ha target={mal}` kjører HA {versjon}, men docs/testing.md nevner den ikke"
+        )

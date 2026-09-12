@@ -27,11 +27,12 @@ kvalitet = [
     "vulture==2.16",
     "pre-commit>=3.5.0",
 ]
-# Minimum = det hacs.json lover: HA 2025.1.0. Plugin-versjonen pinner
-# homeassistant==2025.1.0 selv, så versjonen står bare ett sted.
+# Minimum = versjonen hacs.json lover brukerne. Tallet står bare der og i
+# uv.lock; plugin-versjonen under drar inn den HA-en, og
+# tests/test_testkommandoer.py feller det hvis de to ikke er den samme.
 ha-minimum = [
     "pytest-homeassistant-custom-component==0.13.201",
-    # HA 2025.1.0 pinner denne prereleasen transitivt. uv regner bare
+    # HA-minimum pinner denne prereleasen transitivt. uv regner bare
     # prereleases som er skrevet ut her som tillatte, så den må stå eksplisitt
     # for at minimum-grenen skal kunne løses. Samme versjon som HA ber om.
     "aiohasupervisor==0.2.2b5",
@@ -43,7 +44,7 @@ ha-current = [
 ]
 
 [tool.uv]
-# HA 2025.1.0 pinner aiohasupervisor==0.2.2b5, altså en prerelease. uv nekter
+# HA-minimum pinner aiohasupervisor==0.2.2b5, altså en prerelease. uv nekter
 # prereleases som default, så minimum-grenen kunne ikke løses uten dette.
 # `if-necessary-or-explicit` slipper bare gjennom de som er eksplisitt pinnet
 # (eller som ikke har noe stabilt alternativ), ikke prereleases generelt.

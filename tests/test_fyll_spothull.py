@@ -10,6 +10,11 @@ ekte målinger med arkivpriser.
 Nærheten til 23:45-kvarteret holder ikke alene: på en flat natt ligger en ekte
 måling i time 00 også innenfor toleransen. Derfor kreves det i tillegg at
 verdien bommer på sin egen publiserte time.
+
+Begge avstandene måles mot kurs-årgangsjusterte priser. På en dag der HA lagret
+prisene med en foreløpig valutakurs ligger hele døgnet skjevt mot publisert
+pris med en tilnærmet konstant faktor, og uten justeringen bommer en ekte
+måling på sin egen time av en grunn som ikke har noe med hull å gjøre.
 """
 
 from __future__ import annotations
@@ -262,3 +267,105 @@ def test_overstyr_krever_begrunnelse(tmp_path: Path) -> None:
     fixture = _fixture(tmp_path / "fixture.json", _doegn(arkiv, 16, 24))
 
     assert _kjor(fixture, arkiv, "--overstyr", f"2026-08-16T05:00:00{TZ}") == 1
+
+
+AARGANG = 0.994
+"""Kurs-årgang på 0,6 % skjevhet, innenfor det som er målt i fixturene (opptil 0,63 %)."""
+
+
+def _doegn_med_aargang(arkiv: Path, dag: int, hull: range, aargang: float) -> list[dict[str, Any]]:
+    """Ett døgn der HA-recorderen lagret prisene med en annen valutakurs.
+
+    Timene i `hull` mangler recorder-pris. De andre ligger `aargang` ganger den
+    publiserte prisen, slik et døgn ser ut når FX-markedet var stengt på
+    auksjonsdagen.
+    """
+    hours = []
+    for t in range(24):
+        ts = _iso(datetime.fromisoformat(f"2026-08-{dag:02d}T00:00:00{TZ}") + timedelta(hours=t))
+        pris = None if t in hull else round(_timespris(arkiv, ts) * aargang, 6)
+        hours.append({"start_local": ts, "kwh": 1.0, "spot_nok_kwh_eks_mva": pris})
+    return hours
+
+
+def test_ekte_maaling_pa_aargangsdag_star_urort(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """Hullet starter kl. 01 på en dag der HA lagret prisene med foreløpig kurs.
+
+    Hele døgnet ligger 0,6 % under publisert pris, så en helt ekte måling i
+    time 00 bommer på sin egen publiserte time av en grunn som ikke har noe med
+    hullet å gjøre. Faller den samtidig innenfor 0,5 øre av 23:45-kvarteret,
+    var begge krav oppfylt før årgangsjusteringen kom inn. Justert mot døgnets
+    egen kurs-årgang treffer målingen sin egen time blink, og timen skal stå.
+    """
+    time_00 = f"2026-08-17T00:00:00{TZ}"
+    arkiv = _arkiv(
+        tmp_path / "arkiv.json",
+        steg=0.0,
+        # Publisert time 00 ligger 1,2 øre over 23:45-kvarteret kvelden før.
+        avvik={_iso(datetime.fromisoformat(time_00) + timedelta(minutes=15 * k)): 1512.0 for k in range(4)},
+    )
+    hours = _doegn(arkiv, 16, 24) + _doegn_med_aargang(arkiv, 17, range(1, 12), AARGANG)
+    maalt = hours[24]["spot_nok_kwh_eks_mva"]
+
+    # Krav 1 er oppfylt: målingen ligger 0,29 øre fra 23:45-kvarteret.
+    assert abs(maalt - _kvarterpris(arkiv, f"2026-08-16T23:45:00{TZ}")) < fyll.RANDTIME_TOLERANSE_NOK
+    # Mot rå publisert pris ville krav 2 også slått til, altså den gamle regelen.
+    avstand_forrige = abs(maalt - _kvarterpris(arkiv, f"2026-08-16T23:45:00{TZ}"))
+    avstand_raa = abs(maalt - _timespris(arkiv, time_00))
+    assert avstand_raa >= avstand_forrige + fyll.RANDTIME_EGEN_TIME_MARGIN_NOK
+
+    fixture = _fixture(tmp_path / "fixture.json", hours)
+    assert _kjor(fixture, arkiv) == 0
+
+    ut = _les(fixture)
+    assert ut["hours"][24]["spot_nok_kwh_eks_mva"] == maalt
+    assert "spot_kilde" not in ut["hours"][24]
+    meta = ut["metadata"]["spothull"]["fylt_fra_nordpool"]
+    assert meta["randtimer"] == {}
+    assert meta["fylte_timer"] == 11  # bare hulltimene 01-11
+    utskrift = capsys.readouterr().out
+    assert "Lot timen stå" in utskrift
+    assert "kurs-årgang 0.99400" in utskrift
+
+
+def test_baaret_verdi_fra_aargangsdag_fylles(tmp_path: Path) -> None:
+    """Kvelden før er en årgangsdag, så den bårne verdien ligger 0,9 øre fra rå kvarterpris.
+
+    Uten justering faller randtimen ut på krav 1 og blir stående som en måling
+    den ikke er. Målt mot kvarteret justert for årgangen den ble lagret med,
+    treffer den blink.
+    """
+    time_00 = f"2026-08-17T00:00:00{TZ}"
+    arkiv = _arkiv(
+        tmp_path / "arkiv.json",
+        steg=0.0,
+        avvik={_iso(datetime.fromisoformat(time_00) + timedelta(minutes=15 * k)): 1550.0 for k in range(4)},
+    )
+    hours = _doegn_med_aargang(arkiv, 16, range(0), AARGANG) + _doegn(arkiv, 17, 1)
+    baaret = round(_kvarterpris(arkiv, f"2026-08-16T23:45:00{TZ}") * AARGANG, 6)
+    hours[24]["spot_nok_kwh_eks_mva"] = baaret
+    # Rå avstand til kvarteret er over toleransen; det er kurs-årgangen, ikke en måling.
+    assert abs(baaret - _kvarterpris(arkiv, f"2026-08-16T23:45:00{TZ}")) > fyll.RANDTIME_TOLERANSE_NOK
+
+    fixture = _fixture(tmp_path / "fixture.json", hours)
+    assert _kjor(fixture, arkiv) == 0
+
+    ut = _les(fixture)
+    assert ut["hours"][24]["spot_kilde"] == "nordpool_publisert"
+    assert list(ut["metadata"]["spothull"]["fylt_fra_nordpool"]["randtimer"]) == [time_00]
+
+
+def test_aargang_ratio_krever_nok_timer_og_konstant_faktor(tmp_path: Path) -> None:
+    """Årgangen regnes som umålt når døgnet er for tynt eller ikke en konstant faktor."""
+    arkiv = _arkiv(tmp_path / "arkiv.json", steg=0.0)
+    priser = fyll.les_arkiv(arkiv)[0]
+
+    helt_doegn = _doegn_med_aargang(arkiv, 16, range(0), AARGANG)
+    assert fyll.aargang_ratio(helt_doegn, priser, "2026-08-16") == pytest.approx(AARGANG, abs=1e-9)
+
+    tynt = _doegn_med_aargang(arkiv, 16, range(5, 24), AARGANG)  # fem ekte timer
+    assert fyll.aargang_ratio(tynt, priser, "2026-08-16") is None
+
+    spriker = _doegn_med_aargang(arkiv, 16, range(0), AARGANG)
+    spriker[3]["spot_nok_kwh_eks_mva"] = round(float(spriker[3]["spot_nok_kwh_eks_mva"]) * 1.01, 6)
+    assert fyll.aargang_ratio(spriker, priser, "2026-08-16") is None

@@ -17,7 +17,12 @@ Exit 0 hvis alt er grønt, 1 ellers.
 
 Bruk:
     python3 scripts/sjekk_testpakke.py
-    python3 scripts/sjekk_testpakke.py --states states.json --hopp-over-fil
+    python3 scripts/sjekk_testpakke.py --states states.json
+    python3 scripts/sjekk_testpakke.py --hopp-over-fil
+
+`--states` leser en JSON-dump i stedet for å spørre HA, og hopper da over
+filsammenligningen av seg selv. `--hopp-over-fil` gjør det samme mot en
+kjørende HA.
 """
 
 from __future__ import annotations

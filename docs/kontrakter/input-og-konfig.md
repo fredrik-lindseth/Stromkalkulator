@@ -44,9 +44,16 @@ tre resultater, aldri et bart tall og aldri `None` som betyr flere ting.
 
 | Resultat | Felt | Betyr | Regnes det videre på? |
 | --- | --- | --- | --- |
-| `Gyldig` | `verdi` (float, normalisert), `enhet_normalisert`, `observert` (aware datetime fra `last_updated`), `raa_enhet` | Entiteten finnes og leverer et endelig tall i en enhet vi kan regne om | Ja |
+| `Gyldig` | `verdi` (float, normalisert), `enhet_normalisert`, `observed_at` (aware datetime fra `last_updated`), `avlest_kl` (aware datetime, da adapteren leste staten), `raa_enhet` | Entiteten finnes og leverer et endelig tall i en enhet vi kan regne om | Ja |
 | `Utilgjengelig` | `grunn`, `entity_id` | Entiteten leverer ikke akkurat nå, men oppsettet er i orden | Nei, forrige tilstand står |
 | `Ugyldig` | `grunn`, `entity_id`, `raa_enhet` | Entiteten leverer noe vi ikke har lov til å regne på | Nei, og det skal være synlig |
+
+`observed_at` og `avlest_kl` er to ulike tider, og begge trengs. Energien
+bokføres etter `observed_at` ([avregning.md
+B1](avregning.md#b1-energiavlesning)), mens en prisprøve hører til prisruten
+`avlest_kl` faller i ([avregning.md
+A2.1](avregning.md#a21-prisruten-og-hva-det-vil-si-at-en-prisprøve-er-observert)).
+Adapteren leverer begge og velger ikke mellom dem.
 
 Grunnene er faste strenger, ikke fritekst, siden diagnostikken og
 oversettelsene slår opp på dem.
@@ -70,14 +77,25 @@ oversettelsene slår opp på dem.
 | `feil_dimensjon` | Enheten er gyldig, men for feil størrelse, for eksempel kWh der vi ber om W |
 | `feil_valuta` | Prisenhet i annen valuta enn NOK eller øre, for eksempel EUR/MWh |
 | `ikke_kumulativ` | Energisensor uten `state_class` `total_increasing` eller `total` |
-| `urimelig_verdi` | Prisverdi over den grensen `config_flow` allerede bruker (2000 i sensorens egen enhet) |
+| `urimelig_verdi` | Prisverdi der absoluttverdien er over 100 **etter** normalisering til NOK/kWh |
+
+Grensen i `urimelig_verdi` gjelder etter normalisering, ikke i sensorens egen
+enhet. `config_flow` bruker i dag 2000 i sensorens egen enhet, og det holdt så
+lenge MWh-enheter ble avvist. Punkt 2 godtar `NOK/MWh`, og 2000 NOK/MWh er
+2 NOK/kWh, som NO1, NO2 og NO5 har passert i ekte timer. En grense som avviser
+ekte data er verre enn ingen grense. Norske timespriser har toppet seg i
+størrelsesorden ti kroner per kWh, så 100 NOK/kWh ligger en størrelsesorden over
+ekte data og fanger fortsatt det grensen er til for: en sensor som leverer noe
+helt annet enn en pris, for eksempel en teller uten enhet. Den regnes på absoluttverdien, så
+negative spotpriser passerer; de er gyldige
+([avregning.md B2](avregning.md#b2-prisintervall)).
 
 At entiteten mangler er altså `Utilgjengelig(finnes_ikke)`, ikke `Ugyldig`.
 Det er med vilje: en slettet sensor er ikke en feilkonfigurasjon vi skal
 avvise, det er en måling som ikke kommer inn. Den skal aldri kaste
 `UpdateFailed`. Resten av kjeden regner videre på det som fortsatt kommer inn.
 
-Tre regler gjelder alle roller i runtime:
+Fire regler gjelder alle roller i runtime:
 
 - Et ikke-gyldig resultat blir aldri 0. Dagens `_read_sensor_float` returnerer
   0.0 for unavailable, og en 0 er en måling som sier «du bruker ingenting».
@@ -85,6 +103,11 @@ Tre regler gjelder alle roller i runtime:
 - Et ikke-gyldig resultat overskriver aldri en cache og aldri energibaselinen.
 - `Ugyldig` ved runtime som skyldes enhet skal gi vakthold-problemtypen `enhet`
   og et repair. En sensor som bytter enhet under drift er en ekte feil.
+- «Forrige tilstand står» ved `Utilgjengelig` gjelder **visningen**. Cachen av
+  siste prisverdi er til for prissensorene i denne integrasjonen og mates aldri
+  inn i avregningen. Et avregningsintervall uten egen prisprøve har ingen pris,
+  aldri naboens ([avregning.md C2.5 og
+  C4](avregning.md#c4-intervaller-uten-data-eller-uten-pris)).
 
 ## 2. Enhetstabell
 
@@ -132,9 +155,15 @@ Kravet er at `state_class` er `total_increasing` eller `total`. Mangler
 også `Ugyldig(ikke_kumulativ)`: det er en øyeblikksverdi, ikke en teller.
 
 `total` godtas fordi noen AMS-integrasjoner bruker den for tellere som kan
-nullstilles ved målerbytte. Nullstillingen er allerede dekket: et negativt
-delta forkastes, og det store spranget etterpå melder seg selv gjennom
-`energi_delta_forkastet`-varselet.
+nullstilles ved målerbytte. Nullstillingen er dekket av at et negativt delta
+forkastes og baselinen flyttes til den nye standen. Etter en nullstilling til 0
+kommer det ikke noe stort sprang senere, og det er meningen: telleren starter
+forfra, og det som går tapt er forbruket mellom siste avlesning på den gamle
+telleren og den første på den nye. Et målerbytte der den nye telleren starter
+høyere enn den gamle sto, gir derimot ett stort positivt delta, og det fanges av
+`MAX_ENERGY_DELTA_KWH` og `energi_delta_forkastet`-varselet, som viser brukeren
+tallet framfor å skjule det. Er den nye telleren en ny entitet, er den uansett
+en ny kilde etter punkt 5, og deltaet er 0.
 
 Kravet gjelder både i config-flyten (feilnøkkel på feltet) og ved runtime.
 
@@ -150,16 +179,22 @@ skal virke fra første minutt, og feilen skal være synlig.
   er en bekreftelse som skriver et flagg på entryet, etter samme mønster som
   `EgendefinertSatserRepairFlow` i `repairs.py`, slik at det ikke kommer
   tilbake ved neste omstart.
-- Flagget er `CONF_PRISENHET_BEKREFTET`. Er det satt, reises ikke varselet på
-  nytt for den entryen.
+- Flagget er `CONF_PRISENHET_BEKREFTET`, og det er **per rolle**: en liste over
+  de rollene brukeren har bekreftet, for eksempel `["spotpris"]`. Er rollen i
+  listen, reises varselet ikke på nytt for den. Et enkelt ja/nei-flagg for hele
+  entryet ville gjort at en bruker som bekreftet spotprisen og senere la til en
+  leverandørprissensor uten enhet aldri fikk spørsmålet om den.
 - Får sensoren senere en enhet, gjelder enheten, og flagget er uten betydning.
   Er den nye enheten en annen dimensjon enn det vi antok, er det en
   runtime-enhetsendring og håndteres som i punkt 1.
 - Varselet reises ikke for en sensor som har enhet. Det er hele poenget: den
   som har en Nord Pool-sensor med `NOK/kWh` skal ikke se noe.
 
-Regelen gjelder både spotpris og leverandørpris. Ett varsel per entry, ikke
-ett per sensor, med rollen i plassholderen.
+Regelen gjelder både spotpris og leverandørpris. Det står **ett** varsel om
+gangen per entry, og det nevner de rollene som er ubekreftede akkurat nå, i
+plassholderen. Bekreftelsen skriver alle rollene varselet nevnte inn i flagget.
+Kommer en ny ubekreftet rolle til senere, reises varselet på nytt, én gang, for
+den rollen.
 
 Sensoren avvises ikke, og den godtas ikke stille.
 
@@ -193,7 +228,16 @@ Regler:
   Aldersgrensen `TPI_STALE_HOURS` faller bort som kriterium for å forkaste:
   vernet mot det gigantiske spranget er `MAX_ENERGY_DELTA_KWH` og
   `energi_delta_forkastet`-varselet, som forteller brukeren tallet i stedet for
-  å kaste det i stillhet.
+  å kaste det i stillhet. Et døgn nede skal gi de 30 kWh fordelt over
+  intervallene forbruket faktisk skjedde i, ikke 30 kWh som forsvinner.
+
+  **Denne regelen eies her.** Baselinens levetid står bare i dette punktet, og
+  [avregning.md C5](avregning.md#c5-omstart) viser hit framfor å gjenta den. De
+  to dokumentene sa i første utgave hver sin ting om `TPI_STALE_HOURS`, og
+  grunnen var at de ble skrevet av hver sin agent som ikke leste den andre. To
+  steder å lese samme regel er ett for mye. K1 fjerner den siste bruken av
+  konstanten, og står den da igjen i `const.py` uten bruker, fjernes den i samme
+  commit.
 - En gammel baseline uten `source_identity`, altså alt som ligger lagret i dag,
   forkastes én gang ved lasting. Månedsdata beholdes. Neste avlesning setter ny
   baseline med kilde og gir delta 0. Det koster hver bruker inntil ett
@@ -267,15 +311,17 @@ entitetenes unique-id-er.
 | Entry-type i dag | Kjennetegn i `entry.data` | Modus etter v5 | Endres satsene? | Repair? |
 | --- | --- | --- | --- | --- |
 | Egendefinert | `tso == "custom"` | `manual` | Nei | Nei fra v5. K3 reiser sitt eget om fastledd |
-| Kjent DSO med sesongperioder | DSO har `energiledd_perioder` | `catalog` | Nei, periodene gjaldt allerede | Nei |
+| Kjent DSO med sesongperioder | DSO har `energiledd_perioder` | `catalog`, lagret sats fjernes fra `entry.data` | Nei, periodene gjaldt allerede | Nei |
 | Kjent DSO, lagret sats lik katalogen | Avvik under terskelen i punkt 8 | `catalog`, lagret sats fjernes fra `entry.data` | Nei | Nei |
 | Kjent DSO, lagret sats avviker | Avvik over terskelen | `legacy_unconfirmed`, lagret sats blir stående | Ja, katalogen gjelder fra første oppstart | Ja, med valg |
 | Kjent DSO uten lagret energiledd | Feltene mangler | `catalog` | Nei | Nei |
 | Utfaset DSO (`supported: False`) | Står igjen for varselets skyld | `catalog` | Nei | Nei fra v5. Det eksisterende `dso_migration`-varselet gjelder fortsatt |
 
-Rad tre er den viktige for støyen: den fjerner den lagrede satsen slik at
-entryet ikke drifter på nytt ved neste prisendring, og brukeren merker
-ingenting fordi tallet er det samme.
+Rad to og rad tre fjerner begge den lagrede satsen fra `entry.data`, slik at
+entryet ikke drifter på nytt ved neste prisendring, og i begge tilfeller merker
+brukeren ingenting fordi tallet er det samme. På en sesong-DSO er den lagrede
+satsen dessuten alt uten virkning, siden periodene styrer; å la den ligge ville
+bare vært å beholde et tall som ser ut som en regel og ikke er det.
 
 ## 8. Når repair-varselet om satser reises, og når det ikke gjør det
 
@@ -291,16 +337,26 @@ Avvik regnes slik:
   `compute_energiledd_inkl_mva`. Det er tallet brukeren ser, og det er der en
   forskjell betyr noe.
 - Avviket er signifikant når den absolutte differansen er minst
-  `0,0001 NOK/kWh` inkl. mva, altså 0,01 øre/kWh.
+  `0,000075 NOK/kWh` inkl. mva, altså 0,0075 øre/kWh.
 - Er minst én av de to signifikant, reises varselet. Ellers ikke.
 
-Terskelen er ikke vilkårlig. Fredriks egen BKK-entry har `energiledd_dag:
-0.28774` lagret mens `dso.py` sier `0.2877`. Den lagrede verdien er ikke en
-gammel BKK-sats og heller ikke et brukervalg: den kommer fra v1-migreringen,
-som regnet 46,13 øre inkl. mva tilbake til eks. mva og rundet til fem
-desimaler. Forskjellen er 0,005 øre/kWh inkl. mva, den er usynlig på alle
-sensorer, og den skal ikke gi et varsel. Ekte tariffendringer ligger i hele
-øre, ofte flere kroner i året, og passerer terskelen med god margin.
+Terskelen er ikke vilkårlig, og den er ikke 0,01 øre. Fredriks egen BKK-entry
+har `energiledd_dag: 0.28774` lagret mens `dso.py` sier `0.2877`. Den lagrede
+verdien er ikke en gammel BKK-sats og heller ikke et brukervalg: den kommer fra
+v1-migreringen, som regnet 46,13 øre inkl. mva tilbake til eks. mva og rundet
+til fem desimaler. Forskjellen er 0,005 øre/kWh inkl. mva, den er usynlig på
+alle sensorer, og den skal ikke gi et varsel.
+
+Terskelen ligger mellom den støyen og det minste ekte steget:
+
+- Støyen fra v1-migreringens femdesimalavrunding er 0,005 øre, pluss inntil
+  0,0006 øre fra selve avrundingen. Terskelen ligger over den.
+- 0,01 øre/kWh er minste kvantum på prislistene, altså en ekte endring på ett
+  steg. En terskel på nøyaktig 0,0001 NOK/kWh ville sluppet den gjennom i
+  flyttall: `0.4614 - 0.4613` er `9.9999e-05`, som ikke er `>= 1e-4`. Terskelen
+  ligger under den.
+- Den minste ekte endringen i `dso.py`-historikken er Elvia fra 0,2915 til
+  0,2899, altså 0,16 øre eks. mva. Den passerer med to størrelsesordener.
 
 Varselet har to valg, og begge lukker det:
 
@@ -405,7 +461,13 @@ stedene i samme commit.
 
 - Hvordan energi fordeles over tid og prisintervaller. Det er
   avregningskontrakten, `docs/kontrakter/avregning.md`.
-- Hvor prisen kommer fra når spotsensoren er borte. Også avregningskontrakten.
+- Hvor prisen kommer fra når spotsensoren er borte. Også avregningskontrakten,
+  [C4](avregning.md#c4-intervaller-uten-data-eller-uten-pris): den kommer ikke
+  noe sted fra, og intervallet blir `uten_pris`.
+- Hva observasjonstiden til en **prisprøve** er. `observed_at` fra
+  `last_updated` i punkt 1 er energiavlesningens tid; prisprøver snappes til
+  prisruten sin etter [avregning.md
+  A2.1](avregning.md#a21-prisruten-og-hva-det-vil-si-at-en-prisprøve-er-observert).
 - Hvilke felt diagnostikkens JSON har og hvordan de aliaseres. D1.
 - Hvilke HA-versjoner som er minimum, og hvilke API-er adapteren får bruke.
   Testmiljøtasken.

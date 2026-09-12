@@ -89,6 +89,8 @@ def _tabellrader(tekst: str, forste_kolonne: str) -> list[list[str]]:
 @pytest.mark.parametrize(
     "overskrift",
     [
+        "### A2.1 Prisruten",
+        "### C6 Åpent, lukket og uforanderlig",
         "## A. Beslutningsport",
         "## B. Datakontrakt",
         "## C. Invarianter og fordelingsregel",
@@ -109,7 +111,7 @@ def test_kontrakten_navngir_de_tre_datatypene() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Prøvetabellen (C6)
+# Prøvetabellen for fordelingen (C7)
 
 
 def _provetabell() -> list[tuple[str, datetime, datetime, float, dict[datetime, float]]]:
@@ -136,7 +138,7 @@ def test_provetabellen_er_lest() -> None:
 def test_fordelingsregelen_treffer_provetabellen(
     sak: str, fra: datetime, til: datetime, delta: float, forventet: dict[datetime, float]
 ) -> None:
-    """C6: hver rad i den normative tabellen skal komme ut av regelen i C1."""
+    """C7: hver rad i den normative tabellen skal komme ut av regelen i C1."""
     fordelt = fordel_delta(fra, til, delta)
     assert set(fordelt) == set(forventet), sak
     for start, kwh in forventet.items():
@@ -155,11 +157,11 @@ def test_provetabellen_bevarer_energien(
 # Sommertid (C3)
 
 
-def _dst_tabell() -> list[tuple[str, datetime, str, str]]:
+def _dst_tabell() -> list[tuple[str, datetime, str, str, str]]:
     rader = []
     for rad in _tabellrader(_kontrakttekst(), r"D\d+"):
-        sak, utc, lokal, maaned = rad
-        rader.append((sak, datetime.fromisoformat(utc.replace("Z", "+00:00")), lokal, maaned))
+        sak, utc, lokal, maaned, avgiftsaar = rad
+        rader.append((sak, datetime.fromisoformat(utc.replace("Z", "+00:00")), lokal, maaned, avgiftsaar))
     return rader
 
 
@@ -167,16 +169,24 @@ DST = _dst_tabell()
 
 
 def test_dst_tabellen_er_lest() -> None:
-    assert len(DST) >= 5
+    assert len(DST) >= 6
 
 
-@pytest.mark.parametrize(("sak", "utc", "lokal", "maaned"), DST, ids=[d[0] for d in DST])
-def test_lokal_merkelapp_kommer_fra_utc_start(sak: str, utc: datetime, lokal: str, maaned: str) -> None:
+@pytest.mark.parametrize(("sak", "utc", "lokal", "maaned", "avgiftsaar"), DST, ids=[d[0] for d in DST])
+def test_lokal_merkelapp_kommer_fra_utc_start(
+    sak: str, utc: datetime, lokal: str, maaned: str, avgiftsaar: str
+) -> None:
     """C3: merkelappen er start_utc omregnet med zoneinfo, ikke veggklokke-regning."""
     i_oslo = utc.astimezone(OSLO)
     forventet = f"{i_oslo:%Y-%m-%d %H:%M} {'CEST' if i_oslo.utcoffset() == timedelta(hours=2) else 'CET'}"
     assert forventet == lokal, sak
     assert f"{i_oslo:%Y-%m}" == maaned, sak
+    assert f"{i_oslo:%Y}" == avgiftsaar, f"{sak}: regelkilde følger start_utc, også over årsskiftet"
+
+
+def test_arsskiftet_er_dekket() -> None:
+    """C3: årsskiftet sto ikke i tabellen, og avgiftssatsene skifter der."""
+    assert any(sak == "D6" and maaned == "2027-01" for sak, _, _, maaned, _ in DST)
 
 
 def test_host_dst_gir_to_intervaller_med_samme_veggklokke() -> None:
@@ -271,3 +281,172 @@ def test_beholdte_felt_finnes_i_coordinator(felt: str) -> None:
     """Felttabellen skal navngi felt som faktisk finnes i dagens data-dict."""
     kilde = (ROT / "custom_components" / "stromkalkulator" / "coordinator.py").read_text(encoding="utf-8")
     assert f'"{felt}"' in kilde, f"{felt} står i felttabellen, men finnes ikke i coordinator.py"
+
+
+# ---------------------------------------------------------------------------
+# Prisruter (A2.1 og C8)
+
+
+def _settlevindu() -> int:
+    """`PRIS_SETTLE_SEKUNDER` slik kontrakten oppgir den."""
+    treff = re.search(r"`PRIS_SETTLE_SEKUNDER` \((\d+)\)", _kontrakttekst())
+    assert treff, "A2.1 må oppgi settlevinduet i sekunder"
+    return int(treff.group(1))
+
+
+SETTLE = _settlevindu()
+PRISINTERVALL = datetime(2026, 6, 15, 10, 0, tzinfo=UTC)
+
+
+def prisrutestart(tidspunkt: datetime, opplosning_minutter: int) -> datetime:
+    """Starten på prisruten tidspunktet faller i (A2.1, forankret i klokketimen)."""
+    if tidspunkt.tzinfo is None:
+        raise ValueError("polltid må være tidssoneklar")
+    i_utc = tidspunkt.astimezone(UTC)
+    minutt = (i_utc.minute // opplosning_minutter) * opplosning_minutter
+    return i_utc.replace(minute=minutt, second=0, microsecond=0)
+
+
+def prisprover(polls: list[tuple[datetime, float]], opplosning_minutter: int) -> dict[datetime, float]:
+    """Kontraktens utførbare form av A2.1: polls inn, én verdi per prisrute ut.
+
+    Prøven tilordnes ruten polltiden faller i, godtas først når polltiden ligger
+    minst `PRIS_SETTLE_SEKUNDER` etter rutestart, og siste godkjente prøve i en
+    rute gjelder. Verdien bæres aldri inn i en annen rute.
+    """
+    ruter: dict[datetime, float] = {}
+    for polltid, verdi in sorted(polls):
+        start = prisrutestart(polltid, opplosning_minutter)
+        if (polltid - start).total_seconds() < SETTLE:
+            continue
+        ruter[start] = verdi
+    return ruter
+
+
+def intervallpris(
+    polls: list[tuple[datetime, float]], opplosning_minutter: int
+) -> tuple[float | None, int, int]:
+    """(pris, antall ruter med prøve, ventet antall) for avregningsintervallet."""
+    ventet = 60 // opplosning_minutter
+    ruter = {
+        start: verdi
+        for start, verdi in prisprover(polls, opplosning_minutter).items()
+        if PRISINTERVALL <= start < PRISINTERVALL + INTERVALL
+    }
+    if not ruter:
+        return None, 0, ventet
+    return sum(ruter.values()) / len(ruter), len(ruter), ventet
+
+
+def _pristabell() -> list[tuple[str, int, list[tuple[datetime, float]], int, float | None, str]]:
+    saker = []
+    for rad in _tabellrader(_kontrakttekst(), r"P\d+"):
+        sak, opplosning, polls, ruter, pris, kvalitet = rad
+        avlesninger = []
+        for ledd in polls.split(";"):
+            naar, verdi = ledd.split("=")
+            minutt, sekund = (int(d) for d in naar.strip().split(":"))
+            avlesninger.append((PRISINTERVALL + timedelta(minutes=minutt, seconds=sekund), float(verdi)))
+        forventet = None if pris.strip() in {"—", "-"} else float(pris)
+        saker.append((sak, int(opplosning), avlesninger, int(ruter), forventet, kvalitet))
+    return saker
+
+
+PRISER = _pristabell()
+
+
+def test_pristabellen_er_lest() -> None:
+    """En tom tabell ville gjort radtestene under grønne uten å sjekke noe."""
+    assert len(PRISER) >= 7
+
+
+@pytest.mark.parametrize(
+    ("sak", "opplosning", "polls", "ruter", "forventet", "kvalitet"), PRISER, ids=[p[0] for p in PRISER]
+)
+def test_prisregelen_treffer_provetabellen(
+    sak: str,
+    opplosning: int,
+    polls: list[tuple[datetime, float]],
+    ruter: int,
+    forventet: float | None,
+    kvalitet: str,
+) -> None:
+    """C8: hver rad i den normative tabellen skal komme ut av regelen i A2.1."""
+    pris, antall, ventet = intervallpris(polls, opplosning)
+    assert antall == ruter, sak
+    if forventet is None:
+        assert pris is None, sak
+    else:
+        assert pris == pytest.approx(forventet, abs=1e-9), sak
+    maalt = "uten_pris" if antall == 0 else ("komplett" if antall == ventet else "delvis_pris")
+    assert maalt == kvalitet, sak
+
+
+def test_like_priser_pa_rad_gir_en_prove_per_rute() -> None:
+    """A2.1: feilen som gjorde seksjonen nødvendig.
+
+    En prissensor med samme pris i fire kvarter på rad oppdaterer ikke
+    `last_updated`. Regelen leser polltiden og ruten, ikke staten, så alle fire
+    rutene får prøve likevel.
+    """
+    polls = [(PRISINTERVALL + timedelta(minutes=m, seconds=90), 1.0) for m in (0, 15, 30, 45)]
+    pris, antall, ventet = intervallpris(polls, 15)
+    assert (pris, antall, ventet) == (1.0, 4, 4)
+
+
+def test_prove_baeres_aldri_inn_i_neste_rute() -> None:
+    """C2.5: en rute uten egen prøve får ikke naboens pris."""
+    polls = [(PRISINTERVALL + timedelta(minutes=2), 1.0)]
+    assert prisprover(polls, 15) == {PRISINTERVALL: 1.0}
+
+
+def test_prove_i_settlevinduet_teller_ikke() -> None:
+    """A2.1 punkt 2: den første pollen etter rutegrensen har forrige rutes pris."""
+    tidlig = [(PRISINTERVALL + timedelta(seconds=SETTLE - 1), 0.9)]
+    assert prisprover(tidlig, 15) == {}
+    sent = [(PRISINTERVALL + timedelta(seconds=SETTLE), 0.9)]
+    assert prisprover(sent, 15) == {PRISINTERVALL: 0.9}
+
+
+@given(
+    forskyvning=st.integers(min_value=0, max_value=599),
+    poll_sekunder=st.integers(min_value=10, max_value=300),
+)
+@settings(max_examples=200, deadline=None)
+def test_prisen_er_polltidsuavhengig_nar_hver_rute_pollet(forskyvning: int, poll_sekunder: int) -> None:
+    """C2.6 for pris: prisen er snittet av rutene, uansett når i rutene det ble pollet.
+
+    Så lenge pollintervallet er kortere enn ruten minus settlevinduet, treffer
+    enhver pollplan alle fire rutene, og svaret er det samme uvektede snittet.
+    Tidsvekting av polltiden ville ikke bestått denne.
+    """
+    verdier = {0: 1.00, 15: 1.10, 30: 1.20, 45: 1.30}
+
+    def pris_i_ruten(polltid: datetime) -> float:
+        return verdier[prisrutestart(polltid, 15).minute]
+
+    polls = []
+    naa = PRISINTERVALL + timedelta(seconds=forskyvning)
+    slutt = PRISINTERVALL + INTERVALL
+    while naa < slutt:
+        polls.append((naa, pris_i_ruten(naa)))
+        naa += timedelta(seconds=poll_sekunder)
+
+    pris, antall, ventet = intervallpris(polls, 15)
+    assert (antall, ventet) == (4, 4)
+    assert pris == pytest.approx(sum(verdier.values()) / 4, abs=1e-12)
+
+
+def test_uvektet_snitt_er_samme_regning_som_forskningsskriptene() -> None:
+    """A2: `verify_norgespris_eksakt.py` og `maal_fordelingsregel.py` regner sum/len/1000.
+
+    Fire kvarterpriser i NOK/MWh gjennom prisregelen skal gi nøyaktig samme tall
+    som arkivregningen, ellers regner drift og etterkontroll ulikt.
+    """
+    kvarter_nok_mwh = [1266.45, 1288.36, 1299.42, 1301.11]
+    polls = [
+        (PRISINTERVALL + timedelta(minutes=m, seconds=90), verdi / 1000)
+        for m, verdi in zip((0, 15, 30, 45), kvarter_nok_mwh, strict=True)
+    ]
+    pris, _, _ = intervallpris(polls, 15)
+    assert pris == pytest.approx(sum(kvarter_nok_mwh) / len(kvarter_nok_mwh) / 1000, abs=1e-15)

@@ -14,10 +14,15 @@ Tellemåten er den samme som [^antall] i docs/galskapen.md beskriver:
   (`supported: False`, som står igjen bare for å gi et repair-varsel).
 - *nettselskap*: valgbare, der et selskap som er delt i flere prisområder
   (`delt_i`) teller som ett.
+
+Nederst voktes antall entiteter i docs/sensorer.md på samme vis, talt ut av
+plattformfilene. Overskriften der sa 53 sensorer mens HA registrerte 50, og
+det er samme slags drift.
 """
 
 from __future__ import annotations
 
+import ast
 import re
 from collections import Counter
 from pathlib import Path
@@ -217,3 +222,113 @@ def test_unike_husholdningssummer_i_galskapen() -> None:
         unike,
         len(summer),
     )
+
+
+# ---------------------------------------------------------------------------
+# Antall entiteter i docs/sensorer.md
+#
+# Samme drift som nettselskapstallene: overskriften sa 53 sensorer, mens ekte
+# HA registrerer 50 sensorer, 4 binærsensorer og 1 knapp. Her telles det ut av
+# plattformfilene, slik at en ny sensor feller teksten som ikke ble oppdatert.
+
+
+PLATTFORMER = {"sensor": "sensor.py", "binary_sensor": "binary_sensor.py", "button": "button.py"}
+KOMPONENT = ROT / "custom_components" / "stromkalkulator"
+
+
+def _klassetre(fil: str) -> tuple[dict[str, ast.ClassDef], list[str]]:
+    """Klassene i filen, og navnene som faktisk opprettes i `async_setup_entry`."""
+    tre = ast.parse((KOMPONENT / fil).read_text(encoding="utf-8"))
+    klasser = {node.name: node for node in tre.body if isinstance(node, ast.ClassDef)}
+    opprettet: list[str] = []
+    for node in ast.walk(tre):
+        if not (isinstance(node, ast.AsyncFunctionDef) and node.name == "async_setup_entry"):
+            continue
+        for kall in ast.walk(node):
+            if isinstance(kall, ast.Call) and isinstance(kall.func, ast.Name) and kall.func.id in klasser:
+                opprettet.append(kall.func.id)
+    assert opprettet, f"{fil}: fant ingen entiteter i async_setup_entry"
+    return klasser, opprettet
+
+
+def _arvet(klasser: dict[str, ast.ClassDef], navn: str, felt: str) -> ast.expr | None:
+    """Verdien et klasseattributt har, hentet ned gjennom basene i samme fil."""
+    node = klasser.get(navn)
+    if node is None:
+        return None
+    for setning in node.body:
+        if isinstance(setning, ast.AnnAssign) and isinstance(setning.target, ast.Name):
+            if setning.target.id == felt:
+                return setning.value
+        elif (
+            isinstance(setning, ast.Assign)
+            and isinstance(setning.targets[0], ast.Name)
+            and setning.targets[0].id == felt
+        ):
+            return setning.value
+    for base in node.bases:
+        if isinstance(base, ast.Name):
+            verdi = _arvet(klasser, base.id, felt)
+            if verdi is not None:
+                return verdi
+    return None
+
+
+ANTALL_SENSORER = len(_klassetre("sensor.py")[1])
+ANTALL_BINARSENSORER = len(_klassetre("binary_sensor.py")[1])
+ANTALL_KNAPPER = len(_klassetre("button.py")[1])
+
+
+def _sensorer_per_device() -> dict[str, tuple[int, int]]:
+    """Device-gruppe til (aktive, totalt), talt ut av `sensor.py`."""
+    klasser, opprettet = _klassetre("sensor.py")
+    per_device: dict[str, tuple[int, int]] = {}
+    for navn in opprettet:
+        gruppe = _arvet(klasser, navn, "_device_group")
+        assert isinstance(gruppe, ast.Name), f"{navn} mangler _device_group"
+        flagg = _arvet(klasser, navn, "_attr_entity_registry_enabled_default")
+        aktiv = 1 if flagg is None else int(bool(getattr(flagg, "value", True)))
+        pa, totalt = per_device.get(gruppe.id, (0, 0))
+        per_device[gruppe.id] = (pa + aktiv, totalt + 1)
+    return per_device
+
+
+PER_DEVICE = _sensorer_per_device()
+ANTALL_AKTIVE = sum(pa for pa, _ in PER_DEVICE.values())
+
+# Raden i tabellen øverst i docs/sensorer.md, per device-gruppe i sensor.py.
+DEVICE_RADER = {
+    "DEVICE_NETTLEIE": "Nettleie",
+    "DEVICE_STROMSTOTTE": "Strømstøtte",
+    "DEVICE_NORGESPRIS": "Norgespris",
+    "DEVICE_MAANEDLIG": "Månedlig forbruk",
+    "DEVICE_FORRIGE_MAANED": "Forrige måned",
+    "DEVICE_EKSPORT": "Eksport",
+}
+
+
+def test_alle_device_gruppene_har_en_rad() -> None:
+    """En ny device-gruppe uten rad ville gått upåaktet hen."""
+    assert set(PER_DEVICE) == set(DEVICE_RADER)
+
+
+def test_overskriften_i_sensorer_md_teller_riktig() -> None:
+    """«53 sensorer totalt» var feil i begge retninger: 50 sensorer, og 4 binære."""
+    assert _tall(
+        "docs/sensorer.md",
+        r"(\d+) devices og (\d+) entiteter: (\d+) sensorer, (\d+) binærsensorer "
+        r"og (\d+) knapp\. (\d+) av sensorene",
+    ) == (
+        len(DEVICE_RADER),
+        ANTALL_SENSORER + ANTALL_BINARSENSORER + ANTALL_KNAPPER,
+        ANTALL_SENSORER,
+        ANTALL_BINARSENSORER,
+        ANTALL_KNAPPER,
+        ANTALL_AKTIVE,
+    )
+
+
+@pytest.mark.parametrize(("gruppe", "rad"), sorted(DEVICE_RADER.items()))
+def test_device_tabellen_stemmer_med_sensor_py(gruppe: str, rad: str) -> None:
+    """Hver rad i tabellen telles ut av `sensor.py`, ikke skrevet av for hånd."""
+    assert _tall("docs/sensorer.md", rf"\| {rad} +\| (\d+) +\| (\d+) +\|") == PER_DEVICE[gruppe]

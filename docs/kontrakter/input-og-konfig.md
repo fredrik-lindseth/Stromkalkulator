@@ -167,9 +167,14 @@ en ny kilde etter punkt 5, og deltaet er 0.
 
 Kravet gjelder både i config-flyten (feilnøkkel på feltet) og ved runtime.
 
-## 4. Prissensor uten enhet
+## 4. Sensor uten enhet
 
 Dette er avgjort, og valget er Fredriks.
+
+En sensor uten `unit_of_measurement` skal aldri avvises. Adapteren antar
+rollens egen enhet med faktor 1, setter `raa_enhet` til `None`, og resultatet er
+`Gyldig` med `enhet_antatt` sann. Det som skiller rollene, er om antakelsen
+sier fra: prisrollene får et repair-varsel, effekt og energi får ingen.
 
 En prissensor uten `unit_of_measurement` godtas som `NOK/kWh`, og det reises
 **ett** repair-varsel som ber brukeren bekrefte at det stemmer. Integrasjonen
@@ -198,6 +203,24 @@ den rollen.
 
 Sensoren avvises ikke, og den godtas ikke stille.
 
+### 4.1 Effekt- og energisensor uten enhet
+
+En effekt- eller eksporteffektsensor uten `unit_of_measurement` **skal** leses
+som `W`, og en energisensor uten enhet **skal** leses som `kWh`. Ingen av dem
+gir repair-varsel og ingen av dem avvises.
+
+Det er dagens oppførsel, og det er grunnen: en avvisning ville slått ut
+oppsett som virker i dag, hos brukere som ikke har gjort noe galt og som ikke
+har noen knapp å trykke på. Varselet i punkt 4 er forbeholdt prisrollene fordi
+avgjørelsen der er Fredriks og gjelder pris.
+
+At antakelsen ble gjort er likevel synlig: `raa_enhet` er `None` i
+`input_resultater` (punkt 10), så diagnostikken viser hvilke roller som kjører
+på antatt enhet.
+
+Om effekt og energi også bør få et varsel, er ikke avgjort her. Det er en egen
+avgjørelse med egen kost, ikke noe en utfører skal ta underveis; se punkt 12.
+
 ## 5. Energibaseline
 
 Baselinen er den forrige avlesningen vi måler delta fra. I dag er den
@@ -215,6 +238,27 @@ Ny form, Store-skjema v2:
 | `entity_id` | str | Entity-id-en slik den var ved avlesningen, kun til visning og feilsøk |
 | `value_kwh` | float | Avlesningen normalisert til kWh etter punkt 2 |
 | `observed_at` | str | ISO 8601 i UTC, fra statens `last_updated` |
+
+**«v2» er en skjemaversjon i dataene, ikke `Store`-konstruktørens major
+version.** Denne regelen eies her og gjelder hele Store-filen, også
+[avregning.md D](avregning.md#d-persistens-og-migrering):
+
+- `Store(hass, 1, f"{DOMAIN}_{entry_id}")` blir stående som den er. Versjonen
+  skrives i selve dataene, i nøkkelen `skjema_versjon` på toppnivå i filen.
+  Baseline-dicten bærer i tillegg sin egen `schema_version` etter tabellen
+  over, slik at en baseline som flyttes eller logges ut av filen fortsatt vet
+  hva den er. De to er ikke samme felt, og de leses hver for seg.
+- Migreringen gjøres i vår egen kode ved lasting: kjenner vi ikke versjonen i
+  dataene igjen, forkastes baselinen én gang og resten av filen beholdes.
+- Grunnen til at konstruktøren ikke bumpes, er ikke design, den er
+  testmiljøet: HAs `Store` krever en `_async_migrate_func`-override for et
+  major-bump, og en override betyr en subklasse av `Store`, som ikke lar seg
+  laste i unit-miljøet der `Store` er en `MagicMock`. Det skal stå her, ellers
+  ser valget vilkårlig ut, og den neste bumper konstruktøren og får en rød
+  suite uten å skjønne hvorfor.
+- Det er også den varsomme veien: en eldre utgave av integrasjonen kan
+  fortsatt lese filen og beholde månedsdataene sine, siden det bare er
+  baselinen som er ny. Et major-bump ville gjort filen uleselig for den.
 
 Regler:
 
@@ -437,7 +481,8 @@ diagnostikken aldri viser en blanding av to polls.
 
 - `input_resultater`: siste resultat per rolle (`effekt`, `energi`,
   `spotpris`, `eksport`, `leverandorpris`), med type (`gyldig`,
-  `utilgjengelig`, `ugyldig`), grunn, rå enhet, normalisert enhet og alder på
+  `utilgjengelig`, `ugyldig`), grunn, rå enhet (`raa_enhet`, som er `None` når
+  sensoren ikke oppgir noen, punkt 4.1), normalisert enhet og alder på
   siste gyldige avlesning. Entity-id-er aliaseres av diagnostikklaget, ikke
   her.
 - `tarifforigin`: modus (`catalog`, `manual`, `legacy_unconfirmed`), DSO-id, om
@@ -475,3 +520,7 @@ stedene i samme commit.
 - Hvilke felt diagnostikkens JSON har og hvordan de aliaseres. D1.
 - Hvilke HA-versjoner som er minimum, og hvilke API-er adapteren får bruke.
   Testmiljøtasken.
+- Om en effekt- eller energisensor uten enhet også skal gi et repair-varsel.
+  Punkt 4.1 avgjør bare at den godtas stille i dag. Et varsel til ville truffet
+  hver bruker med en AMS-integrasjon som ikke setter enhet, og det er en
+  avgjørelse for Fredrik, ikke for tasken som er innom.

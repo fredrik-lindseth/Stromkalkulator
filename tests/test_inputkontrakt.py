@@ -75,7 +75,7 @@ KONTRAKTTEKST = _tekst(KONTRAKT)
         "## 1. Typede inputresultater",
         "## 2. Enhetstabell",
         "## 3. Krav til energisensoren",
-        "## 4. Prissensor uten enhet",
+        "## 4. Sensor uten enhet",
         "## 5. Energibaseline",
         "## 6. Tariffmodus",
         "## 7. Config v5, den ene migreringen",
@@ -402,3 +402,91 @@ def test_prisens_observasjonstid_eies_av_avregningskontrakten() -> None:
     assert "### A2.1" in AVREGNINGSTEKST
     assert "PRIS_SETTLE_SEKUNDER" in AVREGNINGSTEKST
     assert "avregning.md#a21-" in KONTRAKTTEKST
+
+
+# ---------------------------------------------------------------------------
+# Sensor uten enhet (§4 og §4.1)
+#
+# §4 avgjorde bare prissensoren. K1 måtte velge selv hva en effekt- eller
+# energisensor uten enhet skulle bli, og valget lå i en kodekommentar. Nå står
+# det i kontrakten, og her voktes det.
+
+
+SEKSJON_4 = _seksjon(KONTRAKTTEKST, "## 4. Sensor uten enhet")
+
+
+def test_alle_roller_uten_enhet_har_et_svar() -> None:
+    """Funn 4: §4 sa bare hva en prissensor uten enhet skulle bli."""
+    assert "### 4.1 Effekt- og energisensor uten enhet" in SEKSJON_4
+    under = SEKSJON_4.split("### 4.1", 1)[1]
+    assert "skal" in under, "regelen skal være et skal, ikke et bør"
+    for rolle, enhet in (("effekt", "`W`"), ("energi", "`kWh`")):
+        assert enhet in under, f"{rolle} uten enhet mangler sin antatte enhet"
+    assert "avvises" in under, "det skal stå at sensoren ikke avvises"
+    assert "repair" in under, "det skal stå om rollen får varsel eller ikke"
+
+
+def test_antatt_enhet_er_synlig_i_diagnostikken() -> None:
+    """Et stille valg skal i det minste være mulig å se at ble tatt."""
+    under = SEKSJON_4.split("### 4.1", 1)[1]
+    assert "`raa_enhet`" in under and "`None`" in under
+    assert "raa_enhet" in _seksjon(KONTRAKTTEKST, "## 10. Hva coordinatoren eksponerer")
+
+
+def test_varselet_om_prisenhet_gjelder_bare_prisrollene() -> None:
+    """§4 og §4.1 skal ikke kunne leses som om effekt også får repair."""
+    over = SEKSJON_4.split("### 4.1", 1)[0]
+    assert "prisenhet_ubekreftet" in over
+    assert "forbeholdt prisrollene" in SEKSJON_4
+
+
+def test_et_varsel_for_effekt_og_energi_er_uavgjort_og_ikke_glemt() -> None:
+    """Grensen går i §12, så den neste ikke tar avgjørelsen underveis."""
+    assert "repair-varsel" in _seksjon(KONTRAKTTEKST, "## 12. Hva kontrakten ikke avgjør")
+
+
+# ---------------------------------------------------------------------------
+# Store-versjonen (§5)
+
+
+SEKSJON_5 = _seksjon(KONTRAKTTEKST, "## 5. Energibaseline")
+
+
+def test_skjemaversjonen_er_et_felt_i_dataene() -> None:
+    """Funn 3: «Store-skjema v2» sa ikke hvilken versjon det var snakk om."""
+    assert "`skjema_versjon`" in SEKSJON_5, "toppnivånøkkelen i filen skal navngis"
+    assert "`schema_version`" in SEKSJON_5, "baselinens egen nøkkel skal navngis"
+    assert "Store(hass, 1" in SEKSJON_5, "konstruktørens versjon skal stå eksplisitt"
+
+
+def test_begrunnelsen_for_a_ikke_bumpe_star_der() -> None:
+    """Uten grunnen ser valget vilkårlig ut, og den neste gjør det om.
+
+    Begrunnelsen er en begrensning i testmiljøet, ikke et designvalg, og det
+    er nettopp derfor den ikke lar seg utlede av noe annet i kontrakten.
+    """
+    assert "_async_migrate_func" in SEKSJON_5
+    assert "MagicMock" in SEKSJON_5
+
+
+def test_begrunnelsen_star_bare_ett_sted() -> None:
+    """Samme feil som `TPI_STALE_HOURS`: to kontrakter med hver sin versjon.
+
+    Avregningskontrakten får slå fast at konstruktøren blir stående, men
+    begrunnelsen eies her, og den peker hit.
+    """
+    assert "_async_migrate_func" not in AVREGNINGSTEKST, (
+        "avregning.md skal peke hit for hvorfor, ikke gjenta det"
+    )
+    assert "input-og-konfig.md#5-energibaseline" in AVREGNINGSTEKST
+
+
+def test_koden_bumper_ikke_store_versjonen() -> None:
+    """En regel koden får bryte er en anbefaling."""
+    feil = [
+        (sti.name, versjon)
+        for sti in KOMPONENT.glob("*.py")
+        for versjon in re.findall(r"Store\(\s*(?:self\.)?hass,\s*(\d+)", _tekst(sti))
+        if versjon != "1"
+    ]
+    assert not feil, f"§5: Store-versjonen blir stående på 1, skjemaet står i dataene. {feil}"

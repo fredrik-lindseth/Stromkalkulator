@@ -9,6 +9,10 @@ regelen (eller omvendt), feller denne testen det.
 den samme fordelingen; avregningskjernen importerer ikke herfra, den måles mot
 de samme tabellradene. Går de to fra hverandre, er det denne filen som sier
 hvilken som har rett.
+
+Nederst måles i tillegg `avregning.py` direkte mot de paragrafene som avgjør
+noe om ett intervall (B3 og D). Det er den delen L1 måtte velge selv fordi
+kontrakten tidde, og et valg uten vakt drifter.
 """
 
 from __future__ import annotations
@@ -16,11 +20,20 @@ from __future__ import annotations
 import re
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import Any
 from zoneinfo import ZoneInfo
 
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
+from stromkalkulator.avregning import (
+    Avlesning,
+    AvregnetIntervall,
+    Avregningsbok,
+    Energikvalitet,
+    Intervallkvalitet,
+    med_pris,
+)
 
 ROT = Path(__file__).parent.parent
 KONTRAKT = ROT / "docs" / "kontrakter" / "avregning.md"
@@ -578,3 +591,158 @@ def test_avvist_sprang_er_synlig_i_data_dicten() -> None:
     punkt = next(p for p in _randtilfeller() if "MAX_ENERGY_DELTA_KWH" in p)
     assert "avregning_avvist_kwh" in punkt
     assert "`avregning_avvist_kwh`" in _kontrakttekst().split("Nye felt:")[1]
+
+
+# ---------------------------------------------------------------------------
+# Kvaliteten på et avregnet intervall (B3, D)
+#
+# B3 hadde `ufullstendig` i enumet uten at noen paragraf sa når et intervall
+# får den, og ingen plass til om energien var målt eller estimert. L1 måtte
+# velge selv. Valgene står i kontrakten nå, og her måles de mot koden, slik at
+# den neste ikke lander et annet sted.
+
+
+B3 = _seksjon("### B3 Avregnet intervall")
+D = _seksjon("## D. Persistens og migrering")
+START = datetime(2026, 6, 15, 10, 0, tzinfo=UTC)
+
+
+def _b3_felt() -> dict[str, str]:
+    """Feltnavn til betydning i B3s felttabell."""
+    felt = {}
+    for linje in B3.splitlines():
+        if not linje.startswith("|"):
+            continue
+        # `\|` er en pipe i en celle, ikke en cellegrense: `prisintervall | None`.
+        celler = [c.strip() for c in linje.strip().strip("|").replace("\\|", "§").split("|")]
+        if len(celler) == 3 and celler[0].startswith("`"):
+            felt[celler[0].strip("`")] = celler[2]
+    assert felt, "B3 har ingen felttabell"
+    return felt
+
+
+def _enumverdier(celle: str) -> set[str]:
+    return set(re.findall(r"`([a-z_]+)`", celle))
+
+
+def test_b3_har_alle_feltene_koden_har() -> None:
+    """Felttabellen er grensesnittet L2, L3a, L3b og L3c bygger mot.
+
+    Et felt som bare finnes i koden er et felt ingen andre vet om, og det var
+    nettopp det som skjedde med `energikvalitet`.
+    """
+    assert set(_b3_felt()) == set(AvregnetIntervall.__dataclass_fields__), (
+        "B3s felttabell og AvregnetIntervall skal ha nøyaktig de samme feltene"
+    )
+
+
+def test_b3_lister_kvalitetsverdiene_koden_kan_gi() -> None:
+    assert _enumverdier(_b3_felt()["kvalitet"]) == {str(k) for k in Intervallkvalitet}
+
+
+def test_b3_sier_at_energien_er_malt_eller_estimert() -> None:
+    """Funn 2: planen ba om energikvalitet per intervall, tabellen hadde den ikke."""
+    verdier = _enumverdier(_b3_felt()["energikvalitet"])
+    assert verdier == {"malt", "estimert"}, (
+        "B3 skal love målt eller estimert, og bare de to; `avvist` bokføres aldri"
+    )
+    assert verdier < {str(k) for k in Energikvalitet}
+
+
+def test_b3_sier_nar_et_intervall_er_ufullstendig() -> None:
+    """Funn 1: enumet hadde verdien, men ingen paragraf sa når den gjelder."""
+    avsnitt = next((a for a in B3.split("\n\n") if "Når `kvalitet` er `ufullstendig`" in a), None)
+    assert avsnitt, "B3 må ha avsnittet som avgjør når et intervall er `ufullstendig`"
+    assert "bare når" in avsnitt, "regelen skal være uttømmende, ikke en av flere grunner"
+    assert "migreringen" in avsnitt
+    assert "`pris.kvalitet`" in B3, "priskvaliteten skal fortsatt være å få tak i"
+
+
+def test_d_gir_intervallene_flagget_maneden_har() -> None:
+    """Måneden merkes i D, og intervallene arver det. Ellers er de to uenige."""
+    punkt = next((p for p in _punkter(D) if "avregning_ufullstendig" in p), None)
+    assert punkt, "D må fortsatt merke måneden"
+    assert "kvalitet = ufullstendig" in punkt, "D skal si at flagget også gjelder hvert intervall (B3)"
+
+
+def _avlesning(kwh: float, naar: datetime, **kwargs: Any) -> Avlesning:
+    return Avlesning(source_identity="meter-1", value_kwh=kwh, observed_at=naar, **kwargs)
+
+
+def test_ufullstendig_vinner_over_en_komplett_pris() -> None:
+    """B3: en overstyring, ikke en fjerde priskvalitet.
+
+    Et intervall med alle fire prisrutene er `komplett` som pris og likevel
+    `ufullstendig` som intervall, for måneden mangler historikk.
+    """
+    bok = Avregningsbok.fra_lagring({"version": 2}, dso_id="bkk")
+    for minutt in (2, 17, 32, 47):
+        bok.pris.registrer(START + timedelta(minutes=minutt), 1.0)
+    bok.bokfor(_avlesning(100.0, START))
+    bok.bokfor(_avlesning(101.0, START + INTERVALL))
+    intervall = bok.intervall(START)
+    assert intervall is not None
+    assert intervall.pris is not None
+    assert intervall.pris.kvalitet is Intervallkvalitet.KOMPLETT
+    assert intervall.kvalitet is Intervallkvalitet.UFULLSTENDIG
+    assert med_pris(intervall, intervall.pris).kvalitet is Intervallkvalitet.UFULLSTENDIG
+
+
+def test_ufullstendig_gjelder_ingen_andre_intervaller() -> None:
+    """«Bare når» i B3: en bok som aldri krysset migreringen merker ingenting."""
+    bok = Avregningsbok.fra_lagring(None, dso_id="bkk")
+    bok.bokfor(_avlesning(100.0, START))
+    bok.bokfor(_avlesning(101.0, START + INTERVALL))
+    intervall = bok.intervall(START)
+    assert intervall is not None
+    assert intervall.kvalitet is Intervallkvalitet.UTEN_PRIS
+
+
+def test_estimert_smitter_og_vaskes_aldri_bort() -> None:
+    """B3: den svakeste kilden gjelder for hele intervallet."""
+    bok = Avregningsbok(dso_id="bkk")
+    bok.bokfor(_avlesning(100.0, START))
+    bok.bokfor(_avlesning(101.0, START + timedelta(minutes=20)))
+    # Effektstien starter med en baseline på sin egen kilde, og vinduet må
+    # holde seg innenfor MAX_ELAPSED_HOURS for å bli bokført i det hele tatt.
+    bok.bokfor(Avlesning("effekt", 0.0, START + timedelta(minutes=20), kvalitet=Energikvalitet.ESTIMERT))
+    bok.bokfor(Avlesning("effekt", 0.2, START + timedelta(minutes=25), kvalitet=Energikvalitet.ESTIMERT))
+    intervall = bok.intervall(START)
+    assert intervall is not None
+    assert intervall.energikvalitet is Energikvalitet.ESTIMERT
+
+
+def test_avvist_energi_har_ikke_noe_intervall_a_sta_pa() -> None:
+    """B3: `avvist` er en avlesning som ikke ble bokført, ikke en intervallkvalitet."""
+    bok = Avregningsbok(dso_id="bkk")
+    bok.bokfor(_avlesning(100.0, START))
+    bok.bokfor(_avlesning(105.0, START + INTERVALL, kvalitet=Energikvalitet.AVVIST))
+    assert bok.intervaller() == []
+
+
+# ---------------------------------------------------------------------------
+# Store-versjonen (D)
+
+
+def test_versjonen_er_et_felt_i_dataene_ikke_i_store_konstruktoren() -> None:
+    """K1 måtte velge dette selv, og valget skal ikke gjøres om på nytt.
+
+    Står det ikke her, bumper den neste `Store`-konstruktøren og får et
+    testmiljø som ikke lar seg laste.
+    """
+    assert "`skjema_versjon`" in D
+    assert "Store(hass, 1, ...)" in D, "D må si at konstruktørens versjon blir stående"
+    assert "input-og-konfig.md#5-energibaseline" in D, "begrunnelsen eies i K0 §5"
+
+
+def test_store_konstrueres_aldri_med_en_annen_major_versjon() -> None:
+    """Regelen er verdiløs om koden får bumpe den likevel."""
+    komponent = ROT / "custom_components" / "stromkalkulator"
+    funn = [
+        (sti.name, versjon)
+        for sti in komponent.glob("*.py")
+        for versjon in re.findall(r"Store\(\s*(?:self\.)?hass,\s*(\d+)", sti.read_text(encoding="utf-8"))
+    ]
+    assert funn, "fant ingen Store-konstruksjon å vokte"
+    feil = [f for f in funn if f[1] != "1"]
+    assert not feil, f"D: Store-versjonen blir stående på 1, skjemaet står i dataene. {feil}"

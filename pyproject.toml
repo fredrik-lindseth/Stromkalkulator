@@ -29,7 +29,11 @@ addopts = "-v --tb=short"
 
 [tool.ruff]
 target-version = "py312"
-line-length = 120
+# Målt på repoet selv: 110 er bredden der `ruff format` skriver om minst mulig
+# (264-272 hunks over hele spennet 104-118, minimum rundt 108-110, og omtrent
+# like mye splitting som sammenslåing). 120 gjorde koden bredere enn den er
+# skrevet, 100 smalere. E501 er av, så dette styrer kun formatereren.
+line-length = 110
 
 [tool.ruff.lint]
 select = [

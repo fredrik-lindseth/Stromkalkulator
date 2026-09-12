@@ -139,9 +139,7 @@ class TestUtfall:
         """Leverandørprisen mater en sammenligningssensor og skal ikke alarmere."""
         benk = Sensorbenk()
         benk.sett("sensor.elco_price", 1.4)
-        coord = _lag_coordinator(
-            coord_module, benk, electricity_company_price_sensor="sensor.elco_price"
-        )
+        coord = _lag_coordinator(coord_module, benk, electricity_company_price_sensor="sensor.elco_price")
         start = datetime(2026, 6, 15, 12, 0)
         _poll(coord_module, coord, start)
 
@@ -571,12 +569,8 @@ class TestJuliReplay:
     def _timer() -> tuple[list[dict], datetime, datetime]:
         juli = json.loads((FIXTURES_DIR / "bkk_juli_2026_hourly.json").read_text())
         august = json.loads((FIXTURES_DIR / "bkk_august_2026_hourly.json").read_text())
-        hull_start = datetime.fromisoformat(
-            juli["metadata"]["datahull"]["fra_og_med"]
-        ).replace(tzinfo=None)
-        hull_slutt = datetime.fromisoformat(
-            august["metadata"]["datahull"]["til_og_med"]
-        ).replace(tzinfo=None)
+        hull_start = datetime.fromisoformat(juli["metadata"]["datahull"]["fra_og_med"]).replace(tzinfo=None)
+        hull_slutt = datetime.fromisoformat(august["metadata"]["datahull"]["til_og_med"]).replace(tzinfo=None)
         return juli["hours"] + august["hours"], hull_start, hull_slutt
 
     @pytest.fixture
@@ -613,9 +607,7 @@ class TestJuliReplay:
 
     def test_utfallet_starter_29_juli_kl_11(self, replay):
         """Sanity: fixturen markerer hullet der vi tror det er."""
-        forste_nede = next(
-            tid for tid, _, typer in replay if UTFALL in typer or FROSSEN in typer
-        )
+        forste_nede = next(tid for tid, _, typer in replay if UTFALL in typer or FROSSEN in typer)
         assert forste_nede == datetime(2026, 7, 29, 11, 0)
 
     def test_vaktholdet_slaar_paa_innen_tre_timer(self, replay):
@@ -647,11 +639,7 @@ class TestJuliReplay:
         assert typer == {UTFALL}
 
     def test_vaktholdet_slaar_av_etter_comebacket(self, replay):
-        etter = [
-            (tid, problem)
-            for tid, problem, _ in replay
-            if tid >= datetime(2026, 8, 8, 8, 0)
-        ]
+        etter = [(tid, problem) for tid, problem, _ in replay if tid >= datetime(2026, 8, 8, 8, 0)]
         assert etter[0][0] == datetime(2026, 8, 8, 8, 0)
         av = next(tid for tid, problem in etter if not problem)
         assert av == datetime(2026, 8, 8, 8, 0)

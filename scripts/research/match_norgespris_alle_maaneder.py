@@ -41,14 +41,23 @@ MVA_SATS: Final[float] = 1.25
 # Faktura-tall per måned (kopiert fra scripts/research/verify_invoice_hourly.py).
 # None = ingen faktura tilgjengelig eller annen ordning (gammel strømstøtte).
 MAANED_NAVN: dict[int, str] = {
-    1: "januar", 2: "februar", 3: "mars", 4: "april",
-    5: "mai", 6: "juni", 7: "juli", 8: "august",
-    9: "september", 10: "oktober", 11: "november", 12: "desember",
+    1: "januar",
+    2: "februar",
+    3: "mars",
+    4: "april",
+    5: "mai",
+    6: "juni",
+    7: "juli",
+    8: "august",
+    9: "september",
+    10: "oktober",
+    11: "november",
+    12: "desember",
 }
 
 FAKTURAER: dict[tuple[int, int], dict[str, float] | None] = {
     (2025, 12): None,  # gammel strømstøtte, ikke Norgespris
-    (2026, 1): None,   # ingen faktura mottatt
+    (2026, 1): None,  # ingen faktura mottatt
     (2026, 2): {
         "forbruk_total_kwh": 1673.786,
         "norgespris_kr": -1821.64,
@@ -146,9 +155,7 @@ def build_points(year: int, month: int, np_eur: dict[str, float]) -> list[HourPo
         eur_mwh = np_eur.get(iso)
         if eur_mwh is None:
             raise RuntimeError(f"Ingen NP-pris for {iso}")
-        out.append(
-            HourPoint(iso=iso, day=iso[:10], eur_mwh=float(eur_mwh), kwh=float(kwh))
-        )
+        out.append(HourPoint(iso=iso, day=iso[:10], eur_mwh=float(eur_mwh), kwh=float(kwh)))
     return out
 
 
@@ -171,8 +178,9 @@ def maaned_label(year: int, month: int) -> str:
     return f"{year}-{month:02d}"
 
 
-def kjor_maaned(year: int, month: int, np_eur: dict[str, float],
-                nb_rates: dict[str, float]) -> dict[str, dict[str, float]] | None:
+def kjor_maaned(
+    year: int, month: int, np_eur: dict[str, float], nb_rates: dict[str, float]
+) -> dict[str, dict[str, float]] | None:
     """Returner {variant_navn: {snitt, komp, avvik_kr, avvik_pct}} eller None hvis ingen faktura."""
     faktura = FAKTURAER.get((year, month))
     if faktura is None:
@@ -252,20 +260,23 @@ def print_maaned(year: int, month: int, res: dict[str, dict[str, float]]) -> Non
     label = maaned_label(year, month)
     meta = res["_meta"]
     print(f"\n=== {label} ===")
-    print(f"  Forbruk: faktura {meta['forbruk_faktura_kwh']:.3f} kWh, "
-          f"fixture {meta['forbruk_total_kwh']:.3f} kWh")
+    print(
+        f"  Forbruk: faktura {meta['forbruk_faktura_kwh']:.3f} kWh, "
+        f"fixture {meta['forbruk_total_kwh']:.3f} kWh"
+    )
     print(f"  Norgespris-komp faktura: {meta['norgespris_faktura_kr']:.2f} kr")
-    print(f"  NB månedssnitt aritm: {meta['nb_arith_avg']:.4f}, "
-          f"vektet: {meta['nb_weighted_avg']:.4f}")
+    print(f"  NB månedssnitt aritm: {meta['nb_arith_avg']:.4f}, vektet: {meta['nb_weighted_avg']:.4f}")
     print(f"  Implisitt match-kurs: {meta['implied_match_rate']:.4f} NOK/EUR")
     print()
     print(f"  {'Variant':<40} {'snitt':>10} {'komp':>12} {'avvik kr':>10} {'avvik %':>10}")
     for label_v, v in res.items():
         if label_v == "_meta":
             continue
-        print(f"  {label_v:<40} {v['snitt_eks_mva']:>10.6f} "
-              f"{v['komp_kr']:>+12.2f} {v['avvik_kr']:>+10.2f} "
-              f"{v['avvik_pct']:>+9.3f}%")
+        print(
+            f"  {label_v:<40} {v['snitt_eks_mva']:>10.6f} "
+            f"{v['komp_kr']:>+12.2f} {v['avvik_kr']:>+10.2f} "
+            f"{v['avvik_pct']:>+9.3f}%"
+        )
 
 
 def print_oppsummering(per_maaned: dict[tuple[int, int], dict]) -> None:
@@ -308,16 +319,19 @@ def print_oppsummering(per_maaned: dict[tuple[int, int], dict]) -> None:
         print(row)
 
     print("\n=== Implisitte match-kurser (reverse-engineering) ===\n")
-    print(f"  {'Måned':<10} {'match NOK/EUR':>15} {'NB arith':>12} "
-          f"{'NB vektet':>12} {'diff vs NB-arith':>18}")
+    print(
+        f"  {'Måned':<10} {'match NOK/EUR':>15} {'NB arith':>12} {'NB vektet':>12} {'diff vs NB-arith':>18}"
+    )
     for (y, m), res in sorted(per_maaned.items()):
         if res is None:
             continue
         meta = res["_meta"]
         diff_arith = meta["implied_match_rate"] - meta["nb_arith_avg"]
-        print(f"  {maaned_label(y, m):<10} {meta['implied_match_rate']:>15.4f} "
-              f"{meta['nb_arith_avg']:>12.4f} {meta['nb_weighted_avg']:>12.4f} "
-              f"{diff_arith:>+18.4f}")
+        print(
+            f"  {maaned_label(y, m):<10} {meta['implied_match_rate']:>15.4f} "
+            f"{meta['nb_arith_avg']:>12.4f} {meta['nb_weighted_avg']:>12.4f} "
+            f"{diff_arith:>+18.4f}"
+        )
 
 
 def render_markdown(per_maaned: dict[tuple[int, int], dict]) -> str:
@@ -396,8 +410,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         "--output",
         type=Path,
         default=None,
-        help="Output-sti (default: docs/research/_generated/"
-             "match_norgespris_alle_maaneder.md)",
+        help="Output-sti (default: docs/research/_generated/match_norgespris_alle_maaneder.md)",
     )
     return p.parse_args(argv)
 
@@ -415,7 +428,7 @@ def main(argv: list[str] | None = None) -> int:
         target = [k for k, v in FAKTURAER.items() if v is not None]
 
     per_maaned: dict[tuple[int, int], dict] = {}
-    for (y, m) in sorted(target):
+    for y, m in sorted(target):
         if not args.emit_markdown:
             print(f"\n--- Kjører {maaned_label(y, m)} ---")
         res = kjor_maaned(y, m, np_eur, nb_rates)

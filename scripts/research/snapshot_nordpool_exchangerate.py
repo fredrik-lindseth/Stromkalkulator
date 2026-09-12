@@ -76,7 +76,9 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     p.add_argument("--start", help="Første leveringsdato (default: i dag minus 60 dager)")
     p.add_argument("--end", help="Siste leveringsdato (default: i dag)")
     p.add_argument("--output", type=Path, help="JSON-arkiv (default: _private/Måleverdier/...)")
-    p.add_argument("--no-merge", action="store_true", help="Skriv kun nyhentede dager, ikke merge inn i arkivet")
+    p.add_argument(
+        "--no-merge", action="store_true", help="Skriv kun nyhentede dager, ikke merge inn i arkivet"
+    )
     return p.parse_args(argv)
 
 
@@ -126,8 +128,10 @@ def main(argv: list[str] | None = None) -> int:
 
     added = len(archive) - before
     print(f"Arkiv: {output.relative_to(ROOT)}")
-    print(f"  {len(daily)} dager totalt ({daily[0]['date']} til {daily[-1]['date']}), "
-          f"{added} nye denne kjøringen.")
+    print(
+        f"  {len(daily)} dager totalt ({daily[0]['date']} til {daily[-1]['date']}), "
+        f"{added} nye denne kjøringen."
+    )
     if misses:
         out_of_window = [m for m in misses if m.endswith("HTTP401")]
         other = [m for m in misses if not m.endswith("HTTP401")]

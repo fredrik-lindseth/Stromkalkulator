@@ -267,9 +267,7 @@ class NettleieBaseSensor(CoordinatorEntity, SensorEntity):
         Da kan spot-avhengige sensorer publisere fastprisen selv uten gyldig spot.
         """
         data = self.coordinator.data
-        return bool(
-            data and data.get("har_norgespris", False) and not data.get("norgespris_over_tak", False)
-        )
+        return bool(data and data.get("har_norgespris", False) and not data.get("norgespris_over_tak", False))
 
     def _spot_dependent(self, key: str, *, spot_free: bool = False) -> Any:
         """Coordinator-verdi, eller None hvis verdien er spot-avhengig og spot mangler.
@@ -1094,14 +1092,18 @@ class StromprisPerKwhEtterStotteSensor(NettleieBaseSensor):
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
-        super().__init__(coordinator, entry, "strompris_per_kwh_etter_stotte", "strompris_per_kwh_etter_stotte")
+        super().__init__(
+            coordinator, entry, "strompris_per_kwh_etter_stotte", "strompris_per_kwh_etter_stotte"
+        )
 
     @property
     def native_value(self) -> float | None:
         """Return the state (None ved manglende spotdata, med mindre Norgespris under tak)."""
         return cast(
             "float | None",
-            self._spot_dependent("strompris_per_kwh_etter_stotte", spot_free=self._norgespris_fastpris_aktiv()),
+            self._spot_dependent(
+                "strompris_per_kwh_etter_stotte", spot_free=self._norgespris_fastpris_aktiv()
+            ),
         )
 
     @property
@@ -1493,7 +1495,9 @@ class MaanedligNorgesprisKompensasjonSensor(MaanedligBaseSensor):
     _attr_suggested_display_precision: int = 0
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
-        super().__init__(coordinator, entry, "maanedlig_norgespris_kompensasjon", "maanedlig_norgespris_kompensasjon")
+        super().__init__(
+            coordinator, entry, "maanedlig_norgespris_kompensasjon", "maanedlig_norgespris_kompensasjon"
+        )
 
     @property
     def native_value(self) -> float | None:
@@ -1823,14 +1827,19 @@ class ForrigeMaanedNorgesprisKompensasjonSensor(ForrigeMaanedBaseSensor):
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(
-            coordinator, entry, "forrige_maaned_norgespris_kompensasjon", "forrige_maaned_norgespris_kompensasjon"
+            coordinator,
+            entry,
+            "forrige_maaned_norgespris_kompensasjon",
+            "forrige_maaned_norgespris_kompensasjon",
         )
 
     @property
     def native_value(self) -> float | None:
         """Return previous month Norgespris compensation."""
         if self.coordinator.data:
-            return cast("float | None", self.coordinator.data.get("previous_month_norgespris_compensation_kr"))
+            return cast(
+                "float | None", self.coordinator.data.get("previous_month_norgespris_compensation_kr")
+            )
         return None
 
     @property
@@ -2000,7 +2009,9 @@ class ForrigeMaanedEksportInntektSensor(EksportBaseSensor):
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
-        super().__init__(coordinator, entry, "forrige_maaned_eksport_inntekt", "forrige_maaned_eksport_inntekt")
+        super().__init__(
+            coordinator, entry, "forrige_maaned_eksport_inntekt", "forrige_maaned_eksport_inntekt"
+        )
 
     @property
     def native_value(self) -> float | None:

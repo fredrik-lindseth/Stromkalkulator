@@ -77,9 +77,7 @@ class TestNorgesprisCompensationUnderTak:
         _align_month(coordinator, start)
 
         # Forhåndsfyll månedsforbruk til 4999 kWh
-        coordinator._monthly_consumption = coord_module.ConsumptionData(
-            dag=4999.0, natt=0.0
-        )
+        coordinator._monthly_consumption = coord_module.ConsumptionData(dag=4999.0, natt=0.0)
 
         # Én syklus: skal være under taket fortsatt, så kompensasjonen telles.
         # (norgespris_over_tak vurderes mot monthly_total_kwh FØR ny energi
@@ -110,9 +108,7 @@ class TestNorgesprisCompensationOverTak:
         # Sett som om kunden allerede har forbrukt 5500 kWh denne måneden.
         # Kompensasjons-akkumulator har en gammel verdi som ikke skal endres
         # av etterfølgende polling.
-        coordinator._monthly_consumption = coord_module.ConsumptionData(
-            dag=5500.0, natt=0.0
-        )
+        coordinator._monthly_consumption = coord_module.ConsumptionData(dag=5500.0, natt=0.0)
         coordinator._monthly_norgespris_compensation = -100.0
 
         # Kjør 10 polling-sykluser med høyt forbruk. Ingen skal akkumulere
@@ -137,9 +133,7 @@ class TestNorgesprisCompensationOverTak:
         _align_month(coordinator, start)
 
         # Start godt under taket
-        coordinator._monthly_consumption = coord_module.ConsumptionData(
-            dag=4990.0, natt=0.0
-        )
+        coordinator._monthly_consumption = coord_module.ConsumptionData(dag=4990.0, natt=0.0)
         coordinator._monthly_norgespris_compensation = 0.0
 
         # 20 polling-sykluser à 1 min à 60 kW = 20 kWh, ender på 5010 kWh.
@@ -173,9 +167,7 @@ class TestNorgesprisCompensationFritidsbolig:
         coordinator = coord_module.NettleieCoordinator(hass, entry)
         _align_month(coordinator, start)
 
-        coordinator._monthly_consumption = coord_module.ConsumptionData(
-            dag=995.0, natt=0.0
-        )
+        coordinator._monthly_consumption = coord_module.ConsumptionData(dag=995.0, natt=0.0)
         coordinator._monthly_norgespris_compensation = 0.0
 
         # 20 sykluser à 1 kWh = 20 kWh. Krysser 1000-taket etter ca 5 sykluser.
@@ -216,9 +208,7 @@ class TestNorgesprisCompensationBoundaryCrossing:
 
         # Start på 4999 kWh. Første poll-syklus akkumulerer ca 1 kWh
         # (avhengig av elapsed-cap). Andre syklus krysser klart taket.
-        coordinator._monthly_consumption = coord_module.ConsumptionData(
-            dag=4999.0, natt=0.0
-        )
+        coordinator._monthly_consumption = coord_module.ConsumptionData(dag=4999.0, natt=0.0)
         coordinator._monthly_norgespris_compensation = 0.0
 
         # Først kjør ett poll for å sette _last_update
@@ -241,7 +231,6 @@ class TestNorgesprisCompensationBoundaryCrossing:
         # Den syklusen som tipper total til 5000 ser derfor over_tak = True og
         # hopper over bidraget. Forventet: compensation = 0.
         assert abs(compensation) < 0.001, (
-            f"Forventet at den tippende syklusen ble skipped (compensation=0), "
-            f"fikk {compensation}."
+            f"Forventet at den tippende syklusen ble skipped (compensation=0), fikk {compensation}."
         )
         assert result["norgespris_over_tak"] is True

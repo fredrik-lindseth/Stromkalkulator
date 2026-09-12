@@ -1,8 +1,8 @@
 # Pre-commit hooks for Strømkalkulator
 # Install: pip install pre-commit && pre-commit install && pre-commit install --hook-type pre-push
 # Kjør en enkelt hook: pre-commit run <id> --all-files
-# Ikke kjør `pre-commit run --all-files` uten hook-id: repoet har aldri vært
-# ruff-format-rent, så det reformaterer titalls filer du ikke har rørt.
+# Repoet er ruff-format-rent fra september 2026 (line-length 110 i
+# pyproject.toml), så `pre-commit run --all-files` skal ikke røre noe.
 
 # Alt utenom testsuiten hører hjemme på commit. Uten dette kjører hele settet
 # på nytt ved push, og et push av en ny gren sender alle filer gjennom

@@ -77,9 +77,7 @@ def formater_trinn(trinn: list[tuple[float, int]]) -> list[str]:
 
 def finn_blokk(linjer: list[str], dso_id: str) -> tuple[int, int]:
     """(indeks for kapasitetstrinn-linjen, indeks for avsluttende `],`)."""
-    start = next(
-        (i for i, linje in enumerate(linjer) if linje.strip() == f'"{dso_id}": {{'), None
-    )
+    start = next((i for i, linje in enumerate(linjer) if linje.strip() == f'"{dso_id}": {{'), None)
     if start is None:
         raise SystemExit(f"fant ikke DSO-blokk for {dso_id}")
     kap = None
@@ -97,11 +95,16 @@ def finn_blokk(linjer: list[str], dso_id: str) -> tuple[int, int]:
 
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--dato", type=date.fromisoformat, default=date.today(),
-                   help="Tariffdato å hente for (YYYY-MM-DD), default: i dag")
+    p.add_argument(
+        "--dato",
+        type=date.fromisoformat,
+        default=date.today(),
+        help="Tariffdato å hente for (YYYY-MM-DD), default: i dag",
+    )
     p.add_argument("--dso", help="Komma-separert liste over DSO-IDer")
-    p.add_argument("--skriv", action="store_true",
-                   help="Skriv endringene til dso.py. Uten dette vises bare diffen.")
+    p.add_argument(
+        "--skriv", action="store_true", help="Skriv endringene til dso.py. Uten dette vises bare diffen."
+    )
     args = p.parse_args()
 
     filter_ids = set(args.dso.split(",")) if args.dso else None
@@ -139,12 +142,16 @@ def main() -> int:
         # gir støy i diffen uten at noe blir riktigere.
         if sjekk.sammenlign_fastledd(gamle, nye) is None and len(gamle) == len(nye):
             continue
-        endringer[dso_id] = {"nye": nye, "gamle": gamle, "slug": slug,
-                             "gyldig_fra": tariff["gyldig_fra"], "navn": entry["name"]}
+        endringer[dso_id] = {
+            "nye": nye,
+            "gamle": gamle,
+            "slug": slug,
+            "gyldig_fra": tariff["gyldig_fra"],
+            "navn": entry["name"],
+        }
 
     for dso_id, info in endringer.items():
-        print(f"\n{dso_id} ({info['navn']}, fri-nettleie {info['slug']}, "
-              f"tariff fra {info['gyldig_fra']})")
+        print(f"\n{dso_id} ({info['navn']}, fri-nettleie {info['slug']}, tariff fra {info['gyldig_fra']})")
         print(f"  fra: {[(('inf' if g == float('inf') else g), pr) for g, pr in info['gamle']]}")
         print(f"  til: {[(('inf' if g == float('inf') else g), pr) for g, pr in info['nye']]}")
 
@@ -153,9 +160,8 @@ def main() -> int:
         for dso_id in sorted(endringer, key=lambda d: finn_blokk(linjer, d)[0], reverse=True):
             info = endringer[dso_id]
             kap, slutt = finn_blokk(linjer, dso_id)
-            fra = kap - 1 if linjer[kap - 1].lstrip().startswith(
-                "# Kapasitetstrinn: fri-nettleie") else kap
-            linjer[fra:slutt + 1] = [
+            fra = kap - 1 if linjer[kap - 1].lstrip().startswith("# Kapasitetstrinn: fri-nettleie") else kap
+            linjer[fra : slutt + 1] = [
                 f"        # Kapasitetstrinn: fri-nettleie {info['slug']}.yml, tariff "
                 f"gyldig fra {info['gyldig_fra']} (hentet {args.dato})",
                 '        "kapasitetstrinn": [',
@@ -164,8 +170,10 @@ def main() -> int:
             ]
         DSO_PY.write_text("\n".join(linjer), encoding="utf-8")
 
-    print(f"\n# {len(endringer)} nettselskap med endring"
-          f"{' (skrevet til dso.py)' if args.skriv and endringer else ' (tørrkjøring)'}")
+    print(
+        f"\n# {len(endringer)} nettselskap med endring"
+        f"{' (skrevet til dso.py)' if args.skriv and endringer else ' (tørrkjøring)'}"
+    )
     if hoppet:
         print(f"# {len(hoppet)} hoppet over:")
         for dso_id, grunn in hoppet:

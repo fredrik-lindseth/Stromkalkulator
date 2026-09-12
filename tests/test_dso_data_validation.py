@@ -86,22 +86,14 @@ class TestDSOEnergiledd:
     def test_energiledd_dag_is_positive(self, dso_entry):
         dso_id, data = dso_entry
         val = data["energiledd_dag_eks_mva"]
-        assert isinstance(val, (int, float)), (
-            f"{dso_id}: energiledd_dag_eks_mva er ikke et tall"
-        )
-        assert val > 0, (
-            f"{dso_id}: energiledd_dag_eks_mva skal være positiv, fikk {val}"
-        )
+        assert isinstance(val, (int, float)), f"{dso_id}: energiledd_dag_eks_mva er ikke et tall"
+        assert val > 0, f"{dso_id}: energiledd_dag_eks_mva skal være positiv, fikk {val}"
 
     def test_energiledd_natt_is_positive(self, dso_entry):
         dso_id, data = dso_entry
         val = data["energiledd_natt_eks_mva"]
-        assert isinstance(val, (int, float)), (
-            f"{dso_id}: energiledd_natt_eks_mva er ikke et tall"
-        )
-        assert val > 0, (
-            f"{dso_id}: energiledd_natt_eks_mva skal være positiv, fikk {val}"
-        )
+        assert isinstance(val, (int, float)), f"{dso_id}: energiledd_natt_eks_mva er ikke et tall"
+        assert val > 0, f"{dso_id}: energiledd_natt_eks_mva skal være positiv, fikk {val}"
 
     def test_dag_greater_than_or_equal_to_natt(self, dso_entry):
         """Day rate should normally be >= night rate."""
@@ -109,8 +101,7 @@ class TestDSOEnergiledd:
         dag = data["energiledd_dag_eks_mva"]
         natt = data["energiledd_natt_eks_mva"]
         assert dag >= natt, (
-            f"{dso_id}: energiledd_dag_eks_mva ({dag}) er lavere enn "
-            f"energiledd_natt_eks_mva ({natt})"
+            f"{dso_id}: energiledd_dag_eks_mva ({dag}) er lavere enn energiledd_natt_eks_mva ({natt})"
         )
 
 
@@ -130,9 +121,7 @@ class TestDSOKapasitetstrinn:
     def test_has_at_least_one_trinn(self, dso_entry):
         dso_id, data = dso_entry
         self._krev_trinn(dso_id, data)
-        assert len(data["kapasitetstrinn"]) >= 1, (
-            f"{dso_id}: kapasitetstrinn skal ha minst ett trinn"
-        )
+        assert len(data["kapasitetstrinn"]) >= 1, f"{dso_id}: kapasitetstrinn skal ha minst ett trinn"
 
     def test_last_trinn_has_inf_or_high_max(self, dso_entry):
         """Last tier must have float('inf') threshold (tuple) or high max (dict)."""
@@ -141,9 +130,7 @@ class TestDSOKapasitetstrinn:
         last = data["kapasitetstrinn"][-1]
         if isinstance(last, dict):
             # Dict format: check max is very high (catch-all)
-            assert last["max"] >= 999, (
-                f"{dso_id}: siste trinn (dict) skal ha høy max, fikk {last['max']}"
-            )
+            assert last["max"] >= 999, f"{dso_id}: siste trinn (dict) skal ha høy max, fikk {last['max']}"
         else:
             # Tuple format: last threshold must be inf
             assert last[0] == float("inf"), (
@@ -177,9 +164,7 @@ class TestDSOKapasitetstrinn:
             assert isinstance(price, int), (
                 f"{dso_id}: trinn {i + 1} pris skal være int, fikk {type(price).__name__}"
             )
-            assert price > 0, (
-                f"{dso_id}: trinn {i + 1} pris skal være positiv, fikk {price}"
-            )
+            assert price > 0, f"{dso_id}: trinn {i + 1} pris skal være positiv, fikk {price}"
 
     def test_trinn_prices_non_decreasing(self, dso_entry):
         """Capacity tier prices should generally not decrease (higher tier = higher price)."""
@@ -192,8 +177,7 @@ class TestDSOKapasitetstrinn:
                 prices.append(t[1])
         for i in range(1, len(prices)):
             assert prices[i] >= prices[i - 1], (
-                f"{dso_id}: kapasitetstrinn-pris synker ved trinn {i + 1}: "
-                f"{prices[i - 1]} -> {prices[i]}"
+                f"{dso_id}: kapasitetstrinn-pris synker ved trinn {i + 1}: {prices[i - 1]} -> {prices[i]}"
             )
 
 
@@ -208,9 +192,7 @@ class TestDSOUrl:
         """Supported DSOs should have a non-empty URL."""
         dso_id, data = dso_entry
         if data.get("supported") and dso_id != "custom":
-            assert len(data["url"]) > 0, (
-                f"{dso_id}: støttet nettselskap mangler URL"
-            )
+            assert len(data["url"]) > 0, f"{dso_id}: støttet nettselskap mangler URL"
 
 
 class TestDSOAvgiftskonsistens:
@@ -254,10 +236,7 @@ class TestDSOAvgiftskonsistens:
         # Differansen skal være positiv og rimelig (under 30 øre/kWh).
         diff = dag - natt
         assert diff > 0, f"{dso_id}: dag-natt-diff må være positiv, fikk {diff}"
-        assert diff < 0.30, (
-            f"{dso_id}: dag-natt-forskjell {diff} virker urimelig stor for "
-            f"eks-mva-verdier."
-        )
+        assert diff < 0.30, f"{dso_id}: dag-natt-forskjell {diff} virker urimelig stor for eks-mva-verdier."
 
     def test_inkl_mva_matches_legacy_formula(self, dso_entry):
         """Inkl-mva-verdien (utledet fra eks-mva via coordinator-formelen) skal
@@ -343,8 +322,7 @@ class TestDSOListIntegrity:
         TILLATT_DELT = {
             frozenset({"elvia", "rakkestad_energi"}): "Rakkestad er del av Elvia",
             frozenset({"area_nett", "area_nett_omrade2"}): (
-                "Utfaset area_nett bruker område 2 som interim til brukeren "
-                "velger område, se delt_i i dso.py"
+                "Utfaset area_nett bruker område 2 som interim til brukeren velger område, se delt_i i dso.py"
             ),
         }
 

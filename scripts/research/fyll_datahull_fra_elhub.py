@@ -97,9 +97,7 @@ def main() -> int:
     }
     fixture["metadata"]["datahull"] = datahull
 
-    args.fixture.write_text(
-        json.dumps(fixture, ensure_ascii=False, indent=1) + "\n", encoding="utf-8"
-    )
+    args.fixture.write_text(json.dumps(fixture, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     print(f"Fylte {len(fylte)} timer og overstyrte {len(overstyrte)} fra {args.elhub.name}")
     return 0
 

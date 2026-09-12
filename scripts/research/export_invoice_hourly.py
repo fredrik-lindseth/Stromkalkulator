@@ -53,8 +53,7 @@ def parse_args() -> argparse.Namespace:
         action="append",
         default=None,
         help=(
-            "Effekt-sensor (watt). Kan oppgis flere ganger som fallback-kjede. "
-            "Default: sensor.pow_u_ams_p"
+            "Effekt-sensor (watt). Kan oppgis flere ganger som fallback-kjede. Default: sensor.pow_u_ams_p"
         ),
     )
     p.add_argument("--fakturanr", default="")
@@ -201,15 +200,24 @@ def main() -> None:
     tpi_end = tpi.get(end_ts)
     if tpi_start is None or tpi_end is None:
         print(
-            f"ADVARSEL: mangler tpi-state ved periodegrense "
-            f"(start={tpi_start}, end={tpi_end})",
+            f"ADVARSEL: mangler tpi-state ved periodegrense (start={tpi_start}, end={tpi_end})",
             file=sys.stderr,
         )
 
     # strftime('%B') er locale-avhengig og ga engelske navn i HA-kontaineren
     maaneder = [
-        "januar", "februar", "mars", "april", "mai", "juni",
-        "juli", "august", "september", "oktober", "november", "desember",
+        "januar",
+        "februar",
+        "mars",
+        "april",
+        "mai",
+        "juni",
+        "juli",
+        "august",
+        "september",
+        "oktober",
+        "november",
+        "desember",
     ]
     navn = f"{maaneder[args.month - 1]}_{args.year}"
 
@@ -221,13 +229,11 @@ def main() -> None:
             "periode_end_local": end.isoformat(timespec="seconds"),
             "tidssone": "Europe/Oslo",
             "kilde_forbruk": (
-                ", ".join(args.tpi_entity)
-                + " (Akkumulert meter, delta per time, fallback-kjede)"
+                ", ".join(args.tpi_entity) + " (Akkumulert meter, delta per time, fallback-kjede)"
             ),
             "kilde_spotpris": f"{args.spot_entity} (eks. mva, multipliser med 1.25 for inkl. mva)",
             "kilde_p_max": (
-                ", ".join(args.p_entity)
-                + " (Active import i watt, max per time, fallback-kjede)"
+                ", ".join(args.p_entity) + " (Active import i watt, max per time, fallback-kjede)"
             ),
             "tpi_start_kwh": tpi_start,
             "tpi_end_kwh": tpi_end,
@@ -237,8 +243,7 @@ def main() -> None:
 
     args.output.write_text(json.dumps(out, separators=(",", ":"), ensure_ascii=False))
     print(
-        f"Skrev {len(hours)} timer til {args.output} "
-        f"(tpi-delta: {(tpi_end or 0) - (tpi_start or 0):.3f} kWh)"
+        f"Skrev {len(hours)} timer til {args.output} (tpi-delta: {(tpi_end or 0) - (tpi_start or 0):.3f} kWh)"
     )
 
 

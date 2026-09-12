@@ -70,9 +70,7 @@ class TestNumberSelectorStep:
             if raw == "any":
                 continue
             value = float(raw)
-            assert value >= self.MIN_STEP, (
-                f"step={value} at {location} is below HA minimum {self.MIN_STEP}"
-            )
+            assert value >= self.MIN_STEP, f"step={value} at {location} is below HA minimum {self.MIN_STEP}"
 
     def test_energiledd_fields_use_step_any(self):
         """Energiledd fields need 4+ decimal precision, must use step="any".
@@ -171,9 +169,7 @@ class TestTranslationCompleteness:
                     continue
                 forventet = set(strings[seksjon]["step"])
                 faktisk = set(oversatt[seksjon]["step"])
-                assert not forventet - faktisk, (
-                    f"{fil} mangler {seksjon}-steg: {forventet - faktisk}"
-                )
+                assert not forventet - faktisk, f"{fil} mangler {seksjon}-steg: {forventet - faktisk}"
 
     def test_alle_issue_noekler_finnes_i_begge_spraak(self):
         strings = self._load_json(COMPONENTS_DIR / "strings.json")
@@ -239,9 +235,7 @@ class TestDSOList:
         from stromkalkulator.dso import DSO_LIST
 
         supported_names = sorted(
-            dso["name"]
-            for key, dso in DSO_LIST.items()
-            if dso.get("supported") and key != "custom"
+            dso["name"] for key, dso in DSO_LIST.items() if dso.get("supported") and key != "custom"
         )
         assert "Egendefinert" not in supported_names
         assert DSO_LIST["custom"]["name"] == "Egendefinert"
@@ -269,9 +263,7 @@ class TestConfigFlowErrorKeys:
         used_keys = set(re.findall(r'errors\[.*?\]\s*=\s*"(\w+)"', source))
 
         missing = used_keys - error_translations
-        assert not missing, (
-            f"Config flow uses error keys without translations: {missing}"
-        )
+        assert not missing, f"Config flow uses error keys without translations: {missing}"
 
 
 # ---------------------------------------------------------------------------
@@ -305,8 +297,7 @@ class TestCoordinatorFloatProtection:
 
             has_protection = "except (ValueError" in method_source or "except ValueError" in method_source
             assert has_protection, (
-                f"Found {len(float_calls)} float(state) calls in {method_name} "
-                f"but no ValueError handler."
+                f"Found {len(float_calls)} float(state) calls in {method_name} but no ValueError handler."
             )
 
 

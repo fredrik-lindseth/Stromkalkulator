@@ -52,34 +52,27 @@ class TestBasicAccumulation:
 
         # Strompris: spotpris - stromstotte
         from stromkalkulator.const import STROMSTOTTE_LEVEL, STROMSTOTTE_RATE
+
         stromstotte = (1.20 - STROMSTOTTE_LEVEL) * STROMSTOTTE_RATE
         strom_pris = 1.20 - stromstotte
 
         # Sjekk intern state (unrounded)
-        assert c._monthly_accumulated_cost_strom == pytest.approx(
-            energy_kwh * strom_pris, abs=1e-10
-        )
+        assert c._monthly_accumulated_cost_strom == pytest.approx(energy_kwh * strom_pris, abs=1e-10)
 
         # Energiledd (dagtariff for BKK)
         energiledd_dag = c.energiledd_dag
-        assert c._monthly_accumulated_cost_energiledd == pytest.approx(
-            energy_kwh * energiledd_dag, abs=1e-10
-        )
+        assert c._monthly_accumulated_cost_energiledd == pytest.approx(energy_kwh * energiledd_dag, abs=1e-10)
 
         # Kapasitetsledd (tidsbasert, 60 sekunder)
         kapasitetsledd = c.kapasitetstrinn[0][1]  # trinn 1 (ingen topp enna)
         days_in_month = 30  # juni
         seconds_in_month = days_in_month * 24 * 3600
         expected_kap = 60 * (kapasitetsledd / seconds_in_month)
-        assert c._monthly_accumulated_cost_kapasitetsledd == pytest.approx(
-            expected_kap, abs=1e-10
-        )
+        assert c._monthly_accumulated_cost_kapasitetsledd == pytest.approx(expected_kap, abs=1e-10)
 
         # Total er summen
         expected_total = (energy_kwh * strom_pris) + (energy_kwh * energiledd_dag) + expected_kap
-        assert c._monthly_accumulated_cost == pytest.approx(
-            expected_total, abs=1e-10
-        )
+        assert c._monthly_accumulated_cost == pytest.approx(expected_total, abs=1e-10)
 
 
 class TestKapasitetsleddLinear:
@@ -126,9 +119,7 @@ class TestKapasitetsleddLinear:
                 break
             _run_update(coord_module, c, t_next)
 
-        assert c._monthly_accumulated_cost_kapasitetsledd == pytest.approx(
-            kapasitetsledd, abs=0.1
-        )
+        assert c._monthly_accumulated_cost_kapasitetsledd == pytest.approx(kapasitetsledd, abs=0.1)
 
 
 class TestMonthReset:
@@ -185,9 +176,7 @@ class TestNorgespricing:
         norgespris = get_norgespris_inkl_mva("standard")
         energy_kwh = 5.0 * (60 / 3600)
 
-        assert c._monthly_accumulated_cost_strom == pytest.approx(
-            energy_kwh * norgespris, abs=1e-10
-        )
+        assert c._monthly_accumulated_cost_strom == pytest.approx(energy_kwh * norgespris, abs=1e-10)
 
     def test_spot_pricing_with_subsidy(self, coord_module):
         """Uten Norgespris brukes spot - stromstotte."""
@@ -207,9 +196,7 @@ class TestNorgespricing:
         strom_pris = 1.20 - stromstotte
         energy_kwh = 5.0 * (60 / 3600)
 
-        assert c._monthly_accumulated_cost_strom == pytest.approx(
-            energy_kwh * strom_pris, abs=1e-10
-        )
+        assert c._monthly_accumulated_cost_strom == pytest.approx(energy_kwh * strom_pris, abs=1e-10)
 
     def test_norgespris_over_tak_uses_spot(self, coord_module):
         """Over Norgespris kWh-tak brukes spotpris uten stromstotte."""
@@ -231,9 +218,7 @@ class TestNorgespricing:
         energy_kwh = 5.0 * (60 / 3600)
         strom_pris = 1.20 - 0  # stromstotte = 0 over tak
 
-        assert c._monthly_accumulated_cost_strom == pytest.approx(
-            energy_kwh * strom_pris, abs=1e-10
-        )
+        assert c._monthly_accumulated_cost_strom == pytest.approx(energy_kwh * strom_pris, abs=1e-10)
 
 
 class TestStoragePersistence:
@@ -305,22 +290,34 @@ class TestSensorClass:
     def _make_sensor(self):
         """Sett opp sensor med mock coordinator og entry."""
         _sensor_mod = sys.modules["homeassistant.components.sensor"]
-        _sensor_mod.SensorDeviceClass = type("SensorDeviceClass", (), {
-            "MONETARY": "monetary",
-            "POWER": "power",
-            "ENERGY": "energy",
-        })
+        _sensor_mod.SensorDeviceClass = type(
+            "SensorDeviceClass",
+            (),
+            {
+                "MONETARY": "monetary",
+                "POWER": "power",
+                "ENERGY": "energy",
+            },
+        )
         _sensor_mod.SensorEntity = type("SensorEntity", (), {})
-        _sensor_mod.SensorStateClass = type("SensorStateClass", (), {
-            "MEASUREMENT": "measurement",
-            "TOTAL": "total",
-            "TOTAL_INCREASING": "total_increasing",
-        })
+        _sensor_mod.SensorStateClass = type(
+            "SensorStateClass",
+            (),
+            {
+                "MEASUREMENT": "measurement",
+                "TOTAL": "total",
+                "TOTAL_INCREASING": "total_increasing",
+            },
+        )
         _const_mod = sys.modules["homeassistant.const"]
-        _const_mod.EntityCategory = type("EntityCategory", (), {
-            "DIAGNOSTIC": "diagnostic",
-            "CONFIG": "config",
-        })
+        _const_mod.EntityCategory = type(
+            "EntityCategory",
+            (),
+            {
+                "DIAGNOSTIC": "diagnostic",
+                "CONFIG": "config",
+            },
+        )
         _entity_mod = sys.modules["homeassistant.helpers.entity"]
         _entity_mod.EntityCategory = _const_mod.EntityCategory
         _coord_mod = sys.modules["homeassistant.helpers.update_coordinator"]
@@ -332,6 +329,7 @@ class TestSensorClass:
         _coord_mod.CoordinatorEntity = FakeCoordinatorEntity
 
         import stromkalkulator.sensor as sensor_mod
+
         importlib.reload(sensor_mod)
 
         coord = MagicMock()

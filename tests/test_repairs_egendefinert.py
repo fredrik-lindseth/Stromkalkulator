@@ -132,7 +132,9 @@ class TestVarseletReises:
             init_module._check_egendefinerte_satser(hass, entry)
 
         mock_ir.async_create_issue.assert_not_called()
-        mock_ir.async_delete_issue.assert_called_once_with(hass, init_module.DOMAIN, "egendefinert_energiledd_abc")
+        mock_ir.async_delete_issue.assert_called_once_with(
+            hass, init_module.DOMAIN, "egendefinert_energiledd_abc"
+        )
 
     def test_bekreftet_entry_far_det_ikke_igjen(self, init_module):
         """Bekreftelsen er det eneste som skiller en sjekket sats fra en usjekket."""
@@ -197,7 +199,9 @@ class TestVarseletLarSegLukke:
     """Et varsel som ikke kan lukkes er støy. Fix-flowen må huske bekreftelsen."""
 
     def test_egen_flow_for_energiledd_varselet(self, repairs_module):
-        flow = asyncio.run(repairs_module.async_create_fix_flow(MagicMock(), "egendefinert_energiledd_abc", None))
+        flow = asyncio.run(
+            repairs_module.async_create_fix_flow(MagicMock(), "egendefinert_energiledd_abc", None)
+        )
         assert isinstance(flow, repairs_module.EgendefinertSatserRepairFlow)
         assert flow._entry_id == "abc"
 

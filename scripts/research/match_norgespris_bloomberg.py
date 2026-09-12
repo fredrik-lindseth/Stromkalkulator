@@ -40,9 +40,7 @@ from match_norgespris_alle_maaneder import (
 )
 
 ROOT: Final[Path] = Path(__file__).resolve().parent.parent.parent
-BLOOMBERG_SNAPSHOT: Final[Path] = (
-    ROOT / "_private" / "Måleverdier" / "bloomberg_eur_nok_1200cet_2026.json"
-)
+BLOOMBERG_SNAPSHOT: Final[Path] = ROOT / "_private" / "Måleverdier" / "bloomberg_eur_nok_1200cet_2026.json"
 
 
 def load_bloomberg_rates() -> dict[str, float] | None:
@@ -52,8 +50,9 @@ def load_bloomberg_rates() -> dict[str, float] | None:
     return {e["date"]: float(e["rate"]) for e in data["daily"]}
 
 
-def evaluer(year: int, month: int, np_eur: dict[str, float],
-            rates: dict[str, float]) -> dict[str, float] | None:
+def evaluer(
+    year: int, month: int, np_eur: dict[str, float], rates: dict[str, float]
+) -> dict[str, float] | None:
     """Forbruksvektet kompensasjon + avvik for én kurskilde, eller None ved manglende dekning."""
     points = build_points(year, month, np_eur)
     days = sorted({p.day for p in points})
@@ -83,9 +82,7 @@ def implisitt_match_kurs(year: int, month: int, np_eur: dict[str, float]) -> flo
     tot = sum(p.kwh for p in points)
     weur = sum(p.eur_mwh / 1000 * p.kwh for p in points) / tot
     f = FAKTURAER[(year, month)]
-    implied_eks = (
-        NORGESPRIS_FASTPRIS_INKL_MVA - f["norgespris_kr"] / f["forbruk_total_kwh"]
-    ) / MVA_SATS
+    implied_eks = (NORGESPRIS_FASTPRIS_INKL_MVA - f["norgespris_kr"] / f["forbruk_total_kwh"]) / MVA_SATS
     return implied_eks / weur
 
 
@@ -97,29 +94,31 @@ def main() -> int:
     if bb_rates is None:
         print(f"Mangler {BLOOMBERG_SNAPSHOT.relative_to(ROOT)}.")
         print("Lag den med:")
-        print("  uv run --with openpyxl python "
-              "scripts/research/snapshot_bloomberg_eur_nok.py")
+        print("  uv run --with openpyxl python scripts/research/snapshot_bloomberg_eur_nok.py")
         return 1
 
     maaneder = [k for k, v in FAKTURAER.items() if v is not None]
     print("=== 12:00 CET-hypotesen mot Bloomberg ===\n")
-    print(f"{'Måned':8} {'kilde':16} {'vektet kurs':>12} {'komp kr':>11} "
-          f"{'avvik kr':>9} {'avvik %':>9}")
+    print(f"{'Måned':8} {'kilde':16} {'vektet kurs':>12} {'komp kr':>11} {'avvik kr':>9} {'avvik %':>9}")
     forbedring: list[tuple[str, float, float]] = []
-    for (y, m) in sorted(maaneder):
+    for y, m in sorted(maaneder):
         nb = evaluer(y, m, np_eur, nb_rates)
         bb = evaluer(y, m, np_eur, bb_rates)
         implied = implisitt_match_kurs(y, m, np_eur)
         if nb is None:
             continue
         label = maaned_label(y, m)
-        print(f"{label:8} {'NB 14:15':16} {nb['vektet_kurs']:>12.4f} "
-              f"{nb['komp_kr']:>+11.2f} {nb['avvik_kr']:>+9.2f} {nb['avvik_pct']:>+8.3f}%")
+        print(
+            f"{label:8} {'NB 14:15':16} {nb['vektet_kurs']:>12.4f} "
+            f"{nb['komp_kr']:>+11.2f} {nb['avvik_kr']:>+9.2f} {nb['avvik_pct']:>+8.3f}%"
+        )
         if bb is None:
             print(f"{'':8} {'BBG 12:00':16} {'(ingen dekning denne måneden)':>43}")
         else:
-            print(f"{'':8} {'BBG 12:00':16} {bb['vektet_kurs']:>12.4f} "
-                  f"{bb['komp_kr']:>+11.2f} {bb['avvik_kr']:>+9.2f} {bb['avvik_pct']:>+8.3f}%")
+            print(
+                f"{'':8} {'BBG 12:00':16} {bb['vektet_kurs']:>12.4f} "
+                f"{bb['komp_kr']:>+11.2f} {bb['avvik_kr']:>+9.2f} {bb['avvik_pct']:>+8.3f}%"
+            )
             forbedring.append((label, abs(nb["avvik_kr"]), abs(bb["avvik_kr"])))
         print(f"{'':8} {'implisitt match':16} {implied:>12.4f}")
         print()

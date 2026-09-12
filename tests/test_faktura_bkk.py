@@ -484,7 +484,9 @@ def test_compute_energiledd_dag_inkl_matcher_faktura():
 
     bkk = DSO_LIST["bkk"]
     inkl = compute_energiledd_inkl_mva(bkk["energiledd_dag_eks_mva"], "standard")
-    forventet_kr = (BKK_ENERGILEDD_DAG_2026_ORE + BKK_FORBRUKSAVGIFT_2026_ORE + BKK_ENOVAAVGIFT_2026_ORE) / 100
+    forventet_kr = (
+        BKK_ENERGILEDD_DAG_2026_ORE + BKK_FORBRUKSAVGIFT_2026_ORE + BKK_ENOVAAVGIFT_2026_ORE
+    ) / 100
     # < 0,01 kr/kWh avvik (~0,1 øre), vesentlig bedre enn 0.5% gammel struktur
     assert inkl == pytest.approx(forventet_kr, abs=0.0001)
 
@@ -495,7 +497,9 @@ def test_compute_energiledd_natt_inkl_matcher_faktura():
 
     bkk = DSO_LIST["bkk"]
     inkl = compute_energiledd_inkl_mva(bkk["energiledd_natt_eks_mva"], "standard")
-    forventet_kr = (BKK_ENERGILEDD_NATT_2026_ORE + BKK_FORBRUKSAVGIFT_2026_ORE + BKK_ENOVAAVGIFT_2026_ORE) / 100
+    forventet_kr = (
+        BKK_ENERGILEDD_NATT_2026_ORE + BKK_FORBRUKSAVGIFT_2026_ORE + BKK_ENOVAAVGIFT_2026_ORE
+    ) / 100
     assert inkl == pytest.approx(forventet_kr, abs=0.0001)
 
 
@@ -536,23 +540,35 @@ def test_maanedlig_total_sensor_matcher_faktura(faktura):
 
     # Sett opp HA-mocks som test_monthly_sensors gjør
     _sensor_mod = sys.modules["homeassistant.components.sensor"]
-    _sensor_mod.SensorDeviceClass = type("SensorDeviceClass", (), {
-        "MONETARY": "monetary",
-        "POWER": "power",
-        "ENERGY": "energy",
-    })
+    _sensor_mod.SensorDeviceClass = type(
+        "SensorDeviceClass",
+        (),
+        {
+            "MONETARY": "monetary",
+            "POWER": "power",
+            "ENERGY": "energy",
+        },
+    )
     _sensor_mod.SensorEntity = type("SensorEntity", (), {})
-    _sensor_mod.SensorStateClass = type("SensorStateClass", (), {
-        "MEASUREMENT": "measurement",
-        "TOTAL": "total",
-        "TOTAL_INCREASING": "total_increasing",
-    })
+    _sensor_mod.SensorStateClass = type(
+        "SensorStateClass",
+        (),
+        {
+            "MEASUREMENT": "measurement",
+            "TOTAL": "total",
+            "TOTAL_INCREASING": "total_increasing",
+        },
+    )
 
     _const_mod = sys.modules["homeassistant.const"]
-    _const_mod.EntityCategory = type("EntityCategory", (), {
-        "DIAGNOSTIC": "diagnostic",
-        "CONFIG": "config",
-    })
+    _const_mod.EntityCategory = type(
+        "EntityCategory",
+        (),
+        {
+            "DIAGNOSTIC": "diagnostic",
+            "CONFIG": "config",
+        },
+    )
 
     _entity_mod = sys.modules["homeassistant.helpers.entity"]
     _entity_mod.EntityCategory = _const_mod.EntityCategory
@@ -593,9 +609,7 @@ def test_maanedlig_total_sensor_matcher_faktura(faktura):
     sensor = MaanedligTotalSensor(coord, entry)
 
     # Sensoren skal matche fakturaens nettleie-total (inkl. avgifter)
-    assert sensor.native_value == pytest.approx(
-        f["forventet_nettleie_kr"], rel=0.01
-    ), (
+    assert sensor.native_value == pytest.approx(f["forventet_nettleie_kr"], rel=0.01), (
         f"MaanedligTotalSensor={sensor.native_value}, "
         f"faktura={f['forventet_nettleie_kr']}. "
         f"Hvis sensoren er ~{f['dobbelttelling_avvik_kr']} kr for høy, dobbelttelles avgifter."
@@ -642,8 +656,9 @@ def test_2025_kapasitetstrinn(faktura_2025):
     from custom_components.stromkalkulator.dso import DSO_LIST
 
     bkk = DSO_LIST["bkk"]
-    assert bkk["kapasitetstrinn"][faktura_2025["kapasitetstrinn_indeks"]] == (
-        faktura_2025["kapasitetstrinn_grense"]
+    assert (
+        bkk["kapasitetstrinn"][faktura_2025["kapasitetstrinn_indeks"]]
+        == (faktura_2025["kapasitetstrinn_grense"])
     )
     assert faktura_2025["forventet_kapasitet_kr"] == faktura_2025["kapasitetstrinn_grense"][1]
 
@@ -653,11 +668,7 @@ def test_2025_maks_effekt_gir_riktig_trinn(faktura_2025):
     topper = faktura_2025["maks_effekt"]
     snitt = sum(topper) / len(topper)
     assert snitt == pytest.approx(faktura_2025["maks_effekt_snitt"], abs=0.01)
-    assert (
-        faktura_2025["kapasitetstrinn_min_kw"]
-        < snitt
-        <= faktura_2025["kapasitetstrinn_maks_kw"]
-    )
+    assert faktura_2025["kapasitetstrinn_min_kw"] < snitt <= faktura_2025["kapasitetstrinn_maks_kw"]
 
 
 def test_2025_nettleie_total(faktura_2025):

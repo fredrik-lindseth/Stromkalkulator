@@ -21,17 +21,25 @@ from tests.conftest import _make_hass as _base_make_hass
 
 # ---- HA module mocks for sensor-instansiering ----
 _sensor_mod = sys.modules["homeassistant.components.sensor"]
-_sensor_mod.SensorDeviceClass = type("SensorDeviceClass", (), {
-    "MONETARY": "monetary",
-    "POWER": "power",
-    "ENERGY": "energy",
-})
+_sensor_mod.SensorDeviceClass = type(
+    "SensorDeviceClass",
+    (),
+    {
+        "MONETARY": "monetary",
+        "POWER": "power",
+        "ENERGY": "energy",
+    },
+)
 _sensor_mod.SensorEntity = type("SensorEntity", (), {})
-_sensor_mod.SensorStateClass = type("SensorStateClass", (), {
-    "MEASUREMENT": "measurement",
-    "TOTAL": "total",
-    "TOTAL_INCREASING": "total_increasing",
-})
+_sensor_mod.SensorStateClass = type(
+    "SensorStateClass",
+    (),
+    {
+        "MEASUREMENT": "measurement",
+        "TOTAL": "total",
+        "TOTAL_INCREASING": "total_increasing",
+    },
+)
 _const_mod = sys.modules["homeassistant.const"]
 _const_mod.EntityCategory = type("EntityCategory", (), {"DIAGNOSTIC": "diagnostic", "CONFIG": "config"})
 _entity_mod = sys.modules["homeassistant.helpers.entity"]
@@ -166,9 +174,7 @@ class TestSensorGating:
     )
     def test_betinget_spot_tilgjengelig_norgespris_under_tak(self, sensor_cls):
         """Norgespris under taket bruker fast pris -> tilgjengelig selv uten spot."""
-        sensor = sensor_cls(
-            _coord(_data(spot_valid=False, har_norgespris=True, over_tak=False)), _entry()
-        )
+        sensor = sensor_cls(_coord(_data(spot_valid=False, har_norgespris=True, over_tak=False)), _entry())
         assert sensor.native_value is not None
 
     @pytest.mark.parametrize(
@@ -182,9 +188,7 @@ class TestSensorGating:
     )
     def test_betinget_spot_none_norgespris_over_tak(self, sensor_cls):
         """Over taket faller Norgespris-kunder tilbake på spot -> None uten spot."""
-        sensor = sensor_cls(
-            _coord(_data(spot_valid=False, har_norgespris=True, over_tak=True)), _entry()
-        )
+        sensor = sensor_cls(_coord(_data(spot_valid=False, har_norgespris=True, over_tak=True)), _entry())
         assert sensor.native_value is None
 
     @pytest.mark.parametrize("sensor_cls", [TotalPrisNorgesprisSensor, StromprisNorgesprisSensor])
@@ -199,7 +203,12 @@ class TestSensorGating:
 
     @pytest.mark.parametrize(
         "sensor_cls",
-        [EnergileddSensor, KapasitetstrinnSensor, StromstotteGjenstaaendeSensor, ElectricityCompanyTotalSensor],
+        [
+            EnergileddSensor,
+            KapasitetstrinnSensor,
+            StromstotteGjenstaaendeSensor,
+            ElectricityCompanyTotalSensor,
+        ],
     )
     def test_spot_uavhengige_ikke_gatet(self, sensor_cls):
         """Energiledd, kapasitet, gjenstående kWh og leverandørpris er ikke spot-avhengige."""

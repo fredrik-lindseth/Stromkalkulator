@@ -302,7 +302,9 @@ def main() -> int:
         print(linje)
     tidligere = fixture["metadata"].get("spothull", {}).get("fylt_fra_nordpool", {}).get("randtimer", {})
     fortsatt_merket = {str(h["start_local"]) for h in hours if h.get("spot_kilde") == FYLT_MERKE}
-    randtimer: dict[str, dict[str, float | str]] = {ts: data for ts, data in tidligere.items() if ts in fortsatt_merket}
+    randtimer: dict[str, dict[str, float | str]] = {
+        ts: data for ts, data in tidligere.items() if ts in fortsatt_merket
+    }
 
     fylte: list[str] = []
     overstyrte: dict[str, dict[str, float | str]] = {}

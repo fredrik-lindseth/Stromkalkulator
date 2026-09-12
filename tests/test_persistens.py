@@ -295,13 +295,16 @@ class TestLastTpiKwhPersistens:
             store = MagicMock()
             store.async_load = AsyncMock(return_value=stored_data)
             if saved_holder is not None:
+
                 async def save(data):
                     saved_holder.update(data)
+
                 store.async_save = AsyncMock(side_effect=save)
             else:
                 store.async_save = AsyncMock()
             store.async_remove = AsyncMock()
             return store
+
         return make_store
 
     def test_last_tpi_kwh_persisteres(self):
@@ -493,13 +496,16 @@ class TestLastEnergyIncreasePersistens:
             store = MagicMock()
             store.async_load = AsyncMock(return_value=stored_data)
             if saved_holder is not None:
+
                 async def save(data):
                     saved_holder.update(data)
+
                 store.async_save = AsyncMock(side_effect=save)
             else:
                 store.async_save = AsyncMock()
             store.async_remove = AsyncMock()
             return store
+
         return make_store
 
     def test_roundtrip(self):
@@ -585,9 +591,7 @@ class TestLastEnergyIncreasePersistens:
         saved: dict = {}
         coord.Store = MagicMock(side_effect=self._make_store_factory(None, saved))
         coordinator = coord.NettleieCoordinator(MagicMock(), _make_entry(energy_sensor="sensor.tpi"))
-        coordinator._last_energy_increase = datetime(
-            2026, 6, 15, 12, 0, tzinfo=ZoneInfo("Europe/Oslo")
-        )
+        coordinator._last_energy_increase = datetime(2026, 6, 15, 12, 0, tzinfo=ZoneInfo("Europe/Oslo"))
 
         asyncio.run(coordinator._save_stored_data())
         assert saved["last_energy_increase"] == "2026-06-15T10:00:00+00:00"
@@ -604,9 +608,7 @@ class TestLastEnergyIncreasePersistens:
 
     def test_ulesbart_tidsstempel_droppes(self):
         coord = _reload_coord()
-        coord.Store = MagicMock(
-            side_effect=self._make_store_factory({"last_energy_increase": "i går"})
-        )
+        coord.Store = MagicMock(side_effect=self._make_store_factory({"last_energy_increase": "i går"}))
         coordinator = coord.NettleieCoordinator(MagicMock(), _make_entry(energy_sensor="sensor.tpi"))
         asyncio.run(coordinator._load_stored_data())
         assert coordinator._last_energy_increase is None

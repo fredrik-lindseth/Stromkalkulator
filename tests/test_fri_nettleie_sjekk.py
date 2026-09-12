@@ -326,7 +326,12 @@ class TestAktivTariff:
 
     DATA: ClassVar = {
         "tariffer": [
-            {"kundegrupper": ["husholdning"], "gyldig_fra": "2026-01-01", "gyldig_til": "2026-07-01", "id": "gammel"},
+            {
+                "kundegrupper": ["husholdning"],
+                "gyldig_fra": "2026-01-01",
+                "gyldig_til": "2026-07-01",
+                "id": "gammel",
+            },
             {"kundegrupper": ["husholdning"], "gyldig_fra": "2026-07-01", "id": "ny"},
             {"kundegrupper": ["liten_næring"], "gyldig_fra": "2026-07-01", "id": "naering"},
         ]

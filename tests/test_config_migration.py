@@ -452,9 +452,7 @@ class TestIdempotency:
             "spotpris_inkl_mva": False,
             "energiledd_dag": 0.31870,
         }
-        entry = _make_entry(
-            version=4, data=original_data, entry_id="entry1", unique_id="entry1"
-        )
+        entry = _make_entry(version=4, data=original_data, entry_id="entry1", unique_id="entry1")
         hass = _make_hass(entry)
 
         mock_ir = MagicMock()

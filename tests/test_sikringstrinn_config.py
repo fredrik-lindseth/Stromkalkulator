@@ -126,9 +126,7 @@ def _make_config_flow(dso="alut"):
     flow._async_current_entries = MagicMock(return_value=[])
     flow._data = {CONF_DSO: dso, CONF_BOLIGTYPE: "bolig", CONF_HAR_NORGESPRIS: False}
     flow.async_create_entry = MagicMock(return_value={"type": "create_entry"})
-    flow.async_show_form = MagicMock(
-        side_effect=lambda **kw: {"type": "form", **kw}
-    )
+    flow.async_show_form = MagicMock(side_effect=lambda **kw: {"type": "form", **kw})
     return cf_mod, flow
 
 

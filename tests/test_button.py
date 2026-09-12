@@ -19,8 +19,7 @@ class _FakeCoordinatorEntity:
         self.coordinator = coordinator
 
 
-sys.modules["homeassistant.helpers.update_coordinator"].CoordinatorEntity = (
-    _FakeCoordinatorEntity)
+sys.modules["homeassistant.helpers.update_coordinator"].CoordinatorEntity = _FakeCoordinatorEntity
 _dev = sys.modules.setdefault("homeassistant.helpers.device_registry", MagicMock())
 _dev.DeviceInfo = lambda **kw: kw
 
@@ -30,13 +29,16 @@ importlib.reload(button_mod)
 from stromkalkulator.button import FakturaRapportButton  # noqa: E402
 
 
-def _make_entry(entry_id="entry-abc", dso_id="bkk", har_norgespris=False,
-                avgiftssone="standard", spotpris_inkl_mva=False):
+def _make_entry(
+    entry_id="entry-abc", dso_id="bkk", har_norgespris=False, avgiftssone="standard", spotpris_inkl_mva=False
+):
     entry = MagicMock()
     entry.entry_id = entry_id
     entry.data = {
-        "tso": dso_id, "har_norgespris": har_norgespris,
-        "avgiftssone": avgiftssone, "spotpris_inkl_mva": spotpris_inkl_mva,
+        "tso": dso_id,
+        "har_norgespris": har_norgespris,
+        "avgiftssone": avgiftssone,
+        "spotpris_inkl_mva": spotpris_inkl_mva,
     }
     return entry
 
@@ -84,8 +86,7 @@ class TestInitOgDeviceInfo:
 
 
 def _report(coord_data, **entry_kw):
-    return FakturaRapportButton(
-        _make_coord(coord_data), _make_entry(**entry_kw))._build_report()
+    return FakturaRapportButton(_make_coord(coord_data), _make_entry(**entry_kw))._build_report()
 
 
 class TestBuildReportNorgespris:
@@ -99,8 +100,7 @@ class TestBuildReportNorgespris:
         assert self.r.rstrip().endswith("~~~")
 
     def test_alle_seksjoner(self):
-        for h in ("## Oppsett", "## Forbruk", "## Faktura (fyll inn)",
-                  "## Konklusjon", "## Kreditt"):
+        for h in ("## Oppsett", "## Forbruk", "## Faktura (fyll inn)", "## Konklusjon", "## Kreditt"):
             assert h in self.r
 
     def test_avtale_og_periode(self):

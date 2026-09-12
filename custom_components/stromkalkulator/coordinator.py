@@ -190,6 +190,7 @@ def _iso_utc(tidspunkt: datetime | None) -> str | None:
         return tidspunkt.isoformat()
     return tidspunkt.astimezone(UTC).isoformat()
 
+
 # Repair-issue-id per problemtype. Id-en suffikses med entry_id (incident 001),
 # så to instanser aldri deler varsel.
 _VAKTHOLD_ISSUE_PREFIX: dict[str, str] = {
@@ -338,12 +339,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self.energiledd_dag_eks_mva = float(self.dso["energiledd_dag_eks_mva"])
             self.energiledd_natt_eks_mva = float(self.dso["energiledd_natt_eks_mva"])
 
-        self.energiledd_dag = compute_energiledd_inkl_mva(
-            self.energiledd_dag_eks_mva, self.avgiftssone
-        )
-        self.energiledd_natt = compute_energiledd_inkl_mva(
-            self.energiledd_natt_eks_mva, self.avgiftssone
-        )
+        self.energiledd_dag = compute_energiledd_inkl_mva(self.energiledd_dag_eks_mva, self.avgiftssone)
+        self.energiledd_natt = compute_energiledd_inkl_mva(self.energiledd_natt_eks_mva, self.avgiftssone)
         self._energiledd_perioder_inkl = [
             (
                 p["fra"],
@@ -675,9 +672,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 continue
             if sekunder_mellom(siden, now) > grace_sekunder:
                 self._input_utfall_aktiv.add(rolle)
-                problemer.append(
-                    self._vakthold_problem(VAKTHOLD_UTFALL, rolle, entity_id, siden, now)
-                )
+                problemer.append(self._vakthold_problem(VAKTHOLD_UTFALL, rolle, entity_id, siden, now))
 
         # Rangering, slik at én årsak gir ett varsel: står energisensoren selv i
         # utfall, eier utfalls-deteksjonen hendelsen. Frossen-teksten sier at
@@ -688,10 +683,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 # Fersk installasjon, eller lagret verdi som manglet: start
                 # klokken nå framfor å melde frossen på null grunnlag.
                 self._last_energy_increase = now
-            elif (
-                sekunder_mellom(self._last_energy_increase, now)
-                > self.energi_frossen_terskel_timer * 3600
-            ):
+            elif sekunder_mellom(self._last_energy_increase, now) > self.energi_frossen_terskel_timer * 3600:
                 problemer.append(
                     self._vakthold_problem(
                         VAKTHOLD_FROSSEN,
@@ -794,7 +786,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             # Flush siste times akkumulator til daily_max_power før arkivering
             if self._current_hour_energy > 0:
-                yesterday = (now.replace(hour=0, minute=0, second=0) - timedelta(seconds=1)).strftime("%Y-%m-%d")
+                yesterday = (now.replace(hour=0, minute=0, second=0) - timedelta(seconds=1)).strftime(
+                    "%Y-%m-%d"
+                )
                 self._registrer_timesmaks(yesterday, self._current_hour_energy, self._current_hour)
 
             # Compute kapasitetsledd for previous month before reset
@@ -945,8 +939,12 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # Timen har endret seg -- den forrige timen er komplett.
             # _current_hour_energy (kWh over 1 time) = gjennomsnittlig kW for den timen.
             if self._current_hour_energy > 0:
-                prev_date = self._current_date if current_hour != 0 else (
-                    (now.replace(hour=0, minute=0, second=0) - timedelta(seconds=1)).strftime("%Y-%m-%d")
+                prev_date = (
+                    self._current_date
+                    if current_hour != 0
+                    else (
+                        (now.replace(hour=0, minute=0, second=0) - timedelta(seconds=1)).strftime("%Y-%m-%d")
+                    )
                 )
                 if self._registrer_timesmaks(prev_date, self._current_hour_energy, previous_hour):
                     dirty = True
@@ -1003,8 +1001,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         elif (
             self._last_spot_price is not None
             and self._last_spot_price_time is not None
-            and sekunder_mellom(self._last_spot_price_time, now)
-            < _SPOT_CACHE_MAX_AGE.total_seconds()
+            and sekunder_mellom(self._last_spot_price_time, now) < _SPOT_CACHE_MAX_AGE.total_seconds()
         ):
             spot_price_raw = self._last_spot_price
             spot_price_valid = True
@@ -1279,14 +1276,18 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "previous_month_consumption_total_kwh": round(self._previous_month_consumption.total, 3),
             "previous_month_top_3": prev_top_3,
             "previous_month_avg_top_3_kw": round(
-                sum(e.kw for e in prev_top_3.values()) / max(len(prev_top_3), 1), 2,
-            ) if prev_top_3 else 0.0,
+                sum(e.kw for e in prev_top_3.values()) / max(len(prev_top_3), 1),
+                2,
+            )
+            if prev_top_3
+            else 0.0,
             "previous_month_name": self._previous_month_name,
             "previous_month_kapasitetsledd": self._previous_month_kapasitetsledd,
             "previous_month_kapasitetstrinn": self._previous_month_kapasitetstrinn,
             "previous_month_energiledd_dag": self._previous_month_energiledd_dag,
             "previous_month_energiledd_natt": self._previous_month_energiledd_natt,
-            "stromstotte_tak_naadd": kw["stromstotte_max"] == 0 or kw["monthly_total_kwh"] >= kw["stromstotte_max"],
+            "stromstotte_tak_naadd": kw["stromstotte_max"] == 0
+            or kw["monthly_total_kwh"] >= kw["stromstotte_max"],
             "norgespris_over_tak": kw["norgespris_over_tak"],
             "boligtype": self.boligtype,
             "stromstotte_gjenstaaende_kwh": round(kw["stromstotte_gjenstaaende"], 1),
@@ -1309,12 +1310,16 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "monthly_norgespris_diff_kr": round(self._monthly_norgespris_diff, 2),
             "previous_month_norgespris_diff_kr": round(self._previous_month_norgespris_diff, 2),
             "monthly_norgespris_compensation_kr": round(self._monthly_norgespris_compensation, 2),
-            "previous_month_norgespris_compensation_kr": round(self._previous_month_norgespris_compensation, 2),
+            "previous_month_norgespris_compensation_kr": round(
+                self._previous_month_norgespris_compensation, 2
+            ),
             "daily_cost_kr": round(self._daily_cost, 2),
             "monthly_accumulated_cost_kr": round(self._monthly_accumulated_cost, 4),
             "monthly_accumulated_cost_strom_kr": round(self._monthly_accumulated_cost_strom, 4),
             "monthly_accumulated_cost_energiledd_kr": round(self._monthly_accumulated_cost_energiledd, 4),
-            "monthly_accumulated_cost_kapasitetsledd_kr": round(self._monthly_accumulated_cost_kapasitetsledd, 4),
+            "monthly_accumulated_cost_kapasitetsledd_kr": round(
+                self._monthly_accumulated_cost_kapasitetsledd, 4
+            ),
             "eksport_konfigurert": self.export_power_sensor is not None,
             "monthly_export_kwh": round(self._monthly_export_kwh, 3),
             "monthly_export_revenue_kr": round(self._monthly_export_revenue, 2),
@@ -1403,9 +1408,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self.fastledd_metode == FASTLEDD_MND_MAX:
             return max((e.kw for e in self._daily_max_power.values()), default=0.0)
         if self.fastledd_metode == FASTLEDD_FEM_VEKTET_AR:
-            vektet = sorted(
-                (self._vektet(e) for e in self._weekly_max_power.values()), reverse=True
-            )[:FEM_VEKTET_ANTALL_TOPPER]
+            vektet = sorted((self._vektet(e) for e in self._weekly_max_power.values()), reverse=True)[
+                :FEM_VEKTET_ANTALL_TOPPER
+            ]
             if not vektet:
                 return 0.0
             # Nettselskapet fakturerer effekten med to desimaler.
@@ -1456,9 +1461,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 f"{grunnlag_kw:.2f} kW vektet årstopp",
             )
 
-        return finn_kapasitetstrinn(
-            self.kapasitetstrinn, grunnlag_kw, self._terskel_inkludert
-        )
+        return finn_kapasitetstrinn(self.kapasitetstrinn, grunnlag_kw, self._terskel_inkludert)
 
     def _serialize_perioder(self) -> list[dict[str, Any]] | None:
         """Returner energiledd-periodene som dict-liste for sensor-attributter.
@@ -1526,13 +1529,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         is_moving_holiday = date_yyyy_mm_dd in bevegelige
         is_weekend = now.weekday() >= WEEKEND_WEEKDAY_START
 
-        return not (
-            is_fixed_holiday
-            or is_dso_extra_holiday
-            or is_moving_holiday
-            or is_weekend
-            or is_night
-        )
+        return not (is_fixed_holiday or is_dso_extra_holiday or is_moving_holiday or is_weekend or is_night)
 
     def _format_month_name(self, dt: datetime) -> str:
         """Format date as Norwegian month name with year."""
@@ -1571,15 +1568,11 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if data:
             try:
                 self._daily_max_power = self._validate_daily_max_power(data.get("daily_max_power", {}))
-                self._weekly_max_power = self._validate_weekly_max_power(
-                    data.get("weekly_max_power", {})
-                )
+                self._weekly_max_power = self._validate_weekly_max_power(data.get("weekly_max_power", {}))
                 self._monthly_consumption = self._validate_consumption(
                     data.get("monthly_consumption", {"dag": 0.0, "natt": 0.0})
                 )
-                self._monthly_norgespris_diff = self._validate_float(
-                    data.get("monthly_norgespris_diff", 0.0)
-                )
+                self._monthly_norgespris_diff = self._validate_float(data.get("monthly_norgespris_diff", 0.0))
                 self._previous_month_consumption = self._validate_consumption(
                     data.get("previous_month_consumption", {"dag": 0.0, "natt": 0.0})
                 )
@@ -1601,9 +1594,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     self._previous_month_kapasitetsledd = int(prev_kap)
                 except (ValueError, TypeError):
                     self._previous_month_kapasitetsledd = 0
-                self._previous_month_kapasitetstrinn = str(
-                    data.get("previous_month_kapasitetstrinn", "")
-                )
+                self._previous_month_kapasitetstrinn = str(data.get("previous_month_kapasitetstrinn", ""))
                 self._previous_month_energiledd_dag = self._validate_float(
                     data.get("previous_month_energiledd_dag", self.energiledd_dag)
                 )
@@ -1612,15 +1603,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 )
                 self._daily_cost = self._validate_float(data.get("daily_cost", 0.0))
                 # Eksport-data
-                self._monthly_export_kwh = self._validate_float(
-                    data.get("monthly_export_kwh", 0.0)
-                )
-                self._monthly_export_revenue = self._validate_float(
-                    data.get("monthly_export_revenue", 0.0)
-                )
-                self._monthly_cost = self._validate_float(
-                    data.get("monthly_cost", 0.0)
-                )
+                self._monthly_export_kwh = self._validate_float(data.get("monthly_export_kwh", 0.0))
+                self._monthly_export_revenue = self._validate_float(data.get("monthly_export_revenue", 0.0))
+                self._monthly_cost = self._validate_float(data.get("monthly_cost", 0.0))
                 self._monthly_accumulated_cost = self._validate_float(
                     data.get("monthly_accumulated_cost", 0.0)
                 )
@@ -1639,13 +1624,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self._previous_month_export_revenue = self._validate_float(
                     data.get("previous_month_export_revenue", 0.0)
                 )
-                self._previous_month_cost = self._validate_float(
-                    data.get("previous_month_cost", 0.0)
-                )
+                self._previous_month_cost = self._validate_float(data.get("previous_month_cost", 0.0))
                 self._current_date = data.get("current_date", dt_util.now().strftime("%Y-%m-%d"))
-                self._current_hour_energy = self._validate_float(
-                    data.get("current_hour_energy", 0.0)
-                )
+                self._current_hour_energy = self._validate_float(data.get("current_hour_energy", 0.0))
                 stored_hour = data.get("current_hour")
                 if isinstance(stored_hour, int) and 0 <= stored_hour <= 23:
                     self._current_hour = stored_hour
@@ -1664,9 +1645,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 stored_increase = data.get("last_energy_increase")
                 if stored_increase:
                     try:
-                        self._last_energy_increase = _som_lokal(
-                            datetime.fromisoformat(stored_increase)
-                        )
+                        self._last_energy_increase = _som_lokal(datetime.fromisoformat(stored_increase))
                     except (ValueError, TypeError):
                         _LOGGER.warning(
                             "Kunne ikke lese last_energy_increase fra storage: %s", stored_increase
@@ -1697,9 +1676,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         if 0 <= last_update_age_hours <= MAX_ELAPSED_HOURS:
                             self._last_update = loaded_last_update
                     except (ValueError, TypeError) as err:
-                        _LOGGER.warning(
-                            "Kunne ikke lese last_update fra storage: %s", err
-                        )
+                        _LOGGER.warning("Kunne ikke lese last_update fra storage: %s", err)
 
                 # _last_tpi_kwh: gjenopprett kun hvis ferskt nok. Eldre verdi gir
                 # gigantisk delta ved første poll (alt forbruk siden restart).
@@ -1720,9 +1697,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         stored_tpi_time = data.get("last_tpi_time")
                         if stored_tpi_time:
                             try:
-                                self._last_tpi_time = _som_lokal(
-                                    datetime.fromisoformat(stored_tpi_time)
-                                )
+                                self._last_tpi_time = _som_lokal(datetime.fromisoformat(stored_tpi_time))
                             except (ValueError, TypeError):
                                 self._last_tpi_time = None
 
@@ -1837,10 +1812,12 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         data: dict[str, Any] = {
             "daily_max_power": self._serialize_daily_max(self._daily_max_power),
             "weekly_max_power": {
-                k: {"kw": v.kw, "dato": v.dato, "hour": v.hour}
-                for k, v in self._weekly_max_power.items()
+                k: {"kw": v.kw, "dato": v.dato, "hour": v.hour} for k, v in self._weekly_max_power.items()
             },
-            "monthly_consumption": {"dag": self._monthly_consumption.dag, "natt": self._monthly_consumption.natt},
+            "monthly_consumption": {
+                "dag": self._monthly_consumption.dag,
+                "natt": self._monthly_consumption.natt,
+            },
             "current_month": self._current_month,
             "previous_month_consumption": {
                 "dag": self._previous_month_consumption.dag,

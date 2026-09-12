@@ -194,7 +194,9 @@ def main() -> int:
             problemer.append(f"fant ikke {FJERN_STI} på {args.host}")
             print(f"Pakkefil: MANGLER på {args.host}")
         elif fjern != lokal:
-            problemer.append(f"{FJERN_STI} på {args.host} er ulik repoets pakke (kjør `just deploy-testpakke`)")
+            problemer.append(
+                f"{FJERN_STI} på {args.host} er ulik repoets pakke (kjør `just deploy-testpakke`)"
+            )
             print("Pakkefil: DRIFT, ulik repoets")
         else:
             print("Pakkefil: identisk med repoets")

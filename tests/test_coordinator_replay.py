@@ -162,6 +162,7 @@ def _replay_month(
     )
     coord_module.dt_util.now.return_value = first_hour_now
     import asyncio
+
     asyncio.run(coord._async_update_data())
 
     # Kjør coordinator gjennom hver fixture-time. Vi setter dt_util.now()
@@ -185,13 +186,12 @@ def _replay_month(
         coord_module.dt_util.now.return_value = now
 
         import asyncio
+
         last_result = asyncio.run(coord._async_update_data())
 
     # Trigge månedsskifte: én ekstra poll på første time neste måned.
     last_hour = datetime.fromisoformat(hours[-1]["start_local"]).replace(tzinfo=None)
-    next_month_first_hour = (last_hour + timedelta(hours=1)).replace(
-        day=1, hour=0, minute=0, second=0
-    )
+    next_month_first_hour = (last_hour + timedelta(hours=1)).replace(day=1, hour=0, minute=0, second=0)
     if last_hour.month == 12:
         next_month_first_hour = datetime(last_hour.year + 1, 1, 1, 0, 0)
     else:
@@ -208,6 +208,7 @@ def _replay_month(
     coord_module.dt_util.now.return_value = next_month_first_hour
 
     import asyncio
+
     last_result = asyncio.run(coord._async_update_data())
 
     return {
@@ -287,9 +288,7 @@ class TestReplayDesember2025:
     def test_topp_3_kapasitet_matcher_faktura(self, replay):
         result = replay["result"]
         faktura = replay["faktura"]
-        assert result["previous_month_avg_top_3_kw"] == pytest.approx(
-            faktura["maks_effekt_snitt"], abs=0.10
-        )
+        assert result["previous_month_avg_top_3_kw"] == pytest.approx(faktura["maks_effekt_snitt"], abs=0.10)
 
     def test_kapasitetsledd_matcher_faktura(self, replay):
         result = replay["result"]
@@ -356,9 +355,7 @@ class TestReplayParametrized:
     def test_topp_3_kapasitet_matcher_faktura(self, replay):
         result = replay["result"]
         faktura = replay["faktura"]
-        assert result["previous_month_avg_top_3_kw"] == pytest.approx(
-            faktura["maks_effekt_snitt"], abs=0.10
-        )
+        assert result["previous_month_avg_top_3_kw"] == pytest.approx(faktura["maks_effekt_snitt"], abs=0.10)
 
     def test_kapasitetsledd_matcher_faktura(self, replay):
         result = replay["result"]

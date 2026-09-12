@@ -41,10 +41,18 @@ BKK_KAPASITETSTRINN = [
 # Helligdager 2026 (utvid her for andre år)
 HELLIGDAGER: dict[int, set[date]] = {
     2026: {
-        date(2026, 1, 1), date(2026, 4, 2), date(2026, 4, 3),
-        date(2026, 4, 5), date(2026, 4, 6), date(2026, 5, 1),
-        date(2026, 5, 14), date(2026, 5, 17), date(2026, 5, 24),
-        date(2026, 5, 25), date(2026, 12, 25), date(2026, 12, 26),
+        date(2026, 1, 1),
+        date(2026, 4, 2),
+        date(2026, 4, 3),
+        date(2026, 4, 5),
+        date(2026, 4, 6),
+        date(2026, 5, 1),
+        date(2026, 5, 14),
+        date(2026, 5, 17),
+        date(2026, 5, 24),
+        date(2026, 5, 25),
+        date(2026, 12, 25),
+        date(2026, 12, 26),
     },
 }
 
@@ -286,8 +294,9 @@ def print_rad(navn: str, beregnet: float, faktura: float, enhet: str = "kr", del
     return True if delvis else ok
 
 
-def print_datahull(hours: list[dict[str, Any]], f: dict[str, Any], beregnet: dict[str, float],
-                   shift_seconds: int) -> None:
+def print_datahull(
+    hours: list[dict[str, Any]], f: dict[str, Any], beregnet: dict[str, float], shift_seconds: int
+) -> None:
     """Restanalyse når fixturen har timer uten måling.
 
     Volumlinjene kan ikke sammenlignes direkte, men fakturaen minus det vi
@@ -298,21 +307,27 @@ def print_datahull(hours: list[dict[str, Any]], f: dict[str, Any], beregnet: dic
     manglende = [h for h, k in zip(hours, shift_korriger(hours, shift_seconds), strict=True) if k is None]
     dag_timer = sum(1 for h in manglende if er_dagtid(datetime.fromisoformat(h["start_local"])))
 
-    print(f"\nDatahull: {len(manglende)} av {len(hours)} timer mangler måling "
-          f"({manglende[0]['start_local']} - {manglende[-1]['start_local']}), "
-          f"{dag_timer} dag-timer og {len(manglende) - dag_timer} natt/helg-timer.")
+    print(
+        f"\nDatahull: {len(manglende)} av {len(hours)} timer mangler måling "
+        f"({manglende[0]['start_local']} - {manglende[-1]['start_local']}), "
+        f"{dag_timer} dag-timer og {len(manglende) - dag_timer} natt/helg-timer."
+    )
     print("Volumlinjene over dekker bare de målte timene og er derfor merket DELVIS.\n")
 
     rest_total = f["forbruk_total_kwh"] - beregnet["total_kwh"]
     rest_dag = f["forbruk_dag_kwh"] - beregnet["forbruk_dag_kwh"]
     rest_natt = f["forbruk_natt_kwh"] - beregnet["forbruk_natt_kwh"]
-    print(f"Restforbruk fakturaen tilskriver hullet: {rest_total:.3f} kWh "
-          f"({rest_dag:.3f} dag, {rest_natt:.3f} natt/helg)")
+    print(
+        f"Restforbruk fakturaen tilskriver hullet: {rest_total:.3f} kWh "
+        f"({rest_dag:.3f} dag, {rest_natt:.3f} natt/helg)"
+    )
     if dag_timer:
         print(f"  snitt dag: {rest_dag / dag_timer:.3f} kWh/h over {dag_timer} timer")
     if len(manglende) - dag_timer:
-        print(f"  snitt natt/helg: {rest_natt / (len(manglende) - dag_timer):.3f} kWh/h "
-              f"over {len(manglende) - dag_timer} timer")
+        print(
+            f"  snitt natt/helg: {rest_natt / (len(manglende) - dag_timer):.3f} kWh/h "
+            f"over {len(manglende) - dag_timer} timer"
+        )
 
     rest_np = f["forventet_norgespris_kr"] - beregnet["norgespris_kr"]
     if abs(rest_total) > 1e-6:
@@ -322,13 +337,19 @@ def print_datahull(hours: list[dict[str, Any]], f: dict[str, Any], beregnet: dic
             for h in manglende
             if h.get("spot_nok_kwh_eks_mva") is not None
         ]
-        print(f"Implisitt Norgespris-sats for hullet: {implisitt:.3f} øre/kWh "
-              f"({rest_np:.2f} kr / {rest_total:.3f} kWh)")
-        print(f"  faktiske timesatser i hullet: {min(satser):.3f} til {max(satser):.3f} øre/kWh, "
-              f"uvektet snitt {sum(satser) / len(satser):.3f}")
+        print(
+            f"Implisitt Norgespris-sats for hullet: {implisitt:.3f} øre/kWh "
+            f"({rest_np:.2f} kr / {rest_total:.3f} kWh)"
+        )
+        print(
+            f"  faktiske timesatser i hullet: {min(satser):.3f} til {max(satser):.3f} øre/kWh, "
+            f"uvektet snitt {sum(satser) / len(satser):.3f}"
+        )
         innenfor = min(satser) <= implisitt <= max(satser)
-        print(f"  {'innenfor' if innenfor else 'UTENFOR'} spennet -> fakturaen er "
-              f"{'konsistent' if innenfor else 'IKKE konsistent'} med modellen i hullet")
+        print(
+            f"  {'innenfor' if innenfor else 'UTENFOR'} spennet -> fakturaen er "
+            f"{'konsistent' if innenfor else 'IKKE konsistent'} med modellen i hullet"
+        )
 
 
 def main() -> int:
@@ -336,7 +357,9 @@ def main() -> int:
     p.add_argument("--hourly", required=True, type=Path, help="Sti til hourly JSON-fixture")
     p.add_argument("--faktura", required=True, choices=sorted(FAKTURAER.keys()), help="Faktura-fixture-navn")
     p.add_argument(
-        "--shift-seconds", type=int, default=13,
+        "--shift-seconds",
+        type=int,
+        default=13,
         help=(
             "Sek HAN-broadcast er forsinket etter timeskifte. "
             "Default 13 = Fredriks Kaifa MA304H3E + Pow-U (10s i maler + 3s transmisjon). "
@@ -364,14 +387,20 @@ def main() -> int:
     hull = int(beregnet["manglende_timer"]) > 0
 
     print(f"=== BKK {args.faktura} verifikasjon (shift={args.shift_seconds}s) ===\n")
-    print(f"Antall timer: {len(hours)} "
-          f"({int(beregnet['dekkede_timer'])} med måling, {int(beregnet['manglende_timer'])} uten)")
+    print(
+        f"Antall timer: {len(hours)} "
+        f"({int(beregnet['dekkede_timer'])} med måling, {int(beregnet['manglende_timer'])} uten)"
+    )
     if beregnet["manglende_spot_timer"]:
-        print(f"Spotpris mangler for {int(beregnet['manglende_spot_timer'])} timer "
-              f"med måling -> Norgespris-linjen er underestimert tilsvarende.")
-    print(f"Kapasitet: snitt topp 3 = {beregnet['kapasitet_snitt_kw']:.3f} kW "
-          f"-> trinn {beregnet['kapasitet_grense_kw']} kW, "
-          f"{int(beregnet['kapasitet_kr'])} kr\n")
+        print(
+            f"Spotpris mangler for {int(beregnet['manglende_spot_timer'])} timer "
+            f"med måling -> Norgespris-linjen er underestimert tilsvarende."
+        )
+    print(
+        f"Kapasitet: snitt topp 3 = {beregnet['kapasitet_snitt_kw']:.3f} kW "
+        f"-> trinn {beregnet['kapasitet_grense_kw']} kW, "
+        f"{int(beregnet['kapasitet_kr'])} kr\n"
+    )
     print(f"| {'Linje':<28} | {'Beregnet':>12} | {'Faktura':>12} | {'Avvik':>9} | Status |")
     print(f"|{'-' * 30}|{'-' * 14}|{'-' * 14}|{'-' * 10}|{'-' * 8}|")
 
@@ -379,9 +408,15 @@ def main() -> int:
     ok &= print_rad("Total kWh", beregnet["total_kwh"], f["forbruk_total_kwh"], "kWh", hull)
     ok &= print_rad("Forbruk dag kWh", beregnet["forbruk_dag_kwh"], f["forbruk_dag_kwh"], "kWh", hull)
     ok &= print_rad("Forbruk natt kWh", beregnet["forbruk_natt_kwh"], f["forbruk_natt_kwh"], "kWh", hull)
-    ok &= print_rad("Energiledd dag", beregnet["energiledd_dag_kr"], f["forventet_energiledd_dag_kr"], "kr", hull)
-    ok &= print_rad("Energiledd natt", beregnet["energiledd_natt_kr"], f["forventet_energiledd_natt_kr"], "kr", hull)
-    ok &= print_rad("Forbruksavgift", beregnet["forbruksavgift_kr"], f["forventet_forbruksavgift_kr"], "kr", hull)
+    ok &= print_rad(
+        "Energiledd dag", beregnet["energiledd_dag_kr"], f["forventet_energiledd_dag_kr"], "kr", hull
+    )
+    ok &= print_rad(
+        "Energiledd natt", beregnet["energiledd_natt_kr"], f["forventet_energiledd_natt_kr"], "kr", hull
+    )
+    ok &= print_rad(
+        "Forbruksavgift", beregnet["forbruksavgift_kr"], f["forventet_forbruksavgift_kr"], "kr", hull
+    )
     ok &= print_rad("Enovaavgift", beregnet["enovaavgift_kr"], f["forventet_enovaavgift_kr"], "kr", hull)
     ok &= print_rad("Kapasitet", beregnet["kapasitet_kr"], f["forventet_kapasitet_kr"])
     ok &= print_rad("Nettleie sum", beregnet["nettleie_kr"], f["forventet_nettleie_kr"], "kr", hull)
@@ -412,24 +447,33 @@ def print_norgespris_eksakt(faktura_navn: str, shift_seconds: int) -> None:
     """
     try:
         import verify_norgespris_eksakt as vne
+
         res = vne.analyser_maaned(faktura_navn, shift_seconds)
     except Exception as e:  # aldri la tilleggssjekken velte hovedverifiseringen
         print(f"\n(Norgespris eksakt-sjekk hoppet over: {type(e).__name__}: {e})")
         return
     if res is None:
-        print("\n(Norgespris eksakt-sjekk hoppet over: mangler prisarkiv for måneden, "
-              "kjør `just snapshot-kurs`)")
+        print(
+            "\n(Norgespris eksakt-sjekk hoppet over: mangler prisarkiv for måneden, "
+            "kjør `just snapshot-kurs`)"
+        )
         return
     if res["manglende_timer"]:
-        print(f"\nNorgespris mot publiserte Final-priser: {res['komp_np']:+.2f} kr over de "
-              f"{res['n_timer']} målte timene. Ikke sammenlignbar med fakturalinjen "
-              f"({res['faktura']:+.2f} kr) så lenge {res['manglende_timer']} timer mangler måling.")
+        print(
+            f"\nNorgespris mot publiserte Final-priser: {res['komp_np']:+.2f} kr over de "
+            f"{res['n_timer']} målte timene. Ikke sammenlignbar med fakturalinjen "
+            f"({res['faktura']:+.2f} kr) så lenge {res['manglende_timer']} timer mangler måling."
+        )
         return
     avvik = res["komp_np"] - res["faktura"]
-    print(f"\nNorgespris mot publiserte Final-priser: {res['komp_np']:+.2f} kr, "
-          f"faktura {res['faktura']:+.2f}, avvik {avvik:+.2f} kr")
-    print("  (forventet |avvik| <= 0.05 kr; større avvik tyder på prisårgang- eller "
-          "kWh-avvik, se docs/research/norgespris-eksakt-match.md)")
+    print(
+        f"\nNorgespris mot publiserte Final-priser: {res['komp_np']:+.2f} kr, "
+        f"faktura {res['faktura']:+.2f}, avvik {avvik:+.2f} kr"
+    )
+    print(
+        "  (forventet |avvik| <= 0.05 kr; større avvik tyder på prisårgang- eller "
+        "kWh-avvik, se docs/research/norgespris-eksakt-match.md)"
+    )
 
 
 if __name__ == "__main__":

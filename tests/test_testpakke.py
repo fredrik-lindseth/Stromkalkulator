@@ -154,7 +154,9 @@ class TestHentFjernfil:
 
     def _kjor(self, monkeypatch, returkode: int, stderr: str = "") -> str | None:
         def falsk_run(*_args, **_kwargs):
-            return subprocess.CompletedProcess(args=[], returncode=returkode, stdout="innhold\n", stderr=stderr)
+            return subprocess.CompletedProcess(
+                args=[], returncode=returkode, stdout="innhold\n", stderr=stderr
+            )
 
         monkeypatch.setattr(sjekk_testpakke.subprocess, "run", falsk_run)
         return sjekk_testpakke.hent_fjernfil("ha-local")

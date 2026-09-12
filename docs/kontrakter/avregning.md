@@ -196,6 +196,52 @@ en kumulativ teller, ikke et forbruk.
 `observed_at` er alltid tidssoneklar. En naiv datetime er en programmeringsfeil
 og skal kaste, ikke tolkes som lokal tid.
 
+**Bruker uten energisensor.** Energisensoren er valgfri
+([input-og-konfig.md §6](input-og-konfig.md#6-tariffmodus)), og en bruker med
+effekt- og prissensor uten akkumulerende teller er et vanlig oppsett, ikke et
+hjørnetilfelle. Uten teller finnes ingen avlesning i tabellen over, og brukeren
+skal likevel inn i den samme boken. Coordinatoren lager da én **syntetisk
+avlesning** per poll, med disse feltene:
+
+| Felt | Verdi for en syntetisk avlesning |
+| --- | --- |
+| `source_identity` | Effektsensorens `unique_id`. |
+| `entity_id` | Effektsensorens. |
+| `value_kwh` | Ikke en tellerstand: energien i vinduet, effekten ved pollen ganget med vinduets lengde i timer. |
+| `observed_at` | Polltiden, ikke effektsensorens `last_updated`. |
+| `kvalitet` | `estimert`. |
+
+Vinduet er `(forrige polltid, polltid]`, og fordelingen over
+avregningsintervallene følger C1 som ellers. Fire ting følger av det, og de må
+stå her, for uten dem lander to utførere ulikt:
+
+- **`observed_at` er polltiden.** For en teller er `last_updated` tiden energien
+  ble observert. For en effektprøve er energien ikke observert i det hele tatt,
+  den er estimert over et vindu, og vinduets ende er pollen. Bruker man
+  effektsensorens `last_updated` som vindusende, blir halen mellom siste rapport
+  og pollen liggende ubokført, og en effektsensor som holder samme verdi en
+  stund bokfører null mens forbruket går.
+- **C2.6 gjelder ikke for denne stien.** En Riemann-sum av punktprøver avhenger
+  av når prøvene ble tatt, og det er ikke til å reparere uten en teller. Det er
+  `kvalitet = estimert` som sier fra om det. Vil brukeren ha polltidsuavhengig
+  avregning, er svaret en energisensor.
+- **Vindu lengre enn `MAX_ELAPSED_HOURS` bokføres ikke.** Er pollen forsinket
+  eller HA nede, holder ikke antakelsen om konstant effekt gjennom vinduet, og
+  energien forkastes framfor å gjettes. Det er dagens oppførsel (kappingen av
+  `elapsed_hours` i coordinatoren), og intervallene i gapet får ingen energi:
+  de er «uten data» etter C4, ikke null forbruk. Et døgn nede koster en
+  effektbruker døgnet. Det er prisen for ikke å ha en teller, og den skal stå
+  her framfor å oppdages i en faktura.
+- **Er energisensoren konfigurert, gjelder telleren.** Den syntetiske stien er
+  ikke en reserve som slår inn når telleren er `Utilgjengelig` en stund: når
+  telleren kommer tilbake, dekker deltaet hele fraværet, og en syntetisk
+  sti ved siden av ville bokført de samme kilowattimene to ganger. Stien velges
+  av konfigurasjonen, ikke av tilstanden.
+
+Energibaselinen i [input-og-konfig.md §5](input-og-konfig.md#5-energibaseline)
+gjelder ikke for den syntetiske stien; det finnes ingen tellerstand å måle
+delta fra. `avregning_kilde` står som effektsensorens identitet.
+
 ### B2 Prisintervall
 
 | Felt | Type | Betydning |
@@ -270,8 +316,14 @@ Randtilfeller:
   null og kan ikke fordeles. Avlesningen er `avvist`, ikke bokført.
 - Negativt delta (målerreset eller kildebytte): ikke bokført, deltaet settes
   til 0 og baseline flyttes. Kilde og hendelse føres i diagnostikken.
-- Delta over `MAX_ENERGY_DELTA_KWH`: avvist som i dag, og ført som
-  `avregning_avvist_kwh`.
+- Delta over `MAX_ENERGY_DELTA_KWH`: avvist som i dag, ført som
+  `avregning_avvist_kwh`, og **baselinen flyttes til den nye tellerstanden**,
+  akkurat som ved negativt delta. Uten den flyttingen ville hver senere
+  avlesning også ligget over grensen, og boken ville stått stille for godt etter
+  ett sprang. En hytte som har stått tom i tre uker og kommer tilbake med 150
+  kWh på telleren, får altså de 150 avvist og synlige, og regner videre fra den
+  nye standen. Det som går tapt er forbruket i vinduet, og det er tallet som
+  står i `avregning_avvist_kwh`.
 
 ### C2 Invariantene
 
@@ -290,9 +342,11 @@ Randtilfeller:
 6. **Polltidsuavhengighet.** To avspillinger av samme observerte historikk med
    ulike polltidspunkt gir samme avregning når avlesningene er de samme.
    Endres avlesningenes `observed_at`, er historikken en annen. For energi
-   gjelder dette uten forbehold. For pris gjelder det så lenge hver prisrute
-   har minst én poll i settlevinduet sitt (A2.1); en rute uten poll er en
-   merket mangel (`delvis_pris`), ikke en pris som flytter seg.
+   gjelder dette uten forbehold så lenge energien kommer fra en teller. For
+   pris gjelder det så lenge hver prisrute har minst én poll i settlevinduet
+   sitt (A2.1); en rute uten poll er en merket mangel (`delvis_pris`), ikke en
+   pris som flytter seg. For en bruker uten energisensor gjelder invarianten
+   ikke for energien heller, se B1.
 7. **Restartlikhet.** Samme hendelsesrekke, med eller uten omstart midt i, gir
    samme avregning. Se C5.
 8. **Fastledd er utenfor.** Kapasitetsleddet akkumuleres tidsbasert og summerer

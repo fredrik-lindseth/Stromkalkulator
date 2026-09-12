@@ -17,12 +17,15 @@ Fire regler holder filen ærlig:
    streng bærer det den blir matet. Derfor går hver streng gjennom `tekstvakt`
    og må enten stå i et kjent vokabular (DSO-navn, avgiftssone, fastledd-metode)
    eller treffe et kjent format (ISO-dato, `0-2 kW`, `juni 2026`). Alt annet
-   byttes med en markør.
+   byttes med en markør. Enheten en fremmed sensor oppgir er ikke unntatt: den
+   slås opp i `ENHET_VOKABULAR`, og det er vårt eget ord for enheten som
+   havner i dumpen, aldri strengen sensoren skrev.
 3. **Aliaser.** Brukeren limer dumpen inn i en offentlig GitHub-issue. Entity-
-   id-er, entry-id og entry-tittel er navn brukeren har valgt, og de røper
-   både hvem det er og hvor de bor. De byttes med tellere som er stabile
-   innenfor én eksport, så relasjonene mellom rollene består (samme sensor i
-   to roller får samme alias), men navnet er borte.
+   id-er, entry-id, entry-tittel og målerens kildeidentitet (unique_id, som hos
+   en AMS-integrasjon er målepunkt-ID-en) er navn brukeren har valgt eller fått
+   tildelt, og de røper både hvem det er og hvor de bor. De byttes med tellere
+   som er stabile innenfor én eksport, så relasjonene mellom rollene består
+   (samme sensor i to roller får samme alias), men navnet er borte.
 4. **Kun JSON-primitiver.** Alt går gjennom `rens()`, så `json.dumps` lykkes
    uten `default`-hook. `coordinator.data` inneholder dataklasser
    (`DailyMaxEntry`), og de ville sprengt en rå dump.
@@ -42,8 +45,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.const import __version__ as HA_VERSION
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.loader import async_get_integration
 
+from . import inputadapter
 from .const import (
     AVGIFTSSONE_OPTIONS,
     BOLIGTYPE_OPTIONS,
@@ -66,24 +71,28 @@ from .const import (
     CONF_SPOTPRIS_INKL_MVA,
     CONF_TARIFFMODUS,
     DOMAIN,
+    EGENDEFINERT_ISSUE_PREFIX,
     INPUT_ROLLE_EFFEKT,
     INPUT_ROLLE_EKSPORT,
     INPUT_ROLLE_ENERGI,
     INPUT_ROLLE_LEVERANDORPRIS,
     INPUT_ROLLE_SPOTPRIS,
     INPUT_UTFALL_GRACE_MINUTTER,
+    TARIFF_ISSUE_PREFIX,
     TARIFFMODUS_ALLE,
+    VAKTHOLD_ENHET,
     VAKTHOLD_FROSSEN,
     VAKTHOLD_SPOT_UTLOPT,
     VAKTHOLD_UTFALL,
 )
-from .dso import DSO_LIST, FASTLEDD_METODER
+from .dso import DSO_LIST, DSO_MIGRATIONS, FASTLEDD_METODER
+from .inputadapter import NORMALISERT_ENHET, kanoniser_enhet
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
 
-DIAGNOSTICS_SCHEMA_VERSION: int = 1
+DIAGNOSTICS_SCHEMA_VERSION: int = 2
 
 # Valgene brukeren har tatt, uten entity-id-ene. Disse er trygge å vise rått:
 # de sier hva integrasjonen regnet med, ikke hvem som regnet.
@@ -104,8 +113,8 @@ VALG_ALLOWLIST: tuple[str, ...] = (
 )
 
 # Inputrollene. Selve entity-id-en aliaseres; her står bare koblingen fra
-# rolle til konfignøkkel. D2 utvider hver rolle med tilgjengelighet, enhet og
-# kvalitet når K1 eksponerer dem.
+# rolle til konfignøkkel. Tilstanden på rollen kommer fra coordinatorens
+# `input_resultater`, ikke fra en ny lesing av sensoren.
 ROLLE_TIL_CONF: dict[str, str] = {
     INPUT_ROLLE_EFFEKT: CONF_POWER_SENSOR,
     INPUT_ROLLE_ENERGI: CONF_ENERGY_SENSOR,
@@ -209,11 +218,51 @@ BEREGNING_UTELATT: dict[str, str] = {
     "dso": "står i dso-seksjonen",
     "sist_energi_okning": "står i vakthold-seksjonen",
     "energi_frossen_terskel_timer": "står i vakthold-seksjonen",
-    # De to under har entity-id og kildeidentitet i seg og må aliaseres før de
-    # kan vises. K1 eksponerer dem, D2 bygger visningen.
-    "input_resultater": "venter på D2, som aliaserer entity-id-ene per rolle",
-    "baseline": "venter på D2, som aliaserer kildeidentiteten",
+    # De to under har entity-id og kildeidentitet i seg. De vises der de hører
+    # hjemme, med aliaserte identifikatorer, ikke rått under beregning.
+    "input_resultater": "aliaseres og vises per rolle under input_roller",
+    "baseline": "aliaseres og vises i baseline-seksjonen",
 }
+
+# Feltene på én rad i coordinatorens `input_resultater`. Samme tanke som
+# `PROBLEM_ALLOWLIST`: raden bygges felt for felt, så et nytt felt krever en
+# beslutning framfor å bli med på lasset.
+INPUT_RESULTAT_ALLOWLIST: tuple[str, ...] = (
+    "type",
+    "grunn",
+    "enhet_normalisert",
+    "alder_sekunder",
+)
+
+INPUT_RESULTAT_UTELATT: dict[str, str] = {
+    "entity_id": "aliaseres til entitet_alias, samme alias som rollen fikk",
+    "raa_enhet": "gjengis gjennom enhetsvokabularet, ikke slik sensoren skrev den",
+}
+
+# Feltene i coordinatorens `baseline`. `source_identity` er målerens unique_id,
+# og hos en Elhub- eller AMS-integrasjon er den målepunkt-ID-en. Den aliaseres.
+BASELINE_ALLOWLIST: tuple[str, ...] = (
+    "schema_version",
+    "value_kwh",
+    "observed_at",
+    "forkastet",
+)
+
+BASELINE_UTELATT: dict[str, str] = {
+    "source_identity": "aliaseres til kilde_alias",
+    "entity_id": "aliaseres til entitet_alias",
+}
+
+# Feltene vi tar med fra en repair-issue. `translation_placeholders` står ikke
+# her og skal ikke inn: den bærer entity-id-en i klartekst, og det er nettopp
+# den vi aliaserer overalt ellers.
+REPAIR_ALLOWLIST: tuple[str, str, str, str, str] = (
+    "aktiv",
+    "fiksbar",
+    "alvorlighet",
+    "opprettet",
+    "avvist_i_versjon",
+)
 
 # Feltene på én rad i coordinator.data["input_problemer"]. Dette var en
 # denylist («alt utenom entity_id»), og da gikk hvert nytt felt noen la på
@@ -294,6 +343,116 @@ NESTEDE_NOKLER: frozenset[str] = frozenset(
     }
 )
 
+# Resultattypene coordinatoren navngir inputresultatene med.
+RESULTAT_TYPER: frozenset[str] = frozenset({"gyldig", "utilgjengelig", "ugyldig"})
+
+# Grunnene inputadapteren kan gi. Hentes fra modulen framfor å kopieres, for de
+# er våre egne konstanter: ingen kan plante en verdi i dem, og en ny grunn skal
+# ikke bli til «<tekst utelatt>» i hver dump før noen oppdager det.
+INPUT_GRUNNER: frozenset[str] = frozenset(
+    verdi
+    for navn, verdi in vars(inputadapter).items()
+    if navn.startswith("GRUNN_") and isinstance(verdi, str)
+)
+
+# Enhetene vi gjengir, og ordet vi bruker om hver av dem. Enheten på en
+# fremmed sensor er en streng en hvilken som helst integrasjon har skrevet, så
+# den slipper aldri rått inn i dumpen. I stedet slås den opp her, og det er
+# vårt eget ord som havner i JSON-en.
+_ENHETER_VI_REGNER_PAA: tuple[str, ...] = (
+    "W",
+    "kW",
+    "MW",
+    "Wh",
+    "kWh",
+    "MWh",
+    "NOK/kWh",
+    "kr/kWh",
+    "øre/kWh",
+    "NOK/MWh",
+    "kr/MWh",
+    "øre/MWh",
+    "NOK",
+    "kr",
+    "øre",
+)
+
+# Enheter vi ikke kan regne på, men gjenkjenner. De står her fordi «hvilken
+# enhet hadde sensoren» er halve svaret når noen melder at prisen er tusen
+# ganger feil, og «<tekst utelatt>» koster en runde med spørsmål.
+_ENHETER_VI_AVVISER: tuple[str, ...] = (
+    "EUR/kWh",
+    "EUR/MWh",
+    "USD/kWh",
+    "USD/MWh",
+    "GBP/kWh",
+    "SEK/kWh",
+    "DKK/kWh",
+    "EUR",
+    "USD",
+    "GBP",
+    "SEK",
+    "DKK",
+    "kr/mnd",
+    "NOK/mnd",
+    "kWh/d",
+    "kvarh",
+    "%",
+    "°C",
+    "A",
+    "V",
+    "VA",
+    "kVA",
+    "kVAr",
+)
+
+ENHET_VOKABULAR: dict[str, str] = {
+    kanoniser_enhet(enhet): enhet for enhet in _ENHETER_VI_REGNER_PAA + _ENHETER_VI_AVVISER
+}
+
+# Repair-issues vi selv kan ha opprettet. Id-en er sorten pluss entry_id, og
+# entry_id-en strykes før oppslaget. Alt som ikke står her er enten fra en
+# gammel versjon eller noe annet som har skrevet i domenet vårt, og da er
+# sorten like gjerne et navn.
+_VAKTHOLD_ISSUE_SORTER: tuple[str, ...] = (
+    # Kopi av `_VAKTHOLD_ISSUE_PREFIX` i coordinator.py. Vaktet av
+    # tests/test_diagnostics.py, som sammenligner med kilden.
+    "input_utfall",
+    "energi_frossen",
+    "spot_utfall",
+    "input_enhet",
+)
+
+REPAIR_SORTER: frozenset[str] = frozenset(
+    {
+        "satser_utdatert",
+        "norgespris_utlopt",
+        "spotpris_mva_check",
+        "dso_delt",
+        "sikringstrinn_mangler",
+        "prisenhet_ubekreftet",
+        "energi_delta_forkastet",
+        TARIFF_ISSUE_PREFIX.rstrip("_"),
+        EGENDEFINERT_ISSUE_PREFIX.rstrip("_"),
+    }
+    | set(_VAKTHOLD_ISSUE_SORTER)
+    | {f"dso_migration_{m.gammel}_{m.ny}" for m in DSO_MIGRATIONS}
+)
+
+# Hvem issuen gjelder. Andre anlegg er med som teller, ikke som innhold: en
+# bruker med to anlegg skal se at det står varsler på det andre også.
+REPAIR_GJELDER: frozenset[str] = frozenset({"dette_anlegget", "annet_anlegg", "hele_integrasjonen"})
+
+# HAs alvorlighetsgrader. Få og faste, og et issue som melder noe annet skal
+# ikke få skrive fritt i dumpen.
+REPAIR_ALVORLIGHET: frozenset[str] = frozenset({"critical", "error", "warning"})
+
+# Entry_id slik HA lager den: ULID på 26 tegn, eller 32 heksadesimale tegn fra
+# før ULID-skiftet. Samme mønster som __init__.py bruker til å rydde
+# foreldreløse issues, og det treffer derfor bare ekte entry-suffikser.
+_ENTRY_ID_SUFFIKS: re.Pattern[str] = re.compile(r"_([0-9A-Z]{26}|[0-9a-f]{32})$")
+
+
 TEKST_MARKOR = "<tekst utelatt>"
 NOKKEL_MARKOR = "<nøkkel utelatt>"
 
@@ -314,8 +473,17 @@ TEKST_VOKABULAR: frozenset[str] = frozenset(
     | set(VALG_ALLOWLIST)
     | set(BEREGNING_ALLOWLIST)
     | set(PROBLEM_ALLOWLIST)
-    | {VAKTHOLD_UTFALL, VAKTHOLD_FROSSEN, VAKTHOLD_SPOT_UTLOPT}
+    | {VAKTHOLD_UTFALL, VAKTHOLD_FROSSEN, VAKTHOLD_SPOT_UTLOPT, VAKTHOLD_ENHET}
     | set(TARIFFMODUS_ALLE)
+    | set(INPUT_RESULTAT_ALLOWLIST)
+    | set(BASELINE_ALLOWLIST)
+    | set(REPAIR_ALLOWLIST)
+    | set(RESULTAT_TYPER)
+    | set(INPUT_GRUNNER)
+    | set(NORMALISERT_ENHET.values())
+    | set(REPAIR_SORTER)
+    | set(REPAIR_GJELDER)
+    | set(REPAIR_ALVORLIGHET)
 )
 
 # Strengene som ikke er et fast ord, men et format koden selv lager.
@@ -337,6 +505,24 @@ def tekstvakt(tekst: str) -> bool:
     return tekst in TEKST_VOKABULAR or any(m.fullmatch(tekst) for m in TEKST_FORMATER)
 
 
+def enhet_visning(raa: Any) -> str | None:
+    """Enheten sensoren oppga, gjengitt med vårt eget ord for den.
+
+    `None` betyr at sensoren ikke oppgir noen enhet, og det er en egen
+    opplysning (punkt 4 i inputkontrakten), ikke et hull. Kjenner vi ikke
+    enheten igjen, står markøren: strengen kommer fra en fremmed integrasjon,
+    og en enhet kan like gjerne være et navn noen har skrevet inn.
+    """
+    if raa is None:
+        return None
+    if not isinstance(raa, str):
+        return TEKST_MARKOR
+    # Oppslaget gir vårt eget ord, aldri strengen sensoren skrev, så resultatet
+    # går utenom `tekstvakt`. Enhetene står derfor ikke i tekstvokabularet: de
+    # er gyldige her og ingen andre steder i dumpen.
+    return ENHET_VOKABULAR.get(kanoniser_enhet(raa), TEKST_MARKOR)
+
+
 # Hva som aldri er med, og hvorfor. Følger dumpen, så den som leser den vet at
 # hullene er med vilje og slipper å be om «hele» dumpen.
 UTELATT_MED_VILJE: tuple[str, ...] = (
@@ -345,6 +531,8 @@ UTELATT_MED_VILJE: tuple[str, ...] = (
     "sensorattributter og states fra andre integrasjoner",
     "vertsstier, konfigkatalog og filnavn",
     "full forbrukshistorikk (snapshotet forklarer én oppdatering)",
+    "målerens kildeidentitet, altså unique_id eller målepunkt-ID (aliasert)",
+    "teksten i repair-varslene, som gjengir entity-id-en i klartekst",
 )
 
 
@@ -499,21 +687,118 @@ def _config_entry_seksjon(entry: ConfigEntry, aliaser: Aliaser) -> dict[str, Any
     }
 
 
-def _input_roller_seksjon(entry: ConfigEntry, aliaser: Aliaser) -> dict[str, Any]:
-    """Hvilke roller som er satt opp, med aliaserte entity-id-er."""
+def _input_roller_seksjon(entry: ConfigEntry, coordinator: Any, aliaser: Aliaser) -> dict[str, Any]:
+    """Hvilke roller som er satt opp, og hva de leverte sist.
+
+    Tilstanden kommer fra coordinatorens `input_resultater`, altså fra samme
+    fullførte oppdatering som beregningen under. Diagnostikken leser aldri en
+    sensor selv: da ville dumpen forklart tallene med ferskere data enn de ble
+    regnet av, og «sensoren er jo grønn nå» er ikke svar på hvorfor forrige
+    poll feilet.
+
+    Entity-id-en fra resultatet aliaseres med samme alias som rollen, så det
+    står klart at det er den samme entiteten.
+    """
     data = dict(getattr(entry, "data", {}) or {})
+    resultater = (getattr(coordinator, "data", None) or {}).get("input_resultater") or {}
+    if not isinstance(resultater, dict):
+        resultater = {}
+
     roller: dict[str, Any] = {}
     for rolle, conf in ROLLE_TIL_CONF.items():
         entity_id = data.get(conf) or None
-        roller[rolle] = {
+        resultat = resultater.get(rolle)
+        if not isinstance(resultat, dict):
+            resultat = {}
+        alias_kilde = entity_id or resultat.get("entity_id")
+        rad: dict[str, Any] = {
             "konfigurert": entity_id is not None,
-            "entitet_alias": aliaser.alias(entity_id, "entitet"),
+            "entitet_alias": aliaser.alias(alias_kilde, "entitet"),
+            "avlest": bool(resultat),
+            "raa_enhet": enhet_visning(resultat.get("raa_enhet")),
         }
+        rad.update({n: rens_trygg(resultat.get(n)) for n in INPUT_RESULTAT_ALLOWLIST})
+        roller[rolle] = rad
     return roller
 
 
+def _baseline_seksjon(coordinator: Any, aliaser: Aliaser) -> dict[str, Any] | None:
+    """Energibaselinen, altså avlesningen månedsforbruket måles fra.
+
+    `source_identity` er målerens unique_id. Hos en AMS- eller Elhub-basert
+    integrasjon er den målepunkt-ID-en, som er like identifiserende som en
+    adresse, så den aliaseres på linje med entity-id-ene.
+    """
+    baseline = (getattr(coordinator, "data", None) or {}).get("baseline")
+    if not isinstance(baseline, dict):
+        return None
+    rad: dict[str, Any] = {n: rens_trygg(baseline.get(n)) for n in BASELINE_ALLOWLIST}
+    rad["kilde_alias"] = aliaser.alias(baseline.get("source_identity"), "kilde")
+    rad["entitet_alias"] = aliaser.alias(baseline.get("entity_id"), "entitet")
+    return rad
+
+
+def _repair_sort(issue_id: str, entry_id: Any) -> tuple[str, str]:
+    """(sort, hvem det gjelder) for en issue-id.
+
+    Id-en er sorten pluss entry_id for anleggs-issues, og bare sorten for de
+    domenevide. Entry_id-en strykes før sorten slås opp, så et anlegg ikke kan
+    gjøre sorten ukjennelig, og aliaset står allerede i config_entry-seksjonen.
+    """
+    if entry_id and issue_id.endswith(f"_{entry_id}"):
+        return issue_id[: -len(f"_{entry_id}")], "dette_anlegget"
+    treff = _ENTRY_ID_SUFFIKS.search(issue_id)
+    if treff is not None:
+        return issue_id[: treff.start()], "annet_anlegg"
+    return issue_id, "hele_integrasjonen"
+
+
+def _repairs_seksjon(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]:
+    """Repair-varslene som står ute nå, i vårt eget domene.
+
+    Et varsel brukeren har klikket bort forklarer ofte hele saken, og det er
+    ikke synlig noe annet sted i dumpen. `translation_placeholders` er ikke
+    med: der ligger entity-id-en i klartekst.
+    """
+    try:
+        registry = ir.async_get(hass)
+        poster = registry.issues
+    except Exception:  # issue-registeret skal aldri kunne felle hele dumpen
+        poster = None
+    if not isinstance(poster, dict):
+        return {"tilgjengelig": False, "issues": []}
+
+    entry_id = getattr(entry, "entry_id", None)
+    issues: list[dict[str, Any]] = []
+    for nokkel, post in poster.items():
+        if not isinstance(nokkel, tuple) or len(nokkel) != 2:
+            continue
+        issue_domene, issue_id = nokkel
+        if issue_domene != DOMAIN or not isinstance(issue_id, str):
+            continue
+        sort, gjelder = _repair_sort(issue_id, entry_id)
+        alvorlighet = getattr(post, "severity", None)
+        issues.append(
+            {
+                "sort": sort if sort in REPAIR_SORTER else TEKST_MARKOR,
+                "gjelder": gjelder,
+                "aktiv": bool(getattr(post, "active", True)),
+                "fiksbar": bool(getattr(post, "is_fixable", False)),
+                "alvorlighet": rens_trygg(getattr(alvorlighet, "value", alvorlighet)),
+                "opprettet": rens_trygg(getattr(post, "created", None)),
+                "avvist_i_versjon": rens_trygg(getattr(post, "dismissed_version", None)),
+            }
+        )
+    issues.sort(key=lambda rad: (str(rad["gjelder"]), str(rad["sort"])))
+    return {"tilgjengelig": True, "issues": issues}
+
+
 def _dso_seksjon(coordinator: Any) -> dict[str, Any]:
-    """Tariffgrunnlaget. D2 utvider med tarifforigin fra K2."""
+    """Tariffgrunnlaget slik det er satt opp.
+
+    Satsene her er de lagrede. Hvilke som faktisk ble brukt i oppdateringen
+    står i `beregning.tarifforigin`, og på en sesong-DSO er de to ulike.
+    """
     dso = getattr(coordinator, "dso", {}) or {}
     return {
         "id": rens_trygg(getattr(coordinator, "_dso_id", None)),
@@ -545,6 +830,8 @@ def _vakthold_seksjon(coordinator: Any, aliaser: Aliaser) -> dict[str, Any]:
         if not isinstance(problem, dict):
             continue
         rad = {n: rens_trygg(problem.get(n)) for n in PROBLEM_ALLOWLIST}
+        # Enheten på raden er skrevet av en fremmed integrasjon, ikke av oss.
+        rad["raa_enhet"] = enhet_visning(problem.get("raa_enhet"))
         rad["entitet_alias"] = aliaser.alias(problem.get("entity_id"), "entitet")
         problemer.append(rad)
 
@@ -584,10 +871,12 @@ async def bygg_diagnostikk(hass: HomeAssistant, entry: ConfigEntry) -> dict[str,
         "diagnostics_schema_version": DIAGNOSTICS_SCHEMA_VERSION,
         "integration": {"domain": DOMAIN, **await _versjoner(hass)},
         "config_entry": _config_entry_seksjon(entry, aliaser),
-        "input_roller": _input_roller_seksjon(entry, aliaser),
+        "input_roller": _input_roller_seksjon(entry, coordinator if lastet else None, aliaser),
         "lastet": lastet,
+        "baseline": _baseline_seksjon(coordinator, aliaser) if lastet else None,
         "dso": _dso_seksjon(coordinator) if lastet else None,
         "vakthold": _vakthold_seksjon(coordinator, aliaser) if lastet else None,
         "beregning": _beregning_seksjon(coordinator) if lastet else None,
+        "repairs": _repairs_seksjon(hass, entry),
         "utelatt_med_vilje": list(UTELATT_MED_VILJE),
     }

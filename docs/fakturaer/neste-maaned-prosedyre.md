@@ -67,10 +67,15 @@ arkiveres i fixturens metadata.
 
 Starter spotprishullet ved døgnskiftet, tar spot-scriptet også randtimen:
 time 00 har da en recorder-verdi, men det er staten fra 23:45-kvarteret kvelden
-før som HAs statistikk-kompilator bar gjennom timen, ikke en måling. Timer 00
-rett før et hull, der verdien ligger innenfor 0,5 øre/kWh av forrige døgns
-23:45-kvarter, fylles automatisk og føres under
-`spothull.fylt_fra_nordpool.randtimer` i metadata. Se
+før som HAs statistikk-kompilator bar gjennom timen, ikke en måling. En time 00
+rett før et hull fylles automatisk når verdien både ligger innenfor 0,5 øre/kWh
+av forrige døgns 23:45-kvarter og minst 0,2 øre/kWh lenger unna sin egen
+publiserte time enn den ligger fra det kvarteret. Begge kravene trengs: på en
+natt med flat pris treffer en ekte måling 23:45-kvarteret også, og det er bare
+avstanden til sin egen time som skiller en båret verdi fra en måling. Er
+verdien nær begge, skriver scriptet ut timen og lar den stå. Da må du avgjøre
+selv, med `--overstyr` hvis den likevel hører til hullet. Fylte randtimer føres
+under `spothull.fylt_fra_nordpool.randtimer` i metadata. Se
 [bkk-august-2026.md](bkk-august-2026.md) for gjennomgangen.
 
 Var HAN-leseren nede ved periodestart, er `metadata.tpi_start_kwh` også `null`.

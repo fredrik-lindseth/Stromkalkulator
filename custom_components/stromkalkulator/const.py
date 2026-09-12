@@ -41,6 +41,10 @@ CONF_ENERGI_FROSSEN_TIMER: Final[str] = "energi_frossen_timer"
 # det, bare be dem sjekke, og flagget er det som gjør at varselet lar seg lukke
 # for godt. Se docs/incidents/007-energiledd-label-inkl-avgifter.md.
 CONF_EGENDEFINERT_SATSER_BEKREFTET: Final[str] = "egendefinert_satser_bekreftet"
+# Rollene der brukeren har bekreftet at en prissensor uten enhet er NOK/kWh.
+# Per rolle og ikke ett ja/nei for hele entryet: den som bekreftet spotprisen og
+# senere la til en leverandørprissensor uten enhet skal få spørsmålet om den òg.
+CONF_PRISENHET_BEKREFTET: Final[str] = "prisenhet_bekreftet"
 # DSO-id-en som betyr "ikke i listen, brukeren taster satsene selv".
 DSO_EGENDEFINERT: Final[str] = "custom"
 # Prefiks på repair-issuen som ber om at satsen sjekkes. Ligger her og ikke i
@@ -372,11 +376,11 @@ MAX_ELAPSED_HOURS: Final[float] = 0.1  # 6 min - reject clock jumps in Riemann s
 # Maks delta per poll på kumulativ energi-sensor (kWh). Større = sannsynligvis
 # meter-bytte eller bug; ignoreres for å unngå hopp i månedsforbruk.
 MAX_ENERGY_DELTA_KWH: Final[float] = 100.0
-# Hvis lagret _last_tpi_kwh er eldre enn dette ved oppstart, nullstilles den
-# slik at første poll ikke gir et gigantisk delta.
-# På vei ut: docs/kontrakter/input-og-konfig.md §5 pensjonerer aldersgrensen,
-# og K1 fjerner konstanten i samme commit som den siste bruken i coordinator.py.
-TPI_STALE_HOURS: Final[float] = 24.0
+# Aldersgrensen på baselinen er borte. Den forkastet baselinen til en hytte som
+# sto avslått i en uke, uten å si fra, og gjorde at forbruket i mellomtiden
+# forsvant. Vernet mot det gigantiske spranget er MAX_ENERGY_DELTA_KWH og
+# energi_delta_forkastet-varselet, som viser brukeren tallet framfor å kaste det
+# i stillhet. Se docs/kontrakter/input-og-konfig.md §5.
 
 # === VAKTHOLD PÅ INPUT-SENSORENE ===
 # HAN-leseren lå nede 237 timer i strekk sommeren 2026 uten at noe varslet, og
@@ -399,6 +403,9 @@ MAX_ENERGI_FROSSEN_TIMER: Final[float] = 48.0
 VAKTHOLD_UTFALL: Final[str] = "utfall"
 VAKTHOLD_FROSSEN: Final[str] = "frossen"
 VAKTHOLD_SPOT_UTLOPT: Final[str] = "spot_utlopt"
+# En input som bytter til en enhet vi ikke kan regne om under drift. Ikke et
+# utfall: entiteten svarer, men med noe annet enn den lovte.
+VAKTHOLD_ENHET: Final[str] = "enhet"
 
 # Rollenavn for de konfigurerbare inputene. Rollen, ikke entity-id-en, er det
 # brukeren kjenner igjen i attributtene.

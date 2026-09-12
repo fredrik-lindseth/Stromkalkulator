@@ -84,10 +84,23 @@ _install_ha_class_stubs()
 # ---------------------------------------------------------------------------
 
 
-def _make_state(value):
-    """Lag et mock HA state-objekt med .state = str(value)."""
+def _make_state(value, unit=None, state_class="total_increasing", last_updated=None):
+    """Lag et mock HA state-objekt med .state = str(value).
+
+    `attributes` er en ekte dict og ikke en MagicMock: inputadapteren leser
+    `unit_of_measurement` og `state_class` derfra, og en MagicMock svarer med et
+    objekt på alt. Default er ingen enhet, som adapteren tolker som rollens egen
+    enhet, og en kumulativ `state_class`, som er det energisensoren krever.
+    """
     state = MagicMock()
     state.state = str(value)
+    attributter = {}
+    if unit is not None:
+        attributter["unit_of_measurement"] = unit
+    if state_class is not None:
+        attributter["state_class"] = state_class
+    state.attributes = attributter
+    state.last_updated = last_updated
     return state
 
 

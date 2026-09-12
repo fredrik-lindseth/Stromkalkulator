@@ -11,6 +11,8 @@ import importlib
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
+
 from tests.conftest import _make_entry
 
 
@@ -279,14 +281,17 @@ class TestLastUpdatePersistens:
         assert coordinator._last_update is None
 
 
-class TestLastTpiKwhPersistens:
-    """Tester for persistens og restore av _last_tpi_kwh (fix B).
+class TestEnergiBaselinePersistens:
+    """Baselinen på Store-skjema v2, bundet til kilden sin.
 
-    Fix B akkumulerer kWh som delta av tpi-sensoren. Hvis _last_tpi_kwh
-    ikke persisteres ved restart, blir første delta enten 0 (verdi tapt)
-    eller gigantisk (alt forbruk siden restart). Begge er feil.
-    Restore krever fersk last_update for å unngå at en uker gammel tpi
-    bruker som baseline ved første poll.
+    Vi akkumulerer kWh som delta av energisensoren. Persisteres ikke baselinen,
+    blir første delta etter en omstart enten 0 (verdien tapt) eller gigantisk
+    (alt forbruk siden restart). Uten kildebinding blir et målerbytte til
+    falskt forbruk.
+
+    Aldersgrensen er borte med vilje (kontrakt §5). En hytte som sto avslått i
+    en uke skal få forbruket sitt fordelt, ikke slettet; vernet mot det
+    gigantiske spranget er MAX_ENERGY_DELTA_KWH, som viser brukeren tallet.
     """
 
     @staticmethod
@@ -307,37 +312,70 @@ class TestLastTpiKwhPersistens:
 
         return make_store
 
-    def test_last_tpi_kwh_persisteres(self):
-        """Roundtrip: save lagrer float, load gjenoppretter eksakt verdi."""
+    @staticmethod
+    def _baseline(coord_modul, kwh=1234.567, *, kilde="maaler-1", entity_id="sensor.tpi"):
+        from stromkalkulator.inputadapter import Baseline
+
+        return Baseline(kilde, entity_id, kwh, datetime(2026, 6, 15, 11, 59))
+
+    def test_baselinen_persisteres(self):
+        """Roundtrip: verdien, kilden og observasjonstiden overlever omstarten."""
         coord = _reload_coord()
 
         saved_data: dict = {}
         coord.Store = MagicMock(side_effect=self._make_store_factory(None, saved_data))
 
         hass = MagicMock()
-        entry = _make_entry()
+        entry = _make_entry(energy_sensor="sensor.tpi")
         coordinator = coord.NettleieCoordinator(hass, entry)
-
-        # Sett fersk last_update slik at tpi restores ved load
-        now = coord.dt_util.now()
-        coordinator._last_update = now - timedelta(minutes=1)
-        coordinator._last_tpi_kwh = 1234.567
+        coordinator._last_update = coord.dt_util.now() - timedelta(minutes=1)
+        coordinator._baseline = self._baseline(coord)
 
         asyncio.run(coordinator._save_stored_data())
 
-        assert saved_data["last_tpi_kwh"] == 1234.567
+        lagret = saved_data["energi_baseline"]
+        assert lagret["value_kwh"] == 1234.567
+        assert lagret["source_identity"] == "maaler-1"
+        assert lagret["schema_version"] == 2
 
         coord.Store = MagicMock(side_effect=self._make_store_factory(saved_data))
         coordinator2 = coord.NettleieCoordinator(hass, entry)
-        assert coordinator2._last_tpi_kwh is None
+        assert coordinator2._baseline is None
         asyncio.run(coordinator2._load_stored_data())
 
-        assert coordinator2._last_tpi_kwh == 1234.567
+        assert coordinator2._baseline.value_kwh == 1234.567
+        assert coordinator2._baseline.source_identity == "maaler-1"
 
-    def test_last_tpi_kwh_ignoreres_hvis_last_update_stale(self):
-        """last_update > TPI_STALE_HOURS (24t) gammelt: tpi droppes."""
+    def test_gammel_baseline_uten_kilde_forkastes(self):
+        """Alt som ligger lagret fra før er en rå verdi uten kilde og uten enhet.
+
+        Den forkastes én gang. Månedsdata beholdes, og neste avlesning setter ny
+        baseline med delta 0. Det koster inntil ett pollintervall med forbruk,
+        og alternativet, å stole på en verdi vi ikke vet hvilken måler kom fra,
+        er verre.
+        """
         coord = _reload_coord()
+        now = coord.dt_util.now()
+        stored = {
+            "daily_max_power": {},
+            "monthly_consumption": {"dag": 120.0, "natt": 80.0},
+            "current_month": now.strftime("%Y-%m"),
+            "last_update": (now - timedelta(minutes=1)).isoformat(),
+            "last_tpi_kwh": 1234.567,
+        }
+        coord.Store = MagicMock(side_effect=self._make_store_factory(stored))
 
+        coordinator = coord.NettleieCoordinator(MagicMock(), _make_entry(energy_sensor="sensor.tpi"))
+        asyncio.run(coordinator._load_stored_data())
+
+        assert coordinator._baseline is None
+        assert coordinator._baseline_forkastet is True
+        assert coordinator._monthly_consumption.dag == 120.0
+        assert coordinator._monthly_consumption.natt == 80.0
+
+    def test_gammel_baseline_uansett_alder_forkastes_likt(self):
+        """Aldersgrensen er ikke det som avgjør lenger, kildeidentiteten er."""
+        coord = _reload_coord()
         now = coord.dt_util.now()
         stored = {
             "daily_max_power": {},
@@ -348,138 +386,108 @@ class TestLastTpiKwhPersistens:
         }
         coord.Store = MagicMock(side_effect=self._make_store_factory(stored))
 
-        hass = MagicMock()
-        coordinator = coord.NettleieCoordinator(hass, _make_entry())
+        coordinator = coord.NettleieCoordinator(MagicMock(), _make_entry(energy_sensor="sensor.tpi"))
         asyncio.run(coordinator._load_stored_data())
 
-        assert coordinator._last_tpi_kwh is None
+        assert coordinator._baseline is None
 
-    def test_last_tpi_kwh_ignoreres_hvis_last_update_mangler(self):
-        """Uten last_update kan vi ikke bedømme alder: drop tpi."""
+    def test_v2_baseline_gjenopptas_uansett_alder(self):
+        """Hytta som sto avslått i en uke skal ikke miste baselinen sin."""
         coord = _reload_coord()
-
         now = coord.dt_util.now()
         stored = {
             "daily_max_power": {},
             "monthly_consumption": {"dag": 0.0, "natt": 0.0},
             "current_month": now.strftime("%Y-%m"),
-            "last_tpi_kwh": 1234.567,
-            # last_update mangler bevisst
+            "last_update": (now - timedelta(days=7)).isoformat(),
+            "energi_baseline": {
+                "schema_version": 2,
+                "source_identity": "maaler-1",
+                "entity_id": "sensor.tpi",
+                "value_kwh": 1234.567,
+                "observed_at": "2026-06-08T10:00:00+00:00",
+            },
         }
         coord.Store = MagicMock(side_effect=self._make_store_factory(stored))
 
-        hass = MagicMock()
-        coordinator = coord.NettleieCoordinator(hass, _make_entry())
+        coordinator = coord.NettleieCoordinator(MagicMock(), _make_entry(energy_sensor="sensor.tpi"))
         asyncio.run(coordinator._load_stored_data())
 
-        assert coordinator._last_tpi_kwh is None
+        assert coordinator._baseline.value_kwh == 1234.567
+        assert coordinator._baseline_forkastet is False
 
-    def test_last_tpi_kwh_mangler_i_storage_gir_none(self):
-        """Bakoverkompat: storage uten last_tpi_kwh-nøkkel."""
+    def test_baseline_mangler_i_storage_gir_none(self):
+        """Bakoverkompat: en fil uten noen baseline i det hele tatt."""
         coord = _reload_coord()
-
-        now = coord.dt_util.now()
-        stored = {
-            "daily_max_power": {},
-            "monthly_consumption": {"dag": 0.0, "natt": 0.0},
-            "current_month": now.strftime("%Y-%m"),
-            "last_update": (now - timedelta(minutes=1)).isoformat(),
-            # last_tpi_kwh mangler
-        }
-        coord.Store = MagicMock(side_effect=self._make_store_factory(stored))
-
-        hass = MagicMock()
-        coordinator = coord.NettleieCoordinator(hass, _make_entry())
-        asyncio.run(coordinator._load_stored_data())
-
-        assert coordinator._last_tpi_kwh is None
-
-    def test_last_tpi_kwh_korrupt_verdi_ignoreres(self):
-        """Ikke-numerisk verdi: load skal ikke kaste, tpi forblir None."""
-        coord = _reload_coord()
-
         now = coord.dt_util.now()
         stored = {
             "daily_max_power": {},
             "monthly_consumption": {"dag": 0.0, "natt": 0.0},
             "current_month": now.strftime("%Y-%m"),
             "last_update": (now - timedelta(minutes=1)).isoformat(),
-            "last_tpi_kwh": "not_a_number",
         }
         coord.Store = MagicMock(side_effect=self._make_store_factory(stored))
 
-        hass = MagicMock()
-        coordinator = coord.NettleieCoordinator(hass, _make_entry())
-        asyncio.run(coordinator._load_stored_data())  # skal ikke kaste
+        coordinator = coord.NettleieCoordinator(MagicMock(), _make_entry(energy_sensor="sensor.tpi"))
+        asyncio.run(coordinator._load_stored_data())
 
-        assert coordinator._last_tpi_kwh is None
+        assert coordinator._baseline is None
+        assert coordinator._baseline_forkastet is False, "ingenting ble forkastet, det sto ingenting der"
 
-    def test_last_tpi_kwh_negativ_eller_null_ignoreres(self):
-        """Negativ eller null tpi er ugyldig; tpi-tellere er monotont stigende."""
+    @pytest.mark.parametrize(
+        "ugyldig",
+        [
+            {"schema_version": 2, "value_kwh": "tull", "entity_id": "sensor.tpi", "observed_at": "x"},
+            {"schema_version": 1, "value_kwh": 1.0, "entity_id": "sensor.tpi", "observed_at": "x"},
+            {"schema_version": 2, "value_kwh": -100.0, "entity_id": "sensor.tpi", "observed_at": "x"},
+            {"schema_version": 2, "value_kwh": 0.0, "entity_id": "sensor.tpi", "observed_at": "x"},
+            {"schema_version": 2, "value_kwh": float("nan"), "entity_id": "s", "observed_at": "x"},
+            {"schema_version": 2, "value_kwh": float("inf"), "entity_id": "s", "observed_at": "x"},
+            {"schema_version": 2, "value_kwh": 1.0, "observed_at": "2026-06-15T10:00:00+00:00"},
+            {"schema_version": 2, "value_kwh": 1.0, "entity_id": "sensor.tpi"},
+            "ikke en dict",
+        ],
+    )
+    def test_korrupt_baseline_forkastes_uten_krasj(self, ugyldig):
         coord = _reload_coord()
-
         now = coord.dt_util.now()
-        for ugyldig in (-100.0, 0.0):
-            stored = {
-                "daily_max_power": {},
-                "monthly_consumption": {"dag": 0.0, "natt": 0.0},
-                "current_month": now.strftime("%Y-%m"),
-                "last_update": (now - timedelta(minutes=1)).isoformat(),
-                "last_tpi_kwh": ugyldig,
-            }
-            coord.Store = MagicMock(side_effect=self._make_store_factory(stored))
+        stored = {
+            "daily_max_power": {},
+            "monthly_consumption": {"dag": 0.0, "natt": 0.0},
+            "current_month": now.strftime("%Y-%m"),
+            "last_update": (now - timedelta(minutes=1)).isoformat(),
+            "energi_baseline": ugyldig,
+        }
+        coord.Store = MagicMock(side_effect=self._make_store_factory(stored))
 
-            hass = MagicMock()
-            coordinator = coord.NettleieCoordinator(hass, _make_entry())
-            asyncio.run(coordinator._load_stored_data())
+        coordinator = coord.NettleieCoordinator(MagicMock(), _make_entry(energy_sensor="sensor.tpi"))
+        asyncio.run(coordinator._load_stored_data())
 
-            assert coordinator._last_tpi_kwh is None, f"verdi {ugyldig} burde gi None"
+        assert coordinator._baseline is None
 
-    def test_last_tpi_kwh_nan_inf_ignoreres(self):
-        """NaN/Inf: defensiv filtrering via math.isfinite."""
+    def test_baseline_droppes_naar_energisensoren_er_fjernet(self):
+        """Settes sensoren inn igjen senere, er det per definisjon en ny kilde."""
         coord = _reload_coord()
-
         now = coord.dt_util.now()
-        for ugyldig in (float("nan"), float("inf"), float("-inf")):
-            stored = {
-                "daily_max_power": {},
-                "monthly_consumption": {"dag": 0.0, "natt": 0.0},
-                "current_month": now.strftime("%Y-%m"),
-                "last_update": (now - timedelta(minutes=1)).isoformat(),
-                "last_tpi_kwh": ugyldig,
-            }
-            coord.Store = MagicMock(side_effect=self._make_store_factory(stored))
+        stored = {
+            "daily_max_power": {},
+            "monthly_consumption": {"dag": 0.0, "natt": 0.0},
+            "current_month": now.strftime("%Y-%m"),
+            "last_update": (now - timedelta(minutes=1)).isoformat(),
+            "energi_baseline": {
+                "schema_version": 2,
+                "source_identity": "maaler-1",
+                "entity_id": "sensor.tpi",
+                "value_kwh": 1234.567,
+                "observed_at": "2026-06-15T10:00:00+00:00",
+            },
+        }
+        coord.Store = MagicMock(side_effect=self._make_store_factory(stored))
 
-            hass = MagicMock()
-            coordinator = coord.NettleieCoordinator(hass, _make_entry())
-            asyncio.run(coordinator._load_stored_data())
+        coordinator = coord.NettleieCoordinator(MagicMock(), _make_entry(energy_sensor=None))
+        asyncio.run(coordinator._load_stored_data())
 
-            assert coordinator._last_tpi_kwh is None, f"verdi {ugyldig} burde gi None"
-
-    def test_round_trip_inkluderer_last_tpi_med_verdi(self):
-        """Variant av test_round_trip som faktisk verifiserer at last_tpi_kwh
-        round-tripper med verdi, ikke bare at nøkkelen finnes."""
-        coord = _reload_coord()
-
-        saved_data: dict = {}
-        coord.Store = MagicMock(side_effect=self._make_store_factory(None, saved_data))
-
-        hass = MagicMock()
-        entry = _make_entry()
-        coordinator = coord.NettleieCoordinator(hass, entry)
-
-        now = coord.dt_util.now()
-        coordinator._last_update = now - timedelta(minutes=2)
-        coordinator._last_tpi_kwh = 9876.5
-
-        asyncio.run(coordinator._save_stored_data())
-        assert saved_data["last_tpi_kwh"] == 9876.5
-
-        coord.Store = MagicMock(side_effect=self._make_store_factory(saved_data))
-        coordinator2 = coord.NettleieCoordinator(hass, entry)
-        asyncio.run(coordinator2._load_stored_data())
-
-        assert coordinator2._last_tpi_kwh == 9876.5
+        assert coordinator._baseline is None
 
 
 class TestLastEnergyIncreasePersistens:
@@ -518,7 +526,7 @@ class TestLastEnergyIncreasePersistens:
         entry = _make_entry(energy_sensor="sensor.tpi")
         coordinator = coord.NettleieCoordinator(hass, entry)
         coordinator._last_energy_increase = datetime(2026, 6, 15, 10, 58)
-        coordinator._last_tpi_kwh = 133282.18
+        coordinator._baseline = TestEnergiBaselinePersistens._baseline(coord, 133282.18)
         # Samme klokkeslett som dt_util.now() i testene, altså en omstart uten
         # nedetid. Nedetid skyver klokken fram, og det er en annen test.
         coordinator._last_update = datetime(2026, 6, 15, 12, 0)
@@ -544,14 +552,14 @@ class TestLastEnergyIncreasePersistens:
                 {
                     "last_energy_increase": "2026-06-08T12:00:00",
                     "last_update": "2026-06-08T12:00:00",
-                    "last_tpi_kwh": 133282.18,
+                    "last_tpi_kwh": 133282.18,  # v1-form uten kilde: forkastes
                 }
             )
         )
         coordinator = coord.NettleieCoordinator(MagicMock(), _make_entry(energy_sensor="sensor.tpi"))
         asyncio.run(coordinator._load_stored_data())
 
-        assert coordinator._last_tpi_kwh is None, "baseline skal droppes som foreldet"
+        assert coordinator._baseline is None, "v1-baselinen har ingen kilde og skal forkastes"
         assert coordinator._last_energy_increase is None
 
     def test_nedetiden_teller_ikke_paa_klokken(self):
@@ -567,7 +575,13 @@ class TestLastEnergyIncreasePersistens:
                 {
                     "last_energy_increase": "2026-06-15T06:00:00",
                     "last_update": "2026-06-15T07:00:00",
-                    "last_tpi_kwh": 133282.18,
+                    "energi_baseline": {
+                        "schema_version": 2,
+                        "source_identity": "maaler-1",
+                        "entity_id": "sensor.tpi",
+                        "value_kwh": 133282.18,
+                        "observed_at": "2026-06-15T05:00:00+00:00",
+                    },
                 }
             )
         )
@@ -576,7 +590,7 @@ class TestLastEnergyIncreasePersistens:
 
         # dt_util.now() er 12:00: en time var observert før avstengningen 07:00,
         # så klokken står på 11:00 og har to timer igjen til terskelen.
-        assert coordinator._last_tpi_kwh == 133282.18
+        assert coordinator._baseline.value_kwh == 133282.18
         assert coordinator._last_energy_increase == datetime(2026, 6, 15, 11, 0)
 
     def test_tidsstempel_lagres_i_utc(self):
@@ -839,8 +853,8 @@ class TestSaveDataStructure:
             "previous_month_export_revenue",
             "previous_month_cost",
             "last_update",
-            "last_tpi_kwh",
-            "last_tpi_time",
+            "skjema_versjon",
+            "energi_baseline",
             "weekly_max_power",
             "last_energy_increase",
         }

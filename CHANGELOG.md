@@ -4,8 +4,18 @@ Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) og [S
 
 ## [Ikke sluppet]
 
+### Dette må du gjøre selv
+
+- **Har du en prissensor uten enhet, får du ett reparasjonsvarsel som ber deg bekrefte at den er i NOK/kWh.** Integrasjonen regner videre som før imens, men antakelsen skal være synlig. Bekrefter du, kommer varselet ikke igjen. Er sensoren egentlig i øre/kWh eller NOK/MWh, sett riktig enhet på selve sensoren, så regner integrasjonen om automatisk.
+- **Peker spotprisfeltet ditt mot en sensor i EUR, må du bytte den ut.** Integrasjonen har ingen valutakurs, og den leste tidligere euro som kroner. Nå sier den nei i stedet, og du får et varsel om enheten. Lag en malsensor som regner om til kroner, eller velg en NOK-sensor.
+
 ### Fikset
 
+- **Enheten på input-sensorene leses nå, i stedet for bare tallet.** En effektsensor i kW ble lest som watt, en energisensor i Wh som kWh og en spotprissensor i NOK/MWh som kroner per kWh. Alle tre gir tall som ser plausible ut og er tusen ganger feil, og ingenting sa fra. `W`, `kW` og `MW` for effekt, `Wh`, `kWh` og `MWh` for energi, og `NOK/kWh`, `kr/kWh`, `øre/kWh`, `NOK/MWh` og `øre/MWh` for pris regnes nå om automatisk. Se [input-sensorer.md](docs/input-sensorer.md).
+- **Energibaselinen er bundet til måleren den kom fra.** Byttet du energisensor, ble forskjellen mellom den gamle og den nye telleren tolket som forbruk: en ny måler som sto på 1020 der den gamle sto på 1000 ga 20 kWh du aldri hadde brukt, både i månedsforbruket og i timesmaksen. Nå starter en ny kilde en ny baseline med 0 kWh, og månedstallene står urørt.
+- **En slettet input-entitet stopper ikke lenger hele oppdateringen.** Forsvant effekt- eller spotprissensoren fra Home Assistant, feilet integrasjonen med «entity not found» før vaktholdet rakk å si fra, og alt sto stille, også energi og energiledd som ikke trengte den sensoren. Nå meldes den som et utfall, og alt som fortsatt har datagrunnlag regnes videre.
+- **En input som ikke leverer blir ikke lenger til 0.** En 0 er en måling som sier at du ikke bruker noe, og det er en annen påstand enn at målingen uteble. Effektsensorens attributt står nå tomt i stedet for å vise 0 kW mens sensoren er borte.
+- **Baselinen forkastes ikke lenger etter et døgn uten kontakt.** En hytte som sto avslått i en uke mistet baselinen sin i stillhet, og forbruket i mellomtiden forsvant. Vernet mot et urimelig sprang er fortsatt grensen på 100 kWh, som viser deg tallet i et varsel framfor å kaste det uten å si fra.
 - **Sju nettselskap hevet nettleien 1. august og 1. september 2026**, og satsene våre lå igjen på de gamle. Alle sju er verifisert mot nettselskapets egen prisliste i tillegg til fri-nettleie:
   - **Elinett** (01.08): energiledd dag 22,64 → 25,50 og natt 14,64 → 17,50 øre/kWh, alle ti kapasitetstrinn hevet, trinn 1 fra 251 til 281 kr/mnd.
   - **Elvenett** (01.09): nattsatsen var 11,00 der den skal være 5,00 øre/kWh, og de tre laveste kapasitetstrinnene var for høye, trinn 1 fra 194 til 160 kr/mnd.
@@ -18,6 +28,10 @@ Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) og [S
 
 ### Endret
 
+- **øre/kWh godtas nå som spotprisenhet.** Den ble avvist i oppsettet med beskjed om å bygge en malsensor for noe integrasjonen kan gjøre selv.
+- **Energisensoren må ha `state_class` `total_increasing` eller `total`.** Vi leser differansen mellom avlesninger, så en sensor som viser forbruket akkurat nå har ingen differanse å måle. Sto det en slik i energifeltet, ga den meningsløse tall.
+- **Vaktholdet skiller en slettet entitet fra en som svarer «utilgjengelig»**, og har fått en fjerde deteksjon for en sensor som bytter til en enhet vi ikke kan regne om. Den meldes med en gang, uten 30-minuttersfristen, siden det ikke er noe som går over av seg selv.
+- **Lagringsfilens energibaseline har fått nytt format.** Ved første oppstart etter oppdateringen forkastes den gamle avlesningen, fordi de gamle filene verken sier hvilken måler den kom fra eller hvilken enhet den var i. Det koster inntil ett pollintervall med forbruk. Månedsdata, døgnmaksimum og akkumulerte kroner beholdes.
 - Prisside-lenkene for Mellom og Lysna pekte på adresser som er flyttet. Rettet.
 
 ## [1.16.0]

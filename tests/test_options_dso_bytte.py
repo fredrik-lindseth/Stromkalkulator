@@ -94,7 +94,24 @@ def _state(value, unit=None):
     state = MagicMock()
     state.state = str(value)
     state.attributes = {"unit_of_measurement": unit} if unit is not None else {}
+    state.last_updated = None
     return state
+
+
+def _rolle_state(entity_id):
+    """State med en enhet som passer rollen entity-id-en antyder.
+
+    Config-flowen validerer nå alle fem rollene gjennom inputadapteren. En mock
+    som ga alle sensorer samme enhet ville felt effektfeltet på at det så en
+    pris der det skulle sett watt.
+    """
+    if "power" in entity_id or "export" in entity_id:
+        return _state(5000, "W")
+    if "energy" in entity_id:
+        state = _state(1000, "kWh")
+        state.attributes["state_class"] = "total_increasing"
+        return state
+    return _state(1.2, "NOK/kWh")
 
 
 def _make_entry(
@@ -137,8 +154,12 @@ def _make_options_flow(entry: MagicMock, spot_state: MagicMock | None = None):
     flow.hass.config_entries.async_entries.return_value = [entry]
     flow.hass.config_entries.async_update_entry = MagicMock()
 
-    default_spot = spot_state if spot_state is not None else _state("1.2", "NOK/kWh")
-    flow.hass.states.get = MagicMock(return_value=default_spot)
+    def hent(entity_id):
+        if spot_state is not None and "spot" in entity_id:
+            return spot_state
+        return _rolle_state(entity_id)
+
+    flow.hass.states.get = MagicMock(side_effect=hent)
 
     flow.async_create_entry = MagicMock(return_value={"type": "create_entry", "title": "", "data": {}})
     flow.async_show_form = MagicMock(return_value={"type": "form", "step_id": "init"})
@@ -241,31 +262,41 @@ class TestDsoBytteReResolverSatser:
 
 
 # ===========================================================================
-# Bug 3hnc: _validate_spot_sensor avviser øre/kWh
+# Bug 3hnc: øre/kWh ble avvist der den kunne vært regnet om
 # ===========================================================================
 
 
-class TestSpotSensorOereValidering:
-    def test_ore_per_kwh_unit_rejected(self):
-        cf_mod = _reload_config_flow()
-        assert cf_mod._validate_spot_sensor(_state("50", "øre/kWh")) == "spot_unit_invalid"
+class TestSpotSensorEnhetValidering:
+    """Enhetene valideres nå av inputadapteren, i alle fire inngangene.
 
-    def test_ore_ascii_unit_rejected(self):
+    Retningen er snudd: øre/kWh godtas og regnes om, mens EUR avvises. Vi har
+    ingen valutakurs, og å lese euro som kroner er verre enn å si nei.
+    """
+
+    def _feil(self, state):
         cf_mod = _reload_config_flow()
-        assert cf_mod._validate_spot_sensor(_state("50", "ore/kWh")) == "spot_unit_invalid"
+        hass = MagicMock()
+        hass.states.get = MagicMock(return_value=state)
+        return cf_mod._valider_sensorfelt(
+            hass, {CONF_SPOT_PRICE_SENSOR: "sensor.spot_price"}, paakrevd=set()
+        ).get(CONF_SPOT_PRICE_SENSOR)
+
+    def test_ore_per_kwh_godtas(self):
+        assert self._feil(_state("50", "øre/kWh")) is None
+
+    def test_ore_ascii_godtas(self):
+        assert self._feil(_state("50", "ore/kWh")) is None
 
     def test_nok_per_kwh_still_accepted(self):
-        cf_mod = _reload_config_flow()
-        assert cf_mod._validate_spot_sensor(_state("1.2", "NOK/kWh")) is None
+        assert self._feil(_state("1.2", "NOK/kWh")) is None
 
-    def test_eur_per_mwh_still_accepted(self):
-        cf_mod = _reload_config_flow()
-        assert cf_mod._validate_spot_sensor(_state("45", "EUR/MWh")) is None
+    def test_eur_per_mwh_avvises(self):
+        assert self._feil(_state("45", "EUR/MWh")) == "enhet_feil_valuta"
 
-    def test_options_flow_rejects_ore_spot_sensor(self):
-        """Ende-til-ende: en øre/kWh spot-sensor i options skal gi feil, ikke lagres."""
+    def test_options_flow_avviser_eur_spot_sensor(self):
+        """Ende-til-ende: en EUR-sensor i options skal gi feil, ikke lagres."""
         entry = _make_entry(dso="bkk")
-        flow = _make_options_flow(entry, spot_state=_state("50", "øre/kWh"))
+        flow = _make_options_flow(entry, spot_state=_state("45", "EUR/MWh"))
 
         user_input = _base_input("bkk")
         asyncio.run(flow.async_step_init(user_input))
@@ -274,4 +305,13 @@ class TestSpotSensorOereValidering:
         flow.async_create_entry.assert_not_called()
         flow.async_show_form.assert_called_once()
         errors = flow.async_show_form.call_args[1]["errors"]
-        assert errors[CONF_SPOT_PRICE_SENSOR] == "spot_unit_invalid"
+        assert errors[CONF_SPOT_PRICE_SENSOR] == "enhet_feil_valuta"
+
+    def test_options_flow_lagrer_ore_sensor(self):
+        """Motsatt retning: øre/kWh skal ikke stoppe lagringen lenger."""
+        entry = _make_entry(dso="bkk")
+        flow = _make_options_flow(entry, spot_state=_state("50", "øre/kWh"))
+
+        asyncio.run(flow.async_step_init(_base_input("bkk")))
+
+        flow.hass.config_entries.async_update_entry.assert_called_once()

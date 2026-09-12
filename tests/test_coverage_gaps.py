@@ -30,52 +30,57 @@ _real_datetime = datetime
 
 
 # ===========================================================================
-# 1. UpdateFailed when sensor entities are missing (e26ac3a)
+# 1. Manglende input-entiteter feller ikke oppdateringen (kontrakt §1)
 # ===========================================================================
 
 
-class TestUpdateFailedSensorsMissing:
-    """Coordinator must raise UpdateFailed when either sensor is missing."""
+class TestManglendeSensorerFellerIkkeOppdateringen:
+    """En slettet sensor er en måling som uteble, ikke en feilkonfigurasjon.
 
-    def test_both_sensors_none_raises(self, coord_module):
-        """When both power and spot sensor return None, raise UpdateFailed."""
+    Før kastet coordinatoren UpdateFailed før vaktholdet hadde sagt fra, og
+    stoppet samtidig energi og energiledd som ikke trengte den sensoren i det
+    hele tatt.
+    """
+
+    def test_begge_sensorene_borte_gir_data(self, coord_module):
         hass = MagicMock()
-        hass.states.get = MagicMock(return_value=None)  # Both sensors missing
+        hass.states.get = MagicMock(return_value=None)
 
         coordinator = coord_module.NettleieCoordinator(hass, _make_entry())
+        resultat = _run_update(coord_module, coordinator)
 
-        with pytest.raises(coord_module.UpdateFailed, match="Power sensor"):
-            _run_update(coord_module, coordinator)
+        assert resultat["current_power_kw"] is None
+        assert resultat["spot_price_valid"] is False
 
-    def test_power_none_spot_valid_raises(self, coord_module):
-        """When only power is None, should raise UpdateFailed."""
+    def test_power_borte_spot_gyldig(self, coord_module):
         hass = MagicMock()
 
         def get_state(eid):
             if "spot" in eid:
                 return _make_state(1.20)
-            return None  # power sensor not registered
+            return None
 
         hass.states.get = MagicMock(side_effect=get_state)
         coordinator = coord_module.NettleieCoordinator(hass, _make_entry())
+        resultat = _run_update(coord_module, coordinator)
 
-        with pytest.raises(coord_module.UpdateFailed, match="Power sensor"):
-            _run_update(coord_module, coordinator)
+        assert resultat["current_power_kw"] is None
+        assert resultat["spot_price_valid"] is True
 
-    def test_spot_none_power_valid_raises(self, coord_module):
-        """When only spot is None, should raise UpdateFailed."""
+    def test_spot_borte_power_gyldig(self, coord_module):
         hass = MagicMock()
 
         def get_state(eid):
             if "power" in eid:
                 return _make_state(5000)
-            return None  # spot sensor not registered
+            return None
 
         hass.states.get = MagicMock(side_effect=get_state)
         coordinator = coord_module.NettleieCoordinator(hass, _make_entry())
+        resultat = _run_update(coord_module, coordinator)
 
-        with pytest.raises(coord_module.UpdateFailed, match="Spot price sensor"):
-            _run_update(coord_module, coordinator)
+        assert resultat["current_power_kw"] == 5.0
+        assert resultat["spot_price_valid"] is False
 
 
 # ===========================================================================
@@ -276,31 +281,34 @@ class TestIntegerMonthBackwardCompat:
 
 
 class TestPowerReadingValidation:
-    """Extreme power values must be clamped/zeroed."""
+    """Ekstreme effektverdier skal forkastes, ikke bli til 0.
 
-    def test_nan_power_zeroed(self, coord_module):
-        """NaN power reading should be treated as 0."""
+    En 0 er en måling som sier at anlegget ikke bruker noe. Et avvist tall er
+    fravær av måling, og de to skal ikke se like ut.
+    """
+
+    def test_nan_power_er_ingen_maaling(self, coord_module):
+        """NaN er ikke et tall vi kan regne på, og ingen 0 heller."""
         hass = _make_hass(power_w=float("nan"))
         coordinator = coord_module.NettleieCoordinator(hass, _make_entry())
 
         result = _run_update(coord_module, coordinator)
-        assert result["current_power_kw"] == 0
+        assert result["current_power_kw"] is None
 
-    def test_inf_power_zeroed(self, coord_module):
-        """Infinity power reading should be treated as 0."""
+    def test_inf_power_er_ingen_maaling(self, coord_module):
         hass = _make_hass(power_w=float("inf"))
         coordinator = coord_module.NettleieCoordinator(hass, _make_entry())
 
         result = _run_update(coord_module, coordinator)
-        assert result["current_power_kw"] == 0
+        assert result["current_power_kw"] is None
 
-    def test_over_500kw_clamped(self, coord_module):
-        """Power > 500,000 W should be clamped to 0."""
+    def test_over_500kw_avvises(self, coord_module):
+        """Over 500 kW er ingen husinstallasjon, og avlesningen forkastes."""
         hass = _make_hass(power_w=600_000)
         coordinator = coord_module.NettleieCoordinator(hass, _make_entry())
 
         result = _run_update(coord_module, coordinator)
-        assert result["current_power_kw"] == 0
+        assert result["current_power_kw"] is None
 
     def test_exactly_500kw_not_clamped(self, coord_module):
         """Power exactly at 500,000 W should pass through."""

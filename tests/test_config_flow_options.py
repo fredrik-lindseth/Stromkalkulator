@@ -166,10 +166,19 @@ def _make_config_flow(existing_entries: list[MagicMock] | None = None):
     flow = cf_mod.NettleieConfigFlow()
     flow.hass = MagicMock()
 
-    # States: both sensors exist
+    # States: begge sensorene finnes, med enheter som passer rollen sin.
     def get_state(entity_id):
         state = MagicMock()
-        state.state = "100"
+        state.last_updated = None
+        if "power" in entity_id or "export" in entity_id:
+            state.state = "5000"
+            state.attributes = {"unit_of_measurement": "W"}
+        elif "energy" in entity_id:
+            state.state = "1000"
+            state.attributes = {"unit_of_measurement": "kWh", "state_class": "total_increasing"}
+        else:
+            state.state = "1.2"
+            state.attributes = {"unit_of_measurement": "NOK/kWh"}
         return state
 
     flow.hass.states.get = MagicMock(side_effect=get_state)
@@ -202,8 +211,16 @@ def _make_reconfigure_flow(config_entry: MagicMock, existing_entries: list[Magic
 
     def get_state(entity_id):
         state = MagicMock()
-        state.state = "1.2"
-        state.attributes = {"unit_of_measurement": "NOK/kWh"}
+        state.last_updated = None
+        if "power" in entity_id or "export" in entity_id:
+            state.state = "5000"
+            state.attributes = {"unit_of_measurement": "W"}
+        elif "energy" in entity_id:
+            state.state = "1000"
+            state.attributes = {"unit_of_measurement": "kWh", "state_class": "total_increasing"}
+        else:
+            state.state = "1.2"
+            state.attributes = {"unit_of_measurement": "NOK/kWh"}
         return state
 
     flow.hass.states.get = MagicMock(side_effect=get_state)

@@ -9,6 +9,7 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.helpers import selector
+from homeassistant.util import dt as dt_util
 
 from .const import (
     AVGIFTSSONE_OPTIONS,
@@ -40,11 +41,27 @@ from .const import (
     DOMAIN,
     DSO_EGENDEFINERT,
     DSO_LIST,
+    INPUT_ROLLE_EFFEKT,
+    INPUT_ROLLE_EKSPORT,
+    INPUT_ROLLE_ENERGI,
+    INPUT_ROLLE_LEVERANDORPRIS,
+    INPUT_ROLLE_SPOTPRIS,
     MAX_ENERGI_FROSSEN_TIMER,
     MIN_ENERGI_FROSSEN_TIMER,
     resolve_avgiftssone,
 )
 from .dso import FASTLEDD_OV_TREFASE, finn_sikringstrinn, hent_fastledd_metode
+from .inputadapter import (
+    GRUNN_FEIL_DIMENSJON,
+    GRUNN_FEIL_VALUTA,
+    GRUNN_FINNES_IKKE,
+    GRUNN_IKKE_KUMULATIV,
+    GRUNN_UKJENT_ENHET,
+    GRUNN_URIMELIG_VERDI,
+    Ugyldig,
+    Utilgjengelig,
+    les_input,
+)
 
 if TYPE_CHECKING:
     from homeassistant.data_entry_flow import FlowResult
@@ -53,35 +70,54 @@ if TYPE_CHECKING:
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
 
-# Enheter som ikke kan være en spotpris (mangler /-tegnet) eller er valuta uten energi-divisor.
-_INVALID_SPOT_UNITS: frozenset[str] = frozenset({"kr", "nok", "eur", "kwh", "mwh", "wh"})
-# Spotpris er typisk -1 til ~10 NOK/kWh, eller -100 til 1000 øre/kWh, eller -10 til
-# ~100 EUR/MWh. Et tall over denne grensen er nesten garantert ikke en spotpris.
-_MAX_REASONABLE_SPOT_VALUE: float = 2000.0
+# Feilnøkkel per `Ugyldig`-grunn fra adapteren. Grunnene som ikke står her er
+# de som ikke skal stoppe et oppsett: at sensoren akkurat nå leverer noe
+# uleselig sier ingenting om at valget er feil, og en spotpris-sensor er ofte
+# `unknown` i minuttene rett etter en omstart.
+_FEILNOKKEL_PER_GRUNN: dict[str, str] = {
+    GRUNN_UKJENT_ENHET: "enhet_ukjent",
+    GRUNN_FEIL_DIMENSJON: "enhet_feil_dimensjon",
+    GRUNN_FEIL_VALUTA: "enhet_feil_valuta",
+    GRUNN_IKKE_KUMULATIV: "energi_ikke_kumulativ",
+    GRUNN_URIMELIG_VERDI: "spot_value_unreasonable",
+}
+
+# Config-feltet hver rolle valideres gjennom.
+_ROLLE_PER_FELT: dict[str, str] = {
+    CONF_POWER_SENSOR: INPUT_ROLLE_EFFEKT,
+    CONF_SPOT_PRICE_SENSOR: INPUT_ROLLE_SPOTPRIS,
+    CONF_ENERGY_SENSOR: INPUT_ROLLE_ENERGI,
+    CONF_EXPORT_POWER_SENSOR: INPUT_ROLLE_EKSPORT,
+    CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR: INPUT_ROLLE_LEVERANDORPRIS,
+}
 
 
-def _validate_spot_sensor(state: Any) -> str | None:
-    """Sjekk at sensoren ser ut som en pris-sensor og ikke en kr- eller kWh-sensor.
+def _valider_sensorfelt(hass: Any, user_input: dict[str, Any], *, paakrevd: set[str]) -> dict[str, str]:
+    """Valider alle fem sensorrollene gjennom adapteren.
 
-    Returnerer error-nøkkel hvis ugyldig, ellers None. Ment som første-linjes
-    forsvar mot at brukere peker mot en kr-totalsensor eller en kWh-måler.
+    Samme kode i oppsett, options og reconfigure, og samme kode som runtime
+    bruker. Før sto det en halv vakt bare på spotprisen, og den avviste
+    øre/kWh den kunne regnet om mens den slapp EUR gjennom til å bli lest som
+    kroner.
     """
-    unit = (state.attributes.get("unit_of_measurement") or "").strip().lower()
-    if unit:
-        if unit in _INVALID_SPOT_UNITS:
-            return "spot_unit_invalid"
-        # øre/kWh-sensorer (ofte skrevet "ore" uten ø) tolkes av coordinator som
-        # NOK/kWh og gir 100x for lav pris. Verdien alene røper det ikke, siden
-        # øre-området (~-100 til 1000) er innenfor den godtatte terskelen.
-        if "øre" in unit or "ore" in unit:
-            return "spot_unit_invalid"
-    try:
-        value = float(state.state)
-    except (ValueError, TypeError):
-        return None
-    if abs(value) > _MAX_REASONABLE_SPOT_VALUE:
-        return "spot_value_unreasonable"
-    return None
+    errors: dict[str, str] = {}
+    naa = dt_util.now()
+
+    for felt, rolle in _ROLLE_PER_FELT.items():
+        entity_id = user_input.get(felt)
+        if not entity_id:
+            if felt in paakrevd:
+                errors[felt] = "sensor_not_found"
+            continue
+        resultat = les_input(hass, entity_id, rolle, naa=naa)
+        if isinstance(resultat, Utilgjengelig) and resultat.grunn == GRUNN_FINNES_IKKE:
+            errors[felt] = "sensor_not_found"
+        elif isinstance(resultat, Ugyldig):
+            feilnokkel = _FEILNOKKEL_PER_GRUNN.get(resultat.grunn)
+            if feilnokkel:
+                errors[felt] = feilnokkel
+
+    return errors
 
 
 def _dso_options() -> list[selector.SelectOptionDict]:
@@ -323,12 +359,14 @@ def _validate_options_input(
     entry_id: str,
     current_data: dict[str, Any],
 ) -> dict[str, str]:
-    """Valider power-sensor-unikhet og at spot-sensoren ser ut som en pris.
+    """Valider alle fem sensorrollene og at power-sensoren ikke er i bruk.
 
     Delt mellom options-flowen og reconfigure-steget. Returnerer en error-dict
     (tom hvis alt er gyldig).
     """
-    errors: dict[str, str] = {}
+    errors: dict[str, str] = _valider_sensorfelt(
+        hass, user_input, paakrevd={CONF_POWER_SENSOR, CONF_SPOT_PRICE_SENSOR}
+    )
 
     new_power = user_input.get(CONF_POWER_SENSOR)
     if new_power and new_power != current_data.get(CONF_POWER_SENSOR):
@@ -336,16 +374,6 @@ def _validate_options_input(
             if entry.entry_id != entry_id and entry.data.get(CONF_POWER_SENSOR) == new_power:
                 errors[CONF_POWER_SENSOR] = "already_configured"
                 break
-
-    new_spot = user_input.get(CONF_SPOT_PRICE_SENSOR)
-    if new_spot:
-        spot_state = hass.states.get(new_spot)
-        if spot_state is None:
-            errors[CONF_SPOT_PRICE_SENSOR] = "sensor_not_found"
-        else:
-            spot_error = _validate_spot_sensor(spot_state)
-            if spot_error:
-                errors[CONF_SPOT_PRICE_SENSOR] = spot_error
 
     return errors
 
@@ -404,21 +432,14 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            # Validate sensors exist
             power_sensor: Any = user_input[CONF_POWER_SENSOR]
-            spot_sensor: Any = user_input[CONF_SPOT_PRICE_SENSOR]
 
-            power_state: Any = self.hass.states.get(power_sensor)
-            spot_state: Any = self.hass.states.get(spot_sensor)
-
-            if power_state is None:
-                errors[CONF_POWER_SENSOR] = "sensor_not_found"
-            if spot_state is None:
-                errors[CONF_SPOT_PRICE_SENSOR] = "sensor_not_found"
-            else:
-                spot_error = _validate_spot_sensor(spot_state)
-                if spot_error:
-                    errors[CONF_SPOT_PRICE_SENSOR] = spot_error
+            # Samme validering som options, reconfigure og runtime: en enhet vi
+            # ikke kan regne om skal stoppes her, ikke oppdages som et tusen
+            # ganger feil tall en måned senere.
+            errors = _valider_sensorfelt(
+                self.hass, user_input, paakrevd={CONF_POWER_SENSOR, CONF_SPOT_PRICE_SENSOR}
+            )
 
             # Duplikatvern: samme power-sensor skal ikke kunne legges til to
             # ganger. Sammenlign mot eksisterende entries' data, ikke unique_id

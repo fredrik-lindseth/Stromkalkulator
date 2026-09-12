@@ -36,7 +36,7 @@
       },
       "sikring": {
         "title": "Main fuse size",
-        "description": "{dso} charges the fixed grid fee by the size of your main fuse (overcurrent protection), not by the power you draw. Pick the row printed on your grid invoice or in your fuse box. If in doubt, ask {dso}; this cannot be read from the meter.",
+        "description": "{dso} charges the fixed grid fee by the size of your main fuse (overcurrent protection), not by the power you draw. Pick the row printed on your grid invoice or in your fuse box. If in doubt, ask {dso}. This cannot be read from the meter.",
         "data": {
           "sikringstrinn": "Main fuse"
         },
@@ -97,7 +97,7 @@
     "error": {
       "sensor_not_found": "Sensor not found",
       "already_configured": "This power sensor is already used by another Strømkalkulator instance",
-      "spot_unit_invalid": "Sensor does not have a price unit the calculator can use directly. The price must be in NOK/kWh (or EUR/MWh). Øre/kWh is not accepted, since the value would then be read as NOK/kWh and give a 100x wrong price - convert to NOK/kWh first, or choose a spot price sensor from the Nord Pool integration.",
+      "spot_unit_invalid": "Sensor does not have a price unit the calculator can use directly. The price must be in NOK/kWh (or EUR/MWh). Øre/kWh is not accepted, since the value would then be read as NOK/kWh and give a 100x wrong price. Convert to NOK/kWh first, or choose a spot price sensor from the Nord Pool integration.",
       "spot_value_unreasonable": "Sensor value is too high to be a spot price. You probably selected a kr-total sensor instead of a spot price sensor."
     },
     "abort": {
@@ -365,7 +365,7 @@
     },
     "spotpris_mva_check": {
       "title": "Spot price handling updated",
-      "description": "Stromkalkulator now treats the spot price sensor as excluding VAT (correct for the HA-core Nord Pool integration). The code previously assumed including VAT, which caused 25 % errors in electricity subsidy and total price in Southern Norway. Most users don't need to do anything.\n\nYou ONLY need to act if your spot price sensor already delivers prices including VAT. That applies if you have a custom template sensor that adds 25 %, or use the older custom_components/nordpool with VAT=true. In that case: open Strømkalkulator settings (Settings > Devices & Services > Strømkalkulator > Configure) and turn ON 'Spot price sensor delivers prices including VAT'."
+      "description": "Stromkalkulator now treats the spot price sensor as excluding VAT (correct for the HA-core Nord Pool integration). The code previously assumed including VAT, and that gave 25 % errors in electricity subsidy and total price in Southern Norway. Most users don't need to do anything.\n\nYou only need to act if your spot price sensor already delivers prices including VAT. That applies if you have a custom template sensor that adds 25 %, or use the older custom_components/nordpool with VAT=true. In that case: open Strømkalkulator settings (Settings > Devices & Services > Strømkalkulator > Configure) and turn on 'Spot price sensor delivers prices including VAT'."
     },
     "dso_delt": {
       "title": "Your grid company is split into several price areas",

@@ -3,12 +3,12 @@
 
 To kjøremoduser:
 
-1. **Invoice-mode (default):** Tar .txt-fakturaer fra Fakturaer/ og skriver
-   anonymiserte versjoner til docs/fakturaer/. Originalt mønster.
+1. Invoice-mode (default) tar .txt-fakturaer fra Fakturaer/ og skriver
+   anonymiserte versjoner til docs/fakturaer/.
 
-2. **Inplace-mode (--inplace):** Anonymiserer filer direkte (i samme path).
-   Brukes for docs/, fixtures/, og Måleverdier/README.md som ikke har en
-   "input/output"-separasjon. Filer listet i `anonymize_inplace_globs` i
+2. Inplace-mode (--inplace) anonymiserer filer direkte, i samme path. Brukes
+   for docs/, fixtures/ og Måleverdier/README.md, som ikke har en
+   "input/output"-separasjon. Filene står i `anonymize_inplace_globs` i
    .anonymize_config.json.
 
 Begge moduser leser replacements fra .anonymize_config.json (gitignored).
@@ -120,11 +120,7 @@ def run_inplace_mode(config: dict, dry_run: bool) -> None:
             if original == anonymized:
                 continue
 
-            changes = sum(
-                original.count(k)
-                for k, v in replacements.items()
-                if k != v and k in original
-            )
+            changes = sum(original.count(k) for k, v in replacements.items() if k != v and k in original)
             total_changes += changes
             rel = path.relative_to(root)
 
@@ -143,8 +139,12 @@ def run_inplace_mode(config: dict, dry_run: bool) -> None:
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--inplace", action="store_true", help="Anonymiser filer fra anonymize_inplace_globs direkte (overwrite).")
-    p.add_argument("--dry-run", action="store_true", help="Med --inplace: vis hva som ville blitt endret, men skriv ikke.")
+    p.add_argument(
+        "--inplace", action="store_true", help="Anonymiser filer fra anonymize_inplace_globs direkte (overwrite)."
+    )
+    p.add_argument(
+        "--dry-run", action="store_true", help="Med --inplace: vis hva som ville blitt endret, men skriv ikke."
+    )
     return p.parse_args()
 
 

@@ -23,7 +23,7 @@ _Generert av_ `scripts/research/verify_norgespris_eksakt.py --emit-markdown` (kr
 | juni_2026 | -363.54 | -363.39 | +0.15 | -363.54 | +0.00 | -363.53 | +0.005 |
 | juli_2026 | -807.50 | (delvis) |  | (delvis) |  | -807.50 | +0.003 |
 
-HAN-fixturen mangler timer i: juli_2026 (62 timer). Måneder med full Elhub-CSV står likevel i tabellen; HAN-kolonnene deres er merket (delvis) og Elhub-kolonnen dekker hele måneden.
+HAN-fixturen mangler timer i: juli_2026 (62 timer); august_2026 (176 timer). Måneder med full Elhub-CSV står likevel i tabellen; HAN-kolonnene deres er merket (delvis) og Elhub-kolonnen dekker hele måneden.
 
 Prisårgang-dager (HA-recorderen har foreløpig kurs, publisert er Final):
 
@@ -42,6 +42,7 @@ Prisårgang-dager (HA-recorderen har foreløpig kurs, publisert er Final):
 | 2026-07-12 | søn | 1.00243 | 24 |
 | 2026-07-19 | søn | 1.00274 | 24 |
 | 2026-07-26 | søn | 0.99394 | 20 |
+| 2026-08-16 | søn | 1.00281 | 24 |
 
 Symmetri: mai_2026 har 35 timer med spot under 50 øre inkl. mva (å klippe dem ville flyttet summen -20.61 kr); juni_2026 har 83 timer med spot under 50 øre inkl. mva (å klippe dem ville flyttet summen -27.61 kr). BKK fakturerer symmetrisk.
 <!-- END GENERATED -->
@@ -118,6 +119,29 @@ recorder-aggregatet, ikke 13 sekunder.
 Konsekvens: HAN-fixturen duger til kWh-totaler (4 Wh avvik i mai), men for
 eksakt Norgespris-verifisering er Elhub-kWh fasiten. RME-sporet
 (Power BI-eksport av prissikringsverdier) trengs ikke lenger for dette.
+
+## Recorderens time 00 i et hulldøgn er kvelden før
+
+Nord Pool-sensoren falt ut fire ganger mellom 17. august og 4. september 2026,
+alle presis ved døgnskiftet. Statistikken mangler da timene utover døgnet, men
+time 00 har en verdi, og den er feil på en måte som er verdt å kjenne igjen:
+sensoren går `unknown` kl. 00:00:00 og `unavailable` åtte sekunder senere, og
+HAs statistikk-kompilator regner timesnittet bare over numeriske states. Siste
+numeriske state før midnatt er 23:45-kvarteret kvelden før, og den bæres
+gjennom hele time 00.
+
+04.09 kl. 00 har mean = min = max = 1,33741, identisk med staten fra 03.09
+kl. 23:45. 23.08 kl. 00 er identisk med 22.08 sitt 23:45-kvarter til siste
+desimal, 31.08 avviker 0,01 øre og 17.08 0,35 øre, begge kurs-årgang mellom
+publiseringskursen og arkivets.
+
+Time 00 i et hulldøgn er altså ikke en måling, og skal behandles som del av
+hullet. `scripts/research/fyll_spothull_fra_nordpool.py` kjenner den igjen
+automatisk (time 00 rett før et hull, innenfor 0,5 øre/kWh av forrige døgns
+23:45-kvarter), fyller den fra det publiserte arkivet og fører begrunnelsen i
+fixturens metadata. Merkingen gjør at prisfidelitets-tellingen holder timen
+utenfor. Hvorfor den offisielle Nord Pool-integrasjonen faller ut ved
+døgnskiftet er fortsatt ukjent; HA-loggen dekker bare siste boot.
 
 ## Konsekvenser i repoet
 

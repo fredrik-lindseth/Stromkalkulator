@@ -66,7 +66,7 @@ av faktiske timepriser i hullet, henger fakturaen sammen med modellen vår.
 | Fordelt på                   | 80 dag-timer, 96 natt/helg-timer      |
 | Snitt dag                    | 1.571 kWh/h                           |
 | Snitt natt/helg              | 1.087 kWh/h                           |
-| Implisitt Norgespris-sats    | -100.260 øre/kWh                      |
+| Implisitt Norgespris-sats    | -100.186 øre/kWh                      |
 | Faktiske timesatser i hullet | -138.780 til 38.256 øre/kWh           |
 | Uvektet snitt av timesatsene | -101.037 øre/kWh                      |
 
@@ -82,19 +82,39 @@ HA-recorderen. 48 timer manglet helt, fordelt på tre døgn som alle begynner ve
 døgnskiftet: 17.08 kl. 01-16, 23.08 kl. 01-09 og 31.08 kl. 01-23. Dette er
 første gang spotserien har hull siden januar 2026.
 
-Timene er fylt fra Nord Pools publiserte Final-kvarterpriser med
-`scripts/research/fyll_spothull_fra_nordpool.py`, merket
-`"spot_kilde": "nordpool_publisert"` i fixturen. `verify_norgespris_eksakt.py`
-holder dem utenfor prisfidelitets-sammenligningen, ellers ville den målt arkivet
-mot seg selv.
+Time 00 de tre døgnene hører til hullet selv om recorderen har en verdi der.
+Sensoren går `unknown` presis kl. 00:00:00 og `unavailable` åtte sekunder
+senere, og HAs statistikk-kompilator regner timesnittet bare over numeriske
+states. Da blir den siste numeriske staten før midnatt, altså 23:45-kvarteret
+kvelden før, båret gjennom hele time 00. Verdien er ikke en måling av timen,
+den er kvelden før om igjen.
 
-**Uavklart:** time 00 de tre samme døgnene har en recorder-verdi som ligger
-0.5-7.7 øre/kWh *under* den publiserte prisen. Det er for stort til å være
-kurs-årgang (den gir 0.2-0.6 %, og valutakursratioene for disse døgnene er
-1.003-1.005, ikke 0.946-0.997), og det er ikke et partielt kvartersnitt heller:
-recorder-verdien ligger under alle fire kvarterprisene i timen, ikke mellom
-dem. Mekanismen er ukjent. Timene er ikke overstyrt, så de står synlige i
-`verify_norgespris_eksakt.py`-rapporten.
+Beviset ligger i tallene. Utfallet 04.09, som er utenfor denne fakturaen, har
+mean = min = max = 1.33741 for time 00, identisk med staten fra 03.09 kl. 23:45.
+For august:
+
+| Døgn  | Recorder time 00 | Forrige døgn 23:45 | Avvik      | Publisert time 00 |
+| ----- | ---------------- | ------------------ | ---------- | ----------------- |
+| 17.08 | 1.26647          | 1.26293            | 0.35 øre   | 1.30852           |
+| 23.08 | 1.36097          | 1.36097            | 0          | 1.438275          |
+| 31.08 | 1.35957          | 1.35947            | 0.01 øre   | 1.364737          |
+
+23.08 er identisk til siste desimal. De to andre avviker med noen tideler av en
+øre, som er kurs-årgangen mellom recorderens publiseringskurs og arkivets.
+Dette forklarer også hvorfor recorder-verdien lå *under* alle fire
+kvarterprisene i timen: den kom aldri fra timen.
+
+Alle 51 timene er fylt fra Nord Pools publiserte Final-kvarterpriser med
+`scripts/research/fyll_spothull_fra_nordpool.py`, merket
+`"spot_kilde": "nordpool_publisert"` i fixturen. Randtimene kjenner scriptet
+igjen selv: time 00 rett før et hull, der recorder-verdien ligger innenfor
+0,5 øre/kWh av forrige døgns 23:45-kvarter. Begrunnelsen arkiveres i fixturens
+metadata under `spothull.fylt_fra_nordpool.randtimer`.
+`verify_norgespris_eksakt.py` holder alle 51 utenfor
+prisfidelitets-sammenligningen, ellers ville den målt arkivet mot seg selv.
+
+Hvorfor den offisielle Nord Pool-integrasjonen faller ut presis ved døgnskiftet
+vet vi ikke. HA-loggen dekker bare siste boot, så nettene det gjelder er borte.
 
 ## Time-for-time-verifisering (delvis)
 
@@ -108,7 +128,7 @@ er merket DELVIS:
 | Forbruk dag kWh        | 349.822          | 475.519 | DELVIS |
 | Forbruk natt kWh       | 385.140          | 489.448 | DELVIS |
 | Kapasitet              | 250.00           | 250.00  | OK     |
-| Norgespris-komp        | -755.77          | -986.38 | DELVIS |
+| Norgespris-komp        | -755.95          | -986.38 | DELVIS |
 
 Kapasitetslinjen er den eneste som er sammenlignbar, og den treffer.
 
@@ -148,10 +168,12 @@ Eksakt-sjekken (Elhub-kWh x publiserte Final-priser) kan ikke kjøres før
 Elhub-CSV-en finnes. Prisdekningen er på plass: alle 744 timene har publisert
 Final-pris i kvarterarkivet.
 
-Prisfidelitet mot publisert, målt over de 520 timene som både har HAN-måling og
+Prisfidelitet mot publisert, målt over de 517 timene som både har HAN-måling og
 ekte recorder-pris: 218 bit-like, 418 innenfor 0,01 øre/kWh. Én dag med
 kurs-årgang, 16.08 (søndag), HA/publisert = 1.00281 konstant over alle 24 timer.
-Det er det vanlige søndagsmønsteret.
+Det er det vanlige søndagsmønsteret. Regnet med recorder-prisene lander
+Norgespris-summen for de målte timene 0,18 kr fra Final-summen, og 16.08 står
+for 0,12 av dem.
 
 ## Avgiftsverifisering
 

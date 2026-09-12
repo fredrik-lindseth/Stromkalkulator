@@ -19,6 +19,9 @@ tre leddene bindes til den, og bindingen er etterprøvbar i ettertid:
   den (annotert eller lettvekts) og sammenlignes. Den flyttes aldri.
 * Attestasjonen verifiseres mot repo, kilde-SHA, signer-workflow og sha256-en
   til ZIP-en *før* noe publiseres.
+* Kandidaten må ligge på hovedgrenen. En kjøring fra en annen gren stopper, så
+  det som går ut til brukerne ikke kan komme et sted fra som aldri har vært på
+  main. Unntaket er prøveslipp av versjon 0.0.0, se krev_hovedgren.
 
 Rekkefølgen gjør flyten atomisk der det betyr noe: alt skjer i en draft, og
 `draft=false` er siste kall. Feiler noe før det, finnes det ingen offentlig
@@ -75,6 +78,10 @@ ZIP_RETTIGHETER = {"100644": 0o644, "100755": 0o755}
 
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 VERSJON_RE = re.compile(r"^\d+\.\d+\.\d+$")
+
+# Versjonen en prøvekjøring må ha. Unntaksveien rundt hovedgren-vakten er
+# bundet til dette tallet, se krev_hovedgren.
+PROVEVERSJON = "0.0.0"
 
 EXIT_OK = 0
 EXIT_FEIL = 1
@@ -329,6 +336,53 @@ def finn_release(gh: Gh, kandidat: Kandidat) -> dict[str, Any] | None:
 
 
 # --------------------------------------------------------------------------
+# Hovedgren-vakten
+# --------------------------------------------------------------------------
+
+
+def krev_hovedgren(gh: Gh, kandidat: Kandidat, *, proveslipp: bool) -> None:
+    """Kandidaten skal være på hovedgrenen. Ellers slipper vi ingenting.
+
+    `workflow_dispatch` kan kjøres fra hvilken som helst gren, og uten denne
+    vakten kunne en gren som aldri har vært på main bli en offentlig release.
+    Sjekken går mot GitHub og ikke mot lokale refs: det er GitHubs hovedgren som
+    er fasiten, og en lokal `origin/main` kan være hva som helst.
+
+    Unntaksveien finnes, for prøvekjøringen mot en engangstagg trenger en ekte
+    workflow-kjøring for å få en attestasjon. Den er bundet til versjon 0.0.0,
+    så en dispatch på feil gren kan aldri slippe en ekte versjon selv om noen
+    huker av feil rute.
+    """
+    if proveslipp:
+        if kandidat.versjon != PROVEVERSJON:
+            raise Stopp(
+                f"prøveslipp gjelder bare versjon {PROVEVERSJON}, men kandidaten er "
+                f"{kandidat.versjon}. Ekte versjoner slippes fra hovedgrenen."
+            )
+        print(f"! Prøveslipp: {kandidat.tag} slippes uten krav om hovedgren.")
+        return
+
+    hovedgren = str((gh.api(f"repos/{kandidat.repo}") or {}).get("default_branch") or "main")
+    svar = gh.api(f"repos/{kandidat.repo}/compare/{hovedgren}...{kandidat.sha}", tillat_404=True)
+    if svar is None:
+        raise Stopp(
+            f"GitHub kjenner ikke {kandidat.sha[:12]}. Er commiten ikke pushet til {hovedgren}, "
+            "finnes det ingenting å slippe."
+        )
+    # `status` beskriver head mot base: «identical» er hovedgrenens egen spiss,
+    # «behind» er en eldre commit på den. «ahead» og «diverged» betyr at det
+    # ligger noe her som hovedgrenen ikke har.
+    status = str(svar.get("status") or "ukjent")
+    if status not in {"identical", "behind"}:
+        raise Stopp(
+            f"{kandidat.sha[:12]} er ikke på {hovedgren} (status: {status}).\n"
+            "Det som går ut til brukerne skal komme fra hovedgrenen. Merge inn først, "
+            f"eller kjør en prøveslipp med manifestversjon {PROVEVERSJON}."
+        )
+    print(f"✓ Kandidaten er på {hovedgren} ({status}).")
+
+
+# --------------------------------------------------------------------------
 # Verifisering
 # --------------------------------------------------------------------------
 
@@ -457,8 +511,10 @@ def skal_vaere_latest(gh: Gh, kandidat: Kandidat) -> bool:
 
     GitHub sin default er «nyeste publiserte», som gjør en patch på en gammel
     gren til «latest» og sender HACS-brukere bakover. Her er valget et tall vi
-    kan lese.
+    kan lese. Prøveversjonen er aldri latest, uansett hva som ellers ligger ute.
     """
+    if kandidat.versjon == PROVEVERSJON:
+        return False
     latest = gh.api(f"repos/{kandidat.repo}/releases/latest", tillat_404=True)
     if latest is None:
         return True
@@ -498,13 +554,44 @@ def sikre_tagg(gh: Gh, kandidat: Kandidat) -> str:
     return "opprettet"
 
 
+def krev_draft_pa_kandidaten(kandidat: Kandidat, release: dict[str, Any]) -> None:
+    """En draft hører til én commit, og den gjenbrukes ikke på en annen.
+
+    Sti: taggen ble dyttet på commit A, publiseringen feilet, et menneske
+    slettet taggen men lot draften stå. En ny kjøring på B med samme versjon
+    ville da tagget B, gjenbrukt draften fra A, og publisert en body som sier
+    «bygget fra commit A, som er commiten taggen peker på». Teksten er det
+    eneste brukeren ser, og den ville vært usann.
+
+    Sjekken kjøres før taggen opprettes, så et stopp ikke etterlater nye
+    skriverier å rydde. En draft laget for hånd i nettleseren peker på en gren
+    og ikke en commit; den har heller ingen body fra oss å lyve med, så den
+    slippes gjennom.
+    """
+    mal = str(release.get("target_commitish") or "")
+    if SHA_RE.match(mal) and mal != kandidat.sha:
+        raise Stopp(
+            f"draften for {kandidat.tag} ble laget for {mal[:12]}, mens kandidaten er "
+            f"{kandidat.sha[:12]}.\n"
+            "Den gjenbrukes ikke på en annen commit: body-en ville beskrevet noe annet enn "
+            "det som ligger i ZIP-en. Slett draften, eller slipp dette som en ny versjon."
+        )
+    if mal and not SHA_RE.match(mal):
+        print(
+            f"! Draften peker på «{mal}» og ikke en commit, så den er ikke laget av denne "
+            "flyten. Den gjenbrukes som den er.",
+            file=sys.stderr,
+        )
+
+
 def sikre_draft(
     gh: Gh, kandidat: Kandidat, release: dict[str, Any] | None, body: str
 ) -> tuple[dict[str, Any] | None, str]:
     """Draften finnes etterpå, og en som finnes fra før skrives ikke om.
 
     En draft fra et tidligere forsøk kan være redigert for hånd. Å overskrive
-    body-en ville kastet den redigeringen uten at noen ba om det.
+    body-en ville kastet den redigeringen uten at noen ba om det. At draften
+    hører til kandidaten, er allerede avgjort av krev_draft_pa_kandidaten.
     """
     if release is not None:
         if release.get("body", "") != body:
@@ -524,7 +611,8 @@ def sikre_draft(
             "name": kandidat.tag,
             "body": body,
             "draft": True,
-            "prerelease": False,
+            # En prøvekjøring skal aldri se ut som en versjon noen kan installere.
+            "prerelease": kandidat.versjon == PROVEVERSJON,
         },
     )
     return ny, "opprettet"
@@ -694,6 +782,7 @@ def kjor(
     bare_plan: bool,
     krev_attestasjon: bool,
     streng: bool = False,
+    proveslipp: bool = False,
 ) -> int:
     """Selve tilstandsmaskinen. Publisering er siste kall, alltid."""
     print(f"Kandidat: {kandidat}")
@@ -721,6 +810,14 @@ def kjor(
         print(f"Ingenting å gjøre for {kandidat.versjon}.")
         skriv_utfall(utfall="noop", versjon=kandidat.versjon, tag=kandidat.tag, sha=kandidat.sha)
         return EXIT_OK
+
+    # Vakten står her og ikke lenger opp med vilje: en versjon som alt er ute,
+    # bevises mot sin egen tagg, og den commiten trenger ikke ligge på
+    # hovedgrenen i dag (v1.16.0 gjør ikke det). Det er bare veien til en *ny*
+    # release som er sperret.
+    krev_hovedgren(gh, kandidat, proveslipp=proveslipp)
+    if release is not None:
+        krev_draft_pa_kandidaten(kandidat, release)
 
     skriv_utfall(utfall="klar", versjon=kandidat.versjon, tag=kandidat.tag, sha=kandidat.sha)
 
@@ -815,6 +912,12 @@ def lag_parser() -> argparse.ArgumentParser:
         sub.add_argument("--repo", default=standard_repo())
         sub.add_argument("--zip", type=Path, default=None, help="ferdigbygget ZIP (kontrolleres mot SHA)")
         sub.add_argument("--arbeidsmappe", type=Path, default=None)
+        if navn in {"plan", "publish"}:
+            sub.add_argument(
+                "--proveslipp",
+                action="store_true",
+                help=f"prøvekjøring utenfor hovedgrenen, krever manifestversjon {PROVEVERSJON}",
+            )
         if navn == "publish":
             sub.add_argument("--dry-run", action="store_true", help="som plan: leser, skriver ikke")
     return parser
@@ -847,6 +950,7 @@ def main(argv: list[str] | None = None) -> int:
             bare_plan=bare_plan,
             krev_attestasjon=krev_attestasjon,
             streng=args.kommando == "verify",
+            proveslipp=getattr(args, "proveslipp", False),
         )
     except Stopp as err:
         print(f"STOPP: {err}", file=sys.stderr)

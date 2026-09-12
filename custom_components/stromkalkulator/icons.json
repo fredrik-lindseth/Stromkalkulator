@@ -1,0 +1,169 @@
+{
+  "entity": {
+    "binary_sensor": {
+      "kapasitet_varsel": {
+        "default": "mdi:alert"
+      },
+      "maaledata_problem": {
+        "default": "mdi:database-alert"
+      },
+      "norgespris_aktiv": {
+        "default": "mdi:check-circle"
+      },
+      "stromstotte_aktiv": {
+        "default": "mdi:cash-check"
+      }
+    },
+    "button": {
+      "lag_fakturarapport": {
+        "default": "mdi:clipboard-text-outline"
+      }
+    },
+    "sensor": {
+      "akkumulert_kostnad": {
+        "default": "mdi:cash-register"
+      },
+      "dagskostnad": {
+        "default": "mdi:calendar-today"
+      },
+      "electricity_company_total": {
+        "default": "mdi:cash-plus"
+      },
+      "energiledd": {
+        "default": "mdi:currency-usd"
+      },
+      "energiledd_dag": {
+        "default": "mdi:weather-sunny"
+      },
+      "energiledd_natt": {
+        "default": "mdi:weather-night"
+      },
+      "enovaavgift": {
+        "default": "mdi:leaf"
+      },
+      "estimert_maanedskostnad": {
+        "default": "mdi:crystal-ball"
+      },
+      "forbruksavgift": {
+        "default": "mdi:lightning-bolt"
+      },
+      "forrige_maaned_eksport_inntekt": {
+        "default": "mdi:cash-plus"
+      },
+      "forrige_maaned_eksport_kwh": {
+        "default": "mdi:solar-power"
+      },
+      "forrige_maaned_forbruk_dag": {
+        "default": "mdi:weather-sunny"
+      },
+      "forrige_maaned_forbruk_natt": {
+        "default": "mdi:weather-night"
+      },
+      "forrige_maaned_forbruk_total": {
+        "default": "mdi:lightning-bolt"
+      },
+      "forrige_maaned_nettleie": {
+        "default": "mdi:transmission-tower"
+      },
+      "forrige_maaned_norgespris_kompensasjon": {
+        "default": "mdi:cash-sync"
+      },
+      "forrige_maaned_toppforbruk": {
+        "default": "mdi:arrow-up-bold"
+      },
+      "gjs_forbruk": {
+        "default": "mdi:chart-line"
+      },
+      "kapasitetstrinn": {
+        "default": "mdi:transmission-tower"
+      },
+      "maanedlig_avgifter": {
+        "default": "mdi:bank"
+      },
+      "maanedlig_eksport_inntekt": {
+        "default": "mdi:cash-plus"
+      },
+      "maanedlig_eksport_kwh": {
+        "default": "mdi:solar-power"
+      },
+      "maanedlig_forbruk_dag": {
+        "default": "mdi:weather-sunny"
+      },
+      "maanedlig_forbruk_natt": {
+        "default": "mdi:weather-night"
+      },
+      "maanedlig_forbruk_total": {
+        "default": "mdi:lightning-bolt"
+      },
+      "maanedlig_nettleie": {
+        "default": "mdi:transmission-tower"
+      },
+      "maanedlig_nettokostnad": {
+        "default": "mdi:scale-balance"
+      },
+      "maanedlig_norgespris_diff": {
+        "default": "mdi:scale-balance"
+      },
+      "maanedlig_norgespris_kompensasjon": {
+        "default": "mdi:cash-sync"
+      },
+      "maanedlig_stromstotte": {
+        "default": "mdi:cash-plus"
+      },
+      "maanedlig_total": {
+        "default": "mdi:receipt-text"
+      },
+      "maks_forbruk": {
+        "default": "mdi:lightning-bolt"
+      },
+      "margin_neste_trinn": {
+        "default": "mdi:arrow-up-bold"
+      },
+      "offentlige_avgifter": {
+        "default": "mdi:bank"
+      },
+      "prisforskjell_norgespris": {
+        "default": "mdi:cash-minus"
+      },
+      "spotpris_etter_stotte": {
+        "default": "mdi:currency-usd-off"
+      },
+      "strompris_norgespris": {
+        "default": "mdi:cash"
+      },
+      "strompris_per_kwh": {
+        "default": "mdi:flash"
+      },
+      "strompris_per_kwh_etter_stotte": {
+        "default": "mdi:flash-outline"
+      },
+      "stromstotte": {
+        "default": "mdi:cash-refund"
+      },
+      "stromstotte_gjenstaaende": {
+        "default": "mdi:gauge"
+      },
+      "tariff": {
+        "default": "mdi:clock-outline"
+      },
+      "total_price": {
+        "default": "mdi:cash"
+      },
+      "total_pris_etter_stotte": {
+        "default": "mdi:cash-check"
+      },
+      "total_pris_inkl_avgifter": {
+        "default": "mdi:receipt-text-check"
+      },
+      "total_pris_norgespris": {
+        "default": "mdi:map-marker"
+      },
+      "trinn_intervall": {
+        "default": "mdi:arrow-expand-horizontal"
+      },
+      "trinn_nummer": {
+        "default": "mdi:numeric"
+      }
+    }
+  }
+}

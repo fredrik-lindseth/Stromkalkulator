@@ -200,9 +200,9 @@ class NettleieBaseSensor(CoordinatorEntity, SensorEntity):
         """Skriv kun ny state når noe faktisk endret seg.
 
         Uten dette skriver hver sensor state ved hver coordinator-refresh
-        (~1/min), så recorderen får ~52 identiske rader i minuttet. Signaturen
-        dekker alt som styrer entitetens HA-state: tilgjengelighet, verdi,
-        attributter og last_reset. Er den uendret, hoppes skrivingen over.
+        (~1/min), så recorderen får en identisk rad per sensor i minuttet.
+        Signaturen dekker alt som styrer entitetens HA-state: tilgjengelighet,
+        verdi, attributter og last_reset. Er den uendret, hoppes skrivingen over.
         """
         signature = (
             self.available,
@@ -314,7 +314,6 @@ class EnergileddSensor(NettleieBaseSensor):
 
     _attr_native_unit_of_measurement: str = "NOK/kWh"
     _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
-    _attr_icon: str = "mdi:currency-usd"
     _attr_suggested_display_precision: int = 2
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -354,7 +353,6 @@ class KapasitetstrinnSensor(NettleieBaseSensor):
     # Sats, ikke pengebeløp: ingen MONETARY, ingen ISO 4217. Se docs/domain-rules.md.
     _attr_native_unit_of_measurement: str = "kr/mnd"
     _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
-    _attr_icon: str = "mdi:transmission-tower"
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
@@ -409,7 +407,6 @@ class MarginNesteTrinnSensor(NettleieBaseSensor):
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.POWER
     _attr_native_unit_of_measurement: str = "kW"
     _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
-    _attr_icon: str = "mdi:arrow-up-bold"
     _attr_suggested_display_precision: int = 1
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -439,7 +436,6 @@ class TotalPriceSensor(NettleieBaseSensor):
 
     _attr_native_unit_of_measurement: str = "NOK/kWh"
     _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
-    _attr_icon: str = "mdi:cash"
     _attr_suggested_display_precision: int = 2
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -471,7 +467,6 @@ class MaksForbrukSensor(NettleieBaseSensor):
     _attr_entity_category: EntityCategory = EntityCategory.DIAGNOSTIC
     _attr_native_unit_of_measurement: str = "kW"
     _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
-    _attr_icon: str = "mdi:lightning-bolt"
     _rank: int
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry, rank: int) -> None:
@@ -511,7 +506,6 @@ class GjennomsnittForbrukSensor(NettleieBaseSensor):
     _attr_entity_category: EntityCategory = EntityCategory.DIAGNOSTIC
     _attr_native_unit_of_measurement: str = "kW"
     _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
-    _attr_icon: str = "mdi:chart-line"
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
@@ -542,7 +536,6 @@ class TrinnNummerSensor(NettleieBaseSensor):
 
     _attr_entity_category: EntityCategory = EntityCategory.DIAGNOSTIC
     _attr_entity_registry_enabled_default: bool = False
-    _attr_icon: str = "mdi:numeric"
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
@@ -561,7 +554,6 @@ class TrinnIntervallSensor(NettleieBaseSensor):
 
     _attr_entity_category: EntityCategory = EntityCategory.DIAGNOSTIC
     _attr_entity_registry_enabled_default: bool = False
-    _attr_icon: str = "mdi:arrow-expand-horizontal"
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
@@ -582,7 +574,6 @@ class OffentligeAvgifterSensor(NettleieBaseSensor):
     _attr_entity_registry_enabled_default: bool = False
     _attr_native_unit_of_measurement: str = "NOK/kWh"
     _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
-    _attr_icon: str = "mdi:bank"
     _attr_suggested_display_precision: int = 2
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -623,7 +614,6 @@ class ElectricityCompanyTotalSensor(NettleieBaseSensor):
     _attr_entity_registry_enabled_default: bool = False
     _attr_native_unit_of_measurement: str = "NOK/kWh"
     _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
-    _attr_icon: str = "mdi:cash-plus"
     _attr_suggested_display_precision: int = 2
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -656,7 +646,6 @@ class StromprisPerKwhSensor(NettleieBaseSensor):
 
     _attr_native_unit_of_measurement: str = "NOK/kWh"
     _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
-    _attr_icon: str = "mdi:flash"
     _attr_suggested_display_precision: int = 2
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -688,7 +677,6 @@ class StromstotteSensor(NettleieBaseSensor):
     _device_group: str = DEVICE_STROMSTOTTE
     _attr_native_unit_of_measurement: str = "NOK/kWh"
     _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
-    _attr_icon: str = "mdi:cash-refund"
     _attr_suggested_display_precision: int = 2
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -720,7 +708,6 @@ class SpotprisEtterStotteSensor(NettleieBaseSensor):
     _device_group: str = DEVICE_STROMSTOTTE
     _attr_native_unit_of_measurement: str = "NOK/kWh"
     _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
-    _attr_icon: str = "mdi:currency-usd-off"
     _attr_suggested_display_precision: int = 2
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -749,7 +736,6 @@ class TotalPrisEtterStotteSensor(NettleieBaseSensor):
     _device_group: str = DEVICE_STROMSTOTTE
     _attr_native_unit_of_measurement: str = "NOK/kWh"
     _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
-    _attr_icon: str = "mdi:cash-check"
     _attr_suggested_display_precision: int = 2
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -784,7 +770,6 @@ class TotalPrisInklAvgifterSensor(NettleieBaseSensor):
     _device_group: str = DEVICE_STROMSTOTTE
     _attr_native_unit_of_measurement: str = "NOK/kWh"
     _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
-    _attr_icon: str = "mdi:receipt-text-check"
     _attr_suggested_display_precision: int = 2
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -823,7 +808,6 @@ class TotalPrisNorgesprisSensor(NettleieBaseSensor):
     _device_group: str = DEVICE_NORGESPRIS
     _attr_native_unit_of_measurement: str = "NOK/kWh"
     _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
-    _attr_icon: str = "mdi:map-marker"
     _attr_suggested_display_precision: int = 2
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -857,7 +841,6 @@ class StromprisNorgesprisSensor(NettleieBaseSensor):
     _device_group: str = DEVICE_NORGESPRIS
     _attr_native_unit_of_measurement: str = "NOK/kWh"
     _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
-    _attr_icon: str = "mdi:cash"
     _attr_suggested_display_precision: int = 2
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -893,7 +876,6 @@ class PrisforskjellNorgesprisSensor(NettleieBaseSensor):
     _device_group: str = DEVICE_NORGESPRIS
     _attr_native_unit_of_measurement: str = "NOK/kWh"
     _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
-    _attr_icon: str = "mdi:cash-minus"
     _attr_suggested_display_precision: int = 2
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -941,7 +923,6 @@ class EnergileddDagSensor(NettleieBaseSensor):
     _attr_entity_registry_enabled_default: bool = False
     _attr_native_unit_of_measurement: str = "NOK/kWh"
     _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
-    _attr_icon: str = "mdi:weather-sunny"
     _attr_suggested_display_precision: int = 2
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -968,7 +949,6 @@ class EnergileddNattSensor(NettleieBaseSensor):
     _attr_entity_registry_enabled_default: bool = False
     _attr_native_unit_of_measurement: str = "NOK/kWh"
     _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
-    _attr_icon: str = "mdi:weather-night"
     _attr_suggested_display_precision: int = 2
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -995,7 +975,6 @@ class ForbruksavgiftSensor(NettleieBaseSensor):
     _attr_entity_registry_enabled_default: bool = False
     _attr_native_unit_of_measurement: str = "NOK/kWh"
     _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
-    _attr_icon: str = "mdi:lightning-bolt"
     _attr_suggested_display_precision: int = 2
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -1032,7 +1011,6 @@ class EnovaavgiftSensor(NettleieBaseSensor):
     _attr_entity_registry_enabled_default: bool = False
     _attr_native_unit_of_measurement: str = "NOK/kWh"
     _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
-    _attr_icon: str = "mdi:leaf"
     _attr_suggested_display_precision: int = 2
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -1066,7 +1044,6 @@ class StromstotteGjenstaaendeSensor(NettleieBaseSensor):
     _device_group: str = DEVICE_STROMSTOTTE
     _attr_native_unit_of_measurement: str = "kWh"
     _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
-    _attr_icon: str = "mdi:gauge"
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
@@ -1087,7 +1064,6 @@ class StromprisPerKwhEtterStotteSensor(NettleieBaseSensor):
     _device_group: str = DEVICE_STROMSTOTTE
     _attr_native_unit_of_measurement: str = "NOK/kWh"
     _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
-    _attr_icon: str = "mdi:flash-outline"
     _attr_suggested_display_precision: int = 2
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -1123,7 +1099,6 @@ class TariffSensor(NettleieBaseSensor):
 
     _attr_device_class: SensorDeviceClass = _ENUM_DEVICE_CLASS
     _attr_options: ClassVar[list[str]] = ["dag", "natt"]
-    _attr_icon: str = "mdi:clock-outline"
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
@@ -1151,7 +1126,7 @@ class TariffSensor(NettleieBaseSensor):
 
 
 # =============================================================================
-# MÅNEDLIG FORBRUK OG KOSTNAD - Device: "Månedlig"
+# MÅNEDLIG FORBRUK OG KOSTNAD - Device: "Månedlig forbruk"
 # =============================================================================
 
 
@@ -1177,7 +1152,6 @@ class MaanedligForbrukDagSensor(MaanedligBaseSensor):
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.ENERGY
     _attr_native_unit_of_measurement: str = "kWh"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL_INCREASING
-    _attr_icon: str = "mdi:weather-sunny"
     _attr_suggested_display_precision: int = 1
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -1198,7 +1172,6 @@ class MaanedligForbrukNattSensor(MaanedligBaseSensor):
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.ENERGY
     _attr_native_unit_of_measurement: str = "kWh"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL_INCREASING
-    _attr_icon: str = "mdi:weather-night"
     _attr_suggested_display_precision: int = 1
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -1219,7 +1192,6 @@ class MaanedligForbrukTotalSensor(MaanedligBaseSensor):
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.ENERGY
     _attr_native_unit_of_measurement: str = "kWh"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL_INCREASING
-    _attr_icon: str = "mdi:lightning-bolt"
     _attr_suggested_display_precision: int = 1
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -1257,7 +1229,6 @@ class MaanedligNettleieSensor(MaanedligBaseSensor):
     _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
     _reset_periode: ClassVar[tuple[str, str]] = PERIODE_MAANED
-    _attr_icon: str = "mdi:transmission-tower"
     _attr_suggested_display_precision: int = 0
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -1302,7 +1273,6 @@ class MaanedligAvgifterSensor(MaanedligBaseSensor):
     _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
     _reset_periode: ClassVar[tuple[str, str]] = PERIODE_MAANED
-    _attr_icon: str = "mdi:bank"
     _attr_suggested_display_precision: int = 0
     _avgiftssone: str
 
@@ -1357,7 +1327,6 @@ class MaanedligStromstotteSensor(MaanedligBaseSensor):
     _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
     _reset_periode: ClassVar[tuple[str, str]] = PERIODE_MAANED
-    _attr_icon: str = "mdi:cash-plus"
     _attr_suggested_display_precision: int = 0
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -1392,7 +1361,6 @@ class MaanedligTotalSensor(MaanedligBaseSensor):
     _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
     _reset_periode: ClassVar[tuple[str, str]] = PERIODE_MAANED
-    _attr_icon: str = "mdi:receipt-text"
     _attr_suggested_display_precision: int = 0
     _avgiftssone: str
 
@@ -1461,7 +1429,6 @@ class MaanedligNorgesprisDifferanseSensor(MaanedligBaseSensor):
     _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
     _reset_periode: ClassVar[tuple[str, str]] = PERIODE_MAANED
-    _attr_icon: str = "mdi:scale-balance"
     _attr_suggested_display_precision: int = 0
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -1491,7 +1458,6 @@ class MaanedligNorgesprisKompensasjonSensor(MaanedligBaseSensor):
     _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
     _reset_periode: ClassVar[tuple[str, str]] = PERIODE_MAANED
-    _attr_icon: str = "mdi:cash-sync"
     _attr_suggested_display_precision: int = 0
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -1522,7 +1488,6 @@ class DagskostnadSensor(MaanedligBaseSensor):
     _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
     _reset_periode: ClassVar[tuple[str, str]] = PERIODE_DOGN
-    _attr_icon: str = "mdi:calendar-today"
     _attr_suggested_display_precision: int = 0
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -1548,7 +1513,6 @@ class AkkumulertKostnadSensor(MaanedligBaseSensor):
     _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
     _reset_periode: ClassVar[tuple[str, str]] = PERIODE_MAANED
-    _attr_icon: str = "mdi:cash-register"
     _attr_suggested_display_precision: int = 2
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -1581,7 +1545,6 @@ class EstimertMaanedskostnadSensor(MaanedligBaseSensor):
 
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "NOK"
-    _attr_icon: str = "mdi:crystal-ball"
     _attr_suggested_display_precision: int = 0
     _avgiftssone: str
 
@@ -1642,7 +1605,6 @@ class ForrigeMaanedForbrukDagSensor(ForrigeMaanedBaseSensor):
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.ENERGY
     _attr_native_unit_of_measurement: str = "kWh"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
-    _attr_icon: str = "mdi:weather-sunny"
     _attr_suggested_display_precision: int = 1
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -1670,7 +1632,6 @@ class ForrigeMaanedForbrukNattSensor(ForrigeMaanedBaseSensor):
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.ENERGY
     _attr_native_unit_of_measurement: str = "kWh"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
-    _attr_icon: str = "mdi:weather-night"
     _attr_suggested_display_precision: int = 1
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -1698,7 +1659,6 @@ class ForrigeMaanedForbrukTotalSensor(ForrigeMaanedBaseSensor):
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.ENERGY
     _attr_native_unit_of_measurement: str = "kWh"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
-    _attr_icon: str = "mdi:lightning-bolt"
     _attr_suggested_display_precision: int = 1
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -1730,7 +1690,6 @@ class ForrigeMaanedNettleieSensor(ForrigeMaanedBaseSensor):
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
-    _attr_icon: str = "mdi:transmission-tower"
     _attr_suggested_display_precision: int = 0
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -1786,7 +1745,6 @@ class ForrigeMaanedToppforbrukSensor(ForrigeMaanedBaseSensor):
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.POWER
     _attr_native_unit_of_measurement: str = "kW"
     _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
-    _attr_icon: str = "mdi:arrow-up-bold"
     _attr_suggested_display_precision: int = 2
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -1821,7 +1779,6 @@ class ForrigeMaanedNorgesprisKompensasjonSensor(ForrigeMaanedBaseSensor):
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
-    _attr_icon: str = "mdi:cash-sync"
     _attr_suggested_display_precision: int = 0
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -1888,7 +1845,6 @@ class MaanedligEksportKwhSensor(EksportBaseSensor):
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.ENERGY
     _attr_native_unit_of_measurement: str = "kWh"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL_INCREASING
-    _attr_icon: str = "mdi:solar-power"
     _attr_suggested_display_precision: int = 1
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -1910,7 +1866,6 @@ class MaanedligEksportInntektSensor(EksportBaseSensor):
     _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
     _reset_periode: ClassVar[tuple[str, str]] = PERIODE_MAANED
-    _attr_icon: str = "mdi:cash-plus"
     _attr_suggested_display_precision: int = 0
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -1945,7 +1900,6 @@ class MaanedligNettokostnadSensor(EksportBaseSensor):
     _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
     _reset_periode: ClassVar[tuple[str, str]] = PERIODE_MAANED
-    _attr_icon: str = "mdi:scale-balance"
     _attr_suggested_display_precision: int = 0
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -1976,7 +1930,6 @@ class ForrigeMaanedEksportKwhSensor(EksportBaseSensor):
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.ENERGY
     _attr_native_unit_of_measurement: str = "kWh"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
-    _attr_icon: str = "mdi:solar-power"
     _attr_suggested_display_precision: int = 1
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
@@ -2004,7 +1957,6 @@ class ForrigeMaanedEksportInntektSensor(EksportBaseSensor):
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
-    _attr_icon: str = "mdi:cash-plus"
     _attr_suggested_display_precision: int = 0
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:

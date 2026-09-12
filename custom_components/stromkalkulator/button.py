@@ -69,7 +69,6 @@ class FakturaRapportButton(CoordinatorEntity, ButtonEntity):
 
     _attr_has_entity_name = True
     _attr_translation_key = "lag_fakturarapport"
-    _attr_icon = "mdi:clipboard-text-outline"
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator)

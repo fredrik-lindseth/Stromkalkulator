@@ -173,7 +173,7 @@ Kjør jobben om igjen på samme commit («Re-run failed jobs» beholder SHA-en,
 eller kjør workflowen manuelt på taggen). Hvert steg er idempotent:
 
 - Taggen finnes og peker riktig: den står, og flyttes aldri.
-- Drafen finnes: den gjenbrukes, og body-en skrives ikke over. Har du redigert
+- Draften finnes: den gjenbrukes, og body-en skrives ikke over. Har du redigert
   den for hånd, blir redigeringen stående.
 - ZIP-en ligger der alt: den lastes ned og sammenlignes. Stemmer sha256-en, er
   den ferdig. Stemmer den ikke, stopper flyten framfor å bytte en fil vi ikke

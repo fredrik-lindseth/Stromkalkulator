@@ -6,6 +6,20 @@ vår dso.py: dag/natt-energiledd (eks. mva og avgifter), fastledd-metode og
 fastledd-satser. Rapporterer avvik per nettselskap, merket [X] for energiledd,
 [K] for fastledd og [M] for metode.
 
+Hvert nettselskap får ett av tre utfall, og exit-koden er det verste av dem:
+
+    verifisert (0)    alle feltene vi kan sammenligne stemmer
+    avvik (1)         minst ett felt spriker mer enn toleransen
+    ufullstendig (2)  vi fikk ikke sjekket det vi skulle: ingen match i
+                      fri-nettleie, 404, nettverksfeil, ingen aktiv tariff,
+                      manglende energiledd, eller en fastledd-metode ingen
+                      kilde har kartlagt
+
+Ufullstendig slår avvik i exit-koden. En kjøring som ikke vet hva den ikke
+sjekket, har ingen rett til å si «alt i orden», og workflowen lukker bare
+pris-drift-issues på 0 fra en ukjørt-filtrert kjøring. Begge listene står i
+rapporten og i `--json-ut`, så ingenting forsvinner av at 2 vinner.
+
 Alle fem fastledd-metodene sammenlignes, hver på sin akse: kW-trinn for
 TRE_DØGNMAX_MND, MND_MAX og UKJENT, sikringstrinn for OV_TREFASE og en lineær
 sats for FEM_VEKTET_ÅR. Uten det ville de fem nettselskapene som avviker fra
@@ -17,6 +31,7 @@ Bruk:
     python scripts/sjekk_mot_fri_nettleie.py --dato 2026-07-01  # sesongprising
     python scripts/sjekk_mot_fri_nettleie.py --bare-avvik
     python scripts/sjekk_mot_fri_nettleie.py --dso bkk,tensio_tn
+    python scripts/sjekk_mot_fri_nettleie.py --json-ut resultat.json
 
 Data fra https://github.com/kraftsystemet/fri-nettleie/ (CC-BY-4.0).
 
@@ -27,11 +42,14 @@ kan generere const.py-data direkte. Se `match_dso()` og `hent_satser_aktiv_dato(
 from __future__ import annotations
 
 import argparse
+import json
 import sys
+import urllib.error
 import urllib.request
 from dataclasses import dataclass
 from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
+from enum import IntEnum
 from pathlib import Path
 from typing import Any
 
@@ -65,30 +83,83 @@ TOLERANSE = 0.001  # NOK/kWh, 0,1 øre
 # årspris. 1 krone slack dekker avrundingen uten å skjule ekte prisendringer.
 TOLERANSE_FASTLEDD = 1.0  # kr/mnd
 
-# Kjente, bevisste avvik mot fri-nettleie: DSO-er der vi følger nettselskapets
-# egen prisside framfor fri-nettleie fordi de spriker. Rapporteres, men teller
-# ikke som drift (exit-kode). Fjern når fri-nettleie er oppdatert.
-KJENTE_AVVIK: dict[str, str] = {
-    "area_nett_omrade1": (
-        "Vi følger Areas eget prisblad for 2026, som har 11 340, 13 224 og "
-        "16 380 kr/år i de tre øverste trinnene. fri-nettleie area-nettinord.yml "
-        "har 12 140, 14 030 og 17 180, identisk med sin egen 2025-tariff, så "
-        "filen ser ut til å ha blitt forlenget uten oppdatering. Område 2 og 3 "
-        "stemmer. Fjern når area-nettinord.yml er rettet."
+
+class Utfall(IntEnum):
+    """Utfall per nettselskap. Verdien er exit-koden utfallet gir alene."""
+
+    VERIFISERT = 0
+    AVVIK = 1
+    UFULLSTENDIG = 2
+
+
+# Feltnavn. Feltet er nøkkelen et unntak dempes på, så et nytt avvik i et annet
+# felt hos samme nettselskap slipper gjennom selv om ett felt er kjent.
+FELT_DAG = "dag"
+FELT_NATT = "natt"
+FELT_FASTLEDD = "fastledd"
+FELT_METODE = "metode"
+FELT_MATCH = "match"
+FELT_HENTING = "henting"
+FELT_TARIFF = "tariff"
+FELT_ENERGILEDD = "energiledd"
+FELT_FASTLEDD_METODE_UKJENT = "fastledd_metode_ukjent"
+
+
+@dataclass(frozen=True)
+class Unntak:
+    """Ett kjent, akseptert funn hos ett nettselskap, med utløpsdato.
+
+    `signatur` er den nøyaktige formen funnet har i dag. Endrer tallene seg,
+    matcher ikke signaturen lenger, og funnet rapporteres som nytt. Det er
+    forskjellen fra den gamle listen, som dempet alt hos et nettselskap på
+    ubestemt tid: et injisert energiledd på 100 kr/kWh hos Fjellnett ble grønt.
+
+    `gyldig_til` er eksklusiv. Etter den datoen dempes ingenting, og et unntak
+    som ikke lenger treffer noe funn melder seg selv som ufullstendig, så listen
+    ikke kan gro seg full av oppføringer ingen rydder.
+    """
+
+    felt: str
+    signatur: str
+    gyldig_til: date
+    grunn: str
+
+
+# Kjente, aksepterte funn. Her hører to slag hjemme: avvik der vi bevisst følger
+# nettselskapets egen prisside framfor fri-nettleie, og hull i dekningen der
+# fri-nettleie ikke har data å sammenligne med. Begge er ting en kjøring ellers
+# ville ropt om hver uke, og begge er ting et menneske har tatt stilling til på
+# en dato. Derfor har begge en utløpsdato: stillheten er lånt, ikke gitt.
+KJENTE_AVVIK: dict[str, tuple[Unntak, ...]] = {
+    "telemark_nett": (
+        Unntak(
+            felt=FELT_MATCH,
+            signatur="ingen match i fri-nettleie",
+            gyldig_til=date(2027, 3, 1),
+            grunn=(
+                "fri-nettleie hadde telemark.yml da kapasitetstrinnene ble hentet 2026-07-28, "
+                "men filen er borte fra tariffer/ (og ligger ikke i tariffer/old/) per "
+                "2026-09-12. Satsene står på telemark-nett.no sin egen prisside. Sjekk ved "
+                "fornyelse om selskapet er fusjonert inn i et annet nettselskap; er det "
+                "tilfellet, hører det hjemme i DSO_MIGRATIONS, ikke her."
+            ),
+        ),
     ),
-    "fjellnett": (
-        "Vi følger fjellnett.no sin egen prisliste fra 01.07.2026 (energiledd "
-        "14,80 øre, fastledd 2000 + 589 kr/kW/år eks. mva). fri-nettleie har "
-        "fortsatt 01.01.2026-tariffen (12,90 øre, 2000 + 534). Fjern når "
-        "fjellnett.yml er oppdatert."
-    ),
-    "norgesnett": (
-        "Vi følger norgesnett.no sin egen tabell fra 01.07.2026 (energiledd "
-        "42,16/27,16 øre inkl. alt, alle ti kapasitetstrinn hevet). fri-nettleie "
-        "har fortsatt 01.01.2026-tariffen. Fjern når norgesnett.yml er "
-        "oppdatert (fri-nettleie #383)."
+    "tinfos": (
+        Unntak(
+            felt=FELT_FASTLEDD_METODE_UKJENT,
+            signatur="fastledd-metode ikke kartlagt",
+            gyldig_til=date(2027, 3, 1),
+            grunn=(
+                "Verken tinfos.no eller fri-nettleie sier hvilken kW-verdi kapasitetstrinnet "
+                "slås opp med (døgnmaks, månedsmaks, snitt av tre). Prisene sammenlignes "
+                "likevel som kW-trinn. Fornyes ved å spørre nettselskapet, eller ved å lese "
+                "det av en ekte faktura."
+            ),
+        ),
     ),
 }
+
 
 # Mapping mellom våre DSO-IDer og fri-nettleie sine filnavn. Hvis vår ID kan
 # utledes direkte (med "-" → "_") trenger vi ikke oppføring her.
@@ -134,20 +205,42 @@ EKSPLISITT_MAPPING: dict[str, str] = {
 
 
 @dataclass
-class Avvik:
-    """Ett avvik for ett DSO."""
+class Funn:
+    """Ett funn hos ett nettselskap: enten et avvik eller en manglende kontroll."""
 
     dso_id: str
     felt: str
-    var: float | None
-    deres: float | None
-    delta: float | None = None
+    signatur: str
+    tekst: str
+    utfall: Utfall
+    dempet_til: date | None = None
+
+    @property
+    def teller(self) -> bool:
+        """Skal funnet påvirke exit-koden?"""
+        return self.dempet_til is None
+
+
+@dataclass
+class Resultat:
+    """Samlet utfall for ett nettselskap."""
+
+    dso_id: str
+    slug: str | None
+    funn: list[Funn]
+
+    @property
+    def utfall(self) -> Utfall:
+        return max((f.utfall for f in self.funn if f.teller), default=Utfall.VERIFISERT)
+
+    @property
+    def dempet(self) -> bool:
+        """Grønn, men bare fordi et unntak demper noe. Ikke det samme som verifisert."""
+        return self.utfall is Utfall.VERIFISERT and bool(self.funn)
 
 
 def gh_get_json(url: str) -> Any:
     with urllib.request.urlopen(url, timeout=30) as r:
-        import json
-
         return json.loads(r.read())
 
 
@@ -363,97 +456,308 @@ def sammenlign_fastledd(vaare: list[tuple[float, int]], deres: list[tuple[float,
     return None
 
 
-def sammenlign(
-    remote_slugs: set[str], paa: date, bare_avvik: bool, filter_ids: set[str] | None
-) -> list[Avvik]:
-    avvik: list[Avvik] = []
-    for var_id, entry in sorted(DSO_LIST.items()):
-        if filter_ids and var_id not in filter_ids:
-            continue
-        if var_id == "custom":
-            continue
-        slug = match_dso(var_id, remote_slugs)
-        if slug is None:
-            if not bare_avvik:
-                print(f"[?] {var_id}: ingen match i fri-nettleie")
-            avvik.append(Avvik(var_id, "match", None, None))
-            continue
+def energiledd_for_dato(entry: dict[str, Any], paa: date) -> tuple[float, float]:
+    """Våre dag/natt-satser for datoen, med sesongperiode hvis den finnes."""
+    dag = float(entry["energiledd_dag_eks_mva"])
+    natt = float(entry["energiledd_natt_eks_mva"])
+    mm_dd = paa.strftime("%m-%d")
+    for p in entry.get("energiledd_perioder", []):
+        fra, til = p["fra"], p["til"]
+        if (fra <= til and fra <= mm_dd <= til) or (fra > til and (mm_dd >= fra or mm_dd <= til)):
+            return float(p["dag_eks_mva"]), float(p["natt_eks_mva"])
+    return dag, natt
+
+
+def _ufullstendig(var_id: str, slug: str | None, felt: str, signatur: str, melding: str) -> Resultat:
+    """Ett nettselskap vi ikke fikk kontrollert, med grunnen skrevet ut."""
+    prefiks = f"{var_id:20s} ({slug:25s})" if slug else f"{var_id:20s} {'':27s}"
+    return Resultat(
+        var_id, slug, [Funn(var_id, felt, signatur, f"[?] {prefiks}  {melding}", Utfall.UFULLSTENDIG)]
+    )
+
+
+def kontroller_dso(var_id: str, entry: dict[str, Any], remote_slugs: set[str], paa: date) -> Resultat:
+    """Kontroller ett nettselskap og returner alle funn, dempet eller ei.
+
+    Manglende energiledd stopper ikke fastledd-sjekken. De to er uavhengige
+    kontroller, og å droppe den andre fordi den første manglet var nettopp
+    halvdekningen incident 006 handler om.
+    """
+    slug = match_dso(var_id, remote_slugs)
+    if slug is None:
+        return _ufullstendig(
+            var_id,
+            None,
+            FELT_MATCH,
+            "ingen match i fri-nettleie",
+            "ingen match i fri-nettleie, kan ikke kontrolleres",
+        )
+
+    try:
         data = hent_yaml(slug)
-        if data is None:
-            avvik.append(Avvik(var_id, "fetch", None, None))
-            continue
-        tariff = aktiv_tariff(data, paa)
-        if tariff is None:
-            print(f"[!] {var_id} ({slug}): ingen aktiv tariff for husholdning på {paa}")
-            continue
-        satser = hent_satser_aktiv_dato(tariff, paa)
-        if satser is None:
-            print(f"[!] {var_id} ({slug}): mangler energiledd i tariff")
-            continue
+    except OSError as feil:  # urllib.error.URLError arver OSError
+        return _ufullstendig(var_id, slug, FELT_HENTING, "henting feilet", f"henting feilet: {feil}")
+    if data is None:
+        return _ufullstendig(
+            var_id, slug, FELT_HENTING, "404 fra fri-nettleie", f"404: {slug}.yml finnes ikke lenger"
+        )
+
+    tariff = aktiv_tariff(data, paa)
+    if tariff is None:
+        return _ufullstendig(
+            var_id,
+            slug,
+            FELT_TARIFF,
+            "ingen aktiv tariff for husholdning",
+            f"ingen aktiv tariff for husholdning på {paa}",
+        )
+
+    funn: list[Funn] = []
+    prefiks = f"{var_id:20s} ({slug:25s})"
+
+    satser = hent_satser_aktiv_dato(tariff, paa)
+    if satser is None:
+        funn.append(
+            Funn(
+                var_id,
+                FELT_ENERGILEDD,
+                "mangler energiledd i tariff",
+                f"[?] {prefiks}  mangler energiledd i tariff, energiledd ikke kontrollert",
+                Utfall.UFULLSTENDIG,
+            )
+        )
+    else:
         dag_deres, natt_deres = satser
-        dag_var = float(entry["energiledd_dag_eks_mva"])
-        natt_var = float(entry["energiledd_natt_eks_mva"])
-
-        # Hvis vi har perioder, bruk den som matcher datoen
-        perioder = entry.get("energiledd_perioder", [])
-        for p in perioder:
-            fra, til = p["fra"], p["til"]
-            mm_dd = paa.strftime("%m-%d")
-            if (fra <= til and fra <= mm_dd <= til) or (fra > til and (mm_dd >= fra or mm_dd <= til)):
-                dag_var = float(p["dag_eks_mva"])
-                natt_var = float(p["natt_eks_mva"])
-                break
-
-        d_dag = dag_var - dag_deres
-        d_natt = natt_var - natt_deres
-        avvikende = abs(d_dag) > TOLERANSE or abs(d_natt) > TOLERANSE
-        if avvikende:
-            avvik.append(Avvik(var_id, "dag", dag_var, dag_deres, d_dag))
-            avvik.append(Avvik(var_id, "natt", natt_var, natt_deres, d_natt))
-            print(
-                f"[X] {var_id:20s} ({slug:25s})  "
+        dag_var, natt_var = energiledd_for_dato(entry, paa)
+        if abs(dag_var - dag_deres) > TOLERANSE or abs(natt_var - natt_deres) > TOLERANSE:
+            tekst = (
+                f"[X] {prefiks}  "
                 f"dag {dag_var * 100:>6.2f} vs {dag_deres * 100:>6.2f}  "
                 f"natt {natt_var * 100:>6.2f} vs {natt_deres * 100:>6.2f}"
             )
+            # Ett funn per felt: dag og natt dempes hver for seg, så et unntak
+            # for nattsatsen ikke skjuler at dagsatsen har løpt fra oss.
+            for felt, var, deres in ((FELT_DAG, dag_var, dag_deres), (FELT_NATT, natt_var, natt_deres)):
+                if abs(var - deres) > TOLERANSE:
+                    funn.append(
+                        Funn(
+                            var_id,
+                            felt,
+                            f"{var * 100:.2f} vs {deres * 100:.2f} øre",
+                            tekst,
+                            Utfall.AVVIK,
+                        )
+                    )
 
-        mva_faktor = 1 + get_mva_sats(resolve_avgiftssone(entry))
+    mva_faktor = 1 + get_mva_sats(resolve_avgiftssone(entry))
 
-        # Metoden er en sats på lik linje med prisene: bytter nettselskapet
-        # modell, blir beløpet feil uansett hvor riktige trinnene er.
-        var_metode = hent_fastledd_metode(entry)
-        their_metode = deres_metode(tariff)
-        if their_metode and var_metode != their_metode:
-            avvik.append(Avvik(var_id, "metode", None, None))
-            print(f"[M] {var_id:20s} ({slug:25s})  fastledd-metode {var_metode} vs {their_metode}")
-            avvikende = True
+    # Metoden er en sats på lik linje med prisene: bytter nettselskapet
+    # modell, blir beløpet feil uansett hvor riktige trinnene er.
+    var_metode = hent_fastledd_metode(entry)
+    their_metode = deres_metode(tariff)
+    if their_metode and var_metode != their_metode:
+        funn.append(
+            Funn(
+                var_id,
+                FELT_METODE,
+                f"{var_metode} vs {their_metode}",
+                f"[M] {prefiks}  fastledd-metode {var_metode} vs {their_metode}",
+                Utfall.AVVIK,
+            )
+        )
 
-        if var_metode == FASTLEDD_OV_TREFASE:
-            fastledd_avvik = sammenlign_sikringstrinn(entry, tariff, mva_faktor)
-        elif var_metode == FASTLEDD_FEM_VEKTET_AR:
-            fastledd_avvik = sammenlign_lineaer(entry, tariff)
+    if var_metode == FASTLEDD_OV_TREFASE:
+        fastledd_avvik = sammenlign_sikringstrinn(entry, tariff, mva_faktor)
+    elif var_metode == FASTLEDD_FEM_VEKTET_AR:
+        fastledd_avvik = sammenlign_lineaer(entry, tariff)
+    else:
+        deres_kap = deres_trinn(tariff, mva_faktor)
+        if deres_kap is None:
+            fastledd_avvik = f"fri-nettleie har metode {their_metode or 'ukjent'} uten kW-trinn"
         else:
-            deres_kap = deres_trinn(tariff, mva_faktor)
-            if deres_kap is None:
-                fastledd_avvik = f"fri-nettleie har metode {their_metode or 'ukjent'} uten kW-trinn"
-            else:
-                fastledd_avvik = sammenlign_fastledd(vaare_trinn(entry), deres_kap)
+            fastledd_avvik = sammenlign_fastledd(vaare_trinn(entry), deres_kap)
 
-        if fastledd_avvik:
-            avvik.append(Avvik(var_id, "fastledd", None, None))
-            print(f"[K] {var_id:20s} ({slug:25s})  fastledd {fastledd_avvik}")
-            avvikende = True
+    if fastledd_avvik:
+        funn.append(
+            Funn(
+                var_id,
+                FELT_FASTLEDD,
+                fastledd_avvik,
+                f"[K] {prefiks}  fastledd {fastledd_avvik}",
+                Utfall.AVVIK,
+            )
+        )
 
-        if var_metode == FASTLEDD_UKJENT:
-            # Prisene er sjekket, men ingen av kildene vet hvilken kW-verdi de
-            # slås opp med. Sagt høyt hver kjøring, ikke skjult i en kommentar.
-            print(f"[?] {var_id:20s} ({slug:25s})  fastledd-metode ikke kartlagt hos nettselskapet")
+    if var_metode == FASTLEDD_UKJENT:
+        # Prisene er sjekket, men ingen av kildene vet hvilken kW-verdi de slås
+        # opp med. Da er kontrollen ufullstendig, ikke verifisert, og det står
+        # den som til noen enten finner metoden eller fornyer unntaket.
+        funn.append(
+            Funn(
+                var_id,
+                FELT_FASTLEDD_METODE_UKJENT,
+                "fastledd-metode ikke kartlagt",
+                f"[?] {prefiks}  fastledd-metode ikke kartlagt hos nettselskapet",
+                Utfall.UFULLSTENDIG,
+            )
+        )
 
-        if not avvikende and not bare_avvik:
-            print(f"[OK] {var_id:20s} ({slug:25s})")
-    return avvik
+    return Resultat(var_id, slug, funn)
 
 
-def main() -> int:
+@dataclass
+class UnntakStatus:
+    """Hvordan unntakslisten kom ut av en kjøring."""
+
+    brukte: list[tuple[str, Unntak]]
+    ubrukte: list[tuple[str, Unntak]]
+    utlopte: list[tuple[str, Unntak]]
+
+
+def anvend_unntak(resultater: list[Resultat], i_dag: date) -> UnntakStatus:
+    """Demp funn som har et gyldig unntak, og gjør status på listen.
+
+    Et unntak demper kun funn med samme felt *og* samme signatur. Endrer tallene
+    seg, er det et nytt funn og skal ropes om. Etter `gyldig_til` demper unntaket
+    ingenting: treffer det fortsatt et funn, teller funnet igjen; treffer det
+    ingenting, melder unntaket seg selv som ufullstendig så listen kan ryddes.
+    """
+    brukte: list[tuple[str, Unntak]] = []
+    ubrukte: list[tuple[str, Unntak]] = []
+    utlopte: list[tuple[str, Unntak]] = []
+
+    per_dso = {r.dso_id: r for r in resultater}
+
+    for dso_id, unntak_liste in sorted(KJENTE_AVVIK.items()):
+        resultat = per_dso.get(dso_id)
+        if resultat is None:
+            # Utenfor filteret: vi vet ingenting om denne, verken brukt eller ubrukt.
+            continue
+        for unntak in unntak_liste:
+            treff = [f for f in resultat.funn if f.felt == unntak.felt and f.signatur == unntak.signatur]
+            utlopt = i_dag >= unntak.gyldig_til
+            if utlopt:
+                utlopte.append((dso_id, unntak))
+            if treff and not utlopt:
+                for f in treff:
+                    f.dempet_til = unntak.gyldig_til
+                brukte.append((dso_id, unntak))
+            elif not treff and not utlopt:
+                ubrukte.append((dso_id, unntak))
+            elif not treff and utlopt:
+                resultat.funn.append(
+                    Funn(
+                        dso_id,
+                        f"unntak_{unntak.felt}",
+                        "utløpt unntak uten funn",
+                        f"[U] {dso_id:20s} {'':27s}  unntak for {unntak.felt} utløp "
+                        f"{unntak.gyldig_til} og treffer ingenting. Fjern oppføringen i "
+                        "KJENTE_AVVIK.",
+                        Utfall.UFULLSTENDIG,
+                    )
+                )
+    return UnntakStatus(brukte, ubrukte, utlopte)
+
+
+def kontroller_alle(
+    remote_slugs: set[str], paa: date, filter_ids: set[str] | None, i_dag: date
+) -> tuple[list[Resultat], UnntakStatus]:
+    resultater = [
+        kontroller_dso(var_id, entry, remote_slugs, paa)
+        for var_id, entry in sorted(DSO_LIST.items())
+        if var_id != "custom" and (not filter_ids or var_id in filter_ids)
+    ]
+    return resultater, anvend_unntak(resultater, i_dag)
+
+
+def skriv_rapport(resultater: list[Resultat], status: UnntakStatus, bare_avvik: bool) -> None:
+    """Skriv linjene per nettselskap og sammendraget."""
+    for r in resultater:
+        skrevet: set[str] = set()
+        for f in r.funn:
+            # dag og natt deler én linje; skriv den bare én gang.
+            linje = f"[D] {f.tekst[4:]}  (dempet til {f.dempet_til})" if f.dempet_til else f.tekst
+            if linje not in skrevet:
+                print(linje)
+                skrevet.add(linje)
+        if not r.funn and not bare_avvik:
+            print(f"[OK] {r.dso_id:20s} ({r.slug or '':25s})")
+
+    avvik = sorted({r.dso_id for r in resultater if r.utfall is Utfall.AVVIK})
+    ufullstendige = sorted({r.dso_id for r in resultater if r.utfall is Utfall.UFULLSTENDIG})
+    verifiserte = [r for r in resultater if r.utfall is Utfall.VERIFISERT and not r.dempet]
+    dempede = sorted(r.dso_id for r in resultater if r.dempet)
+
+    print()
+    print(
+        f"# Sammendrag: {len(verifiserte)} verifisert, {len(avvik)} med avvik, "
+        f"{len(ufullstendige)} ufullstendig, {len(dempede)} dempet av unntak"
+    )
+    if avvik:
+        print(f"# Avvik ({len(avvik)}): {', '.join(avvik)}")
+    if ufullstendige:
+        print(f"# Ufullstendig ({len(ufullstendige)}): {', '.join(ufullstendige)}")
+    if status.brukte:
+        print(f"# {len(status.brukte)} dempet av et gyldig unntak:")
+        for dso_id, unntak in status.brukte:
+            print(f"#   {dso_id} [{unntak.felt}] til {unntak.gyldig_til}: {unntak.grunn}")
+    if status.ubrukte:
+        print(f"# {len(status.ubrukte)} unntak treffer ingenting og kan trolig fjernes:")
+        for dso_id, unntak in status.ubrukte:
+            print(f"#   {dso_id} [{unntak.felt}] (gyldig til {unntak.gyldig_til})")
+    if status.utlopte:
+        print(f"# {len(status.utlopte)} utløpt(e) unntak, må fornyes eller fjernes:")
+        for dso_id, unntak in status.utlopte:
+            print(f"#   {dso_id} [{unntak.felt}] utløp {unntak.gyldig_til}")
+
+
+def exit_kode(resultater: list[Resultat]) -> Utfall:
+    return max((r.utfall for r in resultater), default=Utfall.VERIFISERT)
+
+
+def json_sammendrag(
+    resultater: list[Resultat], status: UnntakStatus, paa: date, fullstendig: bool
+) -> dict[str, Any]:
+    kode = exit_kode(resultater)
+    return {
+        "dato": paa.isoformat(),
+        "fullstendig": fullstendig,
+        "status": kode.name.lower(),
+        "exit": int(kode),
+        "kontrollert": len(resultater),
+        "verifisert": sorted(r.dso_id for r in resultater if r.utfall is Utfall.VERIFISERT and not r.dempet),
+        "dempet_dsoer": sorted(r.dso_id for r in resultater if r.dempet),
+        "avvik": sorted({r.dso_id for r in resultater if r.utfall is Utfall.AVVIK}),
+        "ufullstendig": sorted({r.dso_id for r in resultater if r.utfall is Utfall.UFULLSTENDIG}),
+        "dempet": [
+            {"dso": dso_id, "felt": u.felt, "gyldig_til": u.gyldig_til.isoformat()}
+            for dso_id, u in status.brukte
+        ],
+        "ubrukte_unntak": [{"dso": dso_id, "felt": u.felt} for dso_id, u in status.ubrukte],
+        "utlopte_unntak": [
+            {"dso": dso_id, "felt": u.felt, "gyldig_til": u.gyldig_til.isoformat()}
+            for dso_id, u in status.utlopte
+        ],
+    }
+
+
+def parse_filter(raw: str) -> set[str]:
+    """Valider --dso mot DSO_LIST. Kaster ValueError med melding ved ukjent ID."""
+    ids = {d.strip() for d in raw.split(",") if d.strip()}
+    if not ids:
+        raise ValueError("--dso er tom. Dropp flagget for å sjekke alle nettselskap.")
+    ukjente = sorted(i for i in ids if i not in DSO_LIST)
+    if ukjente:
+        raise ValueError(
+            f"ukjent DSO-ID i --dso: {', '.join(ukjente)}. "
+            "IDene er nøklene i DSO_LIST i custom_components/stromkalkulator/dso.py."
+        )
+    if ids == {"custom"}:
+        raise ValueError("custom er brukerdefinerte satser og har ingen fasit i fri-nettleie.")
+    return ids
+
+
+def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument(
         "--dato",
@@ -463,51 +767,38 @@ def main() -> int:
     )
     p.add_argument("--bare-avvik", action="store_true", help="Skriv bare ut avvik, ikke OK-rader")
     p.add_argument("--dso", help="Komma-separert liste over DSO-IDer å sjekke")
-    args = p.parse_args()
+    p.add_argument("--json-ut", help="Skriv maskinlesbart sammendrag til denne filen")
+    args = p.parse_args(argv)
 
-    filter_ids = set(args.dso.split(",")) if args.dso else None
+    filter_ids: set[str] | None = None
+    if args.dso:
+        try:
+            filter_ids = parse_filter(args.dso)
+        except ValueError as feil:
+            print(f"[!] {feil}", file=sys.stderr)
+            return int(Utfall.UFULLSTENDIG)
 
     print(f"# Sammenligning mot fri-nettleie for {args.dato}")
     print(f"# Toleranse: {TOLERANSE * 100:.2f} øre/kWh")
+    if filter_ids:
+        print(f"# Delvis kjøring: kun {', '.join(sorted(filter_ids))}")
     print()
-    remote = set(list_remote_dsoer())
+    try:
+        remote = set(list_remote_dsoer())
+    except OSError as feil:  # urllib.error.URLError arver OSError
+        print(f"[!] fikk ikke listet tariffer hos fri-nettleie: {feil}", file=sys.stderr)
+        return int(Utfall.UFULLSTENDIG)
     print(f"# {len(remote)} DSO-er tilgjengelig i fri-nettleie")
     print()
-    avvik = sammenlign(remote, args.dato, args.bare_avvik, filter_ids)
 
-    pris_avvik = [a for a in avvik if a.felt in ("dag", "natt")]
-    ekte_avvik = [a for a in pris_avvik if a.dso_id not in KJENTE_AVVIK]
-    # Kjente avvik listes uansett hvilket felt de gjelder. Ellers ble et kjent
-    # fastledd-avvik filtrert vekk fra exit-koden og samtidig usynlig i
-    # sammendraget, altså et unntak ingen ser at de har.
-    kjente = sorted(
-        {a.dso_id for a in avvik if a.felt in ("dag", "natt", "fastledd") and a.dso_id in KJENTE_AVVIK}
-    )
-    fastledd_avvik = [a for a in avvik if a.felt == "fastledd" and a.dso_id not in KJENTE_AVVIK]
-    metode_avvik = [a for a in avvik if a.felt == "metode" and a.dso_id not in KJENTE_AVVIK]
-    umatchet = sorted(a.dso_id for a in avvik if a.felt == "match")
-    fetch_feil = sorted(a.dso_id for a in avvik if a.felt == "fetch")
-    print()
-    print(f"# Sammendrag: {len(ekte_avvik) // 2} DSO-er med uventet energiledd-avvik over toleranse")
-    print(f"# {len(fastledd_avvik)} DSO-er med fastledd-avvik over toleranse")
-    if metode_avvik:
-        print(
-            f"# {len(metode_avvik)} DSO-er der fastledd-metoden ikke stemmer: "
-            f"{', '.join(sorted(a.dso_id for a in metode_avvik))}"
-        )
-    if kjente:
-        print(
-            f"# {len(kjente)} kjent(e) avvik (følger nettselskapets egen side, ikke drift): {', '.join(kjente)}"
-        )
-        for dso_id in kjente:
-            print(f"#   {dso_id}: {KJENTE_AVVIK[dso_id]}")
-    # Umatchede DSO-er kan ikke auto-sjekkes og må verifiseres manuelt mot kilde.
-    # De skjules ellers i --bare-avvik, og det er nettopp der drift sniker seg inn.
-    if umatchet:
-        print(f"# {len(umatchet)} uten match i fri-nettleie (sjekk manuelt): {', '.join(umatchet)}")
-    if fetch_feil:
-        print(f"# {len(fetch_feil)} feilet henting: {', '.join(fetch_feil)}")
-    return 1 if ekte_avvik or fastledd_avvik or metode_avvik else 0
+    resultater, status = kontroller_alle(remote, args.dato, filter_ids, date.today())
+    skriv_rapport(resultater, status, args.bare_avvik)
+
+    if args.json_ut:
+        sammendrag = json_sammendrag(resultater, status, args.dato, fullstendig=filter_ids is None)
+        Path(args.json_ut).write_text(json.dumps(sammendrag, indent=2, ensure_ascii=False) + "\n")
+
+    return int(exit_kode(resultater))
 
 
 if __name__ == "__main__":

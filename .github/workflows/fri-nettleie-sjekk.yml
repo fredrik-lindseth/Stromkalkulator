@@ -7,13 +7,18 @@ name: Sjekk fri-nettleie
 # lener oss på for kapasitetstrinn (incident 006), fordi 70+ nettselskap er for
 # mange å følge manuelt. Se AGENTS.md og docs/domain-rules.md.
 #
-# Scriptets exit-kode er den autoritative "avvik funnet"-signalen: 1 hvis noe
-# DSO har dag/natt-avvik > 0,1 øre/kWh eks. mva, eller fastledd-avvik > 1 kr/mnd
-# inkl. mva. DSO-er uten match i fri-nettleie (f.eks. area_nett, som fri-nettleie
-# splitter i fire regioner) eller med en annen fastledd-metode enn
-# TRE_DØGNMAX_MND rapporteres i output, men påvirker ikke exit-koden - det er en
-# kjent, vedvarende tilstand som må verifiseres manuelt og ikke bør trigge et
-# nytt issue hver uke.
+# Scriptets exit-kode er det autoritative signalet:
+#
+#   0  alle kontrollerte nettselskap er verifisert (dempede unntak medregnet)
+#   1  minst ett udempet avvik i energiledd, fastledd eller fastledd-metode
+#   2  minst én kontroll ble ikke gjennomført (ingen match, 404, nettverksfeil,
+#      ingen aktiv tariff, manglende energiledd, ukartlagt fastledd-metode,
+#      eller et utløpt unntak), eller et ugyldig --dso-filter
+#
+# Jobben feiler på 1 og 2. Et rødt vakthold som bare feiler i CI blir ikke sett
+# (den sto rød i fire uker høsten 2026), så issuet bumpes med en kommentar hver
+# kjøring og eskaleres til repo-eier etter tre uker. Issuer lukkes kun av en
+# fullstendig kjøring (uten --dso-filter) med exit 0.
 on:
   schedule:
     - cron: "0 6 * * 1" # mandag 06:00 UTC (ca. 07-08 norsk tid)
@@ -27,6 +32,9 @@ on:
 permissions:
   contents: read
   issues: write
+
+env:
+  ESKALER_ETTER_DAGER: 21
 
 jobs:
   sjekk-fri-nettleie:
@@ -52,78 +60,145 @@ jobs:
       # feile på en self-hosted runner uten utgående nettverk.
       - name: Kjør sjekk mot fri-nettleie
         id: sjekk
-        continue-on-error: true
         shell: bash
         env:
           DSO_FILTER: ${{ inputs.dso }}
         run: |
-          ARGS=(--bare-avvik)
+          ARGS=(--bare-avvik --json-ut resultat.json)
           if [ -n "$DSO_FILTER" ]; then
             ARGS+=(--dso "$DSO_FILTER")
           fi
+          set +e
           python scripts/sjekk_mot_fri_nettleie.py "${ARGS[@]}" 2>&1 | tee avvik.txt
-          exit "${PIPESTATUS[0]}"
+          KODE="${PIPESTATUS[0]}"
+          set -e
+          echo "kode=$KODE" >> "$GITHUB_OUTPUT"
 
-      - name: Sørg for at pris-drift-label finnes
-        if: steps.sjekk.outcome == 'failure'
+          # Et ugyldig filter gir exit 2 før resultat.json blir skrevet.
+          if [ ! -f resultat.json ]; then
+            echo '{"status":"ufullstendig","fullstendig":false,"avvik":[],"ufullstendig":[]}' > resultat.json
+          fi
+
+          STATUS=$(jq -r '.status' resultat.json)
+          FULLSTENDIG=$(jq -r '.fullstendig' resultat.json)
+          BERORTE=$(jq -r '(.avvik + .ufullstendig) | unique | join(",")' resultat.json)
+          NAVN=$(jq -r '(.avvik + .ufullstendig) | unique | .[0:5] | join(", ")' resultat.json)
+          ANTALL=$(jq -r '(.avvik + .ufullstendig) | unique | length' resultat.json)
+          if [ "$ANTALL" -gt 5 ]; then
+            NAVN="$NAVN og $((ANTALL - 5)) til"
+          fi
+          if [ "$STATUS" = "avvik" ]; then
+            TITTEL="Pris-drift mot fri-nettleie: ${NAVN:-ukjent}"
+          else
+            TITTEL="Fri-nettleie-vakten fikk ikke sjekket: ${NAVN:-hele kjøringen}"
+          fi
+          {
+            echo "status=$STATUS"
+            echo "fullstendig=$FULLSTENDIG"
+            echo "berorte=$BERORTE"
+            echo "tittel=$TITTEL"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Skriv sammendrag i kjøringen
+        shell: bash
+        run: |
+          {
+            echo "## Fri-nettleie-vakten: ${{ steps.sjekk.outputs.status }}"
+            echo
+            echo "Fullstendig kjøring: ${{ steps.sjekk.outputs.fullstendig }}"
+            echo
+            echo '```'
+            tail -40 avvik.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Sørg for at etikettene finnes
+        if: steps.sjekk.outputs.kode != '0'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh label create "pris-drift" \
             --color "d93f0b" \
-            --description "Automatisk oppdaget avvik mellom dso.py og fri-nettleie" \
+            --description "Automatisk oppdaget avvik eller manglende kontroll mot fri-nettleie" \
+            --force
+          gh label create "pris-drift-eskalert" \
+            --color "b60205" \
+            --description "Vaktholdet har vært rødt i over $ESKALER_ETTER_DAGER dager" \
             --force
 
-      - name: Sjekk om et pris-drift-issue allerede er åpent
-        if: steps.sjekk.outcome == 'failure'
-        id: eksisterende
+      # Ett issue per funn-sett, gjenkjent på tittelen. Samme sett neste uke gir
+      # en kommentar på det åpne issuet framfor et nytt issue: det bumper varselet
+      # uten å fylle sporeren, og gir en synlig teller på hvor lenge det har stått.
+      - name: Opprett eller oppdater issue
+        if: steps.sjekk.outputs.kode != '0'
+        id: issue
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          ANTALL=$(gh issue list --state open --label "pris-drift" --json number --jq 'length')
-          echo "antall=$ANTALL" >> "$GITHUB_OUTPUT"
-
-      - name: Opprett issue ved nytt avvik
-        if: steps.sjekk.outcome == 'failure' && steps.eksisterende.outputs.antall == '0'
-        env:
-          GH_TOKEN: ${{ github.token }}
+          TITTEL: ${{ steps.sjekk.outputs.tittel }}
+          STATUS: ${{ steps.sjekk.outputs.status }}
+          FULLSTENDIG: ${{ steps.sjekk.outputs.fullstendig }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           {
-            echo "Ukentlig sjekk mot [fri-nettleie](https://github.com/kraftsystemet/fri-nettleie) fant avvik mellom \`dso.py\` og publiserte nettleiesatser (dag/natt-energiledd eks. mva, og/eller fastledd inkl. mva)."
+            echo "Sjekk mot [fri-nettleie](https://github.com/kraftsystemet/fri-nettleie) endte med status **$STATUS** (exit ${{ steps.sjekk.outputs.kode }})."
             echo
-            echo "Kjøring: $RUN_URL"
+            echo "- Fullstendig kjøring (uten \`--dso\`-filter): \`$FULLSTENDIG\`"
+            echo "- Avvik: \`$(jq -r '.avvik | join(", ") // ""' resultat.json)\`"
+            echo "- Ufullstendig: \`$(jq -r '.ufullstendig | join(", ") // ""' resultat.json)\`"
+            echo "- Kjøring: $RUN_URL"
             echo
             echo '```'
             cat avvik.txt
             echo '```'
             echo
-            echo "Sjekk nettselskapets egen prisliste først. Stemmer den med fri-nettleie, adopter tallene og skriv kilde med tariffdato i \`dso.py\` (se AGENTS.md). Kjør lokalt:"
+            echo "**Avvik:** sjekk nettselskapets egen prisliste først. Stemmer den med fri-nettleie, adopter tallene og skriv kilde med tariffdato i \`dso.py\` (se AGENTS.md)."
+            echo
+            echo "**Ufullstendig:** vakten fikk ikke gjort kontrollen. Finn ut hvorfor, og er hullet varig, legg inn et \`Unntak\` i \`KJENTE_AVVIK\` i scriptet med felt, signatur, begrunnelse og \`gyldig_til\`. Unntak uten dato finnes ikke."
             echo
             echo '```'
             echo "uv run --with pyyaml python scripts/sjekk_mot_fri_nettleie.py"
             echo '```'
           } > issue-body.md
 
-          gh issue create \
-            --title "Pris-drift oppdaget mot fri-nettleie" \
-            --label "pris-drift" \
-            --body-file issue-body.md
+          NR=$(gh issue list --state open --label "pris-drift" --json number,title \
+            | jq -r --arg t "$TITTEL" '[.[] | select(.title == $t)] | .[0].number // empty')
 
-      - name: Feil jobben ved avvik
-        if: steps.sjekk.outcome == 'failure'
+          if [ -n "$NR" ]; then
+            gh issue comment "$NR" --body-file issue-body.md
+          else
+            NR=$(gh issue create --title "$TITTEL" --label "pris-drift" --body-file issue-body.md \
+              | grep -oE '[0-9]+$')
+          fi
+          echo "nr=$NR" >> "$GITHUB_OUTPUT"
+
+      - name: Eskaler issuer som har stått rødt for lenge
+        if: steps.sjekk.outputs.kode != '0' && steps.issue.outputs.nr != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NR: ${{ steps.issue.outputs.nr }}
         run: |
-          echo "::error::Pris-drift oppdaget mot fri-nettleie. Se åpent issue (label 'pris-drift') eller kjør 'uv run --with pyyaml python scripts/sjekk_mot_fri_nettleie.py' lokalt."
-          exit 1
+          OPPRETTET=$(gh issue view "$NR" --json createdAt --jq '.createdAt')
+          DAGER=$(( ( $(date -u +%s) - $(date -u -d "$OPPRETTET" +%s) ) / 86400 ))
+          HAR_LABEL=$(gh issue view "$NR" --json labels --jq '[.labels[].name] | index("pris-drift-eskalert") // empty')
+          if [ "$DAGER" -ge "$ESKALER_ETTER_DAGER" ] && [ -z "$HAR_LABEL" ]; then
+            gh issue edit "$NR" --add-label "pris-drift-eskalert"
+            gh issue comment "$NR" --body "@${{ github.repository_owner }} vaktholdet mot fri-nettleie har vært rødt i $DAGER dager. Enten er satsene faktisk feil hos brukerne, eller så er unntaket som mangler ikke skrevet ned. Begge deler krever en avgjørelse nå."
+          fi
 
-      # Rydder opp automatisk når satsene igjen matcher fri-nettleie, så
-      # issuet ikke blir liggende åpent for alltid etter at drift er fikset.
-      - name: Lukk pris-drift-issue hvis avviket er løst
-        if: steps.sjekk.outcome == 'success'
+      # Rydder opp når satsene igjen matcher fri-nettleie. Kun en fullstendig
+      # kjøring får lukke: en --dso-filtrert kjøring vet ingenting om resten.
+      - name: Lukk pris-drift-issuer etter en grønn fullstendig kjøring
+        if: steps.sjekk.outputs.kode == '0' && steps.sjekk.outputs.fullstendig == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           for NR in $(gh issue list --state open --label "pris-drift" --json number --jq '.[].number'); do
-            gh issue comment "$NR" --body "Ukentlig sjekk mot fri-nettleie fant ingen avvik over toleranse lenger. Lukker automatisk."
+            gh issue comment "$NR" --body "Fullstendig sjekk mot fri-nettleie er grønn igjen: alle kontrollerte nettselskap er verifisert, og ingen kontroll står uutført. Lukker automatisk."
             gh issue close "$NR"
           done
+
+      - name: Feil jobben ved avvik eller ufullstendig kontroll
+        if: steps.sjekk.outputs.kode != '0'
+        run: |
+          echo "::error::Fri-nettleie-vakten endte med status ${{ steps.sjekk.outputs.status }} (exit ${{ steps.sjekk.outputs.kode }}). Berørte: ${{ steps.sjekk.outputs.berorte }}. Se issue med etiketten 'pris-drift'."
+          exit 1

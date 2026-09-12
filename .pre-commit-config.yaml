@@ -37,6 +37,12 @@ repos:
     rev: v6.0.0
     hooks:
       - id: trailing-whitespace
+        # packages/stromkalkulator_test.yaml er unntatt fordi flere attributter
+        # bruker foldede skalarer (`>`), og der er mellomrommet på slutten av
+        # linjen en del av verdien: HA render "topp_1" med to mellomrom etter
+        # kolon, ett fra folding og ett fra linjeslutt. Å trimme dem endrer det
+        # brukeren ser, så filen ryddes for hånd hvis den skal ryddes.
+        exclude: ^packages/stromkalkulator_test\.yaml$
       - id: end-of-file-fixer
       - id: check-yaml
       - id: check-json

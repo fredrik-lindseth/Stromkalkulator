@@ -40,7 +40,7 @@ Sammenlign outputen med checksum i release notes.
 
 ### Bygg ZIP-en selv og sammenlign
 
-Fra og med v1.17.0 er bygget deterministisk: ZIP-en pakkes fra git-objektene på commiten taggen peker på, med faste tidsstempler og rettigheter fra git. Da kan du bygge den samme filen selv og få samme sha256, uten å stole på hverken oss eller GitHub:
+Fra og med den første releasen etter v1.16.0 er bygget deterministisk: ZIP-en pakkes fra git-objektene på commiten taggen peker på, med faste tidsstempler og rettigheter fra git. Da kan du bygge den samme filen selv og få samme sha256, uten å stole på hverken oss eller GitHub:
 
 ```bash
 git clone https://github.com/fredrik-lindseth/Stromkalkulator
@@ -56,7 +56,9 @@ Vil du sjekke hele kjeden i ett kall, altså at tagg, ZIP og attestasjon peker p
 just release-verify vX.Y.Z
 ```
 
-Releaser fra før v1.17.0 ble pakket med `zip -r` fra arbeidstreet på runneren, så tidsstempler og katalogoppføringer kom derfra. De kan ikke bygges byte-likt. Kommandoen sammenligner da filene i ZIP-en mot treet taggen peker på i stedet.
+På v1.16.0 feller den, og det er riktig: taggen peker på `9dad0dd`, mens attestasjonen sier ZIP-en ble bygget fra `c7e7c70`. De to commitene har identisk innhold i `custom_components/stromkalkulator`, så filen du lastet ned er koden taggen peker på, men bindingen mellom dem mangler. Den gamle releaseflyten tagget og bygget i hver sin operasjon. Taggen flyttes ikke, og en attestasjon kan ikke lages i ettertid, så v1.16.0 blir stående slik. Fra neste release binder flyten tagg, ZIP og attestasjon til samme commit.
+
+Releaser til og med v1.16.0 ble pakket med `zip -r` fra arbeidstreet på runneren, så tidsstempler og katalogoppføringer kom derfra. De kan ikke bygges byte-likt. Kommandoen sammenligner da filene i ZIP-en mot treet taggen peker på i stedet.
 
 ## Rapportere sikkerhetsproblemer
 

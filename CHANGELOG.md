@@ -2,6 +2,12 @@
 
 Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) og [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Ikke sluppet]
+
+### Lagt til
+
+- **Diagnostikknedlastingen viser nå anonymisert avregningsgrunnlag og datakvalitet for de siste intervallene, slik at beregninger kan etterprøves.** Den inneholder ikke full forbrukshistorikk eller rå identifikatorer. <!--kort-->
+
 ## [1.17.0]
 
 ### Fikset

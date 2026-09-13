@@ -61,7 +61,7 @@ jobs:
       || startsWith(github.ref, 'refs/tags/v')
       || inputs.proveslipp
     # `needs` på en `uses:`-jobb venter på *alle* jobbene i ci.yml, altså
-    # test-unit, check, begge HA-målene, hacs og hassfest, og alle for denne
+    # test-unit, check, begge HA-målene, current-E2E, hacs og hassfest, og alle for denne
     # kjøringens `github.sha`. Det er GitHub som holder den garantien, så den
     # gjentas ikke i scriptet.
     needs: [ ci ]

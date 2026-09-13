@@ -94,6 +94,8 @@ uten et eneste merke feller `just test` og CI. Se
 Push til main starter `release.yml`, som kaller `ci.yml` for sin egen commit og
 publiserer først når alt er grønt for nøyaktig den SHA-en. Kandidaten er repo +
 full SHA + manifestversjon, og tagg, ZIP og attestasjon bindes til den.
+Porten inkluderer `just test-e2e target=current` gjennom `e2e.yml`, med
+redigert evidens og opprydding. Docker kjøres ikke av `just test` eller hookene.
 Publisering er siste kall, så en kjøring som feiler halvveis etterlater ingen
 offentlig release, og den kjøres bare om igjen på samme commit.
 

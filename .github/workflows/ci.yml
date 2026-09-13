@@ -32,6 +32,41 @@ on:
 #   et rent navnebytte.
 
 jobs:
+  test-e2e:
+    name: Docker HA (current)
+    uses: ./.github/workflows/e2e.yml
+    permissions:
+      contents: read
+
+  release-gate:
+    name: Releaseport
+    if: always()
+    needs: [test-unit, check, test-ha, test-e2e, hacs, hassfest]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Krev grønt fra alle kandidatens tester
+        env:
+          JOB_RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import sys
+
+          results = json.loads(os.environ["JOB_RESULTS"])
+          required = ("test-unit", "check", "test-ha", "test-e2e", "hacs", "hassfest")
+          blocked = []
+          for job in required:
+              result = results.get(job, {}).get("result", "missing")
+              print(f"{job}: {result}")
+              if result != "success":
+                  blocked.append(f"{job}: {result}")
+          if blocked:
+              print("::error::Release stoppet: " + ", ".join(blocked))
+              sys.exit(1)
+          PY
+
   test-unit:
     name: Unit (stubbet HA)
     runs-on: ubuntu-latest

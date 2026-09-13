@@ -2,14 +2,8 @@ name: Docker HA testlab
 
 on:
   workflow_dispatch:
-  pull_request:
-    paths:
-      - custom_components/stromkalkulator/**
-      - tests_e2e/**
-      - tests/fixtures/bkk_*_hourly.json
-      - scripts/release_publish.py
-      - justfile
-      - .github/workflows/e2e.yml
+  # CI kaller samme løp for både PR og releasekandidaten, uten path-filter.
+  workflow_call:
 
 permissions:
   contents: read
@@ -20,6 +14,8 @@ jobs:
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
       - uses: extractions/setup-just@v4
       - name: Offline harness contracts
         run: python3 -m unittest discover -s tests_e2e -p 'test_*.py'
@@ -33,11 +29,11 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ha-e2e-current
+          name: ha-e2e-current-${{ github.sha }}
           path: |
             tests_e2e/artifacts/*/ha.log
             tests_e2e/artifacts/*/trace.jsonl
             tests_e2e/artifacts/*/report.json
             tests_e2e/artifacts/*/version.json
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 7

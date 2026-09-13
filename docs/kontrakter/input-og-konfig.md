@@ -516,7 +516,9 @@ diagnostikken aldri viser en blanding av to polls.
   `spotpris`, `eksport`, `leverandorpris`), med type (`gyldig`,
   `utilgjengelig`, `ugyldig`), grunn, rå enhet (`raa_enhet`, som er `None` når
   sensoren ikke oppgir noen, punkt 4.1), normalisert enhet og alder på
-  siste gyldige avlesning. Entity-id-er aliaseres av diagnostikklaget, ikke
+  siste gyldige avlesning. Gyldige resultater viser også normalisert `verdi`,
+  `observed_at` og `avlest_kl`; andre resultater har `None` i disse feltene.
+  Entity-id-er aliaseres av diagnostikklaget, ikke
   her.
 - `tarifforigin`: modus (`catalog`, `manual`, `legacy_unconfirmed`), DSO-id, om
   sesongperioder styrer, og de effektive satsene eks. og inkl. mva som faktisk
@@ -524,6 +526,10 @@ diagnostikken aldri viser en blanding av to polls.
 - `baseline`: `source_identity` (aliasert av diagnostikklaget), `value_kwh`,
   `observed_at`, `schema_version`, og om den ble forkastet ved siste lasting.
 - `fastledd_ukjent` og `fastledd_mangler_sikringsvalg` som de er.
+- `avregning_grunnlag`: oppdateringstid, siste godkjente energistand og siste
+  lukkede og åpne intervaller med pris, kvalitet, satser, kWh før intervallet
+  og kroner per komponent. Frosset med resten av oppdateringen, uten full
+  forbrukshistorikk. Avregningsbokens statusfelt følger samme snapshot.
 
 ### 10.1 Hva som ikke skal i loggen
 

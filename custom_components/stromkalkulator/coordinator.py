@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import math
 from collections.abc import Mapping
-from dataclasses import dataclass, replace
+from dataclasses import asdict, dataclass, replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from typing import TYPE_CHECKING, Any, cast
@@ -1895,6 +1895,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return {
             # Bokens egne statusfelt (felttabellen i avregningskontrakten).
             **self._bok.statusfelt(_aware(now)),
+            "avregning_grunnlag": self._avregning_rapport(_aware(now)),
             "energiledd": round(kw["energiledd"], 4),
             "energiledd_dag": aktiv_dag,
             "energiledd_natt": aktiv_natt,
@@ -2374,11 +2375,45 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "grunn": getattr(resultat, "grunn", None),
                 "raa_enhet": getattr(resultat, "raa_enhet", None),
                 "enhet_normalisert": getattr(resultat, "enhet_normalisert", None),
+                "verdi": resultat.verdi if isinstance(resultat, Gyldig) else None,
+                "observed_at": resultat.observed_at if isinstance(resultat, Gyldig) else None,
+                "avlest_kl": resultat.avlest_kl if isinstance(resultat, Gyldig) else None,
                 "alder_sekunder": (
                     round(sekunder_mellom(sist_gyldig, now), 1) if sist_gyldig is not None else None
                 ),
             }
         return rapport
+
+    def _avregning_rapport(self, now: datetime) -> dict[str, Any]:
+        """Frys et avgrenset beregningsgrunnlag sammen med pollens øvrige data.
+
+        Siste lukkede og åpne intervaller forklarer bokføringen nær nåtid.
+        Ingen historikk eller nye sensoroppslag gjøres ved diagnostikknedlasting.
+        """
+        siste = self._bok.siste_lukkede(now)
+        intervaller = ([siste] if siste is not None else []) + self._bok.apne_intervaller(now)
+        etter = self._kwh_fra_og_med(now, {i.start_utc for i in intervaller})
+        total = self._monthly_consumption.total
+        rader = []
+        for intervall in intervaller:
+            kwh_for = max(0.0, total - etter.get(intervall.start_utc, intervall.kwh))
+            satser = self._satser(intervall)
+            rader.append(
+                {
+                    **asdict(intervall),
+                    "kwh_for": kwh_for,
+                    "satser": asdict(satser),
+                    "kroner": asdict(kroner_for_intervall(intervall, satser, kwh_for=kwh_for)),
+                }
+            )
+        avlesning = self._bok.sist_observert
+        return {
+            "oppdatert": now,
+            "siste_energistand_kwh": (
+                avlesning.value_kwh if avlesning and not avlesning.er_estimert else None
+            ),
+            "intervaller": rader,
+        }
 
     def _baseline_rapport(self) -> dict[str, Any] | None:
         """Energibaselinen slik diagnostikken viser den (§10).

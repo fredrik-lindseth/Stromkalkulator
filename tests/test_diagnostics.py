@@ -18,7 +18,7 @@ import hashlib
 import json
 import sys
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -42,12 +42,16 @@ from stromkalkulator.diagnostikk import (  # noqa: E402
     ENHET_VOKABULAR,
     INPUT_RESULTAT_ALLOWLIST,
     INPUT_RESULTAT_UTELATT,
+    INTERVALL_ALLOWLIST,
+    KRONER_ALLOWLIST,
     MAANEDSNAVN,
     NOKKEL_MARKOR,
+    PRIS_ALLOWLIST,
     PROBLEM_ALLOWLIST,
     PROBLEM_UTELATT,
     REPAIR_SORTER,
     ROLLE_TIL_CONF,
+    SATSER_ALLOWLIST,
     TEKST_MARKOR,
     VALG_ALLOWLIST,
     VALG_UTELATT,
@@ -502,7 +506,8 @@ class TestInnhold:
         )
         dump = _dump(entry)
         assert dump["config_entry"]["valg"][konst.CONF_SIKRINGSTRINN] == 63
-        assert dump["config_entry"]["options_overstyrer"] == [konst.CONF_KAPASITET_VARSEL_TERSKEL]
+        assert "options_overstyrer" not in dump["config_entry"]
+        assert dump["config_entry"]["valg"][konst.CONF_KAPASITET_VARSEL_TERSKEL] is None
 
     def test_dso_seksjon(self):
         dso = _dump()["dso"]
@@ -549,6 +554,7 @@ class TestSkjemaVakt:
             "dso",
             "vakthold",
             "beregning",
+            "avregning",
             "repairs",
             "utelatt_med_vilje",
         }
@@ -1141,6 +1147,16 @@ def _fingeravtrykk(felt):
     return hashlib.sha256("\n".join(sorted(felt)).encode()).hexdigest()[:16]
 
 
+def _fullt_avregningsgrunnlag():
+    intervall = dict.fromkeys(INTERVALL_ALLOWLIST)
+    intervall.update(
+        pris=dict.fromkeys(PRIS_ALLOWLIST),
+        satser=dict.fromkeys(SATSER_ALLOWLIST),
+        kroner=dict.fromkeys(KRONER_ALLOWLIST),
+    )
+    return {"oppdatert": None, "siste_energistand_kwh": None, "intervaller": [intervall]}
+
+
 def _full_dump():
     """En dump der hver seksjon er fylt, så alle feltene faktisk er med.
 
@@ -1154,6 +1170,7 @@ def _full_dump():
             "input_resultater": {rolle: _resultat() for rolle in ROLLE_TIL_CONF},
             "baseline": _baseline(),
             "input_problemer": [problemrad],
+            "avregning_grunnlag": _fullt_avregningsgrunnlag(),
         }
     )
     issues = {(konst.DOMAIN, "satser_utdatert"): FakeIssue()}
@@ -1168,7 +1185,125 @@ SKJEMA_FINGERAVTRYKK: dict[int, str] = {
     # 4: kostnadskjernen (L3b) la splitten av energileddet og strømstøtten i
     # kroner under "beregning".
     4: "5e19c921aa05721a",
+    # 5: avregningsgrunnlag og normaliserte inputverdier; options_overstyrer fjernet.
+    5: "319de8578855d72e",
 }
+
+
+class TestAvregningsgrunnlag:
+    @pytest.mark.parametrize("mangler_pris", [False, True])
+    @pytest.mark.parametrize("har_norgespris", [False, True])
+    def test_json_fra_replay_gir_samme_intervallsum_i_l2_fasiten(
+        self, coord_module, mangler_pris, har_norgespris
+    ):
+        from tests.replay.fasit import OSLO, Fasit, Satser
+        from tests.replay.harness import Replay, logg_fra_timesenergi, pollplan
+
+        start = datetime(2026, 6, 15, 10, tzinfo=OSLO)
+        timer = [(start + timedelta(hours=i), 2.0 + i) for i in range(5)]
+        priser = {t: [0.4, 0.8, 1.2, 1.6] for t, _ in timer}
+        replay = Replay(
+            coord_module,
+            logg_fra_timesenergi(timer, priser, maler_sekunder=60),
+            entry_kwargs={"har_norgespris": har_norgespris},
+        )
+        replay.start(start)
+        if mangler_pris:
+            replay.pris_hull(*[start + timedelta(hours=3, minutes=15 * i) for i in range(4)])
+        try:
+            replay.kjor(pollplan(start, start + timedelta(hours=4, minutes=10)))
+            replay.coord.data = replay.data
+            entry = FakeEntry(coordinator=replay.coord)
+            dump = json.loads(json.dumps(_dump(entry), allow_nan=False))
+            avregning = dump["avregning"]
+            assert TEKST_MARKOR not in json.dumps(avregning)
+            assert len(avregning["intervaller"]) == 2
+            assert len(replay.coord._bok.intervaller()) > 2
+            assert avregning["intervaller"][0]["apen"] is False
+            assert avregning["intervaller"][1]["apen"] is True
+            assert avregning["intervaller"][0]["kvalitet"] == ("uten_pris" if mangler_pris else "komplett")
+            assert avregning["intervaller"][1]["kvalitet"] == "delvis_pris"
+            assert avregning["kwh_uten_pris"] > 0 if mangler_pris else avregning["kwh_uten_pris"] == 0
+            assert avregning["kwh_delvis_pris"] > 0
+            assert avregning["siste_energistand_kwh"] == dump["input_roller"]["energi"]["verdi"]
+            for rad in avregning["intervaller"]:
+                sats = rad["satser"]
+                nett = sats["energiledd_inkl_mva"] - sats["avgifter_inkl_mva"]
+                f = Fasit(
+                    Satser(
+                        energiledd_dag_inkl_mva=nett,
+                        energiledd_natt_inkl_mva=nett,
+                        forbruksavgift_inkl_mva=sats["avgifter_inkl_mva"],
+                        enova_inkl_mva=0,
+                        mva_faktor=1 + sats["mva_sats"],
+                        har_norgespris=sats["har_norgespris"],
+                        norgespris_inkl_mva=sats["norgespris_inkl_mva"],
+                        norgespris_maks_kwh=max(0, sats["norgespris_max_kwh"] - rad["kwh_for"]),
+                        stromstotte_terskel_inkl_mva=sats["stromstotte_terskel"],
+                        stromstotte_maks_kwh=max(0, sats["stromstotte_max_kwh"] - rad["kwh_for"]),
+                    )
+                )
+                tid = datetime.fromisoformat(rad["start_utc"])
+                f.bokfor_intervall(tid, rad["kwh"])
+                pris = rad["pris"]
+                if pris:
+                    for i in range(pris["pris_prover"]):
+                        f.prisprove(tid + timedelta(minutes=15 * i, seconds=61), pris["nok_per_kwh_eks_mva"])
+                fasit = f.avregning()
+                assert fasit.kwh_total == pytest.approx(rad["kroner"]["kwh"])
+                assert fasit.kwh_uten_pris == pytest.approx(rad["kroner"]["kwh_uten_pris"])
+                assert fasit.energiledd_dag_kr == pytest.approx(rad["kroner"]["energiledd_dag_kr"])
+                assert fasit.energiledd_natt_kr == pytest.approx(rad["kroner"]["energiledd_natt_kr"])
+                assert fasit.forbruksavgift_kr == pytest.approx(rad["kroner"]["avgifter_kr"])
+                kompensasjon = (
+                    rad["kroner"]["norgespris_kompensasjon_kr"]
+                    if sats["har_norgespris"]
+                    else -rad["kroner"]["stromstotte_kr"]
+                )
+                assert fasit.stotte_kr == pytest.approx(kompensasjon)
+
+            # En ny poll får ikke endre grunnlaget for data som allerede er publisert.
+            replay.poll(start + timedelta(hours=4, minutes=15))
+            assert _dump(entry)["avregning"] == avregning
+        finally:
+            replay.lukk()
+
+    def test_nye_nostede_felt_og_kildeidentitet_lekker_ikke(self):
+        grunnlag = _fullt_avregningsgrunnlag()
+        grunnlag["historikk"] = HEMMELIG_TITTEL
+        rad = grunnlag["intervaller"][0]
+        rad["entity_id"] = HEMMELIG_ENTITET
+        rad["regelkilde"] = HEMMELIG_ENTITET
+        rad["kvalitet"] = HEMMELIG_TITTEL
+        for navn in ("satser", "pris", "kroner"):
+            rad[navn]["adresse"] = HEMMELIG_TITTEL
+        rad["pris"]["kilde"] = HEMMELIG_UNIQUE_ID
+        coord = FakeCoordinator(
+            data={
+                "avregning_grunnlag": grunnlag,
+                "avregning_kilde": HEMMELIG_UNIQUE_ID,
+                "baseline": _baseline(),
+            }
+        )
+        dump = _dump(FakeEntry(coordinator=coord))
+        assert dump["avregning"]["kilde_alias"] == dump["baseline"]["kilde_alias"]
+        tekst = json.dumps(dump)
+        for hemmelig in (HEMMELIG_TITTEL, HEMMELIG_ENTITET, HEMMELIG_UNIQUE_ID):
+            assert hemmelig not in tekst
+        assert "historikk" not in dump["avregning"]
+
+    def test_ulastet_entry_har_ikke_avregningsgrunnlag(self):
+        assert _dump(FakeEntry())["avregning"] is None
+
+    def test_ugyldig_input_har_ingen_tallverdi(self, coord_module):
+        from stromkalkulator.inputadapter import Ugyldig
+
+        coordinator = coord_module.NettleieCoordinator(_make_hass(), _make_entry())
+        coordinator._input_resultater["effekt"] = Ugyldig("ukjent_enhet", "sensor.power", "adresse")
+        rad = coordinator._input_resultater_rapport(datetime(2026, 6, 15))["effekt"]
+        assert rad["verdi"] is None
+        assert rad["observed_at"] is None
+        assert rad["avlest_kl"] is None
 
 
 class TestSkjemaFingeravtrykk:
@@ -1213,6 +1348,7 @@ class TestSkjemaFingeravtrykk:
                 "input_resultater": {rolle: _resultat() for rolle in ROLLE_TIL_CONF},
                 "baseline": _baseline(),
                 "input_problemer": [problemrad],
+                "avregning_grunnlag": _fullt_avregningsgrunnlag(),
             },
             dso={"name": "BKK"},
         )

@@ -23,9 +23,13 @@ ZIP-en read-only, kjører scenarioene og stopper containere/nettverk i `finally`
 Ucommittede integrasjonsendringer er ikke med. Velg en annen commit med
 `python3 tests_e2e/run.py run --sha <commit>`.
 
-`e2e.yml` kjører standardløpet på relevante pull requests og ved manuell
-dispatch. Det er en separat workflow og ingen del av releaseporten i
-`release.yml`. `upgrade` og `vakthold` må kjøres særskilt. Bevar kandidat-SHA,
+`ci.yml` kaller `e2e.yml` for standardløpet på pull requests og for hver
+releasekandidat. Current-E2E er dermed obligatorisk i `release.yml` sin
+SHA-bundne port. Den kan også kjøres ved manuell dispatch. Jobben sjekker ut
+`github.sha`, og redigert evidens lastes opp som `ha-e2e-current-<SHA>`.
+Feil, kansellering, manglende eller hoppet over jobb stopper release.
+Docker inngår ikke i pre-push eller vanlig lokal `just test`.
+`upgrade` og `vakthold` må kjøres særskilt. Bevar kandidat-SHA,
 exit-kode og scenario-trace som dokumentasjon på en fullført kjøring; et
 tidlig feilende scenario betyr at etterfølgende scenarioer ikke er prøvd.
 Kjør uten pipe til `tail`, eller bruk `set -o pipefail`, slik at testens

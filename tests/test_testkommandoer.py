@@ -131,6 +131,7 @@ def test_just_test_er_unit_pluss_kvalitet(recipes: dict[str, list[str]]) -> None
         "`just test` skal være test-unit + check, ellers betyr AGENTS.md sin "
         f"ene kommando noe annet enn den sier. Fant: {kropp!r}"
     )
+    assert "test-e2e" not in kropp, "Docker skal ikke inngå i vanlig lokal just test"
 
 
 def test_just_check_kjorer_alle_fire_sjekkene(recipes: dict[str, list[str]]) -> None:
@@ -267,6 +268,9 @@ def test_hooken_kjorer_samme_oppskrift_som_justfile(recipes: dict[str, list[str]
     navn = entry.split()[1]
     assert navn in recipes, f"pre-commit-hooken kaller `just {navn}`, som ikke finnes"
     assert pytest_hook["stages"] == ["pre-push"]
+    for repo in config["repos"]:
+        for hook in repo["hooks"]:
+            assert "test-e2e" not in hook.get("entry", ""), "Docker skal ikke inngå i git-hookene"
 
 
 def test_ci_kjorer_bare_just_oppskrifter(recipes: dict[str, list[str]]) -> None:
@@ -276,7 +280,7 @@ def test_ci_kjorer_bare_just_oppskrifter(recipes: dict[str, list[str]]) -> None:
 
     kalt = set()
     for jobb in ci["jobs"].values():
-        for steg in jobb["steps"]:
+        for steg in jobb.get("steps", []):
             kommando = steg.get("run", "")
             for treff in re.findall(r"\bjust ([a-zA-Z][\w-]*)", kommando):
                 kalt.add(treff)

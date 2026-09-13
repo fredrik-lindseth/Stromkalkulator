@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import Platform
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import event as ha_event
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.util import dt as dt_util
@@ -92,6 +93,33 @@ _SATSVAKT_UNSUB = "satsvakt_unsub"
 # sommertidsovergangen aldri kan hoppe over eller doble kjøringen.
 _SATSVAKT_TIME = 0
 _SATSVAKT_MINUTT = 5
+
+# Disse var tidligere ``sensor``-entiteter, men er nå binary_sensor. Entitets-
+# registeret beholder oppføringen når en plattform slutter å levere den, så de
+# ville ellers stå igjen som utilgjengelige etter oppgraderingen. unique_id-en
+# var den samme også før domenebyttet, og config_entry_id avgrenser oppryddingen
+# til rett anlegg (incident 001).
+_FORELDEDE_SENSOR_UNIQUE_ID_SUFFIXES = frozenset(
+    {
+        "kapasitet_varsel",
+        "norgespris_aktiv",
+        "stromstotte_aktiv",
+    }
+)
+
+
+def _rydd_foreldede_sensor_entiteter(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Fjern gamle sensor-oppføringer som er erstattet av binary_sensor.
+
+    Ikke slå opp på entity_id: brukeren kan ha gitt entiteten et eget navn.
+    unique_id pluss config_entry_id er integrasjonens stabile identitet.
+    """
+    registry = er.async_get(hass)
+    foreldede_unique_ids = {f"{entry.entry_id}_{suffix}" for suffix in _FORELDEDE_SENSOR_UNIQUE_ID_SUFFIXES}
+    for entity in er.async_entries_for_config_entry(registry, entry.entry_id):
+        if entity.domain == Platform.SENSOR and entity.unique_id in foreldede_unique_ids:
+            registry.async_remove(entity.entity_id)
+            _LOGGER.info("Fjernet foreldet entitet %s etter binary_sensor-migrering", entity.entity_id)
 
 
 def _migrate_storage_file_sync(storage_dir: str, old_dso: str, new_dso: str) -> None:
@@ -351,6 +379,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: StromkalkulatorConfigEnt
         hass.config_entries.async_update_entry(entry, unique_id=entry.entry_id)
 
     _rydd_foreldrelose_issues(hass)
+    _rydd_foreldede_sensor_entiteter(hass, entry)
 
     # Check for DSO migration (merger)
     dso_id = entry.data.get(CONF_DSO, DEFAULT_DSO)

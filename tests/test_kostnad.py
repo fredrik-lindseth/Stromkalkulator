@@ -15,7 +15,7 @@ import re
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from stromkalkulator.avregning import (
@@ -464,6 +464,49 @@ class TestStoreOverlever:
         # Samme poll en gang til: ingen ny energi, ingen nye kroner.
         igjen = _run_update(coord_module, coord, now=start + timedelta(minutes=4))
         assert igjen["monthly_accumulated_cost_strom_kr"] == pytest.approx(strom)
+
+
+class TestOppgraderingFraSammenslaattEnergiledd:
+    """En fil fra før splitten har bare summen, og den kan ikke deles i ettertid."""
+
+    def test_gammel_sum_baeres_som_apningsbalanse(self, coord_module):
+        lagret = {
+            "current_month": "2026-06",
+            "monthly_consumption": {"dag": 100.0, "natt": 50.0},
+            "monthly_accumulated_cost_strom": 200.0,
+            "monthly_accumulated_cost_energiledd": 80.0,
+            "monthly_accumulated_cost_kapasitetsledd": 70.0,
+        }
+
+        def make_store(hass, version, key):
+            store = MagicMock()
+            store.async_load = AsyncMock(return_value=dict(lagret))
+            store.async_save = AsyncMock()
+            store.async_remove = AsyncMock()
+            return store
+
+        coord_module.Store = MagicMock(side_effect=make_store)
+        coord, _ = _coordinator(coord_module)
+        data = _run_update(coord_module, coord, now=_real_datetime(2026, 6, 15, 12, 0))
+
+        # Summen står, men den er ikke delt i dag, natt og avgifter: den delen
+        # av historikken finnes ikke.
+        assert data["monthly_accumulated_cost_energiledd_kr"] == pytest.approx(80.0)
+        assert data["monthly_energiledd_dag_kr"] == 0.0
+        assert data["monthly_energiledd_natt_kr"] == 0.0
+        assert data["monthly_avgifter_kr"] == 0.0
+
+        # Det som bokføres etter oppgraderingen legger seg oppå, og identiteten
+        # holder med åpningsbalansen medregnet.
+        data = _run_update(coord_module, coord, now=_real_datetime(2026, 6, 15, 12, 1))
+        assert data["monthly_energiledd_dag_kr"] > 0
+        assert data["monthly_accumulated_cost_energiledd_kr"] == pytest.approx(
+            80.0
+            + data["monthly_energiledd_dag_kr"]
+            + data["monthly_energiledd_natt_kr"]
+            + data["monthly_avgifter_kr"],
+            abs=1e-3,
+        )
 
 
 class TestTimesmaksFraBoken:

@@ -383,7 +383,6 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     kapasitet_varsel_terskel: float
     _daily_max_power: dict[str, DailyMaxEntry]
     _weekly_max_power: dict[str, WeeklyMaxEntry]
-    _current_hour_utcoffset: timedelta | None
     _current_month: str  # "YYYY-MM" format for year-aware month tracking
     _monthly_consumption: ConsumptionData
     _last_update: datetime | None
@@ -543,21 +542,19 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self.kapasitet_varsel_terskel = float(DEFAULT_KAPASITET_VARSEL_TERSKEL)
 
         # Track max hourly average power for capacity calculation
-        # Nettselskapet bruker maks timesforbruk (kWh/time = snitt-kW per klokke-time),
-        # ikke instantan effekt. Vi akkumulerer energi per klokke-time og bruker den
-        # høyeste timen som dagens topp.
+        # Nettselskapet bruker maks timesforbruk (kWh/time = snitt-kW per
+        # klokke-time), ikke instantan effekt. Timene kommer fra
+        # avregningsboken, som er den eneste som vet hvilken time en
+        # kilowattime hører til; her ligger bare toppen per dato.
         self._daily_max_power: dict[str, DailyMaxEntry] = {}
         # Ukestopper over løpende tolv måneder. Vedlikeholdes kun for
         # nettselskap som avregner årstopper; ellers ville 72 av 73 brukere
         # lagre data ingen leser.
         self._weekly_max_power: dict[str, WeeklyMaxEntry] = {}
+        # Speil av det åpne intervallet, satt ved hver poll. Lagres fordi
+        # Store-filen har båret den siden v1, og fordi diagnostikken viser den.
         self._current_hour_energy: float = 0.0
         self._current_hour: int = dt_util.now().hour
-        # Sporing av aware-tidssone for hour-bucket: ved høst-DST skjer time
-        # 02:xx to ganger fysisk (CEST -> CET). Vi må flushe bucketen mellom
-        # passeringene. Hvis now er naiv blir denne None og adferden er som
-        # før (kun .hour-sammenligning).
-        self._current_hour_utcoffset: timedelta | None = dt_util.now().utcoffset()
         self._current_month = dt_util.now().strftime("%Y-%m")
 
         # Track energy consumption for monthly utility meter
@@ -1478,7 +1475,6 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._timesmaks_bokfort = {}
         self._current_hour_energy = 0.0
         self._current_hour = now.hour
-        self._current_hour_utcoffset = now.utcoffset()
         self._monthly_consumption = ConsumptionData()
         self._monthly_norgespris_diff = 0.0
         self._monthly_norgespris_compensation = 0.0
@@ -1633,6 +1629,12 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if self._oppdater_timesmaks(now):
                 dirty = True
 
+        # En poll uten avlesning kjører ikke løkken over, og da ville en time
+        # som ble ferdig mens sensoren var borte stått ubokført i døgnmaks til
+        # neste avlesning kom. Kallet er idempotent.
+        if self._oppdater_timesmaks(now):
+            dirty = True
+
         # Eksport-akkumulering (plusskunder med solceller)
         export_energy_kwh = 0.0
         if self.export_power_sensor and elapsed_hours > 0:
@@ -1653,7 +1655,6 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         self._last_update = now
         self._current_hour = now.hour
-        self._current_hour_utcoffset = now.utcoffset()
 
         # Månedsskifte: boken har alt bokført den gamle måneden ferdig over, så
         # arkiveringen skjer her, før noe av nåtidssnapshotet regnes. Uten det

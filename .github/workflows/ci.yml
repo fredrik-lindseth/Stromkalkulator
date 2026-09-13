@@ -117,6 +117,12 @@ jobs:
             echo "CHANGELOG.md mangler release-noten for v$VERSION"
             exit 1
           fi
+          # Release-body-en er den korte varianten, så den må også kunne bygges.
+          # Uten merkede punkter ville den blitt tom, og det er verre enn ingen.
+          if ! python3 scripts/release_notes.py "$VERSION" --kort >/dev/null; then
+            echo "Den korte release-noten for v$VERSION lar seg ikke bygge"
+            exit 1
+          fi
 
   test-ha:
     name: Ekte HA (${{ matrix.target }})

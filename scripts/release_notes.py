@@ -14,15 +14,26 @@ To ting skiller utskriften fra rå CHANGELOG-tekst:
 * Kategorien «Dette må du gjøre selv» løftes øverst, uansett hvor den står i
   seksjonen, så beskjeden ikke drukner under «Lagt til» og «Fikset».
 
+`--kort` gir en annen utskrift av den samme teksten: alt under «Dette må du
+gjøre selv», punktene som er merket med `<!--kort-->`, og en lenke til hele
+endringsloggen. Den er release-body-en, altså det HACS viser i
+oppdateringspanelet inne i Home Assistant, en smal rute folk scroller gjennom
+før de trykker oppdater. En seksjon på førti punkter blir ikke lest der. Begge
+utskriftene kommer fra CHANGELOG.md, så det finnes fortsatt bare én tekst å
+skrive og én å holde vedlike.
+
 Bruk:
     python3 scripts/release_notes.py 1.16.0
+    python3 scripts/release_notes.py 1.16.0 --kort
     python3 scripts/release_notes.py 1.16.0 --changelog /sti/til/CHANGELOG.md
 
 Skriver seksjonen til stdout og avslutter med 0. Finnes ikke seksjonen, peker
 en relativ lenke på en fil som ikke finnes i repoet, eller står
 handlingskategorien tom, skrives en feilmelding til stderr og exit-koden blir
 1, slik at workflowen stopper i stedet for å publisere en tom release, en død
-lenke eller en naken overskrift.
+lenke eller en naken overskrift. Med `--kort` feller det også at seksjonen som
+er under arbeid ikke har et eneste merket punkt, siden en tom kort versjon er
+verre enn ingen.
 """
 
 from __future__ import annotations
@@ -39,6 +50,21 @@ REPO_URL = "https://github.com/fredrik-lindseth/Stromkalkulator"
 
 # Overskriften for ting brukeren må gjøre aktivt etter oppgraderingen.
 HANDLING = "Dette må du gjøre selv"
+
+# Merket som sier at et punkt skal med i den korte release-noten. En
+# HTML-kommentar er usynlig når CHANGELOG.md leses som markdown på GitHub, og
+# står rett etter streken der den er lett å se i råteksten. Skriv den slik:
+#
+#     - <!--kort--> **Månedskostnaden faller 64 til 145 kroner.** ...
+MERKE_TEKST = "<!--kort-->"
+MERKE = re.compile(r"<!--\s*kort\s*-->[ \t]*")
+
+# Overskriften de merkede punktene samles under i den korte noten.
+KORT_OVERSKRIFT = "Det viktigste"
+
+# Et punkt i en liste. Stjerne-varianten er ikke i bruk i filen, men koster
+# ingenting å ta med.
+PUNKT = re.compile(r"^[-*] +\S")
 
 # "## [1.16.0]" og "## [0.31.0] - 2026-01-30" er begge i bruk i filen.
 SEKSJON = re.compile(r"^## \[(?P<versjon>[^\]]+)\]\s*(?:-\s*\S+)?\s*$")
@@ -248,6 +274,147 @@ def loft_handlingskategori(tekst: str, versjon: str, kategori: str = HANDLING) -
     return "\n".join([*blokk, "", *resten]).strip("\n")
 
 
+class UmerketFeil(Exception):
+    """En seksjon har ikke ett eneste punkt merket for den korte noten."""
+
+    def __init__(self, versjon: str) -> None:
+        super().__init__(f"seksjonen for {versjon} har ingen punkter merket med {MERKE_TEKST}")
+        self.versjon = versjon
+
+
+def del_i_kategorier(tekst: str) -> list[tuple[str | None, list[str]]]:
+    """Del en seksjon i (kategorinavn, punkter), i filens rekkefølge.
+
+    Første element har navn None og holder det som står før den første
+    `###`-overskriften. Et punkt er linjen som starter med `-` eller `*`, pluss
+    linjene under den til neste punkt, neste overskrift eller en blank linje, så
+    et punkt som går over flere linjer holder sammen.
+    """
+    kategorier: list[tuple[str | None, list[str]]] = []
+    navn: str | None = None
+    punkter: list[str] = []
+    apent: list[str] | None = None
+
+    def lukk() -> None:
+        nonlocal apent
+        if apent is not None:
+            punkter.append("\n".join(apent).rstrip())
+            apent = None
+
+    for linje in tekst.splitlines():
+        treff = KATEGORI.match(linje)
+        if treff:
+            lukk()
+            kategorier.append((navn, punkter))
+            navn, punkter = treff.group("navn"), []
+            continue
+        if PUNKT.match(linje):
+            lukk()
+            apent = [linje]
+            continue
+        if apent is not None:
+            if linje.strip():
+                apent.append(linje)
+            else:
+                lukk()
+
+    lukk()
+    kategorier.append((navn, punkter))
+    return kategorier
+
+
+def _er_handling(navn: str | None, kategori: str = HANDLING) -> bool:
+    return navn is not None and navn.casefold() == kategori.casefold()
+
+
+def uten_merker(tekst: str) -> str:
+    """Fjern `<!--kort-->` fra teksten som skal publiseres."""
+    return MERKE.sub("", tekst)
+
+
+def merkede_punkter(seksjon: str, kategori: str = HANDLING) -> list[str]:
+    """Punktene som er merket for den korte noten, utenom handlingskategorien.
+
+    Handlingskategorien blir med i sin helhet uansett, så et merke der ville
+    bare vært støy.
+    """
+    return [
+        punkt
+        for navn, punkter in del_i_kategorier(seksjon)
+        if not _er_handling(navn, kategori)
+        for punkt in punkter
+        if MERKE.search(punkt)
+    ]
+
+
+def bygg_kort(
+    seksjon: str,
+    versjon: str,
+    *,
+    kategori: str = HANDLING,
+    changelog_lenke: str = "CHANGELOG.md",
+) -> str:
+    """Den korte noten: handlingskategorien, de merkede punktene og en lenke.
+
+    Kaster UmerketFeil hvis ingen punkter er merket. Den som får feilen merker
+    punktene i sin egen CHANGELOG-seksjon; alternativet er en release-note som
+    bare sier «se endringsloggen», og det er verre enn ingen kort versjon.
+    """
+    kategorier = del_i_kategorier(seksjon)
+
+    handling_navn = next((navn for navn, _ in kategorier if _er_handling(navn, kategori)), None)
+    handling = [punkt for navn, punkter in kategorier if _er_handling(navn, kategori) for punkt in punkter]
+    merket = merkede_punkter(seksjon, kategori)
+    if not merket:
+        raise UmerketFeil(versjon)
+
+    deler: list[str] = []
+    if handling_navn is not None and handling:
+        deler += [f"### {handling_navn}", "", *handling, ""]
+    deler += [f"### {KORT_OVERSKRIFT}", "", *merket, ""]
+    deler.append(f"[Alt som er endret i denne versjonen]({changelog_lenke})")
+
+    return uten_merker("\n".join(deler))
+
+
+def er_under_arbeid(changelog: str, versjon: str) -> bool:
+    """Er dette den øverste seksjonen i filen, altså den som skrives nå?
+
+    Alt under den er sluppet og er historikk. Historikken merkes ikke i
+    ettertid, så vakten for merkede punkter gjelder bare toppen.
+    """
+    versjoner = kjente_versjoner(changelog)
+    return bool(versjoner) and versjoner[0] == versjon
+
+
+def bygg_kort_body(
+    changelog: str,
+    versjon: str,
+    *,
+    repo_root: Path = REPO_ROOT,
+    repo_url: str = REPO_URL,
+    streng: bool = True,
+) -> str | None:
+    """Den korte release-body-en, med absolutte lenker.
+
+    `streng=False` gir hele seksjonen i stedet for å kaste UmerketFeil når
+    ingenting er merket. Det er svaret for en sluppet versjon: den ble skrevet
+    før merkene fantes, og en gammel note skal kunne hentes fram igjen uten at
+    verktøyet krasjer.
+    """
+    seksjon = finn_seksjon(changelog, versjon)
+    if seksjon is None:
+        return None
+    loftet = loft_handlingskategori(seksjon, versjon)
+    try:
+        kort = bygg_kort(loftet, versjon)
+    except UmerketFeil:
+        if streng:
+            raise
+        kort = uten_merker(loftet)
+    return skriv_om_lenker(kort, versjon, repo_root=repo_root, repo_url=repo_url)
+
+
 def bygg_body(
     changelog: str,
     versjon: str,
@@ -260,7 +427,7 @@ def bygg_body(
     if seksjon is None:
         return None
     return skriv_om_lenker(
-        loft_handlingskategori(seksjon, versjon),
+        uten_merker(loft_handlingskategori(seksjon, versjon)),
         versjon,
         repo_root=repo_root,
         repo_url=repo_url,
@@ -277,6 +444,11 @@ def main(argv: list[str] | None = None) -> int:
         default=REPO_ROOT,
         help="roten relative lenker sjekkes mot (default: dette repoet)",
     )
+    parser.add_argument(
+        "--kort",
+        action="store_true",
+        help="bare handlingskategorien og de merkede punktene, pluss lenke til hele loggen",
+    )
     args = parser.parse_args(argv)
 
     versjon = args.versjon.lstrip("v")
@@ -287,8 +459,35 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Klarte ikke lese {args.changelog}: {err}", file=sys.stderr)
         return 1
 
+    # Historikken merkes ikke i ettertid, så vakten gjelder seksjonen som er
+    # under arbeid. Hentes en gammel note fram med --kort, får du hele den.
+    streng = er_under_arbeid(changelog, versjon)
+
     try:
-        body = bygg_body(changelog, versjon, repo_root=args.repo_root)
+        if args.kort:
+            body = bygg_kort_body(changelog, versjon, repo_root=args.repo_root, streng=streng)
+            if (
+                body is not None
+                and not streng
+                and not merkede_punkter(finn_seksjon(changelog, versjon) or "")
+            ):
+                print(
+                    f"Seksjonen for {versjon} er sluppet og har ingen merkede punkter. "
+                    "Skriver hele seksjonen.",
+                    file=sys.stderr,
+                )
+        else:
+            body = bygg_body(changelog, versjon, repo_root=args.repo_root)
+    except UmerketFeil as err:
+        print(
+            f"Seksjonen '## [{err.versjon}]' i {args.changelog} har ingen punkter merket\n"
+            f"med {MERKE_TEKST}, så den korte release-noten ville blitt tom.\n"
+            "Sett merket rett etter streken på de punktene en bruker faktisk merker:\n"
+            f"  - {MERKE_TEKST} **Månedskostnaden faller 64 til 145 kroner.** ...\n"
+            "Merket er en HTML-kommentar og er usynlig når CHANGELOG.md leses som markdown.",
+            file=sys.stderr,
+        )
+        return 1
     except LenkeFeil as err:
         print(
             f"Relativ lenke peker på noe som ikke finnes i {args.repo_root}: {err}\n"

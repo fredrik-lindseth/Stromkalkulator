@@ -51,7 +51,9 @@ f.eks. `just test-unit -k energiledd` eller
 ### Én kommandolinje, tre steder
 
 Pre-push-hooken kjører `just test-unit`, og CI-jobbene kjører `just test-unit`,
-`just check` og `just test-ha` for begge mål. Ingen av dem har sin egen
+`just check` og `just test-ha` for begge mål. CI kaller også den gjenbrukbare
+`e2e.yml` med `just test-e2e target=current`; Docker er ikke med i hookene
+eller vanlig lokal `just test`. Ingen av dem har sin egen
 kommandolinje, så ingen av dem kan gå grønn på noe annet enn det du kjørte.
 `tests/test_testkommandoer.py` feiler hvis justfile, AGENTS.md, denne filen,
 `docs/development.md`, `.pre-commit-config.yaml` og `.github/workflows/ci.yml`
@@ -204,13 +206,19 @@ Lokalt verifisert 13. september 2026 mot current: alle scenarioer og 720
 juni-timer bestod på omtrent 10 minutter med varmt image-cache. En separat
 tvunget feil bekreftet at containere og nettverk ryddes også ved feil, og
 eksportert evidens inneholdt ingen av testlabens passord eller tokens.
-GitHub-jobben må fortsatt bekreftes grønn i CI.
 
-Docker-workflowen `e2e.yml` kjører separat på relevante pull requests og ved
-manuell dispatch. Den inngår ikke i `release.yml` sin `needs: ci`, og verken
-`upgrade` eller `vakthold` kjøres av den. Grønn release-CI beviser derfor ikke
-at disse Docker-løpene er grønne. Før release må resultatene knyttes til
-kandidat-SHA-en og scenario-tracen, med alle forventede scenarioer fullført.
+Docker-workflowen `e2e.yml` kalles av `ci.yml` på pull requests og for
+releasekandidatens SHA, og kan også startes med manuell dispatch. Dermed
+inngår current-E2E i `release.yml` sin `needs: ci`. Jobben `Releaseport`
+krever eksplisitt `success` fra hvert testlag; manglende, feilet, kansellert
+eller hoppet over resultat stopper release. Evidensartefakten heter
+`ha-e2e-current-<SHA>` og inneholder scenario-trace, rapport, versjon og
+redigert logg. Første grønne GitHub-kjøring må dokumenteres i
+`stromkalkulator-3txx3k3` før saken lukkes.
+
+Verken `upgrade` eller `vakthold` kjøres av standardløpet. Grønn release-CI
+beviser derfor ikke disse særskilte Docker-løpene; deres resultater må
+fortsatt knyttes til kandidat-SHA-en og scenario-tracen når de kreves.
 
 Avspillingen endrer ingen klokke. Rapporten skiller HA-integrasjonens
 bokførte kWh fra historisk kildeavstemming. HA bruker dagens dato og tariff,

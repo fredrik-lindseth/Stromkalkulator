@@ -49,6 +49,7 @@ from homeassistant.helpers import issue_registry as ir
 from homeassistant.loader import async_get_integration
 
 from . import inputadapter
+from .avregning import Energikvalitet, Intervallkvalitet, Priskilde, Revisjon, Tariff
 from .const import (
     AVGIFTSSONE_OPTIONS,
     BOLIGTYPE_OPTIONS,
@@ -93,7 +94,7 @@ if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
 
-DIAGNOSTICS_SCHEMA_VERSION: int = 4
+DIAGNOSTICS_SCHEMA_VERSION: int = 5
 
 # Valgene brukeren har tatt, uten entity-id-ene. Disse er trygge å vise rått:
 # de sier hva integrasjonen regnet med, ikke hvem som regnet.
@@ -241,23 +242,73 @@ BEREGNING_UTELATT: dict[str, str] = {
     # hjemme, med aliaserte identifikatorer, ikke rått under beregning.
     "input_resultater": "aliaseres og vises per rolle under input_roller",
     "baseline": "aliaseres og vises i baseline-seksjonen",
-    # Avregningsbokens statusfelt (L3a). De hører hjemme i dumpen, men i en
-    # egen seksjon med sitt eget feltsett, og det er D3 (dcat
-    # stromkalkulator-2ayhpqf) som lager den. Å skyve dem inn under
-    # "beregning" nå ville endret feltsettet uten at skjemaversjonen og
-    # fingeravtrykket fulgte med.
-    "avregning_skjema": "tas med av D3, i avregningsseksjonen",
-    "avregning_ufullstendig": "tas med av D3, i avregningsseksjonen",
-    "avregning_sist_observert": "tas med av D3, i avregningsseksjonen",
-    # Kildeidentitet. Aliaseres av D3 på samme måte som baselinen, og skal
-    # aldri vises rått (input-og-konfig.md §10.1).
-    "avregning_kilde": "aliaseres av D3, som baselinen",
-    "avregning_siste_intervall": "tas med av D3, i avregningsseksjonen",
-    "avregning_apne_intervaller": "tas med av D3, i avregningsseksjonen",
-    "avregning_avvist_kwh": "tas med av D3, i avregningsseksjonen",
-    "kwh_uten_pris": "tas med av D3, i avregningsseksjonen",
-    "kwh_delvis_pris": "tas med av D3, i avregningsseksjonen",
+    "avregning_skjema": "står i avregningsseksjonen",
+    "avregning_ufullstendig": "står i avregningsseksjonen",
+    "avregning_sist_observert": "står i avregningsseksjonen",
+    "avregning_kilde": "aliaseres i avregningsseksjonen, som baselinen",
+    "avregning_siste_intervall": "står i avregningsseksjonen",
+    "avregning_apne_intervaller": "står i avregningsseksjonen",
+    "avregning_avvist_kwh": "står i avregningsseksjonen",
+    "kwh_uten_pris": "står i avregningsseksjonen",
+    "kwh_delvis_pris": "står i avregningsseksjonen",
+    "avregning_grunnlag": "frosset grunnlag, allowlistet i avregningsseksjonen",
 }
+
+AVREGNING_ALLOWLIST = (
+    "avregning_skjema",
+    "avregning_ufullstendig",
+    "avregning_sist_observert",
+    "avregning_siste_intervall",
+    "avregning_apne_intervaller",
+    "avregning_avvist_kwh",
+    "kwh_uten_pris",
+    "kwh_delvis_pris",
+)
+INTERVALL_ALLOWLIST = (
+    "start_utc",
+    "slutt_utc",
+    "kwh",
+    "lokal_maned",
+    "lokal_time",
+    "tariff",
+    "kvalitet",
+    "apen",
+    "energikvalitet",
+    "kwh_for",
+)
+# Regelkilden beskrives av tarifforigin og intervallets dato. Ingen rå
+# regelkilde-streng eller ukjente nøster kopieres fra avregningsboken.
+PRIS_ALLOWLIST = (
+    "start_utc",
+    "slutt_utc",
+    "nok_per_kwh_eks_mva",
+    "opplosning_minutter",
+    "kilde",
+    "revisjon",
+    "pris_prover",
+    "pris_prover_ventet",
+)
+SATSER_ALLOWLIST = (
+    "energiledd_inkl_mva",
+    "avgifter_inkl_mva",
+    "mva_sats",
+    "norgespris_inkl_mva",
+    "stromstotte_terskel",
+    "stromstotte_max_kwh",
+    "norgespris_max_kwh",
+    "har_norgespris",
+)
+KRONER_ALLOWLIST = (
+    "strom_kr",
+    "stromstotte_kr",
+    "energiledd_dag_kr",
+    "energiledd_natt_kr",
+    "avgifter_kr",
+    "norgespris_kompensasjon_kr",
+    "norgespris_differanse_kr",
+    "kwh",
+    "kwh_uten_pris",
+)
 
 # Feltene på én rad i coordinatorens `input_resultater`. Samme tanke som
 # `PROBLEM_ALLOWLIST`: raden bygges felt for felt, så et nytt felt krever en
@@ -267,6 +318,9 @@ INPUT_RESULTAT_ALLOWLIST: tuple[str, ...] = (
     "grunn",
     "enhet_normalisert",
     "alder_sekunder",
+    "verdi",
+    "observed_at",
+    "avlest_kl",
 )
 
 INPUT_RESULTAT_UTELATT: dict[str, str] = {
@@ -540,6 +594,11 @@ TEKST_VOKABULAR: frozenset[str] = frozenset(
     | set(REPAIR_ALVORLIGHET)
     | set(SIKRINGSTRINN_TEKSTER)
     | set(TRINN_UTEN_TABELL)
+    | set(Energikvalitet)
+    | set(Intervallkvalitet)
+    | set(Priskilde)
+    | set(Revisjon)
+    | set(Tariff)
 )
 
 # Strengene som ikke er et fast ord, men et format koden selv lager.
@@ -732,7 +791,6 @@ async def _versjoner(hass: HomeAssistant) -> dict[str, Any]:
 def _config_entry_seksjon(entry: ConfigEntry, aliaser: Aliaser) -> dict[str, Any]:
     """Entryets identitet (aliasert), skjemaversjon og de valgte verdiene."""
     data = dict(getattr(entry, "data", {}) or {})
-    options = dict(getattr(entry, "options", {}) or {})
     tilstand = getattr(entry, "state", None)
     return {
         "alias": aliaser.alias(getattr(entry, "entry_id", None), "entry"),
@@ -744,7 +802,6 @@ def _config_entry_seksjon(entry: ConfigEntry, aliaser: Aliaser) -> dict[str, Any
         "source": rens_trygg(getattr(entry, "source", None)),
         "state": rens_trygg(getattr(tilstand, "value", tilstand)),
         "valg": {nokkel: rens_trygg(data.get(nokkel)) for nokkel in VALG_ALLOWLIST},
-        "options_overstyrer": sorted(n for n in options if n in VALG_ALLOWLIST),
     }
 
 
@@ -924,6 +981,33 @@ def _beregning_seksjon(coordinator: Any) -> dict[str, Any]:
     return {nokkel: rens_trygg(data.get(nokkel)) for nokkel in BEREGNING_ALLOWLIST}
 
 
+def _avregning_seksjon(coordinator: Any, aliaser: Aliaser) -> dict[str, Any]:
+    """Status og intervallgrunnlag fra samme fullførte oppdatering."""
+    data = getattr(coordinator, "data", None) or {}
+    grunnlag = data.get("avregning_grunnlag") or {}
+    if not isinstance(grunnlag, dict):
+        grunnlag = {}
+    seksjon = {n: rens_trygg(data.get(n)) for n in AVREGNING_ALLOWLIST}
+    seksjon["kilde_alias"] = aliaser.alias(data.get("avregning_kilde"), "kilde")
+    seksjon["oppdatert"] = rens_trygg(grunnlag.get("oppdatert"))
+    seksjon["siste_energistand_kwh"] = rens_trygg(grunnlag.get("siste_energistand_kwh"))
+    rader = []
+    for intervall in grunnlag.get("intervaller", []) or []:
+        if not isinstance(intervall, dict):
+            continue
+        rad = {n: rens_trygg(intervall.get(n)) for n in INTERVALL_ALLOWLIST}
+        for navn, felter in (
+            ("pris", PRIS_ALLOWLIST),
+            ("satser", SATSER_ALLOWLIST),
+            ("kroner", KRONER_ALLOWLIST),
+        ):
+            under = intervall.get(navn)
+            rad[navn] = {n: rens_trygg(under.get(n)) for n in felter} if isinstance(under, dict) else None
+        rader.append(rad)
+    seksjon["intervaller"] = rader
+    return seksjon
+
+
 async def bygg_diagnostikk(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]:
     """Bygg hele snapshotet for et config entry.
 
@@ -946,6 +1030,7 @@ async def bygg_diagnostikk(hass: HomeAssistant, entry: ConfigEntry) -> dict[str,
         "dso": _dso_seksjon(coordinator) if lastet else None,
         "vakthold": _vakthold_seksjon(coordinator, aliaser) if lastet else None,
         "beregning": _beregning_seksjon(coordinator) if lastet else None,
+        "avregning": _avregning_seksjon(coordinator, aliaser) if lastet else None,
         "repairs": _repairs_seksjon(hass, entry),
         "utelatt_med_vilje": list(UTELATT_MED_VILJE),
     }

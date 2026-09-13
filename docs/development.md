@@ -142,6 +142,22 @@ ssh ha-local "ha core logs" | grep -i stromkalkulator
 
 Diagnostikk-nedlasting: Settings > Devices & Services > Strømkalkulator > tre-prikk-menyen > Last ned diagnostikk. JSON-en (`diagnostikk.py`) inneholder releaseversjon, HA-versjon, valgene fra oppsettet, inputrollene med aliaserte entity-id-er og hva hver av dem leverte sist (tilstand, grunn, enhet, alder), energibaselinen med aliasert kildeidentitet, DSO-data, vakthold, beregningsfeltene fra siste oppdatering og repair-varslene som står ute.
 
+Skjema 5 viser også den normaliserte inputverdien, observasjonstiden og
+avlesningstiden per rolle. Ugyldig eller utilgjengelig input har ingen verdi.
+`avregning` inneholder bokens status, siste godkjente energistand og siste
+lukkede og åpne intervaller. Hvert intervall viser kWh, priskvalitet,
+energikvalitet, prisgrunnlag, effektive satser, forbruk før intervallet og
+bokførte kroner per komponent. Coordinatoren fryser dette sammen med resten
+av oppdateringen; nedlastingen gjør ingen nye sensoroppslag.
+
+Grunnlaget kan gjenskape intervallsummen, også når priser mangler. Det er
+avgrenset til intervallene nær nåtid og kan ikke gjenskape en hel faktura eller
+alle tidligere målerdeltaer. Testen i `tests/test_diagnostics.py` mater en
+JSON-rundtur fra replay til den uavhengige L2-fasiten. Målerstand og presise
+tidspunkt beholdes for å forklare forkastede avlesninger og tidsgrenser; de
+kan knytte sammen dumper fra samme måler. Rå identifikatorer og full
+forbrukshistorikk følger ikke med.
+
 Den er bygget for å limes inn i en offentlig issue. Hvert felt står på en allowlist, også feltene på en vaktholdsrad, og hver strengverdi må i tillegg stå i et kjent vokabular (nettselskap, avgiftssone, fastledd-metode) eller treffe et kjent format (ISO-dato, `0-2 kW`, `juni 2026`). Alt annet byttes med `<tekst utelatt>`. Entity-id-er, entry-id og tittel byttes med aliaser. Aliasene er tellere, ikke hasher av navnet: `sensor.alias_1` betyr «den første entiteten denne dumpen nevnte» og ingenting mer. To dumper fra samme oppsett får derfor de samme aliasene, og det er med vilje: det er nettopp sammenligningen av to dumper feilsøkingen trenger, og en teller peker ikke tilbake på noen.
 
 | Feil                                  | Årsak                                                                                      | Løsning                             |

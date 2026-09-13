@@ -209,11 +209,23 @@ verifisert.
 
 `release.yml` er den eneste workflowen som kjører på push til main. Den kaller
 `ci.yml` (`workflow_call`) for sin egen commit og har `needs: ci`, så unit,
-kvalitet, begge HA-målene, HACS-validering og Hassfest må være grønne for
+kvalitet, begge HA-målene, current-E2E, HACS-validering og Hassfest må være grønne for
 *samme SHA* før releasejobben starter. HACS og Hassfest lå før i egne
 workflows; da kunne en release gå ut før de var ferdige. De kjøres fortsatt
 nattlig fra `validate.yml` og `hassfest.yml`, siden begge kan bli røde av
 endringer utenfor repoet.
+
+`ci.yml` kaller `e2e.yml` for `just test-e2e target=current`. Docker-jobben
+sjekker ut kandidat-SHA-en og bygger release-ZIP fra den. Den kjører de åtte
+livssyklusscenarioene og juni-avspillingen, rydder Compose-prosjektet også ved
+feil og laster bare opp redigert evidens, merket med SHA. Den avsluttende
+`Releaseport`-jobben krever `success` fra alle seks testjobbene; manglende,
+feilet, kansellert eller hoppet over resultat stopper publisering. En grønn
+manuell eller tidligere E2E-kjøring kan ikke erstatte kandidatens kjøring.
+Docker inngår ikke i pre-push eller vanlig lokal `just test`.
+
+`upgrade` og `vakthold` er egne Docker-løp utenfor denne automatiske porten;
+se [testlabens avgrensninger](../tests_e2e/README.md#hva-som-sjekkes).
 
 Det som slippes, kommer fra hovedgrenen. To vakter sier det:
 

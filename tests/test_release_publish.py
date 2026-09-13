@@ -646,11 +646,17 @@ def test_handskrevet_draft_gjenbrukes_fortsatt(
 
 
 def test_release_workflow_venter_pa_hele_ci_grafen() -> None:
-    """HACS og Hassfest skal være med i det releasen venter på, ikke ved siden av."""
+    """Alle testlag må tilhøre kandidatens graf, også Docker-serveren."""
     ci = yaml.safe_load((REPO / ".github" / "workflows" / "ci.yml").read_text())
     release = yaml.safe_load((REPO / ".github" / "workflows" / "release.yml").read_text())
 
-    assert {"test-unit", "check", "test-ha", "hacs", "hassfest"} <= set(ci["jobs"])
+    required = {"test-unit", "check", "test-ha", "test-e2e", "hacs", "hassfest"}
+    assert required <= set(ci["jobs"])
+    gate = ci["jobs"]["release-gate"]
+    assert set(gate["needs"]) == required
+    assert gate["if"] == "always()"
+    assert not gate.get("continue-on-error", False)
+    assert all(not ci["jobs"][job].get("continue-on-error", False) for job in required)
     # PyYAML leser den nakne nøkkelen `on` som True.
     assert "workflow_call" in ci[True], "ci.yml kan ikke kalles av release.yml"
 
@@ -660,6 +666,59 @@ def test_release_workflow_venter_pa_hele_ci_grafen() -> None:
         "workflow_run gir ikke releasen kontroll over hvilken commit som testes"
     )
     assert release["concurrency"]["cancel-in-progress"] is False
+
+
+def test_current_e2e_er_obligatorisk_og_bruker_kandidat_sha() -> None:
+    ci = yaml.safe_load((REPO / ".github/workflows/ci.yml").read_text())
+    e2e = yaml.safe_load((REPO / ".github/workflows/e2e.yml").read_text())
+    caller = ci["jobs"]["test-e2e"]
+    assert caller["uses"] == "./.github/workflows/e2e.yml"
+    assert "if" not in caller, "E2E skal ikke kunne hoppes over for releasekandidaten"
+    assert "workflow_call" in e2e[True]
+    assert "pull_request" not in e2e[True], "PR skal kjøre E2E én gang, gjennom CI"
+    job = e2e["jobs"]["test-e2e"]
+    assert "if" not in job
+    assert not job.get("continue-on-error", False)
+    checkout = next(step for step in job["steps"] if "actions/checkout@" in step.get("uses", ""))
+    assert checkout["with"]["ref"] == "${{ github.sha }}"
+    run = next(step for step in job["steps"] if step.get("run") == "just test-e2e target=current")
+    assert "if" not in run and not run.get("continue-on-error", False)
+    cleanup = next(step for step in job["steps"] if step.get("run", "").endswith("run.py cleanup"))
+    assert cleanup["if"] == "always()"
+    assert not cleanup.get("continue-on-error", False)
+    upload = next(step for step in job["steps"] if "actions/upload-artifact@" in step.get("uses", ""))
+    assert upload["if"] == "always()"
+    assert not upload.get("continue-on-error", False)
+    assert upload["with"]["if-no-files-found"] == "error"
+    assert "${{ github.sha }}" in upload["with"]["name"]
+    assert set(upload["with"]["path"].splitlines()) == {
+        f"tests_e2e/artifacts/*/{name}" for name in ("ha.log", "trace.jsonl", "report.json", "version.json")
+    }
+
+
+@pytest.mark.parametrize("result", ["success", "failure", "cancelled", "skipped", "missing"])
+@pytest.mark.parametrize("job", ["test-unit", "check", "test-ha", "test-e2e", "hacs", "hassfest"])
+def test_releaseporten_stopper_alt_annet_enn_success(job: str, result: str) -> None:
+    """Kjør selve portkommandoen med GitHubs resultatformat, inkludert manglende jobb."""
+    ci = yaml.safe_load((REPO / ".github/workflows/ci.yml").read_text())
+    gate = ci["jobs"]["release-gate"]
+    (step,) = gate["steps"]
+    assert step["env"]["JOB_RESULTS"] == "${{ toJSON(needs) }}"
+    results = {name: {"result": "success"} for name in gate["needs"]}
+    if result == "missing":
+        results.pop(job)
+    else:
+        results[job]["result"] = result
+    completed = subprocess.run(
+        ["bash", "-e", "-c", step["run"]],
+        env={**os.environ, "JOB_RESULTS": json.dumps(results)},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert completed.returncode == (0 if result == "success" else 1), completed.stderr
+    assert f"{job}: {result}" in completed.stdout
+    assert ("::error::Release stoppet:" in completed.stdout) is (result != "success")
 
 
 def test_release_jobben_har_en_ref_vakt() -> None:

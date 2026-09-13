@@ -76,6 +76,37 @@ class TestAsyncSetupEntry:
         platform_values = [str(p) for p in platforms]
         assert any("sensor" in str(p).lower() for p in platform_values)
 
+    def test_removes_only_legacy_sensor_entries_after_binary_sensor_transition(self, init_module):
+        """Gamle sensor.* ryddes, også når brukeren har gitt dem eget navn."""
+        hass = _make_hass()
+        entry = _make_entry(entry_id="entry_123")
+        registry = MagicMock()
+        legacy = MagicMock(
+            domain=init_module.Platform.SENSOR,
+            unique_id="entry_123_norgespris_aktiv",
+            entity_id="sensor.mitt_eget_navn",
+        )
+        active_binary = MagicMock(
+            domain=init_module.Platform.BINARY_SENSOR,
+            unique_id="entry_123_norgespris_aktiv",
+            entity_id="binary_sensor.norgespris_aktiv_na",
+        )
+        unrelated_sensor = MagicMock(
+            domain=init_module.Platform.SENSOR,
+            unique_id="entry_123_maanedlig_total",
+            entity_id="sensor.maanedlig_total",
+        )
+        init_module.er.async_get.return_value = registry
+        init_module.er.async_entries_for_config_entry.return_value = [
+            legacy,
+            active_binary,
+            unrelated_sensor,
+        ]
+
+        asyncio.run(init_module.async_setup_entry(hass, entry))
+
+        registry.async_remove.assert_called_once_with("sensor.mitt_eget_navn")
+
 
 class TestAsyncUnloadEntry:
     """async_unload_entry returns True when unload succeeds."""

@@ -44,7 +44,7 @@ Hver lenke er en verifiseringsrapport med full gjennomgang: forbruk, priser, eff
 
 ### 2026 (Norgespris, 2026-satser)
 
-- [August 2026](bkk-august-2026.md) (linje for linje verifisert; time-for-time venter på Elhub-data, HAN-utfall 01.-08. august)
+- [August 2026](bkk-august-2026.md) (linje for linje og time for time verifisert; 177 av 744 timer har kWh fra Elhub etter HAN-utfallet 01.-08. august)
 - [Juli 2026](bkk-juli-2026.md) (linje for linje verifisert; time-for-time delvis, HAN-utfall 29.-31. juli)
 - [Juni 2026](bkk-juni-2026.md)
 - [Mai 2026](bkk-mai-2026.md)

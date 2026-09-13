@@ -71,7 +71,7 @@ Dette kan forbigående blåse opp vist døgnmaks og kapasitetstrinn, og skjeve d
 
 Bevisst valg. En fiks krever et nytt persistert tidsstempel og en time-for-time-loop som fordeler backlogget på riktige klokketimer. Det er samme filosofi som den aksepterte forenklingen i `coordinator.py:714` (Norgespris-taket som nås midt i en time, teller hele timen i feil bucket). Mekanisme: `_compute_energy_delta` (`coordinator.py:340-380`) beregner deltaet, bucket-logikken (`coordinator.py:547-580`) avgjør hvilken dag og klokketime det krediteres til.
 
-Gjelder kun oppsett med `energy_sensor` satt. Uten den faller coordinator tilbake på Riemann-sum (`p * elapsed_hours`), der `elapsed_hours` er begrenset til `MAX_ELAPSED_HOURS` (6 min), så et langt gap bare mister de manglende minuttene i stedet for å dumpe et stort delta i én bucket.
+Gjelder kun oppsett med `energy_sensor` satt. Uten den faller coordinator tilbake på Riemann-sum (`p * elapsed_hours`), og et vindu lengre enn `MAX_ELAPSED_HOURS` (6 min) bokføres ikke i det hele tatt ([avregning.md B1](kontrakter/avregning.md#b1-energiavlesning)). Gapet dumper altså ikke et stort delta i én bucket, men energien i det er tapt: et døgn nede koster en effektbruker døgnet. Det er prisen for ikke å ha en teller.
 
 ## 8. Øyeblikks-prising av gap-forbruk ved HA-nedetid (energy_sensor)
 

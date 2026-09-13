@@ -696,6 +696,194 @@ class TestDognmaksOverManedsskifte:
         assert "2026-10-25" in data["top_3_days"]
 
 
+class TestManedsforbrukOverManedsskifte:
+    """Månedssummen i en ny måned skal aldri starte på forrige måneds total.
+
+    Boken arkiverer forrige måned først når en avlesning i den nye måneden
+    bokføres. Skjer rulleringen i en poll uten avlesning, er coordinatoren
+    alt i den nye måneden når arkivet kommer, og arkivet er da historikk, ikke
+    en åpningsbalanse. Alt som regnes av månedsforbruket følger med: avgifter,
+    energiledd, tak-splitten for Norgespris og strømstøtte, og månedskostnaden.
+    """
+
+    #: Fem timer på 6 kW i juni. Grovere takt enn ett minutt gir samme
+    #: kilowattimer, for boken fordeler på tid, ikke på antall polls.
+    @staticmethod
+    def _juni_kveld(coord_module, coord, dag=None):
+        dag = dag or _real_datetime(2026, 6, 30)
+        naa = dag.replace(hour=19, minute=0)
+        slutt = dag.replace(hour=23, minute=55)
+        while naa <= slutt:
+            _run_update(coord_module, coord, now=naa)
+            naa += timedelta(minutes=5)
+        for minutt in (57, 58, 59):
+            return_data = _run_update(coord_module, coord, now=dag.replace(hour=23, minute=minutt))
+        return return_data
+
+    def test_juli_starter_ikke_paa_junis_total(self, coord_module):
+        """Funnet selv: sensor borte 00:01, tilbake 00:02."""
+        coord, hass = _coordinator(coord_module)
+        juni = self._juni_kveld(coord_module, coord)
+        juni_total = juni["monthly_consumption_total_kwh"]
+        assert juni_total > 25
+
+        paa_igjen = _sensoren_borte(hass)
+        forste = _run_update(coord_module, coord, now=_real_datetime(2026, 7, 1, 0, 1))
+        assert forste["monthly_consumption_total_kwh"] == 0.0
+        assert forste["previous_month_consumption_total_kwh"] == pytest.approx(juni_total, abs=0.2)
+
+        paa_igjen()
+        andre = _run_update(coord_module, coord, now=_real_datetime(2026, 7, 1, 0, 2))
+        # Avlesningen 23:59-00:02 bærer ett minutts energi og fordeles over
+        # tre: to tredeler er julis. Uten rettingen sto det 29,9 her.
+        assert andre["monthly_consumption_total_kwh"] == pytest.approx(0.067, abs=0.02)
+        assert andre["previous_month_consumption_total_kwh"] == pytest.approx(juni_total, abs=0.2)
+
+        tredje = _run_update(coord_module, coord, now=_real_datetime(2026, 7, 1, 0, 3))
+        assert tredje["monthly_consumption_total_kwh"] == pytest.approx(0.167, abs=0.02)
+
+    def test_apningsbalansen_baerer_ikke_juni_videre(self, coord_module):
+        """To timer ut i juli skal månedssummen være julis to timer."""
+        coord, hass = _coordinator(coord_module)
+        self._juni_kveld(coord_module, coord)
+
+        paa_igjen = _sensoren_borte(hass)
+        _run_update(coord_module, coord, now=_real_datetime(2026, 7, 1, 0, 1))
+        paa_igjen()
+
+        naa = _real_datetime(2026, 7, 1, 0, 2)
+        slutt = _real_datetime(2026, 7, 1, 2, 4)
+        while naa <= slutt:
+            data = _run_update(coord_module, coord, now=naa)
+            naa += timedelta(minutes=5)
+
+        # 6 kW i to timer er 12 kWh. Uten rettingen sto det 42.
+        assert data["monthly_consumption_total_kwh"] == pytest.approx(12.07, abs=0.3)
+        assert coord._aapningsbalanse().total == pytest.approx(0.0, abs=1e-9)
+
+    def test_avgiftene_folger_maanedsforbruket(self, coord_module):
+        """Kronene er det som gjør funnet dyrt, ikke kilowattimene i seg selv."""
+        coord, hass = _coordinator(coord_module)
+        self._juni_kveld(coord_module, coord)
+
+        paa_igjen = _sensoren_borte(hass)
+        _run_update(coord_module, coord, now=_real_datetime(2026, 7, 1, 0, 1))
+        paa_igjen()
+
+        naa = _real_datetime(2026, 7, 1, 0, 2)
+        slutt = _real_datetime(2026, 7, 1, 1, 2)
+        while naa <= slutt:
+            data = _run_update(coord_module, coord, now=naa)
+            naa += timedelta(minutes=5)
+
+        # Avgiftene i sensorene regnes av månedsforbruket. Med junis 30 kWh i
+        # grunnlaget blir de fem ganger for høye.
+        forbruk = data["monthly_consumption_total_kwh"]
+        assert forbruk == pytest.approx(6.07, abs=0.3)
+        assert data["monthly_avgifter_kr"] == pytest.approx(
+            forbruk * (data["forbruksavgift_inkl_mva"] + data["enova_inkl_mva"]), rel=0.02
+        )
+
+    def test_sensoren_borte_i_timevis_over_skiftet(self, coord_module):
+        """Strømbrudd fra 23:30 til 03:00. Bare det som ble målt skal telle."""
+        coord, hass = _coordinator(coord_module)
+        self._juni_kveld(coord_module, coord)
+
+        paa_igjen = _sensoren_borte(hass)
+        naa = _real_datetime(2026, 6, 30, 23, 59, 30)
+        while naa <= _real_datetime(2026, 7, 1, 3, 0):
+            _run_update(coord_module, coord, now=naa)
+            naa += timedelta(minutes=5)
+        paa_igjen()
+
+        # Første avlesning etter gapet spenner over hele utfallet og avvises
+        # som for langt vindu, men den setter baselinen. Pollen etter er ekte.
+        tom = _run_update(coord_module, coord, now=_real_datetime(2026, 7, 1, 3, 5))
+        assert tom["monthly_consumption_total_kwh"] == 0.0
+        data = _run_update(coord_module, coord, now=_real_datetime(2026, 7, 1, 3, 10))
+        assert data["monthly_consumption_total_kwh"] == pytest.approx(0.5, abs=0.05)
+        assert data["previous_month_consumption_total_kwh"] > 25
+
+    def test_sensoren_kommer_tilbake_midt_i_maaneden(self, coord_module):
+        """Måleren er nede fra månedsskiftet til den 15. Juli begynner der."""
+        coord, hass = _coordinator(coord_module)
+        self._juni_kveld(coord_module, coord)
+
+        paa_igjen = _sensoren_borte(hass)
+        _run_update(coord_module, coord, now=_real_datetime(2026, 7, 1, 0, 1))
+        naa = _real_datetime(2026, 7, 5, 12, 0)
+        while naa <= _real_datetime(2026, 7, 15, 12, 0):
+            _run_update(coord_module, coord, now=naa)
+            naa += timedelta(hours=6)
+        paa_igjen()
+
+        # Samme som over: den første avlesningen etter gapet avvises, den
+        # andre er den som teller. Juli skal begynne der, ikke på junis total.
+        _run_update(coord_module, coord, now=_real_datetime(2026, 7, 15, 12, 5))
+        data = _run_update(coord_module, coord, now=_real_datetime(2026, 7, 15, 12, 10))
+        assert data["monthly_consumption_total_kwh"] == pytest.approx(0.5, abs=0.1)
+        assert data["previous_month_consumption_total_kwh"] > 25
+
+    def test_skifte_uten_at_sensoren_forsvinner_virker_fortsatt(self, coord_module):
+        """Vakten mot en retting som ødelegger det vanlige tilfellet."""
+        coord, _ = _coordinator(coord_module)
+        juni = self._juni_kveld(coord_module, coord)
+        juni_total = juni["monthly_consumption_total_kwh"]
+
+        forste = _run_update(coord_module, coord, now=_real_datetime(2026, 7, 1, 0, 1))
+        assert forste["current_month"] == "2026-07"
+        # Ett minutt av avlesningen 23:59-00:01 er julis: 6 kW i ett minutt.
+        assert forste["monthly_consumption_total_kwh"] == pytest.approx(0.1, abs=0.03)
+        assert forste["previous_month_consumption_total_kwh"] == pytest.approx(juni_total + 0.1, abs=0.05)
+
+        senere = _run_update(coord_module, coord, now=_real_datetime(2026, 7, 1, 0, 6))
+        assert senere["monthly_consumption_total_kwh"] == pytest.approx(0.6, abs=0.05)
+
+    def test_omstart_i_ny_maaned_uten_maaler_starter_paa_null(self, coord_module):
+        """Ekte omstart: juni lagret, HA oppe 1. juli før måleren er det."""
+        lagret: dict = {}
+
+        def skrivende_store(hass, version, key):
+            store = MagicMock()
+            store.async_load = AsyncMock(return_value=None)
+
+            async def save(data):
+                lagret.clear()
+                lagret.update(data)
+
+            store.async_save = AsyncMock(side_effect=save)
+            store.async_remove = AsyncMock()
+            return store
+
+        def lesende_store(hass, version, key):
+            store = MagicMock()
+            store.async_load = AsyncMock(return_value=lagret)
+            store.async_save = AsyncMock()
+            store.async_remove = AsyncMock()
+            return store
+
+        coord_module.Store = MagicMock(side_effect=skrivende_store)
+        coord, hass = _coordinator(coord_module)
+        juni = self._juni_kveld(coord_module, coord)
+        juni_total = juni["monthly_consumption_total_kwh"]
+        asyncio.run(coord._save_stored_data())
+
+        coord_module.Store = MagicMock(side_effect=lesende_store)
+        coord_module.dt_util.now.return_value = _real_datetime(2026, 7, 1, 0, 1)
+        gjenopptatt = coord_module.NettleieCoordinator(hass, _make_entry())
+        asyncio.run(gjenopptatt._load_stored_data())
+
+        paa_igjen = _sensoren_borte(hass)
+        forste = _run_update(coord_module, gjenopptatt, now=_real_datetime(2026, 7, 1, 0, 1))
+        assert forste["current_month"] == "2026-07"
+        assert forste["monthly_consumption_total_kwh"] == 0.0
+        paa_igjen()
+
+        andre = _run_update(coord_module, gjenopptatt, now=_real_datetime(2026, 7, 1, 0, 2))
+        assert andre["monthly_consumption_total_kwh"] < 1.0
+        assert andre["previous_month_consumption_total_kwh"] == pytest.approx(juni_total, abs=0.2)
+
+
 class TestStoreOverlever:
     """Et bokført intervall bidrar ikke en gang til etter en omstart."""
 

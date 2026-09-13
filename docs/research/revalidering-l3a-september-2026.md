@@ -166,18 +166,13 @@ def _j(navn):
 
 
 def timer(navn):
-    return [
-        (datetime.fromisoformat(h["start_local"]), h["kwh"])
-        for h in _j(f"elhub_{navn}.json")["hours"]
-    ]
+    return [(datetime.fromisoformat(h["start_local"]), h["kwh"]) for h in _j(f"elhub_{navn}.json")["hours"]]
 
 
 def priser(navn):
     ut = {}
     for h in _j(f"final_pris_{navn}.json")["hours"]:
-        ut[datetime.fromisoformat(h["start_local"])] = (
-            h["kvarter"] or [h["nok_per_kwh_eks_mva"]] * 4
-        )
+        ut[datetime.fromisoformat(h["start_local"])] = h["kvarter"] or [h["nok_per_kwh_eks_mva"]] * 4
     return ut
 
 

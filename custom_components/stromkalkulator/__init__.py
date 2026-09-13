@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from homeassistant.const import Platform
+from homeassistant.helpers import event as ha_event
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.util import dt as dt_util
 
@@ -54,6 +55,8 @@ from .dso import (
 )
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
 
@@ -71,6 +74,26 @@ _MIGRATION_INDEX: dict[str, DSOFusjon] = {m.gammel: m for m in DSO_MIGRATIONS}
 # heksadesimalt. Mønsteret treffer derfor bare ekte entry-suffikser, og lar
 # domenevide issues som satser_utdatert og dso_migration_<gammel>_<ny> stå.
 _ENTRY_ID_SUFFIX = re.compile(r"_([0-9A-Z]{26}|[0-9a-f]{32})$")
+
+# Satsvakten. Id-ene står her og ikke i const.py fordi det er denne modulen som
+# reiser dem; diagnostikken kjenner dem igjen på sorten (`norgespris_utlopt`
+# pluss entry_id strykes før oppslaget).
+SATSER_ISSUE_ID = "satser_utdatert"
+NORGESPRIS_ISSUE_PREFIX = "norgespris_utlopt_"
+
+# Året som utløste varselet, lagret på selve issuen. Det er dette som gjør at en
+# demping har utløpsdato, se `_reis_med_aarsdemping`.
+_AAR_I_ISSUE = "aar_oppdaget"
+
+# Nøkkelen i hass.data der avmeldingen for den daglige vakten ligger. Vakten er
+# domenevid og registreres én gang, ikke én per anlegg.
+_SATSVAKT_UNSUB = "satsvakt_unsub"
+
+# Når på døgnet vakten ser på kalenderen. Fem over midnatt lokal tid: sent nok
+# til at et årsskifte er passert for alle, og langt nok unna 02:00-03:00 til at
+# sommertidsovergangen aldri kan hoppe over eller doble kjøringen.
+_SATSVAKT_TIME = 0
+_SATSVAKT_MINUTT = 5
 
 
 def _migrate_storage_file_sync(storage_dir: str, old_dso: str, new_dso: str) -> None:
@@ -397,7 +420,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: StromkalkulatorConfigEnt
 
     entry.async_on_unload(entry.add_update_listener(_async_update_options))
 
-    _check_stale_rates(hass, entry)
+    _sjekk_satsvakt(hass)
+    _start_satsvakt(hass)
     _check_sikringstrinn(hass, entry)
     _check_delt_dso(hass, entry)
     _check_egendefinerte_satser(hass, entry)
@@ -604,41 +628,151 @@ def _check_sikringstrinn(hass: HomeAssistant, entry: StromkalkulatorConfigEntry)
         ir.async_delete_issue(hass, DOMAIN, issue_id)
 
 
-def _check_stale_rates(hass: HomeAssistant, entry: StromkalkulatorConfigEntry) -> None:
+def _reis_med_aarsdemping(
+    hass: HomeAssistant,
+    issue_id: str,
+    *,
+    aar: int,
+    translation_key: str,
+    plassholdere: dict[str, str],
+) -> None:
+    """Reis et kalendervarsel, og la en demping gjelde bare året den ble gitt for.
+
+    Home Assistant lar brukeren ignorere et repair-varsel som ikke er fiksbart,
+    og den dempingen står til han fjerner den selv. En vakt som kan slås av for
+    godt blir glemt, og et varsel som ikke kan slås av blir ignorert på en måte
+    vi ikke ser. Løsningen er den samme som fri-nettleie-vakten bruker på sine
+    unntak: dempingen gjelder én verdi og fram til én dato.
+
+    Året som utløste varselet ligger derfor i issue-dataene. Er det et annet år
+    nå, slettes varselet før det reises på nytt, og slettingen tar dempingen med
+    seg. Er det samme år, oppdateres varselet uten at dempingen røres, så en
+    omstart ikke vekker et varsel brukeren har tatt stilling til.
+
+    Id-en er den samme hele veien. Å legge årstallet i id-en ville gitt samme
+    utløp, men gjort sorten ukjennelig for diagnostikken.
+    """
+    forrige = ir.async_get(hass).async_get_issue(DOMAIN, issue_id)
+    if forrige is not None:
+        data = forrige.data if isinstance(forrige.data, dict) else {}
+        if data.get(_AAR_I_ISSUE) != aar:
+            ir.async_delete_issue(hass, DOMAIN, issue_id)
+            _LOGGER.info(
+                "Kalendervarselet %s gjelder et nytt år (%s), og reises på nytt",
+                issue_id,
+                aar,
+            )
+
+    ir.async_create_issue(
+        hass,
+        DOMAIN,
+        issue_id,
+        is_fixable=False,
+        severity=ir.IssueSeverity.WARNING,
+        translation_key=translation_key,
+        data={_AAR_I_ISSUE: aar},
+        translation_placeholders=plassholdere,
+    )
+
+
+def _sjekk_norgespris(hass: HomeAssistant, entry: ConfigEntry, aar: int) -> None:
+    """Varsle det ene anlegget som har Norgespris om at ordningen kan ha opphørt.
+
+    Varselet er suffikset med entry_id (incident 001). Det globale id-et vi
+    brukte før kunne bare ha én tilstand for hele installasjonen, så et anlegg
+    på spotavtale slettet varselet til anlegget som faktisk hadde Norgespris,
+    alt etter hvilket som ble satt opp sist. Med to anlegg var varselet derfor
+    et lotteri.
+    """
+    issue_id = f"{NORGESPRIS_ISSUE_PREFIX}{entry.entry_id}"
+    if entry.data.get(CONF_HAR_NORGESPRIS) and aar > NORGESPRIS_SLUTT_AAR:
+        _reis_med_aarsdemping(
+            hass,
+            issue_id,
+            aar=aar,
+            translation_key="norgespris_utlopt",
+            plassholdere={"aar": str(NORGESPRIS_SLUTT_AAR)},
+        )
+    else:
+        ir.async_delete_issue(hass, DOMAIN, issue_id)
+
+
+def _sjekk_satsvakt(hass: HomeAssistant, naa: datetime | None = None) -> None:
     """Varsle via Repairs hvis satsene kan være utdaterte eller Norgespris har opphørt.
 
-    Satsene i const.py og dso.py er verifisert for et bestemt år. Ruller kalenderen
-    over uten at satsene er oppdatert, regner integrasjonen videre på fjorårets tall,
-    stikk i strid med presisjonsløftet. Varselet er informativt (ikke fiksbart): det
-    ber brukeren se etter en oppdatering. Fjernes automatisk når satsene er oppdatert.
+    Satsene i const.py og dso.py er verifisert for et bestemt år. Forbruksavgiften
+    settes av Stortinget i statsbudsjettet og skifter 1. januar, og mange
+    nettselskap bytter tariff samtidig, så årsskiftet er tidspunktet der satsene
+    faktisk blir gale. Ruller kalenderen over uten at satsene er oppdatert, regner
+    integrasjonen videre på fjorårets tall, stikk i strid med presisjonsløftet.
+    Varselet er informativt (ikke fiksbart): det ber brukeren se etter en
+    oppdatering, og forsvinner automatisk når satsene er oppdatert.
+
+    Året leses av lokal tid, aldri UTC. Skatteåret skifter ved midnatt norsk tid,
+    og i norsk vintertid ligger UTC en time bak: `utcnow().year` ville sagt 2026
+    fram til klokken 01:00 nyttårsnatt, altså holdt varselet tilbake i en time
+    etter at satsene var utdaterte.
+
+    `satser_utdatert` gjelder hele integrasjonen og reises av denne ene funksjonen,
+    som ser alle anlegg. Norgespris-varselet gjelder ett anlegg og har entry_id i
+    id-en.
     """
-    current_year = dt_util.now().year
+    aar = (naa or dt_util.now()).year
+    entries = list(hass.config_entries.async_entries(DOMAIN))
 
-    if current_year > SATSER_GJELDER_AAR:
-        ir.async_create_issue(
+    # Rest fra da Norgespris-varselet var domenevidt. Det kan ligge igjen hos
+    # brukere som oppgraderer, og det finnes ingen som kan rydde det utenom oss.
+    ir.async_delete_issue(hass, DOMAIN, "norgespris_utlopt")
+
+    if entries and aar > SATSER_GJELDER_AAR:
+        _reis_med_aarsdemping(
             hass,
-            DOMAIN,
-            "satser_utdatert",
-            is_fixable=False,
-            severity=ir.IssueSeverity.WARNING,
+            SATSER_ISSUE_ID,
+            aar=aar,
             translation_key="satser_utdatert",
-            translation_placeholders={"aar": str(SATSER_GJELDER_AAR)},
+            plassholdere={"aar": str(SATSER_GJELDER_AAR)},
         )
     else:
-        ir.async_delete_issue(hass, DOMAIN, "satser_utdatert")
+        ir.async_delete_issue(hass, DOMAIN, SATSER_ISSUE_ID)
 
-    if entry.data.get(CONF_HAR_NORGESPRIS) and current_year > NORGESPRIS_SLUTT_AAR:
-        ir.async_create_issue(
-            hass,
-            DOMAIN,
-            "norgespris_utlopt",
-            is_fixable=False,
-            severity=ir.IssueSeverity.WARNING,
-            translation_key="norgespris_utlopt",
-            translation_placeholders={"aar": str(NORGESPRIS_SLUTT_AAR)},
-        )
-    else:
-        ir.async_delete_issue(hass, DOMAIN, "norgespris_utlopt")
+    for entry in entries:
+        _sjekk_norgespris(hass, entry, aar)
+
+
+def _start_satsvakt(hass: HomeAssistant) -> None:
+    """Se på kalenderen én gang i døgnet, ikke bare ved oppstart.
+
+    En installasjon som står i månedsvis uten omstart passerte årsskiftet uten
+    at noen så etter, og satsvarselet kom først neste gang Home Assistant ble
+    startet på nytt. Det kunne være i mars.
+
+    `async_track_time_change` er HAs egen planlegger og regner tidspunktet ut på
+    nytt for hvert døgn i lokal tid, så den driver ikke og hopper ikke over et
+    døgn ved sommertidsovergangen slik en fast timer på 24 timer ville gjort.
+
+    Vakten er domenevid og registreres én gang, ikke én per anlegg: alle anlegg
+    sjekkes uansett i samme kjøring.
+    """
+    domenedata = hass.data.setdefault(DOMAIN, {})
+    if _SATSVAKT_UNSUB in domenedata:
+        return
+
+    async def _tikk(naa: datetime) -> None:
+        _sjekk_satsvakt(hass, naa)
+
+    domenedata[_SATSVAKT_UNSUB] = ha_event.async_track_time_change(
+        hass, _tikk, hour=_SATSVAKT_TIME, minute=_SATSVAKT_MINUTT, second=0
+    )
+
+
+def _stopp_satsvakt(hass: HomeAssistant) -> None:
+    """Meld av den daglige vakten når siste anlegg er borte."""
+    domenedata = hass.data.get(DOMAIN)
+    if not isinstance(domenedata, dict):
+        return
+    unsub = domenedata.pop(_SATSVAKT_UNSUB, None)
+    if unsub is not None:
+        unsub()
 
 
 async def _async_update_options(hass: HomeAssistant, entry: StromkalkulatorConfigEntry) -> None:
@@ -649,6 +783,14 @@ async def _async_update_options(hass: HomeAssistant, entry: StromkalkulatorConfi
 async def async_unload_entry(hass: HomeAssistant, entry: StromkalkulatorConfigEntry) -> bool:
     """Unload a config entry."""
     unload_ok: bool = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+    # Siste anlegg ut slukker lyset. Entryet som lastes ut står fortsatt i
+    # registeret her, så den filtreres bort selv. Ved en omstart av ett enkelt
+    # anlegg starter `async_setup_entry` vakten igjen med en gang.
+    if unload_ok and not [
+        annen for annen in hass.config_entries.async_entries(DOMAIN) if annen.entry_id != entry.entry_id
+    ]:
+        _stopp_satsvakt(hass)
 
     return unload_ok
 

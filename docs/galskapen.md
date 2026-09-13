@@ -331,8 +331,11 @@ prisliste gjør. Se [bidra med faktura](fakturaer/bidra-med-faktura.md).
     november 2024, januar, mars, april, juli, august, september, oktober og
     november 2025, 1. januar 2026 (30 selskap), mai, juni og 1. juli 2026 (Elvia,
     Glitre, Linja, Nettselskapet, Tensio TN, Tensio TS). Arvas fil er sist
-    oppdatert 22. oktober 2024, og der står det også en sesongprising jeg aldri har
-    fått verifisert sommersatsen på, så Arva-kunder får vintersats i juli.
+    oppdatert 22. oktober 2024, og det er riktig: Arva skriver selv på prissiden
+    at nettleien står uendret fra 1. januar 2026, og satsene stemmer tall for
+    tall (verifisert 13. september 2026). Sesongprisingen jeg lenge trodde gjaldt
+    husholdning, står i Arvas andre tabell, den for kunder over 100 000 kWh i
+    året.
 
 [^identitet]: `DSO_MIGRATIONS` i `dso.py` mapper `skiakernett` til `vevig`
     (fusjon 1. januar 2025). Rakkestad Energi har identiske satser og trinn som

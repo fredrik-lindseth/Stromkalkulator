@@ -109,17 +109,17 @@ Metodenavnene er fri-nettleies. Detaljer i [beregninger.md](beregninger.md#netts
 
 Én ting til om Fjellnett: energiledd og fastledd følger nettselskapets egen prisliste fra 01.07.2026, mens fri-nettleie fortsatt har 01.01.2026-tariffen. Avviket er ført opp i `KJENTE_AVVIK` i drift-vakten og fjernes når fri-nettleie er oppdatert.
 
-## 10. Tre nettselskap vi ikke får verifisert godt nok
+## 10. To nettselskap vi ikke får verifisert godt nok
 
-Drift-vakten sammenligner mot fri-nettleie hver uke, men den fanger bare det begge kildene ser. Disse tre har et hull ingen av dem dekker.
+Drift-vakten sammenligner mot fri-nettleie hver uke, men den fanger bare det begge kildene ser. Disse to har et hull ingen av dem dekker.
 
 Area Nett har tre prisområder med ulik pris, og hvilket som gjelder avgjøres av adressen. Du velger området selv i oppsettet: område 1 (Nordkapp, Måsøy), område 2 (Karasjok, Porsanger) eller område 3 (Gamvik, Lebesby). Har du integrasjonen fra før, står du på den utfasede oppføringen som regner med område 2, og et repair-varsel ber deg velge. Laveste trinn spriker fra 358 til 525 kr/mnd mellom områdene, så valget betyr noe. Kilde er Areas eget prisblad for 2026. For område 1 avviker fri-nettleie i de tre øverste trinnene, ført opp i `KJENTE_AVVIK`.
 
-Arva publiserer prisene med JavaScript, så siden er ikke lesbar uten nettleser, og fri-nettleies `arva.yml` er sist oppdatert 22. oktober 2024. Satsene våre matcher fri-nettleie eksakt, men begge kan ha stått stille siden 2024. En tidligere kommentar i `dso.py` påsto at Arva har sesongpriser, uten kilde på sommersatsen og uten at det var implementert, altså brukte vi vintersatsen hele året på en ubekreftet påstand. Påstanden er fjernet. Har du en Arva-faktura, er den spesielt nyttig.
-
 Tinfos er dekket i punkt 9. Ingen kilde finnes for metoden.
 
-Felles for alle tre: se [bidra med faktura](fakturaer/bidra-med-faktura.md).
+Felles for begge: se [bidra med faktura](fakturaer/bidra-med-faktura.md).
+
+Arva sto her fram til 13. september 2026. Prissiden rendres med JavaScript, men artikkelen bak den ligger åpent som JSON på `arva.no/Api/v2/template/rendered-article?pageId=484888468&Article=305`, og der står hele prislisten. Satsene stemmer tall for tall, og Arva skriver selv at nettleien er holdt uendret fra 1. januar 2026, så fri-nettleies fil fra 2024 er ikke ustelt, bare uendret. Sesongprisingen hos Arva gjelder kun kunder over 100 000 kWh i året, en gruppe vi ikke dekker.
 
 ## 11. Egendefinert nettselskap har ikke noe fastledd før du oppgir det
 

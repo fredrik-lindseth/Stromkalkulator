@@ -539,20 +539,33 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         # Korrigert 2026-05-25: tidligere tall trakk forbruksavgift+Enova dobbelt.
         # NO4 har ikke mva, så "u/ avgifter" hos kraftsystemet = ren netteierandel.
         #
-        # Åpent spørsmål (2026-07-28): en tidligere kommentar her påsto sesong-
-        # prising vinter 1.9-30.4 og sommer 1.5-31.8, uten kilde på sommersatsen,
-        # og uten `energiledd_perioder`. Vi brukte altså vintersatsen hele året
-        # på en påstand ingen hadde verifisert. fri-nettleie har ingen sesong for
-        # Arva i det hele tatt, og satsene under matcher dem eksakt. arva.no
-        # rendrer prisene med JavaScript, så de er ikke lesbare uten nettleser,
-        # og fri-nettleies arva.yml er sist oppdatert 2024-10-22. Påstanden om
-        # sesong er derfor fjernet framfor å bli implementert på gjetning. Se
-        # begrensninger.md punkt 10.
-        "energiledd_dag_eks_mva": 0.231,  # 23,10 øre/kWh ren energiledd
-        "energiledd_natt_eks_mva": 0.116,  # 11,60 øre/kWh ren energiledd
+        # Verifisert 2026-09-13 mot Arvas egen prisside (arva.no/ny-nettleie/Priser,
+        # tabellen "Kunder med strømforbruk < 100 000 kWh per år"). Siden rendrer
+        # tabellen med JavaScript, men artikkelen ligger åpent i JSON-en bak den,
+        # på /Api/v2/template/rendered-article?pageId=484888468&Article=305, og der
+        # står hele prislisten som ren HTML. Ingressen samme sted: "Arva holder
+        # nettleia stabil fra 1. januar 2026", altså uendret tariff, som er grunnen
+        # til at fri-nettleies arva.yml fra 2024-10-22 fortsatt stemmer.
+        #
+        # Ingen sesongprising for husholdning. Arva har sesong bare på tariffen
+        # for kunder over 100 000 kWh/år (okt-mars mot april-september), en
+        # kundegruppe vi ikke dekker. Den gamle påstanden om vinter 1.9-30.4 og
+        # sommer 1.5-31.8 gjaldt altså aldri husholdning.
+        #
+        # Energileddet er oppgitt uten avgifter: siden sier uttrykkelig at mva,
+        # forbruksavgift og Enova-avgift kommer i tillegg.
+        "energiledd_dag_eks_mva": 0.231,  # 23,1 øre/kWh ren energiledd, dag 06-22
+        "energiledd_natt_eks_mva": 0.116,  # 11,6 øre/kWh ren energiledd, natt 22-06
         "url": "https://arva.no/ny-nettleie/Priser",
+        # Kapasitetstrinn i kr/mnd, ordrett fra prisidens kolonne "Fastledd
+        # måned" (NO4, ingen mva). Arva trykker også en årskolonne som ikke er
+        # månedsbeløpet ganget med tolv: 1019, 2415, 4781, 7145, 9508, 11872,
+        # 23666, 35463, 47261, 71334 kr/år. Vi fakturerer per måned, så det er
+        # månedskolonnen som gjelder; å regne 1019/12 ville gitt 84,92.
+        # Fastleddet slås opp med snittet av de tre høyeste timene på tre ulike
+        # dager i måneden, altså TRE_DØGNMAX_MND som er default her.
         "kapasitetstrinn": [
-            (2, 85),  # 0-2 kW: 85 kr/mnd
+            (2, 85),  # under 2 kW: 85 kr/mnd
             (5, 201),  # 2-5 kW: 201 kr/mnd
             (10, 398),  # 5-10 kW: 398 kr/mnd
             (15, 595),  # 10-15 kW: 595 kr/mnd
@@ -561,7 +574,7 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
             (50, 1972),  # 25-50 kW: 1972 kr/mnd
             (75, 2955),  # 50-75 kW: 2955 kr/mnd
             (100, 3938),  # 75-100 kW: 3938 kr/mnd
-            (float("inf"), 5945),  # >100 kW: 5945 kr/mnd
+            (float("inf"), 5945),  # 100 kW og større: 5945 kr/mnd
         ],
     },
     "fagne": {

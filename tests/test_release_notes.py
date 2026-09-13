@@ -701,6 +701,10 @@ class TestEkteChangelogKort:
             "merk punktene en bruker faktisk merker."
         )
 
+    def test_kortmerket_staar_etter_teksten(self):
+        """Starten av et punkt må være Markdown, også i GitHubs filvisning."""
+        assert not any(linje.startswith("- <!--kort-->") for linje in self._changelog().splitlines())
+
     def test_kort_note_er_vesentlig_kortere_enn_hele(self):
         """Den leses i en smal rute i HACS. Er den like lang, er den ikke kort."""
         changelog = self._changelog()

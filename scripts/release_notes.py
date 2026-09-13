@@ -52,10 +52,10 @@ REPO_URL = "https://github.com/fredrik-lindseth/Stromkalkulator"
 HANDLING = "Dette må du gjøre selv"
 
 # Merket som sier at et punkt skal med i den korte release-noten. En
-# HTML-kommentar er usynlig når CHANGELOG.md leses som markdown på GitHub, og
-# står rett etter streken der den er lett å se i råteksten. Skriv den slik:
+# HTML-kommentar er usynlig når CHANGELOG.md leses som markdown på GitHub. Den
+# står til slutt: først i et punkt kan GitHub vise resten som råtekst. Skriv:
 #
-#     - <!--kort--> **Månedskostnaden faller 64 til 145 kroner.** ...
+#     - **Månedskostnaden faller 64 til 145 kroner.** ... <!--kort-->
 MERKE_TEKST = "<!--kort-->"
 MERKE = re.compile(r"<!--\s*kort\s*-->[ \t]*")
 

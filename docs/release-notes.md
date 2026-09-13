@@ -48,18 +48,19 @@ forskjellige ting, og den ene av dem råtner alltid først.
 
 ### Merkingen
 
-Sett `<!--kort-->` rett etter streken på punktene en bruker faktisk merker:
+Sett `<!--kort-->` til slutt i punktene en bruker faktisk merker. Når
+kommentaren står først, renderer GitHubs CHANGELOG-visning noen ganger resten
+av punktet som rå tekst:
 
 ```markdown
 ### Fikset
 
-- <!--kort--> **Månedskostnaden lå 64 til 145 kroner for høyt.** Fastleddet ...
+- **Månedskostnaden lå 64 til 145 kroner for høyt.** Fastleddet ... <!--kort-->
 - **Fjellnett vekter en uke som krysser månedsskiftet med mandagens måned**, ...
 ```
 
 Merket er en HTML-kommentar. Den er usynlig når `CHANGELOG.md` leses som
-markdown på GitHub, og den står der du ser den når du skriver punktet. Den
-fjernes fra begge utskriftene.
+markdown på GitHub, og fjernes fra begge utskriftene.
 
 Punktene under «Dette må du gjøre selv» blir med i sin helhet og skal ikke
 merkes. Et merke der telles ikke som merket punkt.

@@ -87,6 +87,13 @@ def _slettede_issue_ids(ir_mock) -> list[str]:
     return [kall.args[2] for kall in ir_mock.async_delete_issue.call_args_list]
 
 
+def _siste_plassholdere(ir_mock, issue_id: str) -> dict:
+    """Teksten varselet står med nå, altså siste gang det ble skrevet."""
+    kall = [k for k in ir_mock.async_create_issue.call_args_list if k.args[2] == issue_id]
+    assert kall, f"{issue_id} ble aldri reist"
+    return dict(kall[-1].kwargs["translation_placeholders"])
+
+
 class TestUtfall:
     """Deteksjon 1: entiteten er unavailable eller unknown."""
 
@@ -132,14 +139,19 @@ class TestUtfall:
         utfall = [p for p in resultat["input_problemer"] if p["type"] == UTFALL]
         assert [p["input"] for p in utfall] == ["spotpris"]
 
-    def test_issue_reises_kun_ved_overgang(self, coord_module):
+    def test_issue_skrives_ikke_om_naar_teksten_er_den_samme(self, coord_module):
+        """Uendret utfall skal ikke skrive i issue-registeret hvert minutt.
+
+        Polling er hvert minutt. Varselet skrives om når innholdet endrer seg,
+        og innenfor samme viste varighet er det ingenting å endre.
+        """
         benk = Sensorbenk()
         coord = _lag_coordinator(coord_module, benk)
         start = datetime(2026, 6, 15, 12, 0)
         _poll(coord_module, coord, start)
 
         benk.sett("sensor.power", "unavailable")
-        for minutter in (40, 50, 60, 70):
+        for minutter in (40, 41, 42):
             _poll(coord_module, coord, start + timedelta(minutes=minutter))
 
         utfall_issues = [i for i in _issue_ids(coord_module.ir) if i.startswith("input_utfall_")]
@@ -582,6 +594,150 @@ class TestFriskmelding:
         _poll(coord_module, coord, start + timedelta(hours=1))
 
         assert "input_utfall_annen_entry" in _issue_ids(coord_module.ir)
+
+
+class TestVarseletFolgerBerorteInput:
+    """Varselet skal peke på de sensorene som er nede nå, ikke de som var det.
+
+    Én issue dekker alle inputene som er nede av samme grunn. Da må teksten
+    bygges av hele listen og skrives om når listen endrer seg. Ble den bygget
+    av den første raden og stående, sa varselet at effektmåleren var borte
+    lenge etter at den var tilbake, mens energimåleren som faktisk lå nede
+    ikke sto nevnt noe sted. Brukeren feilsøkte da en frisk sensor.
+    """
+
+    @staticmethod
+    def _begge_nede(coord_module, benk, coord, start, minutter=45):
+        """Effekt- og energimåleren ute samtidig, over grace."""
+        benk.sett("sensor.power", "unavailable")
+        benk.sett("sensor.tpi", "unavailable")
+        return _poll(coord_module, coord, start + timedelta(minutes=minutter))
+
+    def test_begge_staar_i_varselet_mens_begge_er_nede(self, coord_module):
+        benk = Sensorbenk()
+        coord = _lag_coordinator(coord_module, benk)
+        start = datetime(2026, 6, 15, 12, 0)
+        _poll(coord_module, coord, start)
+
+        self._begge_nede(coord_module, benk, coord, start)
+
+        plassholdere = _siste_plassholdere(coord_module.ir, f"input_utfall_{coord.entry.entry_id}")
+        assert plassholdere["input"] == "effektmåleren, energimåleren"
+        assert plassholdere["detaljer"] == (
+            "- effektmåleren (sensor.power): 0.8\n- energimåleren (sensor.tpi): 0.8"
+        )
+
+    def test_delvis_friskmelding_skriver_om_varselet(self, coord_module):
+        """Effektmåleren er tilbake, energimåleren er ikke. Da skal bare den stå."""
+        benk = Sensorbenk()
+        coord = _lag_coordinator(coord_module, benk)
+        start = datetime(2026, 6, 15, 12, 0)
+        _poll(coord_module, coord, start)
+        self._begge_nede(coord_module, benk, coord, start)
+
+        benk.sett("sensor.power", 5000)
+        resultat = _poll(coord_module, coord, start + timedelta(minutes=46))
+
+        assert [p["input"] for p in resultat["input_problemer"]] == ["energi"]
+        plassholdere = _siste_plassholdere(coord_module.ir, f"input_utfall_{coord.entry.entry_id}")
+        assert plassholdere["input"] == "energimåleren"
+        assert plassholdere["entity_id"] == "sensor.tpi"
+        assert "sensor.power" not in plassholdere["detaljer"]
+
+    def test_delvis_friskmelding_fjerner_ikke_varselet(self, coord_module):
+        """Negativ prøve: det skal stå til alle er friske, ikke til den første er det."""
+        benk = Sensorbenk()
+        coord = _lag_coordinator(coord_module, benk)
+        start = datetime(2026, 6, 15, 12, 0)
+        _poll(coord_module, coord, start)
+        self._begge_nede(coord_module, benk, coord, start)
+
+        coord_module.ir.async_delete_issue.reset_mock()
+        benk.sett("sensor.power", 5000)
+        resultat = _poll(coord_module, coord, start + timedelta(minutes=46))
+
+        assert resultat["maaledata_problem"] is True
+        slettet = _slettede_issue_ids(coord_module.ir)
+        assert f"input_utfall_{coord.entry.entry_id}" not in slettet
+
+    def test_siste_friskmelding_fjerner_varselet(self, coord_module):
+        benk = Sensorbenk()
+        coord = _lag_coordinator(coord_module, benk)
+        start = datetime(2026, 6, 15, 12, 0)
+        _poll(coord_module, coord, start)
+        self._begge_nede(coord_module, benk, coord, start)
+
+        benk.sett("sensor.power", 5000)
+        _poll(coord_module, coord, start + timedelta(minutes=46))
+
+        coord_module.ir.async_delete_issue.reset_mock()
+        benk.sett("sensor.tpi", 1005.0)
+        resultat = _poll(coord_module, coord, start + timedelta(minutes=47))
+
+        assert resultat["input_problemer"] == []
+        assert f"input_utfall_{coord.entry.entry_id}" in _slettede_issue_ids(coord_module.ir)
+
+    def test_varigheten_folger_med_over_flere_oppdateringer(self, coord_module):
+        """Varselet skal ikke stå og si 0,8 timer etter to timer uten data."""
+        benk = Sensorbenk()
+        coord = _lag_coordinator(coord_module, benk)
+        start = datetime(2026, 6, 15, 12, 0)
+        _poll(coord_module, coord, start)
+
+        benk.sett("sensor.power", "unavailable")
+        _poll(coord_module, coord, start + timedelta(minutes=45))
+        issue_id = f"input_utfall_{coord.entry.entry_id}"
+        assert _siste_plassholdere(coord_module.ir, issue_id)["timer"] == "0.8"
+
+        _poll(coord_module, coord, start + timedelta(hours=2, minutes=5))
+        assert _siste_plassholdere(coord_module.ir, issue_id)["timer"] == "2.0"
+
+    def test_ingen_varsel_naar_ingenting_er_galt(self, coord_module):
+        """Den vanlige dagen: alle sensorer leverer, ingen issue reises."""
+        benk = Sensorbenk()
+        coord = _lag_coordinator(coord_module, benk)
+        start = datetime(2026, 6, 15, 12, 0)
+        for minutt in range(5):
+            benk.sett("sensor.tpi", 1000.0 + minutt)
+            resultat = _poll(coord_module, coord, start + timedelta(minutes=minutt))
+
+        assert resultat["input_problemer"] == []
+        assert resultat["maaledata_problem"] is False
+        assert not [i for i in _issue_ids(coord_module.ir) if i.startswith("input_utfall_")]
+
+    def test_enhetsvarselet_navner_begge_sensorene(self, coord_module):
+        """Samme regel for enhetssorten: hver sensor med sin egen enhet."""
+        benk = Sensorbenk()
+        coord = _lag_coordinator(coord_module, benk)
+        start = datetime(2026, 6, 15, 12, 0)
+        _poll(coord_module, coord, start)
+
+        benk.ENHETER = {**benk.ENHETER, "sensor.power": "kvar", "sensor.spot_price": "EUR/MWh"}
+        _poll(coord_module, coord, start + timedelta(minutes=1))
+
+        plassholdere = _siste_plassholdere(coord_module.ir, f"input_enhet_{coord.entry.entry_id}")
+        assert plassholdere["detaljer"] == (
+            "- effektmåleren (sensor.power): kvar\n- spotpris-sensoren (sensor.spot_price): EUR/MWh"
+        )
+
+    def test_enhetsvarselet_skrives_om_naar_den_ene_rettes(self, coord_module):
+        benk = Sensorbenk()
+        coord = _lag_coordinator(coord_module, benk)
+        start = datetime(2026, 6, 15, 12, 0)
+        _poll(coord_module, coord, start)
+
+        benk.ENHETER = {**benk.ENHETER, "sensor.power": "kvar", "sensor.spot_price": "EUR/MWh"}
+        _poll(coord_module, coord, start + timedelta(minutes=1))
+
+        coord_module.ir.async_delete_issue.reset_mock()
+        benk.ENHETER = {**benk.ENHETER, "sensor.power": "W"}
+        _poll(coord_module, coord, start + timedelta(minutes=2))
+
+        issue_id = f"input_enhet_{coord.entry.entry_id}"
+        plassholdere = _siste_plassholdere(coord_module.ir, issue_id)
+        assert plassholdere["input"] == "spotpris-sensoren"
+        assert plassholdere["enhet"] == "EUR/MWh"
+        assert issue_id not in _slettede_issue_ids(coord_module.ir)
 
 
 class TestJuliReplay:

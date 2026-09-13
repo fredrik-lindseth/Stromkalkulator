@@ -343,7 +343,7 @@
   "issues": {
     "vakthold_utfall": {
       "title": "Strømkalkulator får ikke data fra {input}",
-      "description": "{entity_id} har vært utilgjengelig i {timer} timer. Så lenge den er borte står forbruk og kostnad stille, uten at tallene ser feil ut. Sjekk integrasjonen som eier sensoren, HAN-leseren og nettverket. Varselet forsvinner av seg selv når dataene kommer tilbake."
+      "description": "Timer uten data, per sensor:\n\n{detaljer}\n\nSå lenge de er borte står forbruk og kostnad stille, uten at tallene ser feil ut. Sjekk integrasjonen som eier sensoren, HAN-leseren og nettverket. Listen oppdaterer seg når en sensor kommer tilbake, og varselet forsvinner av seg selv når alle leverer igjen."
     },
     "vakthold_frossen": {
       "title": "Energimåleren står stille",
@@ -408,7 +408,7 @@
     },
     "vakthold_enhet": {
       "title": "Strømkalkulator kan ikke regne på {input}",
-      "description": "{entity_id} rapporterer nå i enheten {enhet}, og den kan kalkulatoren ikke regne om. Så lenge sensoren står slik kommer det ingen tall fra den, og det som er avhengig av den står stille. Sjekk integrasjonen som eier sensoren, eller velg en annen i Innstillinger > Enheter og tjenester > Strømkalkulator > Konfigurer."
+      "description": "Enheten hver sensor rapporterer nå, og som kalkulatoren ikke kan regne om:\n\n{detaljer}\n\nSå lenge en sensor står slik kommer det ingen tall fra den, og det som er avhengig av den står stille. Sjekk integrasjonen som eier sensoren, eller velg en annen i Innstillinger > Enheter og tjenester > Strømkalkulator > Konfigurer."
     },
     "prisenhet_ubekreftet": {
       "title": "Bekreft enheten på prissensoren",

@@ -261,6 +261,22 @@ _VAKTHOLD_ISSUE_PREFIX: dict[str, str] = {
     VAKTHOLD_ENHET: "input_enhet",
 }
 
+
+def _vakthold_varighet(timer: float) -> str:
+    """Varigheten slik varselet viser den, kvantisert så teksten ikke blafrer.
+
+    Varselet skrives om hver gang innholdet endrer seg, og polles hvert
+    minutt. Et tall med desimal ville skrevet om issuen hvert sjette minutt,
+    altså rundt 2400 ganger gjennom et utfall som det på 237 timer i juli.
+    Over en time vises derfor hele timer. Under en time beholdes desimalen,
+    ellers ville det første varselet (som kommer etter 30 minutters grace)
+    meldt null timer.
+    """
+    if timer < 1:
+        return f"{timer:.1f}"
+    return f"{float(int(timer)):.1f}"
+
+
 # Resultattypene slik diagnostikken navngir dem.
 _RESULTATTYPE: dict[type, str] = {
     Gyldig: "gyldig",
@@ -342,7 +358,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     _input_sist_gyldig: dict[str, datetime]
     _input_utfall_aktiv: set[str]
     _last_energy_increase: datetime | None
-    _vakthold_issues: set[str]
+    _vakthold_issues: dict[str, dict[str, str]]
     _vakthold_issues_synket: bool
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -559,7 +575,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Settes fra Store ved oppstart, ellers på første poll. None betyr
         # "vet ikke ennå", og da kan telleren ikke meldes frossen.
         self._last_energy_increase = None
-        self._vakthold_issues = set()
+        self._vakthold_issues = {}
         self._vakthold_issues_synket = False
 
         # Persistent storage - keyed by entry_id for multi-instance isolation
@@ -887,15 +903,53 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._oppdater_vakthold_issues(problemer)
         return problemer
 
+    @staticmethod
+    def _vakthold_plassholdere(type_: str, rader: list[dict[str, Any]]) -> dict[str, str]:
+        """Teksten varselet vises med, bygget av alle radene av samme sort.
+
+        Ett varsel dekker alle inputene som er nede av samme grunn, så teksten
+        må bygges av hele listen. Ble den bygget av den første raden alene,
+        sto det effektmåleren i varselet mens det var energimåleren som lå
+        nede, og brukeren feilsøkte en sensor som var frisk.
+
+        Rollenavnene er norske også i den engelske teksten, slik `_ROLLE_TEKST`
+        alt er. Tallene og enhetene står uten ord i `detaljer`, nettopp fordi
+        ordet rundt dem hører hjemme i malen som faktisk oversettes.
+        """
+        varigheter = [_vakthold_varighet(float(rad["timer"])) for rad in rader]
+        enheter = [str(rad.get("raa_enhet") or "uten enhet") for rad in rader]
+        verdier = enheter if type_ == VAKTHOLD_ENHET else varigheter
+        detaljer = "\n".join(
+            f"- {_ROLLE_TEKST.get(rad['input'], rad['input'])} ({rad['entity_id']}): {verdi}"
+            for rad, verdi in zip(rader, verdier, strict=True)
+        )
+        return {
+            "input": ", ".join(_ROLLE_TEKST.get(rad["input"], rad["input"]) for rad in rader),
+            "entity_id": ", ".join(str(rad["entity_id"]) for rad in rader),
+            "timer": _vakthold_varighet(max(float(rad["timer"]) for rad in rader)),
+            "enhet": enheter[0],
+            "detaljer": detaljer,
+        }
+
     def _oppdater_vakthold_issues(self, problemer: list[dict[str, Any]]) -> None:
-        """Opprett og slett repair-issues ved overgang, ikke ved hver poll."""
-        aktive = {p["type"] for p in problemer}
+        """Hold ett varsel per sort i takt med inputene som faktisk er nede.
+
+        Varselet skrives om når innholdet endrer seg, ikke ved hver poll. Er to
+        sensorer nede og den ene frisker til, skal teksten slutte å peke på
+        den, men et uendret utfall skal ikke skrive i issue-registeret hvert
+        minutt. Varselet forsvinner først når ingen rader av sorten står igjen.
+        """
+        rader_per_sort: dict[str, list[dict[str, Any]]] = {}
+        for problem in problemer:
+            rader_per_sort.setdefault(str(problem["type"]), []).append(problem)
+
         for type_, prefix in _VAKTHOLD_ISSUE_PREFIX.items():
             issue_id = f"{prefix}_{self.entry.entry_id}"
-            if type_ in aktive:
-                if type_ in self._vakthold_issues:
+            rader = rader_per_sort.get(type_)
+            if rader:
+                plassholdere = self._vakthold_plassholdere(type_, rader)
+                if self._vakthold_issues.get(type_) == plassholdere:
                     continue
-                forste = next(p for p in problemer if p["type"] == type_)
                 ir.async_create_issue(
                     self.hass,
                     DOMAIN,
@@ -903,18 +957,13 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     is_fixable=False,
                     severity=ir.IssueSeverity.WARNING,
                     translation_key=f"vakthold_{type_}",
-                    translation_placeholders={
-                        "input": _ROLLE_TEKST.get(forste["input"], forste["input"]),
-                        "entity_id": forste["entity_id"],
-                        "timer": f"{forste['timer']:.1f}",
-                        "enhet": str(forste.get("raa_enhet") or "uten enhet"),
-                    },
+                    translation_placeholders=plassholdere,
                 )
-                self._vakthold_issues.add(type_)
+                self._vakthold_issues[type_] = plassholdere
             elif type_ in self._vakthold_issues or not self._vakthold_issues_synket:
                 # Første poll rydder også issues som overlevde en omstart.
                 ir.async_delete_issue(self.hass, DOMAIN, issue_id)
-                self._vakthold_issues.discard(type_)
+                self._vakthold_issues.pop(type_, None)
         self._vakthold_issues_synket = True
 
     async def _handle_month_rollover(self, now: datetime) -> None:

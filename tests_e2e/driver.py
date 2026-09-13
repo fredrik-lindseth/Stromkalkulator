@@ -589,7 +589,7 @@ class Driver:
         to kunne ikke bli enige. Her er prøven at de nå er samme tall, og at
         kapasitetsleddet ikke rikker seg av at forbruket gjør det.
         """
-        entry_id = self.data["bkk_entry"]
+        entry_id = self.data.get("bkk_entry") or self.data["entry_id"]
         netto = await self.state(self.utgang("maanedlig_nettokostnad", entry_id))
         akkumulert = await self.state(self.utgang("akkumulert_kostnad", entry_id))
         forbrukskostnad = float(netto["attributes"]["forbrukskostnad_kr"])
@@ -728,19 +728,38 @@ class Driver:
         satt opp fra katalogen og har ingenting å velge mellom; anlegget vi
         selv taster en annen sats på, har det.
         """
-        bkk = self.data["bkk_entry"]
+        bkk = self.data.get("bkk_entry") or self.data["entry_id"]
         assert not await self.issue_present("tariff_ubekreftet", bkk), "Katalogsats reiste satsvarselet"
         assert not await self.issue_present("tariff_ubekreftet", self.data["custom_entry_id"]), (
             "Egendefinert er brukerens egne tall og skal ikke få satsvarselet"
         )
         trace("test_satsvarsel_kun_ved_avvik", anlegg=len(self.data["utganger"]))
 
+    async def vent_paa_lastet(self, entry_id: str, *, timeout: int = 120) -> None:
+        """Vent til entryet er `loaded`.
+
+        Varslene reises i `async_setup_entry`. REST-API-et svarer før entryene
+        er satt opp, så en sjekk rett etter oppstart kan lese issue-registeret
+        mens integrasjonen ennå ikke har kjørt, og melde at varselet uteble.
+        """
+        frist = time.monotonic() + timeout
+        tilstand = None
+        while time.monotonic() < frist:
+            entries = await self.api("/api/config/config_entries/entry")
+            rad = next((row for row in entries if row["entry_id"] == entry_id), None)
+            tilstand = rad and rad["state"]
+            if tilstand == "loaded":
+                return
+            await asyncio.sleep(1)
+        raise AssertionError(f"{entry_id} ble ikke lastet innen {timeout} s: {tilstand}")
+
     async def test_satsvarsel_etter_avvik(self) -> None:
         """Motprøven, kjørt etter at lagret sats er skrudd bort fra katalogen."""
-        bkk = self.data["bkk_entry"]
+        bkk = self.data.get("bkk_entry") or self.data["entry_id"]
+        await self.vent_paa_lastet(bkk)
         issues = await self.issues()
         varsel = issues.get(f"tariff_ubekreftet_{bkk}")
-        assert varsel, "Avvikende lagret sats reiste ikke satsvarselet"
+        assert varsel, f"Avvikende lagret sats reiste ikke satsvarselet. Reist: {sorted(issues)}"
         assert varsel["translation_key"] == "tariff_ubekreftet", varsel["translation_key"]
         plassholdere = varsel["translation_placeholders"]
         assert plassholdere["lagret_dag"] != plassholdere["katalog_dag"], (

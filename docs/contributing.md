@@ -21,39 +21,58 @@ Foreløpig er kun BKK (NO5) verifisert. Vi trenger fakturadata fra andre nettsel
 
 Åpne `custom_components/stromkalkulator/dso.py`, finn `DSO_LIST`, oppdater prisene.
 
+Hvert eneste tall skal komme fra nettselskapets egen prisliste, og
+[fri-nettleie](https://github.com/kraftsystemet/fri-nettleie) som andrevalg hvis
+selskapet ikke publiserer tariffen på en lesbar måte. Verken malen under, et
+annet nettselskap i `dso.py` eller et rimelig anslag er en kilde. Se
+[incident 006](incidents/006-kapasitetstrinn-uten-kilde.md): fjorten
+nettselskap fikk kopierte kapasitetstrinn i april 2026 og leverte oppdiktede
+beløp til brukerne i fire måneder, med avvik opp til 281 kr/mnd.
+
+Strukturen ser slik ut. Nullene er med vilje ubrukelige som priser, så en
+oppføring du glemmer å fylle ut faller på testene i stedet for å nå en bruker:
+
 ```python
 "ditt_nettselskap": {
     "name": "Eksempel Nett",
     "prisomrade": "NO1",
     "supported": True,
-    "energiledd_dag_eks_mva": 0.2877,   # NOK/kWh, ren nettleie eks. avgifter
-    "energiledd_natt_eks_mva": 0.105,   # NOK/kWh, ren nettleie eks. avgifter
+    # Kilde: https://www.eksempelnett.no/nettleiepriser, tariff fra ÅÅÅÅ-MM-DD
+    "energiledd_dag_eks_mva": 0.0,      # NOK/kWh, ren nettleie eks. avgifter
+    "energiledd_natt_eks_mva": 0.0,     # NOK/kWh, ren nettleie eks. avgifter
     "url": "https://www.eksempelnett.no/nettleiepriser",
+    # Kilde: samme prisliste, tariff fra ÅÅÅÅ-MM-DD
     "kapasitetstrinn": [
-        (2, 150),                       # 0-2 kW: 150 kr/mnd
-        (5, 250),
-        (10, 400),
-        (15, 600),
-        (20, 800),
-        (25, 1000),
-        (50, 1800),
-        (75, 2600),
-        (100, 3500),
-        (float("inf"), 7000),
+        (0, 0),   # (øvre kW-grense, kr/mnd inkl. mva)
+        # én rad per trinn i prislisten, i stigende rekkefølge
+        (float("inf"), 0),  # øverste trinn, høyere pris enn raden over
     ],
 },
 ```
+
+Antall trinn og grensene mellom dem varierer fra selskap til selskap, så gjengi
+tabellen slik den står i prislisten. Ikke fyll inn trinn som ikke er publisert.
+
+Finner du ikke kapasitetstrinnene, la `supported` stå på `False` og
+`kapasitetstrinn` stå tom. Da havner nettselskapet ikke i listen, og brukeren
+velger Egendefinert i stedet for å få et tall som ser riktig ut og er feil. Det
+er et helt greit bidrag å sende inn energileddene og si fra at fastleddet
+mangler kilde.
+
+Kilde-kommentaren hører hjemme over hvert felt, ikke én gang per oppføring. At
+energileddet har kilde gjør ikke kapasitetstrinnene troverdige, og det var
+nettopp den blandingen som gikk galt i incident 006. Skriv URL og tariffdato.
+Kommer trinnene fra fri-nettleie, oppgi YAML-filen og datoen du hentet den:
+fri-nettleie oppgir kr/år eks. mva, så konverteringen er `pris / 12 *
+mva-faktor` med halve kroner rundet opp. Detaljene står i
+[domain-rules.md](domain-rules.md#kapasitetstrinn-krever-kilde-per-nettselskap).
 
 `energiledd_dag_eks_mva` og `energiledd_natt_eks_mva` er ren nettleie i NOK/kWh, eks. forbruksavgift, Enova og mva. Integrasjonen legger på avgifter og mva selv basert på avgiftssone. Finn beløpet «energiledd» eller «overføring» på prislisten din, før avgifter og mva.
 
 ### Spesielle tilfeller
 
-Flat sats (ingen dag/natt-forskjell):
-
-```python
-"energiledd_dag_eks_mva": 0.1556,
-"energiledd_natt_eks_mva": 0.1556,
-```
+Flat sats (ingen dag/natt-forskjell): sett prislistens ene sats i begge feltene,
+`energiledd_dag_eks_mva` og `energiledd_natt_eks_mva`.
 
 Nord-Norge (Nordland, Troms, mva-fritak): bruk de samme eks-mva-verdiene. Integrasjonen detekterer avgiftssone og hopper over mva-påslag. Default følger prisområde (NO4 → Nord-Norge, NO3 → Sør-Norge/25 % mva, siden NO3 i hovedsak er Trøndelag/Møre og Romsdal). For DSO-er i NO3 med mva-fritak (f.eks. Bindal), sett `"avgiftssone": "nord_norge"` eksplisitt.
 
@@ -69,8 +88,9 @@ Bytter nettselskapet energiledd mellom sommer og vinter, legg til `energiledd_pe
 
 ```python
 "energiledd_perioder": [
-    {"fra": "11-01", "til": "04-30", "dag_eks_mva": 0.127, "natt_eks_mva": 0.027},
-    {"fra": "05-01", "til": "10-31", "dag_eks_mva": 0.116, "natt_eks_mva": 0.016},
+    # Datoene og satsene hentes fra prislisten, disse er bare plassholdere.
+    {"fra": "11-01", "til": "04-30", "dag_eks_mva": 0.0, "natt_eks_mva": 0.0},
+    {"fra": "05-01", "til": "10-31", "dag_eks_mva": 0.0, "natt_eks_mva": 0.0},
 ],
 ```
 

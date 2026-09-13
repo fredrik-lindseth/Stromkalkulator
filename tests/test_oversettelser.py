@@ -115,3 +115,35 @@ def test_nb_er_ordrett_lik_strings() -> None:
 
     drift = sorted(nokkel for nokkel in set(mal) & set(nb) if mal[nokkel] != nb[nokkel])
     assert not drift, f"nb.json har drevet fra strings.json på: {drift}"
+
+
+TRINN_PAR = re.compile(r"\d+(?:[.,]\d+)?\s*:\s*\d")
+
+FASTLEDD_NOKLER = ("kapasitetstrinn", "trinntabell", "egendefinert_fastledd")
+
+
+@pytest.mark.parametrize("sprakfil", [STRINGS, *SPRAKFILER], ids=lambda p: p.name)
+def test_ingen_belop_i_trinneksemplene(sprakfil: Path) -> None:
+    """Formateksempelet for kapasitetstrinn skal ikke inneholde tall.
+
+    Eksempelet var lenge «2:155,5:250,10:415», som er BKKs faktiske trinn 1 til
+    3, i en setning som påsto at det ikke var priser. Brukeren blir bedt om å
+    hente sine egne trinn fra sin egen prisliste, og får da servert tre beløp
+    som ser ut som fasit. Det er incident 006 en gang til, denne gangen med
+    brukeren som den som taster inn malen: kapasitetsleddet er et fast
+    månedsbeløp, så et kopiert trinn slår rett inn i månedskostnaden.
+
+    Vi har ingen prisliste for Egendefinert, så et eksempel med beløp i måtte
+    lånes fra et annet nettselskap. Formen «kW-grense:kr/mnd» sier det samme
+    uten å kunne tastes inn.
+    """
+    tekster = _flat(json.loads(sprakfil.read_text(encoding="utf-8")))
+    med_belop = {
+        nokkel: tekst
+        for nokkel, tekst in tekster.items()
+        if any(ord_ in nokkel for ord_ in FASTLEDD_NOKLER) and TRINN_PAR.search(tekst)
+    }
+    assert not med_belop, (
+        f"{sprakfil.name} har tall i et kapasitetstrinn-eksempel: {sorted(med_belop)}. "
+        "Skriv formen i stedet, for eksempel «kW-grense:kr/mnd»."
+    )

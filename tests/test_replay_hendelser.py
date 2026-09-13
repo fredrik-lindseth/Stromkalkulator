@@ -12,9 +12,10 @@ Tre lag, i den rekkefølgen de er verdt noe:
    hvert minutt, jitter, omstart og sommertid, og sammenlignes med fasiten for
    nøyaktig den historikken den fikk se.
 
-Påstander dagens coordinator ikke oppfyller står som `xfail(strict=True)` med
-peker til issuet som flipper dem. Strict, så de blir røde igjen den dagen de
-begynner å holde og ingen har fjernet merkingen.
+Alle tre lagene er grønne. De seks påstandene som sto som `xfail(strict=True)`
+til L3a er flippet: coordinatoren bokfører nå gjennom `avregning.py`, så energi,
+tariff, pris og Norgespris-linjen treffer fasiten for den historikken
+coordinatoren selv fikk se.
 
 Måneder uten fasitgrunnlag er merket ufullstendig, ikke grønne: august 2026 har
 publiserte priser, men ingen Elhub-CSV, og HAN-fixturen mangler 176 av 744
@@ -45,10 +46,6 @@ from tests.replay.fasit import (
 from tests.replay.harness import Replay, logg_fra_timesenergi, pollplan
 
 FIXTURES = Path(__file__).parent / "fixtures"
-
-# Issuene som flipper xfail-ene. L3a tar intervallene, L3b kronene.
-L3A = "stromkalkulator-3gum1kx (L3a: coordinator på intervaller)"
-L3B = "stromkalkulator-33f81xu (L3b: kostnadskjernen)"
 
 # Fakturalinjene, kopiert fra tests/test_faktura_bkk.py via
 # scripts/research/verify_invoice_hourly.py. De står her som tall, ikke som
@@ -469,10 +466,6 @@ def _flat(start: datetime, antall: int, kwh: float, pris: float):
 class TestHendelsesreplay:
     """Coordinatoren mot fasiten, for den historikken den faktisk fikk se."""
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason=f"Energien bokføres i pollens time, ikke i målingens. Flippes av {L3A}.",
-    )
     def test_energien_bokfores_i_timen_den_ble_malt(self, coord_module):
         """C1 og C2.4: et døgn der dag- og natt-tariffen skifter to ganger.
 
@@ -491,14 +484,11 @@ class TestHendelsesreplay:
             fasit = r.fasit().avregning()
             assert r.data["monthly_consumption_total_kwh"] == pytest.approx(fasit.kwh_total, abs=0.01)
             assert r.data["monthly_consumption_dag_kwh"] == pytest.approx(fasit.kwh_dag, abs=0.01), (
-                f"Dag/natt-fordelingen følger polltiden, ikke måletiden. Flippes av {L3A}."
+                "Dag/natt-fordelingen skal følge måletiden, ikke polltiden."
             )
         finally:
             r.lukk()
 
-    @pytest.mark.xfail(
-        strict=True, reason=f"Avviket mot fasiten flytter seg med pollplanen (C2.6). Flippes av {L3A}."
-    )
     def test_polljitter_endrer_ikke_avregningen(self, coord_module):
         """C2.6 gjennom coordinatoren.
 
@@ -524,14 +514,9 @@ class TestHendelsesreplay:
             finally:
                 r.lukk()
         assert avvik == {navn: pytest.approx(0.0, abs=0.01) for navn in planer}, (
-            f"Coordinatoren avviker fra fasiten, og avviket flytter seg med pollplanen: "
-            f"{ {k: round(v, 4) for k, v in avvik.items()} }. Flippes av {L3A}."
+            f"Avregningen flyttet seg med pollplanen: { {k: round(v, 4) for k, v in avvik.items()} }"
         )
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason=f"Norgespris regnes mot prisen ved poll, ikke mot timeprisen (A2, C2.4). Flippes av {L3B}.",
-    )
     def test_prishopp_folger_energien_ikke_pollen(self, coord_module):
         """C2.4: et stort prishopp midt i en time.
 
@@ -549,14 +534,11 @@ class TestHendelsesreplay:
         try:
             fasit = r.fasit().avregning()
             assert r.data["monthly_norgespris_compensation_kr"] == pytest.approx(fasit.stotte_kr, abs=0.01), (
-                f"Norgespris regnes mot øyeblikksprisen ved poll, ikke timeprisen. Flippes av {L3B}."
+                "Norgespris skal regnes mot timeprisen, ikke mot øyeblikksprisen ved poll."
             )
         finally:
             r.lukk()
 
-    @pytest.mark.xfail(
-        strict=True, reason=f"Timen før tariffgrensen bokføres på pollens tariff. Flippes av {L3A}."
-    )
     def test_tariffhopp_ved_dagens_start(self, coord_module):
         """Tariffen skifter 06:00 lokalt, og energien før grensen er natt."""
         start = datetime(2026, 6, 15, 4, tzinfo=OSLO)
@@ -566,7 +548,7 @@ class TestHendelsesreplay:
             fasit = r.fasit().avregning()
             assert fasit.kwh_natt == pytest.approx(12.0, abs=0.05)
             assert r.data["monthly_consumption_natt_kwh"] == pytest.approx(fasit.kwh_natt, abs=0.01), (
-                f"Timen 05-06 bokføres som dag fordi pollen som ser den står 06:00. Flippes av {L3A}."
+                "Timen 05-06 er natt, også når pollen som ser den står 06:00."
             )
         finally:
             r.lukk()
@@ -601,9 +583,6 @@ class TestHendelsesreplay:
         finally:
             r.lukk()
 
-    @pytest.mark.xfail(
-        strict=True, reason=f"Timen uten prisprøve prises med naboens pris (C2.5). Flippes av {L3B}."
-    )
     def test_manglende_pris_gir_ikke_null_kroner(self, coord_module):
         """C2.5 og C4: prissensoren er borte en time.
 
@@ -621,7 +600,7 @@ class TestHendelsesreplay:
             assert fasit.kwh_uten_pris == pytest.approx(5.0, abs=0.1)
             assert r.data["monthly_consumption_total_kwh"] == pytest.approx(fasit.kwh_total, abs=0.05)
             assert r.data["monthly_norgespris_compensation_kr"] == pytest.approx(fasit.stotte_kr, abs=0.05), (
-                f"Timen uten pris får naboens pris i stedet for ingen. Flippes av {L3B}."
+                "Timen uten pris skal ikke få naboens pris."
             )
         finally:
             r.lukk()
@@ -712,7 +691,7 @@ class TestHendelsesreplay:
             assert juli.kwh_total == pytest.approx(12.0, abs=0.2)
             assert r.data["previous_month_name"] == "juni 2026"
             assert r.data["previous_month_consumption_total_kwh"] == pytest.approx(juni.kwh_total, abs=0.1), (
-                f"Månedsskiftet deler ikke vinduet ved grensen. Flippes av {L3A}."
+                "Månedsskiftet skal dele vinduet ved grensen."
             )
         finally:
             r.lukk()
@@ -770,11 +749,11 @@ class TestFakturaavstemmingGjennomCoordinator:
     def test_energi_dag_natt(self, navn, replay):
         """Dag/natt mot fakturaen, med den slakken dagens bokføring krever.
 
-        Toleransen er 0,4 kWh, ikke 0,05: coordinatoren bokfører hele pollens
-        delta på pollens tariff, så kilowattimene i det siste minuttet før hver
-        tariffgrense havner på feil side. Over en måned med 60 grenseskifter
-        blir det noen tideler. Den eksakte påstanden står i
-        `test_coordinatoren_treffer_fasiten` og er strict-xfail til L3a.
+        Toleransen er 0,4 kWh, ikke 0,05, fordi fasiten her er fakturaen og
+        ikke replayens egen fasit: HAN-meldingen kommer noen sekunder etter
+        timegrensen, og den forskyvningen er ikke korrigert i fixturen. Den
+        eksakte påstanden, coordinatoren mot fasiten, står i
+        `test_coordinatoren_treffer_fasiten`.
         """
         r, _, _fasit = replay
         f = FAKTURAER[navn]
@@ -798,9 +777,10 @@ class TestFakturaavstemmingGjennomCoordinator:
     def test_norgespris(self, navn, replay):
         """Norgespris-linjen mot fakturaen, med 0,20 kr slakk.
 
-        Fasiten treffer innenfor 0,01 kr (`TestFasitMotFaktura`). Coordinatoren
-        ligger inntil 0,1 kr unna fordi den priser hvert poll-delta med prisen
-        som sto da pollen kom, ikke med timeprisen energien hører til.
+        Fasiten treffer innenfor 0,01 kr (`TestFasitMotFaktura`), og
+        coordinatoren treffer fasiten like godt
+        (`test_coordinatoren_treffer_fasiten`). Slakken her er mot fakturaen,
+        ikke mot fasiten.
         """
         r, _, _fasit = replay
         assert r.data["previous_month_norgespris_compensation_kr"] == pytest.approx(
@@ -812,16 +792,16 @@ class TestFakturaavstemmingGjennomCoordinator:
         assert r.data["previous_month_kapasitetsledd"] == FAKTURAER[navn]["kapasitet_kr"]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=f"Coordinatoren avviker fra fasiten på energi og kroner. Flippes av {L3A} og {L3B}.",
-)
 def test_coordinatoren_treffer_fasiten(coord_module):
     """Den skarpe påstanden: samme observerte historikk, samme avregning.
 
     Alle tre månedene i én test, for et avvik som tilfeldigvis er lite i én
     måned er ikke et bevis. Fasiten er bygget av nøyaktig de avlesningene og
     prisprøvene coordinatoren selv fikk se, så forskjellen er coordinatorens.
+
+    Dette er porten L3a skulle gjennom, og den er åpen: største avvik over dag,
+    natt og Norgespris i mai, juni og juli er under et hundredels kilowattime
+    og under et øre.
     """
     avvik: dict[str, dict[str, float]] = {}
     for navn in AVSTEMBARE:
@@ -847,9 +827,10 @@ def test_coordinatoren_treffer_fasiten(coord_module):
 def test_maanedsreplay_er_raskere_enn_budsjettet(coord_module):
     """Et døgn i produksjonsrytme skal koste under et sekund.
 
-    Budsjettet for hele filen er 30 sekunder i default-suiten, og
+    Budsjettet for hele filen er 45 sekunder i default-suiten, og
     månedsreplayen over er den eneste posten som er stor nok til å sprenge
-    det. Måler vi ett døgn, fanger vi en regresjon i pollkostnaden lenge før
+    det. Det sto på 30 før L3a; å bokføre hvert intervall for seg og lagre
+    boken ved hver poll koster den halve minutten. Måler vi ett døgn, fanger vi en regresjon i pollkostnaden lenge før
     den gjør hele filen treg.
     """
     start = datetime(2026, 6, 15, 0, tzinfo=OSLO)

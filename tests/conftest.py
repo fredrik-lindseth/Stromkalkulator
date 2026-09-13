@@ -8,6 +8,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -249,6 +250,13 @@ def coord_module():
 
     coord.dt_util = MagicMock()
     coord.dt_util.now.return_value = datetime(2026, 6, 15, 12, 0)
+    # `as_local` regner på ekte. En MagicMock her gir et MagicMock-objekt
+    # tilbake i stedet for et tidspunkt, og da er alt som formaterer en dato
+    # til brukeren umulig å prøve. Europe/Oslo er sonen resten av suiten
+    # regner i.
+    coord.dt_util.as_local = lambda tidspunkt: (
+        tidspunkt if tidspunkt.tzinfo is None else tidspunkt.astimezone(ZoneInfo("Europe/Oslo"))
+    )
 
     def make_store(hass, version, key):
         store = MagicMock()

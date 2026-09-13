@@ -11,6 +11,7 @@ holder den regelen i sjakk i selve kildekoden, ikke bare i resultatene.
 
 from __future__ import annotations
 
+import asyncio
 import re
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
@@ -250,13 +251,69 @@ class TestSommertid:
         assert andel == pytest.approx(24 * 3600 / (745 * 3600))
 
 
+#: Roten til integrasjonen, funnet fra denne filen og ikke fra arbeidskatalogen.
+PAKKEN = Path(__file__).resolve().parent.parent / "custom_components" / "stromkalkulator"
+
+#: Navn som bærer et fastledd fordelt ut per kilowattime. Tallene finnes for
+#: visning: de forteller hva timen koster akkurat nå. Ganges et av dem med noe
+#: som helst, er resultatet kroner regnet fra et per-kWh-fastledd, og det er
+#: nettopp dimensjonsfeilen 33f81xu handler om. `total_price`-familien er med
+#: fordi summene har `fastledd_per_kwh` i seg.
+FASTLEDD_PER_KWH_NAVN = (
+    "fastledd_per_kwh",
+    "kapasitetsledd_per_kwh",
+    "total_price",
+    "total_price_uten_stotte",
+    "total_price_inkl_avgifter",
+    "total_pris_norgespris",
+)
+
+#: Kilowattime-variabler. En av disse på den ene siden av en gangeoperasjon og
+#: hva som helst på den andre er grunn nok til å se etter.
+KWH_NAVN = ("energy_kwh", "energi_kwh")
+
+
 class TestDimensjoner:
-    """Ingen krone i coordinatoren kommer fra en fastledd-sats per kWh."""
+    """Ingen krone i integrasjonen kommer fra en fastledd-sats per kWh."""
+
+    @staticmethod
+    def _treff(kilde: str) -> list[str]:
+        """Gangeoperasjoner som lager kroner av et per-kWh-fastledd.
+
+        Begge operandrekkefølger teller: `sats * kwh` og `kwh * sats` er samme
+        feil. Ordgrensene gjør at `total_price` ikke fanger
+        `total_price_uten_stotte`, som står i listen for seg.
+        """
+        monstre = [rf"\b{navn}\b\s*\*" for navn in FASTLEDD_PER_KWH_NAVN]
+        monstre += [rf"\*\s*\b{navn}\b" for navn in FASTLEDD_PER_KWH_NAVN]
+        monstre += [rf"\b{navn}\b\s*\*" for navn in KWH_NAVN]
+        monstre += [rf"\*\s*\b{navn}\b" for navn in KWH_NAVN]
+        return re.findall("|".join(monstre), kilde)
 
     def test_ingen_kroner_fra_fastledd_per_kwh(self):
-        kilde = Path("custom_components/stromkalkulator/coordinator.py").read_text(encoding="utf-8")
-        treff = re.findall(r"fastledd_per_kwh \*|\* energy_kwh", kilde)
-        assert treff == [], f"kroner regnet fra per-kWh-fastledd: {treff}"
+        """Vakten leser hele integrasjonen, ikke bare coordinator.py.
+
+        En ny fil, eller den samme feilen skrevet med operandene i motsatt
+        rekkefølge, gikk fri før. sensor.py ganger fortsatt kilowattimer med
+        energiledd, avgifter og øyeblikksstøtte, og de treffer ikke her: det er
+        satser per kWh, som er riktig dimensjon. Fanges gjør det den dagen L3c
+        skulle gange `total_price` eller `kapasitetsledd_per_kwh` med noe.
+        """
+        funn = {}
+        for fil in sorted(PAKKEN.rglob("*.py")):
+            treff = self._treff(fil.read_text(encoding="utf-8"))
+            if treff:
+                funn[fil.name] = treff
+        assert funn == {}, f"kroner regnet fra per-kWh-fastledd: {funn}"
+
+    def test_vakten_ser_begge_operandrekkefolger(self):
+        """Mutasjonsprøven, som kode: begge skrivemåter skal fanges."""
+        assert self._treff("kr = fastledd_per_kwh * energy_kwh")
+        assert self._treff("kr = energy_kwh * fastledd_per_kwh")
+        assert self._treff("kr = total_price * kwh")
+        assert self._treff("kr = kwh * kapasitetsledd_per_kwh")
+        # Satser per kWh er riktig dimensjon og skal gå fri.
+        assert not self._treff("kr = total_kwh * forbruksavgift_inkl")
 
     def test_kostnadskjernen_kjenner_ikke_energien_til_fastleddet(self):
         """`fastledd_belop` tar en andel av en periode, ikke kilowattimer."""
@@ -449,6 +506,194 @@ class TestForstePollEtterManedsskifte:
         assert juli["previous_month_cost_kr"] == pytest.approx(
             juli["previous_month_kapasitetsledd"], abs=0.01
         )
+
+
+def _sensoren_borte(hass):
+    """Slå effektsensoren av, slik et strømbrudd gjør, eller en HA som starter
+    før måleren er oppe. Returnerer funksjonen som slår den på igjen."""
+    ekte = hass.states.get.side_effect
+
+    def uten(entity_id):
+        return None if entity_id == "sensor.power" else ekte(entity_id)
+
+    hass.states.get.side_effect = uten
+
+    def tilbake():
+        hass.states.get.side_effect = ekte
+
+    return tilbake
+
+
+class TestDognmaksOverManedsskifte:
+    """Døgnmaks i en ny måned skal aldri bære en dag fra forrige måned.
+
+    Boken arkiverer forrige måned først når en avlesning i den nye måneden
+    bokføres. Uten avlesning står de gamle intervallene igjen etter at
+    coordinatoren har rullert, og siste time i forrige måned lukkes akkurat
+    da. Kapasitetsleddet er et fast månedsbeløp, så en toppdag som blir
+    stående setter trinnet for hele den nye måneden, ikke bare for en dag.
+    """
+
+    @staticmethod
+    def _kveld(coord_module, coord, dag, time=23):
+        """Poll tre minutter inn i en time, så det finnes et åpent intervall."""
+        for minutt in (57, 58, 59):
+            _run_update(coord_module, coord, now=dag.replace(hour=time, minute=minutt))
+
+    def test_forste_poll_uten_avlesning_arver_ikke_juni(self, coord_module):
+        """Strømbrudd ved midnatt: julis døgnmaks skal være tom, ikke junis."""
+        coord, hass = _coordinator(coord_module, power_w=20000)
+        self._kveld(coord_module, coord, _real_datetime(2026, 6, 30))
+
+        paa_igjen = _sensoren_borte(hass)
+        juli = _run_update(coord_module, coord, now=_real_datetime(2026, 7, 1, 0, 1))
+
+        assert juli["current_month"] == "2026-07"
+        assert juli["top_3_days"] == {}
+        assert coord._daily_max_power == {}
+        # Timen hører til juni, og der skal den ligge.
+        assert "2026-06-30" in juli["previous_month_top_3"]
+
+        paa_igjen()
+        videre = _run_update(coord_module, coord, now=_real_datetime(2026, 7, 1, 0, 2))
+        assert "2026-06-30" not in videre["top_3_days"]
+        assert "2026-06-30" not in coord._daily_max_power
+
+    def test_forste_poll_med_avlesning_bokforer_bare_juli(self, coord_module):
+        """Samme skifte med sensoren oppe: julis timer kommer, junis blir ute."""
+        coord, _ = _coordinator(coord_module, power_w=20000)
+        self._kveld(coord_module, coord, _real_datetime(2026, 6, 30))
+
+        juli = _run_update(coord_module, coord, now=_real_datetime(2026, 7, 1, 0, 1))
+        assert juli["top_3_days"] == {}
+
+        senere = _run_update(coord_module, coord, now=_real_datetime(2026, 7, 1, 1, 1))
+        assert list(senere["top_3_days"]) == ["2026-07-01"]
+
+    def test_trinnet_i_juli_kommer_ikke_fra_junis_topp(self, coord_module):
+        """Kroneleddet er det som gjør funnet dyrt: feil trinn hele måneden."""
+        coord, hass = _coordinator(coord_module, power_w=20000)
+        coord.kapasitetstrinn = [(0.5, 155), (2.0, 250), (float("inf"), 415)]
+        self._kveld(coord_module, coord, _real_datetime(2026, 6, 30))
+
+        paa_igjen = _sensoren_borte(hass)
+        juli = _run_update(coord_module, coord, now=_real_datetime(2026, 7, 1, 0, 1))
+        paa_igjen()
+
+        # Junis siste time ligger over 0,5 kW. Lekker den inn, står julis
+        # trinn på 250 fra første minutt, og fastleddet er et månedsbeløp.
+        assert juli["previous_month_top_3"]["2026-06-30"].kw > 0.5
+        assert juli["kapasitetsledd"] == 155
+
+    def test_stromburdd_over_flere_polls_holder_juni_ute(self, coord_module):
+        """Sensoren er borte fra før midnatt til et stykke inn i juli."""
+        coord, hass = _coordinator(coord_module, power_w=20000)
+        self._kveld(coord_module, coord, _real_datetime(2026, 6, 30), time=22)
+        _run_update(coord_module, coord, now=_real_datetime(2026, 6, 30, 23, 1))
+        assert "2026-06-30" in coord._daily_max_power
+
+        paa_igjen = _sensoren_borte(hass)
+        for naa in (
+            _real_datetime(2026, 6, 30, 23, 30),
+            _real_datetime(2026, 6, 30, 23, 59),
+            _real_datetime(2026, 7, 1, 0, 1),
+            _real_datetime(2026, 7, 1, 0, 3),
+        ):
+            data = _run_update(coord_module, coord, now=naa)
+        assert data["top_3_days"] == {}
+
+        paa_igjen()
+        data = _run_update(coord_module, coord, now=_real_datetime(2026, 7, 1, 0, 5))
+        assert "2026-06-30" not in data["top_3_days"]
+        assert "2026-06-30" not in coord._daily_max_power
+
+    def test_ingen_julidag_overgaar_junis_topp(self, coord_module):
+        """Juli er en rolig måned. Da skal topp-3 være julis små dager.
+
+        Uten filteret ville junis 20 kW stått til tre julidager slo den, og
+        her gjør ingen av dem det.
+        """
+        coord, hass = _coordinator(coord_module, power_w=20000)
+        self._kveld(coord_module, coord, _real_datetime(2026, 6, 30))
+
+        paa_igjen = _sensoren_borte(hass)
+        _run_update(coord_module, coord, now=_real_datetime(2026, 7, 1, 0, 1))
+        paa_igjen()
+
+        hass.states.get.side_effect = lambda eid: (
+            _make_state(1000)
+            if eid == "sensor.power"
+            else (_make_state(1.50) if eid == "sensor.spot_price" else None)
+        )
+        for dag in (1, 2, 3):
+            for minutt in (55, 56, 57, 58, 59):
+                _run_update(coord_module, coord, now=_real_datetime(2026, 7, dag, 8, minutt))
+            data = _run_update(coord_module, coord, now=_real_datetime(2026, 7, dag, 9, 1))
+
+        assert set(data["top_3_days"]) == {"2026-07-01", "2026-07-02", "2026-07-03"}
+        assert max(e.kw for e in data["top_3_days"].values()) < 2.0
+
+    def test_omstart_i_ny_maaned_uten_maaler(self, coord_module):
+        """HA starter 1. juli med junis bok lagret og måleren ikke oppe ennå."""
+        lagret: dict = {}
+
+        def skrivende_store(hass, version, key):
+            store = MagicMock()
+            store.async_load = AsyncMock(return_value=None)
+
+            async def save(data):
+                lagret.clear()
+                lagret.update(data)
+
+            store.async_save = AsyncMock(side_effect=save)
+            store.async_remove = AsyncMock()
+            return store
+
+        def lesende_store(hass, version, key):
+            store = MagicMock()
+            store.async_load = AsyncMock(return_value=lagret)
+            store.async_save = AsyncMock()
+            store.async_remove = AsyncMock()
+            return store
+
+        coord_module.Store = MagicMock(side_effect=skrivende_store)
+        coord, hass = _coordinator(coord_module, power_w=20000)
+        self._kveld(coord_module, coord, _real_datetime(2026, 6, 30))
+        asyncio.run(coord._save_stored_data())
+        assert lagret["current_month"] == "2026-06"
+
+        coord_module.Store = MagicMock(side_effect=lesende_store)
+        coord_module.dt_util.now.return_value = _real_datetime(2026, 7, 1, 0, 1)
+        gjenopptatt = coord_module.NettleieCoordinator(hass, _make_entry())
+        asyncio.run(gjenopptatt._load_stored_data())
+
+        _sensoren_borte(hass)
+        data = _run_update(coord_module, gjenopptatt, now=_real_datetime(2026, 7, 1, 0, 1))
+        assert data["current_month"] == "2026-07"
+        assert data["top_3_days"] == {}
+
+    def test_oktober_med_sommertidsskifte_starter_rent(self, coord_module):
+        """Rulleringen inn i en måned som har et sommertidsskifte i seg."""
+        coord, hass = _coordinator(coord_module, power_w=20000)
+        self._kveld(coord_module, coord, _real_datetime(2026, 9, 30))
+
+        paa_igjen = _sensoren_borte(hass)
+        oktober = _run_update(coord_module, coord, now=_real_datetime(2026, 10, 1, 0, 1))
+        assert oktober["top_3_days"] == {}
+        paa_igjen()
+
+        # Den doble timen 25. oktober skal registreres som oktoberdøgn, og
+        # september skal fortsatt være ute.
+        for minutt in (56, 57, 58, 59):
+            naa = _real_datetime(2026, 10, 25, 2, minutt, tzinfo=OSLO, fold=0)
+            _run_update(coord_module, coord, now=naa)
+        for minutt in (1, 2, 3):
+            naa = _real_datetime(2026, 10, 25, 2, minutt, tzinfo=OSLO, fold=1)
+            _run_update(coord_module, coord, now=naa)
+        data = _run_update(coord_module, coord, now=_real_datetime(2026, 10, 25, 3, 1, tzinfo=OSLO))
+
+        assert "2026-09-30" not in data["top_3_days"]
+        assert "2026-10-25" in data["top_3_days"]
 
 
 class TestStoreOverlever:

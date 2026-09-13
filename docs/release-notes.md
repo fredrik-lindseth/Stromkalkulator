@@ -174,7 +174,7 @@ Sjekk hva som faktisk er publisert før du skriver:
 
 ```bash
 gh release list
-git log v$(gh release view --json tagName --jq .tagName)..HEAD
+git log "$(gh release view --json tagName --jq .tagName)..HEAD"
 ```
 
 Er øverste seksjon allerede sluppet, lag en ny `## [Ikke sluppet]` over. Ellers
@@ -196,7 +196,8 @@ Sjekkliste før du skriver i CHANGELOG:
 
 1. Døp `## [Ikke sluppet]` om til `## [X.Y.Z]`, les gjennom teksten som bruker,
    og se på den korte med `python3 scripts/release_notes.py X.Y.Z --kort`
-2. Bump versjonen i `manifest.json` og `pyproject.toml`
+2. Bump versjonen i `manifest.json` og `pyproject.toml`, kjør `uv lock` og ta
+   med oppdatert prosjektversjon i `uv.lock`
 3. Commit og push til main
 
 Resten gjør `release.yml`. Den starter CI for nettopp den commiten, venter på
@@ -273,29 +274,35 @@ just release-plan           # les tilstanden på GitHub, skriv ingenting
 just release-verify v1.16.0 # etterprøv en release som alt er ute
 ```
 
-Ingen av dem skriver noe. `release-plan` hopper over attestasjonssjekken, siden
-den kjøres før byggesteget har attestert noe. I workflowen finnes det i tillegg
-`workflow_dispatch` med `dry_run`, som kjører hele flyten uten å skrive.
+Ingen av dem skriver til GitHub. ZIP-bygg og verifisering bruker lokale
+arbeidsfiler. For en ny kandidat hopper `release-plan` over
+attestasjonssjekken, siden byggesteget ennå ikke har attestert noe. Er
+versjonen allerede publisert, kontrollerer `plan` også den eksisterende
+attestasjonen; eldre avvik kan rapporteres som advarsler, mens `verify`
+behandler dem strengt. I workflowen finnes også `workflow_dispatch` med
+`dry_run`, som ikke publiserer tagg eller release.
+For en ny kandidat kjører workflowen fortsatt bygg- og attesteringssteget;
+`dry_run` er derfor ikke en garanti mot at en attestasjon opprettes.
 
 ### Det som ikke er bevist ennå
 
-Flyten er kjørt mot en GitHub-etterligning som husker tilstand mellom kall, og
-lesesiden er kjørt mot ekte GitHub og ekte `gh attestation verify`. Skrivesiden
-er aldri kjørt mot et ekte repo, for det ville krevd å publisere noe. Fire ting
-kan derfor bare bekreftes av den første ekte kjøringen:
+CI-delen er kjørt på GitHub: [kjøring 34759355606](https://github.com/fredrik-lindseth/Stromkalkulator/actions/runs/34759355606)
+fra 13. september 2026 på `59e30e66d204836699d19de69656231542483132` bestod
+unit, kvalitet, begge HA-målene, HACS og Hassfest. Det bekrefter også
+Python-/uv-oppsettet og minimum-grenens prerelease på runneren. Det er et
+resultat for denne SHA-en, ikke for senere endringer.
 
-- At `setup-uv` sin cache og `uv run --frozen` finner Python 3.13 og 3.14 på
-  `ubuntu-latest`, som ikke har dem forhåndsinstallert. uv henter dem selv, men
-  det er ikke prøvd her.
-- At minimum-grenen løser `aiohasupervisor`-prereleasen på runneren. `--frozen`
-  gjør dette til et nedlastingsspørsmål og ikke et løsningsspørsmål, men lokal
-  maskin og runner har ulike hjul tilgjengelig.
+Jobben «Publiser» bestod også, men kjørte bare «Les tilstanden»: versjonen var
+allerede ute, og bygging, attestering og publisering ble hoppet over. Dette
+beviser lesesiden mot ekte GitHub, ikke den skrivende publiseringsveien.
+Tilstandsmaskinen har tester mot en GitHub-etterligning. Følgende trenger
+fortsatt en ekte prøvepublisering:
+
 - At `gh api` sine skrivekall (opprette tagg, opprette draft, laste opp asset,
   `make_latest`) oppfører seg som etterligningen antar.
-- At de to validatorene er stabile nok til å stå i releaseporten.
 - At `compare`-statusen hovedgren-vakten leser, er `identical` for en fersk
-  push til main. Statusverdiene er GitHubs dokumenterte fire, og etterligningen
-  regner dem ut med ekte git, men kallet er aldri gjort mot ekte GitHub.
+  push til main på veien til en ny release. Den publiserte versjonen avslutter
+  før denne vakten, så den grønne kjøringen over prøvde ikke den grenen.
 - At jobbens `if` hopper over publiseringen slik den skal ved dispatch fra en
   annen gren. Skulle den likevel starte, stopper vakten i scriptet.
 
@@ -345,9 +352,10 @@ ikke riktighet), og `enable-cache: auto` slår seg av under `pull_request_target
 `actions/attest-build-provenance@v4` er allerede nyeste major, og `v4`-taggen
 peker på v4.2.2. Den er det sikkerhetskritiske steget, og den ble ikke rørt.
 
-Ikke bevist: ingen av bumpene er kjørt på en runner. `actionlint` er grønn, men
-den sjekker syntaks, ikke at en action oppfører seg. Først kjøring bekrefter
-det.
+Checkout, setup-just, setup-uv og Codecov-steget bestod på runneren i
+[kjøring 34759355606](https://github.com/fredrik-lindseth/Stromkalkulator/actions/runs/34759355606).
+Attesteringssteget ble hoppet over; hele publiseringsveien gjenstår som
+beskrevet over.
 
 De tre nattlige workflowene, `validate.yml`, `fri-nettleie-sjekk.yml` og
 `hassfest.yml`, står fortsatt på `actions/checkout@v6`. Samme vurdering gjelder

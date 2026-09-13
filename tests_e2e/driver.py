@@ -74,14 +74,40 @@ class Driver:
             return result["result"]
 
     async def ready(self) -> None:
+        """Vent til HA og allerede oppsatte Strømkalkulator-entiteter er klare.
+
+        Etter en containerrestart svarer ``/api/`` før HA er ferdig startet.
+        Et refresh-kall i det vinduet blir ignorert fordi entiteten ennå ikke
+        finnes. Ved første oppstart finnes det ingen lagrede utganger, men ved
+        alle senere scenarioer krever vi at hver lagret hovedsensor er lesbar.
+        """
         deadline = time.monotonic() + 180
+        sist: str | None = None
         while time.monotonic() < deadline:
             try:
                 await self.api("/api/" if self.auth.get("token") else "/api/onboarding")
-                return
+                if not self.auth.get("token"):
+                    return
+                config = await self.api("/api/config")
+                if not isinstance(config, dict) or config.get("state") != "RUNNING":
+                    sist = f"HA={config.get('state') if isinstance(config, dict) else config!r}"
+                else:
+                    mangler = []
+                    for entry_id, utganger in self.data.get("utganger", {}).items():
+                        entity = utganger.get("maanedlig_forbruk_total")
+                        if not entity:
+                            continue
+                        try:
+                            await self.state(entity)
+                        except RuntimeError:
+                            mangler.append(f"{entry_id}:{entity}")
+                    if not mangler:
+                        return
+                    sist = f"mangler entitetene {', '.join(mangler)}"
             except (aiohttp.ClientError, RuntimeError, TimeoutError):
-                await asyncio.sleep(1)
-        raise TimeoutError("HA startet ikke innen 180 sekunder")
+                sist = "API ikke klar"
+            await asyncio.sleep(0.2)
+        raise TimeoutError(f"HA startet ikke innen 180 sekunder ({sist})")
 
     async def state(self, entity: str) -> dict:
         return await self.api(f"/api/states/{entity}")

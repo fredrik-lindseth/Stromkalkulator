@@ -13,6 +13,9 @@ custom_components/stromkalkulator/
 ├── const.py         # konstanter, avgifter, helligdager
 ├── dso.py           # nettselskap-data
 ├── coordinator.py   # DataUpdateCoordinator, beregningslogikk
+├── inputadapter.py  # validering, enheter og kildebundet energibaseline
+├── avregning.py     # energi og pris fordelt på UTC-intervaller
+├── kostnad.py       # kroner per intervall og fastledd som periodebeløp
 ├── sensor.py        # alle sensorer
 ├── binary_sensor.py # varsler (kapasitet, måledata, aktiv ordning)
 ├── button.py        # "Lag fakturarapport"-knapp
@@ -25,27 +28,42 @@ custom_components/stromkalkulator/
 └── manifest.json    # HACS-metadata
 ```
 
-Coordinator oppdateres hvert minutt, leser effekt og spotpris fra brukerens sensorer, beregner alle verdier og lagrer topp-3 effektdager til disk. Sensorer er gruppert i seks devices, arver fra `CoordinatorEntity` + `SensorEntity` og leser fra `coordinator.data["key"]`.
+Coordinator oppdateres hvert minutt og leser brukerens sensorer gjennom
+`inputadapter.py`. Den binder sammen avregning, kostnadsberegning, vakthold og
+lagring per `entry.entry_id`, inkludert energibaseline, akkumulatorer og
+effekthistorikk. Sensorer er gruppert i seks devices, arver fra
+`CoordinatorEntity` + `SensorEntity` og leser fra `coordinator.data["key"]`.
 
 DSO-data (`dso.py`) er en dict med alle nettselskaper, energiledd dag/natt og kapasitetstrinn. Tidligere kalt `tso.py`. `CONF_DSO` beholder strengverdien `"tso"` for bakoverkompatibilitet.
 
 ### Beregningsflyt
 
 ```text
-Effektsensor (W) + Spotpris (NOK/kWh)
-              │
-              ▼
-        Coordinator (1 min)
-              │
-    ┌─────────┼─────────┐
-    ▼         ▼         ▼
- Topp-3    Strøm-    Energi-
- effekt    støtte    ledd
-    │         │         │
-    └─────────┴─────────┘
-              ▼
-    total_strompris_etter_stotte
+Effekt + kumulativ energi (valgfri) + spotpris + valgfrie input
+                            │
+                            ▼
+           inputadapter.py: validering og normalisering
+                            │
+                            ▼
+                coordinator.py: polling hvert minutt
+                            │
+                            ▼
+         avregning.py: energi og pris på UTC-intervaller
+                            │
+                            ▼
+       kostnad.py: energikostnad, støtte og Norgespris
+                   + fastledd etter medgått måned
+                            │
+                            ▼
+          coordinator.data → sensorer og fakturarapport
 ```
+
+Med energisensor brukes differansen mellom kildebundne telleravlesninger.
+Uten energisensor estimeres forbruket fra effekt og faktisk medgått tid.
+Observasjonstiden styrer bokføringen; polltiden er ikke i seg selv
+forbrukstidspunktet. Avregningsboken holder også grunnlaget for timeeffekt og
+kapasitetsberegning. Se [inputkontrakten](kontrakter/input-og-konfig.md) og
+[avregningskontrakten](kontrakter/avregning.md).
 
 Parallelt med beregningen vurderer coordinatoren om inputene i det hele tatt
 leverer: entiteter som har stått `unavailable` over grace-vinduet, en
@@ -56,9 +74,18 @@ Resultatet ligger i `data["input_problemer"]`, drives `binary_sensor`-en
 
 ### Hvorfor polling, ikke event-drevet
 
-Coordinator poller hvert minutt i stedet for å abonnere på state-endringer. Ikke fordi matematikken krever det. Akkumuleringen antar ikke jevne tidssteg, `elapsed_hours` er faktisk `now - _last_update` (`coordinator.py:513-517`), så event-drevet oppdatering ville fungert regnemessig.
+Coordinator poller hvert minutt i stedet for å abonnere på state-endringer.
+Effektbasert akkumulering bruker faktisk medgått tid, begrenset av
+`MAX_ELAPSED_HOURS`; tellerbasert avregning bruker observasjonstidene. Ingen
+av dem forutsetter nøyaktig ett minutt mellom kallene.
 
-Grunnen er broadcast-frekvensen på kildesensoren. Effektsensoren (`p` fra Kaifa/Aidon HAN) kringkaster hvert ~2,5 sek. Et rått event-abonnement på den ville gitt rundt 24x recorder- og Store-skrivelast mot dagens 1-min-intervall. Den kumulative tpi/OBIS-1.8.0-sensoren (brukt når `energy_sensor` er konfigurert) oppdateres derimot bare 1x/time. Et event-abonnement mot _den_ kunne vært en reell gevinst, men forutsetter debounce av `_save_stored_data` og dedup på entitetsnivå først (egne, uløste oppgaver). For rene effekt/Riemann-oppsett er et fast 1-min-intervall et fornuftig kompromiss.
+HAN-input kan oppdateres langt oftere enn hvert minutt, og et event-abonnement
+ville økt antall beregninger og lagringsforsøk. Sensorenes
+`_handle_coordinator_update` dedupliserer allerede uendret tilgjengelighet,
+verdi, attributter og `last_reset`, så ett ekstra poll betyr ikke automatisk
+én ekstra recorder-rad per sensor. En overgang til event-drift må fortsatt
+vurdere Store-skriving, prisprøver, kalendergrenser og vakthold når inputene
+ikke sender hendelser. Dagens minuttpoll driver også disse oppgavene.
 
 ## Lokalt oppsett
 
@@ -88,7 +115,7 @@ ssh ha-local "ha core logs" | grep -i stromkalkulator
 
 `rsync` speiler hele katalogen (inkl. `button.py`, `diagnostics.py`, `strings.json`, `translations/`), så en ny fil i `custom_components/stromkalkulator/` havner automatisk på HA-instansen. En fillistet loop råtner hver gang det legges til en fil. Det er nettopp det som skjedde med `button.py` og `translations/` her.
 
-Etter en rsync kjører HA-en din arbeidstreet, ikke den publiserte releasen, og HACS vet ingenting om det. Usluppet arbeid, som en enhetsendring på en sensor, slår da ut som repairs hos deg alene. Kjør `git log v$(git describe --tags --abbrev=0)..HEAD` før du konkluderer med at en release er skyld i noe du ser lokalt.
+Etter en rsync kjører HA-en din arbeidstreet, ikke den publiserte releasen, og HACS vet ingenting om det. Usluppet arbeid, som en enhetsendring på en sensor, slår da ut som repairs hos deg alene. Kjør `git log "$(git describe --tags --abbrev=0)..HEAD"` før du konkluderer med at en release er skyld i noe du ser lokalt.
 
 Tilbake til HACS:
 
@@ -127,23 +154,18 @@ Den er bygget for å limes inn i en offentlig issue. Hvert felt står på en all
 
 ### Testdata for kapasitetstrinn
 
-Lagringsfiler nøkles med `entry_id`. Finn din i HA under Innstillinger > Integrasjoner > Strømkalkulator.
+Bruk den kastbare Docker-laben for syntetiske effekttopper og lagringsdata.
+`upgrade` seeder døgnmaks i Store-filene den eldre utgaven selv har skrevet,
+mens containeren står stille, og verifiserer at dataene overlever oppgradering.
 
 ```bash
-ssh ha-local 'cat > /config/.storage/stromkalkulator_<entry_id> << EOF
-{
-  "version": 1,
-  "data": {
-    "daily_max_power": {
-      "2026-01-17": {"kw": 5.2, "hour": 17},
-      "2026-01-18": {"kw": 3.8, "hour": 7},
-      "2026-01-19": {"kw": 4.5, "hour": 18}
-    },
-    "current_month": "2026-01"
-  }
-}
-EOF'
+python3 tests_e2e/run.py upgrade
 ```
+
+For manuell inspeksjon, start `python3 tests_e2e/run.py up` og bruk labens
+helpers. Se [Docker-oppsettet](../tests_e2e/README.md). Ikke overskriv
+produksjonens Store-fil med et utsnitt: filen inneholder også akkumulatorer,
+energibaseline og historikk. Lagringsnøkkelen er alltid `entry_id`.
 
 ## Kilder
 

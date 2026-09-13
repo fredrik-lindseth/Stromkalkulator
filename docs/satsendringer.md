@@ -9,8 +9,8 @@ drift-vakten, står i [domain-rules.md](domain-rules.md#endre-satser).
 ## Runden i september 2026
 
 Ti nettselskap fikk nye satser. Alle er verifisert mot nettselskapets egen
-prisliste i tillegg til fri-nettleie. Energiledd i øre/kWh, kapasitetstrinn i
-kr/mnd inkl. mva.
+prisliste i tillegg til fri-nettleie. Energiledd i øre/kWh eks. mva og
+offentlige avgifter, kapasitetstrinn i kr/mnd inkl. mva.
 
 | Nettselskap              | Gjelder fra | Energiledd                                                                     | Kapasitetstrinn                                  | Kilde                                                          |
 | ------------------------ | ----------- | ------------------------------------------------------------------------------ | ------------------------------------------------ | -------------------------------------------------------------- |
@@ -28,15 +28,20 @@ kr/mnd inkl. mva.
 Sør Aurdal-økningen er 5,00 øre/kWh inkl. mva i alle tariffgrupper. Telemark
 Nett heter nå TNett.
 
-RK Nett og Telemark Nett ble funnet ved å gå til prislistene til de sytten
-nettselskapene som fikk kapasitetstrinnene sine fra fri-nettleie under
-opprydningen i juli. Elleve av de sytten stemte tall for tall.
+RK Nett og Telemark Nett ble funnet ved å gå til primærkildene for 16
+oppføringer som hadde fått kapasitetstrinn fra fri-nettleie under opprydningen
+i juli. Elleve var tallmessig uendret, to fikk nye tariffer og tre hadde
+avrundingsrettinger. Noranett Andøy og Hadsel telles som to oppføringer.
+Omfanget er diffen i `30e7144` i `dso.py`; committittelens «17» var feil.
 
 ### Seks satser var rundet feil vei
 
-Vi hadde regnet bakover fra prisen inkl. mva der prislisten har en egen kolonne
-uten. Avviket er under en krone hver, men det er nettselskapets eget tall som
-gjelder.
+Tre kapasitetstrinn og tre energisatser hos Romsdalsnett, Vestmar Nett og
+Enida er rettet mot selskapenes publiserte tall. Vi hadde blant annet regnet
+bakover fra inkl.-mva-priser framfor å bruke prislistenes egne kolonner.
+De tre kapasitetstrinnene i koden gikk ned nøyaktig 1 kr/mnd hver;
+energileddene ble justert med 0,002 øre/kWh eks. mva. Virkningen i kroner av
+energisatsene avhenger av forbruket.
 
 | Nettselskap  | Sats            | Var    | Er            | Kilde                                                                                         |
 | ------------ | --------------- | ------ | ------------- | --------------------------------------------------------------------------------------------- |

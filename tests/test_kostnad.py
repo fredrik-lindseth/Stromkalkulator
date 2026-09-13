@@ -593,3 +593,24 @@ class TestGjennomCoordinator:
             + data["monthly_avgifter_kr"],
             abs=1e-6,
         )
+
+
+class TestSommertidGjennomCoordinator:
+    """`elapsed_hours` måler absolutt tid over begge skiftene (3jebp9g).
+
+    De rene funksjonene over er prøvd for seg. Denne går gjennom
+    coordinatoren, for det var der veggklokkesubtraksjonen sto: med den gir
+    vårskiftet seks minutter for ett ekte, og høstskiftet null for to.
+    """
+
+    def test_vaar_ett_ekte_minutt_er_ett_minutt_energi(self, coord_module):
+        coord, _ = _coordinator(coord_module, power_w=6000)
+        _run_update(coord_module, coord, now=_real_datetime(2026, 3, 29, 1, 59, tzinfo=OSLO))
+        data = _run_update(coord_module, coord, now=_real_datetime(2026, 3, 29, 3, 0, tzinfo=OSLO))
+        assert data["monthly_consumption_total_kwh"] == pytest.approx(0.1, abs=1e-6)
+
+    def test_host_to_ekte_minutter_er_to_minutter_energi(self, coord_module):
+        coord, _ = _coordinator(coord_module, power_w=6000)
+        _run_update(coord_module, coord, now=_real_datetime(2026, 10, 25, 2, 58, tzinfo=OSLO, fold=0))
+        data = _run_update(coord_module, coord, now=_real_datetime(2026, 10, 25, 2, 0, tzinfo=OSLO, fold=1))
+        assert data["monthly_consumption_total_kwh"] == pytest.approx(0.2, abs=1e-6)

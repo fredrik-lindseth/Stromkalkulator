@@ -434,6 +434,63 @@ class TestEnergiBaselinePersistens:
         assert coordinator._baseline is None
         assert coordinator._baseline_forkastet is False, "ingenting ble forkastet, det sto ingenting der"
 
+    def test_skrevet_null_baseline_er_ikke_en_forkastet_baseline(self):
+        """`_save_stored_data` skriver `energi_baseline: None` ved hver lagring.
+
+        Nøkkelen finnes da i filen hos alle, også hos den som aldri har hatt en
+        baseline. Et `nøkkel in data` gjorde derfor at hver eneste nye bruker
+        fikk forkastet-flagget i diagnostikken og en INFO-linje om en baseline
+        som aldri fantes, ved hver omstart. Falske positiver er grunnen til at
+        vaktholdet i dette repoet ble avvist to ganger.
+        """
+        coord = _reload_coord()
+        now = coord.dt_util.now()
+        stored = {
+            "daily_max_power": {},
+            "monthly_consumption": {"dag": 0.0, "natt": 0.0},
+            "current_month": now.strftime("%Y-%m"),
+            "last_update": (now - timedelta(minutes=1)).isoformat(),
+            "energi_baseline": None,
+        }
+        coord.Store = MagicMock(side_effect=self._make_store_factory(stored))
+
+        coordinator = coord.NettleieCoordinator(MagicMock(), _make_entry(energy_sensor="sensor.tpi"))
+        asyncio.run(coordinator._load_stored_data())
+
+        assert coordinator._baseline is None
+        assert coordinator._baseline_forkastet is False
+        assert coordinator._baseline_rapport() is None
+
+    def test_lesbar_baseline_uten_energisensor_er_ikke_forkastet(self):
+        """Baselinen droppes fordi sensoren er fjernet, ikke fordi den var ulesbar.
+
+        Teksten i loggen og flagget i diagnostikken sier «manglet
+        kildeidentitet», og det ville vært feil her: den hadde kilde, den har
+        bare ingen sensor å høre til lenger.
+        """
+        coord = _reload_coord()
+        now = coord.dt_util.now()
+        stored = {
+            "daily_max_power": {},
+            "monthly_consumption": {"dag": 0.0, "natt": 0.0},
+            "current_month": now.strftime("%Y-%m"),
+            "last_update": (now - timedelta(minutes=1)).isoformat(),
+            "energi_baseline": {
+                "schema_version": 2,
+                "source_identity": "maaler-1",
+                "entity_id": "sensor.tpi",
+                "value_kwh": 1234.567,
+                "observed_at": "2026-06-08T10:00:00+00:00",
+            },
+        }
+        coord.Store = MagicMock(side_effect=self._make_store_factory(stored))
+
+        coordinator = coord.NettleieCoordinator(MagicMock(), _make_entry())
+        asyncio.run(coordinator._load_stored_data())
+
+        assert coordinator._baseline is None
+        assert coordinator._baseline_forkastet is False
+
     @pytest.mark.parametrize(
         "ugyldig",
         [

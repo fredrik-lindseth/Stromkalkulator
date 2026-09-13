@@ -159,6 +159,30 @@ class TestUtfall:
         assert resultat["maaledata_problem"] is False
         assert resultat["leverandorpris_gyldig"] is False
 
+    def test_leverandorpris_gyldig_er_sann_naar_sensoren_leverer(self, coord_module):
+        """Den andre retningen av testen over.
+
+        `_input_er_gyldig` tar en rolle, ikke en entity-id, og kallet her sendte
+        entity-id-en. Oppslaget traff da aldri, så attributtet sto False så
+        lenge en leverandørprissensor var konfigurert, også når den leverte
+        fint. Det er synlig på binary_sensor.maaledata_problem.
+        """
+        benk = Sensorbenk()
+        benk.sett("sensor.elco_price", 1.4)
+        benk.ENHETER = {**benk.ENHETER, "sensor.elco_price": "NOK/kWh"}
+        coord = _lag_coordinator(coord_module, benk, electricity_company_price_sensor="sensor.elco_price")
+        resultat = _poll(coord_module, coord, datetime(2026, 6, 15, 12, 0))
+
+        assert resultat["leverandorpris_gyldig"] is True
+        assert resultat["input_resultater"]["leverandorpris"]["type"] == "gyldig"
+
+    def test_uten_leverandorprissensor_er_attributtet_none(self, coord_module):
+        """Ingen sensor er ikke det samme som en sensor som svikter."""
+        coord = _lag_coordinator(coord_module, Sensorbenk())
+        resultat = _poll(coord_module, coord, datetime(2026, 6, 15, 12, 0))
+
+        assert resultat["leverandorpris_gyldig"] is None
+
     def test_eksportmaaler_varsler(self, coord_module):
         benk = Sensorbenk()
         benk.sett("sensor.export_power", 0)
@@ -784,6 +808,48 @@ class TestRuntimeEnhetsendring:
         assert "enhet" not in _typer(resultat)
         assert f"input_enhet_{coord.entry.entry_id}" in _slettede_issue_ids(coord_module.ir)
 
+    def test_leverandorpris_med_feil_enhet_melder_seg(self, coord_module):
+        """Kontrakt §1 gjelder alle roller, også den som ikke varsler ved utfall.
+
+        Leverandørprisen ble hoppet over før enhetssjekken, så en sensor som
+        gikk til EUR/kWh under drift ga verken problemrad eller repair.
+        Sammenligningssensoren sto stille uten at noe sted sa hvorfor.
+        """
+        benk = Sensorbenk()
+        benk.sett("sensor.elco_price", 1.4)
+        benk.ENHETER = {**benk.ENHETER, "sensor.elco_price": "NOK/kWh"}
+        coord = _lag_coordinator(coord_module, benk, electricity_company_price_sensor="sensor.elco_price")
+        start = datetime(2026, 6, 15, 12, 0)
+        _poll(coord_module, coord, start)
+
+        benk.ENHETER = {**benk.ENHETER, "sensor.elco_price": "EUR/kWh"}
+        resultat = _poll(coord_module, coord, start + timedelta(minutes=1))
+
+        problem = next(p for p in resultat["input_problemer"] if p["type"] == "enhet")
+        assert problem["input"] == "leverandorpris"
+        assert problem["raa_enhet"] == "EUR/kWh"
+        assert f"input_enhet_{coord.entry.entry_id}" in _issue_ids(coord_module.ir)
+
+    def test_leverandorpris_i_utfall_melder_fortsatt_ingenting(self, coord_module):
+        """Negativ prøve på den over: unntaket for utfall står som det sto.
+
+        Enhetsgrenen skal slippe leverandørprisen gjennom, ikke hele
+        vaktholdet. Blandes de to, får alle med en leverandørprissensor et
+        varsel hver gang den integrasjonen starter på nytt.
+        """
+        benk = Sensorbenk()
+        benk.sett("sensor.elco_price", 1.4)
+        benk.ENHETER = {**benk.ENHETER, "sensor.elco_price": "NOK/kWh"}
+        coord = _lag_coordinator(coord_module, benk, electricity_company_price_sensor="sensor.elco_price")
+        start = datetime(2026, 6, 15, 12, 0)
+        _poll(coord_module, coord, start)
+
+        benk.sett("sensor.elco_price", "unavailable")
+        resultat = _poll(coord_module, coord, start + timedelta(minutes=90))
+
+        assert resultat["input_problemer"] == []
+        assert resultat["maaledata_problem"] is False
+
     def test_enhetsfeil_erstatter_ikke_et_ekte_utfall(self, coord_module):
         """En borte sensor har ingen enhet å klage på, og skal melde utfall."""
         benk = Sensorbenk()
@@ -827,6 +893,30 @@ class TestPrisenhetUbekreftet:
         _poll(coord_module, coord, datetime(2026, 6, 15, 12, 0))
 
         assert f"prisenhet_ubekreftet_{coord.entry.entry_id}" not in _issue_ids(coord_module.ir)
+
+    def test_varselet_ryddes_naar_enheten_kom_mens_ha_var_nede(self, coord_module):
+        """Ryddingen kan ikke stole på minnet: det er tomt etter en omstart.
+
+        Fikk sensoren enhet mens HA sto nede, sa minnet ved oppstart at ingen
+        issue var aktiv, og da ble den aldri slettet. Varselet ble stående for
+        godt om noe som var i orden.
+        """
+        benk = Sensorbenk()
+        coord = _lag_coordinator(coord_module, benk)
+        _poll(coord_module, coord, datetime(2026, 6, 15, 12, 0))
+
+        assert f"prisenhet_ubekreftet_{coord.entry.entry_id}" in _slettede_issue_ids(coord_module.ir)
+
+    def test_ryddingen_skjer_en_gang_ikke_hver_poll(self, coord_module):
+        """Negativ prøve: den sletter ikke i vei ved hver eneste oppdatering."""
+        benk = Sensorbenk()
+        coord = _lag_coordinator(coord_module, benk)
+        start = datetime(2026, 6, 15, 12, 0)
+        for minutt in range(4):
+            _poll(coord_module, coord, start + timedelta(minutes=minutt))
+
+        slettet = [i for i in _slettede_issue_ids(coord_module.ir) if i.startswith("prisenhet_ubekreftet")]
+        assert len(slettet) == 1
 
     def test_varselet_reises_en_gang_ikke_hver_poll(self, coord_module):
         benk = Sensorbenk()

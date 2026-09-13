@@ -9,6 +9,13 @@ Eksisterende `test_faktura_hourly_snapshot.py` er en false-positive: den
 reimplementerer dag/natt-split, topp-3 og Norgespris-komp parallelt med
 coordinator og asserter mot den. Coordinator-koden kjøres aldri. Denne
 filen fyller gapet ved å kjøre ekte `_async_update_data()`.
+
+Planen for L3a sa at denne filen skulle pensjoneres til fordel for den
+tidsbevisste replayen i `test_replay_hendelser.py`. Den står likevel, for den
+dekker fire måneder L2 ikke har prisfasit for (desember 2025, februar, mars og
+april 2026) og BKKs jul- og nyttårsaften-regel mot en ekte faktura. Det L2 har
+og denne ikke, er poll-jitter, omstart, sommertid og sammenligning mot en
+uavhengig fasit; de to måler ulike ting.
 """
 
 from __future__ import annotations
@@ -165,17 +172,26 @@ def _replay_month(
 
     asyncio.run(coord._async_update_data())
 
-    # Kjør coordinator gjennom hver fixture-time. Vi setter dt_util.now()
-    # til time-startens *naive* lokale tid; det er det coordinator selv
-    # bruker (`now.hour`, `now.weekday()`, strftime).
+    # Kjør coordinator gjennom hver fixture-time. To polls per time:
+    #
+    # * ved timens start, med tellerstanden etter forrige time. Vinduet mellom
+    #   denne og forrige poll dekker forrige time, så forrige times energi
+    #   bokføres i sitt eget intervall (avregningskontrakten C1). Fixturens
+    #   `kwh` er timens forbruk, og telleren rapporterer det etterskuddsvis.
+    # * to minutter ut i timen, med samme tellerstand og timens egen spotpris.
+    #   Prisprøven hører til ruten polltiden faller i, og den godtas først 60
+    #   sekunder etter rutestart (A2.1). En poll nøyaktig på hel time gir
+    #   ingen prisprøve i det hele tatt.
+    #
+    # Klokken settes som naiv lokal tid; det er den coordinator selv bruker.
     cumulative_kwh = tpi_start
     last_result = None
+    import asyncio
+
     for hour in hours:
         start_iso = hour["start_local"]
         # ISO "2026-04-01T00:00:00+02:00" -> naiv lokal "2026-04-01T00:00:00"
         now = datetime.fromisoformat(start_iso).replace(tzinfo=None)
-
-        cumulative_kwh += hour["kwh"]
         hass.states.get = MagicMock(
             side_effect=_make_replay_state(
                 power_w=hour["p_max_w"],
@@ -183,11 +199,10 @@ def _replay_month(
                 tpi_kwh=cumulative_kwh,
             )
         )
-        coord_module.dt_util.now.return_value = now
-
-        import asyncio
-
-        last_result = asyncio.run(coord._async_update_data())
+        for forskyvning in (0, 2):
+            coord_module.dt_util.now.return_value = now + timedelta(minutes=forskyvning)
+            last_result = asyncio.run(coord._async_update_data())
+        cumulative_kwh += hour["kwh"]
 
     # Trigge månedsskifte: én ekstra poll på første time neste måned.
     last_hour = datetime.fromisoformat(hours[-1]["start_local"]).replace(tzinfo=None)

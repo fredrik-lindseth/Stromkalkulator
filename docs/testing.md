@@ -105,11 +105,69 @@ generator). Tom collection er rødt: conftest-en avbryter kjøringen hvis
 ingen tester ble samlet inn, så en feilstavet sti eller en import som slutter
 å samles ikke kan vises som grønn.
 
-I dag dekker den setup/unload med entitetsregistrering og første
-config-flow-steg. Bredden (full config-flow, options og reload, migrering,
-repairs, to entries, månedsskifte og DST med kontrollert klokke) kommer med
-dcat-issue `stromkalkulator-6b54ywj`, som også eier tidsbudsjettet for dette
-avsnittet.
+Laget dekker katalog-, custom- og sikring-flow, options/reconfigure/reload,
+konfigurasjonsmigrering, input- og tariff-repairs, separate entries og
+save/load. `test_kalender.py` bruker HAs planlagte timerhendelser med
+kontrollert UTC-klokke og Europe/Oslo: forsinket poll over lokal måned,
+begge DST-retninger og videre polling etter overgangen.
+
+### Scenarioer og feilklasser
+
+Hvert automatisk integrasjonsscenario i `tests_e2e/driver.py` har et raskt
+motsvar. Tabellen viser hvor en feil først skal kunne lokaliseres. Testene i
+`test_e2e_regressions.py` ligger i `tests_ha/`; navnene nedenfor er konkrete
+tester, ikke bare planlagt dekning.
+
+| Scenario | Rask kontrakt | Hva Docker tilfører |
+| --- | --- | --- |
+| Onboarding og energiøkning | `test_onboarding_and_energy_increase`: full user/sensors-flow, lastet entry, 0-baseline og +1,25 kWh | HTTP-flow og installasjon fra release-ZIP |
+| Restart uten dobbeltbokføring | `test_restart_no_double_booking`: positiv saldo og baseline over entry-reload/Store | Stopp/start av hele HA-prosessen |
+| Målerbytte | `test_meter_change`: options/reload, ny kildebinding, bevart saldo og neste normale delta | Samme sekvens gjennom server-API |
+| Fjerne valgfri eksportinput | `test_remove_optional`: frisk, aktivert output blir unavailable; entry og forbruk fortsetter | Options og entitetsoppdatering gjennom serveren |
+| Manglende input og recovery | `test_missing_input_recovery`: deleted/unavailable/unknown, bevart saldo og normal opptelling etterpå | Inputfeil gjennom server-API |
+| Sprang i energiteller | `test_meter_jump`: avvis +1000 kWh, godta neste +1,25 kWh | Sprangvern i installert pakke |
+| Ugyldig enhet og recovery | `test_invalid_unit_recovery`: repair opprettes og ryddes i ekte HA-register | Samme synlige repair over server-API |
+| Månedsavspilling | `tests/test_coordinator_replay.py` og `tests/test_replay_hendelser.py`: deterministisk energi-/avregningsreplay | Kvitterte avspilte kWh gjennom hele serveren |
+
+Ekte-HA-laget eier også kontrakter som Docker-avspillingen ikke kan bevise:
+`test_to_entries.py` vokter separat lagring, identitet og repairs mellom to
+anlegg; `test_konfig.py`, `test_custom.py` og `test_input.py` vokter flows,
+konfigurasjonsmigrering og inputbinding. `test_kalender.py` og
+`test_satsvakt.py` vokter kalendergrenser og årsskiftevakt. Unit-laget eier
+de detaljerte formlene, prisintervallene og fakturafasit.
+
+Manuelle Docker-handlinger som `outage_han`, `outage_spot` og `recover_inputs`
+har varslingsregler i `tests/test_vakthold.py`. Blir en ny varighet eller
+repair-sekvens et automatisk E2E-krav, skal den få et tilsvarende deterministisk
+bevis. HA-serverens egen bootstrap/tokenutveksling tilhører Docker-harnesset.
+Isolasjon, sladding, kildeavstemming og opprydding ved feil testes også
+offline i `tests_e2e/test_harness.py`.
+Historisk fakturarevalidering eies av `stromkalkulator-443xvtv`; HAN-fixturer
+og Elhub/fakturagrunnlag er ulike kilder og skal ha kildeangitte forventninger.
+
+`stromkalkulator-271siks` eier dette scenariokartet.
+`stromkalkulator-2uw4t9a` er aktiv etterfølger til `stromkalkulator-6b54ywj`
+og eier ekte-HA-kontraktene. Metadata for alle plattformer og bevart identitet
+ved reload kontrolleres i `test_metadata.py`; `test_store_migrering.py`
+kontrollerer eldre DSO-nøkkel og entry-format v1 gjennom ekte HA Store,
+med bevart måned og engangsmigrering.
+
+### Målt kjøretid og arbeidsbudsjett
+
+Målingene fra 13. september 2026 er lokale referanser, ikke garanterte
+CI-tider. Pytest-tid utelater miljøinstallasjon og resten av kommandoen.
+
+| Lag | Målt referanse | Praktisk budsjett med varmt miljø |
+| --- | --- | --- |
+| Unit (`test-unit`) | 3434 bestått, 34 hoppet; 140,75–143,76 s i isolerte trær uten privat grunnlag | Omtrent 3 minutter; `check` kommer i tillegg i `just test` |
+| Ekte HA, minimum/current | 63 bestått uten skip i hver, 2,46 / 3,02 s pytest-tid med metadata- og Store-kontraktene | Under 10 s pytest-tid som lokal referanse; nye tester kan øke dette |
+| Kun første E2E-speilpakke | 7 tilfeller; 0,93 s minimum / 0,87 s current på `0d465a9` | Rundt ett sekund for en avgrenset regresjon |
+| Docker current | 8 scenarioer og 720 juni-timer; ca. 592 s med varmt image-cache | 10–20 minutter lokalt; CI 28 minutter kjøring / 35 minutter jobb |
+
+Disse målingene gjelder de angitte leveransene, ikke en påstand om dagens
+testantall. Kald nedlasting av Python, pakker og Docker-image kommer i
+tillegg. Docker inngår derfor som separat serverbevis; de korte kontraktene
+brukes mens en feil utvikles og rettes.
 
 ## Docker-testlab
 

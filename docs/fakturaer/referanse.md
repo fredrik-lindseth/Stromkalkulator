@@ -10,6 +10,30 @@ Hver rapport her er en attest på at integrasjonen regner riktig for et gitt net
 
 Vil du få inn ditt eget nettselskap? Se [verifiser-din-faktura.md](verifiser-din-faktura.md).
 
+## Siste revalidering
+
+Attesten er sist kjørt om igjen mot `559f799`, etter at avregningsserien L3a
+endret hvordan energi, pris og tariff bokføres. Kommandoene er
+
+```
+python3 scripts/research/verify_invoice_hourly.py \
+    --hourly tests/fixtures/bkk_<måned>_2026_hourly.json --faktura <måned>_2026
+python3 scripts/research/verify_norgespris_eksakt.py
+UV_PROJECT_ENVIRONMENT=.venv-unit uv run --frozen --python 3.13 --group unit \
+    pytest tests/ -q
+```
+
+Alle linjene i tabellene under står uendret gjennom serien, for
+verifiseringsskriptene og fixturene er ikke rørt av den. Det coordinatoren
+regner, flyttet seg derimot: dag/natt-splitten for mai, juni og juli 2026
+flyttet inntil 0,261 kWh over tariffgrensen uten at totalen, kapasitetsleddet
+eller `monthly_cost_kr` endret seg, og den flyttet seg mot fakturaen.
+Før/etter-tabellen og metoden står i
+[revalidering-l3a-september-2026.md](../research/revalidering-l3a-september-2026.md).
+
+Kronetallene endrer seg igjen når kostnadskjernen (L3b) lander. Da må alle ti
+månedene kjøres på nytt; listen står i samme notat.
+
 ## Fakturaer
 
 Hver lenke er en verifiseringsrapport med full gjennomgang: forbruk, priser, effektmålinger og sammenligning mot integrasjonen.

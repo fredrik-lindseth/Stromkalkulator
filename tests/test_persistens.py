@@ -66,6 +66,10 @@ class TestSaveLoadCycle:
             "2026-03-10": coord.DailyMaxEntry(kw=9.0, hour=18),
         }
         coordinator._previous_month_name = "mars 2026"
+        coordinator._previous_month_energiledd_dag_kr = 123.45
+        coordinator._previous_month_energiledd_natt_kr = 67.89
+        coordinator._previous_month_avgifter_kr = 45.67
+        coordinator._previous_month_stromstotte_kr = 12.34
 
         asyncio.run(coordinator._save_stored_data())
 
@@ -82,6 +86,10 @@ class TestSaveLoadCycle:
             "2026-03-10": {"kw": 9.0, "hour": 18},
         }
         assert saved_data["previous_month_name"] == "mars 2026"
+        assert saved_data["previous_month_energiledd_dag_kr"] == 123.45
+        assert saved_data["previous_month_energiledd_natt_kr"] == 67.89
+        assert saved_data["previous_month_avgifter_kr"] == 45.67
+        assert saved_data["previous_month_stromstotte_kr"] == 12.34
 
         # Now create a new coordinator and load the saved data
         def make_store_with_data(hass, version, key):
@@ -108,6 +116,10 @@ class TestSaveLoadCycle:
             "2026-03-10": coord.DailyMaxEntry(kw=9.0, hour=18),
         }
         assert coordinator2._previous_month_name == "mars 2026"
+        assert coordinator2._previous_month_energiledd_dag_kr == 123.45
+        assert coordinator2._previous_month_energiledd_natt_kr == 67.89
+        assert coordinator2._previous_month_avgifter_kr == 45.67
+        assert coordinator2._previous_month_stromstotte_kr == 12.34
 
     def test_load_empty_store_uses_defaults(self):
         """Loading from empty store should keep default values."""
@@ -898,6 +910,10 @@ class TestSaveDataStructure:
             "previous_month_kapasitetstrinn",
             "previous_month_energiledd_dag",
             "previous_month_energiledd_natt",
+            "previous_month_energiledd_dag_kr",
+            "previous_month_energiledd_natt_kr",
+            "previous_month_avgifter_kr",
+            "previous_month_stromstotte_kr",
             "daily_cost",
             "current_date",
             "current_hour_energy",

@@ -4,6 +4,10 @@ Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) og [S
 
 ## [Ikke sluppet]
 
+### Fikset
+
+- **Forrige måneds nettleie leser nå de bokførte kronebeløpene fra månedsarkivet.** Tidligere regnet sensoren energileddet på nytt med siste sats i måneden, som ga feil når en sats endret seg underveis. <!--kort-->
+
 ### Lagt til
 
 - **Diagnostikknedlastingen viser nå anonymisert avregningsgrunnlag og datakvalitet for de siste intervallene, slik at beregninger kan etterprøves.** Den inneholder ikke full forbrukshistorikk eller rå identifikatorer. <!--kort-->

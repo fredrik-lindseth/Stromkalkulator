@@ -373,59 +373,50 @@ class TestMaanedligTotalSensor:
 
 
 class TestForrigeMaanedNettleieSensor:
-    """Beregner nettleie for forrige måned med eget kapasitetstrinn-oppslag."""
+    """Leser bokført nettleie for forrige måned fra coordinatorens arkiv."""
 
     def test_with_normal_top_3(self):
-        """Normal topp-3 => avg 10 kW => BKK trinn 3 (415 kr)."""
+        """Bokførte komponenter og fullt kapasitetsledd blir netto nettleie."""
         data = {
-            "previous_month_consumption_dag_kwh": 300.0,
-            "previous_month_consumption_natt_kwh": 200.0,
-            "previous_month_energiledd_dag": 0.4613,
-            "previous_month_energiledd_natt": 0.2329,
+            "previous_month_energiledd_dag_kr": 130.0,
+            "previous_month_energiledd_natt_kr": 47.0,
+            "previous_month_avgifter_kr": 33.0,
+            "previous_month_stromstotte_kr": 25.0,
             "previous_month_kapasitetsledd": 415,
         }
         sensor = ForrigeMaanedNettleieSensor(_make_coordinator(data), _make_entry())
-        expected = round(300.0 * 0.4613 + 200.0 * 0.2329 + 415, 2)
-        assert sensor.native_value == expected
+        assert sensor.native_value == 600.0
 
     def test_empty_top_3(self):
-        """Tom topp-3 => kapasitet = 0."""
+        """Ingen ny beregning av kWh og satser skjer i sensorlaget."""
         data = {
             "previous_month_consumption_dag_kwh": 300.0,
             "previous_month_consumption_natt_kwh": 200.0,
-            "previous_month_energiledd_dag": 0.4613,
-            "previous_month_energiledd_natt": 0.2329,
-            "previous_month_kapasitetsledd": 0,
+            "previous_month_energiledd_dag": 0.9999,
+            "previous_month_energiledd_natt": 0.9999,
+            "previous_month_energiledd_dag_kr": 12.34,
+            "previous_month_energiledd_natt_kr": 5.67,
+            "previous_month_avgifter_kr": 4.0,
+            "previous_month_stromstotte_kr": 2.0,
+            "previous_month_kapasitetsledd": 100,
         }
         sensor = ForrigeMaanedNettleieSensor(_make_coordinator(data), _make_entry())
-        expected = round(300.0 * 0.4613 + 200.0 * 0.2329, 2)
-        assert sensor.native_value == expected
+        assert sensor.native_value == 120.01
 
-    def test_high_power_top_tier(self):
-        """Very high average -> highest tier (6900 kr)."""
+    def test_attributes_explain_bokforte_komponenter_uten_gammel_kilde(self):
         data = {
-            "previous_month_consumption_dag_kwh": 500.0,
-            "previous_month_consumption_natt_kwh": 300.0,
-            "previous_month_energiledd_dag": 0.4613,
-            "previous_month_energiledd_natt": 0.2329,
-            "previous_month_kapasitetsledd": 6900,
-        }
-        sensor = ForrigeMaanedNettleieSensor(_make_coordinator(data), _make_entry())
-        expected = round(500.0 * 0.4613 + 300.0 * 0.2329 + 6900, 2)
-        assert sensor.native_value == expected
-
-    def test_low_power_first_tier(self):
-        """Very low average -> first tier (155 kr)."""
-        data = {
-            "previous_month_consumption_dag_kwh": 50.0,
-            "previous_month_consumption_natt_kwh": 30.0,
-            "previous_month_energiledd_dag": 0.4613,
-            "previous_month_energiledd_natt": 0.2329,
+            "previous_month_energiledd_dag_kr": 50.0,
+            "previous_month_energiledd_natt_kr": 30.0,
+            "previous_month_avgifter_kr": 20.0,
+            "previous_month_stromstotte_kr": 10.0,
             "previous_month_kapasitetsledd": 155,
         }
         sensor = ForrigeMaanedNettleieSensor(_make_coordinator(data), _make_entry())
-        expected = round(50.0 * 0.4613 + 30.0 * 0.2329 + 155, 2)
-        assert sensor.native_value == expected
+        attrs = sensor.extra_state_attributes
+        assert attrs["energiledd_dag_kr"] == 50.0
+        assert attrs["avgifter_kr"] == 20.0
+        assert attrs["stromstotte_kr"] == 10.0
+        assert "kilde" not in attrs
 
     def test_returns_none_when_no_data(self):
         coord = MagicMock()

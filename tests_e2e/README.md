@@ -8,6 +8,10 @@ Hver kjøring får eget Compose-prosjekt, ledig loopback-port og midlertidig con
 
 Krever Python 3.12+ og Docker med Compose. Docker må være startet på forhånd.
 På Apple Silicon emuleres linux/amd64 for å teste samme image som CI.
+Hold vertsmaskinen våken hele kjøringen, særlig for `vakthold`: testen måler
+ekte varighet, og Docker/HA må fortsette å kjøre under hele utfallet. På macOS
+kan `caffeinate -i python3 tests_e2e/run.py vakthold` hindre automatisk dvale
+mens kommandoen kjører; la lokket være åpent.
 
 ```bash
 just test-e2e target=current
@@ -18,6 +22,14 @@ faktiske etterfølgeren til planens `--build-only`), monterer den utpakkede
 ZIP-en read-only, kjører scenarioene og stopper containere/nettverk i `finally`.
 Ucommittede integrasjonsendringer er ikke med. Velg en annen commit med
 `python3 tests_e2e/run.py run --sha <commit>`.
+
+`e2e.yml` kjører standardløpet på relevante pull requests og ved manuell
+dispatch. Det er en separat workflow og ingen del av releaseporten i
+`release.yml`. `upgrade` og `vakthold` må kjøres særskilt. Bevar kandidat-SHA,
+exit-kode og scenario-trace som dokumentasjon på en fullført kjøring; et
+tidlig feilende scenario betyr at etterfølgende scenarioer ikke er prøvd.
+Kjør uten pipe til `tail`, eller bruk `set -o pipefail`, slik at testens
+exit-kode ikke erstattes av utskriftskommandoens.
 
 Image: `ghcr.io/home-assistant/home-assistant:2026.9.2`, linux/amd64-manifest
 `sha256:542890f4a7ef9269b7a5ac23ada303b327537c62fa0f866e49daebc61cb44caa`.
@@ -155,6 +167,19 @@ handler om hva `last_energy_increase` og `last_update` sto på da HA startet.
 
 Sommertid prøves ikke her. Laben kan ikke flytte klokken, og
 `tests/test_dst_overgang.py` eier begge overgangene med kontrollert tid.
+
+### Oppstart etter restart
+
+`Driver.ready()` venter etter autentisering på både `/api/config` med
+`state == "RUNNING"` og hovedentiteten for hvert lagrede anlegg. API-et kan
+svare før dette; en tidligere driver sendte da `update_entity` mens entiteten
+ikke fantes. Det ga «Entity … not found» og kunne la frossen-scenarioet lese en
+tom varselliste (stromkalkulator-516lois).
+
+Denne readiness-sjekken er en del av alle scenarioer etter restart. En endring
+her skal verifiseres med full `vakthold`, inkludert
+`test_strombrudd_er_ikke_frossen_teller`; manuell ekstra venting er ikke
+tilstrekkelig bevis.
 
 ## To forskjellige avstemminger
 

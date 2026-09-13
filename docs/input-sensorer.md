@@ -90,8 +90,11 @@ et målerbytte som ekte forbruk.
 
 Ved oppgraderingen til 1.17 forkastes den lagrede avlesningen én gang, fordi de
 gamle filene verken sier hvilken måler den kom fra eller hvilken enhet den var
-i. Det koster deg inntil ett pollintervall med forbruk. Månedsdata,
-døgnmaksimum og akkumulerte kroner beholdes.
+i. Første nye avlesning blir baseline og gir 0 kWh forbruk. Forbruk mellom
+den gamle avlesningen og denne første nye avlesningen blir derfor ikke
+bokført; gapet kan være lengre enn ett pollintervall hvis Home Assistant
+eller sensoren har vært nede. Månedsdata, døgnmaksimum og akkumulerte kroner
+som allerede var lagret, beholdes.
 
 ## OBIS-koder forklart
 

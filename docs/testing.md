@@ -74,7 +74,7 @@ Testsuiten (`ls tests/test_*.py` for aktuell liste) er organisert i nivåer i st
 - **Hourly replay**: en hel måneds fixtur-data mates time for time gjennom `NettleieCoordinator`, og de akkumulerte sluttverdiene sjekkes mot fasit. `test_coordinator_replay.py`.
 - **Property-baserte tester**: Hypothesis genererer tilfeldige input og sjekker invarianter som ikke-negativitet og monotonisitet. `test_property.py`.
 - **Kontrakt**: kjører en reell coordinator-oppdatering og fôrer resultatet inn i sensorklassene, for å fange typemismatch mellom coordinator og sensor før det når produksjon. `test_coordinator_sensor_contract.py`.
-- **Migrering**: config entry-migrering (v1→v2→v3), lagringsnøkkel-isolasjon mellom entries (se [incident 001](incidents/001-delt-data-mellom-instanser.md)), og lagring/gjenoppretting av persistert data. `test_config_migration.py`, `test_storage_key.py`, `test_persistens.py`.
+- **Migrering**: config entry-migrering (v1→v2→v3→v4→v5), lagringsnøkkel-isolasjon mellom entries (se [incident 001](incidents/001-delt-data-mellom-instanser.md)), og lagring/gjenoppretting av persistert data. `test_config_migration.py`, `test_storage_key.py`, `test_persistens.py`.
 - **DST og kalender**: sommertid-overgang, helligdager langt fram i tid, sesongstyrte energiledd-perioder. `test_dst_overgang.py`, `test_edge_cases.py`, `test_energiledd_perioder.py`.
 - **Unit**: resten, altså beregningslogikk per komponent (energiledd, kapasitetstrinn, strømstøtte inkl. tak, Norgespris-kompensasjon inkl. tak, spotpris/mva, solcelle-eksport, energisensor-delta), DSO-datavalidering og 2026-tariffer, entity-oppsett (config flow, options flow, setup/unload, diagnostics, button, sensorklasser, månedlige og passthrough-sensorer) og robusthet/coverage-gap-regresjoner.
 
@@ -190,7 +190,7 @@ brukes mens en feil utvikles og rettes.
 `just test-e2e target=current` bygger HACS-ZIP fra `HEAD`, starter et eget
 Compose-prosjekt med offisielt HA-image låst til tagg og linux/amd64-digest,
 oppretter integrasjonen gjennom config-flow og spiller av juni-fixturen.
-Ucommittede integrasjonsendringer inngår ikke i denne testen. Python 3 og
+Ucommittede integrasjonsendringer inngår ikke i denne testen. Python 3.12+ og
 Docker med Compose er nok på verten; driveren bruker HAs egne avhengigheter
 inne i containeren. Porten er en tilfeldig ledig port på `127.0.0.1`.
 
@@ -205,6 +205,12 @@ juni-timer bestod på omtrent 10 minutter med varmt image-cache. En separat
 tvunget feil bekreftet at containere og nettverk ryddes også ved feil, og
 eksportert evidens inneholdt ingen av testlabens passord eller tokens.
 GitHub-jobben må fortsatt bekreftes grønn i CI.
+
+Docker-workflowen `e2e.yml` kjører separat på relevante pull requests og ved
+manuell dispatch. Den inngår ikke i `release.yml` sin `needs: ci`, og verken
+`upgrade` eller `vakthold` kjøres av den. Grønn release-CI beviser derfor ikke
+at disse Docker-løpene er grønne. Før release må resultatene knyttes til
+kandidat-SHA-en og scenario-tracen, med alle forventede scenarioer fullført.
 
 Avspillingen endrer ingen klokke. Rapporten skiller HA-integrasjonens
 bokførte kWh fra historisk kildeavstemming. HA bruker dagens dato og tariff,
@@ -261,6 +267,18 @@ spotcache, et utfall innenfor grace, målerbytte, og delvis friskmelding der
 teksten skal skrives om framfor at varselet lukkes. Frossen teller og
 strømbrudd seedes gjennom lagringsfilen framfor å ventes ut, for begge handler
 om hva `last_energy_increase` og `last_update` sto på da HA startet.
+
+En kjent oppstartsfeil i driveren kan gi falskt rødt etter omstart:
+`ready()` venter bare på `/api/`, som kan svare før HA er `RUNNING` og før
+entitetene finnes. Da kan `update_entity` bli kalt for tidlig, blant annet i
+`test_frossen_teller_varsles` (stromkalkulator-516lois). Dette er ikke rettet i
+driveren ennå. En permanent retting må vente på både ferdig HA-oppstart og
+nødvendige entiteter, og så bestå hele vaktholdsekvensen inkludert
+strømbrudd-motprøven. En grønn enkeltprøve etter ekstra venting er nyttig
+feilsøking, men ikke en grønn full suite.
+
+Hold vertsmaskinen våken under de lange testene; dvale avbryter den tilsiktede
+sammenhengende kjøringen. Se [labens kjørevilkår](../tests_e2e/README.md#kjør).
 
 `--cache-minutter 95` legger til spotcachen på to timer og tar kjøringen over
 to timer. Den står av som default: rangeringen mellom `spot_utfall` og

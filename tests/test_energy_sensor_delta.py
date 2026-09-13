@@ -9,6 +9,7 @@ på 1000 ga 20 kWh som aldri var brukt.
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 from unittest.mock import MagicMock
 
@@ -277,6 +278,27 @@ class TestKildebundetBaseline:
         assert _delta(coordinator) == 0.0
         assert _baseline_kwh(coordinator) == 1020.0
         assert coordinator._baseline.source_identity == "maaler-2"
+
+    def test_loggen_skriver_ikke_kildeidentiteten(self, coord_module, caplog):
+        """Kildeidentiteten er unique_id, og hos AMS-integrasjoner er den målepunkt-ID.
+
+        Den peker på én husstand. home-assistant.log limes inn i offentlige
+        issues like ofte som diagnostikkdumpen, og dumpen aliaserer nettopp
+        denne verdien. Loggen skal si at kilden er en annen, ikke hvilken.
+        """
+        hass = _hass_with_energy(1020.0, unique_id="707057500012345678")
+        coordinator = coord_module.NettleieCoordinator(hass, _make_entry(energy_sensor="sensor.energy"))
+        _sett_baseline(coordinator, 1000.0, unique_id="707057500087654321")
+
+        with caplog.at_level(logging.INFO):
+            _delta(coordinator)
+
+        assert "707057500012345678" not in caplog.text
+        assert "707057500087654321" not in caplog.text
+        # Entity-id-en skal stå: uten den vet ikke brukeren hvilken sensor det
+        # gjelder, og den er et navn han har valgt selv.
+        assert "sensor.energy" in caplog.text
+        assert "ny kilde" in caplog.text
 
     def test_ny_kilde_rorer_ikke_maanedsdata(self, coord_module):
         hass = _hass_with_energy(1020.0, unique_id="maaler-2")

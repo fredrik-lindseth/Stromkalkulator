@@ -40,12 +40,12 @@ fordi en commit rettet malen og koden uten å ta med oversettelsene.
 
 Slik så det ut i vinduet:
 
-| Fil                    | Til og med 1.11.x | 1.12.0 til 1.16.0 | Fra 1.17.0  |
-| ---------------------- | ----------------- | ----------------- | ----------- |
-| `const.py` (koden)     | inkl. avgifter    | eks. avgifter     | eks.        |
-| `strings.json` (malen) | inkl. avgifter    | eks. avgifter     | eks.        |
-| `nb.json`              | inkl. avgifter    | inkl. avgifter    | eks.        |
-| `en.json`              | inkl. avgifter    | inkl. avgifter    | eks.        |
+| Fil                    | Til og med 1.11.x | 1.12.0 til 1.16.0 | Fra 1.17.0 |
+| ---------------------- | ----------------- | ----------------- | ---------- |
+| `const.py` (koden)     | inkl. avgifter    | eks. avgifter     | eks.       |
+| `strings.json` (malen) | inkl. avgifter    | eks. avgifter     | eks.       |
+| `nb.json`              | inkl. avgifter    | inkl. avgifter    | eks.       |
+| `en.json`              | inkl. avgifter    | inkl. avgifter    | eks.       |
 
 Integrasjonen har bare nb og en, og engelsk er fallbacken for alle andre språk,
 så det fantes ikke en språkkombinasjon som viste den riktige teksten i vinduet.
@@ -66,10 +66,10 @@ Avgiftene er 7,13 øre/kWh forbruksavgift pluss 1,0 øre/kWh Enova, altså 8,13
 øre/kWh eks. mva. Hvor galt det blir, avhenger av hva brukeren leste «inkl.
 avgifter» som:
 
-| Tolkning                                   | Feil per kWh (Sør-Norge) | 1500 kWh/mnd | Per år   |
-| ------------------------------------------ | ------------------------ | ------------ | -------- |
-| Energiledd + forbruksavgift + Enova         | 10,16 øre                | 152 kr       | 1829 kr  |
-| Hele linjen fra fakturaen, altså inkl. mva  | 21,69 øre                | 325 kr       | 3905 kr  |
+| Tolkning                                   | Feil per kWh (Sør-Norge) | 1500 kWh/mnd | Per år  |
+| ------------------------------------------ | ------------------------ | ------------ | ------- |
+| Energiledd + forbruksavgift + Enova        | 10,16 øre                | 152 kr       | 1829 kr |
+| Hele linjen fra fakturaen, altså inkl. mva | 21,69 øre                | 325 kr       | 3905 kr |
 
 Regnestykket for den første raden, med BKK-satsen som står som default i
 skjemaet (28,77 øre/kWh eks. mva):

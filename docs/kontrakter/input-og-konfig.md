@@ -42,11 +42,11 @@ Adapteren i `inputadapter.py` er den eneste veien inn til en sensorverdi.
 Setup, options, reconfigure og runtime bruker den samme. Den returnerer ett av
 tre resultater, aldri et bart tall og aldri `None` som betyr flere ting.
 
-| Resultat | Felt | Betyr | Regnes det videre på? |
-| --- | --- | --- | --- |
-| `Gyldig` | `verdi` (float, normalisert), `enhet_normalisert`, `observed_at` (aware datetime fra `last_updated`), `avlest_kl` (aware datetime, da adapteren leste staten), `raa_enhet` | Entiteten finnes og leverer et endelig tall i en enhet vi kan regne om | Ja |
-| `Utilgjengelig` | `grunn`, `entity_id` | Entiteten leverer ikke akkurat nå, men oppsettet er i orden | Nei, forrige tilstand står |
-| `Ugyldig` | `grunn`, `entity_id`, `raa_enhet` | Entiteten leverer noe vi ikke har lov til å regne på | Nei, og det skal være synlig |
+| Resultat        | Felt                                                                                                                                                                       | Betyr                                                                  | Regnes det videre på?        |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ---------------------------- |
+| `Gyldig`        | `verdi` (float, normalisert), `enhet_normalisert`, `observed_at` (aware datetime fra `last_updated`), `avlest_kl` (aware datetime, da adapteren leste staten), `raa_enhet` | Entiteten finnes og leverer et endelig tall i en enhet vi kan regne om | Ja                           |
+| `Utilgjengelig` | `grunn`, `entity_id`                                                                                                                                                       | Entiteten leverer ikke akkurat nå, men oppsettet er i orden            | Nei, forrige tilstand står   |
+| `Ugyldig`       | `grunn`, `entity_id`, `raa_enhet`                                                                                                                                          | Entiteten leverer noe vi ikke har lov til å regne på                   | Nei, og det skal være synlig |
 
 `observed_at` og `avlest_kl` er to ulike tider, og begge trengs. Energien
 bokføres etter `observed_at` ([avregning.md
@@ -60,23 +60,23 @@ oversettelsene slår opp på dem.
 
 `Utilgjengelig`-grunner:
 
-| Grunn | Når |
-| --- | --- |
-| `finnes_ikke` | `hass.states.get(entity_id)` er `None`. Entiteten er slettet, omdøpt eller ikke lastet ennå |
-| `utilgjengelig` | State er `unavailable` |
-| `ukjent` | State er `unknown` |
-| `ikke_konfigurert` | Rollen er valgfri og brukeren har ikke satt noen entitet |
+| Grunn              | Når                                                                                         |
+| ------------------ | ------------------------------------------------------------------------------------------- |
+| `finnes_ikke`      | `hass.states.get(entity_id)` er `None`. Entiteten er slettet, omdøpt eller ikke lastet ennå |
+| `utilgjengelig`    | State er `unavailable`                                                                      |
+| `ukjent`           | State er `unknown`                                                                          |
+| `ikke_konfigurert` | Rollen er valgfri og brukeren har ikke satt noen entitet                                    |
 
 `Ugyldig`-grunner:
 
-| Grunn | Når |
-| --- | --- |
-| `ikke_tall` | State lar seg ikke lese som float |
-| `ikke_endelig` | NaN eller inf |
-| `ukjent_enhet` | `unit_of_measurement` er satt til noe tabellen i punkt 2 ikke dekker |
-| `feil_dimensjon` | Enheten er gyldig, men for feil størrelse, for eksempel kWh der vi ber om W |
-| `feil_valuta` | Prisenhet i annen valuta enn NOK eller øre, for eksempel EUR/MWh |
-| `ikke_kumulativ` | Energisensor uten `state_class` `total_increasing` eller `total` |
+| Grunn            | Når                                                                           |
+| ---------------- | ----------------------------------------------------------------------------- |
+| `ikke_tall`      | State lar seg ikke lese som float                                             |
+| `ikke_endelig`   | NaN eller inf                                                                 |
+| `ukjent_enhet`   | `unit_of_measurement` er satt til noe tabellen i punkt 2 ikke dekker          |
+| `feil_dimensjon` | Enheten er gyldig, men for feil størrelse, for eksempel kWh der vi ber om W   |
+| `feil_valuta`    | Prisenhet i annen valuta enn NOK eller øre, for eksempel EUR/MWh              |
+| `ikke_kumulativ` | Energisensor uten `state_class` `total_increasing` eller `total`              |
 | `urimelig_verdi` | Prisverdi der absoluttverdien er over 100 **etter** normalisering til NOK/kWh |
 
 Grensen i `urimelig_verdi` gjelder etter normalisering, ikke i sensorens egen
@@ -116,18 +116,18 @@ normaliserte verdier. Sammenligningen av enhetsstrengen er
 whitespace-trimmet og case-insensitiv, og `ore` godtas som skrivemåte for
 `øre`.
 
-| Rolle | Godtatte enheter | Normalisert til | Faktor |
-| --- | --- | --- | --- |
-| effekt, eksporteffekt | `W` | `W` | 1 |
-| | `kW` | `W` | 1000 |
-| | `MW` | `W` | 1 000 000 |
-| energi | `Wh` | `kWh` | 0,001 |
-| | `kWh` | `kWh` | 1 |
-| | `MWh` | `kWh` | 1000 |
-| spotpris, leverandørpris | `NOK/kWh`, `kr/kWh` | `NOK/kWh` | 1 |
-| | `øre/kWh`, `ore/kWh` | `NOK/kWh` | 0,01 |
-| | `NOK/MWh`, `kr/MWh` | `NOK/kWh` | 0,001 |
-| | `øre/MWh`, `ore/MWh` | `NOK/kWh` | 0,00001 |
+| Rolle                    | Godtatte enheter     | Normalisert til | Faktor    |
+| ------------------------ | -------------------- | --------------- | --------- |
+| effekt, eksporteffekt    | `W`                  | `W`             | 1         |
+|                          | `kW`                 | `W`             | 1000      |
+|                          | `MW`                 | `W`             | 1 000 000 |
+| energi                   | `Wh`                 | `kWh`           | 0,001     |
+|                          | `kWh`                | `kWh`           | 1         |
+|                          | `MWh`                | `kWh`           | 1000      |
+| spotpris, leverandørpris | `NOK/kWh`, `kr/kWh`  | `NOK/kWh`       | 1         |
+|                          | `øre/kWh`, `ore/kWh` | `NOK/kWh`       | 0,01      |
+|                          | `NOK/MWh`, `kr/MWh`  | `NOK/kWh`       | 0,001     |
+|                          | `øre/MWh`, `ore/MWh` | `NOK/kWh`       | 0,00001   |
 
 Alt annet avvises. Det gjelder også `EUR/kWh` og `EUR/MWh`, som får
 `feil_valuta`. Vi har ingen valutakurs i integrasjonen, og å lese euro som
@@ -231,13 +231,13 @@ hytte som står avslått i en uke mister baselinen sin uten å si fra.
 
 Ny form, Store-skjema v2:
 
-| Felt | Type | Betyr |
-| --- | --- | --- |
-| `schema_version` | int | 2 for denne formen |
-| `source_identity` | str eller null | Entitetens `unique_id` fra entity-registeret |
-| `entity_id` | str | Entity-id-en slik den var ved avlesningen, kun til visning og feilsøk |
-| `value_kwh` | float | Avlesningen normalisert til kWh etter punkt 2 |
-| `observed_at` | str | ISO 8601 i UTC, fra statens `last_updated` |
+| Felt              | Type           | Betyr                                                                 |
+| ----------------- | -------------- | --------------------------------------------------------------------- |
+| `schema_version`  | int            | 2 for denne formen                                                    |
+| `source_identity` | str eller null | Entitetens `unique_id` fra entity-registeret                          |
+| `entity_id`       | str            | Entity-id-en slik den var ved avlesningen, kun til visning og feilsøk |
+| `value_kwh`       | float          | Avlesningen normalisert til kWh etter punkt 2                         |
+| `observed_at`     | str            | ISO 8601 i UTC, fra statens `last_updated`                            |
 
 **«v2» er en skjemaversjon i dataene, ikke `Store`-konstruktørens major
 version.** Denne regelen eies her og gjelder hele Store-filen, også
@@ -301,11 +301,11 @@ Regler:
 
 `CONF_TARIFFMODUS` er et felt på entryet med tre verdier.
 
-| Modus | Hvor satsene kommer fra | Hvem har den |
-| --- | --- | --- |
-| `catalog` | `dso.py`, løpende ved hver oppstart og hver oppdatering av integrasjonen | Alle nye oppsett med et kjent nettselskap, og alle som svarer «følg katalogen» på repair-varselet |
-| `manual` | Eksplisitte satser lagret på entryet | Egendefinert, og alle som svarer «behold mine satser» |
-| `legacy_unconfirmed` | `dso.py`, men entryet har en lagret sats vi ikke vet om er bevisst | Alt som migreres fra v4 og har lagrede energiledd |
+| Modus                | Hvor satsene kommer fra                                                  | Hvem har den                                                                                      |
+| -------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| `catalog`            | `dso.py`, løpende ved hver oppstart og hver oppdatering av integrasjonen | Alle nye oppsett med et kjent nettselskap, og alle som svarer «følg katalogen» på repair-varselet |
+| `manual`             | Eksplisitte satser lagret på entryet                                     | Egendefinert, og alle som svarer «behold mine satser»                                             |
+| `legacy_unconfirmed` | `dso.py`, men entryet har en lagret sats vi ikke vet om er bevisst       | Alt som migreres fra v4 og har lagrede energiledd                                                 |
 
 Tre presiseringer:
 
@@ -376,16 +376,16 @@ En bruker på 1.16.0 skal ikke miste noen akkumulator. Migreringen rører bare
 `entry.data`, aldri Store-filen med måledata, og aldri `entry_id` eller
 entitetenes unique-id-er.
 
-| Entry-type i dag | Kjennetegn i `entry.data` | Modus etter v5 | Endres satsene? | Repair? |
-| --- | --- | --- | --- | --- |
-| Egendefinert | `tso == "custom"` | `manual` | Nei | Nei fra v5. K3 reiser sitt eget om fastledd |
-| Kjent DSO med sesongperioder | DSO har `energiledd_perioder` | `catalog`, lagret sats fjernes fra `entry.data` | Nei, periodene gjaldt allerede | Nei |
-| Kjent DSO, lagret sats lik katalogen | Avvik under terskelen i punkt 8 | `catalog`, lagret sats fjernes fra `entry.data` | Nei | Nei |
-| Kjent DSO, lagret sats avviker | Avvik over terskelen | `legacy_unconfirmed`, lagret sats blir stående | Ja, katalogen gjelder fra første oppstart | Ja, med valg |
-| Kjent DSO uten lagret energiledd | Feltene mangler | `catalog` | Nei | Nei |
-| Utfaset DSO (`supported: False`) | Står igjen for varselets skyld | `catalog`, lagret sats fjernes fra `entry.data` | Nei | Nei fra v5. Det eksisterende `dso_migration`-varselet gjelder fortsatt |
-| Fusjonert DSO | `tso` står i `DSO_MIGRATIONS` og er tatt ut av `DSO_LIST` | `catalog`, lagret sats fjernes fra `entry.data` | Ja, det nye selskapets katalog gjelder | Nei fra v5. `dso_migration`-varselet forteller alt om flyttingen |
-| Ukjent DSO | `tso` finnes verken i `DSO_LIST` eller `DSO_MIGRATIONS` | `manual` | Nei | Nei |
+| Entry-type i dag                     | Kjennetegn i `entry.data`                                 | Modus etter v5                                  | Endres satsene?                           | Repair?                                                                |
+| ------------------------------------ | --------------------------------------------------------- | ----------------------------------------------- | ----------------------------------------- | ---------------------------------------------------------------------- |
+| Egendefinert                         | `tso == "custom"`                                         | `manual`                                        | Nei                                       | Nei fra v5. K3 reiser sitt eget om fastledd                            |
+| Kjent DSO med sesongperioder         | DSO har `energiledd_perioder`                             | `catalog`, lagret sats fjernes fra `entry.data` | Nei, periodene gjaldt allerede            | Nei                                                                    |
+| Kjent DSO, lagret sats lik katalogen | Avvik under terskelen i punkt 8                           | `catalog`, lagret sats fjernes fra `entry.data` | Nei                                       | Nei                                                                    |
+| Kjent DSO, lagret sats avviker       | Avvik over terskelen                                      | `legacy_unconfirmed`, lagret sats blir stående  | Ja, katalogen gjelder fra første oppstart | Ja, med valg                                                           |
+| Kjent DSO uten lagret energiledd     | Feltene mangler                                           | `catalog`                                       | Nei                                       | Nei                                                                    |
+| Utfaset DSO (`supported: False`)     | Står igjen for varselets skyld                            | `catalog`, lagret sats fjernes fra `entry.data` | Nei                                       | Nei fra v5. Det eksisterende `dso_migration`-varselet gjelder fortsatt |
+| Fusjonert DSO                        | `tso` står i `DSO_MIGRATIONS` og er tatt ut av `DSO_LIST` | `catalog`, lagret sats fjernes fra `entry.data` | Ja, det nye selskapets katalog gjelder    | Nei fra v5. `dso_migration`-varselet forteller alt om flyttingen       |
+| Ukjent DSO                           | `tso` finnes verken i `DSO_LIST` eller `DSO_MIGRATIONS`   | `manual`                                        | Nei                                       | Nei                                                                    |
 
 Oppslaget i `DSO_MIGRATIONS` skjer **før** sjekken på om nettselskapet finnes
 i `DSO_LIST`. Et fusjonert selskap er tatt ut av listen, så det ser ellers ut
@@ -486,18 +486,18 @@ og kW-grense skilt fra pris med kolon:
 (`fastledd_mangler_sikringsvalg` i `coordinator.py` og `sensor.py`), og det nye
 flagget `fastledd_ukjent` oppfører seg likt.
 
-| Sensor | Verdi uten trinntabell |
-| --- | --- |
-| `kapasitetstrinn` | Ukjent, med attributtet `fastledd_ukjent: true` |
-| `trinn_nummer` | Ukjent |
-| `margin_neste_trinn` | Ukjent |
-| `maanedlig_nettleie` | Ukjent |
-| `maanedlig_total` | Ukjent |
-| `estimert_maanedskostnad` | Ukjent |
-| `akkumulert_kostnad` | Ukjent |
-| `energiledd`, `energiledd_dag`, `energiledd_natt` | Tall som før. Energileddet er per kWh og har ingenting med fastleddet å gjøre |
-| `strompris_per_kwh`, `total_price`, `total_pris_inkl_avgifter`, `total_pris_etter_stotte`, `total_pris_norgespris`, `strompris_norgespris` | Tall, regnet uten fastledd, med attributtet `fastledd_ukjent: true` |
-| `maanedlig_forbruk_*`, `maks_forbruk_*`, `gjennomsnitt_forbruk`, `tariff`, `stromstotte*`, `offentlige_avgifter`, `forbruksavgift`, `enovaavgift`, eksportsensorene | Uberørt |
+| Sensor                                                                                                                                                              | Verdi uten trinntabell                                                        |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `kapasitetstrinn`                                                                                                                                                   | Ukjent, med attributtet `fastledd_ukjent: true`                               |
+| `trinn_nummer`                                                                                                                                                      | Ukjent                                                                        |
+| `margin_neste_trinn`                                                                                                                                                | Ukjent                                                                        |
+| `maanedlig_nettleie`                                                                                                                                                | Ukjent                                                                        |
+| `maanedlig_total`                                                                                                                                                   | Ukjent                                                                        |
+| `estimert_maanedskostnad`                                                                                                                                           | Ukjent                                                                        |
+| `akkumulert_kostnad`                                                                                                                                                | Ukjent                                                                        |
+| `energiledd`, `energiledd_dag`, `energiledd_natt`                                                                                                                   | Tall som før. Energileddet er per kWh og har ingenting med fastleddet å gjøre |
+| `strompris_per_kwh`, `total_price`, `total_pris_inkl_avgifter`, `total_pris_etter_stotte`, `total_pris_norgespris`, `strompris_norgespris`                          | Tall, regnet uten fastledd, med attributtet `fastledd_ukjent: true`           |
+| `maanedlig_forbruk_*`, `maks_forbruk_*`, `gjennomsnitt_forbruk`, `tariff`, `stromstotte*`, `offentlige_avgifter`, `forbruksavgift`, `enovaavgift`, eksportsensorene | Uberørt                                                                       |
 
 `trinn_intervall` er allerede `None` når det underliggende feltet mangler, og
 trenger ingen egen regel.

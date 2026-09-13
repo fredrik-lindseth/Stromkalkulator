@@ -99,6 +99,8 @@ from stromkalkulator.sensor import (  # noqa: E402
     TotalPrisNorgesprisSensor,
 )
 
+from tests.vakter import ganget_med  # noqa: E402
+
 # --- Fixtures ---
 
 SAMPLE_DATA = {
@@ -578,13 +580,14 @@ class TestFastleddUkjent:
 
 #: Satser og forbrukstall i data-dicten som hører til inneværende måned. De er
 #: riktige å vise, og gale å gange med hverandre: gjør sensoren det, har vi to
-#: sannheter om samme krone, en i kostnadskjernen og en her. Ordgrensene gjør
-#: at `previous_month_energiledd_dag` går fri, og den er bevisst: arkivet har
-#: ingen bokførte kroner å lese ennå (stromkalkulator-1fnzdn8).
+#: sannheter om samme krone, en i kostnadskjernen og en her. Treffet er eksakt
+#: på navnet, så `previous_month_energiledd_dag` går fri, og den er bevisst:
+#: arkivet har ingen bokførte kroner å lese ennå (stromkalkulator-1fnzdn8).
 MAANEDENS_SATSER_OG_FORBRUK = (
     "energiledd_dag",
     "energiledd_natt",
     "stromstotte",
+    "stromstotte_per_kwh",
     "forbruksavgift_inkl",
     "forbruksavgift_inkl_mva",
     "enova_inkl",
@@ -593,6 +596,19 @@ MAANEDENS_SATSER_OG_FORBRUK = (
     "monthly_consumption_dag_kwh",
     "monthly_consumption_natt_kwh",
     "monthly_consumption_total_kwh",
+)
+
+#: Sensoren skrevet i seks stiler som alle regner kroner selv. De tre første
+#: gikk grønt gjennom den tekstbaserte utgaven av vakten, den øverste er stilen
+#: sensor.py faktisk er skrevet i. De står her for at mutasjonsprøven skal være
+#: ærlig neste gang noen rører skanneren.
+SKRIVEMAATER_SOM_SKAL_FELLES = (
+    'kr = _tall(data, "monthly_consumption_dag_kwh") * _tall(data, "energiledd_dag")',
+    'kr = data.get("monthly_consumption_total_kwh", 0) * data.get("stromstotte", 0)',
+    "kr = total_kwh * stromstotte_per_kwh",
+    "kr = dag_kwh * energiledd_dag",
+    "kr = energiledd_natt * natt_kwh",
+    "kr = kwh * self.energiledd_dag",
 )
 
 
@@ -608,22 +624,23 @@ class TestSensorerRegnerIkkeSelv:
 
     @classmethod
     def _treff(cls, kilde: str) -> list[str]:
-        import re
-
-        monstre = [rf"\b{navn}\b\s*\*" for navn in MAANEDENS_SATSER_OG_FORBRUK]
-        monstre += [rf"\*\s*\b{navn}\b" for navn in MAANEDENS_SATSER_OG_FORBRUK]
-        return re.findall("|".join(monstre), kilde)
+        return ganget_med(kilde, MAANEDENS_SATSER_OG_FORBRUK)
 
     def test_ingen_maanedssats_ganges_med_noe(self):
         assert self._treff(self._kilde()) == []
 
-    def test_vakten_fanger_den_gamle_skrivemaaten(self):
-        """Mutasjonsprøven: begge operandrekkefølger skal felles."""
-        assert self._treff("kr = dag_kwh * energiledd_dag")
-        assert self._treff("kr = energiledd_natt * natt_kwh")
-        assert self._treff("kr = monthly_consumption_total_kwh * stromstotte")
-        # Arkivet er unntaket, og det skal gå fri til det har kroner å lese.
-        assert not self._treff("kr = kwh * previous_month_energiledd_dag")
+    @pytest.mark.parametrize("skrivemaate", SKRIVEMAATER_SOM_SKAL_FELLES)
+    def test_vakten_feller_alle_skrivemaater(self, skrivemaate):
+        """Mutasjonsprøven: hver stil sensoren kan skrives i skal bli rød."""
+        assert self._treff(skrivemaate)
+
+    def test_arkivsensoren_gaar_fri(self):
+        """Forrige måned regner fortsatt selv, til arkivet får kroner å lese."""
+        assert not self._treff('kr = kwh * _tall(data, "previous_month_energiledd_dag")')
+
+    def test_visning_uten_ganging_gaar_fri(self):
+        """Å lese en sats og vise den er greit. Det er gangingen som er feilen."""
+        assert not self._treff('sats = _tall(data, "energiledd_dag")')
 
     def test_hjelperen_som_ganget_satser_er_borte(self):
         import stromkalkulator.sensor as sensor_mod

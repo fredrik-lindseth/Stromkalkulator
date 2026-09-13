@@ -133,7 +133,14 @@ Ekte-HA-laget eier også kontrakter som Docker-avspillingen ikke kan bevise:
 `test_to_entries.py` vokter separat lagring, identitet og repairs mellom to
 anlegg; `test_konfig.py`, `test_custom.py` og `test_input.py` vokter flows,
 konfigurasjonsmigrering og inputbinding. `test_kalender.py` og
-`test_satsvakt.py` vokter kalendergrenser og årsskiftevakt. Unit-laget eier
+`test_satsvakt.py` vokter kalendergrenser og årsskiftevakt.
+`test_entitetsflate.py` holder hele flaten mot gullfilen
+`tests_ha/entitetsflate.json`: entitets-ID, navn, enhet, klasser, ikon og
+deaktivert-som-standard for alle 55 entiteter. `test_metadata.py` sjekker
+kontraktene per entitet, gullfilen fanger den som forsvant eller byttet navn.
+Endrer du flaten med vilje, regenerer med
+`SKRIV_ENTITETSFLATE=1 just test-ha target=current tests_ha/test_entitetsflate.py`
+og les diffen før du committer den. Unit-laget eier
 de detaljerte formlene, prisintervallene og fakturafasit.
 
 `upgrade` og `vakthold` står utenfor den automatiske kjøringen, men de har de

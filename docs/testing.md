@@ -136,6 +136,15 @@ konfigurasjonsmigrering og inputbinding. `test_kalender.py` og
 `test_satsvakt.py` vokter kalendergrenser og årsskiftevakt. Unit-laget eier
 de detaljerte formlene, prisintervallene og fakturafasit.
 
+`upgrade` og `vakthold` står utenfor den automatiske kjøringen, men de har de
+samme raske motsvarene: `tests_ha/test_store_migrering.py` og
+`tests/test_persistens.py` for lagringsformatet, `tests/test_config_migration.py`
+for entryversjonene, `tests/test_kostnad.py` for fastleddet som periodebeløp,
+`tests/test_tariffmodus.py` for satsvarselet, `tests/test_repairs_egendefinert.py`
+for fastleddvarselet og `tests/test_vakthold.py` med `tests/test_dst_overgang.py`
+for vaktholdet. Docker-kjøringene tilfører ekte varighet, ekte issue-register og
+en lagringsfil skrevet av utgaven som faktisk slapp.
+
 Manuelle Docker-handlinger som `outage_han`, `outage_spot` og `recover_inputs`
 har varslingsregler i `tests/test_vakthold.py`. Blir en ny varighet eller
 repair-sekvens et automatisk E2E-krav, skal den få et tilsvarende deterministisk
@@ -216,6 +225,48 @@ versjons-/avstemmingsrapport, aldri config, tokens eller full storage.
 Ingen produksjonsconfig, privat målearkiv eller supervisor-token brukes.
 Les [tests_e2e/README.md](../tests_e2e/README.md) for feilsimulering,
 validering av cleanup og presise begrensninger.
+
+### Oppgraderingsveien og vaktholdet
+
+To lengre kjøringer ligger utenfor `just test-e2e`, for begge koster mer tid
+enn en port skal koste:
+
+```bash
+python3 tests_e2e/run.py upgrade     # rundt 15 minutter
+python3 tests_e2e/run.py vakthold    # rundt 40 minutter
+```
+
+`upgrade` installerer taggen `v1.16.0`, setter opp to anlegg gjennom dens egen
+config-flow, kjører opp akkumulatorene, og bytter så integrasjonen til `--sha`
+mens containeren står stille. Da er både lagringsfilen og config-entryene
+skrevet av den sluppet utgaven, ikke etterlignet. Kjøringen vokter at
+månedsforbruk, døgnmaks og forrige måned overlever, at den kildeløse baselinen
+forkastes uten å gi falskt forbruk, og de tre brukersynlige endringene:
+fastleddet som periodebeløp, satsvarselet i begge retninger, og Egendefinert
+uten trinntabell. `lab.skriv_lagring` nekter å legge inn en nøkkel som ikke
+alt sto i filen, så et seedet felt kan ikke bli til et lagringsformat vi har
+funnet på.
+
+`vakthold` lar utfallet vare like lenge som et ekte et: 32 minutter for
+grace-vinduet på 30. Den prøver også de tilfellene som **ikke** skal varsle,
+siden vaktholdet ble avvist tre ganger på falske positiver: omstart med tom
+spotcache, et utfall innenfor grace, målerbytte, og delvis friskmelding der
+teksten skal skrives om framfor at varselet lukkes. Frossen teller og
+strømbrudd seedes gjennom lagringsfilen framfor å ventes ut, for begge handler
+om hva `last_energy_increase` og `last_update` sto på da HA startet.
+
+`--cache-minutter 95` legger til spotcachen på to timer og tar kjøringen over
+to timer. Den står av som default: rangeringen mellom `spot_utfall` og
+utfallsraden er alt voktet deterministisk, og en port som tar to timer er en
+port ingen kjører. Sommertid hører til `tests/test_dst_overgang.py`; laben kan
+ikke flytte klokken, og skal ikke kunne det.
+
+Størrelsen på fallet i `monthly_cost_kr` kan ikke måles her. HA bruker dagens
+klokke, så fastleddet blir dagens andel av inneværende måned. De 64 til 145
+kronene er målt mot ekte fakturaer i
+[docs/research/revalidering-l3b-september-2026.md](research/revalidering-l3b-september-2026.md).
+Laben prøver mekanismen: at `monthly_cost_kr` og akkumulert kostnad nå er
+samme tall, og at fastleddet ikke rører seg av at forbruket gjør det.
 
 ## Live-tester i Home Assistant
 

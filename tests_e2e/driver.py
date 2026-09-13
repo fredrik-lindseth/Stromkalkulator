@@ -8,10 +8,11 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import itertools
 import json
 import math
 import time
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import aiohttp
@@ -107,16 +108,43 @@ class Driver:
             entry["unique_id"]: entry["entity_id"] for entry in entries if entry["platform"] == "template"
         }
         self.data["inputs"] = {key: registry[f"e2e_{key}"] for key in INPUTS}
+        self.data["utganger"] = {}
+        for navn in ("entry_id", "custom_entry_id"):
+            entry_id = self.data.get(navn)
+            if entry_id:
+                self.data["utganger"][entry_id] = {
+                    entry["unique_id"].removeprefix(f"{entry_id}_"): entry["entity_id"]
+                    for entry in entries
+                    if entry["platform"] == "stromkalkulator" and entry["config_entry_id"] == entry_id
+                }
         if self.data.get("entry_id"):
-            outputs = {
-                entry["unique_id"]: entry["entity_id"]
-                for entry in entries
-                if entry["platform"] == "stromkalkulator"
-                and entry["config_entry_id"] == self.data["entry_id"]
-            }
-            self.data["total"] = outputs[f"{self.data['entry_id']}_maanedlig_forbruk_total"]
-            self.data["export"] = outputs[f"{self.data['entry_id']}_maanedlig_eksport_kwh"]
+            outputs = self.data["utganger"][self.data["entry_id"]]
+            self.data["total"] = outputs["maanedlig_forbruk_total"]
+            self.data["export"] = outputs["maanedlig_eksport_kwh"]
         self.save()
+
+    def utgang(self, suffix: str, entry_id: str | None = None) -> str:
+        """Entity-id-en bak et unique_id-suffiks, uavhengig av navn og språk."""
+        return str(self.data["utganger"][entry_id or self.data["entry_id"]][suffix])
+
+    async def aktiver(self, *suffixes: str, entry_id: str | None = None) -> None:
+        """Slå på sensorer som er avskrudd i registeret, og last entryet på nytt.
+
+        Flere av kronesensorene er `entity_registry_enabled_default = False`.
+        Uten dette steget finnes de ikke som entiteter, og en test som leser
+        dem ville målt registerets default framfor integrasjonens tall.
+        """
+        entry_id = entry_id or self.data["entry_id"]
+        for suffix in suffixes:
+            await self.ws(
+                "config/entity_registry/update", entity_id=self.utgang(suffix, entry_id), disabled_by=None
+            )
+        await self.api(f"/api/config/config_entries/entry/{entry_id}/reload", {})
+        await self.identify()
+        for suffix in suffixes:
+            await self.wait_state(
+                self.utgang(suffix, entry_id), lambda state: state["state"] != "unavailable", timeout=60
+            )
 
     async def set_input(self, key: str, value: float) -> None:
         await self.service("input_number", "set_value", entity_id=f"input_number.e2e_{key}", value=value)
@@ -320,12 +348,12 @@ class Driver:
         assert any(row["entry_id"] == self.data["entry_id"] and row["state"] == "loaded" for row in entries)
         await self.recover_inputs()
 
-    async def issue_present(self, prefix: str) -> bool:
+    async def issues(self) -> dict[str, dict]:
         result = await self.ws("repairs/list_issues")
-        return any(
-            row["domain"] == "stromkalkulator" and row["issue_id"] == f"{prefix}_{self.data['entry_id']}"
-            for row in result["issues"]
-        )
+        return {row["issue_id"]: row for row in result["issues"] if row["domain"] == "stromkalkulator"}
+
+    async def issue_present(self, prefix: str, entry_id: str | None = None) -> bool:
+        return f"{prefix}_{entry_id or self.data['entry_id']}" in await self.issues()
 
     async def test_invalid_unit_recovery(self) -> None:
         await self.override("power", "1000", "bananas")
@@ -352,6 +380,555 @@ class Driver:
         # The next normal increment must work; rejecting everything forever is
         # not recovery. The rejected jump establishes the new counter baseline.
         await self.test_energy_increase()
+
+    # --- Oppgraderingsveien fra en sluppet utgave ---
+
+    AKKUMULATORER = (
+        "maanedlig_forbruk_total",
+        "maanedlig_forbruk_dag",
+        "maanedlig_forbruk_natt",
+        "forrige_maaned_forbruk_total",
+        "forrige_maaned_forbruk_dag",
+        "forrige_maaned_forbruk_natt",
+        "maks_forbruk_1",
+        "maks_forbruk_2",
+        "maks_forbruk_3",
+        "gjennomsnitt_forbruk",
+        "forrige_maaned_toppforbruk",
+    )
+    KAPASITETSAVHENGIGE = (
+        "kapasitetstrinn",
+        "margin_neste_trinn",
+        "trinn_nummer",
+        "maanedlig_nettleie",
+        "maanedlig_total",
+        "akkumulert_kostnad",
+        "estimated_monthly_cost",
+    )
+    UBEROERT_AV_FASTLEDDET = (
+        "energiledd",
+        "maanedlig_forbruk_total",
+        "maanedlig_avgifter",
+        "stromstotte",
+    )
+
+    async def test_onboarding_egendefinert(self) -> None:
+        """Et andre anlegg på Egendefinert, uten kapasitetstrinn.
+
+        Feltet for trinntabellen finnes ikke i 1.16.0 og er valgfritt i dag, så
+        den samme nyttelasten går gjennom begge utgavene. Det er hele poenget:
+        anlegget skal settes opp slik en bruker på 1.16.0 faktisk har det.
+        """
+        flow = await self.api("/api/config/config_entries/flow", {"handler": "stromkalkulator"})
+        flow = await self.api(
+            f"/api/config/config_entries/flow/{flow['flow_id']}",
+            {"tso": "custom", "boligtype": "bolig", "har_norgespris": False},
+        )
+        assert flow["step_id"] == "sensors", "Sensorsteg mangler for egendefinert"
+        flow = await self.api(
+            f"/api/config/config_entries/flow/{flow['flow_id']}",
+            {
+                # Egen effektsensor: duplikatvernet nekter to anlegg på samme.
+                "power_sensor": self.data["inputs"]["export"],
+                "spot_price_sensor": self.data["inputs"]["spot"],
+                "energy_sensor": self.data["inputs"]["energy_new"],
+                "spotpris_inkl_mva": False,
+            },
+        )
+        assert flow["step_id"] == "pricing", "Egendefinert hoppet over prissteget"
+        flow = await self.api(
+            f"/api/config/config_entries/flow/{flow['flow_id']}",
+            {"avgiftssone": "standard", "energiledd_dag": 0.3141, "energiledd_natt": 0.2141},
+        )
+        assert flow["type"] == "create_entry", f"Egendefinert flow feilet: {flow.get('errors')}"
+        self.data["custom_entry_id"] = flow["result"]["entry_id"]
+        self.save()
+        for _ in range(60):
+            try:
+                await self.identify()
+                break
+            except KeyError:
+                await asyncio.sleep(1)
+
+    async def _oppdater_alle(self) -> None:
+        for entry_id in self.data["utganger"]:
+            await self.service(
+                "homeassistant", "update_entity", entity_id=self.utgang("maanedlig_forbruk_total", entry_id)
+            )
+
+    async def seed_akkumulatorer(self) -> None:
+        """Kjør opp akkumulatorene på den gamle utgaven.
+
+        Uten forbruk, effekttopper og kroner på begge anlegg måler
+        oppgraderingstesten ingenting: null overlever alltid.
+        """
+        await self.aktiver(
+            "akkumulert_kostnad", "maanedlig_nettleie", "maanedlig_total", "maanedlig_nettokostnad"
+        )
+        for effekt, kwh in ((3500.0, 2.0), (7250.0, 3.5), (1800.0, 1.5)):
+            await self.set_input("power", effekt)
+            await self.set_input("export", round(effekt / 2, 3))
+            for key in ("energy", "energy_new"):
+                teller = float((await self.state(self.data["inputs"][key]))["state"])
+                await self.set_input(key, round(teller + kwh, 3))
+            await self._oppdater_alle()
+            await asyncio.sleep(11)
+        trace("seed_akkumulatorer", total_kwh=round(await self.total(), 3))
+
+    async def _snapshot(self) -> dict:
+        bilde: dict[str, dict] = {}
+        for entry_id, utganger in self.data["utganger"].items():
+            rad: dict[str, object] = {}
+            for suffix in (*self.AKKUMULATORER, *self.KAPASITETSAVHENGIGE, "maanedlig_nettokostnad"):
+                if suffix not in utganger:
+                    continue
+                try:
+                    state = await self.state(utganger[suffix])
+                except RuntimeError:
+                    # Avskrudd i registeret: den finnes i registeret, men har
+                    # ingen state. Da er den heller ikke noe å sammenligne.
+                    continue
+                rad[suffix] = {
+                    "state": state["state"],
+                    "forbrukskostnad_kr": state["attributes"].get("forbrukskostnad_kr"),
+                    "kapasitetsledd_kr": state["attributes"].get("kapasitetsledd_kr"),
+                    "fastledd_ukjent": state["attributes"].get("fastledd_ukjent"),
+                }
+            bilde[entry_id] = rad
+        return bilde
+
+    async def _statistikk(self, entity: str) -> list[dict]:
+        rader = await self.ws(
+            "recorder/statistics_during_period",
+            start_time=self.data["oppgradering_start"],
+            statistic_ids=[entity],
+            period="5minute",
+            types=["state", "sum"],
+        )
+        return [punkt for punkt in rader.get(entity, []) if punkt.get("state") is not None and "sum" in punkt]
+
+    async def checkpoint_oppgradering(self) -> None:
+        await self._oppdater_alle()
+        await asyncio.sleep(11)
+        self.data["for_oppgradering"] = await self._snapshot()
+        self.data["bkk_entry"] = self.data["entry_id"]
+        self.save()
+        # Vent til recorderen har kompilert minst ett punkt med det gamle
+        # nivået. Skjer oppgraderingen før det, står bare det nye nivået i
+        # serien, og en test på skiftet ville ikke hatt noe å sammenligne med.
+        entity = self.utgang("akkumulert_kostnad", self.data["bkk_entry"])
+        frist = time.monotonic() + 8 * 60
+        punkter: list[dict] = []
+        while time.monotonic() < frist and not punkter:
+            punkter = await self._statistikk(entity)
+            if not punkter:
+                await asyncio.sleep(20)
+        assert punkter, f"Recorderen kompilerte ingen statistikk for {entity} før oppgraderingen"
+        self.data["statistikk_for"] = punkter[-1]
+        self.save()
+        trace(
+            "checkpoint_oppgradering",
+            anlegg=len(self.data["for_oppgradering"]),
+            statistikkpunkter_for=len(punkter),
+            siste_state_for=punkter[-1]["state"],
+        )
+
+    async def test_oppgradering_beholder_akkumulatorene(self) -> None:
+        """En bruker på 1.16.0 skal ikke miste noe ved å oppgradere.
+
+        Månedsforbruk, døgnmaks og forrige måned sammenlignes tall for tall.
+        Kronesensorene er ikke med her: fastleddet er med vilje regnet om, og
+        det er `test_fastleddet_er_et_periodebelop` som eier det skiftet.
+        """
+        await self.identify()
+        await self._oppdater_alle()
+        await asyncio.sleep(11)
+        etter = await self._snapshot()
+        for_ = self.data["for_oppgradering"]
+        assert set(etter) == set(for_), "Et anlegg forsvant i oppgraderingen"
+        avvik = []
+        for entry_id, rad in for_.items():
+            for suffix in self.AKKUMULATORER:
+                if suffix not in rad:
+                    continue
+                gammel, ny = rad[suffix]["state"], etter[entry_id][suffix]["state"]
+                if gammel in ("unknown", "unavailable") or near(float(gammel), float(ny)):
+                    continue
+                avvik.append(f"{suffix}: {gammel} -> {ny}")
+        assert not avvik, f"Oppgraderingen mistet akkumulatorer: {avvik}"
+        entries = await self.api("/api/config/config_entries/entry")
+        vaare = {row["entry_id"]: row for row in entries if row["domain"] == "stromkalkulator"}
+        assert set(vaare) == set(for_), "Anlegg forsvant fra config entries"
+        for entry_id, row in vaare.items():
+            assert row["state"] == "loaded", f"{entry_id} lastet ikke etter oppgraderingen"
+        trace(
+            "test_oppgradering_beholder_akkumulatorene",
+            anlegg=len(for_),
+            sjekkede_sensorer=sum(len(set(rad) & set(self.AKKUMULATORER)) for rad in for_.values()),
+        )
+
+    async def test_baselinen_forkastes_en_gang(self) -> None:
+        """Den gamle råverdien er ikke en kilde, så den skal ikke gjenopptas.
+
+        Det brukeren merker er at neste avlesning setter ny baseline med delta
+        0. Går den gamle verdien inn som baseline igjen, blir differansen mot
+        dagens tellerstand bokført som forbruk hen aldri har hatt.
+        """
+        before = await self.total()
+        await self._oppdater_alle()
+        await asyncio.sleep(11)
+        assert near(await self.total(), before), "Forkastet baseline ga et sprang i månedsforbruket"
+        await self.test_energy_increase()
+
+    async def test_fastleddet_er_et_periodebelop(self) -> None:
+        """Fastleddet skal være en andel av månedsbeløpet, ikke en pris per kWh.
+
+        Den gamle koden la `kapasitetsledd / timer i måneden` inn i kWh-prisen
+        og akkumulerte den mot forbruket, samtidig som et helt annet
+        tidsbasert drypp gikk i `monthly_accumulated_cost_kapasitetsledd`. De
+        to kunne ikke bli enige. Her er prøven at de nå er samme tall, og at
+        kapasitetsleddet ikke rikker seg av at forbruket gjør det.
+        """
+        entry_id = self.data["bkk_entry"]
+        netto = await self.state(self.utgang("maanedlig_nettokostnad", entry_id))
+        akkumulert = await self.state(self.utgang("akkumulert_kostnad", entry_id))
+        forbrukskostnad = float(netto["attributes"]["forbrukskostnad_kr"])
+        # Toleransen er en halv øre, for `monthly_cost_kr` er avrundet til to
+        # desimaler i coordinatoren mens sensorens state er hele tallet.
+        assert math.isclose(forbrukskostnad, float(akkumulert["state"]), abs_tol=0.01), (
+            f"monthly_cost_kr {forbrukskostnad} != akkumulert kostnad {akkumulert['state']}"
+        )
+        fastledd = float(akkumulert["attributes"]["kapasitetsledd_kr"])
+        assert fastledd > 0, "Fastleddet påløper ikke"
+        for_ = self.data["for_oppgradering"][entry_id]["maanedlig_nettokostnad"]["forbrukskostnad_kr"]
+        gammel_fastledd = self.data["for_oppgradering"][entry_id]["akkumulert_kostnad"]["kapasitetsledd_kr"]
+        # Forbruket dobles uten at fastleddet skal røre seg: et periodebeløp
+        # kjenner ikke kilowattimene.
+        key = self.data["energy_key"]
+        teller = float((await self.state(self.data["inputs"][key]))["state"])
+        await self.set_input(key, round(teller + 8.0, 3))
+        await self._oppdater_alle()
+        await asyncio.sleep(11)
+        etterpaa = await self.state(self.utgang("akkumulert_kostnad", entry_id))
+        nytt_fastledd = float(etterpaa["attributes"]["kapasitetsledd_kr"])
+        assert math.isclose(nytt_fastledd, fastledd, abs_tol=0.5), (
+            f"8 kWh forbruk flyttet fastleddet: {fastledd} -> {nytt_fastledd}"
+        )
+        trace(
+            "test_fastleddet_er_et_periodebelop",
+            gammel_monthly_cost_kr=for_,
+            ny_monthly_cost_kr=forbrukskostnad,
+            gammelt_kapasitetsledd_kr=gammel_fastledd,
+            nytt_kapasitetsledd_kr=fastledd,
+        )
+
+    async def test_statistikken_folger_skiftet(self) -> None:
+        """Skiftet i kronene skal stå i statistikken som et skifte.
+
+        Akkumulert kostnad er `state_class: total` med månedlig `last_reset`.
+        Endrer tallet seg brått ved en oppgradering, skal recorderen bokføre
+        differansen. Leses det i stedet som en nullstilling, legges hele det
+        nye nivået oppå det gamle, og brukeren får en sum som teller måneden
+        sin to ganger.
+        """
+        entity = self.utgang("akkumulert_kostnad", self.data["bkk_entry"])
+        # Recorderen kompilerer kortidsstatistikk hvert femte minutt på hel
+        # klokke. Checkpointet ventet på punktet med det gamle nivået, så her
+        # venter vi bare på det første punktet etter oppgraderingen.
+        forste = self.data["statistikk_for"]["start"]
+        punkter: list[dict] = []
+        frist = time.monotonic() + 13 * 60
+        while time.monotonic() < frist and not any(p["start"] > forste for p in punkter):
+            punkter = await self._statistikk(entity)
+            if not any(p["start"] > forste for p in punkter):
+                await asyncio.sleep(20)
+        rader = [(p["state"], p["sum"]) for p in punkter]
+        assert len(rader) >= 2, f"Statistikken rakk ikke et punkt etter oppgraderingen: {punkter}"
+        par = list(itertools.pairwise(rader))
+        skifte = max(abs(b[0] - a[0]) for a, b in par)
+        assert skifte > 1, f"Oppgraderingen flyttet ikke kronene; da måler testen ingenting: {rader}"
+        for forrige, naa in par:
+            assert math.isclose(naa[1] - forrige[1], naa[0] - forrige[0], abs_tol=0.02), (
+                f"Summen fulgte ikke differansen: {forrige} -> {naa}"
+            )
+        trace(
+            "test_statistikken_folger_skiftet",
+            punkter=len(rader),
+            forste_state=rader[0][0],
+            siste_state=rader[-1][0],
+            storste_skifte=round(skifte, 2),
+            siste_sum=rader[-1][1],
+        )
+
+    async def merk_oppgraderingsstart(self) -> None:
+        """Startpunktet statistikkspørringen leser fra.
+
+        Tilbakedatert et kvarter fordi `statistics_during_period` bare gir
+        bøtter som *starter* etter `start_time`. Bøtten vi trenger, den med
+        nivået før oppgraderingen, begynte før vi rakk å spørre.
+        """
+        self.data["oppgradering_start"] = (datetime.now(UTC) - timedelta(minutes=15)).isoformat()
+        self.save()
+
+    # --- De tre brukersynlige endringene ---
+
+    async def test_egendefinert_uten_fastledd(self) -> None:
+        """Ukjent på det kapasitetsavhengige, tall på resten, og et varsel.
+
+        Egendefinert hadde ti innebygde trinn til og med 1.16.0. De var en mal
+        uten prisliste bak seg, så anlegget viste et plausibelt og feil beløp.
+        Etter K3 står de sensorene som Ukjent, og varselet sier hvorfor.
+        """
+        entry_id = self.data["custom_entry_id"]
+        await self.aktiver(
+            "akkumulert_kostnad",
+            "maanedlig_nettleie",
+            "maanedlig_avgifter",
+            "trinn_nummer",
+            entry_id=entry_id,
+        )
+        await self._oppdater_alle()
+        await asyncio.sleep(11)
+        ukjente, tall = [], []
+        for suffix in self.KAPASITETSAVHENGIGE:
+            state = await self.state(self.utgang(suffix, entry_id))
+            if state["state"] != "unknown":
+                tall.append(f"{suffix}={state['state']}")
+        assert not tall, f"Kapasitetsavhengige sensorer har tall uten trinntabell: {tall}"
+        # Motstykket: den gamle utgaven viste tall her. Uten dette leddet kunne
+        # testen bestått på et anlegg som aldri hadde noe å miste.
+        var_tall = {
+            suffix: rad["state"]
+            for suffix, rad in self.data["for_oppgradering"][entry_id].items()
+            if suffix in self.KAPASITETSAVHENGIGE and rad["state"] not in ("unknown", "unavailable")
+        }
+        assert var_tall, "Egendefinert viste ingen kapasitetstall før oppgraderingen heller"
+        for suffix in self.UBEROERT_AV_FASTLEDDET:
+            state = await self.state(self.utgang(suffix, entry_id))
+            if state["state"] in ("unknown", "unavailable"):
+                ukjente.append(suffix)
+        assert not ukjente, f"Sensorer uten fastledd i seg ble også ukjente: {ukjente}"
+        issues = await self.issues()
+        varsel = issues.get(f"egendefinert_fastledd_{entry_id}")
+        assert varsel, "Egendefinert uten trinntabell fikk ingen forklaring"
+        assert varsel["translation_key"] == "egendefinert_fastledd", varsel["translation_key"]
+        assert not await self.issue_present("egendefinert_fastledd"), (
+            "BKK-anlegget fikk fastledd-varselet det ikke skal ha"
+        )
+        trace(
+            "test_egendefinert_uten_fastledd",
+            varsel=varsel["translation_key"],
+            gjettede_tall_for=var_tall,
+        )
+
+    async def test_satsvarsel_kun_ved_avvik(self) -> None:
+        """Varselet skal reises for den som avviker, og bare for den.
+
+        Et varsel hos alle ville vært en falsk positiv hos de fleste. BKK ble
+        satt opp fra katalogen og har ingenting å velge mellom; anlegget vi
+        selv taster en annen sats på, har det.
+        """
+        bkk = self.data["bkk_entry"]
+        assert not await self.issue_present("tariff_ubekreftet", bkk), "Katalogsats reiste satsvarselet"
+        assert not await self.issue_present("tariff_ubekreftet", self.data["custom_entry_id"]), (
+            "Egendefinert er brukerens egne tall og skal ikke få satsvarselet"
+        )
+        trace("test_satsvarsel_kun_ved_avvik", anlegg=len(self.data["utganger"]))
+
+    async def test_satsvarsel_etter_avvik(self) -> None:
+        """Motprøven, kjørt etter at lagret sats er skrudd bort fra katalogen."""
+        bkk = self.data["bkk_entry"]
+        issues = await self.issues()
+        varsel = issues.get(f"tariff_ubekreftet_{bkk}")
+        assert varsel, "Avvikende lagret sats reiste ikke satsvarselet"
+        assert varsel["translation_key"] == "tariff_ubekreftet", varsel["translation_key"]
+        plassholdere = varsel["translation_placeholders"]
+        assert plassholdere["lagret_dag"] != plassholdere["katalog_dag"], (
+            f"Varselet viser samme sats på begge sider: {plassholdere}"
+        )
+        trace("test_satsvarsel_etter_avvik", **{k: plassholdere[k] for k in ("lagret_dag", "katalog_dag")})
+
+    # --- Vaktholdet ---
+
+    VAKTHOLD = ("input_utfall", "energi_frossen", "spot_utfall", "input_enhet")
+
+    async def _vakthold(self) -> dict[str, dict]:
+        issues = await self.issues()
+        return {
+            prefix: issues[f"{prefix}_{entry_id}"]
+            for entry_id in self.data["utganger"]
+            for prefix in self.VAKTHOLD
+            if f"{prefix}_{entry_id}" in issues
+        }
+
+    async def test_vakthold_stille_naar_alt_er_friskt(self) -> None:
+        await self._oppdater_alle()
+        await asyncio.sleep(11)
+        aktive = await self._vakthold()
+        assert not aktive, f"Vaktholdet varslet uten grunn: {sorted(aktive)}"
+        trace("test_vakthold_stille_naar_alt_er_friskt", aktive=0)
+
+    async def test_vakthold_tier_rett_etter_omstart(self) -> None:
+        """En omstart er ikke et utfall.
+
+        Vaktholdet ble avvist på nettopp dette: spotcachen er in-memory og tom
+        ved første poll etter oppstart, og uten grace ville hver eneste omstart
+        gitt et varsel om at spotprisen var borte.
+        """
+        await self._oppdater_alle()
+        await asyncio.sleep(11)
+        aktive = await self._vakthold()
+        assert not aktive, f"Omstarten ga varsel: {sorted(aktive)}"
+        trace("test_vakthold_tier_rett_etter_omstart", aktive=0)
+
+    async def test_vakthold_tier_innenfor_grace(self) -> None:
+        """En kortvarig glipp er ikke et utfall.
+
+        Grace-en dekker HA-restart, oppdatering av en integrasjon og en
+        nettverksglipp. Varsler vi her, varsler vi på alt som går over av seg
+        selv, og da slutter brukeren å tro på varselet.
+        """
+        await self._oppdater_alle()
+        await asyncio.sleep(11)
+        aktive = await self._vakthold()
+        assert not aktive, f"Varsel innenfor grace-vinduet: {sorted(aktive)}"
+        trace("test_vakthold_tier_innenfor_grace", aktive=0)
+
+    async def test_vakthold_spot_utlopt(self) -> None:
+        """Når cachen er for gammel, tar spot_utfall over for utfallsraden.
+
+        Én årsak, ett varsel: `spot_utlopt` sier alt utfallet sier, og i
+        tillegg at kostnaden har sluttet å akkumulere. Da skal ikke spotprisen
+        stå oppført i utfallsvarselet i tillegg.
+        """
+        await self._oppdater_alle()
+        await asyncio.sleep(11)
+        aktive = await self._vakthold()
+        spot = aktive.get("spot_utfall")
+        assert spot, f"Spotcachen gikk ut uten spotvarsel. Aktive: {sorted(aktive)}"
+        assert self.data["inputs"]["spot"] in spot["translation_placeholders"]["entity_id"]
+        utfall = aktive.get("input_utfall")
+        assert utfall, "Effekt og energi er fortsatt nede, men utfallsvarselet forsvant"
+        assert self.data["inputs"]["spot"] not in utfall["translation_placeholders"]["entity_id"], (
+            "Spotprisen er meldt to ganger: både som utfall og som utløpt"
+        )
+        trace("test_vakthold_spot_utlopt", timer=spot["translation_placeholders"]["timer"])
+
+    async def vent_paa_grace(self, minutter: float = 32.0) -> None:
+        """La grace-vinduet løpe ut i ekte tid.
+
+        Terskelen er 30 minutter målt på klokken. Den kan ikke jukses fram her:
+        skal laben si noe om et ekte utfall, må utfallet vare like lenge som
+        et ekte et. HAs egen minuttpoll holder vaktholdet i gang mens vi venter.
+        """
+        slutt = time.monotonic() + minutter * 60
+        while time.monotonic() < slutt:
+            await asyncio.sleep(60)
+            trace("vent_paa_grace", gjenstaar_min=round((slutt - time.monotonic()) / 60, 1))
+
+    async def test_vakthold_varsler_etter_grace(self) -> None:
+        """Varselet skal komme, og det skal peke på alle tre sensorene som er nede.
+
+        Spotprisen står her som utfall og ikke som utløpt: cachen er fortsatt
+        fersk nok til å regne med, den er bare ikke oppdatert.
+        """
+        await self._oppdater_alle()
+        await asyncio.sleep(11)
+        aktive = await self._vakthold()
+        utfall = aktive.get("input_utfall")
+        assert utfall, f"Ingen utfallsvarsel etter grace. Aktive: {sorted(aktive)}"
+        detaljer = utfall["translation_placeholders"]["entity_id"]
+        for key in ("power", "spot", self.data["energy_key"]):
+            assert self.data["inputs"][key] in detaljer, f"{key} mangler i varselet: {detaljer}"
+        assert "energi_frossen" not in aktive, "Frossen teller meldt samtidig som sensoren er borte"
+        trace("test_vakthold_varsler_etter_grace", sorter=sorted(aktive), entity_id=detaljer)
+
+    async def test_vakthold_delvis_friskmelding(self) -> None:
+        """Én sensor tilbake skal skrive om teksten, ikke lukke varselet."""
+        gammel = self.data["inputs"]["power"]
+        await self.api(
+            f"/api/states/{gammel}",
+            {"state": "1000", "attributes": dict(self.data["overrides"]["power"]["attributes"])},
+        )
+        self.data["overrides"].pop("power")
+        self.save()
+        await self._oppdater_alle()
+        await asyncio.sleep(11)
+        aktive = await self._vakthold()
+        utfall = aktive.get("input_utfall")
+        assert utfall, "Varselet forsvant selv om energisensoren fortsatt er nede"
+        detaljer = utfall["translation_placeholders"]["entity_id"]
+        assert gammel not in detaljer, f"Varselet peker på en frisk sensor: {detaljer}"
+        assert self.data["inputs"][self.data["energy_key"]] in detaljer, detaljer
+        trace("test_vakthold_delvis_friskmelding", entity_id=detaljer)
+
+    async def test_vakthold_friskmelding(self) -> None:
+        await self.recover_inputs()
+        await self._oppdater_alle()
+        await asyncio.sleep(11)
+        aktive = await self._vakthold()
+        assert not aktive, f"Varsel overlevde full friskmelding: {sorted(aktive)}"
+        trace("test_vakthold_friskmelding", aktive=0)
+
+    async def test_frossen_teller_varsles(self) -> None:
+        """Telleren svarer, men står stille lenger enn terskelen."""
+        await self._oppdater_alle()
+        await asyncio.sleep(11)
+        aktive = await self._vakthold()
+        frossen = aktive.get("energi_frossen")
+        assert frossen, f"Frossen teller ga ingen varsel. Aktive: {sorted(aktive)}"
+        peker = frossen["translation_placeholders"]["entity_id"]
+        assert self.data["inputs"][self.data["energy_key"]] in peker, peker
+        trace("test_frossen_teller_varsles", timer=frossen["translation_placeholders"]["timer"])
+
+    async def test_strombrudd_er_ikke_frossen_teller(self) -> None:
+        """HA sto av, og da så ingen at telleren gikk. Det er ikke en frossen måler.
+
+        Motprøven til `test_frossen_teller_varsles`: samme alder på
+        `last_energy_increase`, men `last_update` sier at HA var av i gapet.
+        Frossen-klokken skal bare telle tiden vi faktisk så på.
+        """
+        await self._oppdater_alle()
+        await asyncio.sleep(11)
+        aktive = await self._vakthold()
+        assert "energi_frossen" not in aktive, (
+            f"Strømbrudd ble meldt som frossen teller. Aktive: {sorted(aktive)}"
+        )
+        trace("test_strombrudd_er_ikke_frossen_teller", aktive=sorted(aktive))
+
+    async def test_maalerbytte_varsler_ikke(self) -> None:
+        """Ny fysisk kilde er en baseline, ikke et problem å varsle om."""
+        before = await self.total()
+        self.data["energy_key"] = "energy_new"
+        self.data["config"]["energy_sensor"] = self.data["inputs"]["energy_new"]
+        await self.options()
+        await self.expect_total(before)
+        await self.refresh(settle=True)
+        assert near(await self.total(), before), "Målerbyttet bokførte den nye tellerstanden"
+        aktive = await self._vakthold()
+        assert not aktive, f"Målerbyttet reiste et varsel: {sorted(aktive)}"
+        assert not await self.issue_present("energi_delta_forkastet"), (
+            "Målerbyttet ble meldt som et forkastet sprang"
+        )
+        await self.test_energy_increase()
+        trace("test_maalerbytte_varsler_ikke", total_kwh=round(await self.total(), 3))
+
+    async def test_sprang_varsler_med_riktig_sensor(self) -> None:
+        """Spranget skal avvises, og varselet skal navngi telleren og tallet."""
+        before = await self.total()
+        key = self.data["energy_key"]
+        teller = float((await self.state(self.data["inputs"][key]))["state"])
+        await self.set_input(key, teller + 1000)
+        await self.refresh(settle=True)
+        assert near(await self.total(), before), "1000 kWh sprang ble bokført"
+        issues = await self.issues()
+        varsel = issues.get(f"energi_delta_forkastet_{self.data['entry_id']}")
+        assert varsel, "Forkastet sprang ga ingen forklaring"
+        plassholdere = varsel["translation_placeholders"]
+        assert plassholdere["sensor"] == self.data["inputs"][key], plassholdere["sensor"]
+        assert float(plassholdere["kwh"]) > 900, plassholdere["kwh"]
+        await self.test_energy_increase()
+        trace("test_sprang_varsler_med_riktig_sensor", kwh=plassholdere["kwh"])
 
     async def outage_han(self) -> None:
         await self.override("power", "unavailable")
@@ -423,6 +1000,31 @@ SCENARIOS = (
     "outage_spot",
     "recover_inputs",
     "replay",
+    # Oppgraderingsveien fra en sluppet utgave
+    "test_onboarding_egendefinert",
+    "seed_akkumulatorer",
+    "merk_oppgraderingsstart",
+    "checkpoint_oppgradering",
+    "test_oppgradering_beholder_akkumulatorene",
+    "test_baselinen_forkastes_en_gang",
+    "test_fastleddet_er_et_periodebelop",
+    "test_statistikken_folger_skiftet",
+    "test_egendefinert_uten_fastledd",
+    "test_satsvarsel_kun_ved_avvik",
+    "test_satsvarsel_etter_avvik",
+    # Vaktholdet
+    "test_vakthold_stille_naar_alt_er_friskt",
+    "test_vakthold_tier_rett_etter_omstart",
+    "test_vakthold_tier_innenfor_grace",
+    "vent_paa_grace",
+    "test_vakthold_varsler_etter_grace",
+    "test_vakthold_spot_utlopt",
+    "test_vakthold_delvis_friskmelding",
+    "test_vakthold_friskmelding",
+    "test_frossen_teller_varsles",
+    "test_strombrudd_er_ikke_frossen_teller",
+    "test_maalerbytte_varsler_ikke",
+    "test_sprang_varsler_med_riktig_sensor",
 )
 
 
@@ -430,6 +1032,7 @@ async def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("scenario", choices=SCENARIOS)
     parser.add_argument("--tick", type=float, default=0.05)
+    parser.add_argument("--minutter", type=float, default=32.0, help="Ekte minutter for vent_paa_grace")
     args = parser.parse_args()
     async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=40)) as session:
         driver = Driver(session)
@@ -438,6 +1041,8 @@ async def main() -> None:
         try:
             if args.scenario == "replay":
                 await driver.replay(args.tick)
+            elif args.scenario == "vent_paa_grace":
+                await driver.vent_paa_grace(args.minutter)
             else:
                 await getattr(driver, args.scenario)()
         except Exception as exc:

@@ -580,9 +580,7 @@ class TestFastleddUkjent:
 
 #: Satser og forbrukstall i data-dicten som hører til inneværende måned. De er
 #: riktige å vise, og gale å gange med hverandre: gjør sensoren det, har vi to
-#: sannheter om samme krone, en i kostnadskjernen og en her. Treffet er eksakt
-#: på navnet, så `previous_month_energiledd_dag` går fri, og den er bevisst:
-#: arkivet har ingen bokførte kroner å lese ennå (stromkalkulator-1fnzdn8).
+#: sannheter om samme krone, en i kostnadskjernen og en her.
 MAANEDENS_SATSER_OG_FORBRUK = (
     "energiledd_dag",
     "energiledd_natt",
@@ -596,6 +594,11 @@ MAANEDENS_SATSER_OG_FORBRUK = (
     "monthly_consumption_dag_kwh",
     "monthly_consumption_natt_kwh",
     "monthly_consumption_total_kwh",
+    "previous_month_consumption_dag_kwh",
+    "previous_month_consumption_natt_kwh",
+    "previous_month_consumption_total_kwh",
+    "previous_month_energiledd_dag",
+    "previous_month_energiledd_natt",
 )
 
 #: Sensoren skrevet i seks stiler som alle regner kroner selv. De tre første
@@ -634,9 +637,8 @@ class TestSensorerRegnerIkkeSelv:
         """Mutasjonsprøven: hver stil sensoren kan skrives i skal bli rød."""
         assert self._treff(skrivemaate)
 
-    def test_arkivsensoren_gaar_fri(self):
-        """Forrige måned regner fortsatt selv, til arkivet får kroner å lese."""
-        assert not self._treff('kr = kwh * _tall(data, "previous_month_energiledd_dag")')
+    def test_arkivsensoren_regner_heller_ikke_selv(self):
+        assert self._treff('kr = kwh * _tall(data, "previous_month_energiledd_dag")')
 
     def test_visning_uten_ganging_gaar_fri(self):
         """Å lese en sats og vise den er greit. Det er gangingen som er feilen."""

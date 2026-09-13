@@ -108,22 +108,6 @@ def _bokfort_nettleie(data: dict[str, Any]) -> float:
     )
 
 
-def _arkivert_nettleie(data: dict[str, Any]) -> float:
-    """Forrige måneds nettleie regnet av de arkiverte satsene og kilowattimene.
-
-    Det motsatte av `_bokfort_nettleie`, og bevisst midlertidig: coordinatoren
-    arkiverer ikke forrige måneds bokførte kroner, bare kilowattimene, satsene
-    som gjaldt siste dag i måneden og kapasitetstrinnet. Tallet stemmer når
-    satsene sto stille gjennom måneden, og bommer når de ikke gjorde det.
-    Fikses når arkivet får kronene (stromkalkulator-1fnzdn8).
-    """
-    return (
-        _tall(data, "previous_month_consumption_dag_kwh") * _tall(data, "previous_month_energiledd_dag")
-        + _tall(data, "previous_month_consumption_natt_kwh") * _tall(data, "previous_month_energiledd_natt")
-        + _tall(data, "previous_month_kapasitetsledd")
-    )
-
-
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -1761,19 +1745,18 @@ class ForrigeMaanedNettleieSensor(ForrigeMaanedBaseSensor):
 
     @property
     def native_value(self) -> float | None:
-        """Forrige måneds nettleie, regnet av sensoren fordi arkivet mangler.
-
-        Dette er det siste stedet i sensor.py som regner kroner selv, og det er
-        ikke fordi det er riktig. Coordinatoren arkiverer forrige måneds
-        kilowattimer, energileddsatser og kapasitetstrinn, men ikke de bokførte
-        kronene. Uten dem er satsen ganget med forbruket det eneste svaret som
-        finnes, og det avviker fra bokføringen når satsen endret seg midt i
-        måneden eller taket slo inn. Se stromkalkulator-1fnzdn8.
-        """
+        """Forrige måneds bokførte nettleie, inkludert fullført fastledd."""
         data = self.coordinator.data
         if not data:
             return None
-        return round(_arkivert_nettleie(data), 2)
+        return round(
+            _tall(data, "previous_month_energiledd_dag_kr")
+            + _tall(data, "previous_month_energiledd_natt_kr")
+            + _tall(data, "previous_month_avgifter_kr")
+            + _tall(data, "previous_month_kapasitetsledd")
+            - _tall(data, "previous_month_stromstotte_kr"),
+            2,
+        )
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
@@ -1781,17 +1764,16 @@ class ForrigeMaanedNettleieSensor(ForrigeMaanedBaseSensor):
         data = self.coordinator.data
         if not data:
             return None
-        dag_kwh = _tall(data, "previous_month_consumption_dag_kwh")
-        natt_kwh = _tall(data, "previous_month_consumption_natt_kwh")
         return {
             "maaned": data.get("previous_month_name"),
-            "energiledd_dag_kr": round(dag_kwh * _tall(data, "previous_month_energiledd_dag"), 2),
-            "energiledd_natt_kr": round(natt_kwh * _tall(data, "previous_month_energiledd_natt"), 2),
+            "energiledd_dag_kr": round(_tall(data, "previous_month_energiledd_dag_kr"), 2),
+            "energiledd_natt_kr": round(_tall(data, "previous_month_energiledd_natt_kr"), 2),
+            "avgifter_kr": round(_tall(data, "previous_month_avgifter_kr"), 2),
+            "stromstotte_kr": round(_tall(data, "previous_month_stromstotte_kr"), 2),
             "kapasitetsledd_kr": data.get("previous_month_kapasitetsledd", 0),
             "kapasitetstrinn": data.get("previous_month_kapasitetstrinn", ""),
             "snitt_topp_3_kw": data.get("previous_month_avg_top_3_kw", 0.0),
             "norgespris_differanse_kr": data.get("previous_month_norgespris_diff_kr", 0.0),
-            "kilde": "satser ganget med kWh, ikke bokførte kroner",
         }
 
 

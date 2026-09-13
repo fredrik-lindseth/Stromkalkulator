@@ -11,11 +11,13 @@ Kjøres av `just test-ha target=minimum` og `target=current`. sys.path og
 
 from __future__ import annotations
 
+import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import icon
+from homeassistant.loader import async_get_custom_components
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.stromkalkulator.const import (
@@ -91,6 +93,24 @@ async def test_config_flow_user_step_renders_form(hass: HomeAssistant) -> None:
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "user"
     assert result.get("errors") in (None, {})
+
+
+async def test_lokale_brandbilder_oppdages_av_current_home_assistant(hass: HomeAssistant) -> None:
+    """HA 2026.3+ skal foretrekke integrationens ``brand/`` over Brands-CDN.
+
+    Minimumsmiljøet er HA 2026.1, før ``Integration.has_branding`` og lokale
+    brandbilder fantes. Det skal fortsatt laste integrasjonen, men kan ikke
+    verifisere et API som ikke eksisterer der.
+    """
+    custom_components = await async_get_custom_components(hass)
+    integration = custom_components[DOMAIN]
+
+    if not hasattr(integration, "has_branding"):
+        pytest.skip("Lokale brandbilder kom i Home Assistant 2026.3")
+
+    assert integration.has_branding
+    assert integration.file_path.name == DOMAIN
+    assert integration.file_path.parent.name == "custom_components"
 
 
 async def test_ikonene_naar_fram_via_icons_json(hass: HomeAssistant) -> None:

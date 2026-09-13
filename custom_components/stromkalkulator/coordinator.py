@@ -398,6 +398,10 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     _previous_month_kapasitetstrinn: str
     _previous_month_energiledd_dag: float
     _previous_month_energiledd_natt: float
+    _previous_month_energiledd_dag_kr: float
+    _previous_month_energiledd_natt_kr: float
+    _previous_month_avgifter_kr: float
+    _previous_month_stromstotte_kr: float
     _monthly_export_kwh: float
     _monthly_export_revenue: float
     _previous_month_export_kwh: float
@@ -580,6 +584,10 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._previous_month_kapasitetstrinn = ""
         self._previous_month_energiledd_dag = self.energiledd_dag
         self._previous_month_energiledd_natt = self.energiledd_natt
+        self._previous_month_energiledd_dag_kr = 0.0
+        self._previous_month_energiledd_natt_kr = 0.0
+        self._previous_month_avgifter_kr = 0.0
+        self._previous_month_stromstotte_kr = 0.0
 
         # Eksport-akkumulering (plusskunder med solceller)
         self._monthly_export_kwh = 0.0
@@ -1450,6 +1458,10 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._previous_month_top_3 = {}
             self._previous_month_kapasitetsledd = 0
             self._previous_month_kapasitetstrinn = ""
+            self._previous_month_energiledd_dag_kr = 0.0
+            self._previous_month_energiledd_natt_kr = 0.0
+            self._previous_month_avgifter_kr = 0.0
+            self._previous_month_stromstotte_kr = 0.0
         else:
             self._previous_month_consumption = self._monthly_consumption.copy()
             self._previous_month_name = self._format_month_name(prev_month_date)
@@ -1457,6 +1469,10 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._previous_month_norgespris_compensation = self._monthly_norgespris_compensation
             self._previous_month_export_kwh = self._monthly_export_kwh
             self._previous_month_export_revenue = self._monthly_export_revenue
+            self._previous_month_energiledd_dag_kr = self._monthly_energiledd_dag
+            self._previous_month_energiledd_natt_kr = self._monthly_energiledd_natt
+            self._previous_month_avgifter_kr = self._monthly_avgifter
+            self._previous_month_stromstotte_kr = self._monthly_stromstotte
             # Timene i måneden er alt skrevet til døgnmaks fra boken, også den
             # siste: `_oppdater_timesmaks` kjører inne i bokføringen, før boken
             # arkiverer måneden.
@@ -1961,6 +1977,10 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "previous_month_kapasitetstrinn": self._previous_month_kapasitetstrinn,
             "previous_month_energiledd_dag": self._previous_month_energiledd_dag,
             "previous_month_energiledd_natt": self._previous_month_energiledd_natt,
+            "previous_month_energiledd_dag_kr": round(self._previous_month_energiledd_dag_kr, 4),
+            "previous_month_energiledd_natt_kr": round(self._previous_month_energiledd_natt_kr, 4),
+            "previous_month_avgifter_kr": round(self._previous_month_avgifter_kr, 4),
+            "previous_month_stromstotte_kr": round(self._previous_month_stromstotte_kr, 4),
             "stromstotte_tak_naadd": kw["stromstotte_max"] == 0
             or kw["monthly_total_kwh"] >= kw["stromstotte_max"],
             "norgespris_over_tak": kw["norgespris_over_tak"],
@@ -2485,6 +2505,18 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self._previous_month_energiledd_natt = self._validate_float(
                     data.get("previous_month_energiledd_natt", self.energiledd_natt)
                 )
+                self._previous_month_energiledd_dag_kr = self._validate_float(
+                    data.get("previous_month_energiledd_dag_kr", 0.0)
+                )
+                self._previous_month_energiledd_natt_kr = self._validate_float(
+                    data.get("previous_month_energiledd_natt_kr", 0.0)
+                )
+                self._previous_month_avgifter_kr = self._validate_float(
+                    data.get("previous_month_avgifter_kr", 0.0)
+                )
+                self._previous_month_stromstotte_kr = self._validate_float(
+                    data.get("previous_month_stromstotte_kr", 0.0)
+                )
                 self._daily_cost = self._validate_float(data.get("daily_cost", 0.0))
                 # Eksport-data
                 self._monthly_export_kwh = self._validate_float(data.get("monthly_export_kwh", 0.0))
@@ -2782,6 +2814,10 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "previous_month_kapasitetstrinn": self._previous_month_kapasitetstrinn,
             "previous_month_energiledd_dag": self._previous_month_energiledd_dag,
             "previous_month_energiledd_natt": self._previous_month_energiledd_natt,
+            "previous_month_energiledd_dag_kr": self._previous_month_energiledd_dag_kr,
+            "previous_month_energiledd_natt_kr": self._previous_month_energiledd_natt_kr,
+            "previous_month_avgifter_kr": self._previous_month_avgifter_kr,
+            "previous_month_stromstotte_kr": self._previous_month_stromstotte_kr,
             "daily_cost": self._daily_cost,
             "current_date": self._current_date,
             "current_hour_energy": self._current_hour_energy,

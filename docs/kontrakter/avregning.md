@@ -700,7 +700,11 @@ L3a og L3b er inne. A, B, C og D gjelder for energi, tariff, pris, kvalitet,
 Norgespris-linjen og kronene. Alle kroner utenom fastleddet bokføres per
 avregnet intervall med intervallets egen pris; fastleddet er et periodebeløp.
 Rulleringen skjer før nåtidssnapshotet bygges, så månedsfeltene i en data-dict
-peker alltid på samme måned.
+peker alltid på samme måned. Boken rullerer på observasjonstid og coordinatoren
+på klokken, så de kan stå et øyeblikk fra hverandre. I det vinduet leses bokens
+kilowattimer på måneden coordinatoren viser, enten den er den aktive i boken,
+nettopp arkivert, eller ikke finnes i boken ennå. Forrige måneds total er aldri
+den nye månedens åpningsbalanse.
 
 `current_hour_energy` speiles nå fra det åpne intervallet, slik tabellen over
 sier, og døgnmaksen leses av bokens lukkede intervaller.

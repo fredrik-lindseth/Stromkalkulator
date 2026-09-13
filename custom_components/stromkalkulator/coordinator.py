@@ -21,6 +21,7 @@ from .avregning import (
     Avregningsbok,
     Bokforing,
     Energikvalitet,
+    Manedssum,
     Tariff,
     Tariffregel,
     Utfall,
@@ -882,6 +883,21 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """
         return self._bok.aktiv_maned in (None, self._current_month)
 
+    def _boksum_for_maaneden(self) -> Manedssum:
+        """Bokens kilowattimer for måneden coordinatoren viser.
+
+        Boken rullerer på observasjonstid og coordinatoren på klokken, så rundt
+        et månedsskifte kan den ene ha rullert og den andre ikke. Spørsmålet
+        stilles derfor om en navngitt måned, ikke om «bokens sum nå», og da har
+        alle tre tilstandene ett svar: måneden er den boken fører, den er
+        nettopp arkivert, eller den finnes ikke i boken ennå. Den siste er null
+        kilowattimer, ikke forrige måneds total.
+        """
+        if self._bok.aktiv_maned == self._current_month:
+            return self._bok.maanedssum()
+        arkivert = self._bok.arkiverte_maneder().get(self._current_month)
+        return arkivert if arkivert is not None else Manedssum(maned=self._current_month)
+
     def _aapningsbalanse(self) -> ConsumptionData:
         """Månedsforbruket som ikke ligger i boken (kontrakt D).
 
@@ -890,19 +906,15 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         av differansen framfor å bæres som et eget lagret tall, så den kan ikke
         drifte fra boken.
         """
-        if not self._fores_av_boken():
-            return self._monthly_consumption.copy()
-        sum_ = self._bok.maanedssum()
+        sum_ = self._boksum_for_maaneden()
         return ConsumptionData(
             dag=self._monthly_consumption.dag - sum_.kwh_dag,
             natt=self._monthly_consumption.natt - sum_.kwh_natt,
         )
 
-    def _forbruk_fra_boken(self, naa: datetime, balanse: ConsumptionData) -> ConsumptionData:
+    def _forbruk_fra_boken(self, balanse: ConsumptionData) -> ConsumptionData:
         """Åpningsbalansen pluss bokens egne intervaller for måneden."""
-        if not self._fores_av_boken():
-            return balanse.copy()
-        sum_ = self._bok.maanedssum(_aware(naa))
+        sum_ = self._boksum_for_maaneden()
         return ConsumptionData(dag=balanse.dag + sum_.kwh_dag, natt=balanse.natt + sum_.kwh_natt)
 
     def _del_ved_maanedsskifte(self, avlesning: Avlesning | None) -> list[Avlesning]:
@@ -1619,17 +1631,13 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             energy_kwh += bokforing.bokfort_kwh
             if bokforing.bokfort_kwh > 0 or bokforing.avvist_kwh:
                 dirty = True
-            if bokforing.arkiverte_maneder:
-                # Boken rullerte inne i denne bokføringen. Månedssummen som
-                # skal arkiveres er den boken lukket, ikke det som ligger i den
-                # nye måneden nå; rulleringen under plukker den opp herfra.
-                arkiv = self._bok.arkiverte_maneder()[bokforing.arkiverte_maneder[-1]]
-                self._monthly_consumption = ConsumptionData(
-                    dag=aapningsbalanse.dag + arkiv.kwh_dag,
-                    natt=aapningsbalanse.natt + arkiv.kwh_natt,
-                )
-            else:
-                self._monthly_consumption = self._forbruk_fra_boken(now, aapningsbalanse)
+            # Rullerte boken inne i bokføringen, trenger det ingen egen gren
+            # her: `_boksum_for_maaneden` leser arkivet når coordinatoren står
+            # i måneden boken lukket, og den aktive boken når den står i den
+            # nye. En gren som alltid leste arkivet la forrige måneds total inn
+            # som den nye månedens åpning når rulleringen hadde skjedd i en
+            # tidligere poll, uten avlesning (5kfmqty).
+            self._monthly_consumption = self._forbruk_fra_boken(aapningsbalanse)
             berorte |= set(bokforing.fordeling)
             self._akkumuler_kroner(now, bokforing.fordeling)
             # Døgnmaks føres her inne, ikke etter løkken: krysser avlesningen et
@@ -1674,7 +1682,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             await self._handle_month_rollover(now)
             # Etter arkiveringen står måneden på null, og det boken alt har
             # bokført i den nye måneden er det eneste forbruket som finnes.
-            self._monthly_consumption = self._forbruk_fra_boken(now, ConsumptionData())
+            self._monthly_consumption = self._forbruk_fra_boken(ConsumptionData())
             if self._oppdater_timesmaks(now):
                 dirty = True
 

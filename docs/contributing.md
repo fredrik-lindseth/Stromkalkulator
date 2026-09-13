@@ -126,15 +126,22 @@ der fri-nettleie ikke har noe å sammenligne med. En oppføring er et `Unntak` m
 felt, signatur, begrunnelse og `gyldig_til`:
 
 ```python
-"telemark_nett": (
+"rk_nett": (
     Unntak(
-        felt=FELT_MATCH,
-        signatur="ingen match i fri-nettleie",
-        gyldig_til=date(2027, 3, 1),
-        grunn="fri-nettleie hadde telemark.yml 2026-07-28, men filen er borte ...",
+        felt=FELT_DAG,
+        signatur="23.02 vs 20.14 øre",
+        gyldig_til=date(2026, 12, 1),
+        grunn="RK Nett hevet nettleien 01.08.2026; fri-nettleie ligger etter ...",
     ),
 ),
 ```
+
+Et unntak på `FELT_MATCH` er i en klasse for seg: det demper ikke ett felt, det
+demper at kontrollen aldri ble gjort. Nettselskapet står da helt uten vakt så
+lenge unntaket varer. Før du skriver et, let etter at fri-nettleie har omdøpt
+slugen framfor å fjerne selskapet. `telemark_nett` sto slik i halvannet år fordi
+`telemark.yml` var blitt til `tnett.yml`, og begrunnelsen var plausibel nok til
+at ingen så etter.
 
 Tre regler gjør at et unntak ikke kan bli liggende og dempe for alltid:
 

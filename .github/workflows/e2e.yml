@@ -16,6 +16,10 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}
+          # Offline-kontrakten kontrollerer at oppgraderingsreferansen er en
+          # sluppet tagg. En grunn checkout mangler den selv om den finnes.
+          fetch-depth: 0
+          fetch-tags: true
       - uses: extractions/setup-just@v4
       - name: Offline harness contracts
         run: python3 -m unittest discover -s tests_e2e -p 'test_*.py'

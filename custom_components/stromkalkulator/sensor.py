@@ -83,15 +83,45 @@ def _periodestart(merkelapp: Any, format_: str) -> datetime | None:
     return cast("datetime", dt_util.start_of_local_day(parsed))
 
 
-def _beregn_nettleie(
-    dag_kwh: float,
-    natt_kwh: float,
-    dag_pris: float,
-    natt_pris: float,
-    kapasitetsledd: float = 0,
-) -> float:
-    """Beregn nettleie: energiledd (dag + natt) + kapasitetsledd."""
-    return round((dag_kwh * dag_pris) + (natt_kwh * natt_pris) + kapasitetsledd, 2)
+def _tall(data: dict[str, Any], noekkel: str) -> float:
+    """Bokført krone- eller kilowattimeverdi, med 0 for manglende eller rar verdi.
+
+    Sensorene leser felt coordinatoren fyller ved hver oppdatering. En eldre
+    lagret fil eller en teststub kan mangle et felt, og da er null det ærlige
+    svaret framfor en TypeError midt i en state-skriving.
+    """
+    verdi = data.get(noekkel)
+    return float(verdi) if isinstance(verdi, (int, float)) and not isinstance(verdi, bool) else 0.0
+
+
+def _bokfort_nettleie(data: dict[str, Any]) -> float:
+    """Nettleien måneden har bokført så langt: energiledd pluss fastledd.
+
+    Begge leddene kommer fra kostnadskjernen. Energileddet er summen av dag,
+    natt og de offentlige avgiftene slik de ble priset i hvert intervall, og
+    fastleddet er månedsbeløpet ganget med forløpt andel av måneden. Det er
+    linjen BKK kaller nettleie subtotal, og den avstemmer mot fakturaen på øret
+    (docs/research/revalidering-l3b-september-2026.md).
+    """
+    return _tall(data, "monthly_accumulated_cost_energiledd_kr") + _tall(
+        data, "monthly_accumulated_cost_kapasitetsledd_kr"
+    )
+
+
+def _arkivert_nettleie(data: dict[str, Any]) -> float:
+    """Forrige måneds nettleie regnet av de arkiverte satsene og kilowattimene.
+
+    Det motsatte av `_bokfort_nettleie`, og bevisst midlertidig: coordinatoren
+    arkiverer ikke forrige måneds bokførte kroner, bare kilowattimene, satsene
+    som gjaldt siste dag i måneden og kapasitetstrinnet. Tallet stemmer når
+    satsene sto stille gjennom måneden, og bommer når de ikke gjorde det.
+    Fikses når arkivet får kronene (stromkalkulator-1fnzdn8).
+    """
+    return (
+        _tall(data, "previous_month_consumption_dag_kwh") * _tall(data, "previous_month_energiledd_dag")
+        + _tall(data, "previous_month_consumption_natt_kwh") * _tall(data, "previous_month_energiledd_natt")
+        + _tall(data, "previous_month_kapasitetsledd")
+    )
 
 
 async def async_setup_entry(
@@ -1277,34 +1307,34 @@ class MaanedligNettleieSensor(MaanedligBaseSensor):
 
     @property
     def native_value(self) -> float | None:
-        """Calculate monthly grid rent cost (Ukjent uten kjent fastledd)."""
+        """Nettleien bokføringen har ført så langt (Ukjent uten kjent fastledd)."""
         if self.coordinator.data and not self._fastledd_ukjent():
-            return _beregn_nettleie(
-                self.coordinator.data.get("monthly_consumption_dag_kwh", 0),
-                self.coordinator.data.get("monthly_consumption_natt_kwh", 0),
-                self.coordinator.data.get("energiledd_dag", 0),
-                self.coordinator.data.get("energiledd_natt", 0),
-                self.coordinator.data.get("kapasitetsledd", 0),
-            )
+            return round(_bokfort_nettleie(self.coordinator.data), 2)
         return None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
-        """Return cost breakdown."""
-        if self.coordinator.data:
-            dag_kwh = self.coordinator.data.get("monthly_consumption_dag_kwh", 0)
-            natt_kwh = self.coordinator.data.get("monthly_consumption_natt_kwh", 0)
-            dag_pris = self.coordinator.data.get("energiledd_dag", 0)
-            natt_pris = self.coordinator.data.get("energiledd_natt", 0)
-            kapasitet = self.coordinator.data.get("kapasitetsledd", 0)
-            return self._merk_fastledd_ukjent(
-                {
-                    "energiledd_dag_kr": round(dag_kwh * dag_pris, 2),
-                    "energiledd_natt_kr": round(natt_kwh * natt_pris, 2),
-                    "kapasitetsledd_kr": None if self._fastledd_ukjent() else kapasitet,
-                }
-            )
-        return None
+        """Splitten bokføringen står med.
+
+        `energiledd_dag_kr` og `energiledd_natt_kr` er nettleiens energidel uten
+        de offentlige avgiftene, som står for seg i `avgifter_kr`. Det er samme
+        splitt som fakturaen bruker. De tre summerer til energileddet i verdien,
+        med ett unntak: måneden en lagret fil fra før splitten leses inn bærer
+        den gamle summen som åpningsbalanse som ikke kan deles i ettertid.
+        """
+        data = self.coordinator.data
+        if not data:
+            return None
+        return self._merk_fastledd_ukjent(
+            {
+                "energiledd_dag_kr": round(_tall(data, "monthly_energiledd_dag_kr"), 2),
+                "energiledd_natt_kr": round(_tall(data, "monthly_energiledd_natt_kr"), 2),
+                "avgifter_kr": round(_tall(data, "monthly_avgifter_kr"), 2),
+                "kapasitetsledd_kr": None
+                if self._fastledd_ukjent()
+                else round(_tall(data, "monthly_accumulated_cost_kapasitetsledd_kr"), 2),
+            }
+        )
 
 
 class MaanedligAvgifterSensor(MaanedligBaseSensor):
@@ -1325,44 +1355,38 @@ class MaanedligAvgifterSensor(MaanedligBaseSensor):
 
     @property
     def native_value(self) -> float | None:
-        """Calculate monthly public fees."""
+        """Avgiftene bokføringen har ført så langt i måneden."""
         if self.coordinator.data:
-            total_kwh = self.coordinator.data.get("monthly_consumption_total_kwh", 0)
-            forbruksavgift = get_forbruksavgift(self._avgiftssone)
-            mva_sats = get_mva_sats(self._avgiftssone)
-
-            # Avgifter inkl. mva
-            forbruksavgift_inkl = forbruksavgift * (1 + mva_sats)
-            enova_inkl = ENOVA_AVGIFT * (1 + mva_sats)
-
-            return round(cast("float", total_kwh) * (forbruksavgift_inkl + enova_inkl), 2)
+            return round(_tall(self.coordinator.data, "monthly_avgifter_kr"), 2)
         return None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
-        """Return fee breakdown."""
-        if self.coordinator.data:
-            total_kwh = self.coordinator.data.get("monthly_consumption_total_kwh", 0)
-            forbruksavgift = get_forbruksavgift(self._avgiftssone)
-            mva_sats = get_mva_sats(self._avgiftssone)
+        """Fordelingen mellom forbruksavgift og Enova.
 
-            forbruksavgift_inkl = forbruksavgift * (1 + mva_sats)
-            enova_inkl = ENOVA_AVGIFT * (1 + mva_sats)
-
-            return {
-                "forbruksavgift_kr": round(total_kwh * forbruksavgift_inkl, 2),
-                "enovaavgift_kr": round(total_kwh * enova_inkl, 2),
-                "avgiftssone": self._avgiftssone,
-            }
-        return None
+        Bokføringen fører de to under ett, siden de følger samme kilowattimer.
+        Splitten her er derfor det bokførte beløpet fordelt etter forholdet
+        mellom de to satsene. Endres forbruksavgiften midt i en måned (den gjør
+        det ved nyttår og 1. april), er splitten et anslag mens totalen er
+        eksakt.
+        """
+        data = self.coordinator.data
+        if not data:
+            return None
+        avgifter_kr = _tall(data, "monthly_avgifter_kr")
+        forbruksavgift_sats = _tall(data, "forbruksavgift_inkl_mva")
+        enova_sats = _tall(data, "enova_inkl_mva")
+        sum_satser = forbruksavgift_sats + enova_sats
+        forbruksavgift_kr = round(avgifter_kr * forbruksavgift_sats / sum_satser, 2) if sum_satser else 0.0
+        return {
+            "forbruksavgift_kr": forbruksavgift_kr,
+            "enovaavgift_kr": round(avgifter_kr - forbruksavgift_kr, 2),
+            "avgiftssone": self._avgiftssone,
+        }
 
 
 class MaanedligStromstotteSensor(MaanedligBaseSensor):
-    """Sensor for estimated monthly electricity subsidy.
-
-    Note: This is an estimate based on current subsidy rate.
-    Actual subsidy is calculated hourly by grid company.
-    """
+    """Strømstøtten måneden har bokført, time for time slik den faktureres."""
 
     _attr_entity_registry_enabled_default: bool = False
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
@@ -1377,11 +1401,9 @@ class MaanedligStromstotteSensor(MaanedligBaseSensor):
 
     @property
     def native_value(self) -> float | None:
-        """Estimate monthly subsidy (rough calculation)."""
+        """Støtten bokføringen har ført så langt i måneden."""
         if self.coordinator.data:
-            total_kwh = self.coordinator.data.get("monthly_consumption_total_kwh", 0)
-            stromstotte_per_kwh = self.coordinator.data.get("stromstotte", 0)
-            return round(cast("float", total_kwh) * cast("float", stromstotte_per_kwh), 2)
+            return round(_tall(self.coordinator.data, "monthly_stromstotte_kr"), 2)
         return None
 
     @property
@@ -1389,7 +1411,7 @@ class MaanedligStromstotteSensor(MaanedligBaseSensor):
         """Return subsidy info."""
         if self.coordinator.data:
             return {
-                "merknad": "Estimat basert på gjeldende strømstøtte-sats. Faktisk støtte beregnes time-for-time.",
+                "merknad": "Bokført time for time med timens egen spotpris, og stanset ved månedstaket.",
                 "stromstotte_per_kwh": self.coordinator.data.get("stromstotte"),
                 "har_norgespris": self.coordinator.data.get("har_norgespris"),
             }
@@ -1404,72 +1426,54 @@ class MaanedligTotalSensor(MaanedligBaseSensor):
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
     _reset_periode: ClassVar[tuple[str, str]] = PERIODE_MAANED
     _attr_suggested_display_precision: int = 0
-    _avgiftssone: str
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, "maanedlig_total", "maanedlig_total")
-        self._avgiftssone = entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
 
     @property
     def native_value(self) -> float | None:
-        """Calculate total monthly cost.
+        """Bokført nettleie minus bokført strømstøtte.
 
-        energiledd_dag/natt fra dso.py inkluderer allerede forbruksavgift og
-        Enova-avgift, så nettleie-beløpet er komplett. Avgifter legges IKKE
-        til separat, det ville dobbelttelle dem.
+        Energileddet i bokføringen inkluderer allerede forbruksavgift og
+        Enova-avgift. Avgifter legges IKKE til separat, det ville dobbelttelle
+        dem.
 
         Ukjent når fastleddet er ukjent: en månedstotal uten kapasitetsledd er
         systematisk for lav, og et tall som ser ut som en total skal ikke mangle
         en av de to store postene.
         """
         if self.coordinator.data and not self._fastledd_ukjent():
-            dag_kwh = self.coordinator.data.get("monthly_consumption_dag_kwh", 0)
-            natt_kwh = self.coordinator.data.get("monthly_consumption_natt_kwh", 0)
-            total_kwh = dag_kwh + natt_kwh
-            dag_pris = self.coordinator.data.get("energiledd_dag", 0)
-            natt_pris = self.coordinator.data.get("energiledd_natt", 0)
-            kapasitet = self.coordinator.data.get("kapasitetsledd", 0)
-            stromstotte = self.coordinator.data.get("stromstotte", 0)
-
-            # Nettleie (energiledd inkl. avgifter + kapasitetsledd)
-            nettleie = _beregn_nettleie(dag_kwh, natt_kwh, dag_pris, natt_pris, kapasitet)
-
-            # Strømstøtte (fratrekk)
-            stotte = cast("float", total_kwh) * cast("float", stromstotte)
-
-            return round(nettleie - stotte, 2)
+            return round(
+                _bokfort_nettleie(self.coordinator.data)
+                - _tall(self.coordinator.data, "monthly_stromstotte_kr"),
+                2,
+            )
         return None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return cost breakdown."""
-        if self.coordinator.data:
-            dag_kwh = self.coordinator.data.get("monthly_consumption_dag_kwh", 0)
-            natt_kwh = self.coordinator.data.get("monthly_consumption_natt_kwh", 0)
-            total_kwh = dag_kwh + natt_kwh
-            dag_pris = self.coordinator.data.get("energiledd_dag", 0)
-            natt_pris = self.coordinator.data.get("energiledd_natt", 0)
-            kapasitet = self.coordinator.data.get("kapasitetsledd", 0)
-            stromstotte = self.coordinator.data.get("stromstotte", 0)
+        data = self.coordinator.data
+        if not data:
+            return None
+        dag_kwh = _tall(data, "monthly_consumption_dag_kwh")
+        natt_kwh = _tall(data, "monthly_consumption_natt_kwh")
+        total_kwh = dag_kwh + natt_kwh
+        nettleie = _bokfort_nettleie(data)
+        stotte = _tall(data, "monthly_stromstotte_kr")
+        total_kostnad = nettleie - stotte
 
-            nettleie = _beregn_nettleie(dag_kwh, natt_kwh, dag_pris, natt_pris, kapasitet)
-            stotte = total_kwh * stromstotte
-            total_kostnad = nettleie - stotte
-
-            return self._merk_fastledd_ukjent(
-                {
-                    "nettleie_kr": round(nettleie, 2),
-                    "stromstotte_kr": round(stotte, 2),
-                    "forbruk_dag_kwh": round(dag_kwh, 1),
-                    "forbruk_natt_kwh": round(natt_kwh, 1),
-                    "forbruk_total_kwh": round(total_kwh, 1),
-                    "vektet_snittpris_kr_per_kwh": round(total_kostnad / total_kwh, 4)
-                    if total_kwh > 0
-                    else None,
-                }
-            )
-        return None
+        return self._merk_fastledd_ukjent(
+            {
+                "nettleie_kr": round(nettleie, 2),
+                "stromstotte_kr": round(stotte, 2),
+                "forbruk_dag_kwh": round(dag_kwh, 1),
+                "forbruk_natt_kwh": round(natt_kwh, 1),
+                "forbruk_total_kwh": round(total_kwh, 1),
+                "vektet_snittpris_kr_per_kwh": round(total_kostnad / total_kwh, 4) if total_kwh > 0 else None,
+            }
+        )
 
 
 class MaanedligNorgesprisDifferanseSensor(MaanedligBaseSensor):
@@ -1600,37 +1604,32 @@ class EstimertMaanedskostnadSensor(MaanedligBaseSensor):
     _attr_device_class: SensorDeviceClass = SensorDeviceClass.MONETARY
     _attr_native_unit_of_measurement: str = "NOK"
     _attr_suggested_display_precision: int = 0
-    _avgiftssone: str
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator, entry, "estimated_monthly_cost", "estimert_maanedskostnad")
-        self._avgiftssone = entry.data.get(CONF_AVGIFTSSONE, AVGIFTSSONE_STANDARD)
 
     @property
     def native_value(self) -> float | None:
-        """Estimert total for måneden (Ukjent uten kjent fastledd)."""
-        if not self.coordinator.data or self._fastledd_ukjent():
+        """Estimert total for måneden (Ukjent uten kjent fastledd).
+
+        Den variable delen er det bokføringen har ført så langt, skalert fra
+        dagene som er gått til hele måneden. Fastleddet legges på som helt
+        månedsbeløp, for det faktureres uansett hvor langt måneden er kommet.
+        """
+        data = self.coordinator.data
+        if not data or self._fastledd_ukjent():
             return None
 
         now = dt_util.now()
-        day_of_month = now.day
-        dim = days_in_month(now)
+        day_of_month: int = now.day
+        dim: int = days_in_month(now)
 
-        dag_kwh = self.coordinator.data.get("monthly_consumption_dag_kwh", 0)
-        natt_kwh = self.coordinator.data.get("monthly_consumption_natt_kwh", 0)
-        total_kwh = dag_kwh + natt_kwh
-        dag_pris = self.coordinator.data.get("energiledd_dag", 0)
-        natt_pris = self.coordinator.data.get("energiledd_natt", 0)
-        kapasitet = self.coordinator.data.get("kapasitetsledd", 0)
-        stromstotte = self.coordinator.data.get("stromstotte", 0)
-
-        # energiledd_dag/natt inkluderer allerede forbruksavgift + enova
-        nettleie_variable = _beregn_nettleie(dag_kwh, natt_kwh, dag_pris, natt_pris)
-        stotte = total_kwh * stromstotte
-        variable_cost = nettleie_variable - stotte
-
-        estimated_variable = (variable_cost / day_of_month) * dim
-        return round(cast("float", estimated_variable + kapasitet), 0)
+        # Energileddet i bokføringen inkluderer allerede forbruksavgift + enova.
+        variabel_kr = _tall(data, "monthly_accumulated_cost_energiledd_kr") - _tall(
+            data, "monthly_stromstotte_kr"
+        )
+        estimert_variabel = (variabel_kr / day_of_month) * dim
+        return round(estimert_variabel + _tall(data, "kapasitetsledd"), 0)
 
 
 # =============================================================================
@@ -1639,9 +1638,18 @@ class EstimertMaanedskostnadSensor(MaanedligBaseSensor):
 
 
 class ForrigeMaanedBaseSensor(NettleieBaseSensor):
-    """Base class for previous month sensors."""
+    """Base class for previous month sensors.
+
+    Snapshotet av en avsluttet måned står stille til neste månedsskifte, og
+    byttes da ut i sin helhet. For statistikk-kompilatoren er det en
+    nullstilling: uten last_reset bokføres forskjellen mellom to måneders
+    snapshot som et delta, og en måned som var lavere enn forrige gir et
+    negativt delta i Energy-dashboardet. `last_reset` er derfor starten på
+    *inneværende* måned, som er øyeblikket snapshotet ble byttet (4qba).
+    """
 
     _device_group: str = DEVICE_FORRIGE_MAANED
+    _reset_periode: ClassVar[tuple[str, str] | None] = PERIODE_MAANED
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -1753,45 +1761,38 @@ class ForrigeMaanedNettleieSensor(ForrigeMaanedBaseSensor):
 
     @property
     def native_value(self) -> float | None:
-        """Calculate previous month grid rent cost."""
-        if self.coordinator.data:
-            dag_kwh = self.coordinator.data.get("previous_month_consumption_dag_kwh", 0)
-            natt_kwh = self.coordinator.data.get("previous_month_consumption_natt_kwh", 0)
-            dag_pris = self.coordinator.data.get("previous_month_energiledd_dag", 0)
-            natt_pris = self.coordinator.data.get("previous_month_energiledd_natt", 0)
-            kapasitet = self.coordinator.data.get("previous_month_kapasitetsledd", 0)
+        """Forrige måneds nettleie, regnet av sensoren fordi arkivet mangler.
 
-            return round(
-                (cast("float", dag_kwh) * cast("float", dag_pris))
-                + (cast("float", natt_kwh) * cast("float", natt_pris))
-                + cast("float", kapasitet),
-                2,
-            )
-        return None
+        Dette er det siste stedet i sensor.py som regner kroner selv, og det er
+        ikke fordi det er riktig. Coordinatoren arkiverer forrige måneds
+        kilowattimer, energileddsatser og kapasitetstrinn, men ikke de bokførte
+        kronene. Uten dem er satsen ganget med forbruket det eneste svaret som
+        finnes, og det avviker fra bokføringen når satsen endret seg midt i
+        måneden eller taket slo inn. Se stromkalkulator-1fnzdn8.
+        """
+        data = self.coordinator.data
+        if not data:
+            return None
+        return round(_arkivert_nettleie(data), 2)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return cost breakdown."""
-        if self.coordinator.data:
-            dag_kwh = self.coordinator.data.get("previous_month_consumption_dag_kwh", 0)
-            natt_kwh = self.coordinator.data.get("previous_month_consumption_natt_kwh", 0)
-            dag_pris = self.coordinator.data.get("previous_month_energiledd_dag", 0)
-            natt_pris = self.coordinator.data.get("previous_month_energiledd_natt", 0)
-            kapasitet = self.coordinator.data.get("previous_month_kapasitetsledd", 0)
-            kapasitetstrinn = self.coordinator.data.get("previous_month_kapasitetstrinn", "")
-
-            return {
-                "maaned": self.coordinator.data.get("previous_month_name"),
-                "energiledd_dag_kr": round(dag_kwh * dag_pris, 2),
-                "energiledd_natt_kr": round(natt_kwh * natt_pris, 2),
-                "kapasitetsledd_kr": kapasitet,
-                "kapasitetstrinn": kapasitetstrinn,
-                "snitt_topp_3_kw": self.coordinator.data.get("previous_month_avg_top_3_kw", 0.0),
-                "norgespris_differanse_kr": self.coordinator.data.get(
-                    "previous_month_norgespris_diff_kr", 0.0
-                ),
-            }
-        return None
+        data = self.coordinator.data
+        if not data:
+            return None
+        dag_kwh = _tall(data, "previous_month_consumption_dag_kwh")
+        natt_kwh = _tall(data, "previous_month_consumption_natt_kwh")
+        return {
+            "maaned": data.get("previous_month_name"),
+            "energiledd_dag_kr": round(dag_kwh * _tall(data, "previous_month_energiledd_dag"), 2),
+            "energiledd_natt_kr": round(natt_kwh * _tall(data, "previous_month_energiledd_natt"), 2),
+            "kapasitetsledd_kr": data.get("previous_month_kapasitetsledd", 0),
+            "kapasitetstrinn": data.get("previous_month_kapasitetstrinn", ""),
+            "snitt_topp_3_kw": data.get("previous_month_avg_top_3_kw", 0.0),
+            "norgespris_differanse_kr": data.get("previous_month_norgespris_diff_kr", 0.0),
+            "kilde": "satser ganget med kWh, ikke bokførte kroner",
+        }
 
 
 class ForrigeMaanedToppforbrukSensor(ForrigeMaanedBaseSensor):
@@ -1801,6 +1802,9 @@ class ForrigeMaanedToppforbrukSensor(ForrigeMaanedBaseSensor):
     _attr_native_unit_of_measurement: str = "kW"
     _attr_state_class: SensorStateClass = SensorStateClass.MEASUREMENT
     _attr_suggested_display_precision: int = 2
+    # En MEASUREMENT-sensor akkumulerer ingenting, så last_reset hører ikke
+    # hjemme her selv om de andre i gruppen har den.
+    _reset_periode: ClassVar[tuple[str, str] | None] = None
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
@@ -1986,6 +1990,9 @@ class ForrigeMaanedEksportKwhSensor(EksportBaseSensor):
     _attr_native_unit_of_measurement: str = "kWh"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
     _attr_suggested_display_precision: int = 1
+    # Snapshot av en avsluttet måned, byttes ved månedsskiftet. Se
+    # ForrigeMaanedBaseSensor for hvorfor last_reset er inneværende månedsstart.
+    _reset_periode: ClassVar[tuple[str, str]] = PERIODE_MAANED
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
@@ -2013,6 +2020,8 @@ class ForrigeMaanedEksportInntektSensor(EksportBaseSensor):
     _attr_native_unit_of_measurement: str = "NOK"
     _attr_state_class: SensorStateClass = SensorStateClass.TOTAL
     _attr_suggested_display_precision: int = 0
+    # Samme som eksport-kWh-en over: snapshot, ikke akkumulator.
+    _reset_periode: ClassVar[tuple[str, str]] = PERIODE_MAANED
 
     def __init__(self, coordinator: NettleieCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""

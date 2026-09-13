@@ -126,14 +126,20 @@ Attributter på "Månedlig forbruk totalt": `dag_kwh`, `natt_kwh`, `dag_pct`, `n
 | Estimert månedskostnad              | NOK   | Prognose for hele måneden, basert på forbruket hittil   |
 | Norgespris besparelse               | NOK   | Akkumulert besparelse/tap vs alternativ avtale          |
 | Norgespris-kompensasjon             | NOK   | Akkumulert (norgespris - spotpris) × kWh denne måneden  |
-| _(valgfri)_ Månedlig nettleie       | NOK   | Nettleie hittil: energiledd dag + natt + kapasitetsledd |
-| _(valgfri)_ Månedlig avgifter       | NOK   | Forbruksavgift + Enova inkl. mva                        |
-| _(valgfri)_ Månedlig strømstøtte    | NOK   | Estimert støtte denne måneden                           |
+| _(valgfri)_ Månedlig nettleie       | NOK   | Bokført nettleie hittil: energiledd + fastledd          |
+| _(valgfri)_ Månedlig avgifter       | NOK   | Bokført forbruksavgift + Enova inkl. mva                |
+| _(valgfri)_ Månedlig strømstøtte    | NOK   | Bokført støtte denne måneden                            |
 | _(valgfri)_ Akkumulert strømkostnad | NOK   | For Energy Dashboard med korrekte månedstotaler         |
 
 Attributter på "Akkumulert strømkostnad": `strompris_kr`, `energiledd_kr`, `kapasitetsledd_kr`, `total_kwh`.
 
 Attributter på "Månedlig nettleie total": `nettleie_kr`, `stromstotte_kr`, `forbruk_dag_kwh`, `forbruk_natt_kwh`, `forbruk_total_kwh`, `vektet_snittpris_kr_per_kwh`.
+
+Attributter på "Månedlig nettleie": `energiledd_dag_kr`, `energiledd_natt_kr`, `avgifter_kr`, `kapasitetsledd_kr`. Splitten er fakturaens: energileddene er uten de offentlige avgiftene, som står for seg. De fire summerer til sensorverdien.
+
+Attributter på "Månedlig avgifter": `forbruksavgift_kr`, `enovaavgift_kr`, `avgiftssone`. Bokføringen fører de to avgiftene under ett, så splitten er totalen fordelt etter forholdet mellom satsene. Endres forbruksavgiften midt i måneden (nyttår og 1. april), er splitten et anslag mens totalen er eksakt.
+
+Alle månedssensorene over leser kroner kostnadskjernen har bokført per avregnet intervall. De regner ikke satser ganget med månedens kilowattimer, og viser derfor riktig beløp også når satsen eller strømstøtten endret seg underveis i måneden.
 
 ## Forrige måned
 
@@ -152,7 +158,11 @@ Devicen har også knappen **Lag fakturarapport**. Den lager en varsling (persist
 
 Alle har `maaned`-attributt (f.eks. "januar 2026").
 
-Nettleie-sensoren har også `energiledd_dag_kr`, `energiledd_natt_kr`, `kapasitetsledd_kr`, `snitt_topp_3_kw`, `norgespris_differanse_kr`.
+Nettleie-sensoren har også `energiledd_dag_kr`, `energiledd_natt_kr`, `kapasitetsledd_kr`, `snitt_topp_3_kw`, `norgespris_differanse_kr` og `kilde`.
+
+`kilde` sier `satser ganget med kWh, ikke bokførte kroner`. Forrige måned er det eneste stedet integrasjonen fortsatt regner nettleie selv: arkivet lagrer kilowattimene, satsene som gjaldt siste dag i måneden og kapasitetstrinnet, men ingen bokførte kroner. Tallet stemmer når satsene sto stille gjennom måneden, og bommer når de ikke gjorde det.
+
+Snapshotene her har `last_reset` satt til starten av inneværende måned. Verdien byttes i sin helhet ved månedsskiftet, og uten `last_reset` ville HA-statistikken bokført forskjellen mellom to måneder som et delta.
 
 Toppforbruk-sensoren har `maaned`, `topp_1_dato`, `topp_1_kw`, `topp_1_time`, `topp_2_dato`, `topp_2_kw`, `topp_2_time`, `topp_3_dato`, `topp_3_kw`, `topp_3_time`.
 

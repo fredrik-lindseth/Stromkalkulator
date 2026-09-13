@@ -106,14 +106,20 @@ Attributes on "Månedlig forbruk totalt": `dag_kwh`, `natt_kwh`, `dag_pct`, `nat
 | Estimert månedskostnad               | NOK  | Forecast for the whole month, based on consumption so far          |
 | Norgespris besparelse                | NOK  | Accumulated savings/loss vs. the alternative plan                  |
 | Norgespris-kompensasjon              | NOK  | Accumulated (norgespris - spot price) x kWh this month             |
-| _(optional)_ Månedlig nettleie       | NOK  | Grid tariff so far: day + night energy component + capacity charge |
-| _(optional)_ Månedlig avgifter       | NOK  | Consumption tax + Enova levy incl. VAT                             |
-| _(optional)_ Månedlig strømstøtte    | NOK  | Estimated subsidy this month                                       |
+| _(optional)_ Månedlig nettleie       | NOK  | Booked grid tariff so far: energy component + capacity charge      |
+| _(optional)_ Månedlig avgifter       | NOK  | Booked consumption tax + Enova levy incl. VAT                      |
+| _(optional)_ Månedlig strømstøtte    | NOK  | Booked subsidy this month                                          |
 | _(optional)_ Akkumulert strømkostnad | NOK  | For the Energy Dashboard with correct monthly totals               |
 
 Attributes on "Akkumulert strømkostnad": `strompris_kr`, `energiledd_kr`, `kapasitetsledd_kr`, `total_kwh`.
 
 Attributes on "Månedlig nettleie total": `nettleie_kr`, `stromstotte_kr`, `forbruk_dag_kwh`, `forbruk_natt_kwh`, `forbruk_total_kwh`, `vektet_snittpris_kr_per_kwh`.
+
+Attributes on "Månedlig nettleie": `energiledd_dag_kr`, `energiledd_natt_kr`, `avgifter_kr`, `kapasitetsledd_kr`. The split follows the invoice: the energy components exclude the public levies, which are listed separately. The four add up to the sensor value.
+
+Attributes on "Månedlig avgifter": `forbruksavgift_kr`, `enovaavgift_kr`, `avgiftssone`. The bookkeeping records the two levies together, so the split is the total distributed by the ratio between the rates. When the consumption tax changes mid-month (New Year and 1 April), the split is an estimate while the total is exact.
+
+All the monthly sensors above read kroner the cost core has booked per settled interval. They do not multiply rates by the month's kilowatt-hours, so they stay correct when a rate or the subsidy changed during the month.
 
 ## Previous month (Forrige måned)
 
@@ -130,7 +136,11 @@ Stored at the change of month. Used for invoice verification.
 
 All have a `maaned` attribute (e.g. "januar 2026").
 
-The "Forrige måned nettleie" sensor also has `energiledd_dag_kr`, `energiledd_natt_kr`, `kapasitetsledd_kr`, `snitt_topp_3_kw`, `norgespris_differanse_kr`.
+The "Forrige måned nettleie" sensor also has `energiledd_dag_kr`, `energiledd_natt_kr`, `kapasitetsledd_kr`, `snitt_topp_3_kw`, `norgespris_differanse_kr` and `kilde`.
+
+`kilde` reads `satser ganget med kWh, ikke bokførte kroner`. The previous month is the one place the integration still computes grid tariff itself: the archive keeps the kilowatt-hours, the rates that applied on the last day of the month and the capacity tier, but no booked kroner. The number is right when the rates held still through the month, and off when they did not.
+
+These snapshots set `last_reset` to the start of the current month. The value is replaced wholesale at the change of month, and without `last_reset` the HA statistics would record the difference between two months as a delta.
 
 The "Forrige måned toppforbruk" sensor has `maaned`, `topp_1_dato`, `topp_1_kw`, `topp_1_time`, `topp_2_dato`, `topp_2_kw`, `topp_2_time`, `topp_3_dato`, `topp_3_kw`, `topp_3_time`.
 

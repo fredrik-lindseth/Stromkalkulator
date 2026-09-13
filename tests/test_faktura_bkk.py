@@ -531,9 +531,11 @@ def test_reverse_energiledd_natt_eks_avgifter():
 def test_maanedlig_total_sensor_matcher_faktura(faktura):
     """MaanedligTotalSensor med fakturadata skal gi korrekt nettleie-total.
 
-    Regresjonstest: energiledd_dag/natt fra dso.py inkluderer allerede
-    forbruksavgift og enova. Hvis sensoren legger til avgifter separat,
-    vil totalen bli ~160-170 kr for høy (dobbelttelling).
+    Bokføringen mates med fakturaens egne linjer, altså slik kostnadskjernen
+    står ved månedsslutt. Sensoren skal videreformidle dem og lande på
+    fakturaens nettleie subtotal. Regresjonen den vokter er dobbelttelling:
+    avgiftene ligger allerede i energileddet, og legges de på en gang til blir
+    totalen ~160-170 kr for høy.
     """
     import sys
     from unittest.mock import MagicMock
@@ -581,25 +583,24 @@ def test_maanedlig_total_sensor_matcher_faktura(faktura):
 
     _coord_mod.CoordinatorEntity = FakeCoordinatorEntity
 
-    from custom_components.stromkalkulator.dso import DSO_LIST
     from custom_components.stromkalkulator.sensor import MaanedligTotalSensor
 
-    bkk = DSO_LIST["bkk"]
     f = faktura
-
-    # Coordinator beregner inkl-mva-verdier fra eks-mva-base ved oppstart.
-    energiledd_dag = compute_energiledd_inkl_mva(bkk["energiledd_dag_eks_mva"], "standard")
-    energiledd_natt = compute_energiledd_inkl_mva(bkk["energiledd_natt_eks_mva"], "standard")
+    avgifter_kr = f["forventet_forbruksavgift_kr"] + f["forventet_enovaavgift_kr"]
+    energiledd_kr = f["forventet_energiledd_dag_kr"] + f["forventet_energiledd_natt_kr"] + avgifter_kr
 
     coord = MagicMock()
     coord.data = {
         "monthly_consumption_dag_kwh": f["forbruk_dag_kwh"],
         "monthly_consumption_natt_kwh": f["forbruk_natt_kwh"],
         "monthly_consumption_total_kwh": f["forbruk_total_kwh"],
-        "energiledd_dag": energiledd_dag,
-        "energiledd_natt": energiledd_natt,
+        "monthly_energiledd_dag_kr": f["forventet_energiledd_dag_kr"],
+        "monthly_energiledd_natt_kr": f["forventet_energiledd_natt_kr"],
+        "monthly_avgifter_kr": avgifter_kr,
+        "monthly_accumulated_cost_energiledd_kr": energiledd_kr,
+        "monthly_accumulated_cost_kapasitetsledd_kr": f["forventet_kapasitet_kr"],
         "kapasitetsledd": f["forventet_kapasitet_kr"],
-        "stromstotte": 0.0,  # Norgespris-kunde, ingen strømstøtte
+        "monthly_stromstotte_kr": 0.0,  # Norgespris-kunde, ingen strømstøtte
     }
 
     entry = MagicMock()

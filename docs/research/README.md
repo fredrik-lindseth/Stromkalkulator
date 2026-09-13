@@ -11,6 +11,12 @@ Filene her dokumenterer hvordan integrasjonen forholder seg til faktiske BKK-fak
 - [elhub-vs-han-vs-faktura.md](elhub-vs-han-vs-faktura.md), sammenligning av Elhub-data, HAN-broadcast og BKK-faktura for å lokalisere 13-sek-forsinkelsen.
 - [ikke-validerte-scenarier.md](ikke-validerte-scenarier.md), kodegjennomgang av tre kjente scenarier (DST, negative spotpriser, Norgespris-tak) med identifiserte småfeil.
 
+## Avregningsomleggingen (september 2026)
+
+- [revalidering-l3a-september-2026.md](revalidering-l3a-september-2026.md), hva coordinatoren på intervaller flyttet i volum, dag/natt-splitt og døgnmaks.
+- [revalidering-l3b-september-2026.md](revalidering-l3b-september-2026.md), hva kostnadskjernen flyttet i kroner, komponent for komponent, mot ti fakturamåneder.
+- [sensorendringer-l3c-september-2026.md](sensorendringer-l3c-september-2026.md), hva månedssensorene viser etter at de leser bokføringen i stedet for å regne selv.
+
 ## EUR/NOK-kurser og valutamarked
 
 - [valutafixinger-12cet.md](valutafixinger-12cet.md), hvilke 12:00 CET-fixinger som faktisk finnes, og hva norske banker og strømleverandører bruker.

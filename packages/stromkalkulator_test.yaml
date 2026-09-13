@@ -366,6 +366,63 @@ template:
              {{ state_attr('sensor.forrige_maned_toppforbruk', 'topp_3_kw') | float(0) | round(2) }} kW
            måned: "{{ state_attr('sensor.forrige_maned_toppforbruk', 'måned') }}"
 
+      - name: "Test: Månedlig nettleie bokføring"
+        unique_id: stromkalkulator_test_maanedlig_nettleie_bokforing
+        icon: mdi:book-open-variant
+        state: >
+           {% set nettleie = states('sensor.manedlig_nettleie') %}
+           {% if nettleie in ['unknown', 'unavailable'] %}
+             SENSOR MANGLER
+           {% elif nettleie | float(0) == 0 %}
+             INGEN DATA
+           {% else %}
+             {% set dag_kr = state_attr('sensor.manedlig_nettleie', 'energiledd_dag_kr') | float(0) %}
+             {% set natt_kr = state_attr('sensor.manedlig_nettleie', 'energiledd_natt_kr') | float(0) %}
+             {% set avg_kr = state_attr('sensor.manedlig_nettleie', 'avgifter_kr') | float(0) %}
+             {% set kap_kr = state_attr('sensor.manedlig_nettleie', 'kapasitetsledd_kr') | float(0) %}
+             {% set expected = dag_kr + natt_kr + avg_kr + kap_kr %}
+             {% if (nettleie | float(0) - expected) | abs < 1 %}OK{% else %}FEIL{% endif %}
+           {% endif %}
+        attributes:
+           nettleie_total: "{{ states('sensor.manedlig_nettleie') | float(0) | round(2) }} kr"
+           energiledd_dag_kr: "{{ state_attr('sensor.manedlig_nettleie', 'energiledd_dag_kr') }}"
+           energiledd_natt_kr: "{{ state_attr('sensor.manedlig_nettleie', 'energiledd_natt_kr') }}"
+           avgifter_kr: "{{ state_attr('sensor.manedlig_nettleie', 'avgifter_kr') }}"
+           kapasitetsledd_kr: "{{ state_attr('sensor.manedlig_nettleie', 'kapasitetsledd_kr') }}"
+           merknad: >
+             Splitten kommer fra kostnadskjernen. Summerer de fire ikke til
+             verdien, regner en av dem seg selv igjen. Måneden etter en
+             oppgradering fra samlet energiledd er unntaket: den bærer en
+             udelbar apningsbalanse.
+           avgifter_sensor_kr: "{{ states('sensor.manedlig_avgifter') }}"
+           avgifter_stemmer: >
+             {% set fra_nettleie = state_attr('sensor.manedlig_nettleie', 'avgifter_kr') | float(0) %}
+             {% set fra_sensor = states('sensor.manedlig_avgifter') | float(0) %}
+             {% if (fra_nettleie - fra_sensor) | abs < 0.5 %}OK{% else %}FEIL{% endif %}
+
+      - name: "Test: Månedlig total bokføring"
+        unique_id: stromkalkulator_test_maanedlig_total_bokforing
+        icon: mdi:equal
+        state: >
+           {% set total = states('sensor.manedlig_nettleie_total') %}
+           {% set nettleie = states('sensor.manedlig_nettleie') %}
+           {% if total in ['unknown', 'unavailable'] or nettleie in ['unknown', 'unavailable'] %}
+             SENSOR MANGLER
+           {% elif total | float(0) == 0 %}
+             INGEN DATA
+           {% else %}
+             {% set stotte = states('sensor.manedlig_stromstotte') | float(0) %}
+             {% set expected = (nettleie | float(0)) - stotte %}
+             {% if (total | float(0) - expected) | abs < 1 %}OK{% else %}FEIL{% endif %}
+           {% endif %}
+        attributes:
+           total_kr: "{{ states('sensor.manedlig_nettleie_total') }}"
+           nettleie_kr: "{{ states('sensor.manedlig_nettleie') }}"
+           stromstotte_kr: "{{ states('sensor.manedlig_stromstotte') }}"
+           merknad: >
+             Total er bokfort nettleie minus bokfort stromstotte. Stotten er
+             summert time for time, ikke manedens kWh ganget med dagens sats.
+
        # =========================================================================
        # SAMLET STATUS
        # =========================================================================
@@ -381,7 +438,9 @@ template:
             states('sensor.test_total_pris_etter_stotte'),
             states('sensor.test_forbruksavgift'),
             states('sensor.test_enova_avgift'),
-            states('sensor.test_norgespris_sammenligning')
+            states('sensor.test_norgespris_sammenligning'),
+            states('sensor.test_manedlig_nettleie_bokforing'),
+            states('sensor.test_manedlig_total_bokforing')
           ] %}
           {% set ok_count = tests | select('eq', 'OK') | list | count %}
           {% set total = tests | count %}
@@ -395,3 +454,5 @@ template:
           forbruksavgift: "{{ states('sensor.test_forbruksavgift') }}"
           enovaavgift: "{{ states('sensor.test_enova_avgift') }}"
           norgespris: "{{ states('sensor.test_norgespris_sammenligning') }}"
+          maanedlig_nettleie_bokforing: "{{ states('sensor.test_manedlig_nettleie_bokforing') }}"
+          maanedlig_total_bokforing: "{{ states('sensor.test_manedlig_total_bokforing') }}"

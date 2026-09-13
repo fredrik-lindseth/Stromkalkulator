@@ -542,14 +542,23 @@ class Prisadapter:
         return start
 
     def ruter_i(self, start_utc: datetime) -> dict[datetime, float]:
-        """Rutene med godkjent prøve i avregningsintervallet som starter her."""
+        """Rutene med godkjent prøve i avregningsintervallet som starter her.
+
+        Rutene ligger på gridet (`prisrutestart`) og oppløsningen går opp i en
+        hel time, så de fire mulige rutestartene kan regnes ut og slås opp
+        direkte. Å gå gjennom hele rutetabellen ga samme svar, men koster en
+        månedslang tabell ved hvert oppslag, og coordinatoren slår opp ved hver
+        poll.
+        """
         start = krev_aware(start_utc, "intervallstart")
-        slutt = start + AVREGNINGSINTERVALL
-        return {
-            rutestart: prove.verdi
-            for rutestart, prove in sorted(self._ruter.items())
-            if start <= rutestart < slutt
-        }
+        steg = timedelta(minutes=self.opplosning_minutter)
+        ut: dict[datetime, float] = {}
+        for n in range(self.prover_ventet):
+            rutestart = start + n * steg
+            prove = self._ruter.get(rutestart)
+            if prove is not None:
+                ut[rutestart] = prove.verdi
+        return ut
 
     def prisintervall(self, start_utc: datetime) -> Prisintervall:
         """Prisen for avregningsintervallet: uvektet snitt av rutene med prøve.
@@ -662,6 +671,12 @@ class Avregningsbok:
         self.maks_estimert_vindu_timer = maks_estimert_vindu_timer
         self.ufullstendig = ufullstendig
         self._poster: dict[datetime, _Post] = {}
+        # Ferdig bygde intervaller, alltid med `apen = False`. Coordinatoren
+        # spør om månedens status ved hver poll, og uten denne ville hver poll
+        # bygget hele måneden på nytt. Oppføringen kastes når intervallet får
+        # mer energi eller en ny prisprøve, altså av de to tingene som kan
+        # endre den.
+        self._bygget: dict[datetime, AvregnetIntervall] = {}
         self._sist_observert: Avlesning | None = None
         self._aktiv_maned: str | None = None
         self._arkiv: dict[str, Manedssum] = {}
@@ -688,11 +703,23 @@ class Avregningsbok:
         """Månedene boken har rullert forbi, med sine summer."""
         return dict(self._arkiv)
 
+    def sett_baseline(self, avlesning: Avlesning | None) -> None:
+        """Sett siste behandlede observasjon uten å bokføre noe (C5).
+
+        Brukes når baselinen kommer fra et eldre lagringsskjema, der den lå
+        utenfor boken. Det er en flytting av utgangspunktet for neste delta,
+        ikke en avlesning, så ingen intervaller får energi.
+        """
+        self._sist_observert = avlesning
+
     # -- pris --------------------------------------------------------------
 
     def registrer_prisprove(self, avlest_kl: datetime, verdi: float) -> datetime | None:
         """Send en prisprøve videre til adapteren (A2.1)."""
-        return self.pris.registrer(avlest_kl, verdi)
+        rutestart = self.pris.registrer(avlest_kl, verdi)
+        if rutestart is not None:
+            self._bygget.pop(intervallstart(rutestart), None)
+        return rutestart
 
     # -- energi ------------------------------------------------------------
 
@@ -779,6 +806,7 @@ class Avregningsbok:
                 avvist += kwh
                 continue
             post = self._poster.setdefault(start, _Post())
+            self._bygget.pop(start, None)
             post.kwh += kwh
             if avlesning.er_estimert:
                 post.energikvalitet = Energikvalitet.ESTIMERT
@@ -803,6 +831,7 @@ class Avregningsbok:
         assert gammel is not None
         self._arkiv[gammel] = self.maanedssum()
         self._poster.clear()
+        self._bygget.clear()
         self._avvist_kwh = 0.0
         self._aktiv_maned = naa_maned
         self.ufullstendig = False  # flagget fjernes ved første månedsskifte (D)
@@ -833,22 +862,34 @@ class Avregningsbok:
         return self._bygg(start, post, krev_aware(naa, "naa") if naa is not None else None)
 
     def _bygg(self, start: datetime, post: _Post, naa: datetime | None) -> AvregnetIntervall:
-        slutt = start + AVREGNINGSINTERVALL
-        pris = self.pris.prisintervall(start)
-        kvalitet = Intervallkvalitet.UFULLSTENDIG if self.ufullstendig else pris.kvalitet
-        return AvregnetIntervall(
-            start_utc=start,
-            slutt_utc=slutt,
-            kwh=post.kwh,
-            lokal_maned=lokal_maned(start),
-            lokal_time=lokal_time(start),
-            tariff=self.tariffregel.tariff(start),
-            pris=pris,
-            regelkilde=regelkilde(self.tariffmodus, self.dso_id, start),
-            kvalitet=kvalitet,
-            apen=naa is not None and naa < slutt,
-            energikvalitet=post.energikvalitet,
-        )
+        """Bygg intervallet, eller hent det ferdige fra cachen.
+
+        `apen` er det eneste som avhenger av klokken, og det avgjøres til
+        slutt. Alt annet er avgjort av intervallets egen start, energien og
+        prisrutene, og de tre kastes cachen på.
+        """
+        lukket = self._bygget.get(start)
+        if lukket is None:
+            slutt = start + AVREGNINGSINTERVALL
+            pris = self.pris.prisintervall(start)
+            kvalitet = Intervallkvalitet.UFULLSTENDIG if self.ufullstendig else pris.kvalitet
+            lukket = AvregnetIntervall(
+                start_utc=start,
+                slutt_utc=slutt,
+                kwh=post.kwh,
+                lokal_maned=lokal_maned(start),
+                lokal_time=lokal_time(start),
+                tariff=self.tariffregel.tariff(start),
+                pris=pris,
+                regelkilde=regelkilde(self.tariffmodus, self.dso_id, start),
+                kvalitet=kvalitet,
+                apen=False,
+                energikvalitet=post.energikvalitet,
+            )
+            self._bygget[start] = lukket
+        if naa is not None and naa < lukket.slutt_utc:
+            return replace(lukket, apen=True)
+        return lukket
 
     def apne_intervaller(self, naa: datetime) -> list[AvregnetIntervall]:
         """Intervallene som ennå ikke er lukket (`avregning_apne_intervaller`)."""
@@ -861,8 +902,10 @@ class Avregningsbok:
 
     def maanedssum(self, naa: datetime | None = None) -> Manedssum:
         """Summene for den aktive måneden (felttabellen)."""
+        return self._summer(self.intervaller(naa))
+
+    def _summer(self, intervaller: list[AvregnetIntervall]) -> Manedssum:
         sum_total = sum_dag = sum_natt = sum_uten = sum_delvis = 0.0
-        intervaller = self.intervaller(naa)
         for i in intervaller:
             sum_total += i.kwh
             if i.tariff is Tariff.DAG:
@@ -890,8 +933,11 @@ class Avregningsbok:
 
         Kroner er ikke med. L3b fyller resten fra de samme intervallene.
         """
-        sum_ = self.maanedssum(naa)
-        siste = self.siste_lukkede(naa)
+        intervaller = self.intervaller(naa)
+        sum_ = self._summer(intervaller)
+        apne = sum(1 for i in intervaller if i.apen)
+        lukkede = [i for i in intervaller if not i.apen]
+        siste = lukkede[-1] if lukkede else None
         return {
             "avregning_skjema": SKJEMA_VERSJON,
             "avregning_ufullstendig": self.ufullstendig,
@@ -900,7 +946,7 @@ class Avregningsbok:
             ),
             "avregning_kilde": (self._sist_observert.source_identity if self._sist_observert else None),
             "avregning_siste_intervall": siste.start_utc.isoformat() if siste else None,
-            "avregning_apne_intervaller": len(self.apne_intervaller(naa)),
+            "avregning_apne_intervaller": apne,
             "avregning_avvist_kwh": sum_.avvist_kwh,
             "kwh_uten_pris": sum_.kwh_uten_pris,
             "kwh_delvis_pris": sum_.kwh_delvis_pris,

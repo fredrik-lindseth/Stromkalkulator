@@ -25,6 +25,10 @@ Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) og [S
   - **Nordvest Nett** (01.07): energiledd dag 26,03 → 31,23 og natt 20,03 → 25,23 øre/kWh, alle ti trinn hevet, trinn 1 fra 158 til 190 kr/mnd.
   - **Norefjell Nett** (01.08): energiledd dag 22,53 → 23,53 og natt 15,08 → 18,58 øre/kWh, alle ti trinn hevet, trinn 1 fra 243 til 266 kr/mnd.
 - **Sør Aurdal Energi hevet energileddet 1. september 2026** med 5,00 øre/kWh inkl. mva i alle tariffgrupper: vinter (okt-mar) 25,52 → 29,52 og sommer (apr-sep) 21,52 → 25,52 øre/kWh eks. mva. Fastleddet er uendret.
+- **To nettselskap til hadde hevet nettleien uten at vi fanget det**, funnet ved å gå til prislistene til de sytten nettselskapene som fikk kapasitetstrinnene sine fra fri-nettleie under den store opprydningen i juli:
+  - **RK Nett** (01.08): energileddet 20,14 → 23,02 øre/kWh, og hele kapasitetstabellen er hevet, trinn 1 fra 266 til 305 kr/mnd.
+  - **Telemark Nett** (01.09): energileddet 25,00 → 28,00 øre/kWh, og hele kapasitetstabellen er hevet, trinn 1 fra 355 til 398 kr/mnd. Selskapet heter nå TNett og finnes på tnett.no.
+- **Fire kapasitetstrinn og to energiledd var rundet feil vei.** Vi hadde regnet bakover fra prisen inkl. mva der prislisten har en egen kolonne uten. Romsdalsnett 2-5 kW 363 → 362 og 20-25 kW 1160 → 1159 kr/mnd, Vestmar Nett 20-25 kW 1495 → 1494 kr/mnd og energileddet 17,102 → 17,10 øre/kWh, Enida 26,998/20,998 → 27,00/21,00 øre/kWh. Under en krone hver, men det er nettselskapets eget tall som gjelder.
 
 ### Endret
 

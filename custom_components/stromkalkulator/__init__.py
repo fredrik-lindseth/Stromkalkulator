@@ -7,6 +7,7 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import Platform
 from homeassistant.helpers import event as ha_event
 from homeassistant.helpers import issue_registry as ir
@@ -80,10 +81,6 @@ _ENTRY_ID_SUFFIX = re.compile(r"_([0-9A-Z]{26}|[0-9a-f]{32})$")
 # pluss entry_id strykes før oppslaget).
 SATSER_ISSUE_ID = "satser_utdatert"
 NORGESPRIS_ISSUE_PREFIX = "norgespris_utlopt_"
-
-# Året som utløste varselet, lagret på selve issuen. Det er dette som gjør at en
-# demping har utløpsdato, se `_reis_med_aarsdemping`.
-_AAR_I_ISSUE = "aar_oppdaget"
 
 # Nøkkelen i hass.data der avmeldingen for den daglige vakten ligger. Vakten er
 # domenevid og registreres én gang, ikke én per anlegg.
@@ -628,6 +625,55 @@ def _check_sikringstrinn(hass: HomeAssistant, entry: StromkalkulatorConfigEntry)
         ir.async_delete_issue(hass, DOMAIN, issue_id)
 
 
+def _anlegg_brukeren_har_paa(hass: HomeAssistant) -> list[ConfigEntry]:
+    """Anleggene vakten skal bry seg om, altså de som ikke er slått av.
+
+    `hass.config_entries.async_entries(DOMAIN)` tar med deaktiverte entries
+    (`include_disabled` er sann som standard). Et anlegg brukeren har slått av
+    regner ingenting og skal ikke gi varsel om hverken satser eller Norgespris,
+    og står bare deaktiverte igjen, er det ingen igjen å holde vakt for.
+
+    Kriteriet er `disabled_by`, ikke `state`: ved setup står anlegget i
+    `SETUP_IN_PROGRESS`, og et state-kriterium ville gjort vakten blind nettopp
+    når den kalles fra `async_setup_entry`.
+    """
+    return [entry for entry in hass.config_entries.async_entries(DOMAIN) if entry.disabled_by is None]
+
+
+def _lastede_anlegg(hass: HomeAssistant) -> list[ConfigEntry]:
+    """Anleggene som faktisk kjører nå.
+
+    Brukt av avmeldingen, der spørsmålet er om det er noen igjen å holde vakt
+    for. Et deaktivert anlegg blir aldri lastet, og et som er lastet ut uten å
+    være fjernet kjører heller ingenting; i begge tilfeller ville en vakt som
+    telte registeret stått og tikket uten noen å varsle. Starter et anlegg opp
+    igjen, registrerer `async_setup_entry` vakten på nytt.
+    """
+    return [
+        entry for entry in hass.config_entries.async_entries(DOMAIN) if entry.state is ConfigEntryState.LOADED
+    ]
+
+
+def _aar_varselet_ble_reist(forrige: ir.IssueEntry) -> int | None:
+    """Hvilket år varselet står fra, lest av HAs eget `created`-felt.
+
+    `created` settes når issuen opprettes første gang og blir stående ved hver
+    senere oppdatering (`async_get_or_create` bytter bare de andre feltene).
+    Det er det eneste feltet utenom `dismissed_version` som HA tar vare på for
+    et ikke-persistent varsel, og derfor det eneste som duger som utløpsnøkkel.
+
+    Feltet er i UTC. Året leses lokalt, samme sone som `aar` i vakten, ellers
+    ville et varsel reist 1. januar 00:05 norsk tid stått oppført som fjorårets.
+
+    Uten et opprettelsestidspunkt har dempingen ingenting å utløpe mot, og da er
+    det riktigere å reise varselet på nytt enn å la det stå for alltid.
+    """
+    opprettet = getattr(forrige, "created", None)
+    if opprettet is None:
+        return None
+    return int(dt_util.as_local(opprettet).year)
+
+
 def _reis_med_aarsdemping(
     hass: HomeAssistant,
     issue_id: str,
@@ -644,24 +690,31 @@ def _reis_med_aarsdemping(
     vi ikke ser. Løsningen er den samme som fri-nettleie-vakten bruker på sine
     unntak: dempingen gjelder én verdi og fram til én dato.
 
-    Året som utløste varselet ligger derfor i issue-dataene. Er det et annet år
-    nå, slettes varselet før det reises på nytt, og slettingen tar dempingen med
-    seg. Er det samme år, oppdateres varselet uten at dempingen røres, så en
-    omstart ikke vekker et varsel brukeren har tatt stilling til.
+    Utløpet leses av `created` på issuen. Står varselet fra et annet år, slettes
+    det før det reises på nytt, og slettingen tar dempingen med seg. Er det samme
+    år, oppdateres varselet uten at dempingen røres, så en omstart ikke vekker et
+    varsel brukeren har tatt stilling til.
+
+    At det er `created` og ikke et felt vi legger på selv, er ikke en smakssak.
+    Varslene våre er ikke persistente, og `IssueEntry.to_json` skriver bare
+    `created`, `dismissed_version`, `domain`, `is_persistent` og `issue_id` for
+    dem. Ved oppstart lastes de igjen med `data=None`. Et årstall lagt i `data`
+    ville derfor vært borte etter hver eneste omstart, og vakten ville lest det
+    som et nytt år, slettet varselet og vekket noe brukeren hadde ignorert.
+    `is_persistent=True` ville berget `data`, men koster at varselet blir
+    liggende i registeret etter at integrasjonen er avinstallert.
 
     Id-en er den samme hele veien. Å legge årstallet i id-en ville gitt samme
     utløp, men gjort sorten ukjennelig for diagnostikken.
     """
     forrige = ir.async_get(hass).async_get_issue(DOMAIN, issue_id)
-    if forrige is not None:
-        data = forrige.data if isinstance(forrige.data, dict) else {}
-        if data.get(_AAR_I_ISSUE) != aar:
-            ir.async_delete_issue(hass, DOMAIN, issue_id)
-            _LOGGER.info(
-                "Kalendervarselet %s gjelder et nytt år (%s), og reises på nytt",
-                issue_id,
-                aar,
-            )
+    if forrige is not None and _aar_varselet_ble_reist(forrige) != aar:
+        ir.async_delete_issue(hass, DOMAIN, issue_id)
+        _LOGGER.info(
+            "Kalendervarselet %s gjelder et nytt år (%s), og reises på nytt",
+            issue_id,
+            aar,
+        )
 
     ir.async_create_issue(
         hass,
@@ -670,7 +723,6 @@ def _reis_med_aarsdemping(
         is_fixable=False,
         severity=ir.IssueSeverity.WARNING,
         translation_key=translation_key,
-        data={_AAR_I_ISSUE: aar},
         translation_placeholders=plassholdere,
     )
 
@@ -681,8 +733,8 @@ def _sjekk_norgespris(hass: HomeAssistant, entry: ConfigEntry, aar: int) -> None
     Varselet er suffikset med entry_id (incident 001). Det globale id-et vi
     brukte før kunne bare ha én tilstand for hele installasjonen, så et anlegg
     på spotavtale slettet varselet til anlegget som faktisk hadde Norgespris,
-    alt etter hvilket som ble satt opp sist. Med to anlegg var varselet derfor
-    et lotteri.
+    alt etter hvilket som ble satt opp sist. Med to anlegg avgjorde rekkefølgen
+    hvem som fikk vite noe.
     """
     issue_id = f"{NORGESPRIS_ISSUE_PREFIX}{entry.entry_id}"
     if entry.data.get(CONF_HAR_NORGESPRIS) and aar > NORGESPRIS_SLUTT_AAR:
@@ -714,11 +766,12 @@ def _sjekk_satsvakt(hass: HomeAssistant, naa: datetime | None = None) -> None:
     etter at satsene var utdaterte.
 
     `satser_utdatert` gjelder hele integrasjonen og reises av denne ene funksjonen,
-    som ser alle anlegg. Norgespris-varselet gjelder ett anlegg og har entry_id i
-    id-en.
+    som ser alle anlegg brukeren har påslått. Norgespris-varselet gjelder ett
+    anlegg og har entry_id i id-en. Et deaktivert anlegg regner ingenting og
+    varsles ikke, se `_anlegg_brukeren_har_paa`.
     """
     aar = (naa or dt_util.now()).year
-    entries = list(hass.config_entries.async_entries(DOMAIN))
+    entries = _anlegg_brukeren_har_paa(hass)
 
     # Rest fra da Norgespris-varselet var domenevidt. Det kan ligge igjen hos
     # brukere som oppgraderer, og det finnes ingen som kan rydde det utenom oss.
@@ -744,7 +797,7 @@ def _start_satsvakt(hass: HomeAssistant) -> None:
 
     En installasjon som står i månedsvis uten omstart passerte årsskiftet uten
     at noen så etter, og satsvarselet kom først neste gang Home Assistant ble
-    startet på nytt. Det kunne være i mars.
+    startet på nytt, og det kunne være i mars.
 
     `async_track_time_change` er HAs egen planlegger og regner tidspunktet ut på
     nytt for hvert døgn i lokal tid, så den driver ikke og hopper ikke over et
@@ -784,12 +837,13 @@ async def async_unload_entry(hass: HomeAssistant, entry: StromkalkulatorConfigEn
     """Unload a config entry."""
     unload_ok: bool = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
-    # Siste anlegg ut slukker lyset. Entryet som lastes ut står fortsatt i
-    # registeret her, så den filtreres bort selv. Ved en omstart av ett enkelt
-    # anlegg starter `async_setup_entry` vakten igjen med en gang.
-    if unload_ok and not [
-        annen for annen in hass.config_entries.async_entries(DOMAIN) if annen.entry_id != entry.entry_id
-    ]:
+    # Når det siste anlegget er ute, meldes vakten av. Entryet som lastes ut står
+    # fortsatt som lastet her, så det filtreres bort på entry_id. Kriteriet er
+    # hva som kjører, ikke hva som står i registeret: deaktiverte og utlastede
+    # anlegg regner ingenting, og telte vi dem, ville vakten tikket videre uten
+    # noen å varsle. Ved en omstart av ett enkelt anlegg starter
+    # `async_setup_entry` vakten igjen med en gang.
+    if unload_ok and not [annen for annen in _lastede_anlegg(hass) if annen.entry_id != entry.entry_id]:
         _stopp_satsvakt(hass)
 
     return unload_ok

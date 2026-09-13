@@ -116,6 +116,7 @@ def _make_entry(
     export_power_sensor=None,
     energy_sensor=None,
     extra_data=None,
+    disabled_by=None,
 ):
     """Lag et mock config entry med felles defaults og valgfrie utvidelser.
 
@@ -124,6 +125,15 @@ def _make_entry(
     """
     entry = MagicMock()
     entry.entry_id = entry_id
+    # Som et ekte ConfigEntry: None betyr at anlegget er påslått. Uten dette ville
+    # en MagicMock stått som «deaktivert av noe», og vakter som filtrerer på
+    # feltet ville sett bort fra hvert eneste testanlegg.
+    entry.disabled_by = disabled_by
+    # Og som et anlegg som kjører, med mindre det er slått av: et deaktivert
+    # anlegg blir aldri lastet. Vakter som spør hva som er lastet, skal ikke
+    # måtte gjette på en MagicMock.
+    _tilstander = sys.modules["homeassistant.config_entries"].ConfigEntryState
+    entry.state = _tilstander.LOADED if disabled_by is None else _tilstander.NOT_LOADED
     entry.data = {
         "tso": dso_id,
         "power_sensor": power_sensor,

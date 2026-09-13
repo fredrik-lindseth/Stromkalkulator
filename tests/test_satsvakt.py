@@ -23,6 +23,7 @@ import pytest
 from tests.conftest import _make_entry
 
 OSLO = ZoneInfo("Europe/Oslo")
+UTC = ZoneInfo("UTC")
 
 # Ekte ULID-form, slik HA lager entry_id. Formen betyr noe: _ENTRY_ID_SUFFIX i
 # __init__ bruker den til å kjenne igjen et anleggs-issue.
@@ -31,7 +32,7 @@ ENTRY_B = "01JBBBBBBBBBBBBBBBBBBBBBBB"
 
 
 @pytest.fixture
-def init_module():
+def init_module(monkeypatch):
     """Last __init__ på nytt og nullstill ir-mocken.
 
     ir er en delt MagicMock i sys.modules (conftest), så call_args_list
@@ -48,6 +49,10 @@ def init_module():
     # Utgangspunktet er at varselet ikke står fra før. Testene som ser på
     # demping setter sitt eget svar her.
     init_mod.ir.async_get.return_value.async_get_issue.return_value = None
+    # dt_util er en delt MagicMock i unit-miljøet, og vakten leser `created` på
+    # issuen gjennom as_local. Uten en ekte omregning her ville sammenligningen
+    # av årstall vært MagicMock mot int, altså alltid ulik.
+    monkeypatch.setattr(init_mod.dt_util, "as_local", lambda tidspunkt: tidspunkt.astimezone(OSLO))
     return init_mod
 
 
@@ -60,10 +65,19 @@ def _make_hass(entries=()):
     return hass
 
 
-def _fake_issue(data):
-    """Etterligner HAs IssueEntry så langt vakten leser den."""
+def _fake_issue(opprettet):
+    """Etterligner HAs IssueEntry så langt vakten leser den.
+
+    Bare `created` og `dismissed_version` overlever en omstart for et
+    ikke-persistent varsel, så det er `created` vakten har å gå på. `data` er med
+    her nettopp for å vise at den er borte etter en omstart.
+
+    `created` lagres i UTC, og det gjør den her også: et lokalt tidspunkt ville
+    skjult at et UTC-lest årstall faller feil nyttårsnatt.
+    """
     issue = MagicMock()
-    issue.data = data
+    issue.created = opprettet.astimezone(UTC) if opprettet is not None else None
+    issue.data = None
     return issue
 
 
@@ -77,6 +91,11 @@ def _deleted_issue_ids(init_mod) -> list[str]:
 
 def _norgespris_id(init_mod, entry_id: str) -> str:
     return f"{init_mod.NORGESPRIS_ISSUE_PREFIX}{entry_id}"
+
+
+def _tilstand(init_mod, navn: str):
+    """ConfigEntryState slik unit-miljøet ser den, altså som stabile mock-verdier."""
+    return getattr(init_mod.ConfigEntryState, navn)
 
 
 # ---------------------------------------------------------------------------
@@ -113,7 +132,7 @@ def test_satsvakten_leser_lokal_tid_ikke_utc(init_module):
     da satsene ble utdaterte.
     """
     nyttaarsnatt = datetime(2027, 1, 1, 0, 30, tzinfo=OSLO)
-    assert nyttaarsnatt.astimezone(ZoneInfo("UTC")).year == 2026
+    assert nyttaarsnatt.astimezone(UTC).year == 2026
 
     entry = _make_entry(entry_id=ENTRY_A, har_norgespris=False)
     init_module._sjekk_satsvakt(_make_hass([entry]), nyttaarsnatt)
@@ -213,11 +232,14 @@ def test_slettet_anlegg_rydder_sitt_norgespris_varsel(init_module):
 def test_demping_overlever_omstart_samme_aar(init_module):
     """Har brukeren tatt stilling til varselet, skal en omstart ikke vekke det.
 
-    HA husker dempingen på selve issuen. Sletter vi og reiser på nytt, ryker
-    den, så varselet skal bare oppdateres så lenge året er det samme.
+    Dette er feilen som felte forrige utgave. Varselet er ikke persistent, så HA
+    laster det med `data=None` etter hver omstart. Leste vakten årstallet av
+    `data`, så den et tomt felt, dømte det som et nytt år, slettet varselet, og
+    slettingen tok dempingen med seg. Brukeren som trykket «ignorer» i januar
+    fikk varselet tilbake neste gang HA startet. `created` overlever omstarten.
     """
     init_module.ir.async_get.return_value.async_get_issue.return_value = _fake_issue(
-        {init_module._AAR_I_ISSUE: 2027}
+        datetime(2027, 1, 1, 0, 5, tzinfo=OSLO)
     )
     entry = _make_entry(entry_id=ENTRY_A, har_norgespris=False)
 
@@ -227,10 +249,49 @@ def test_demping_overlever_omstart_samme_aar(init_module):
     assert init_module.SATSER_ISSUE_ID not in _deleted_issue_ids(init_module)
 
 
+def test_demping_overlever_omstart_ogsaa_for_norgespris(init_module):
+    """Samme prøve på anleggsvarselet, som brukeren møter like ofte."""
+    init_module.ir.async_get.return_value.async_get_issue.return_value = _fake_issue(
+        datetime(2027, 1, 1, 0, 5, tzinfo=OSLO)
+    )
+    entry = _make_entry(entry_id=ENTRY_A, har_norgespris=True)
+
+    init_module._sjekk_satsvakt(_make_hass([entry]), datetime(2027, 6, 1, 12, 0, tzinfo=OSLO))
+
+    assert _norgespris_id(init_module, ENTRY_A) not in _deleted_issue_ids(init_module)
+
+
+def test_utlopet_leses_ikke_av_issue_data(init_module):
+    """Varselet skal stå selv om `data` er tom, for det er den alltid etter omstart.
+
+    Testen holder `created` i inneværende år og `data` tom, altså nøyaktig slik
+    HA leverer et ikke-persistent varsel etter en omstart.
+    """
+    forrige = _fake_issue(datetime(2027, 1, 1, 0, 5, tzinfo=OSLO))
+    assert forrige.data is None
+    init_module.ir.async_get.return_value.async_get_issue.return_value = forrige
+    entry = _make_entry(entry_id=ENTRY_A, har_norgespris=False)
+
+    init_module._sjekk_satsvakt(_make_hass([entry]), datetime(2027, 6, 1, 12, 0, tzinfo=OSLO))
+
+    assert init_module.SATSER_ISSUE_ID not in _deleted_issue_ids(init_module)
+
+
+def test_varselet_baerer_ikke_data_som_ikke_overlever(init_module):
+    """Ingen `data` på varselet: feltet lagres ikke, og et felt vi ikke kan stole
+    på skal ikke se ut som noe vi styrer etter."""
+    entry = _make_entry(entry_id=ENTRY_A, har_norgespris=True)
+    init_module._sjekk_satsvakt(_make_hass([entry]), datetime(2027, 3, 1, 12, 0, tzinfo=OSLO))
+
+    assert init_module.ir.async_create_issue.call_args_list
+    for call in init_module.ir.async_create_issue.call_args_list:
+        assert "data" not in call.kwargs
+
+
 def test_demping_utloper_ved_neste_aarsskifte(init_module):
     """Et nytt år er et nytt varsel. Dempingen fra i fjor gjelder ikke det."""
     init_module.ir.async_get.return_value.async_get_issue.return_value = _fake_issue(
-        {init_module._AAR_I_ISSUE: 2027}
+        datetime(2027, 1, 1, 0, 5, tzinfo=OSLO)
     )
     entry = _make_entry(entry_id=ENTRY_A, har_norgespris=False)
 
@@ -241,8 +302,22 @@ def test_demping_utloper_ved_neste_aarsskifte(init_module):
     assert init_module.SATSER_ISSUE_ID in _created_issue_ids(init_module)
 
 
-def test_varsel_uten_aarstall_regnes_som_udempet(init_module):
-    """Et varsel fra en eldre versjon bærer ingen dato, og kan ikke stoles på."""
+def test_created_leses_i_lokal_tid(init_module):
+    """`created` er UTC. Et varsel reist 1. januar 00:05 norsk tid står som
+    31. desember i UTC, og et UTC-lest årstall ville felt dempingen med en gang."""
+    reist = datetime(2027, 1, 1, 0, 5, tzinfo=OSLO)
+    assert reist.astimezone(UTC).year == 2026
+    init_module.ir.async_get.return_value.async_get_issue.return_value = _fake_issue(reist)
+    entry = _make_entry(entry_id=ENTRY_A, har_norgespris=False)
+
+    init_module._sjekk_satsvakt(_make_hass([entry]), datetime(2027, 1, 1, 0, 5, tzinfo=OSLO))
+
+    assert init_module.SATSER_ISSUE_ID not in _deleted_issue_ids(init_module)
+
+
+def test_varsel_uten_created_regnes_som_udempet(init_module):
+    """Uten et opprettelsestidspunkt har dempingen ingenting å utløpe mot, og da
+    er det riktigere å reise varselet på nytt enn å la det stå for alltid."""
     init_module.ir.async_get.return_value.async_get_issue.return_value = _fake_issue(None)
     entry = _make_entry(entry_id=ENTRY_A, har_norgespris=False)
 
@@ -252,13 +327,41 @@ def test_varsel_uten_aarstall_regnes_som_udempet(init_module):
     assert init_module.SATSER_ISSUE_ID in _created_issue_ids(init_module)
 
 
-def test_aarstallet_foelger_med_varselet(init_module):
-    """Uten året på issuen har dempingen ingenting å utløpe mot."""
-    entry = _make_entry(entry_id=ENTRY_A, har_norgespris=True)
-    init_module._sjekk_satsvakt(_make_hass([entry]), datetime(2027, 3, 1, 12, 0, tzinfo=OSLO))
+# ---------------------------------------------------------------------------
+# Deaktiverte anlegg
+# ---------------------------------------------------------------------------
 
-    for call in init_module.ir.async_create_issue.call_args_list:
-        assert call.kwargs["data"] == {init_module._AAR_I_ISSUE: 2027}
+
+def test_deaktivert_anlegg_faar_ikke_norgespris_varsel(init_module):
+    """Et anlegg brukeren har slått av regner ingenting, og skal ikke mase."""
+    av = _make_entry(entry_id=ENTRY_A, har_norgespris=True, disabled_by="user")
+    paa = _make_entry(entry_id=ENTRY_B, har_norgespris=False)
+
+    init_module._sjekk_satsvakt(_make_hass([av, paa]), datetime(2027, 3, 1, 12, 0, tzinfo=OSLO))
+
+    assert _norgespris_id(init_module, ENTRY_A) not in _created_issue_ids(init_module)
+    # Og det påslåtte anlegget merker ingenting til naboen.
+    assert init_module.SATSER_ISSUE_ID in _created_issue_ids(init_module)
+
+
+def test_paaslaatt_anlegg_faar_fortsatt_norgespris_varsel(init_module):
+    """Motsatt vei: filteret skal bare ta de avslåtte."""
+    paa = _make_entry(entry_id=ENTRY_A, har_norgespris=True)
+    av = _make_entry(entry_id=ENTRY_B, har_norgespris=False, disabled_by="user")
+
+    init_module._sjekk_satsvakt(_make_hass([paa, av]), datetime(2027, 3, 1, 12, 0, tzinfo=OSLO))
+
+    assert _norgespris_id(init_module, ENTRY_A) in _created_issue_ids(init_module)
+
+
+def test_ingen_satsvarsel_naar_alle_anlegg_er_deaktiverte(init_module):
+    """Ingen påslåtte anlegg er ingen å varsle, like fullt som ingen anlegg."""
+    av = _make_entry(entry_id=ENTRY_A, har_norgespris=True, disabled_by="user")
+
+    init_module._sjekk_satsvakt(_make_hass([av]), datetime(2027, 3, 1, 12, 0, tzinfo=OSLO))
+
+    assert init_module.SATSER_ISSUE_ID not in _created_issue_ids(init_module)
+    assert init_module.SATSER_ISSUE_ID in _deleted_issue_ids(init_module)
 
 
 # ---------------------------------------------------------------------------
@@ -336,3 +439,53 @@ def test_vakten_staar_naar_det_er_flere_anlegg_igjen(init_module):
 
     avmelding.assert_not_called()
     assert init_module._SATSVAKT_UNSUB in hass.data[init_module.DOMAIN]
+
+
+def test_vakten_meldes_av_naar_bare_deaktiverte_anlegg_staar_igjen(init_module):
+    """Registeret er ikke tomt, men det er ingen igjen å holde vakt for.
+
+    Telte avmeldingen alle entries i registeret, ville vakten tikket videre for
+    alltid med ett deaktivert anlegg stående. HA ser den som en timer som aldri
+    slippes ved nedstenging.
+    """
+    av = _make_entry(entry_id=ENTRY_A, disabled_by="user")
+    ute = _make_entry(entry_id=ENTRY_B)
+    hass = _make_hass([av, ute])
+    avmelding = MagicMock()
+    init_module.ha_event.async_track_time_change.return_value = avmelding
+    init_module._start_satsvakt(hass)
+
+    asyncio.run(init_module.async_unload_entry(hass, ute))
+
+    avmelding.assert_called_once_with()
+    assert init_module._SATSVAKT_UNSUB not in hass.data[init_module.DOMAIN]
+
+
+def test_vakten_staar_naar_et_paaslaatt_anlegg_er_igjen(init_module):
+    """Motsatt vei: ett påslått anlegg igjen holder vakten i live."""
+    paa = _make_entry(entry_id=ENTRY_A)
+    ute = _make_entry(entry_id=ENTRY_B)
+    hass = _make_hass([paa, ute])
+    avmelding = MagicMock()
+    init_module.ha_event.async_track_time_change.return_value = avmelding
+    init_module._start_satsvakt(hass)
+
+    asyncio.run(init_module.async_unload_entry(hass, ute))
+
+    avmelding.assert_not_called()
+    assert init_module._SATSVAKT_UNSUB in hass.data[init_module.DOMAIN]
+
+
+def test_vakten_meldes_av_naar_bare_utlastede_anlegg_staar_igjen(init_module):
+    """Et anlegg som er lastet ut uten å være fjernet regner heller ingenting."""
+    utlastet = _make_entry(entry_id=ENTRY_A)
+    utlastet.state = _tilstand(init_module, "NOT_LOADED")
+    ute = _make_entry(entry_id=ENTRY_B)
+    hass = _make_hass([utlastet, ute])
+    avmelding = MagicMock()
+    init_module.ha_event.async_track_time_change.return_value = avmelding
+    init_module._start_satsvakt(hass)
+
+    asyncio.run(init_module.async_unload_entry(hass, ute))
+
+    avmelding.assert_called_once_with()

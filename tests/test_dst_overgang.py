@@ -463,3 +463,31 @@ class TestLagretTidspunktVisesLokalt:
 
         plassholdere = self._plassholdere(coord_module, coord)
         assert plassholdere["forrige"] == "29.03.2026 kl. 01:30"
+
+    def test_sist_energi_okning_leses_tilbake_i_lokal_tid(self, coord_module):
+        """Samme feil, annen utgang: attributtet `sist_energi_okning`.
+
+        Uten `last_update` i filen er det ingen nedetid å skyve klokken med, så
+        stempelet fra lagringen står urørt hele veien ut til attributtet. Er det
+        ikke regnet om, viser dashbordet og diagnostikken 08:00 der brukeren så
+        telleren tikke 10:00.
+        """
+        benk = Sensorbenk()
+        na = _real_datetime(2026, 6, 15, 12, 0, tzinfo=OSLO)
+        coord_module.dt_util.now.return_value = na
+        coord_module.dt_util.as_local = lambda tidspunkt: tidspunkt.astimezone(OSLO)
+        coord = _lag_coordinator(coord_module, benk)
+        coord._store.async_load.return_value = {
+            "last_energy_increase": "2026-06-15T08:00:00+00:00",
+            "energi_baseline": {
+                "schema_version": 2,
+                "source_identity": "maaler-1",
+                "entity_id": "sensor.tpi",
+                "value_kwh": 1000.0,
+                "observed_at": "2026-06-15T08:00:00+00:00",
+            },
+        }
+
+        resultat = _poll(coord_module, coord, na)
+
+        assert resultat["sist_energi_okning"] == "2026-06-15T10:00:00+02:00"

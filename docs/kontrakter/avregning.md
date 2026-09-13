@@ -227,11 +227,18 @@ stå her, for uten dem lander to utførere ulikt:
   avregning, er svaret en energisensor.
 - **Vindu lengre enn `MAX_ELAPSED_HOURS` bokføres ikke.** Er pollen forsinket
   eller HA nede, holder ikke antakelsen om konstant effekt gjennom vinduet, og
-  energien forkastes framfor å gjettes. Det er dagens oppførsel (kappingen av
-  `elapsed_hours` i coordinatoren), og intervallene i gapet får ingen energi:
+  energien forkastes framfor å gjettes. Intervallene i gapet får ingen energi:
   de er «uten data» etter C4, ikke null forbruk. Et døgn nede koster en
   effektbruker døgnet. Det er prisen for ikke å ha en teller, og den skal stå
   her framfor å oppdages i en faktura.
+
+  Dette er ikke det coordinatoren gjorde før L3a, og setningen som sto her sa
+  at det var. Den gamle koden kappet `elapsed_hours` til `MAX_ELAPSED_HOURS`
+  (seks minutter) og bokførte seks minutters forbruk uansett hvor langt gapet
+  var. Regelen over er strengere, og den er den som gjelder. Merk hva den
+  koster: med seks minutters grense mot et pollintervall på ett minutt taper en
+  effektbruker hvert vindu der pollen har glidd mer enn fem minutter. En
+  teller merker ikke gapet i det hele tatt, for deltaet dekker det.
 - **Er energisensoren konfigurert, gjelder telleren.** Den syntetiske stien er
   ikke en reserve som slår inn når telleren er `Utilgjengelig` en stund: når
   telleren kommer tilbake, dekker deltaet hele fraværet, og en syntetisk
@@ -350,7 +357,7 @@ Randtilfeller:
   null og kan ikke fordeles. Avlesningen er `avvist`, ikke bokført.
 - Negativt delta (målerreset eller kildebytte): ikke bokført, deltaet settes
   til 0 og baseline flyttes. Kilde og hendelse føres i diagnostikken.
-- Delta over `MAX_ENERGY_DELTA_KWH`: avvist som i dag, ført som
+- Delta over `MAX_ENERGY_DELTA_KWH`: avvist, ført som
   `avregning_avvist_kwh`, og **baselinen flyttes til den nye tellerstanden**,
   akkurat som ved negativt delta. Uten den flyttingen ville hver senere
   avlesning også ligget over grensen, og boken ville stått stille for godt etter
@@ -358,6 +365,12 @@ Randtilfeller:
   kWh på telleren, får altså de 150 avvist og synlige, og regner videre fra den
   nye standen. Det som går tapt er forbruket i vinduet, og det er tallet som
   står i `avregning_avvist_kwh`.
+
+  «Over» er strengt: et delta på nøyaktig `MAX_ENERGY_DELTA_KWH` bokføres. Den
+  gamle koden hadde `0 < delta < MAX` og avviste grensen selv. Forskjellen er
+  ett enkelt delta på nøyaktig 100,000 kWh og har ingen praktisk betydning,
+  men den skal stå her framfor å være en stille uenighet mellom kontrakt og
+  kode.
 
 ### C2 Invariantene
 
@@ -456,7 +469,11 @@ Ved omstart gjenopptas avregningen fra den persisterte boken, ikke fra null:
   leses fra Store og er baseline for neste delta. Er kilden en annen enn den
   lagrede, er deltaet 0 og baseline flyttes (K1).
 - Åpne intervaller leses tilbake med sin bokførte kWh og lukkes når tiden
-  passerer `slutt_utc`, ikke ved første poll.
+  passerer `slutt_utc`, ikke ved første poll. Det er de åpne og de nærmeste
+  timene bak dem som lagres, ikke hele måneden: lagringen skjer ved hver poll,
+  og en måned med prisruter er et par hundre kilobyte å skrive hvert minutt.
+  Vinduet er tre timer (`LAGRINGSVINDU`). Det som faller utenfor er ferdig
+  avregnet, og summen av det ligger i månedsfeltene coordinatoren bærer.
 - Prisrutene som alt er godkjent i et åpent intervall ligger i boken og leses
   tilbake med det. Uten det ville en omstart midt i timen gjort et `komplett`
   intervall til `delvis_pris`, og C2.7 ville brutt.
@@ -616,10 +633,22 @@ Felt som beholdes med samme navn, men får rettet betydning:
 | `monthly_accumulated_cost_strom_kr` | Kroner fra intervallenes egen pris, ikke fra prisen ved polltid (L3b). |
 | `monthly_accumulated_cost_energiledd_kr` | Som over, med satsen som gjaldt i intervallet (L3b). |
 | `monthly_accumulated_cost_kapasitetsledd_kr` | Uendret. Fastledd akkumuleres tidsbasert, ikke over energiintervaller. |
-| `is_day_rate` | Uendret: tariffen akkurat nå, for visning. Avregningen bruker intervallets egen `tariff`. |
+| `is_day_rate` | Uendret: tariffen akkurat nå, for visning. Avregningen bruker intervallets egen `tariff`. Begge leser samme `Tariffregel`; kopien i coordinatoren er borte. |
 
 Felt som forsvinner: ingen i denne omgang. L3b og L3c avgjør hva som kan
 pensjoneres når kronene flyttes inn i boken.
+
+`current_hour_energy` står fortsatt i veggklokke-bøtta si etter L3a, mot det
+tabellen over sier. Den mater `_daily_max_power` og dermed fastleddet, og å
+flytte den til boken er en egen endring med egne fasittall. Den hører til L3b,
+sammen med resten av fastleddet.
+
+## Status
+
+L3a er inne (coordinatoren bokfører gjennom `avregning.py`). A, B, C og D
+gjelder for energi, tariff, pris, kvalitet og Norgespris-linjen.
+`monthly_cost_kr`, `daily_cost_kr` og `monthly_accumulated_cost_strom_kr`
+regnes fortsatt med prisen som sto ved polltid; de er L3bs.
 
 ## Hva denne kontrakten pensjonerer
 

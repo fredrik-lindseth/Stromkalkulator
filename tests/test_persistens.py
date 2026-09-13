@@ -8,12 +8,15 @@ from __future__ import annotations
 
 import asyncio
 import importlib
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
+from zoneinfo import ZoneInfo
 
 import pytest
 
 from tests.conftest import _make_entry
+
+OSLO = ZoneInfo("Europe/Oslo")
 
 
 def _reload_coord():
@@ -1101,3 +1104,208 @@ class TestCorruptStorageData:
 
         assert isinstance(coordinator._daily_max_power, dict)
         assert isinstance(coordinator._monthly_consumption, coord.ConsumptionData)
+
+
+class TestAvregningsbokPersistens:
+    """Store v3: boken skrives, leses og migreres fra v2 (avregningskontrakten D).
+
+    Kollisjonen dette forebygger: `skjema_versjon` er én teller for hele
+    Store-filen. K1 satte den til 2 for baselinen sin, og boken løfter den til
+    3. To skrivere av samme nøkkel med hvert sitt tall ville gjort filen
+    ulesbar for begge.
+    """
+
+    @staticmethod
+    def _store(stored_data, saved_holder=None):
+        def make_store(hass, version, key):
+            store = MagicMock()
+            store.async_load = AsyncMock(return_value=stored_data)
+
+            async def save(data):
+                if saved_holder is not None:
+                    saved_holder.clear()
+                    saved_holder.update(data)
+
+            store.async_save = AsyncMock(side_effect=save)
+            store.async_remove = AsyncMock()
+            return store
+
+        return make_store
+
+    @staticmethod
+    def _v2_fil(coord, *, maned="2026-06"):
+        """En lagringsfil slik 1.16-serien etterlater den (K1, skjema 2)."""
+        now = coord.dt_util.now()
+        return {
+            "skjema_versjon": 2,
+            "daily_max_power": {"2026-06-14": {"kw": 7.5, "hour": 17}},
+            "weekly_max_power": {},
+            "monthly_consumption": {"dag": 410.0, "natt": 260.0},
+            "current_month": maned,
+            "previous_month_consumption": {"dag": 0.0, "natt": 0.0},
+            "monthly_norgespris_compensation": -123.45,
+            "last_update": (now - timedelta(minutes=1)).isoformat(),
+            "energi_baseline": {
+                "schema_version": 2,
+                "source_identity": "maaler-1",
+                "entity_id": "sensor.tpi",
+                "value_kwh": 5000.0,
+                "observed_at": (now - timedelta(minutes=1)).astimezone(UTC).isoformat(),
+            },
+        }
+
+    def test_v2_fil_beholder_maanedsdata_og_baseline(self):
+        """Brukeren på 1.16.0 skal komme uskadd gjennom."""
+        coord = _reload_coord()
+        coord.Store = MagicMock(side_effect=self._store(self._v2_fil(coord)))
+
+        coordinator = coord.NettleieCoordinator(MagicMock(), _make_entry(energy_sensor="sensor.tpi"))
+        asyncio.run(coordinator._load_stored_data())
+
+        assert coordinator._monthly_consumption == coord.ConsumptionData(dag=410.0, natt=260.0)
+        assert coordinator._monthly_norgespris_compensation == -123.45
+        assert coordinator._baseline is not None
+        assert coordinator._baseline.value_kwh == 5000.0
+        # Baselinen er bokens også: uten den ville første avlesning etter
+        # oppgraderingen blitt ny baseline, og en times forbruk forsvunnet.
+        assert coordinator._bok.sist_observert is not None
+        assert coordinator._bok.sist_observert.value_kwh == 5000.0
+
+    def test_v2_fil_merker_maaneden_ufullstendig(self):
+        """Månedssummene fra v2 kan ikke gjøres om til intervallhistorikk."""
+        coord = _reload_coord()
+        coord.Store = MagicMock(side_effect=self._store(self._v2_fil(coord)))
+
+        coordinator = coord.NettleieCoordinator(MagicMock(), _make_entry(energy_sensor="sensor.tpi"))
+        asyncio.run(coordinator._load_stored_data())
+
+        assert coordinator._bok.ufullstendig is True
+        assert coordinator._bok.intervaller() == []
+        # Månedssummen fra v2 ligger som åpningsbalanse utenfor boken.
+        assert coordinator._aapningsbalanse() == coord.ConsumptionData(dag=410.0, natt=260.0)
+
+    def test_ufullstendig_forsvinner_ved_forste_maanedsskifte(self):
+        """Flagget gjelder overgangsmåneden, ikke for alltid (kontrakt D)."""
+        coord = _reload_coord()
+        coord.Store = MagicMock(side_effect=self._store(self._v2_fil(coord)))
+        coordinator = coord.NettleieCoordinator(MagicMock(), _make_entry(energy_sensor="sensor.tpi"))
+        asyncio.run(coordinator._load_stored_data())
+        assert coordinator._bok.ufullstendig is True
+
+        from stromkalkulator.avregning import Avlesning
+
+        naa = coord.dt_util.now().replace(tzinfo=OSLO)
+        coordinator._bok.bokfor(
+            Avlesning("maaler-1", 5001.0, naa.replace(month=6, day=30, hour=23, minute=30))
+        )
+        coordinator._bok.bokfor(Avlesning("maaler-1", 5003.0, naa.replace(month=7, day=1, hour=0, minute=30)))
+
+        assert coordinator._bok.ufullstendig is False
+
+    def test_v3_fil_skriver_en_skjemaversjon_for_hele_filen(self):
+        """`skjema_versjon` er 3 på toppnivå, og v2-feltene står ved siden av."""
+        coord = _reload_coord()
+        lagret: dict = {}
+        coord.Store = MagicMock(side_effect=self._store(self._v2_fil(coord), lagret))
+        coordinator = coord.NettleieCoordinator(MagicMock(), _make_entry(energy_sensor="sensor.tpi"))
+        asyncio.run(coordinator._load_stored_data())
+        asyncio.run(coordinator._save_stored_data())
+
+        assert lagret["skjema_versjon"] == 3
+        # v2-feltene skrives uendret, så en nedgradering ikke mister måneden.
+        assert lagret["energi_baseline"]["schema_version"] == 2
+        assert lagret["monthly_consumption"] == {"dag": 410.0, "natt": 260.0}
+        # Og bokens egne nøkler ligger på toppnivå, ikke nestet.
+        assert lagret["aktiv_maned"] is None
+        assert lagret["ufullstendig"] is True
+
+    def test_apent_intervall_og_prisruter_overlever_omstart(self):
+        """C5: en omstart midt i timen skal ikke gjøre komplett til delvis."""
+        coord = _reload_coord()
+        lagret: dict = {}
+        coord.Store = MagicMock(side_effect=self._store(None, lagret))
+        coordinator = coord.NettleieCoordinator(MagicMock(), _make_entry(energy_sensor="sensor.tpi"))
+
+        from stromkalkulator.avregning import Avlesning
+
+        start = datetime(2026, 6, 15, 10, 0, tzinfo=OSLO)
+        for kvarter in range(4):
+            coordinator._bok.registrer_prisprove(
+                start + timedelta(minutes=15 * kvarter, seconds=120), 1.0 + kvarter * 0.1
+            )
+        coordinator._bok.bokfor(Avlesning("maaler-1", 100.0, start))
+        coordinator._bok.bokfor(Avlesning("maaler-1", 103.0, start + timedelta(minutes=59)))
+        coordinator._last_update = coord.dt_util.now()
+        asyncio.run(coordinator._save_stored_data())
+
+        coord.Store = MagicMock(side_effect=self._store(lagret))
+        gjenopptatt = coord.NettleieCoordinator(MagicMock(), _make_entry(energy_sensor="sensor.tpi"))
+        asyncio.run(gjenopptatt._load_stored_data())
+
+        intervall = gjenopptatt._bok.intervall(start.astimezone(UTC))
+        assert intervall is not None
+        assert intervall.kwh == pytest.approx(3.0)
+        assert intervall.pris is not None
+        assert intervall.pris.pris_prover == 4
+        assert intervall.nok_per_kwh_eks_mva == pytest.approx(1.15)
+
+    def test_lagringen_tar_bare_med_vinduet_som_kan_endre_seg(self):
+        """En hel måned med prisruter er hundrevis av kilobyte per poll.
+
+        Lagringen skal bære det åpne intervallet og timene rett før, ikke hele
+        måneden. Det som faller utenfor er ferdig avregnet, og summen av det
+        ligger i månedsfeltene.
+        """
+        coord = _reload_coord()
+        lagret: dict = {}
+        coord.Store = MagicMock(side_effect=self._store(None, lagret))
+        coordinator = coord.NettleieCoordinator(MagicMock(), _make_entry(energy_sensor="sensor.tpi"))
+
+        from stromkalkulator.avregning import Avlesning
+
+        start = datetime(2026, 6, 1, 0, 0, tzinfo=OSLO)
+        teller = 100.0
+        for time in range(48):
+            coordinator._bok.registrer_prisprove(start + timedelta(hours=time, minutes=2), 1.0)
+            teller += 2.0
+            coordinator._bok.bokfor(Avlesning("maaler-1", teller, start + timedelta(hours=time + 1)))
+        coord.dt_util.now.return_value = start + timedelta(hours=48)
+        asyncio.run(coordinator._save_stored_data())
+
+        assert len(coordinator._bok.intervaller()) >= 40
+        assert len(lagret["intervaller"]) <= 4
+        assert len(lagret["pris"]["ruter"]) <= 4
+
+    def test_debugloggen_bærer_ikke_kildeidentiteten(self, caplog):
+        """§10.1: `source_identity` er målepunkt-ID hos AMS-integrasjoner.
+
+        Home Assistant har en knapp som slår på DEBUG og laster ned loggen for
+        innliming i et offentlig issue. Entity-id-en skal stå, for uten den vet
+        ikke brukeren hvilken sensor linjen gjelder.
+        """
+        import logging
+
+        coord = _reload_coord()
+        coord.Store = MagicMock(side_effect=self._store(None))
+        coordinator = coord.NettleieCoordinator(MagicMock(), _make_entry(energy_sensor="sensor.tpi"))
+        coordinator._baseline = TestEnergiBaselinePersistens._baseline(coord, kilde="707057500012345678")
+
+        with caplog.at_level(logging.DEBUG, logger="stromkalkulator.coordinator"):
+            asyncio.run(coordinator._save_stored_data())
+
+        assert "707057500012345678" not in caplog.text
+        assert "sensor.tpi" in caplog.text
+        assert "<redigert>" in caplog.text
+
+    def test_uten_debuglogging_bygges_ingen_kopi(self, caplog):
+        """Motsatt retning: redigeringen skal ikke koste noe når DEBUG er av."""
+        import logging
+
+        coord = _reload_coord()
+        coord.Store = MagicMock(side_effect=self._store(None))
+        coordinator = coord.NettleieCoordinator(MagicMock(), _make_entry(energy_sensor="sensor.tpi"))
+
+        with caplog.at_level(logging.INFO, logger="stromkalkulator.coordinator"):
+            asyncio.run(coordinator._save_stored_data())
+
+        assert "Lagret" not in caplog.text

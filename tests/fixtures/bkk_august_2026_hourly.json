@@ -8,13 +8,13 @@
   "kilde_forbruk": "sensor.pow_u_ams_tpi (Akkumulert meter, delta per time, fallback-kjede)",
   "kilde_spotpris": "sensor.nord_pool_no5_current_price (eks. mva, multipliser med 1.25 for inkl. mva)",
   "kilde_p_max": "sensor.pow_u_ams_p (Active import i watt, max per time, fallback-kjede)",
-  "tpi_start_kwh": null,
+  "tpi_start_kwh": 134220.946,
   "tpi_end_kwh": 135184.533,
   "spothull": {
    "fylt_fra_nordpool": {
     "kilde": "nordpool_nok_kvarter_no5.json",
-    "dato": "2026-09-12",
-    "fylte_timer": 50,
+    "dato": "2026-09-13",
+    "fylte_timer": 51,
     "avregning": "snitt av fire publiserte Final-kvarterpriser",
     "randtimer": {
      "2026-08-17T00:00:00+02:00": {
@@ -30,9 +30,15 @@
       "begrunnelse": "randtime_forrige_kvarter"
      }
     },
-    "overstyrte_timer": {}
+    "overstyrte_timer": {
+     "2026-08-31T00:00:00+02:00": {
+      "recorder_nok_kwh": 1.35957,
+      "publisert_nok_kwh": 1.364737,
+      "begrunnelse": "Båret verdi, avgjort for hånd av Fredrik 13.09.2026 (stromkalkulator-3u7fttz). Timen ligger 0,52 øre fra sin egen publiserte pris, men 0,01 øre fra 23:45-kvarteret kvelden før, altså femti ganger nærmere gårsdagen enn sin egen time. De to andre randtimene i august viser samme mønster (4,2 og 7,7 øre fra egen time, 0 og 0,35 fra kvarteret), og 31.08 er den tetteste av dem mot kvelden før. Automatikken tar den ikke fordi hele døgnet er hullet, så kurs-årgangen ikke lar seg måle og krav 2 i randtimeregelen ikke kan prøves. De rå avstandene er entydige nok, og kostnaden ved å ta feil er under ett øre."
+     }
+    }
    },
-   "aarsak": "sensor.nord_pool_no5_current_price hadde ingen måling 17.08 kl. 00-16, 23.08 kl. 00-09 og 31.08 kl. 00-23; time 00 har en statistikkrad, men ikke en måling. Utfallene startet presis ved døgnskiftet: sensoren gikk unknown kl. 00:00:00 og unavailable få sekunder senere. HAs statistikk-kompilator snitter bare over numeriske states, så staten fra 23:45-kvarteret kvelden før ble båret gjennom hele time 00. Time 00 er derfor ikke en måling, men en del av hullet, og fylles fra arkivet som randtime når regelen kan prøves. 17.08 og 23.08 kl. 00 er fylt slik. 31.08 kl. 00 står med recorder-verdien: hele det døgnet er hullet, så kurs-årgangen HA lagret prisene med kan ikke måles, og da er ikke avstanden til den publiserte timen etterprøvbar. Timen venter på en avgjørelse med --overstyr framfor å bære et proveniensmerke vi ikke kan stå for."
+   "aarsak": "sensor.nord_pool_no5_current_price hadde ingen måling 17.08 kl. 00-16, 23.08 kl. 00-09 og 31.08 kl. 00-23; time 00 har en statistikkrad, men ikke en måling. Utfallene startet presis ved døgnskiftet: sensoren gikk unknown kl. 00:00:00 og unavailable få sekunder senere. HAs statistikk-kompilator snitter bare over numeriske states, så staten fra 23:45-kvarteret kvelden før ble båret gjennom hele time 00. Time 00 er derfor ikke en måling, men en del av hullet, og fylles fra arkivet som randtime når regelen kan prøves. 17.08 og 23.08 kl. 00 er fylt slik. 31.08 kl. 00 tok ikke automatikken: hele det døgnet er hullet, så kurs-årgangen HA lagret prisene med kan ikke måles, og da er ikke avstanden til den publiserte timen etterprøvbar. Timen er avgjort for hånd og ført under overstyrte_timer, ikke som randtime, siden regelen aldri kjente den igjen."
   },
   "datahull": {
    "timer_uten_maaling": 176,
@@ -40,1066 +46,1255 @@
    "til_og_med": "2026-08-08T07:00:00+02:00",
    "aarsak": "sensor.pow_u_ams_tpi og sensor.pow_u_ams_p var nede fra 29.07.2026 kl. 11 til 08.08.2026 kl. 08, altså hele starten av fakturaperioden. Samme utfall som ga juli-hullet. kwh og p_max_w er null for disse timene.",
    "spotpris_er_komplett": true,
-   "loses_ved": "Elhub-CSV for august (elhub.no, krever BankID) lagt i _private/Måleverdier/elhub_august.csv, deretter scripts/research/fyll_datahull_fra_elhub.py."
+   "fylt_fra_elhub": {
+    "kilde": "elhub_august.csv",
+    "dato": "2026-09-13",
+    "fylte_timer": 176,
+    "p_max_w": "forblir null for de fylte timene; Elhub har ikke effektdata",
+    "overstyrte_timer": {
+     "2026-08-31T23:00:00+02:00": {
+      "han_kwh": 0.0,
+      "elhub_kwh": 1.378,
+      "begrunnelse": "HAN målte 0,0 kWh med p_max 3293 W; tpi-måleren frøs i månedens siste time, bekreftet av at totalsummen treffer fakturaen først med Elhub-verdien"
+     }
+    }
+   }
   },
-  "tpi_start_kwh_kommentar": "null fordi HAN-leseren var nede ved periodestart. Utled som tpi(08.08 kl. 08) minus Elhub-forbruket 01.08-08.08 når CSV-en finnes."
+  "tpi_start_kwh_kommentar": "Utledet, ikke avlest: HAN-leseren var nede ved periodestart. tpi(08.08 kl. 08) = tpi_end 135184.533 minus HAN-deltaene 08.08 kl. 08 til månedsslutt (734.957) = 134449.576. Minus Elhub-forbruket 01.08 kl. 00 til 08.08 kl. 07 (228.630) gir 134220.946. Kontroll: juli-fixturens tpi_start 133282.180 pluss juli-forbruket 938.773 gir 134220.953, altså 7 Wh unna.",
+  "tpi_end_kwh_kommentar": "Avlest verdi, og den ligger 1.378 kWh under den ekte tellerstanden fordi tpi frøs i månedens siste time (se datahull.fylt_fra_elhub.overstyrte_timer). Feltet leses ikke av noen test; summen av timene er fasiten."
  },
  "hours": [
   {
    "start_local": "2026-08-01T00:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.099,
    "spot_nok_kwh_eks_mva": 1.341223,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-01T01:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.505,
    "spot_nok_kwh_eks_mva": 1.32267,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-01T02:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.559,
    "spot_nok_kwh_eks_mva": 1.31758,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-01T03:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.264,
    "spot_nok_kwh_eks_mva": 1.314213,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-01T04:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.602,
    "spot_nok_kwh_eks_mva": 1.31205,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-01T05:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.48,
    "spot_nok_kwh_eks_mva": 1.31427,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-01T06:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.569,
    "spot_nok_kwh_eks_mva": 1.302855,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-01T07:00:00+02:00",
-   "kwh": null,
+   "kwh": 2.592,
    "spot_nok_kwh_eks_mva": 1.373547,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-01T08:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.82,
    "spot_nok_kwh_eks_mva": 1.389122,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-01T09:00:00+02:00",
-   "kwh": null,
+   "kwh": 2.579,
    "spot_nok_kwh_eks_mva": 1.329266,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-01T10:00:00+02:00",
-   "kwh": null,
+   "kwh": 3.309,
    "spot_nok_kwh_eks_mva": 1.108998,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-01T11:00:00+02:00",
-   "kwh": null,
+   "kwh": 3.214,
    "spot_nok_kwh_eks_mva": 0.623737,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-01T12:00:00+02:00",
-   "kwh": null,
+   "kwh": 2.742,
    "spot_nok_kwh_eks_mva": 0.25831,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-01T13:00:00+02:00",
-   "kwh": null,
+   "kwh": 2.148,
    "spot_nok_kwh_eks_mva": 0.09483,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-01T14:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.712,
    "spot_nok_kwh_eks_mva": 0.121029,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-01T15:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.634,
    "spot_nok_kwh_eks_mva": 0.330242,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-01T16:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.58,
    "spot_nok_kwh_eks_mva": 0.733467,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-01T17:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.49,
    "spot_nok_kwh_eks_mva": 1.212829,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-01T18:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.583,
    "spot_nok_kwh_eks_mva": 1.392596,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-01T19:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.568,
    "spot_nok_kwh_eks_mva": 1.39594,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-01T20:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.777,
    "spot_nok_kwh_eks_mva": 1.40426,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-01T21:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.223,
    "spot_nok_kwh_eks_mva": 1.40078,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-01T22:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.558,
    "spot_nok_kwh_eks_mva": 1.397005,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-01T23:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.538,
    "spot_nok_kwh_eks_mva": 1.39446,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-02T00:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.609,
    "spot_nok_kwh_eks_mva": 1.38159,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-02T01:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.203,
    "spot_nok_kwh_eks_mva": 1.385853,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-02T02:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.445,
    "spot_nok_kwh_eks_mva": 1.392872,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-02T03:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.635,
    "spot_nok_kwh_eks_mva": 1.388503,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-02T04:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.516,
    "spot_nok_kwh_eks_mva": 1.387135,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-02T05:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.107,
    "spot_nok_kwh_eks_mva": 1.375635,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-02T06:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.792,
    "spot_nok_kwh_eks_mva": 1.388857,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-02T07:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.662,
    "spot_nok_kwh_eks_mva": 1.400053,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-02T08:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.733,
    "spot_nok_kwh_eks_mva": 1.320125,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-02T09:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.436,
    "spot_nok_kwh_eks_mva": 0.700097,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-02T10:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.771,
    "spot_nok_kwh_eks_mva": 0.103861,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-02T11:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.745,
    "spot_nok_kwh_eks_mva": 0.09919,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-02T12:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.69,
    "spot_nok_kwh_eks_mva": 0.097521,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-02T13:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.196,
    "spot_nok_kwh_eks_mva": 0.160192,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-02T14:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.968,
    "spot_nok_kwh_eks_mva": 0.093953,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-02T15:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.743,
    "spot_nok_kwh_eks_mva": 0.152482,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-02T16:00:00+02:00",
-   "kwh": null,
+   "kwh": 4.299,
    "spot_nok_kwh_eks_mva": 0.666287,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-02T17:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.777,
    "spot_nok_kwh_eks_mva": 1.076684,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-02T18:00:00+02:00",
-   "kwh": null,
+   "kwh": 2.59,
    "spot_nok_kwh_eks_mva": 1.39727,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-02T19:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.933,
    "spot_nok_kwh_eks_mva": 1.418027,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-02T20:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.905,
    "spot_nok_kwh_eks_mva": 1.40754,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-02T21:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.655,
    "spot_nok_kwh_eks_mva": 1.400873,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-02T22:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.834,
    "spot_nok_kwh_eks_mva": 1.401475,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-02T23:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.51,
    "spot_nok_kwh_eks_mva": 1.400193,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-03T00:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.565,
    "spot_nok_kwh_eks_mva": 1.357415,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-03T01:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.496,
    "spot_nok_kwh_eks_mva": 1.378967,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-03T02:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.232,
    "spot_nok_kwh_eks_mva": 1.366565,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-03T03:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.471,
    "spot_nok_kwh_eks_mva": 1.339765,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-03T04:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.547,
    "spot_nok_kwh_eks_mva": 1.360472,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-03T05:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.59,
    "spot_nok_kwh_eks_mva": 1.332473,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-03T06:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.235,
    "spot_nok_kwh_eks_mva": 1.363696,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-03T07:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.726,
    "spot_nok_kwh_eks_mva": 1.391586,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-03T08:00:00+02:00",
-   "kwh": null,
+   "kwh": 3.185,
    "spot_nok_kwh_eks_mva": 1.41243,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-03T09:00:00+02:00",
-   "kwh": null,
+   "kwh": 2.217,
    "spot_nok_kwh_eks_mva": 1.417517,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-03T10:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.472,
    "spot_nok_kwh_eks_mva": 1.264877,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-03T11:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.287,
    "spot_nok_kwh_eks_mva": 0.839741,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-03T12:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.839,
    "spot_nok_kwh_eks_mva": 0.698993,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-03T13:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.933,
    "spot_nok_kwh_eks_mva": 1.107244,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-03T14:00:00+02:00",
-   "kwh": null,
+   "kwh": 2.64,
    "spot_nok_kwh_eks_mva": 1.043715,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-03T15:00:00+02:00",
-   "kwh": null,
+   "kwh": 2.601,
    "spot_nok_kwh_eks_mva": 0.965259,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-03T16:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.958,
    "spot_nok_kwh_eks_mva": 1.207202,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-03T17:00:00+02:00",
-   "kwh": null,
+   "kwh": 2.422,
    "spot_nok_kwh_eks_mva": 1.400482,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-03T18:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.699,
    "spot_nok_kwh_eks_mva": 1.416507,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-03T19:00:00+02:00",
-   "kwh": null,
+   "kwh": 2.543,
    "spot_nok_kwh_eks_mva": 1.454857,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-03T20:00:00+02:00",
-   "kwh": null,
+   "kwh": 2.163,
    "spot_nok_kwh_eks_mva": 1.467063,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-03T21:00:00+02:00",
-   "kwh": null,
+   "kwh": 3.341,
    "spot_nok_kwh_eks_mva": 1.457058,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-03T22:00:00+02:00",
-   "kwh": null,
+   "kwh": 2.257,
    "spot_nok_kwh_eks_mva": 1.428798,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-03T23:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.235,
    "spot_nok_kwh_eks_mva": 1.421075,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-04T00:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.163,
    "spot_nok_kwh_eks_mva": 1.415113,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-04T01:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.476,
    "spot_nok_kwh_eks_mva": 1.41019,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-04T02:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.576,
    "spot_nok_kwh_eks_mva": 1.403508,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-04T03:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.418,
    "spot_nok_kwh_eks_mva": 1.39727,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-04T04:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.166,
    "spot_nok_kwh_eks_mva": 1.390346,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-04T05:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.657,
    "spot_nok_kwh_eks_mva": 1.40065,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-04T06:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.516,
    "spot_nok_kwh_eks_mva": 1.416955,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-04T07:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.666,
    "spot_nok_kwh_eks_mva": 1.469944,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-04T08:00:00+02:00",
-   "kwh": null,
+   "kwh": 3.444,
    "spot_nok_kwh_eks_mva": 1.495813,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-04T09:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.955,
    "spot_nok_kwh_eks_mva": 1.46156,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-04T10:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.816,
    "spot_nok_kwh_eks_mva": 1.39815,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-04T11:00:00+02:00",
-   "kwh": null,
+   "kwh": 2.188,
    "spot_nok_kwh_eks_mva": 1.192218,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-04T12:00:00+02:00",
-   "kwh": null,
+   "kwh": 2.013,
    "spot_nok_kwh_eks_mva": 1.01938,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-04T13:00:00+02:00",
-   "kwh": null,
+   "kwh": 2.016,
    "spot_nok_kwh_eks_mva": 0.959293,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-04T14:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.122,
    "spot_nok_kwh_eks_mva": 0.982989,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-04T15:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.09,
    "spot_nok_kwh_eks_mva": 1.301202,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-04T16:00:00+02:00",
-   "kwh": null,
+   "kwh": 2.484,
    "spot_nok_kwh_eks_mva": 1.397101,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-04T17:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.616,
    "spot_nok_kwh_eks_mva": 1.471237,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-04T18:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.836,
    "spot_nok_kwh_eks_mva": 1.462245,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-04T19:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.628,
    "spot_nok_kwh_eks_mva": 1.51024,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-04T20:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.306,
    "spot_nok_kwh_eks_mva": 1.47242,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-04T21:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.713,
    "spot_nok_kwh_eks_mva": 1.458895,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-04T22:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.358,
    "spot_nok_kwh_eks_mva": 1.44342,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-04T23:00:00+02:00",
-   "kwh": null,
+   "kwh": 2.604,
    "spot_nok_kwh_eks_mva": 1.42778,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-05T00:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.579,
    "spot_nok_kwh_eks_mva": 1.385965,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-05T01:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.844,
    "spot_nok_kwh_eks_mva": 1.363545,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-05T02:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.58,
    "spot_nok_kwh_eks_mva": 1.355345,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-05T03:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.129,
    "spot_nok_kwh_eks_mva": 1.355015,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-05T04:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.44,
    "spot_nok_kwh_eks_mva": 1.340228,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-05T05:00:00+02:00",
-   "kwh": null,
+   "kwh": 2.058,
    "spot_nok_kwh_eks_mva": 1.352082,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-05T06:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.824,
    "spot_nok_kwh_eks_mva": 1.362942,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-05T07:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.729,
    "spot_nok_kwh_eks_mva": 1.388787,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-05T08:00:00+02:00",
-   "kwh": null,
+   "kwh": 3.362,
    "spot_nok_kwh_eks_mva": 1.37883,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-05T09:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.947,
    "spot_nok_kwh_eks_mva": 1.24547,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-05T10:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.066,
    "spot_nok_kwh_eks_mva": 0.982423,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-05T11:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.044,
    "spot_nok_kwh_eks_mva": 1.010567,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-05T12:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.472,
    "spot_nok_kwh_eks_mva": 0.931635,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-05T13:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.749,
    "spot_nok_kwh_eks_mva": 0.927028,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-05T14:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.862,
    "spot_nok_kwh_eks_mva": 0.878933,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-05T15:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.615,
    "spot_nok_kwh_eks_mva": 0.858,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-05T16:00:00+02:00",
-   "kwh": null,
+   "kwh": 2.526,
    "spot_nok_kwh_eks_mva": 0.843078,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-05T17:00:00+02:00",
-   "kwh": null,
+   "kwh": 4.111,
    "spot_nok_kwh_eks_mva": 1.017939,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-05T18:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.722,
    "spot_nok_kwh_eks_mva": 1.309472,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-05T19:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.761,
    "spot_nok_kwh_eks_mva": 1.39389,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-05T20:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.273,
    "spot_nok_kwh_eks_mva": 1.39932,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-05T21:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.328,
    "spot_nok_kwh_eks_mva": 1.396303,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-05T22:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.747,
    "spot_nok_kwh_eks_mva": 1.392958,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-05T23:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.346,
    "spot_nok_kwh_eks_mva": 1.385828,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-06T00:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.526,
    "spot_nok_kwh_eks_mva": 1.37768,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-06T01:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.013,
    "spot_nok_kwh_eks_mva": 1.368313,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-06T02:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.52,
    "spot_nok_kwh_eks_mva": 1.355673,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-06T03:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.533,
    "spot_nok_kwh_eks_mva": 1.288796,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-06T04:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.54,
    "spot_nok_kwh_eks_mva": 1.23706,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-06T05:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.106,
    "spot_nok_kwh_eks_mva": 1.281212,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-06T06:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.561,
    "spot_nok_kwh_eks_mva": 1.348361,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-06T07:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.603,
    "spot_nok_kwh_eks_mva": 1.369355,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-06T08:00:00+02:00",
-   "kwh": null,
+   "kwh": 3.05,
    "spot_nok_kwh_eks_mva": 1.329084,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-06T09:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.086,
    "spot_nok_kwh_eks_mva": 1.20741,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-06T10:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.648,
    "spot_nok_kwh_eks_mva": 1.11212,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-06T11:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.141,
    "spot_nok_kwh_eks_mva": 1.232685,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-06T12:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.155,
    "spot_nok_kwh_eks_mva": 1.274478,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-06T13:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.78,
    "spot_nok_kwh_eks_mva": 1.290003,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-06T14:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.731,
    "spot_nok_kwh_eks_mva": 1.173364,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-06T15:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.87,
    "spot_nok_kwh_eks_mva": 1.125443,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-06T16:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.741,
    "spot_nok_kwh_eks_mva": 1.113988,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-06T17:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.926,
    "spot_nok_kwh_eks_mva": 0.94358,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-06T18:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.905,
    "spot_nok_kwh_eks_mva": 1.167021,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-06T19:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.998,
    "spot_nok_kwh_eks_mva": 1.333775,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-06T20:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.419,
    "spot_nok_kwh_eks_mva": 1.330888,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-06T21:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.124,
    "spot_nok_kwh_eks_mva": 1.32998,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-06T22:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.809,
    "spot_nok_kwh_eks_mva": 1.33998,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-06T23:00:00+02:00",
-   "kwh": null,
+   "kwh": 2.735,
    "spot_nok_kwh_eks_mva": 1.364462,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-07T00:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.593,
    "spot_nok_kwh_eks_mva": 1.344865,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-07T01:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.487,
    "spot_nok_kwh_eks_mva": 1.35196,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-07T02:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.531,
    "spot_nok_kwh_eks_mva": 1.347258,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-07T03:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.209,
    "spot_nok_kwh_eks_mva": 1.331913,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-07T04:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.549,
    "spot_nok_kwh_eks_mva": 1.32688,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-07T05:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.474,
    "spot_nok_kwh_eks_mva": 1.3469,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-07T06:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.563,
    "spot_nok_kwh_eks_mva": 1.361062,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-07T07:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.408,
    "spot_nok_kwh_eks_mva": 1.361145,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-07T08:00:00+02:00",
-   "kwh": null,
+   "kwh": 2.412,
    "spot_nok_kwh_eks_mva": 1.380357,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-07T09:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.726,
    "spot_nok_kwh_eks_mva": 1.350862,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-07T10:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.609,
    "spot_nok_kwh_eks_mva": 1.148883,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-07T11:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.098,
    "spot_nok_kwh_eks_mva": 0.944216,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-07T12:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.507,
    "spot_nok_kwh_eks_mva": 1.138269,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-07T13:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.802,
    "spot_nok_kwh_eks_mva": 1.07069,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-07T14:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.678,
    "spot_nok_kwh_eks_mva": 0.76336,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-07T15:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.208,
    "spot_nok_kwh_eks_mva": 0.625115,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-07T16:00:00+02:00",
-   "kwh": null,
+   "kwh": 2.125,
    "spot_nok_kwh_eks_mva": 1.145299,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-07T17:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.254,
    "spot_nok_kwh_eks_mva": 1.299415,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-07T18:00:00+02:00",
-   "kwh": null,
+   "kwh": 2.274,
    "spot_nok_kwh_eks_mva": 1.365628,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-07T19:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.64,
    "spot_nok_kwh_eks_mva": 1.371642,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-07T20:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.271,
    "spot_nok_kwh_eks_mva": 1.378734,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-07T21:00:00+02:00",
-   "kwh": null,
+   "kwh": 2.32,
    "spot_nok_kwh_eks_mva": 1.395838,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-07T22:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.479,
    "spot_nok_kwh_eks_mva": 1.37945,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-07T23:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.225,
    "spot_nok_kwh_eks_mva": 1.376783,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-08T00:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.463,
    "spot_nok_kwh_eks_mva": 1.254408,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-08T01:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.425,
    "spot_nok_kwh_eks_mva": 1.247215,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-08T02:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.59,
    "spot_nok_kwh_eks_mva": 1.217953,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-08T03:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.239,
    "spot_nok_kwh_eks_mva": 1.154133,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-08T04:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.46,
    "spot_nok_kwh_eks_mva": 1.13623,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-08T05:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.5,
    "spot_nok_kwh_eks_mva": 1.132528,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-08T06:00:00+02:00",
-   "kwh": null,
+   "kwh": 0.629,
    "spot_nok_kwh_eks_mva": 1.095523,
-   "p_max_w": null
+   "p_max_w": null,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-08T07:00:00+02:00",
-   "kwh": null,
+   "kwh": 1.868,
    "spot_nok_kwh_eks_mva": 1.131422,
-   "p_max_w": 3934.0
+   "p_max_w": 3934.0,
+   "kwh_kilde": "elhub"
   },
   {
    "start_local": "2026-08-08T08:00:00+02:00",
@@ -4395,8 +4590,9 @@
   {
    "start_local": "2026-08-31T00:00:00+02:00",
    "kwh": 1.038,
-   "spot_nok_kwh_eks_mva": 1.35957,
-   "p_max_w": 3805.0
+   "spot_nok_kwh_eks_mva": 1.364737,
+   "p_max_w": 3805.0,
+   "spot_kilde": "nordpool_publisert"
   },
   {
    "start_local": "2026-08-31T01:00:00+02:00",
@@ -4554,10 +4750,11 @@
   },
   {
    "start_local": "2026-08-31T23:00:00+02:00",
-   "kwh": 0.0,
+   "kwh": 1.378,
    "spot_nok_kwh_eks_mva": 1.446845,
    "p_max_w": 3293.0,
-   "spot_kilde": "nordpool_publisert"
+   "spot_kilde": "nordpool_publisert",
+   "kwh_kilde": "elhub"
   }
  ]
 }

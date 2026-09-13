@@ -30,6 +30,7 @@ import pytest
 from tests.conftest import _make_entry, _make_state
 from tests.test_faktura_bkk import (
     FAKTURA_APRIL_2026,
+    FAKTURA_AUGUST_2026,
     FAKTURA_DESEMBER_2025,
     FAKTURA_FEBRUAR_2026,
     FAKTURA_JULI_2026,
@@ -80,6 +81,14 @@ FAKTURA_MAP: dict[str, tuple[str, dict, datetime]] = {
         "bkk_juli_2026_hourly.json",
         FAKTURA_JULI_2026,
         datetime(2026, 7, 1),
+    ),
+    # August har 177 timer med Elhub-fylt kwh: 176 fra HAN-utfallet 01.08-08.08
+    # og 31.08 kl. 23, der tpi frøs. p_max_w er null i alle 177, og to av
+    # fakturaens tre effekttopper (02.08 og 05.08) ligger inne i utfallet.
+    "august_2026": (
+        "bkk_august_2026_hourly.json",
+        FAKTURA_AUGUST_2026,
+        datetime(2026, 8, 1),
     ),
 }
 
@@ -313,9 +322,9 @@ class TestReplayDesember2025:
 
 @pytest.mark.parametrize(
     "replay",
-    ["februar_2026", "mars_2026", "april_2026", "mai_2026", "juni_2026"],
+    ["februar_2026", "mars_2026", "april_2026", "mai_2026", "juni_2026", "juli_2026", "august_2026"],
     indirect=True,
-    ids=["februar", "mars", "april", "mai", "juni"],
+    ids=["februar", "mars", "april", "mai", "juni", "juli", "august"],
 )
 class TestReplayParametrized:
     """Samme replay for feb-juni, parametrisert via indirect fixture.

@@ -87,19 +87,27 @@ FAKTURAER: dict[str, dict[str, float]] = {
         "norgespris_kr": -807.50,
         "nettleie_kr": 586.10,
     },
+    "august_2026": {
+        "forbruk_dag_kwh": 475.519,
+        "forbruk_natt_kwh": 489.448,
+        "forbruk_total_kwh": 964.967,
+        "energiledd_dag_kr": 171.01,
+        "energiledd_natt_kr": 64.24,
+        "forbruksavgift_kr": 86.00,
+        "enovaavgift_kr": 12.06,
+        "kapasitet_kr": 250.00,
+        "norgespris_kr": -986.38,
+        "nettleie_kr": 583.31,
+    },
 }
 
 # Månedene fasiten har både intervallenergi og Final-pris for.
-AVSTEMBARE = ("mai_2026", "juni_2026", "juli_2026")
+AVSTEMBARE = ("mai_2026", "juni_2026", "juli_2026", "august_2026")
 
 # Måneder med prisdekning, men uten energifasit. De er ufullstendige, og det
-# skal stå i en test framfor å forsvinne i et skip.
-UFULLSTENDIGE = {
-    "august_2026": (
-        "Ingen Elhub-CSV i _private/Måleverdier/, og HAN-fixturen mangler 176 av "
-        "744 timer etter leserutfallet. Fakturalinjen kan ikke avstemmes."
-    ),
-}
+# skal stå i en test framfor å forsvinne i et skip. Tom nå: august fikk
+# Elhub-eksporten 13.09.2026 og står i AVSTEMBARE.
+UFULLSTENDIGE: dict[str, str] = {}
 
 
 # ---------------------------------------------------------------------------
@@ -408,19 +416,27 @@ class TestFasitMotFaktura:
         assert a.kwh_delvis_pris == 0.0
 
 
-@pytest.mark.parametrize(("navn", "grunn"), sorted(UFULLSTENDIGE.items()))
-def test_ufullstendige_maneder_er_merket_ikke_gronne(navn, grunn):
-    """En måned uten fasitgrunnlag skal si fra, ikke forsvinne i et skip.
+def test_maneder_med_prisfasit_er_sortert():
+    """Hver måned med Final-pris står enten i AVSTEMBARE eller i UFULLSTENDIGE.
 
-    Testen er grønn fordi merkingen er riktig, ikke fordi måneden er avstemt.
-    Kommer Elhub-CSV-en for august på plass, fjernes raden fra `UFULLSTENDIGE`
-    og måneden flyttes til `AVSTEMBARE`.
+    En måned som får Elhub-fasit skal flyttes over, ikke bli liggende. Og en
+    måned uten fasitgrunnlag skal si fra med en grunn, ikke forsvinne i et
+    skip. Testen tåler at UFULLSTENDIGE er tom; en parametrisering over en tom
+    dict ville hoppet over seg selv og dermed ikke vaktet noe.
     """
-    assert not (FIXTURES / f"elhub_{navn}.json").exists(), (
-        f"{navn} har fått Elhub-fasit. Flytt den til AVSTEMBARE."
-    )
-    assert (FIXTURES / f"final_pris_{navn}.json").exists()
-    assert grunn
+    for sti in FIXTURES.glob("final_pris_*.json"):
+        navn = sti.name.removeprefix("final_pris_").removesuffix(".json")
+        if (FIXTURES / f"elhub_{navn}.json").exists():
+            assert navn in AVSTEMBARE, f"{navn} har Elhub-fasit. Legg den i AVSTEMBARE."
+        else:
+            assert navn in UFULLSTENDIGE, f"{navn} mangler Elhub-fasit. Merk den i UFULLSTENDIGE."
+
+    for navn, grunn in UFULLSTENDIGE.items():
+        assert not (FIXTURES / f"elhub_{navn}.json").exists(), (
+            f"{navn} har fått Elhub-fasit. Flytt den til AVSTEMBARE."
+        )
+        assert (FIXTURES / f"final_pris_{navn}.json").exists()
+        assert grunn
 
 
 # ---------------------------------------------------------------------------

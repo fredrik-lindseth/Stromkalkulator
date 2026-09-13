@@ -247,11 +247,49 @@ publisert, og neste kjøring på samme commit gjenopptar. Det er billigere å
 oppdage det slik enn å bygge inn en omvei rundt noe vi ikke vet om er et
 problem.
 
-Majorversjonene på `actions/checkout`, `astral-sh/setup-uv`,
-`extractions/setup-just` og `codecov/codecov-action` er pinnet og finnes. Det
-finnes nyere majors for alle fire. Det er en oppgraderingsbeslutning, ikke et
-brudd, og den hører ikke hjemme i releaseporten. Den er skilt ut som
-`stromkalkulator-3m5o02u` i dcat.
+### Actionversjonene
+
+Gjennomgått 13. september 2026 (stromkalkulator-3m5o02u). Premisset om at det
+finnes en nyere major for alle fire, holdt bare for to av dem.
+
+`actions/checkout` gikk fra `@v6` til `@v7`. Den eneste bruddendringen i v7 er
+at den nekter å sjekke ut hodet i en fork-PR under `pull_request_target` og
+`workflow_run`. Vi bruker ingen av de to eventene. Resten er en ESM-omskriving
+og avhengighetsbumper, og v7.0.1 har ryddet tre feil i den. Begge majorene
+kjører node24. En feil i checkout kan ikke gi en gal release, bare en stoppet
+en: ZIP-en bygges fra git-objektene og bindes av attestasjonen etterpå.
+
+`extractions/setup-just` gikk fra `@v3` til `@v4`. Hele diffen er at den
+underliggende `setup-crate` løftes fra v1.4.0 til v2.0.0, altså node20 til
+node24. Inputene er uendret.
+
+`codecov/codecov-action` står på `@v6`. `v6`- og `v7`-taggene peker på nøyaktig
+samme commit: Codecov skriver selv at v6.0.2 er «a copy of the v7.0.0 release»,
+laget for at oppdateringen skal være valgfri. Bumpen ville vært et navnebytte.
+
+`astral-sh/setup-uv` gikk fra `@v7` til `@v10.1.0`, altså en eksakt versjon og
+ikke en majortagg. Det er ikke en flytende tagg, men det bryter med mønsteret i
+resten av filen, så grunnen står her og i `ci.yml`: Astral sluttet å publisere
+major- og minortagger fra og med v8.0.0, som et svar på tj-actions-angrepet.
+`@v8`, `@v9` og `@v10` finnes ikke. `@v7` finnes, men sluttet å bevege seg i
+mars 2026 og får ingen fikser. Valget sto mellom en frossen tagg og en pinnet
+versjon som må bumpes for hånd, og da er det siste ærligere. Bruddene i v8 til
+v10 treffer ingenting vi bruker: det gamle `manifest-file`-formatet er borte
+(vi setter det ikke), `prune-cache` er nå av som default (koster cachestørrelse,
+ikke riktighet), og `enable-cache: auto` slår seg av under `pull_request_target`,
+`workflow_run` og `release` (vi setter `true`, og kjører på `pull_request` og
+`workflow_call`).
+
+`actions/attest-build-provenance@v4` er allerede nyeste major, og `v4`-taggen
+peker på v4.2.2. Den er det sikkerhetskritiske steget, og den ble ikke rørt.
+
+Ikke bevist: ingen av bumpene er kjørt på en runner. `actionlint` er grønn, men
+den sjekker syntaks, ikke at en action oppfører seg. Først kjøring bekrefter
+det.
+
+De tre nattlige workflowene, `validate.yml`, `fri-nettleie-sjekk.yml` og
+`hassfest.yml`, står fortsatt på `actions/checkout@v6`. Samme vurdering gjelder
+dem; de lå utenfor mandatet i denne runden.
 
 ### Det v1.16.0 viser
 
@@ -266,11 +304,47 @@ brudd, og den hører ikke hjemme i releaseporten. Den er skilt ut som
 Taggen peker på én commit, attestasjonen sier ZIP-en ble bygget fra en annen.
 Innholdet var likt, så ingen brukere fikk feil kode, men bindingen manglet.
 `SECURITY.md` sier det samme, siden det er der brukerne blir bedt om å kjøre
-kommandoen. Taggen flyttes ikke, og en attestasjon fra 9dad0dd kan ikke lages i
-ettertid, så v1.16.0 blir stående slik (stromkalkulator-4xkynb1).
-Det er nettopp den gamle flyten som gjorde det mulig, og det er derfor
-`plan` bare advarer om eldre releaser mens `verify` feller: en release som alt
-er ute, blir ikke bedre av at hver push til main etterpå går rød.
+kommandoen. Det er nettopp den gamle flyten som gjorde det mulig, og det er
+derfor `plan` bare advarer om eldre releaser mens `verify` feller: en release
+som alt er ute, blir ikke bedre av at hver push til main etterpå går rød.
+
+#### Kan det rettes i ettertid?
+
+Mekanisk ja, og det er verdt å skrive ned hvorfor vi lar være
+(stromkalkulator-4xkynb1). Filen sier ellers at det ikke går, og det er feil.
+
+`actions/attest-build-provenance` tar `subject-digest` og `subject-name` i
+stedet for `subject-path`. En `workflow_dispatch` på taggen `v1.16.0` gir
+`github.sha` = 9dad0dd, så en kjøring der som laster ned den publiserte ZIP-en
+og attesterer digesten hennes, ville lagt igjen en attestasjon med
+`sourceRepositoryDigest` 9dad0dd og riktig subject. `gh attestation verify`
+godtar treffet når én av attestasjonene på digesten passer, så `release-verify`
+ville blitt grønn.
+
+Vi gjør det ikke. Attestasjonen ville sagt at denne workflowen bygget denne
+filen fra 9dad0dd, og det skjedde aldri: filen kom fra en kjøring på c7e7c70
+med den gamle `zip -r`-flyten. Hele poenget med provenans er at den forteller
+hva som faktisk hendte. Signerer vi en penere historie for å få vår egen
+kommando grønn, er alle senere attestasjoner fra oss verdt mindre, og brukeren
+kan ikke se forskjell. Det er heller ikke gratis i den forstand at ingenting
+publiseres: en attestasjon er en permanent oppføring i en offentlig
+gjennomsiktighetslogg.
+
+Den gale attestasjonen kan ikke fjernes heller. REST-API-et har `POST` og
+`GET` på `/repos/{owner}/{repo}/attestations`, ingen `DELETE`, og `gh
+attestation` har bare `download`, `trusted-root` og `verify`. Og selv om den
+kunne slettes, ville v1.16.0 stått uten provenans i det hele tatt, som er
+verre enn en som ikke stemmer.
+
+Å flytte taggen til c7e7c70 ville bundet attestasjonen, men taggen flyttes
+ikke: git oppdaterer ikke en tagg som har endret seg hos en klient som alt har
+hentet den, så de som har v1.16.0 ville stille blitt liggende igjen. ZIP-en er
+uansett ikke byte-reproduserbar fra noen av de to commitene, siden den er
+pakket før flyten ble deterministisk.
+
+Det som står igjen, er derfor å si det der brukerne ser det. `SECURITY.md` gjør
+det alt. Det siste punktet er en kort note i release-body-en for v1.16.0, og
+den krever skrivetilgang på GitHub.
 
 ## Retting etter publisering
 

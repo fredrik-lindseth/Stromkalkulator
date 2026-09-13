@@ -75,7 +75,7 @@ jobs:
 
     steps:
       - name: Checkout kandidat-SHA
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}
           # ZIP-en bygges fra git-objektene, og eksisterende tagger må kunne

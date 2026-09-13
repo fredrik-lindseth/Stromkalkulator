@@ -1,0 +1,94 @@
+                                                                                                                           Side 1 av 2
+
+
+
+
+                                                                   Faktura
+                                                                   Fakturanr:                     012345678
+Nordmann Ola                                                   Fakturadato:                   03.11.2025
+Eksempelveien 123                                                  Betalingsfrist:                19.11.2025
+5000 BERGEN                                                        Fakturaavtalenr:               1234567
+                                                                   Kundenr:                       12345678
+
+
+kWh                  Forrige år            Siste år
+
+2250
+                                                                                                                        Sum kr
+                                                                   Nettleie                                            1.006,81
+1800                                                               Midlert. strømstønad                                   -7,16
+                                                                   Å betale (Herav MVA 201,36)                           999,65
+1350
+
+900
+
+450
+                                                                   Beløpet belastes i følge AvtaleGiro !
+
+0
+        Nov Des Jan Feb Mar Apr Mai Jun Jul Aug Sep Okt
+
+
+
+
+                                                                                                                                         BKK_ALBU04_1170.efa /s.1595 #:798
+
+
+
+
+eFakturareferanse: 01234567.
+KID for opprettelse av avtalegiro: 0123456789012.                  Ved for sen betaling beregnes 12,25 % forsinkelsesrente pr år.
+Ved annen betalingsform oppgi KID: 0123456789012.                  Ved purring beregnes gebyr kr 35,00.
+
+
+                                                      Betalingsinformasjon
+
+    Forfallsdato:                 19.11.2025                       Bankkonto:                 1234 56 78901
+
+    Beløp å betale:               999,65                           Beløpet trekkes på AvtaleGiro
+                                                                                                                           Side 2 av 2
+                                                                                                                Fakturanr: 012345678
+Fakturagrunnlag
+Nettleie
+Leverandør:
+Målepunkt-ID:          12345678 (oppgis ved leverandørskifte)
+Målernr:               1234567890123456
+Leveringsadresse:      Eksempelveien 123 .
+Antatt årsforbruk:     17579 kWh
+Produkt:               Nettleie
+Prisområde:            NO5
+Maks effekt:           5,714 kW, målt 12.10.2025 kl. 17:00
+                       5,475 kW, målt 18.10.2025 kl. 16:00
+                       5,238 kW, målt 10.10.2025 kl. 14:00
+
+Målernummer               Periode               Beskrivelse               Avlesning                                Forbruk kWh
+1234567890123456          01.10.25 - 01.11.25   Forbruk                   BKK                                            1243,2
+
+
+Priselement               Periode                                         Forbruk             Pris                        Sum kr
+Energiledd dag            01.10.25 - 01.11.25                             707,09 kWh          35,963 øre/kWh              254,29
+Energiledd natt/helg      01.10.25 - 01.11.25                             536,117 kWh         23,738 øre/kWh              127,26
+Midlert. strømstønad      01.10.25 - 01.11.25                             115,661 kWh         -6,188 øre/kWh                -7,16
+Kapasitet 5-10 kW         01.10.25 - 01.11.25                             31 dager            415 kr/Mnd                  415,00
+Forbruksavgift            01.10.25 - 01.11.25                             1243,207 kWh        15,662 øre/kWh              194,72
+Enovaavgift               01.10.25 - 01.11.25                             1243,207 kWh        1,25 øre/kWh                 15,54
+Sum (Herav MVA 201,36)                                                                                                      999,65
+
+
+For informasjon om energi- og klimatiltak, se www.enova.no eller kontakt Enova på svarer@enova.no.
+
+Ved skifte av kraftleverandør, skal målepunkt-ID og anleggsadresse oppgis til ny kraftleverandør.
+
+Ved innsigelser mot fakturaen, ta kontakt med oss på kundepost@bkk.no. Du har også mulighet til å klage til Elklagenemda,
+www.elklagenemda.no.
+
+
+
+
+                                                                                                                                         BKK_ALBU04_1170.efa /s.1596 #:798
+
+
+
+
+  For å se en mer detaljert beregning av forbruk og fakturabeløp, kan du gå inn på Mine sider på bkk.no Der finner du oversikt
+  over strømforbruket ditt time for time. På bkk.no kan du lese mer om hva nettleien består av.

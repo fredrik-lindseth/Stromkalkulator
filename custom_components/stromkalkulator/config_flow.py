@@ -542,6 +542,14 @@ def _apply_dso_derivation(user_input: dict[str, Any], current: dict[str, Any]) -
     if finn_sikringstrinn(ny_dso, user_input.get(CONF_SIKRINGSTRINN)) is None:
         user_input[CONF_SIKRINGSTRINN] = None
 
+    # Trinntabellen hører til Egendefinert alene. Feltet står forhåndsutfylt i
+    # skjemaet, så nettleseren sender det med også når brukeren bytter til et
+    # kjent nettselskap, og da overlevde tabellen på et entry som aldri leser
+    # den. Ufarlig i kroner, men kommentaren ved `_TOMBARE_FELT` lovet at den
+    # ble borte, og en lagret tabell ingen leser er en felle for neste lesing.
+    if new_dso is not None and new_dso != DSO_EGENDEFINERT:
+        user_input[CONF_EGENDEFINERT_KAPASITETSTRINN] = None
+
 
 def _validate_options_input(
     hass: Any,

@@ -620,6 +620,22 @@ Grensesnittet L1, L2, L3a, L3b og L3c bygger mot. Nye felt:
 | `avregning_avvist_kwh` | float | kWh forkastet denne måneden (sprang, målerreset, duplikat). |
 | `kwh_uten_pris` | float | kWh bokført denne måneden i intervaller uten pris. |
 | `kwh_delvis_pris` | float | kWh bokført denne måneden i intervaller med færre prisprøver enn ventet. |
+| `monthly_stromstotte_kr` | float | Strømstøtten måneden har gitt, i kroner. Opplysning, ikke et fradrag som skal trekkes en gang til. |
+| `monthly_energiledd_dag_kr` | float | Nettleiens energiledd for dagtimene, inkl. mva, uten offentlige avgifter. |
+| `monthly_energiledd_natt_kr` | float | Tilsvarende for natt- og helgetimene. |
+| `monthly_avgifter_kr` | float | Forbruksavgift og Enova for månedens kilowattimer, inkl. mva. |
+
+De fire nye kronefeltene er ikke et nytt regnskap ved siden av det gamle.
+`monthly_energiledd_dag_kr + monthly_energiledd_natt_kr + monthly_avgifter_kr`
+er nøyaktig `monthly_accumulated_cost_energiledd_kr`, og identiteten er testet
+(`tests/test_kostnad.py`). For en måned som krysset migreringen kommer en
+åpningsbalanse i tillegg: energileddet fra før splitten finnes bare som én sum
+og lar seg ikke dele opp i ettertid. Den bæres som `monthly_energiledd_apning`
+i Store og faller bort ved første månedsskifte, på samme måte som
+`avregning_ufullstendig`.
+
+`monthly_kwh_uten_pris` er ikke laget. `kwh_uten_pris` over er det samme
+tallet, og to felt som skal si det samme drifter fra hverandre.
 
 Felt som beholdes med samme navn, men får rettet betydning:
 
@@ -629,26 +645,65 @@ Felt som beholdes med samme navn, men får rettet betydning:
 | `monthly_consumption_natt_kwh` | Tilsvarende for `natt`. |
 | `monthly_consumption_total_kwh` | Sum over alle avregnede intervaller i måneden. |
 | `current_hour_energy` | kWh bokført i det åpne intervallet, ikke i en veggklokke-bøtte. |
-| `daily_cost_kr` | Kroner fra intervaller med lokal dato lik i dag (L3b). |
-| `monthly_accumulated_cost_strom_kr` | Kroner fra intervallenes egen pris, ikke fra prisen ved polltid (L3b). |
-| `monthly_accumulated_cost_energiledd_kr` | Som over, med satsen som gjaldt i intervallet (L3b). |
-| `monthly_accumulated_cost_kapasitetsledd_kr` | Uendret. Fastledd akkumuleres tidsbasert, ikke over energiintervaller. |
+| `daily_cost_kr` | Kroner fra intervaller med lokal dato lik i dag, pluss dagens andel av månedens fastledd. |
+| `monthly_accumulated_cost_strom_kr` | Kroner fra intervallenes egen pris, ikke fra prisen ved polltid. Etter strømstøtte, og etter Norgespris der den gjelder. |
+| `monthly_accumulated_cost_energiledd_kr` | Nettleiens energidel med forbruksavgift og Enova, med satsen som gjaldt i intervallet. Navnet er upresist og står likevel: se avsnittet under. |
+| `monthly_accumulated_cost_kapasitetsledd_kr` | Fastleddet som periodebeløp: kr/mnd ganger forløpt andel av måneden, regnet på nytt ved hver poll. |
+| `monthly_cost_kr` | Samme tall som `monthly_accumulated_cost_kr`. Én akkumulator, ikke to. |
 | `is_day_rate` | Uendret: tariffen akkurat nå, for visning. Avregningen bruker intervallets egen `tariff`. Begge leser samme `Tariffregel`; kopien i coordinatoren er borte. |
 
-Felt som forsvinner: ingen i denne omgang. L3b og L3c avgjør hva som kan
-pensjoneres når kronene flyttes inn i boken.
+Felt som forsvinner: ingen i denne omgang. L3c avgjør hva som kan pensjoneres
+når sensorene skrives om.
 
-`current_hour_energy` står fortsatt i veggklokke-bøtta si etter L3a, mot det
-tabellen over sier. Den mater `_daily_max_power` og dermed fastleddet, og å
-flytte den til boken er en egen endring med egne fasittall. Den hører til L3b,
-sammen med resten av fastleddet.
+### Navnet `monthly_accumulated_cost_energiledd_kr`
+
+Feltet har aldri vært energiledd alene. Satsen som ganges er hele
+`total_nettleie_price`, altså energiledd med forbruksavgift og Enova, og
+fakturaavstemmingen går bare opp slik. Dommen over L2 fant det og ba L3b
+avgjøre navnet.
+
+Avgjørelsen er at navnet står, og at innholdet blir etterprøvbart i stedet.
+Brukerne har langtidsstatistikk på sensoren; å rette navnet ved å endre
+betydningen ville gitt et brudd i tallrekken hos alle, og å rette navnet ved å
+bytte nøkkel ville krevd at sensorlaget ble skrevet om i samme endring.
+Splitten (`monthly_energiledd_dag_kr`, `monthly_energiledd_natt_kr`,
+`monthly_avgifter_kr`) gjør hva feltet inneholder synlig og testbart, og et nytt
+navn hører til L3c, der sensorene og attributtene deres skrives om uansett.
+
+## Fastledd (L3b)
+
+Fastledd er kroner per måned. Det ganges aldri med kilowattimer, og ingen krone
+i bokføringen kommer fra `kapasitetsledd_per_kwh`; den satsen finnes bare fordi
+Energy Dashboard trenger én kr/kWh å vise.
+
+Akkumulatoren er `kapasitetsledd × forløpt andel av måneden`, regnet på nytt ved
+hver poll. Tre ting følger av det:
+
+- Et trinnskifte midt i måneden gjelder hele måneden, slik nettselskapet
+  fakturerer, framfor å tidsvekte det gamle og det nye trinnet mot hverandre.
+- En Egendefinert-bruker som fyller inn trinntabellen den 20. får hele månedens
+  forløpte andel med en gang, ikke et stille hull for de nitten dagene før.
+- Andelen måles i absolutt tid, så mars (743 timer) og oktober (745 timer) er
+  ikke spesialtilfeller.
+
+Måneden som lukkes arkiverer sluttrinnet for hele måneden, altså fullt beløp.
+Er trinnet ukjent (Egendefinert uten trinntabell, §9), er beløpet null kroner og
+`fastledd_ukjent` er sant. Beløpet lagres, men leses ikke ved oppstart: det
+regnes av klokken, og en lagret sum som kan drifte fra trinnet er akkurat det
+som skulle bort.
+
+`daily_cost_kr` følger samme regel med døgnets andel av månedens fastledd.
 
 ## Status
 
-L3a er inne (coordinatoren bokfører gjennom `avregning.py`). A, B, C og D
-gjelder for energi, tariff, pris, kvalitet og Norgespris-linjen.
-`monthly_cost_kr`, `daily_cost_kr` og `monthly_accumulated_cost_strom_kr`
-regnes fortsatt med prisen som sto ved polltid; de er L3bs.
+L3a og L3b er inne. A, B, C og D gjelder for energi, tariff, pris, kvalitet,
+Norgespris-linjen og kronene. Alle kroner utenom fastleddet bokføres per
+avregnet intervall med intervallets egen pris; fastleddet er et periodebeløp.
+Rulleringen skjer før nåtidssnapshotet bygges, så månedsfeltene i en data-dict
+peker alltid på samme måned.
+
+`current_hour_energy` speiles nå fra det åpne intervallet, slik tabellen over
+sier, og døgnmaksen leses av bokens lukkede intervaller.
 
 ## Hva denne kontrakten pensjonerer
 

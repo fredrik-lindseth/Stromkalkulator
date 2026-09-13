@@ -1541,10 +1541,13 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         current_power_w = self._effekt_watt(INPUT_ROLLE_EFFEKT)
         current_power_kw = current_power_w / 1000 if current_power_w is not None else None
 
-        # Beregn tid siden forrige oppdatering (felles for forbruk og eksport)
+        # Tid siden forrige oppdatering (felles for forbruk og eksport). Målt i
+        # absolutt tid: en rett subtraksjon av to tidspunkt med samme
+        # tzinfo-objekt måler veggklokke, og da blir ett ekte minutt til seks
+        # ved vår-DST og til null ved høst-DST (3jebp9g).
         elapsed_hours = 0.0
         if self._last_update is not None:
-            elapsed_hours = (now - self._last_update).total_seconds() / 3600
+            elapsed_hours = sekunder_mellom(self._last_update, now) / 3600
             elapsed_hours = max(0.0, min(elapsed_hours, MAX_ELAPSED_HOURS))
 
         # Prisen leses før energien bokføres, slik at prisprøven for ruten vi

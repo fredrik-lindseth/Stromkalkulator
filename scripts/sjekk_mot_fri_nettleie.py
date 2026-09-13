@@ -160,22 +160,6 @@ KJENTE_AVVIK: dict[str, tuple[Unntak, ...]] = {
             ),
         ),
     ),
-    "telemark_nett": (
-        Unntak(
-            felt=FELT_MATCH,
-            signatur="ingen match i fri-nettleie",
-            gyldig_til=date(2027, 3, 1),
-            grunn=(
-                "fri-nettleie hadde telemark.yml da kapasitetstrinnene ble hentet 2026-07-28, "
-                "men filen er borte fra tariffer/ (og ligger ikke i tariffer/old/) per "
-                "2026-09-12. Selskapet heter nå TNett AS og har flyttet til tnett.no; vi fant "
-                "ingen fusjon, bare navne- og domeneskifte, så dette hører ikke hjemme i "
-                "DSO_MIGRATIONS. Satsene er verifisert mot tnett.no/prisar/nettleige-1 "
-                "(01.09.2026-tariffen) 2026-09-13. Sjekk ved fornyelse om fri-nettleie har "
-                "lagt selskapet inn igjen under en ny slug."
-            ),
-        ),
-    ),
     "tinfos": (
         Unntak(
             felt=FELT_FASTLEDD_METODE_UKJENT,
@@ -221,10 +205,12 @@ EKSPLISITT_MAPPING: dict[str, str] = {
     "etna_nett": "etna",
     "breheim_nett": "breheim",
     "straumen_nett": "straumen",
-    "telemark_nett": "telemark",
     "vestmar_nett": "vestmar",
     "vang_energiverk": "vang",
     "uvdal_kraftforsyning": "uvdal",
+    # Vest-Telemark Kraftlag AS Nett heter Tnett; fri-nettleie omdøpte
+    # telemark.yml til tnett.yml (deres issue #325).
+    "telemark_nett": "tnett",
     # Area Nett er tre prisområder hos oss og hos fri-nettleie. Den utfasede
     # area_nett bruker område 2 som interim, så den sjekkes mot samme fil og
     # feller exit-koden hvis de kommer ut av takt.

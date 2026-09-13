@@ -10,7 +10,7 @@ på 1000 ga 20 kWh som aldri var brukt.
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest.mock import MagicMock
 
 import pytest
@@ -18,6 +18,10 @@ import pytest
 from tests.conftest import _make_entry, _make_state
 
 NAA = datetime(2026, 6, 15, 12, 0)
+#: Observasjonstiden den forrige avlesningen hadde. Boken fordeler energien
+#: over vinduet `(forrige observed_at, ny observed_at]`, så de to kan ikke være
+#: samme øyeblikk: et vindu uten lengde har ingenting å fordele.
+FORRIGE = NAA - timedelta(minutes=1)
 
 
 def _hass_with_energy(value, *, unit=None, state_class="total_increasing", unique_id="maaler-1"):
@@ -56,16 +60,36 @@ def _patch_entity_registry(coord_module):
     return adapter
 
 
-def _delta(coord):
-    """Én full runde: les inputene, så regn deltaet, som i en ekte poll."""
-    coord._les_inputer(NAA)
-    return coord._compute_energy_delta(NAA)
+def _delta(coord, naa=NAA):
+    """Én full runde: les inputene, så regn deltaet, som i en ekte poll.
+
+    `naa` er polltiden, og den er også avlesningens observasjonstid her siden
+    mock-staten ikke bærer `last_updated`. To polls i rekkefølge må derfor ha
+    hver sin tid: to avlesninger med samme observasjonstid er et vindu uten
+    lengde, og det har ingenting å fordele (kontrakt C1).
+    """
+    coord._les_inputer(naa)
+    return coord._compute_energy_delta(naa)
 
 
 def _sett_baseline(coord, kwh, *, unique_id="maaler-1", entity_id="sensor.energy"):
-    from stromkalkulator.inputadapter import Baseline
+    """Sett forrige behandlede avlesning.
 
-    coord._baseline = Baseline(unique_id, entity_id, kwh, NAA)
+    Boken eier den (avregningskontrakten C5), og `coord._baseline` er speilet
+    Store-filen og diagnostikken leser. Derfor settes boken, og speilet
+    oppdateres av coordinatoren selv.
+    """
+    from stromkalkulator.avregning import OSLO, Avlesning
+
+    coord._bok.sett_baseline(
+        Avlesning(
+            source_identity=unique_id if unique_id is not None else f"entity:{entity_id}",
+            entity_id=entity_id,
+            value_kwh=kwh,
+            observed_at=FORRIGE.replace(tzinfo=OSLO),
+        )
+    )
+    coord._speil_baseline()
 
 
 def _baseline_kwh(coord):
@@ -115,14 +139,31 @@ class TestComputeEnergyDelta:
         assert _baseline_kwh(coordinator_with_energy_sensor) == 1101.0
 
     def test_outlier_boundary_at_max(self, coord_module):
-        """Delta lik 100 kWh: `0 < raw_delta < MAX` er strikt, så det er outlier."""
+        """Delta lik 100 kWh er akkurat innenfor.
+
+        Kontrakten (C1) avviser delta **over** `MAX_ENERGY_DELTA_KWH`, og
+        grensen selv er dermed godkjent. Den gamle koden her hadde `raw_delta <
+        MAX` og avviste den; avregningskjernen følger kontrakten.
+        """
         from custom_components.stromkalkulator.const import MAX_ENERGY_DELTA_KWH
 
         hass = _hass_with_energy(1000.0 + MAX_ENERGY_DELTA_KWH)
         coordinator = coord_module.NettleieCoordinator(hass, _make_entry(energy_sensor="sensor.energy"))
         _sett_baseline(coordinator, 1000.0)
 
+        assert _delta(coordinator) == pytest.approx(MAX_ENERGY_DELTA_KWH)
+
+    def test_outlier_like_over_max_forkastes(self, coord_module):
+        """Ett tusendels kWh over grensen er outlier, og baselinen flyttes."""
+        from custom_components.stromkalkulator.const import MAX_ENERGY_DELTA_KWH
+
+        over = 1000.0 + MAX_ENERGY_DELTA_KWH + 0.001
+        hass = _hass_with_energy(over)
+        coordinator = coord_module.NettleieCoordinator(hass, _make_entry(energy_sensor="sensor.energy"))
+        _sett_baseline(coordinator, 1000.0)
+
         assert _delta(coordinator) == 0.0
+        assert _baseline_kwh(coordinator) == pytest.approx(over)
 
     def test_outlier_just_below_max_is_accepted(self, coord_module):
         from custom_components.stromkalkulator.const import MAX_ENERGY_DELTA_KWH
@@ -210,7 +251,7 @@ class TestComputeEnergyDelta:
         first = _delta(coordinator_with_energy_sensor)
 
         coordinator_with_energy_sensor.hass = _hass_with_energy(1000.9)
-        second = _delta(coordinator_with_energy_sensor)
+        second = _delta(coordinator_with_energy_sensor, NAA + timedelta(minutes=1))
 
         assert first == pytest.approx(0.4)
         assert second == pytest.approx(0.5)
@@ -250,7 +291,7 @@ class TestEnhetsnormalisering:
         _delta(coordinator)
 
         coordinator.hass = _hass_with_energy(1_000_500.0, unit="Wh")
-        assert _delta(coordinator) == pytest.approx(0.5)
+        assert _delta(coordinator, NAA + timedelta(minutes=1)) == pytest.approx(0.5)
 
     def test_sensor_uten_kumulativ_state_class_gir_ingen_delta(self, coord_module):
         """En øyeblikksverdi har ingen differanse å måle."""

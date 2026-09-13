@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import logging
 import math
-from dataclasses import dataclass
+from collections.abc import Mapping
+from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from typing import TYPE_CHECKING, Any, cast
@@ -14,6 +15,18 @@ from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
+from .avregning import (
+    OSLO,
+    Avlesning,
+    Avregningsbok,
+    Bokforing,
+    Energikvalitet,
+    Tariff,
+    Tariffregel,
+    Utfall,
+    intervallstart,
+    lokal_maned,
+)
 from .const import (
     AVGIFTSSONE_STANDARD,
     BOLIGTYPE_BOLIG,
@@ -34,8 +47,6 @@ from .const import (
     CONF_SIKRINGSTRINN,
     CONF_SPOT_PRICE_SENSOR,
     CONF_SPOTPRIS_INKL_MVA,
-    DAY_RATE_END_HOUR,
-    DAY_RATE_START_HOUR,
     DEFAULT_DSO,
     DEFAULT_ENERGI_FROSSEN_TIMER,
     DEFAULT_KAPASITET_VARSEL_TERSKEL,
@@ -43,7 +54,6 @@ from .const import (
     DSO_EGENDEFINERT,
     DSO_LIST,
     ENOVA_AVGIFT,
-    HELLIGDAGER_FASTE,
     INPUT_ROLLE_EFFEKT,
     INPUT_ROLLE_EKSPORT,
     INPUT_ROLLE_ENERGI,
@@ -63,8 +73,6 @@ from .const import (
     VAKTHOLD_FROSSEN,
     VAKTHOLD_SPOT_UTLOPT,
     VAKTHOLD_UTFALL,
-    WEEKEND_WEEKDAY_START,
-    _bevegelige_helligdager,
     compute_energiledd_inkl_mva,
     get_forbruksavgift,
     get_mva_sats,
@@ -87,7 +95,6 @@ from .dso import (
 )
 from .inputadapter import (
     BASELINE_NOKKEL,
-    BASELINE_SKJEMA,
     ENHETSGRUNNER,
     GRUNN_FINNES_IKKE,
     Baseline,
@@ -100,6 +107,8 @@ from .inputadapter import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
 
@@ -223,6 +232,40 @@ def trekk_fra_sekunder(tidspunkt: datetime, sekunder: float) -> datetime:
     if tidspunkt.tzinfo is None:
         return tidspunkt - timedelta(seconds=sekunder)
     return datetime.fromtimestamp(tidspunkt.timestamp() - sekunder, tz=tidspunkt.tzinfo)
+
+
+def _aware(tidspunkt: datetime) -> datetime:
+    """Tidssoneklar utgave av et tidspunkt, tolket som Europe/Oslo om nødvendig.
+
+    Avregningskjernen krever tidssoneklar tid og kaster ellers (B1), og det er
+    riktig av den: en naiv tid er nettopp det som gjør at en time forsvinner
+    eller kommer to ganger over sommertidsskiftene. I drift er `dt_util.now()`
+    alltid klar. Dette er grensen mot alt som ikke er det, og den gjetter på
+    Europe/Oslo framfor å la en avlesning falle ut.
+    """
+    return tidspunkt if tidspunkt.tzinfo is not None else tidspunkt.replace(tzinfo=OSLO)
+
+
+def _uten_kildeidentitet(data: Any) -> Any:
+    """Store-filen slik den kan stå i en logg (kontrakt §10.1).
+
+    `source_identity` er `unique_id` fra entity-registeret, og hos AMS- og
+    Elhub-integrasjoner er det målepunkt-ID eller målerserienummer, altså noe
+    som peker på én husstand. Home Assistant har en knapp som slår på DEBUG og
+    laster ned loggen for innliming i et offentlig issue, så en debuglinje er
+    like offentlig som diagnostikkdumpen. Entity-id-en står igjen: den er et
+    navn brukeren har valgt selv, og uten den vet han ikke hvilken sensor
+    linjen gjelder.
+
+    Redigeringen er rekursiv fordi nøkkelen ligger både på baselinen og på
+    bokens siste observasjon.
+    """
+    if isinstance(data, Mapping):
+        return {
+            nokkel: ("<redigert>" if nokkel == "source_identity" else _uten_kildeidentitet(verdi))
+            for nokkel, verdi in data.items()
+        }
+    return data
 
 
 def _som_lokal(tidspunkt: datetime | None) -> datetime | None:
@@ -578,9 +621,32 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._vakthold_issues = {}
         self._vakthold_issues_synket = False
 
+        # Avregningsboken (L1). Den er eneste kilde til hvilken time en
+        # kilowattime hører til, hvilken tariff den har og hvilken pris som
+        # gjelder for den. Coordinatoren leser av den; den regner ikke det
+        # samme selv ved siden av.
+        self._tariffregel = Tariffregel(
+            helg_som_natt=self._helg_som_natt,
+            helligdager_ekstra=tuple(self._helligdager_ekstra),
+        )
+        self._bok = self._ny_bok()
+        # Kronene hvert intervall alt har bidratt med, slik at et intervall som
+        # får mer energi eller en ny prisrute bare bidrar med differansen. Uten
+        # den ville en time blitt bokført på nytt ved hver poll.
+        self._kr_bokfort: dict[datetime, tuple[float, float]] = {}
+
         # Persistent storage - keyed by entry_id for multi-instance isolation
         self._store = Store(hass, 1, f"{DOMAIN}_{entry.entry_id}")
         self._store_loaded = False
+
+    def _ny_bok(self, raa: dict[str, Any] | None = None) -> Avregningsbok:
+        """Bygg boken, eventuelt fra en lagret Store-fil (kontrakt D)."""
+        return Avregningsbok.fra_lagring(
+            raa,
+            tariffregel=self._tariffregel,
+            tariffmodus=self.tariffmodus,
+            dso_id=self._dso_id,
+        )
 
     def _input_entiteter(self) -> list[tuple[str, str | None]]:
         """(rolle, entity_id) for alle fem rollene, også de som ikke er satt."""
@@ -650,8 +716,58 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         resultat = self._input_resultater.get(rolle)
         return resultat.verdi if isinstance(resultat, Gyldig) else None
 
+    def _kildeidentitet(self, entity_id: str) -> str:
+        """Identiteten boken binder avlesningene sine til (kontrakt §5).
+
+        `unique_id` er fasiten. Mangler den, er entity-id-en det eneste vi har,
+        og den merkes som sådan slik at en sensor som senere får en unique_id
+        blir en ny kilde og ikke en fortsettelse av den gamle. Det er samme
+        regel som `Baseline.samme_kilde`, uttrykt som én streng fordi boken
+        sammenligner identiteter og ikke kjenner fallbacken.
+        """
+        identitet = kildeidentitet(self.hass, entity_id)
+        return identitet if identitet is not None else f"entity:{entity_id}"
+
+    def _les_avlesning(
+        self, now: datetime, effekt_kw: float | None, elapsed_hours: float
+    ) -> Avlesning | None:
+        """Gjør denne pollens input om til en avlesning boken kan ta imot (B1).
+
+        Med energisensor er avlesningen tellerstanden med sensorens egen
+        observasjonstid. Uten er den den syntetiske avlesningen i B1: energien
+        i pollvinduet, med polltiden som observasjonstid og `estimert` som
+        kvalitet. Stien velges av konfigurasjonen, aldri av tilstanden.
+        """
+        if self.energy_sensor:
+            resultat = self._input_resultater.get(INPUT_ROLLE_ENERGI)
+            if not isinstance(resultat, Gyldig) or resultat.verdi <= 0:
+                # En teller på 0 er enten et blankt oppstartstall eller en
+                # sensor som ikke har lest ennå. Begge duger dårlig som
+                # baseline, og et ikke-gyldig resultat rører ingenting.
+                return None
+            return Avlesning(
+                source_identity=self._kildeidentitet(self.energy_sensor),
+                entity_id=self.energy_sensor,
+                value_kwh=resultat.verdi,
+                observed_at=_aware(resultat.observed_at),
+            )
+        if not self.power_sensor or elapsed_hours <= 0 or effekt_kw is None or effekt_kw <= 0:
+            return None
+        return Avlesning(
+            source_identity=self._kildeidentitet(self.power_sensor),
+            entity_id=self.power_sensor,
+            value_kwh=effekt_kw * elapsed_hours,
+            observed_at=_aware(now),
+            kvalitet=Energikvalitet.ESTIMERT,
+        )
+
     def _compute_energy_delta(self, now: datetime | None = None) -> float:
-        """Beregn forbruk siden forrige avlesning fra den kumulative energisensoren.
+        """Bokfør energisensorens avlesning og gi kilowattimene som ble bokført.
+
+        Fordelingen over avregningsintervallene, tariffen og prisen eies av
+        `Avregningsbok` (docs/kontrakter/avregning.md). Her ligger bare det som
+        hører Home Assistant til: logglinjene, repair-varselet og klokken
+        vaktholdet måler frossen teller med.
 
         Baselinen er bundet til kilden sin (docs/kontrakter/input-og-konfig.md
         §5). Et målerbytte, altså en ny fysisk kilde, gir delta 0 og ny baseline
@@ -667,24 +783,19 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """
         if not self.energy_sensor:
             return 0.0
-
         tidspunkt = now if now is not None else dt_util.now()
-        # Resultatet kommer fra _les_inputer i denne oppdateringen, ikke fra et
-        # nytt oppslag: hele polls skal se samme avlesning.
-        resultat = self._input_resultater.get(INPUT_ROLLE_ENERGI)
-        if not isinstance(resultat, Gyldig):
+        avlesning = self._les_avlesning(tidspunkt, None, 0.0)
+        if avlesning is None:
             return 0.0
-        current_kwh = resultat.verdi
-        if current_kwh <= 0:
-            # En teller på 0 er enten et blankt oppstartstall eller en sensor
-            # som ikke har lest ennå. Begge deler duger dårlig som baseline.
-            return 0.0
+        return self._bokfor(avlesning, tidspunkt).bokfort_kwh
 
-        identitet = kildeidentitet(self.hass, self.energy_sensor)
-        forrige = self._baseline
-        delta = 0.0
+    def _bokfor(self, avlesning: Avlesning, now: datetime) -> Bokforing:
+        """Send avlesningen til boken og følg opp utfallet mot brukeren."""
+        forrige = self._bok.sist_observert
+        bokforing = self._bok.bokfor(avlesning)
+        utfall = bokforing.utfall
 
-        if forrige is not None and not forrige.samme_kilde(identitet, self.energy_sensor):
+        if utfall is Utfall.BASELINE and forrige is not None:
             # Kildeidentiteten er unique_id fra entity-registeret, og hos
             # AMS- og Elhub-integrasjoner er den målepunkt-ID eller
             # målerserienummer, altså noe som peker på én husstand.
@@ -692,41 +803,197 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # diagnostikkdumpen, og dumpen aliaserer den nettopp derfor
             # (diagnostikk.py). Loggen sier at kilden er en annen, ikke hvilken.
             _LOGGER.info(
-                "energy_sensor %s er en ny kilde. Ny baseline på %.3f kWh, delta 0.",
-                self.energy_sensor,
-                current_kwh,
+                "%s er en ny kilde. Ny baseline på %.3f kWh, delta 0.",
+                avlesning.entity_id,
+                avlesning.value_kwh,
             )
-        elif forrige is not None:
-            raw_delta = current_kwh - forrige.value_kwh
-            if 0 < raw_delta < MAX_ENERGY_DELTA_KWH:
-                delta = raw_delta
-                self._last_energy_increase = tidspunkt
-            elif raw_delta < 0:
-                _LOGGER.warning(
-                    "energy_sensor %s gikk nedover (%.3f -> %.3f). Counter reset? Ignorerer delta.",
-                    self.energy_sensor,
-                    forrige.value_kwh,
-                    current_kwh,
-                )
-                self._meld_forkastet_delta(tidspunkt, raw_delta)
-            elif raw_delta >= MAX_ENERGY_DELTA_KWH:
-                _LOGGER.warning(
-                    "energy_sensor %s delta %.1f kWh > %.0f kWh. Ignorerer som outlier.",
-                    self.energy_sensor,
-                    raw_delta,
-                    MAX_ENERGY_DELTA_KWH,
-                )
-                self._meld_forkastet_delta(tidspunkt, raw_delta)
+        elif utfall is Utfall.AVVIST_NEGATIV:
+            _LOGGER.warning(
+                "%s gikk nedover (%.3f -> %.3f). Counter reset? Ignorerer delta.",
+                avlesning.entity_id,
+                forrige.value_kwh if forrige else 0.0,
+                avlesning.value_kwh,
+            )
+            self._meld_forkastet_delta(
+                now, avlesning.value_kwh - (forrige.value_kwh if forrige else 0.0), forrige
+            )
+        elif utfall is Utfall.AVVIST_SPRANG:
+            _LOGGER.warning(
+                "%s delta %.1f kWh > %.0f kWh. Ignorerer som outlier.",
+                avlesning.entity_id,
+                bokforing.avvist_kwh,
+                MAX_ENERGY_DELTA_KWH,
+            )
+            self._meld_forkastet_delta(now, bokforing.avvist_kwh, forrige)
+        elif utfall is Utfall.AVVIST_FOR_LANGT_VINDU:
+            _LOGGER.debug(
+                "Pollvinduet var lengre enn %s timer. Estimert energi forkastet.",
+                MAX_ELAPSED_HOURS,
+            )
 
-        self._baseline = Baseline(
-            source_identity=identitet,
-            entity_id=self.energy_sensor,
-            value_kwh=current_kwh,
-            observed_at=resultat.observed_at,
+        if bokforing.bokfort_kwh > 0:
+            self._last_energy_increase = now
+        self._speil_baseline()
+        return bokforing
+
+    def _fores_av_boken(self) -> bool:
+        """Om boken fører den måneden coordinatoren viser.
+
+        Boken rullerer på observasjonstid og coordinatoren på klokken, så de
+        kan stå et øyeblikk fra hverandre. I det vinduet er bokens summer en
+        annen måneds og skal ikke legges til.
+        """
+        return self._bok.aktiv_maned in (None, self._current_month)
+
+    def _aapningsbalanse(self) -> ConsumptionData:
+        """Månedsforbruket som ikke ligger i boken (kontrakt D).
+
+        Etter migreringen fra v2 er det gamle månedssummer uten
+        intervallhistorikk, og etter et månedsskifte er det null. Den regnes ut
+        av differansen framfor å bæres som et eget lagret tall, så den kan ikke
+        drifte fra boken.
+        """
+        if not self._fores_av_boken():
+            return self._monthly_consumption.copy()
+        sum_ = self._bok.maanedssum()
+        return ConsumptionData(
+            dag=self._monthly_consumption.dag - sum_.kwh_dag,
+            natt=self._monthly_consumption.natt - sum_.kwh_natt,
         )
-        return delta
 
-    def _meld_forkastet_delta(self, now: datetime, raw_delta: float) -> None:
+    def _forbruk_fra_boken(self, naa: datetime, balanse: ConsumptionData) -> ConsumptionData:
+        """Åpningsbalansen pluss bokens egne intervaller for måneden."""
+        if not self._fores_av_boken():
+            return balanse.copy()
+        sum_ = self._bok.maanedssum(_aware(naa))
+        return ConsumptionData(dag=balanse.dag + sum_.kwh_dag, natt=balanse.natt + sum_.kwh_natt)
+
+    def _del_ved_maanedsskifte(self, avlesning: Avlesning | None) -> list[Avlesning]:
+        """Del en avlesning som krysser en fakturamåned ved grensen.
+
+        Boken deler vinduet selv når den bokfører (C6), men den arkiverer den
+        gamle måneden i samme kall, og da er intervallene borte før kronene for
+        dem er gjort opp. Deles avlesningen her, er den gamle måneden ferdig
+        bokført når arkiveringen skjer.
+
+        Delingen er ren interpolasjon i tid, den samme `fordel_delta` gjør, så
+        to deler gir nøyaktig samme fordeling som én.
+        """
+        if avlesning is None:
+            return []
+        forrige = self._bok.sist_observert
+        if forrige is None or forrige.source_identity != avlesning.source_identity:
+            return [avlesning]
+        fra, til = forrige.observed_at, avlesning.observed_at
+        if til <= fra or lokal_maned(fra) == lokal_maned(til):
+            return [avlesning]
+        delta = avlesning.value_kwh if avlesning.er_estimert else avlesning.value_kwh - forrige.value_kwh
+        if delta < 0 or delta > MAX_ENERGY_DELTA_KWH:
+            # Et sprang eller et målerbytte avvises i sin helhet. Delt i to
+            # kunne hver halvdel sluppet under grensen, og da ville avvisningen
+            # avhengt av hvor i måneden spranget lå.
+            return [avlesning]
+
+        deler: list[Avlesning] = []
+        forrige_tid, forrige_verdi = fra, forrige.value_kwh
+        for grense in self._maanedsgrenser(fra, til):
+            andel = (grense.timestamp() - forrige_tid.timestamp()) / (til.timestamp() - fra.timestamp())
+            verdi = delta * andel if avlesning.er_estimert else forrige_verdi + delta * andel
+            deler.append(replace(avlesning, value_kwh=verdi, observed_at=grense))
+            forrige_tid, forrige_verdi = grense, verdi
+        if avlesning.er_estimert:
+            rest = delta * (til.timestamp() - forrige_tid.timestamp()) / (til.timestamp() - fra.timestamp())
+            deler.append(replace(avlesning, value_kwh=rest))
+        else:
+            deler.append(avlesning)
+        return deler
+
+    @staticmethod
+    def _maanedsgrenser(fra: datetime, til: datetime) -> list[datetime]:
+        """Fakturamånedenes startpunkt i UTC, strengt mellom `fra` og `til`."""
+        grenser: list[datetime] = []
+        aar, mnd = (int(del_) for del_ in lokal_maned(fra).split("-"))
+        while True:
+            aar, mnd = (aar + 1, 1) if mnd == 12 else (aar, mnd + 1)
+            grense = datetime(aar, mnd, 1, tzinfo=OSLO).astimezone(UTC)
+            if grense >= til:
+                return grenser
+            if grense > fra:
+                grenser.append(grense)
+
+    def _energiledd_kroner(self, bokforing: Bokforing) -> float:
+        """Energiledd for en bokføring, med satsen som gjaldt i hvert intervall.
+
+        Satsen følger intervallets egen start, ikke klokken pollen står på. Det
+        er den halve fikseringen av C2.4 som er triviell uten kostnadskjernen:
+        energileddet avhenger ikke av spotprisen og trenger derfor ikke vente
+        på at timen er ferdig priset.
+        """
+        kroner = 0.0
+        for start, kwh in bokforing.fordeling.items():
+            kroner += kwh * self._get_energiledd(start.astimezone(OSLO))
+        self._monthly_accumulated_cost_energiledd += kroner
+        return kroner
+
+    def _akkumuler_norgespris(self, now: datetime, berorte: Iterable[datetime]) -> None:
+        """Bokfør Norgespris-linjen mot intervallenes egen timepris (C2.4).
+
+        Intervallene som er rørt denne pollen regnes opp på nytt, og bare
+        differansen mot det de alt har bidratt med legges til. Det er det som
+        gjør at en time som får sin fjerde prisrute, eller mer energi etter at
+        den er lukket, ender på riktig beløp uten å bli talt to ganger.
+
+        Et intervall uten pris bidrar med null og fylles ikke inn senere (C4).
+        Kilowattimene står igjen i `kwh_uten_pris`.
+        """
+        norgespris = get_norgespris_inkl_mva(self.avgiftssone)
+        mva = get_mva_sats(self.avgiftssone)
+        terskel = get_stromstotte_terskel(self.avgiftssone)
+        total_kwh = self._monthly_consumption.total
+        if total_kwh >= get_norgespris_max_kwh(self.boligtype):
+            # Over taket betaler kunden spot, og det som alt er bokført står.
+            return
+        starter = set(berorte)
+        starter.add(intervallstart(_aware(now)))
+        for start in starter:
+            intervall = self._bok.intervall(start, _aware(now))
+            if intervall is None or intervall.lokal_maned != self._current_month:
+                continue
+            pris_eks_mva = intervall.nok_per_kwh_eks_mva
+            if pris_eks_mva is None:
+                kroner = (0.0, 0.0)
+            else:
+                spot = pris_eks_mva * (1 + mva)
+                stotte = self._calculate_stromstotte(spot, total_kwh, self.boligtype, terskel)
+                spart = (spot - stotte - norgespris) if self.har_norgespris else (norgespris - spot + stotte)
+                kroner = ((norgespris - spot) * intervall.kwh, spart * intervall.kwh)
+            bokfort = self._kr_bokfort.get(start, (0.0, 0.0))
+            self._monthly_norgespris_compensation += kroner[0] - bokfort[0]
+            self._monthly_norgespris_diff += kroner[1] - bokfort[1]
+            self._kr_bokfort[start] = kroner
+
+    def _speil_baseline(self) -> None:
+        """Skriv bokens siste observasjon til v2-baselinen Store-filen bærer.
+
+        Boken er kilden (kontrakt C5). `energi_baseline` står igjen fordi en
+        nedgradering til 1.17 skal finne den der den lå, og fordi
+        diagnostikken viser den.
+        """
+        siste = self._bok.sist_observert
+        if siste is None or siste.er_estimert:
+            self._baseline = None
+            return
+        identitet = siste.source_identity
+        self._baseline = Baseline(
+            source_identity=None if identitet.startswith("entity:") else identitet,
+            entity_id=siste.entity_id,
+            value_kwh=siste.value_kwh,
+            observed_at=siste.observed_at,
+        )
+
+    def _meld_forkastet_delta(
+        self, now: datetime, raw_delta: float, forrige_avlesning: Avlesning | None = None
+    ) -> None:
         """Reis et fiksbart repair-varsel om kWh som ble kastet.
 
         Fiksbart fordi det eneste som skal skje er at brukeren ser tallet og
@@ -737,7 +1004,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         utfall, der telleren sto på samme tall i flere døgn hos oss mens
         måleren gikk videre.
         """
-        baselinetid = _som_lokal(self._baseline.observed_at) if self._baseline else None
+        baselinetid = _som_lokal(forrige_avlesning.observed_at) if forrige_avlesning else None
         forrige = baselinetid or self._last_update or now
         ir.async_create_issue(
             self.hass,
@@ -1040,6 +1307,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._monthly_consumption = ConsumptionData()
         self._monthly_norgespris_diff = 0.0
         self._monthly_norgespris_compensation = 0.0
+        self._kr_bokfort = {}
         self._monthly_export_kwh = 0.0
         self._monthly_export_revenue = 0.0
         self._monthly_cost = 0.0
@@ -1102,23 +1370,80 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             elapsed_hours = (now - self._last_update).total_seconds() / 3600
             elapsed_hours = max(0.0, min(elapsed_hours, MAX_ELAPSED_HOURS))
 
-        # Akkumuler energi FØRST, slik at siste syklus havner i riktig måned.
-        # Med energy_sensor: bruk delta fra kumulativ kWh-teller (eksakt mot
-        # faktura). Uten: fall tilbake til p * elapsed-Riemann-sum.
-        energy_kwh = 0.0
-        dirty = False
-        if self.energy_sensor:
-            energy_kwh = self._compute_energy_delta(now)
-        elif elapsed_hours > 0 and current_power_kw is not None and current_power_kw > 0:
-            energy_kwh = current_power_kw * elapsed_hours
+        # Prisen leses før energien bokføres, slik at prisprøven for ruten vi
+        # står i er registrert når intervallet leses av.
+        #
+        # Visningscachen er visningens, ikke avregningens: `spot_price` under
+        # kan være inntil to timer gammel, mens boken bare får prøver som
+        # faktisk kom inn denne pollen. En time uten prøve blir `uten_pris` og
+        # telles i `kwh_uten_pris`, den får ikke naboens pris (C2.5, C4).
+        mva_sats_for_spot = get_mva_sats(self.avgiftssone)
+        raw_spot = self._read_price_sensor(INPUT_ROLLE_SPOTPRIS)
+        if raw_spot is not None:
+            prove_eks_mva = (
+                raw_spot / (1 + mva_sats_for_spot)
+                if self.spotpris_inkl_mva and mva_sats_for_spot > 0
+                else raw_spot
+            )
+            self._bok.registrer_prisprove(_aware(now), prove_eks_mva)
+            spot_price_raw = raw_spot
+            self._last_spot_price = spot_price_raw
+            self._last_spot_price_time = now
+            spot_price_valid = True
+        elif (
+            self._last_spot_price is not None
+            and self._last_spot_price_time is not None
+            and sekunder_mellom(self._last_spot_price_time, now) < _SPOT_CACHE_MAX_AGE.total_seconds()
+        ):
+            spot_price_raw = self._last_spot_price
+            spot_price_valid = True
+        else:
+            spot_price_raw = 0.0
+            spot_price_valid = False
 
-        if energy_kwh > 0:
-            tariff = "dag" if self._is_day_rate(now) else "natt"
-            if tariff == "dag":
-                self._monthly_consumption.dag += energy_kwh
+        # Vaktholdet vurderes her fordi spot_price_valid nettopp er avgjort, og
+        # før noen beregning kan skjule at inputen er borte.
+        input_problemer = self._oppdater_vakthold(now, spot_price_valid=spot_price_valid)
+
+        # Normaliser til inkl. mva. Resten av kjeden behandler spot_price som inkl. mva,
+        # samme enhet som STROMSTOTTE_LEVEL og NORGESPRIS_INKL_MVA. Se incident 004.
+        if self.spotpris_inkl_mva:
+            spot_price = spot_price_raw
+            spot_price_eks_mva = (
+                spot_price_raw / (1 + mva_sats_for_spot) if mva_sats_for_spot > 0 else spot_price_raw
+            )
+        else:
+            spot_price_eks_mva = spot_price_raw
+            spot_price = spot_price_raw * (1 + mva_sats_for_spot)
+
+        # Akkumuler energi FØRST, slik at siste syklus havner i riktig måned.
+        # Avlesningen går i boken, som fordeler den over avregningsintervallene
+        # etter observasjonstid (C1). Tariffen kommer fra intervallets egen
+        # start, ikke fra klokken pollen står på.
+        dirty = False
+        energy_kwh = 0.0
+        energiledd_kr = 0.0
+        aapningsbalanse = self._aapningsbalanse()
+        avlesning = self._les_avlesning(now, current_power_kw, elapsed_hours)
+        for del_avlesning in self._del_ved_maanedsskifte(avlesning):
+            bokforing = self._bokfor(del_avlesning, now)
+            energy_kwh += bokforing.bokfort_kwh
+            if bokforing.bokfort_kwh > 0 or bokforing.avvist_kwh:
+                dirty = True
+            if bokforing.arkiverte_maneder:
+                # Boken rullerte inne i denne bokføringen. Månedssummen som
+                # skal arkiveres er den boken lukket, ikke det som ligger i den
+                # nye måneden nå; rulleringen under plukker den opp herfra.
+                arkiv = self._bok.arkiverte_maneder()[bokforing.arkiverte_maneder[-1]]
+                self._monthly_consumption = ConsumptionData(
+                    dag=aapningsbalanse.dag + arkiv.kwh_dag,
+                    natt=aapningsbalanse.natt + arkiv.kwh_natt,
+                )
             else:
-                self._monthly_consumption.natt += energy_kwh
-            dirty = True
+                self._monthly_consumption = self._forbruk_fra_boken(now, aapningsbalanse)
+            energiledd_kr += self._energiledd_kroner(bokforing)
+            self._akkumuler_norgespris(now, bokforing.fordeling)
+        self._akkumuler_norgespris(now, ())
 
         # Eksport-akkumulering (plusskunder med solceller)
         export_energy_kwh = 0.0
@@ -1210,40 +1535,6 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Calculate energiledd
         energiledd = self._get_energiledd(now)
 
-        # Get spot price (cache last known value, max 2 timer for kostnadakkumulering)
-        raw_spot = self._read_price_sensor(INPUT_ROLLE_SPOTPRIS)
-        if raw_spot is not None:
-            spot_price_raw = raw_spot
-            self._last_spot_price = spot_price_raw
-            self._last_spot_price_time = now
-            spot_price_valid = True
-        elif (
-            self._last_spot_price is not None
-            and self._last_spot_price_time is not None
-            and sekunder_mellom(self._last_spot_price_time, now) < _SPOT_CACHE_MAX_AGE.total_seconds()
-        ):
-            spot_price_raw = self._last_spot_price
-            spot_price_valid = True
-        else:
-            spot_price_raw = 0.0
-            spot_price_valid = False
-
-        # Vaktholdet vurderes her fordi spot_price_valid nettopp er avgjort, og
-        # før noen beregning kan skjule at inputen er borte.
-        input_problemer = self._oppdater_vakthold(now, spot_price_valid=spot_price_valid)
-
-        # Normaliser til inkl. mva. Resten av kjeden behandler spot_price som inkl. mva,
-        # samme enhet som STROMSTOTTE_LEVEL og NORGESPRIS_INKL_MVA. Se incident 004.
-        mva_sats_for_spot = get_mva_sats(self.avgiftssone)
-        if self.spotpris_inkl_mva:
-            spot_price = spot_price_raw
-            spot_price_eks_mva = (
-                spot_price_raw / (1 + mva_sats_for_spot) if mva_sats_for_spot > 0 else spot_price_raw
-            )
-        else:
-            spot_price_eks_mva = spot_price_raw
-            spot_price = spot_price_raw * (1 + mva_sats_for_spot)
-
         # Calculate strømstøtte (sonebevisst terskel, se incident 005)
         monthly_total_kwh = self._monthly_consumption.total
         stromstotte_terskel = get_stromstotte_terskel(self.avgiftssone)
@@ -1317,23 +1608,19 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             alternativ_pris = total_pris_norgespris
         kroner_spart_per_kwh = alternativ_pris - total_price
 
+        # Norgespris-linjen er alt bokført mot intervallenes egen timepris
+        # (`_akkumuler_norgespris`). Dags- og månedskostnaden står igjen på
+        # pollens pris til kostnadskjernen i L3b tar dem.
         if energy_kwh > 0 and spot_price_valid:
-            self._monthly_norgespris_diff += kroner_spart_per_kwh * energy_kwh
-            # Kompensasjons-sensoren reflekterer kun timer under Norgespris-taket.
-            # Over taket betaler kunden faktisk spot, så det er ingen kompensasjon
-            # å regne på. Samme tak-logikk som total_price (linje 615-624).
-            # Kjent begrensning: hvis taket nås midt i en time, telles hele timen
-            # i feil bucket. Effekt < 1 min forbruk pga 1-min polling.
-            if not norgespris_over_tak:
-                self._monthly_norgespris_compensation += (norgespris - spot_price) * energy_kwh
             self._daily_cost += total_price * energy_kwh
             self._monthly_cost += total_price * energy_kwh
 
         # Akkumuler kostnad for Energy Dashboard (stat_cost)
         elapsed_seconds = elapsed_hours * 3600
         if energy_kwh > 0:
-            # Energiledd er kjent uavhengig av spotpris
-            self._monthly_accumulated_cost_energiledd += energy_kwh * energiledd
+            # Energileddet er bokført per intervall over, med satsen som gjaldt
+            # der. `energiledd_kr` er bare med her for å kunne leses av.
+            _ = energiledd_kr
             # Strømdelen er kjent for Norgespris under tak; ellers krever den valid spot
             if self.har_norgespris and not norgespris_over_tak:
                 self._monthly_accumulated_cost_strom += energy_kwh * norgespris
@@ -1366,6 +1653,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         current_month_str = now.strftime("%Y-%m")
         if current_month_str != self._current_month:
             await self._handle_month_rollover(now)
+            # Etter arkiveringen står måneden på null, og det boken alt har
+            # bokført i den nye måneden er det eneste forbruket som finnes.
+            self._monthly_consumption = self._forbruk_fra_boken(now, ConsumptionData())
 
         # Get electricity company price if configured
         electricity_company_price = None
@@ -1444,6 +1734,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         aktiv_periode = self._aktiv_periode_label(now)
 
         return {
+            # Bokens egne statusfelt (felttabellen i avregningskontrakten).
+            **self._bok.statusfelt(_aware(now)),
             "energiledd": round(kw["energiledd"], 4),
             "energiledd_dag": aktiv_dag,
             "energiledd_natt": aktiv_natt,
@@ -1817,22 +2109,17 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return dag if self._is_day_rate(now) else natt
 
     def _is_day_rate(self, now: datetime) -> bool:
-        """Check if current time is day rate."""
-        is_night = now.hour < DAY_RATE_START_HOUR or now.hour >= DAY_RATE_END_HOUR
+        """Om tidspunktet ligger i dagtariffen.
 
-        if not self._helg_som_natt:
-            return not is_night
+        Regelen bor i `Tariffregel` og leses derfra, ikke av en kopi her.
+        Kopien fantes, og den var grunnen til at avregningen og visningen kunne
+        svare ulikt på samme time.
 
-        date_mm_dd = now.strftime("%m-%d")
-        date_yyyy_mm_dd = now.strftime("%Y-%m-%d")
-
-        is_fixed_holiday = date_mm_dd in HELLIGDAGER_FASTE
-        is_dso_extra_holiday = date_mm_dd in self._helligdager_ekstra
-        bevegelige = _bevegelige_helligdager(now.year)
-        is_moving_holiday = date_yyyy_mm_dd in bevegelige
-        is_weekend = now.weekday() >= WEEKEND_WEEKDAY_START
-
-        return not (is_fixed_holiday or is_dso_extra_holiday or is_moving_holiday or is_weekend or is_night)
+        En naiv tid tolkes som Europe/Oslo. Avregningen sender aldri en slik
+        inn; den er til for tester og for visningsfelt som ennå ikke er
+        tidssoneklare.
+        """
+        return self._tariffregel.tariff(_aware(now)) is Tariff.DAG
 
     def _format_month_name(self, dt: datetime) -> str:
         """Format date as Norwegian month name with year."""
@@ -1959,6 +2246,11 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 except OSError as err:
                     _LOGGER.warning("Storage migration failed: %s", err)
 
+        # Boken leser hele filen, ikke bare sine egne nøkler: en v1- eller
+        # v2-fil har ingen intervallhistorikk å gjenskape, og måneden den
+        # migreres i merkes `ufullstendig` (kontrakt D).
+        self._bok = self._ny_bok(data)
+
         if data:
             try:
                 self._daily_max_power = self._validate_daily_max_power(data.get("daily_max_power", {}))
@@ -2082,6 +2374,18 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 # setter ny baseline med delta 0. Månedsdata beholdes.
                 lagret_baseline = data.get(BASELINE_NOKKEL)
                 self._baseline = Baseline.fra_lagret(lagret_baseline)
+                if self._bok.sist_observert is None and self._baseline is not None:
+                    # v2-fil: boken har ingen observasjon, men baselinen i
+                    # filen er den samme opplysningen og skal ikke kastes.
+                    self._bok.sett_baseline(
+                        Avlesning(
+                            source_identity=self._baseline.source_identity
+                            or f"entity:{self._baseline.entity_id}",
+                            entity_id=self._baseline.entity_id,
+                            value_kwh=self._baseline.value_kwh,
+                            observed_at=self._baseline.observed_at,
+                        )
+                    )
                 # Forkastet betyr at det faktisk lå en baseline der som ikke lot
                 # seg lese. `_save_stored_data` skriver `energi_baseline: None`
                 # ved hver lagring uten baseline, så `BASELINE_NOKKEL in data`
@@ -2111,6 +2415,34 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             except (TypeError, KeyError, AttributeError) as err:
                 _LOGGER.warning("Corrupt storage data, using defaults: %s", err)
             _LOGGER.debug("Loaded stored data: %s", self._daily_max_power)
+
+        # Kronene hvert lagret intervall alt har bidratt med regnes opp igjen
+        # av boken framfor å lagres. Da kan de ikke drifte fra intervallene, og
+        # et intervall som ikke endrer seg mer bidrar aldri en gang til.
+        self._speil_baseline()
+        self._bygg_kronebokforing()
+
+    def _bygg_kronebokforing(self) -> None:
+        """Sett `_kr_bokfort` til det bokens intervaller svarer til nå (C5)."""
+        self._kr_bokfort = {}
+        if not self._fores_av_boken():
+            return
+        norgespris = get_norgespris_inkl_mva(self.avgiftssone)
+        mva = get_mva_sats(self.avgiftssone)
+        terskel = get_stromstotte_terskel(self.avgiftssone)
+        total_kwh = self._monthly_consumption.total
+        for intervall in self._bok.intervaller():
+            pris_eks_mva = intervall.nok_per_kwh_eks_mva
+            if pris_eks_mva is None:
+                self._kr_bokfort[intervall.start_utc] = (0.0, 0.0)
+                continue
+            spot = pris_eks_mva * (1 + mva)
+            stotte = self._calculate_stromstotte(spot, total_kwh, self.boligtype, terskel)
+            spart = (spot - stotte - norgespris) if self.har_norgespris else (norgespris - spot + stotte)
+            self._kr_bokfort[intervall.start_utc] = (
+                (norgespris - spot) * intervall.kwh,
+                spart * intervall.kwh,
+            )
 
     @staticmethod
     def _validate_float(value: Any) -> float:
@@ -2211,6 +2543,11 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _save_stored_data(self) -> None:
         """Save data to disk."""
         data: dict[str, Any] = {
+            # Boken skriver `skjema_versjon` selv, og den er én teller for hele
+            # filen (kontrakt D). Den sto på 2 fra K1 og løftes til 3 her.
+            # v1- og v2-feltene under skrives uendret, så en nedgradering
+            # beholder månedsdataene sine.
+            **self._bok.til_lagring(),
             "daily_max_power": self._serialize_daily_max(self._daily_max_power),
             "weekly_max_power": {
                 k: {"kw": v.kw, "dato": v.dato, "hour": v.hour} for k, v in self._weekly_max_power.items()
@@ -2249,11 +2586,6 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "previous_month_export_revenue": self._previous_month_export_revenue,
             "previous_month_cost": self._previous_month_cost,
             "last_update": self._last_update.isoformat() if self._last_update else None,
-            # Skjemaversjonen for måledatafilen (kontrakt §5). Den står i selve
-            # dataene og ikke i Store-konstruktøren, slik at en eldre utgave av
-            # integrasjonen fortsatt kan lese filen og beholde månedsdataene
-            # sine; det er bare baselinen som er ny.
-            "skjema_versjon": BASELINE_SKJEMA,
             BASELINE_NOKKEL: self._baseline.som_lagret() if self._baseline else None,
             # Additiv nøkkel (v1.17.0). Eldre lagringsfiler mangler den og
             # faller tilbake til "vet ikke" ved oppstart, uten versjonsbump.
@@ -2264,4 +2596,4 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except OSError:
             _LOGGER.warning("Failed to save storage data (disk full?)")
             return
-        _LOGGER.debug("Saved data: %s", data)
+        _LOGGER.debug("Lagret %s nøkler: %s", len(data), _uten_kildeidentitet(data))

@@ -343,7 +343,7 @@
   "issues": {
     "vakthold_utfall": {
       "title": "Strømkalkulator is not receiving data from {input}",
-      "description": "{entity_id} has been unavailable for {timer} hours. While it is gone, consumption and cost stand still without the numbers looking wrong. Check the integration that owns the sensor, the HAN reader and the network. The warning clears itself once data returns."
+      "description": "Hours without data, per sensor:\n\n{detaljer}\n\nWhile they are gone, consumption and cost stand still without the numbers looking wrong. Check the integration that owns the sensor, the HAN reader and the network. The list updates as sensors return, and the warning clears itself once they all deliver again."
     },
     "vakthold_frossen": {
       "title": "The energy meter is not moving",
@@ -408,7 +408,7 @@
     },
     "vakthold_enhet": {
       "title": "Strømkalkulator cannot compute from {input}",
-      "description": "{entity_id} now reports in the unit {enhet}, which the calculator cannot convert. While the sensor stays that way it delivers no numbers, and everything that depends on it stands still. Check the integration that owns the sensor, or pick another one under Settings > Devices and services > Strømkalkulator > Configure."
+      "description": "The unit each sensor now reports, which the calculator cannot convert:\n\n{detaljer}\n\nWhile a sensor stays that way it delivers no numbers, and everything that depends on it stands still. Check the integration that owns the sensor, or pick another one under Settings > Devices and services > Strømkalkulator > Configure."
     },
     "prisenhet_ubekreftet": {
       "title": "Confirm the unit on the price sensor",

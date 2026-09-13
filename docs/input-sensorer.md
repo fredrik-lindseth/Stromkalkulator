@@ -233,7 +233,11 @@ om de andre sensorene leverte som normalt. Nå meldes den som et utfall, og alt
 som fortsatt har datagrunnlag regnes videre.
 
 Du ser det på `binary_sensor`-en «Måledata-problem» og under Innstillinger >
-Reparasjoner. Varslene forsvinner av seg selv når inputen er tilbake.
+Reparasjoner. Det er ett varsel per situasjon i tabellen over, ikke ett per
+sensor: er to sensorer borte samtidig, står begge i samme varsel med hver sin
+linje og hvor lenge de har vært nede. Frisker den ene til mens den andre
+fortsatt er borte, skrives varselet om, og den friske forsvinner fra listen.
+Varslene forsvinner av seg selv når inputen er tilbake.
 Integrasjonen sender ikke varsler selv; bygg en automasjon på binary_sensoren
 hvis du vil ha push.
 

@@ -78,6 +78,84 @@ Det tar hensyn til HAs 10 sekunders refresh-debounce og integrasjonens
 samtidig. En historisk timepris blir ikke nødvendigvis brukt av en egen
 HA-poll; dette er ikke verifisering av historisk spotavregning.
 
+## Oppgraderingsveien fra v1.16.0
+
+```bash
+python3 tests_e2e/run.py upgrade            # rundt 15 minutter
+python3 tests_e2e/run.py upgrade --fra v1.15.0
+```
+
+Installerer den sluppet utgaven først, setter opp to anlegg gjennom dens egen
+config-flow, kjører opp akkumulatorene, bytter integrasjonen mens containeren
+står stille, og starter igjen. Alt før byttet skjer i den gamle kodens hender,
+så lagringsfilen og config-entryene har formen den faktisk skrev. Det er
+forskjellen på dette og `tests_ha/test_store_migrering.py`, som mater en
+håndbygget etterligning av samme fil.
+
+| Scenario | Påstand |
+| --- | --- |
+| `test_onboarding_egendefinert` | Egendefinert uten trinntabell settes opp likt i begge utgavene |
+| `seed_akkumulatorer` | Forbruk, effekt og kroner på begge anlegg før byttet |
+| `test_oppgradering_beholder_akkumulatorene` | 11 akkumulatorsensorer per anlegg tall for tall, og begge entryene lastet |
+| `test_baselinen_forkastes_en_gang` | Den kildeløse baselinen gjenopptas ikke og gir ikke falskt forbruk |
+| `test_fastleddet_er_et_periodebelop` | `monthly_cost_kr` er samme tall som akkumulert kostnad, og 8 kWh rører ikke fastleddet |
+| `test_statistikken_folger_skiftet` | Recorderens sum følger differansen, så skiftet blir ikke lest som en nullstilling |
+| `test_egendefinert_uten_fastledd` | Sju kapasitetsavhengige sensorer er Ukjent, resten har tall, og varselet forklarer |
+| `test_satsvarsel_kun_ved_avvik` | Katalogsats og egendefinert får ikke satsvarselet |
+| `test_satsvarsel_etter_avvik` | En lagret sats som spriker får det, med begge satsene i teksten |
+
+Døgnmaks bokføres først når en klokketime er ferdig, og forrige måned krever
+et månedsskifte. Ingen av delene rekker en lab som lever i minutter, så begge
+seedes inn i lagringsfilen den gamle utgaven selv skrev, med nøkler som alt
+står der. `skriv_lagring` nekter å legge til en nøkkel som ikke fantes: en
+seedet nøkkel utgaven aldri skrev, beviser ingenting om hva den skrev.
+
+Størrelsen på fallet i `monthly_cost_kr` hører ikke hjemme her. HA bruker
+dagens klokke, så fastleddet blir dagens andel av inneværende måned, ikke
+mai sin. De 64 til 145 kronene er målt mot ekte fakturaer i
+[docs/research/revalidering-l3b-september-2026.md](../docs/research/revalidering-l3b-september-2026.md).
+Laben prøver mekanismen: at de to veiene til månedskostnaden nå er én, og at
+fastleddet ikke lenger henger på kilowattimene.
+
+## Vaktholdet i ekte tid
+
+```bash
+python3 tests_e2e/run.py vakthold                      # rundt 40 minutter
+python3 tests_e2e/run.py vakthold --cache-minutter 95   # rundt 2 timer og 20
+```
+
+Ikke med i `just test-e2e`, og skal ikke bli det: grace-vinduet er 30 minutter,
+målt på klokken. Skal laben si noe om et ekte utfall, må utfallet vare like
+lenge som et ekte et.
+
+Spotcachen på to timer er den ene dyre biten og står av som default.
+`--cache-minutter 95` tar den med, og da tar kjøringen over to timer.
+Rangeringen mellom `spot_utfall` og utfallsraden er alt voktet i
+`tests/test_vakthold.py`, så den lange turen er en slippport framfor noe man
+kjører jevnlig.
+
+| Scenario | Påstand |
+| --- | --- |
+| `test_vakthold_stille_naar_alt_er_friskt` | Null varsler når ingenting er galt |
+| `test_maalerbytte_varsler_ikke` | Ny kilde er en baseline, ikke et sprang og ikke et varsel |
+| `test_sprang_varsler_med_riktig_sensor` | +1000 kWh avvises, varselet navngir telleren og tallet |
+| `test_vakthold_tier_rett_etter_omstart` | Tom spotcache ved oppstart varsler ikke |
+| `test_vakthold_tier_innenfor_grace` | Et utfall innenfor grace-vinduet varsler ikke |
+| `test_vakthold_varsler_etter_grace` | `input_utfall` navngir effekt, energi og spotpris |
+| `test_vakthold_spot_utlopt` | `spot_utfall` tar over, og spot står ikke også i utfallsvarselet (kun med `--cache-minutter`) |
+| `test_vakthold_delvis_friskmelding` | Teksten skrives om, varselet blir stående |
+| `test_vakthold_friskmelding` | Alle vaktholdsvarsler forsvinner |
+| `test_frossen_teller_varsles` | Telleren svarer men står stille, og varselet peker på den |
+| `test_strombrudd_er_ikke_frossen_teller` | Samme alder, men HA var av i gapet: ingen varsel |
+
+Template-sensorene i laben gjenoppstår ved omstart, så en omstart midt i et
+utfall friskmelder inputene. Omstartsvakten prøves derfor for seg, før
+utfallet. Frossen teller og strømbrudd seedes gjennom lagringsfilen, for begge
+handler om hva `last_energy_increase` og `last_update` sto på da HA startet.
+
+Sommertid prøves ikke her. Laben kan ikke flytte klokken, og
+`tests/test_dst_overgang.py` eier begge overgangene med kontrollert tid.
+
 ## To forskjellige avstemminger
 
 `report.json` viser både kilderegnskapet og det HA faktisk bokførte:

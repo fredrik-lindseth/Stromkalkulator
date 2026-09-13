@@ -1165,6 +1165,9 @@ def _full_dump():
 # linjene over er historikk og skal ikke røres.
 SKJEMA_FINGERAVTRYKK: dict[int, str] = {
     3: "57667d2cbd0c23aa",
+    # 4: kostnadskjernen (L3b) la splitten av energileddet og strømstøtten i
+    # kroner under "beregning".
+    4: "5e19c921aa05721a",
 }
 
 

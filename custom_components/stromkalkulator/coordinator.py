@@ -25,7 +25,9 @@ from .avregning import (
     Tariffregel,
     Utfall,
     intervallstart,
+    lokal_dato,
     lokal_maned,
+    lokal_time,
 )
 from .const import (
     AVGIFTSSONE_STANDARD,
@@ -105,6 +107,16 @@ from .inputadapter import (
     kildeidentitet,
     les_input,
 )
+from .kostnad import (
+    INGEN_KRONER,
+    Kroner,
+    Satser,
+    andel_av_maaned,
+    fastledd_belop,
+    forlopt_andel_av_maaned,
+    kroner_for_intervall,
+    sekunder_forlopt_i_dogn,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -112,6 +124,7 @@ if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
 
+    from .avregning import AvregnetIntervall
     from .dso import DSOEntry, EnergileddPeriode, FastleddLineaer, KapasitetstrinnDict
 
 _LOGGER = logging.getLogger(__name__)
@@ -387,13 +400,15 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     _previous_month_energiledd_natt: float
     _monthly_export_kwh: float
     _monthly_export_revenue: float
-    _monthly_cost: float
     _previous_month_export_kwh: float
     _previous_month_export_revenue: float
     _previous_month_cost: float
-    _monthly_accumulated_cost: float
     _monthly_accumulated_cost_strom: float
-    _monthly_accumulated_cost_energiledd: float
+    _monthly_stromstotte: float
+    _monthly_energiledd_dag: float
+    _monthly_energiledd_natt: float
+    _monthly_avgifter: float
+    _monthly_energiledd_apning: float
     _monthly_accumulated_cost_kapasitetsledd: float
     _store: Store[dict[str, Any]]
     _store_loaded: bool
@@ -571,15 +586,23 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Eksport-akkumulering (plusskunder med solceller)
         self._monthly_export_kwh = 0.0
         self._monthly_export_revenue = 0.0
-        self._monthly_cost = 0.0
         self._previous_month_export_kwh = 0.0
         self._previous_month_export_revenue = 0.0
         self._previous_month_cost = 0.0
 
-        # Akkumulert kostnad for Energy Dashboard (stat_cost)
-        self._monthly_accumulated_cost = 0.0
+        # Akkumulert kostnad for Energy Dashboard (stat_cost). Alt utenom
+        # fastleddet bokføres per avregnet intervall; fastleddet er et
+        # periodebeløp og regnes på nytt ved hver poll (kostnad.py).
         self._monthly_accumulated_cost_strom = 0.0
-        self._monthly_accumulated_cost_energiledd = 0.0
+        self._monthly_stromstotte = 0.0
+        self._monthly_energiledd_dag = 0.0
+        self._monthly_energiledd_natt = 0.0
+        self._monthly_avgifter = 0.0
+        # Energiledd fra før oppgraderingen til intervallbokføring. Beløpet
+        # finnes bare som én sum og lar seg ikke splitte i dag, natt og
+        # avgifter i ettertid, så det bæres som en åpningsbalanse og faller
+        # bort ved første månedsskifte.
+        self._monthly_energiledd_apning = 0.0
         self._monthly_accumulated_cost_kapasitetsledd = 0.0
 
         # Daily cost accumulation
@@ -633,7 +656,11 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Kronene hvert intervall alt har bidratt med, slik at et intervall som
         # får mer energi eller en ny prisrute bare bidrar med differansen. Uten
         # den ville en time blitt bokført på nytt ved hver poll.
-        self._kr_bokfort: dict[datetime, tuple[float, float]] = {}
+        self._kr_bokfort: dict[datetime, Kroner] = {}
+        # kWh hvert lukkede intervall alt er registrert i døgnmaks med, slik at
+        # en forsinket avlesning inn i en ferdig time oppdaterer toppen, mens
+        # en uendret time ikke regnes om ved hver poll.
+        self._timesmaks_bokfort: dict[datetime, float] = {}
 
         # Persistent storage - keyed by entry_id for multi-instance isolation
         self._store = Store(hass, 1, f"{DOMAIN}_{entry.entry_id}")
@@ -934,53 +961,189 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if grense > fra:
                 grenser.append(grense)
 
-    def _akkumuler_energiledd(self, bokforing: Bokforing) -> None:
-        """Bokfør energiledd for en bokføring, med satsen som gjaldt i hvert intervall.
+    @property
+    def _monthly_accumulated_cost_energiledd(self) -> float:
+        """Nettleiens energidel denne måneden, med forbruksavgift og Enova.
 
-        Satsen følger intervallets egen start, ikke klokken pollen står på. Det
-        er den halve fikseringen av C2.4 som er triviell uten kostnadskjernen:
-        energileddet avhenger ikke av spotprisen og trenger derfor ikke vente
-        på at timen er ferdig priset.
+        Feltet `monthly_accumulated_cost_energiledd_kr` har alltid ment dette,
+        og dommen over K3 hadde rett i at navnet er upresist: satsen som ganges
+        er hele `total_nettleie_price`, ikke energileddet alene. Navnet står
+        likevel, for brukerne har langtidsstatistikk på sensoren, og et bytte av
+        betydning ville rettet navnet og ødelagt tallrekken i samme slengen.
+        Splitten ligger i stedet ved siden av som `monthly_energiledd_dag_kr`,
+        `monthly_energiledd_natt_kr` og `monthly_avgifter_kr`, som summerer
+        nøyaktig hit. Et nytt navn hører til L3c, der sensorattributtene skrives
+        om i samme endring.
         """
-        for start, kwh in bokforing.fordeling.items():
-            self._monthly_accumulated_cost_energiledd += kwh * self._get_energiledd(start.astimezone(OSLO))
+        return (
+            self._monthly_energiledd_dag
+            + self._monthly_energiledd_natt
+            + self._monthly_avgifter
+            + self._monthly_energiledd_apning
+        )
 
-    def _akkumuler_norgespris(self, now: datetime, berorte: Iterable[datetime] = ()) -> None:
-        """Bokfør Norgespris-linjen mot intervallenes egen timepris (C2.4).
+    @property
+    def _monthly_accumulated_cost(self) -> float:
+        """Månedens kostnad: alt som følger energien, pluss fastleddet.
 
-        Intervallene som er rørt denne pollen regnes opp på nytt, og bare
-        differansen mot det de alt har bidratt med legges til. Det er det som
-        gjør at en time som får sin fjerde prisrute, eller mer energi etter at
-        den er lukket, ender på riktig beløp uten å bli talt to ganger.
-
-        Et intervall uten pris bidrar med null og fylles ikke inn senere (C4).
-        Kilowattimene står igjen i `kwh_uten_pris`.
+        Én akkumulator, ikke to. `monthly_cost_kr` og
+        `monthly_accumulated_cost_kr` var to veier til samme tall og kunne
+        svare ulikt; nå er de det samme tallet (33f81xu).
         """
-        norgespris = get_norgespris_inkl_mva(self.avgiftssone)
+        return (
+            self._monthly_accumulated_cost_strom
+            + self._monthly_accumulated_cost_energiledd
+            + self._monthly_accumulated_cost_kapasitetsledd
+        )
+
+    @property
+    def _monthly_cost(self) -> float:
+        """Samme tall som `_monthly_accumulated_cost`, med det gamle navnet."""
+        return self._monthly_accumulated_cost
+
+    def _satser(self, intervall: AvregnetIntervall) -> Satser:
+        """Satsene som gjaldt i et avregnet intervall.
+
+        Sesongsatsene slås opp på intervallets egen start, ikke på klokken
+        pollen står på, og tariffen kommer fra intervallet (C2.4).
+        """
+        lokal = intervall.start_utc.astimezone(OSLO)
+        dag_sats, natt_sats = self._get_aktive_energileddsatser(lokal)
         mva = get_mva_sats(self.avgiftssone)
-        terskel = get_stromstotte_terskel(self.avgiftssone)
-        total_kwh = self._monthly_consumption.total
-        if total_kwh >= get_norgespris_max_kwh(self.boligtype):
-            # Over taket betaler kunden spot, og det som alt er bokført står.
+        return Satser(
+            energiledd_inkl_mva=dag_sats if intervall.tariff is Tariff.DAG else natt_sats,
+            avgifter_inkl_mva=(get_forbruksavgift(self.avgiftssone) + ENOVA_AVGIFT) * (1 + mva),
+            mva_sats=mva,
+            norgespris_inkl_mva=get_norgespris_inkl_mva(self.avgiftssone),
+            stromstotte_terskel=get_stromstotte_terskel(self.avgiftssone),
+            stromstotte_max_kwh=get_stromstotte_max_kwh(self.boligtype),
+            norgespris_max_kwh=get_norgespris_max_kwh(self.boligtype),
+            har_norgespris=self.har_norgespris,
+        )
+
+    def _kwh_fra_og_med(self, naa: datetime, starter: set[datetime]) -> dict[datetime, float]:
+        """kWh i boken fra og med hvert av intervallene i `starter`.
+
+        Tak-splitten trenger å vite hvor mye måneden hadde bak seg da et
+        intervall begynte. Månedstotalen er kjent (den bærer også
+        åpningsbalansen fra en migrering), og det som ligger foran et intervall
+        er totalen minus det som ligger fra og med det.
+        """
+        if not starter:
+            return {}
+        tidligst = min(starter)
+        etter: dict[datetime, float] = {}
+        lopende = 0.0
+        for intervall in reversed(self._bok.intervaller(naa)):
+            if intervall.start_utc < tidligst:
+                break
+            lopende += intervall.kwh
+            etter[intervall.start_utc] = lopende
+        return etter
+
+    def _akkumuler_kroner(self, now: datetime, berorte: Iterable[datetime] = ()) -> None:
+        """Bokfør kronene for intervallene denne pollen rørte (C2.4).
+
+        Intervallene regnes opp på nytt, og bare differansen mot det de alt har
+        bidratt med legges til. Det er det som gjør at en time som får sin
+        fjerde prisrute, eller mer energi etter at den er lukket, ender på
+        riktig beløp uten å bli talt to ganger.
+
+        Fastleddet er ikke med. Det er et periodebeløp og regnes av tiden, ikke
+        av kilowattimene.
+        """
+        if not self._fores_av_boken():
             return
+        naa = _aware(now)
         starter = set(berorte)
-        starter.add(intervallstart(_aware(now)))
-        for start in starter:
-            intervall = self._bok.intervall(start, _aware(now))
+        starter.add(intervallstart(naa))
+        etter = self._kwh_fra_og_med(naa, starter)
+        total = self._monthly_consumption.total
+        for start in sorted(starter):
+            intervall = self._bok.intervall(start, naa)
             if intervall is None or intervall.lokal_maned != self._current_month:
                 continue
-            pris_eks_mva = intervall.nok_per_kwh_eks_mva
-            if pris_eks_mva is None:
-                kroner = (0.0, 0.0)
-            else:
-                spot = pris_eks_mva * (1 + mva)
-                stotte = self._calculate_stromstotte(spot, total_kwh, self.boligtype, terskel)
-                spart = (spot - stotte - norgespris) if self.har_norgespris else (norgespris - spot + stotte)
-                kroner = ((norgespris - spot) * intervall.kwh, spart * intervall.kwh)
-            bokfort = self._kr_bokfort.get(start, (0.0, 0.0))
-            self._monthly_norgespris_compensation += kroner[0] - bokfort[0]
-            self._monthly_norgespris_diff += kroner[1] - bokfort[1]
-            self._kr_bokfort[start] = kroner
+            kwh_for = max(0.0, total - etter.get(start, intervall.kwh))
+            nye = kroner_for_intervall(intervall, self._satser(intervall), kwh_for=kwh_for)
+            self._legg_til_kroner(nye - self._kr_bokfort.get(start, INGEN_KRONER), lokal_dato(start))
+            self._kr_bokfort[start] = nye
+
+    def _legg_til_kroner(self, diff: Kroner, dato: str) -> None:
+        """Legg en differanse inn i månedens og dagens bøker."""
+        self._monthly_accumulated_cost_strom += diff.strom_kr
+        self._monthly_stromstotte += diff.stromstotte_kr
+        self._monthly_energiledd_dag += diff.energiledd_dag_kr
+        self._monthly_energiledd_natt += diff.energiledd_natt_kr
+        self._monthly_avgifter += diff.avgifter_kr
+        self._monthly_norgespris_compensation += diff.norgespris_kompensasjon_kr
+        self._monthly_norgespris_diff += diff.norgespris_differanse_kr
+        if dato == self._current_date:
+            # Dagsboken er de samme intervallene, avgrenset av intervallets egen
+            # lokale dato. En time som får mer energi i morgen hører fortsatt til
+            # i går, og skal ikke dukke opp i morgendagens tall.
+            self._daily_cost += diff.energi_kr
+
+    def _oppdater_fastledd(self, now: datetime, kapasitetsledd: int) -> None:
+        """Fastleddet som periodebeløp: kr/mnd ganger forløpt andel av måneden.
+
+        Regnet på nytt ved hver poll framfor å summeres opp av små tidsbiter.
+        To ting følger av det. Et trinnskifte midt i måneden gjelder hele
+        måneden, slik nettselskapet fakturerer, i stedet for å tidsvekte det
+        gamle og det nye trinnet mot hverandre. Og en Egendefinert-bruker som
+        fyller inn trinntabellen den 20. får hele månedens forløpte andel med en
+        gang, i stedet for et stille hull for de nitten dagene før (K3, funn 5).
+
+        Andelen måles i absolutt tid, så mars og oktober er ikke
+        spesialtilfeller (3jebp9g).
+        """
+        belop = None if self._fastledd_ukjent() or self._mangler_sikringsvalg() else kapasitetsledd
+        self._monthly_accumulated_cost_kapasitetsledd = fastledd_belop(
+            belop, forlopt_andel_av_maaned(_aware(now))
+        )
+
+    def _oppdater_fastledd_helmaaned(self, kapasitetsledd: int) -> None:
+        """Sett fastleddet til hele månedens beløp, for måneden som lukkes.
+
+        Nettselskapet fakturerer sluttrinnet for hele fakturamåneden, så det er
+        det tallet som arkiveres, ikke andelen som var forløpt da siste poll
+        kom inn.
+        """
+        belop = None if self._fastledd_ukjent() or self._mangler_sikringsvalg() else kapasitetsledd
+        self._monthly_accumulated_cost_kapasitetsledd = fastledd_belop(belop, 1.0)
+
+    def _fastledd_i_dag(self, now: datetime, kapasitetsledd: int) -> float:
+        """Dagens andel av månedens fastledd, i kroner."""
+        belop = None if self._fastledd_ukjent() or self._mangler_sikringsvalg() else kapasitetsledd
+        naa = _aware(now)
+        return fastledd_belop(belop, andel_av_maaned(sekunder_forlopt_i_dogn(naa), naa))
+
+    def _oppdater_timesmaks(self, now: datetime) -> bool:
+        """Skriv bokens lukkede intervaller til døgnmaks. True hvis noe endret seg.
+
+        Dette erstatter veggklokke-bøtta `_current_hour_energy` fylte.
+        Intervallene er de samme timene, men de kommer fra boken, så de er de
+        samme kilowattimene som avregningen bruker og de er UTC-forankret.
+        Sommertidsskiftene trenger derfor ingen egen kode her: timen som finnes
+        to ganger er to intervaller, og timen som ikke finnes er ingen.
+
+        `current_hour_energy` speiles fra det åpne intervallet, slik
+        felttabellen sier den skal være.
+        """
+        naa = _aware(now)
+        apen = intervallstart(naa)
+        endret = False
+        for intervall in self._bok.intervaller(naa):
+            start = intervall.start_utc
+            if start >= apen or intervall.kwh <= 0:
+                continue
+            if self._timesmaks_bokfort.get(start) == intervall.kwh:
+                continue
+            self._timesmaks_bokfort[start] = intervall.kwh
+            if self._registrer_timesmaks(lokal_dato(start), intervall.kwh, lokal_time(start)):
+                endret = True
+        apent = self._bok.intervall(apen, naa)
+        self._current_hour_energy = apent.kwh if apent is not None else 0.0
+        return endret
 
     def _speil_baseline(self) -> None:
         """Skriv bokens siste observasjon til v2-baselinen Store-filen bærer.
@@ -1276,14 +1439,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._previous_month_norgespris_compensation = self._monthly_norgespris_compensation
             self._previous_month_export_kwh = self._monthly_export_kwh
             self._previous_month_export_revenue = self._monthly_export_revenue
-            self._previous_month_cost = self._monthly_cost
-
-            # Flush siste times akkumulator til daily_max_power før arkivering
-            if self._current_hour_energy > 0:
-                yesterday = (now.replace(hour=0, minute=0, second=0) - timedelta(seconds=1)).strftime(
-                    "%Y-%m-%d"
-                )
-                self._registrer_timesmaks(yesterday, self._current_hour_energy, self._current_hour)
+            # Timene i måneden er alt skrevet til døgnmaks fra boken, også den
+            # siste: `_oppdater_timesmaks` kjører inne i bokføringen, før boken
+            # arkiverer måneden.
 
             # Compute kapasitetsledd for previous month before reset
             prev_top_3 = self._get_top_3_days()
@@ -1299,6 +1457,12 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self._previous_month_kapasitetsledd = prev_kap
                 self._previous_month_kapasitetstrinn = prev_trinn
 
+            # Måneden som lukkes fakturerer sluttrinnet for hele måneden, ikke
+            # en tidsvektet blanding av trinnene den var innom. Fastleddet
+            # settes til fullt beløp før kostnaden arkiveres.
+            self._oppdater_fastledd_helmaaned(self._previous_month_kapasitetsledd)
+            self._previous_month_cost = self._monthly_cost
+
         # Archive energiledd rates for accurate previous-month calculations.
         # For sesong-DSO-er bruker vi forrige måneds siste dag (now - 1 dag) for å fange
         # satsen som faktisk gjaldt mesteparten av forrige måned. Eksempel: rollover
@@ -1311,6 +1475,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Reset current month data. _weekly_max_power står bevisst igjen: det er
         # et rullerende tolvmånedersvindu og hører ikke til kalendermåneden.
         self._daily_max_power = {}
+        self._timesmaks_bokfort = {}
         self._current_hour_energy = 0.0
         self._current_hour = now.hour
         self._current_hour_utcoffset = now.utcoffset()
@@ -1320,10 +1485,12 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._kr_bokfort = {}
         self._monthly_export_kwh = 0.0
         self._monthly_export_revenue = 0.0
-        self._monthly_cost = 0.0
-        self._monthly_accumulated_cost = 0.0
         self._monthly_accumulated_cost_strom = 0.0
-        self._monthly_accumulated_cost_energiledd = 0.0
+        self._monthly_stromstotte = 0.0
+        self._monthly_energiledd_dag = 0.0
+        self._monthly_energiledd_natt = 0.0
+        self._monthly_avgifter = 0.0
+        self._monthly_energiledd_apning = 0.0
         self._monthly_accumulated_cost_kapasitetsledd = 0.0
         self._current_month = now.strftime("%Y-%m")
         await self._save_stored_data()
@@ -1422,12 +1589,21 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             spot_price_eks_mva = spot_price_raw
             spot_price = spot_price_raw * (1 + mva_sats_for_spot)
 
+        # Dagsboken nullstilles før energien bokføres. Skjedde det etterpå,
+        # ville timen etter midnatt blitt bokført mot gårsdagens dato og så
+        # strøket av nullstillingen.
+        today_str = now.strftime("%Y-%m-%d")
+        if today_str != self._current_date:
+            self._daily_cost = 0.0
+            self._current_date = today_str
+
         # Akkumuler energi FØRST, slik at siste syklus havner i riktig måned.
         # Avlesningen går i boken, som fordeler den over avregningsintervallene
         # etter observasjonstid (C1). Tariffen kommer fra intervallets egen
         # start, ikke fra klokken pollen står på.
         dirty = False
         energy_kwh = 0.0
+        berorte: set[datetime] = set()
         aapningsbalanse = self._aapningsbalanse()
         avlesning = self._les_avlesning(now, current_power_kw, elapsed_hours)
         for del_avlesning in self._del_ved_maanedsskifte(avlesning):
@@ -1446,11 +1622,13 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 )
             else:
                 self._monthly_consumption = self._forbruk_fra_boken(now, aapningsbalanse)
-            self._akkumuler_energiledd(bokforing)
-            self._akkumuler_norgespris(now, bokforing.fordeling)
-        # En prisprøve kan ha endret timeprisen i det åpne intervallet uten at
-        # noen energi ble bokført. Den runden tar den.
-        self._akkumuler_norgespris(now)
+            berorte |= set(bokforing.fordeling)
+            self._akkumuler_kroner(now, bokforing.fordeling)
+            # Døgnmaks føres her inne, ikke etter løkken: krysser avlesningen et
+            # månedsskifte, arkiverer boken den gamle måneden når den andre
+            # delen bokføres, og da er den siste timen i måneden borte.
+            if self._oppdater_timesmaks(now):
+                dirty = True
 
         # Eksport-akkumulering (plusskunder med solceller)
         export_energy_kwh = 0.0
@@ -1461,50 +1639,36 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 export_energy_kwh = export_power_kw * elapsed_hours
                 self._monthly_export_kwh += export_energy_kwh
                 dirty = True
+                # Inntekten bokføres i samme slengen som kilowattimene, og
+                # begge deler før månedsskiftet arkiveres. Sto de på hver sin
+                # side av rulleringen, ville siste syklus lagt kWh i den gamle
+                # måneden og kronene i den nye. Kraftleverandører betaler
+                # plusskunder spotpris eks. mva; mva er ikke aktuelt på salg
+                # fra privatperson (accountant-funn #1).
+                if spot_price_valid:
+                    self._monthly_export_revenue += spot_price_eks_mva * export_energy_kwh
 
         self._last_update = now
+        self._current_hour = now.hour
+        self._current_hour_utcoffset = now.utcoffset()
 
-        # Update daily max (basert på timessnitt, ikke instantan effekt)
-        today_str = now.strftime("%Y-%m-%d")
+        # Månedsskifte: boken har alt bokført den gamle måneden ferdig over, så
+        # arkiveringen skjer her, før noe av nåtidssnapshotet regnes. Uten det
+        # kunne første juli-snapshot kombinere null kilowattimer med junis trinn
+        # og tak-flagg (2ferkiq).
+        current_month_str = now.strftime("%Y-%m")
+        if current_month_str != self._current_month:
+            await self._handle_month_rollover(now)
+            # Etter arkiveringen står måneden på null, og det boken alt har
+            # bokført i den nye måneden er det eneste forbruket som finnes.
+            self._monthly_consumption = self._forbruk_fra_boken(now, ConsumptionData())
+            if self._oppdater_timesmaks(now):
+                dirty = True
 
-        # Reset daily cost at date change
-        if today_str != self._current_date:
-            self._daily_cost = 0.0
-            self._current_date = today_str
-
-        # Akkumuler energi i inneværende klokke-time
-        current_hour = now.hour
-        current_utcoffset = now.utcoffset()
-        previous_hour = self._current_hour
-        # Sammenlign både time og utcoffset for å fange høst-DST: ved
-        # gjentatt 02:xx (CEST -> CET) er .hour lik, men utcoffset skifter
-        # fra +02:00 til +01:00. Naive datetimes har utcoffset()==None i
-        # begge tilfeller, så naive tester beholder eksisterende adferd.
-        hour_changed = current_hour != self._current_hour
-        offset_changed = (
-            current_utcoffset is not None
-            and self._current_hour_utcoffset is not None
-            and current_utcoffset != self._current_hour_utcoffset
-        )
-        if hour_changed or offset_changed:
-            # Timen har endret seg -- den forrige timen er komplett.
-            # _current_hour_energy (kWh over 1 time) = gjennomsnittlig kW for den timen.
-            if self._current_hour_energy > 0:
-                prev_date = (
-                    self._current_date
-                    if current_hour != 0
-                    else (
-                        (now.replace(hour=0, minute=0, second=0) - timedelta(seconds=1)).strftime("%Y-%m-%d")
-                    )
-                )
-                if self._registrer_timesmaks(prev_date, self._current_hour_energy, previous_hour):
-                    dirty = True
-            self._current_hour_energy = 0.0
-            self._current_hour = current_hour
-            self._current_hour_utcoffset = current_utcoffset
-
-        # Legg til denne oppdateringens energi i timens akkumulator
-        self._current_hour_energy += energy_kwh
+        # Det åpne intervallet regnes opp uansett: en prisprøve kan ha endret
+        # timeprisen uten at noen energi ble bokført. Etter en rullering er det
+        # også her den nye månedens intervaller får kronene sine.
+        self._akkumuler_kroner(now, berorte)
 
         if self._trenger_ukesmaks and self._prune_ukesmaks(now):
             dirty = True
@@ -1560,7 +1724,10 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Spotpris etter strømstøtte
         spotpris_etter_stotte = spot_price - stromstotte
 
-        # Calculate fastledd per kWh
+        # Fastleddet fordelt utover månedens timer. Dette er en visningssats,
+        # den Energy Dashboard trenger for å ha én kr/kWh å gange med, og den
+        # eneste bruken den har. Ingen krone i bokføringen kommer herfra:
+        # fastledd er et periodebeløp (kostnad.py).
         dim = days_in_month(now)
         fastledd_per_kwh = (kapasitetsledd / dim) / 24
 
@@ -1621,53 +1788,11 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             alternativ_pris = total_pris_norgespris
         kroner_spart_per_kwh = alternativ_pris - total_price
 
-        # Norgespris-linjen er alt bokført mot intervallenes egen timepris
-        # (`_akkumuler_norgespris`). Dags- og månedskostnaden står igjen på
-        # pollens pris til kostnadskjernen i L3b tar dem.
-        if energy_kwh > 0 and spot_price_valid:
-            self._daily_cost += total_price * energy_kwh
-            self._monthly_cost += total_price * energy_kwh
-
-        # Akkumuler kostnad for Energy Dashboard (stat_cost)
-        elapsed_seconds = elapsed_hours * 3600
-        if energy_kwh > 0:
-            # Energileddet er bokført per intervall over, med satsen som gjaldt
-            # der (`_akkumuler_energiledd`).
-            # Strømdelen er kjent for Norgespris under tak; ellers krever den valid spot
-            if self.har_norgespris and not norgespris_over_tak:
-                self._monthly_accumulated_cost_strom += energy_kwh * norgespris
-            elif spot_price_valid:
-                if self.har_norgespris:
-                    strom_pris = spot_price
-                else:
-                    strom_pris = spot_price - stromstotte
-                self._monthly_accumulated_cost_strom += energy_kwh * strom_pris
-
-        if elapsed_seconds > 0:
-            seconds_in_month = dim * 24 * 3600
-            delta_kap = elapsed_seconds * (kapasitetsledd / seconds_in_month)
-            self._monthly_accumulated_cost_kapasitetsledd += delta_kap
-            dirty = True
-
-        self._monthly_accumulated_cost = (
-            self._monthly_accumulated_cost_strom
-            + self._monthly_accumulated_cost_energiledd
-            + self._monthly_accumulated_cost_kapasitetsledd
-        )
-
-        # Eksportinntekt: kraftleverandører betaler plusskunder spotpris eks. mva
-        # (mva er ikke aktuelt på salg fra privatperson). Se accountant-funn #1.
-        if export_energy_kwh > 0 and spot_price_valid:
-            self._monthly_export_revenue += spot_price_eks_mva * export_energy_kwh
-
-        # Månedsskifte: arkiver ETTER at all energi og kostnad er akkumulert,
-        # slik at siste syklus havner i riktig måned.
-        current_month_str = now.strftime("%Y-%m")
-        if current_month_str != self._current_month:
-            await self._handle_month_rollover(now)
-            # Etter arkiveringen står måneden på null, og det boken alt har
-            # bokført i den nye måneden er det eneste forbruket som finnes.
-            self._monthly_consumption = self._forbruk_fra_boken(now, ConsumptionData())
+        # Kraft, energiledd, avgifter, strømstøtte og Norgespris-linjen er alt
+        # bokført per avregnet intervall over, med intervallets egen pris.
+        # Fastleddet er det eneste som gjenstår, og det er et periodebeløp:
+        # kr/mnd ganger forløpt andel av måneden, regnet på nytt her.
+        self._oppdater_fastledd(now, kapasitetsledd)
 
         # Get electricity company price if configured
         electricity_company_price = None
@@ -1700,6 +1825,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             trinn_nummer=trinn_nummer,
             trinn_intervall=trinn_intervall,
             fastledd_per_kwh=fastledd_per_kwh,
+            fastledd_i_dag=self._fastledd_i_dag(now, kapasitetsledd),
             spot_price=spot_price,
             spot_price_valid=spot_price_valid,
             stromstotte=stromstotte,
@@ -1845,7 +1971,11 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "previous_month_norgespris_compensation_kr": round(
                 self._previous_month_norgespris_compensation, 2
             ),
-            "daily_cost_kr": round(self._daily_cost, 2),
+            "daily_cost_kr": round(self._daily_cost + kw["fastledd_i_dag"], 2),
+            "monthly_stromstotte_kr": round(self._monthly_stromstotte, 4),
+            "monthly_energiledd_dag_kr": round(self._monthly_energiledd_dag, 4),
+            "monthly_energiledd_natt_kr": round(self._monthly_energiledd_natt, 4),
+            "monthly_avgifter_kr": round(self._monthly_avgifter, 4),
             "monthly_accumulated_cost_kr": round(self._monthly_accumulated_cost, 4),
             "monthly_accumulated_cost_strom_kr": round(self._monthly_accumulated_cost_strom, 4),
             "monthly_accumulated_cost_energiledd_kr": round(self._monthly_accumulated_cost_energiledd, 4),
@@ -2303,19 +2433,36 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 # Eksport-data
                 self._monthly_export_kwh = self._validate_float(data.get("monthly_export_kwh", 0.0))
                 self._monthly_export_revenue = self._validate_float(data.get("monthly_export_revenue", 0.0))
-                self._monthly_cost = self._validate_float(data.get("monthly_cost", 0.0))
-                self._monthly_accumulated_cost = self._validate_float(
-                    data.get("monthly_accumulated_cost", 0.0)
-                )
+                # `monthly_cost` og `monthly_accumulated_cost` leses ikke: de er
+                # summer av feltene under, og en lagret sum som kan avvike fra
+                # delene sine er nettopp den motstriden 33f81xu handler om.
                 self._monthly_accumulated_cost_strom = self._validate_float(
                     data.get("monthly_accumulated_cost_strom", 0.0)
                 )
-                self._monthly_accumulated_cost_energiledd = self._validate_float(
-                    data.get("monthly_accumulated_cost_energiledd", 0.0)
-                )
-                self._monthly_accumulated_cost_kapasitetsledd = self._validate_float(
-                    data.get("monthly_accumulated_cost_kapasitetsledd", 0.0)
-                )
+                self._monthly_stromstotte = self._validate_float(data.get("monthly_stromstotte", 0.0))
+                if any(
+                    nokkel in data
+                    for nokkel in ("monthly_energiledd_dag", "monthly_energiledd_natt", "monthly_avgifter")
+                ):
+                    self._monthly_energiledd_dag = self._validate_float(
+                        data.get("monthly_energiledd_dag", 0.0)
+                    )
+                    self._monthly_energiledd_natt = self._validate_float(
+                        data.get("monthly_energiledd_natt", 0.0)
+                    )
+                    self._monthly_avgifter = self._validate_float(data.get("monthly_avgifter", 0.0))
+                    self._monthly_energiledd_apning = self._validate_float(
+                        data.get("monthly_energiledd_apning", 0.0)
+                    )
+                else:
+                    # En fil fra før splitten har bare summen. Den kan ikke deles
+                    # i dag, natt og avgifter i ettertid, så den bæres som
+                    # åpningsbalanse og faller bort ved første månedsskifte.
+                    self._monthly_energiledd_apning = self._validate_float(
+                        data.get("monthly_accumulated_cost_energiledd", 0.0)
+                    )
+                # Fastleddet regnes på nytt ved hver poll og lastes ikke. Det
+                # lagrede tallet er med for nedgradering og for diagnostikken.
                 self._previous_month_export_kwh = self._validate_float(
                     data.get("previous_month_export_kwh", 0.0)
                 )
@@ -2436,26 +2583,21 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._bygg_kronebokforing()
 
     def _bygg_kronebokforing(self) -> None:
-        """Sett `_kr_bokfort` til det bokens intervaller svarer til nå (C5)."""
+        """Sett `_kr_bokfort` til det bokens intervaller svarer til nå (C5).
+
+        Kronene hvert lagret intervall alt har bidratt med regnes opp igjen av
+        boken framfor å lagres. Da kan de ikke drifte fra intervallene, og et
+        intervall som ikke endrer seg mer bidrar aldri en gang til.
+        """
         self._kr_bokfort = {}
         if not self._fores_av_boken():
             return
-        norgespris = get_norgespris_inkl_mva(self.avgiftssone)
-        mva = get_mva_sats(self.avgiftssone)
-        terskel = get_stromstotte_terskel(self.avgiftssone)
-        total_kwh = self._monthly_consumption.total
+        kwh_for = max(0.0, self._monthly_consumption.total - self._bok.maanedssum().kwh_total)
         for intervall in self._bok.intervaller():
-            pris_eks_mva = intervall.nok_per_kwh_eks_mva
-            if pris_eks_mva is None:
-                self._kr_bokfort[intervall.start_utc] = (0.0, 0.0)
-                continue
-            spot = pris_eks_mva * (1 + mva)
-            stotte = self._calculate_stromstotte(spot, total_kwh, self.boligtype, terskel)
-            spart = (spot - stotte - norgespris) if self.har_norgespris else (norgespris - spot + stotte)
-            self._kr_bokfort[intervall.start_utc] = (
-                (norgespris - spot) * intervall.kwh,
-                spart * intervall.kwh,
+            self._kr_bokfort[intervall.start_utc] = kroner_for_intervall(
+                intervall, self._satser(intervall), kwh_for=kwh_for
             )
+            kwh_for += intervall.kwh
 
     @staticmethod
     def _validate_float(value: Any) -> float:
@@ -2595,6 +2737,11 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "monthly_accumulated_cost_strom": self._monthly_accumulated_cost_strom,
             "monthly_accumulated_cost_energiledd": self._monthly_accumulated_cost_energiledd,
             "monthly_accumulated_cost_kapasitetsledd": self._monthly_accumulated_cost_kapasitetsledd,
+            "monthly_stromstotte": self._monthly_stromstotte,
+            "monthly_energiledd_dag": self._monthly_energiledd_dag,
+            "monthly_energiledd_natt": self._monthly_energiledd_natt,
+            "monthly_avgifter": self._monthly_avgifter,
+            "monthly_energiledd_apning": self._monthly_energiledd_apning,
             "previous_month_export_kwh": self._previous_month_export_kwh,
             "previous_month_export_revenue": self._previous_month_export_revenue,
             "previous_month_cost": self._previous_month_cost,

@@ -23,17 +23,26 @@ _real_datetime = datetime
 class TestBasicAccumulation:
     """Strompris + energiledd + kapasitetsledd akkumuleres korrekt."""
 
-    def test_first_update_no_accumulation(self, coord_module):
-        """Forste oppdatering har ingen akkumulering (ingen _last_update)."""
+    def test_first_update_no_energy_but_fastledd(self, coord_module):
+        """Forste oppdatering har ingen energi, men fastleddet har pålopt.
+
+        Fastleddet er et periodebeløp: 155 kr/mnd er påløpt med halvparten den
+        15. juni, uansett når integrasjonen ble installert. Energidelen krever
+        et vindu bakover og er null på første poll.
+        """
         hass = _make_hass(power_w=5000, spot_price=1.20)
         entry = _make_entry()
         c = coord_module.NettleieCoordinator(hass, entry)
         _run_update(coord_module, c, _real_datetime(2026, 6, 15, 12, 0))
 
-        assert c._monthly_accumulated_cost == 0.0
         assert c._monthly_accumulated_cost_strom == 0.0
         assert c._monthly_accumulated_cost_energiledd == 0.0
-        assert c._monthly_accumulated_cost_kapasitetsledd == 0.0
+        kapasitetsledd = c.kapasitetstrinn[0][1]
+        # 14 døgn og 12 timer av 30 døgn.
+        assert c._monthly_accumulated_cost_kapasitetsledd == pytest.approx(
+            kapasitetsledd * (14.5 / 30), abs=1e-9
+        )
+        assert c._monthly_accumulated_cost == c._monthly_accumulated_cost_kapasitetsledd
 
     def test_second_update_accumulates(self, coord_module):
         """Andre oppdatering akkumulerer alle tre komponenter."""
@@ -63,12 +72,13 @@ class TestBasicAccumulation:
         energiledd_dag = c.energiledd_dag
         assert c._monthly_accumulated_cost_energiledd == pytest.approx(energy_kwh * energiledd_dag, abs=1e-10)
 
-        # Kapasitetsledd (tidsbasert, 60 sekunder)
+        # Kapasitetsledd: hele månedens beløp ganget med forløpt andel, regnet
+        # på nytt ved hver poll. Ikke en sum av små tidsbiter.
         kapasitetsledd = c.kapasitetstrinn[0][1]  # trinn 1 (ingen topp enna)
-        days_in_month = 30  # juni
-        seconds_in_month = days_in_month * 24 * 3600
-        expected_kap = 60 * (kapasitetsledd / seconds_in_month)
-        assert c._monthly_accumulated_cost_kapasitetsledd == pytest.approx(expected_kap, abs=1e-10)
+        seconds_in_month = 30 * 24 * 3600
+        forlopt = (14 * 24 * 3600) + (12 * 3600) + 60
+        expected_kap = kapasitetsledd * forlopt / seconds_in_month
+        assert c._monthly_accumulated_cost_kapasitetsledd == pytest.approx(expected_kap, abs=1e-9)
 
         # Total er summen
         expected_total = (energy_kwh * strom_pris) + (energy_kwh * energiledd_dag) + expected_kap
@@ -79,7 +89,7 @@ class TestKapasitetsleddLinear:
     """Kapasitetsledd akkumuleres lineaert, uavhengig av forbruk."""
 
     def test_zero_consumption_still_accumulates_kapasitetsledd(self, coord_module):
-        """Kapasitetsledd oker selv uten stromforbruk."""
+        """Kapasitetsledd oker selv uten stromforbruk (nullforbruk)."""
         hass = _make_hass(power_w=0, spot_price=1.20)
         entry = _make_entry()
         c = coord_module.NettleieCoordinator(hass, entry)
@@ -119,7 +129,7 @@ class TestKapasitetsleddLinear:
                 break
             _run_update(coord_module, c, t_next)
 
-        assert c._monthly_accumulated_cost_kapasitetsledd == pytest.approx(kapasitetsledd, abs=0.1)
+        assert c._monthly_accumulated_cost_kapasitetsledd == pytest.approx(kapasitetsledd, abs=0.3)
 
 
 class TestMonthReset:
@@ -140,17 +150,26 @@ class TestMonthReset:
         assert c._monthly_accumulated_cost > 0
         assert c._monthly_accumulated_cost_strom > 0
         assert c._monthly_accumulated_cost_kapasitetsledd > 0
+        juni_kap = c._monthly_accumulated_cost_kapasitetsledd
+        juni_strom = c._monthly_accumulated_cost_strom
 
         # Kryss månedsskiftet til juli
         t2 = _real_datetime(2026, 7, 1, 0, 1)
         _run_update(coord_module, c, t2)
 
-        # Akkumulering skjer FØR rollover: siste syklus (t1->t2) havner i juni.
-        # Etter rollover er juli-akkumulatorene nullstilt.
-        assert c._monthly_accumulated_cost_kapasitetsledd == 0.0
-        assert c._monthly_accumulated_cost_strom == 0.0
+        # Juni bokføres ferdig først, så arkiveres den, og deretter bygges
+        # juli-snapshotet. Det som står igjen er julis eget første minutt, ikke
+        # junis tall og ikke null (2ferkiq).
+        assert 0 < c._monthly_accumulated_cost_kapasitetsledd < juni_kap / 100
+        # Vinduet 23:59 til 00:01 deles ved månedsgrensen: ett minutt til juni,
+        # ett til juli. Juli står derfor på like mye strøm som juni gjorde etter
+        # sitt ene minutt, men det er julis eget minutt.
+        assert c._monthly_accumulated_cost_strom == pytest.approx(juni_strom, rel=1e-6)
+        assert c._previous_month_kapasitetsledd == c.kapasitetstrinn[0][1]
+        # Måneden som lukkes fakturerer sluttrinnet for hele måneden.
+        assert c._previous_month_cost > c.kapasitetstrinn[0][1]
 
-        # Neste oppdatering i juli starter fra scratch
+        # Neste oppdatering i juli fortsetter i juli
         t3 = t2 + timedelta(minutes=1)
         _run_update(coord_module, c, t3)
         assert c._monthly_accumulated_cost_kapasitetsledd > 0
@@ -270,17 +289,19 @@ class TestStoragePersistence:
         c2 = coord_module.NettleieCoordinator(hass, entry)
         asyncio.run(c2._load_stored_data())
 
-        assert c2._monthly_accumulated_cost == pytest.approx(
-            saved_data["monthly_accumulated_cost"], abs=1e-10
-        )
         assert c2._monthly_accumulated_cost_strom == pytest.approx(
             saved_data["monthly_accumulated_cost_strom"], abs=1e-10
         )
         assert c2._monthly_accumulated_cost_energiledd == pytest.approx(
             saved_data["monthly_accumulated_cost_energiledd"], abs=1e-10
         )
-        assert c2._monthly_accumulated_cost_kapasitetsledd == pytest.approx(
-            saved_data["monthly_accumulated_cost_kapasitetsledd"], abs=1e-10
+        # Fastleddet lastes ikke: det regnes av klokken ved hver poll, og en
+        # lagret verdi som kan drifte fra trinnet er nettopp det 33f81xu
+        # handler om. Før første poll står det derfor på null.
+        assert c2._monthly_accumulated_cost_kapasitetsledd == 0.0
+        assert c2._monthly_accumulated_cost == pytest.approx(
+            saved_data["monthly_accumulated_cost_strom"] + saved_data["monthly_accumulated_cost_energiledd"],
+            abs=1e-10,
         )
 
 

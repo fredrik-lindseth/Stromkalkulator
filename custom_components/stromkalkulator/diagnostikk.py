@@ -93,7 +93,7 @@ if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
 
-DIAGNOSTICS_SCHEMA_VERSION: int = 3
+DIAGNOSTICS_SCHEMA_VERSION: int = 4
 
 # Valgene brukeren har tatt, uten entity-id-ene. Disse er trygge å vise rått:
 # de sier hva integrasjonen regnet med, ikke hvem som regnet.
@@ -211,6 +211,13 @@ BEREGNING_ALLOWLIST: tuple[str, ...] = (
     "monthly_accumulated_cost_strom_kr",
     "monthly_accumulated_cost_energiledd_kr",
     "monthly_accumulated_cost_kapasitetsledd_kr",
+    # Splitten av `monthly_accumulated_cost_energiledd_kr` (L3b). De tre
+    # summerer dit, så en dump kan etterprøve at navnet og innholdet henger
+    # sammen uten å regne det ut på nytt.
+    "monthly_energiledd_dag_kr",
+    "monthly_energiledd_natt_kr",
+    "monthly_avgifter_kr",
+    "monthly_stromstotte_kr",
     "eksport_konfigurert",
     "monthly_export_kwh",
     "monthly_export_revenue_kr",

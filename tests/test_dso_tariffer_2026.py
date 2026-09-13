@@ -8,6 +8,8 @@ coordinator (energiledd_eks_mva + forbruksavgift + Enova) * (1 + mva).
 
 from __future__ import annotations
 
+from decimal import ROUND_HALF_UP, Decimal
+
 import pytest
 from stromkalkulator.const import (
     ENOVA_AVGIFT,
@@ -500,3 +502,78 @@ class TestAdopterteDsoer:
         dso = DSO_LIST[dso_id]
         assert dso["energiledd_dag_eks_mva"] == pytest.approx(dag)
         assert dso["energiledd_natt_eks_mva"] == pytest.approx(natt)
+
+
+# ============================================================================
+# Arva, verifisert mot egen prisside 2026-09-13 (stromkalkulator-bjuas8)
+# ============================================================================
+
+
+class TestArva2026:
+    """Arvas prisside rendres med JavaScript, men artikkelen ligger åpent i
+    /Api/v2/template/rendered-article?pageId=484888468&Article=305.
+
+    Ingressen der sier «Arva holder nettleia stabil fra 1. januar 2026», så
+    tariffen er uendret siden 2024, ikke ustelt. Det er grunnen til at
+    fri-nettleies arva.yml fra 2024-10-22 fortsatt stemmer.
+    """
+
+    @pytest.fixture
+    def arva(self):
+        return DSO_LIST["arva"]
+
+    def test_energiledd_er_23_1_og_11_6_ore(self, arva):
+        """Prissiden: dag 23,1 øre, natt 11,6 øre, uten mva og avgifter."""
+        assert arva["energiledd_dag_eks_mva"] == pytest.approx(0.231)
+        assert arva["energiledd_natt_eks_mva"] == pytest.approx(0.116)
+
+    def test_ingen_sesongprising_for_husholdning(self, arva):
+        """Sesongen hos Arva gjelder kun kunder over 100 000 kWh/år.
+
+        En tidligere kommentar påsto vinter 1.9-30.4 og sommer 1.5-31.8 for
+        husholdning. Prissiden har to tabeller, og sesongen står i den vi ikke
+        dekker.
+        """
+        assert "energiledd_perioder" not in arva
+
+    @pytest.mark.parametrize(
+        ("avg_power", "kr_mnd"),
+        [
+            (1.0, 85),
+            (3.0, 201),
+            (7.0, 398),
+            (12.0, 595),
+            (17.0, 792),
+            (22.0, 989),
+            (30.0, 1972),
+            (60.0, 2955),
+            (80.0, 3938),
+            (150.0, 5945),
+        ],
+    )
+    def test_kapasitetstrinn_er_manedskolonnen(self, avg_power, kr_mnd):
+        """Kolonnen «Fastledd måned», ikke årskolonnen delt på tolv.
+
+        Arva trykker begge, og de er ikke hverandres tolvedel: årsraden for
+        laveste trinn er 1019 kr, som ville gitt 84,92 kr/mnd mot de 85 som
+        faktisk faktureres.
+        """
+        assert kapasitetsledd_for_power(avg_power, DSO_LIST["arva"]) == kr_mnd
+
+    def test_arskolonnen_avviker_fra_manedsbelopet_ganget_med_tolv(self, arva):
+        """Vokter at ingen «forenkler» trinnene tilbake til år/12.
+
+        Avviket er under én krone per måned, altså under drift-vaktens
+        toleranse, så det ville ikke meldt seg selv.
+        """
+        ar_kolonnen = [1019, 2415, 4781, 7145, 9508, 11872, 23666, 35463, 47261, 71334]
+        maned = [pris for _, pris in arva["kapasitetstrinn"]]
+        halv_opp = [
+            int((Decimal(kr) / 12).quantize(Decimal("1"), rounding=ROUND_HALF_UP)) for kr in ar_kolonnen
+        ]
+        assert halv_opp == maned
+        assert [kr / 12 for kr in ar_kolonnen] != maned
+
+    def test_no4_uten_mva(self, arva):
+        """NO4: satsene over er ren netteierandel, uten mva å trekke ut."""
+        assert arva["prisomrade"] == "NO4"

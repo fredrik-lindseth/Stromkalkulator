@@ -62,6 +62,10 @@ Rekkefølge på kilder: nettselskapets egen prisliste, så fri-nettleie. Fri-net
 
 `scripts/sjekk_mot_fri_nettleie.py` sammenligner både energiledd og fastledd, og avvik i begge feller exit-koden. Kjør den før du committer satsendringer.
 
+Har prislisten en egen kolonne uten mva, les den framfor å regne bakover fra prisen inkl. mva. Fire nettselskap hadde avvik på under én krone fordi tallet var regnet ut i stedet for lest, og det er akkurat den klassen drift-vakten slipper gjennom på toleranse. Samme regel gjelder når selskapet trykker både måned og år: vi lagrer kr/mnd, så les månedskolonnen. Arva har 1019 kr/år og 85 kr/mnd i laveste trinn, og 1019/12 er 84,92.
+
+En prisside som ser tom ut uten nettleser, er ikke det samme som en side uten priser. Arva sto i to måneder som «lar seg ikke verifisere» fordi tabellen rendres med JavaScript. HTML-en har URL-en til API-et som henter innholdet, og der ligger hele prislisten som ren HTML. Se etter `Api`, `articleApiUrl` eller lignende i kildekoden til siden før du gir opp.
+
 ### Fastledd-metoden krever kilde på lik linje med prisene
 
 `fastledd_metode` avgjør hvilken kW-verdi trinnene slås opp med. Er den feil, blir beløpet feil uansett hvor riktige trinnprisene er, og feilen er usynlig i en trinn-tabell som ser pen ut. Behandle metoden som en sats: kilde og tariffdato i kommentaren, aldri gjettet.

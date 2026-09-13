@@ -681,6 +681,8 @@ def test_current_e2e_er_obligatorisk_og_bruker_kandidat_sha() -> None:
     assert not job.get("continue-on-error", False)
     checkout = next(step for step in job["steps"] if "actions/checkout@" in step.get("uses", ""))
     assert checkout["with"]["ref"] == "${{ github.sha }}"
+    assert checkout["with"]["fetch-depth"] == 0
+    assert checkout["with"]["fetch-tags"] is True
     run = next(step for step in job["steps"] if step.get("run") == "just test-e2e target=current")
     assert "if" not in run and not run.get("continue-on-error", False)
     cleanup = next(step for step in job["steps"] if step.get("run", "").endswith("run.py cleanup"))

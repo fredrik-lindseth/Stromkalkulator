@@ -54,6 +54,9 @@ Default settes fra prisområde (NO4 → Nord-Norge, NO3 → Sør-Norge), med DSO
 2. Verifiser mot fakturaer i `docs/fakturaer/`. Beregnet total bør stemme innenfor ±2%.
 3. Dokumenter kilden i koden: `# Kilde: [URL] YYYY-MM-DD`
 
+Hva som faktisk ble endret i en gitt runde, med tall og kilde per nettselskap,
+står i [satsendringer.md](satsendringer.md).
+
 ### Kapasitetstrinn krever kilde per nettselskap
 
 Aldri fyll ut kapasitetstrinn med en mal, en gjetning eller trinnene fra et annet nettselskap. Har du ikke en kilde, la `supported` stå på `False`. Fjorten nettselskap fikk en kopiert mal i april 2026 og leverte oppdiktede beløp til brukerne i fire måneder før noen fanget det, se [incident 006](incidents/006-kapasitetstrinn-uten-kilde.md).

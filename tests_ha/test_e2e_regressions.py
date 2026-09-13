@@ -18,6 +18,7 @@ from custom_components.stromkalkulator.const import DOMAIN
 
 ENERGY = "sensor.e2e_energy"
 POWER = "sensor.e2e_power"
+EXPORT = "sensor.e2e_export"
 ENERGY_ATTRS = {"unit_of_measurement": "kWh", "state_class": "total_increasing"}
 
 
@@ -27,6 +28,7 @@ async def lab(hass, freezer):
     freezer.move_to("2026-06-15T10:05:00+00:00")
     hass.states.async_set(ENERGY, "10000", ENERGY_ATTRS)
     hass.states.async_set(POWER, "1000", {"unit_of_measurement": "W"})
+    hass.states.async_set(EXPORT, "0", {"unit_of_measurement": "W"})
     hass.states.async_set("sensor.e2e_spot", "0.8", {"unit_of_measurement": "NOK/kWh"})
     flow = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
     assert flow["step_id"] == "user"
@@ -41,6 +43,7 @@ async def lab(hass, freezer):
             "energy_sensor": ENERGY,
             "spot_price_sensor": "sensor.e2e_spot",
             "spotpris_inkl_mva": False,
+            "export_power_sensor": EXPORT,
         },
     )
     assert result["type"] == "create_entry"
@@ -61,11 +64,35 @@ async def lab(hass, freezer):
         async def poll(self, counter=None):
             freezer.tick(timedelta(minutes=1))
             if counter is not None:
-                hass.states.async_set(ENERGY, str(counter), ENERGY_ATTRS)
+                hass.states.async_set(entry.data["energy_sensor"], str(counter), ENERGY_ATTRS)
             await entry.runtime_data.async_refresh()
             await hass.async_block_till_done()
             assert entry.state is ConfigEntryState.LOADED
             return self.total()
+
+        async def options(self, **changes):
+            payload = {
+                "tso": "bkk",
+                "boligtype": "bolig",
+                "avgiftssone": "standard",
+                "har_norgespris": True,
+                "power_sensor": POWER,
+                "energy_sensor": entry.data["energy_sensor"],
+                "spot_price_sensor": "sensor.e2e_spot",
+                "spotpris_inkl_mva": False,
+                "kapasitet_varsel_terskel": 2.0,
+                "export_power_sensor": EXPORT,
+            }
+            payload.update(changes)
+            payload = {key: value for key, value in payload.items() if value is not None}
+            flow = await hass.config_entries.options.async_init(entry.entry_id)
+            result = await hass.config_entries.options.async_configure(flow["flow_id"], user_input=payload)
+            assert result["type"] == "create_entry"
+            await hass.async_block_till_done()
+            # Match Docker's explicit reload after the options response.
+            assert await hass.config_entries.async_reload(entry.entry_id)
+            await hass.async_block_till_done()
+            assert entry.state is ConfigEntryState.LOADED
 
     instance = Lab()
     instance.entry = entry
@@ -86,6 +113,56 @@ async def test_restart_no_double_booking(hass, lab):
     await hass.async_block_till_done()
     assert lab.total() == 1.25
     assert await lab.poll() == 1.25
+    assert await lab.poll(10002.5) == 2.5
+
+
+async def test_meter_change(hass, lab):
+    """Options/reload binds a new physical meter without booking its counter."""
+    assert await lab.poll(10001.25) == 1.25
+    new_energy = "sensor.e2e_energy_new"
+    # Small enough that an incorrect cross-meter delta bypasses the jump guard.
+    hass.states.async_set(new_energy, "10002.5", ENERGY_ATTRS)
+    old_coordinator = lab.entry.runtime_data
+
+    await lab.options(energy_sensor=new_energy)
+
+    assert lab.entry.data["energy_sensor"] == new_energy
+    assert lab.entry.runtime_data is not old_coordinator
+    assert lab.total() == 1.25
+    assert await lab.poll() == 1.25
+    # The old physical meter may keep publishing; it no longer owns the baseline.
+    hass.states.async_set(ENERGY, "10002.5", ENERGY_ATTRS)
+    assert await lab.poll() == 1.25
+    assert await lab.poll(10003.75) == 2.5
+    assert await lab.poll() == 2.5
+
+
+async def test_remove_optional(hass, lab):
+    """A previously enabled export output becomes unavailable after removal."""
+    assert await lab.poll(10001.25) == 1.25
+    registry = er.async_get(hass)
+    output = registry.async_get_entity_id("sensor", DOMAIN, f"{lab.entry.entry_id}_maanedlig_eksport_kwh")
+    assert output is not None
+    registry.async_update_entity(output, disabled_by=None)
+    assert await hass.config_entries.async_reload(lab.entry.entry_id)
+    await hass.async_block_till_done()
+    state = hass.states.get(output)
+    assert state is not None
+    assert float(state.state) == 0
+    assert lab.total() == 1.25
+
+    await lab.options(export_power_sensor=None)
+
+    assert "export_power_sensor" not in lab.entry.data
+    # Keep the source healthy: only removal of its configuration may explain
+    # the output becoming unavailable, not missing or broken source data.
+    assert hass.states.get(EXPORT).state == "0"
+    assert await lab.poll() == 1.25
+    state = hass.states.get(output)
+    assert state is not None
+    assert state.state == "unavailable"
+    assert lab.entry.state is ConfigEntryState.LOADED
+    assert registry.async_get(output).disabled_by is None
     assert await lab.poll(10002.5) == 2.5
 
 

@@ -1,0 +1,27 @@
+services:
+  ha:
+    image: ghcr.io/home-assistant/home-assistant:2026.9.2@sha256:542890f4a7ef9269b7a5ac23ada303b327537c62fa0f866e49daebc61cb44caa
+    platform: linux/amd64
+    environment:
+      TZ: Europe/Oslo
+    ports:
+      - "127.0.0.1:${E2E_PORT:-0}:8123"
+    volumes:
+      - type: bind
+        source: ${E2E_RUN_DIR:?}/config
+        target: /config
+      - type: bind
+        source: ${E2E_RUN_DIR:?}/integration
+        target: /config/custom_components/stromkalkulator
+        read_only: true
+      - type: bind
+        source: ${E2E_HARNESS:?}
+        target: /harness
+        read_only: true
+      - type: bind
+        source: ${E2E_RUN_DIR:?}/fixture.json
+        target: /fixture.json
+        read_only: true
+    stop_grace_period: 45s
+    restart: "no"
+    # No host network, devices, Docker socket, production config or privileges.

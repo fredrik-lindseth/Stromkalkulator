@@ -93,13 +93,12 @@ test-ha target="current" *args:
     UV_PROJECT_ENVIRONMENT=".venv-ha-$mal" uv run --frozen --python "$python" \
         --group "ha-$mal" pytest tests_ha -o asyncio_mode=auto {{args}}
 
-# Docker-laget (T11b). Stub inntil det finnes, og den sier fra framfor å gå
-# grønn på ingenting.
+# Isolert HA-server fra release-ZIP + anonymiserte timeverdier. Krever Docker.
 test-e2e target="current":
     #!/usr/bin/env bash
-    echo "tests_e2e er tom: Docker-laget (dcat stromkalkulator-6b54ywj, T11b) er ikke bygget ennå." >&2
-    echo "{{target}} er tatt imot, men det finnes ingenting å kjøre. Se tests_e2e/README.md." >&2
-    exit 1
+    set -euo pipefail
+    mal="{{target}}"; mal="${mal#target=}"
+    python3 tests_e2e/run.py run --target "$mal"
 
 # Filen skal være identisk, alle entitetsreferanser skal finnes, og
 # test-sensorene skal stå i en grei tilstand. Exit 1 hvis ikke.

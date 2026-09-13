@@ -934,21 +934,18 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if grense > fra:
                 grenser.append(grense)
 
-    def _energiledd_kroner(self, bokforing: Bokforing) -> float:
-        """Energiledd for en bokføring, med satsen som gjaldt i hvert intervall.
+    def _akkumuler_energiledd(self, bokforing: Bokforing) -> None:
+        """Bokfør energiledd for en bokføring, med satsen som gjaldt i hvert intervall.
 
         Satsen følger intervallets egen start, ikke klokken pollen står på. Det
         er den halve fikseringen av C2.4 som er triviell uten kostnadskjernen:
         energileddet avhenger ikke av spotprisen og trenger derfor ikke vente
         på at timen er ferdig priset.
         """
-        kroner = 0.0
         for start, kwh in bokforing.fordeling.items():
-            kroner += kwh * self._get_energiledd(start.astimezone(OSLO))
-        self._monthly_accumulated_cost_energiledd += kroner
-        return kroner
+            self._monthly_accumulated_cost_energiledd += kwh * self._get_energiledd(start.astimezone(OSLO))
 
-    def _akkumuler_norgespris(self, now: datetime, berorte: Iterable[datetime]) -> None:
+    def _akkumuler_norgespris(self, now: datetime, berorte: Iterable[datetime] = ()) -> None:
         """Bokfør Norgespris-linjen mot intervallenes egen timepris (C2.4).
 
         Intervallene som er rørt denne pollen regnes opp på nytt, og bare
@@ -1431,7 +1428,6 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # start, ikke fra klokken pollen står på.
         dirty = False
         energy_kwh = 0.0
-        energiledd_kr = 0.0
         aapningsbalanse = self._aapningsbalanse()
         avlesning = self._les_avlesning(now, current_power_kw, elapsed_hours)
         for del_avlesning in self._del_ved_maanedsskifte(avlesning):
@@ -1450,9 +1446,11 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 )
             else:
                 self._monthly_consumption = self._forbruk_fra_boken(now, aapningsbalanse)
-            energiledd_kr += self._energiledd_kroner(bokforing)
+            self._akkumuler_energiledd(bokforing)
             self._akkumuler_norgespris(now, bokforing.fordeling)
-        self._akkumuler_norgespris(now, ())
+        # En prisprøve kan ha endret timeprisen i det åpne intervallet uten at
+        # noen energi ble bokført. Den runden tar den.
+        self._akkumuler_norgespris(now)
 
         # Eksport-akkumulering (plusskunder med solceller)
         export_energy_kwh = 0.0
@@ -1634,8 +1632,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         elapsed_seconds = elapsed_hours * 3600
         if energy_kwh > 0:
             # Energileddet er bokført per intervall over, med satsen som gjaldt
-            # der. `energiledd_kr` er bare med her for å kunne leses av.
-            _ = energiledd_kr
+            # der (`_akkumuler_energiledd`).
             # Strømdelen er kjent for Norgespris under tak; ellers krever den valid spot
             if self.har_norgespris and not norgespris_over_tak:
                 self._monthly_accumulated_cost_strom += energy_kwh * norgespris

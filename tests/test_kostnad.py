@@ -12,10 +12,8 @@ holder den regelen i sjakk i selve kildekoden, ikke bare i resultatene.
 from __future__ import annotations
 
 import asyncio
-import re
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -42,6 +40,7 @@ from stromkalkulator.kostnad import (
 )
 
 from tests.conftest import _make_entry, _make_hass, _make_state, _run_update
+from tests.vakter import ganget_med, ganget_med_i_pakken
 
 _real_datetime = datetime
 
@@ -251,9 +250,6 @@ class TestSommertid:
         assert andel == pytest.approx(24 * 3600 / (745 * 3600))
 
 
-#: Roten til integrasjonen, funnet fra denne filen og ikke fra arbeidskatalogen.
-PAKKEN = Path(__file__).resolve().parent.parent / "custom_components" / "stromkalkulator"
-
 #: Navn som bærer et fastledd fordelt ut per kilowattime. Tallene finnes for
 #: visning: de forteller hva timen koster akkurat nå. Ganges et av dem med noe
 #: som helst, er resultatet kroner regnet fra et per-kWh-fastledd, og det er
@@ -273,22 +269,26 @@ FASTLEDD_PER_KWH_NAVN = (
 KWH_NAVN = ("energy_kwh", "energi_kwh")
 
 
+#: De samme feilene skrevet på de måtene koden kan bli skrevet på. Skanneren
+#: leser syntakstreet, så nøkkelen som streng felles like godt som en lokal
+#: variabel, og mutasjonsprøven under sier det høyt.
+SKRIVEMAATER_SOM_SKAL_FELLES = (
+    "kr = fastledd_per_kwh * energy_kwh",
+    "kr = energy_kwh * fastledd_per_kwh",
+    "kr = total_price * kwh",
+    "kr = kwh * kapasitetsledd_per_kwh",
+    'kr = kwh * data.get("total_price", 0)',
+    'kr = _tall(data, "kapasitetsledd_per_kwh") * kwh',
+    "kr = kwh * self.total_price_uten_stotte",
+)
+
+
 class TestDimensjoner:
     """Ingen krone i integrasjonen kommer fra en fastledd-sats per kWh."""
 
     @staticmethod
     def _treff(kilde: str) -> list[str]:
-        """Gangeoperasjoner som lager kroner av et per-kWh-fastledd.
-
-        Begge operandrekkefølger teller: `sats * kwh` og `kwh * sats` er samme
-        feil. Ordgrensene gjør at `total_price` ikke fanger
-        `total_price_uten_stotte`, som står i listen for seg.
-        """
-        monstre = [rf"\b{navn}\b\s*\*" for navn in FASTLEDD_PER_KWH_NAVN]
-        monstre += [rf"\*\s*\b{navn}\b" for navn in FASTLEDD_PER_KWH_NAVN]
-        monstre += [rf"\b{navn}\b\s*\*" for navn in KWH_NAVN]
-        monstre += [rf"\*\s*\b{navn}\b" for navn in KWH_NAVN]
-        return re.findall("|".join(monstre), kilde)
+        return ganget_med(kilde, FASTLEDD_PER_KWH_NAVN + KWH_NAVN)
 
     def test_ingen_kroner_fra_fastledd_per_kwh(self):
         """Vakten leser hele integrasjonen, ikke bare coordinator.py.
@@ -296,25 +296,24 @@ class TestDimensjoner:
         En ny fil, eller den samme feilen skrevet med operandene i motsatt
         rekkefølge, gikk fri før. At sensor.py heller ikke ganger kilowattimer
         med energiledd, avgifter eller øyeblikksstøtte, er en egen vakt:
-        `TestSensorerRegnerIkkeSelv` i tests/test_sensor_classes.py. Den her
-        feller den dagen noen ganger `total_price` eller
-        `kapasitetsledd_per_kwh` med noe.
+        `TestSensorerRegnerIkkeSelv` i tests/test_sensor_classes.py. De deler
+        skanner (tests/vakter.py) og skiller seg bare i omfang: den her leser
+        hele pakken, for ingen fil skal lage kroner av et per-kWh-fastledd,
+        mens den andre bare leser sensor.py, siden coordinatoren og
+        kostnadskjernen nettopp skal gange satser med kilowattimer.
         """
-        funn = {}
-        for fil in sorted(PAKKEN.rglob("*.py")):
-            treff = self._treff(fil.read_text(encoding="utf-8"))
-            if treff:
-                funn[fil.name] = treff
+        funn = ganget_med_i_pakken(FASTLEDD_PER_KWH_NAVN + KWH_NAVN)
         assert funn == {}, f"kroner regnet fra per-kWh-fastledd: {funn}"
 
-    def test_vakten_ser_begge_operandrekkefolger(self):
-        """Mutasjonsprøven, som kode: begge skrivemåter skal fanges."""
-        assert self._treff("kr = fastledd_per_kwh * energy_kwh")
-        assert self._treff("kr = energy_kwh * fastledd_per_kwh")
-        assert self._treff("kr = total_price * kwh")
-        assert self._treff("kr = kwh * kapasitetsledd_per_kwh")
-        # Satser per kWh er riktig dimensjon og skal gå fri.
+    @pytest.mark.parametrize("skrivemaate", SKRIVEMAATER_SOM_SKAL_FELLES)
+    def test_vakten_feller_alle_skrivemaater(self, skrivemaate):
+        """Mutasjonsprøven, som kode: hver skrivemåte skal fanges."""
+        assert self._treff(skrivemaate)
+
+    def test_satser_med_riktig_dimensjon_gaar_fri(self):
+        """Satser per kWh er riktig dimensjon og skal gå fri."""
         assert not self._treff("kr = total_kwh * forbruksavgift_inkl")
+        assert not self._treff("kwh = export_power_kw * elapsed_hours")
 
     def test_kostnadskjernen_kjenner_ikke_energien_til_fastleddet(self):
         """`fastledd_belop` tar en andel av en periode, ikke kilowattimer."""

@@ -35,6 +35,9 @@ nye leser, så alt annet enn formelen står stille.
 | Månedlig avgifter     | 365,68  | 365,77  |      +0,09 |
 | Månedlig strømstøtte  | 769,14  | 769,32  |      +0,18 |
 
+De 10 ørene på nettleien er et labtall, ikke et drifttall. Se «Ved månedsslutt
+er differansen under ett øre» nedenfor før du måler mot dem.
+
 ## De to store tallene er fastleddet, og bare midt i måneden
 
 `Månedlig nettleie` viste før hele månedens kapasitetsledd fra første poll den
@@ -45,10 +48,24 @@ og `Dagens kostnad` alltid har brukt. De 207,55 kronene 15. juni er nøyaktig
 
 `Månedlig nettleie total` følger etter, siden den er nettleie minus støtte.
 
-Ved månedsslutt er differansen 10 øre, som er fastleddet for de siste fem
-minuttene. Tallet du sammenligner med fakturaen er altså uendret. Det som er
-endret, er at sensoren ikke lenger overdriver tidlig i måneden: 1. juni viste
-den 415 kroner nettleie før noe var brukt.
+### Ved månedsslutt er differansen under ett øre
+
+Måletabellen over viser 10 øre, og det er labtakten som gjør den så stor.
+Målingen poller hvert femte minutt og stanser 23:50, så det står ti minutter
+fastledd igjen når siste tall leses: 415 x 10/43200 = 0,096 kroner. I drift
+poller coordinatoren hvert minutt (`UPDATE_INTERVAL_MINUTES = 1`), så det siste
+synlige tallet i måneden mangler ett minutt fastledd, altså 415/43200, rundt ett
+øre på trinn 3. Måler du mot 10 øre i din egen installasjon, måler du mot
+labben, ikke mot koden.
+
+At det ikke er null, er en konsekvens av at fastleddet følger klokken: det
+siste pollintervallet før månedsskiftet rekker ikke å bli lest før snapshotet
+byttes. Fakturasammenligningen går uansett mot `Forrige måned nettleie`, der
+fastleddet er fullt.
+
+Tallet du sammenligner med fakturaen er altså uendret. Det som er endret, er at
+sensoren ikke lenger overdriver tidlig i måneden: 1. juni viste den 415 kroner
+nettleie før noe var brukt.
 
 Dette er retning, ikke bare forflytning. En månedssensor med `state_class`
 `TOTAL` som starter på et helt månedsbeløp og deretter bare vokser, er ikke en

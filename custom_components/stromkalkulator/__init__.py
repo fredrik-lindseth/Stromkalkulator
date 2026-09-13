@@ -682,8 +682,8 @@ def _aar_varselet_ble_reist(forrige: ir.IssueEntry) -> int | None:
 
     `created` settes når issuen opprettes første gang og blir stående ved hver
     senere oppdatering (`async_get_or_create` bytter bare de andre feltene).
-    Det er det eneste feltet utenom `dismissed_version` som HA tar vare på for
-    et ikke-persistent varsel, og derfor det eneste som duger som utløpsnøkkel.
+    Det er det eneste tidsfeltet HA tar vare på for et ikke-persistent varsel,
+    og derfor det eneste som duger som utløpsnøkkel.
 
     Feltet er i UTC. Året leses lokalt, samme sone som `aar` i vakten, ellers
     ville et varsel reist 1. januar 00:05 norsk tid stått oppført som fjorårets.
@@ -718,10 +718,10 @@ def _reis_med_aarsdemping(
     år, oppdateres varselet uten at dempingen røres, så en omstart ikke vekker et
     varsel brukeren har tatt stilling til.
 
-    At det er `created` og ikke et felt vi legger på selv, er ikke en smakssak.
-    Varslene våre er ikke persistente, og `IssueEntry.to_json` skriver bare
-    `created`, `dismissed_version`, `domain`, `is_persistent` og `issue_id` for
-    dem. Ved oppstart lastes de igjen med `data=None`. Et årstall lagt i `data`
+    At utløpet leses av `created` og ikke av et felt vi legger på selv, følger
+    av hva HA lagrer. Varslene våre er ikke persistente, og `IssueEntry.to_json`
+    skriver bare `created`, `dismissed_version`, `domain`, `is_persistent` og
+    `issue_id` for dem. Ved oppstart lastes de igjen med `data=None`. Et årstall lagt i `data`
     ville derfor vært borte etter hver eneste omstart, og vakten ville lest det
     som et nytt år, slettet varselet og vekket noe brukeren hadde ignorert.
     `is_persistent=True` ville berget `data`, men koster at varselet blir

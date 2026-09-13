@@ -3,14 +3,18 @@
 Unit-testene under `tests/` stubber `homeassistant.*`, så de kan ikke si noe om
 hva HA faktisk tar vare på når den lagrer et repair-varsel. Og det er nettopp
 der forrige utgave av vakten røk: den la året varselet gjaldt i `data` på issuen
-og trodde det sto der etter en omstart. Det gjør det ikke. `IssueEntry.to_json`
-skriver bare `created`, `dismissed_version`, `domain`, `is_persistent` og
-`issue_id` for et varsel uten `is_persistent`, og `_async_load` leser dem inn
-igjen med `data=None`. Vakten leste da et tomt felt, dømte det som et nytt år,
-slettet varselet, og slettingen tok brukerens «ignorer» med seg.
+og trodde det sto der etter en omstart, men `IssueEntry.to_json` skriver bare
+`created`, `dismissed_version`, `domain`, `is_persistent` og `issue_id` for et
+varsel uten `is_persistent`, og lastingen leser dem inn igjen med `data=None`.
+Vakten leste da et tomt felt, dømte det som et nytt år, slettet varselet, og
+slettingen tok brukerens «ignorer» med seg.
 
-Testene her kjører en ekte omstart: registeret skrives til lager, kastes og
-lastes inn på nytt, slik HA gjør det. Hvert varsel prøves i begge retninger.
+`_omstart` gjør derfor det HA gjør ved oppstart: skriver registeret til lager,
+kaster det (også ut av lru_cachen i `ir.async_get`, se `_omstart`) og bygger et
+nytt fra lageret. Testene asserter `active is False` etter omstarten, for det er
+tilstanden bare et varsel som er lastet fra lager kan ha; et register hentet ut
+av minnet igjen ville stått med `active=True` og ikke målt noen omstart. Hvert
+varsel prøves i begge retninger.
 """
 
 from __future__ import annotations
@@ -83,16 +87,40 @@ def _legg_til(hass: HomeAssistant, *, norgespris: bool = False, disabled: bool =
 
 
 async def _omstart(hass: HomeAssistant) -> None:
-    """Skriv issue-registeret til lager og last det inn igjen, slik HA gjør.
+    """Bytt ut issue-registeret med et som er lastet fra lager, slik HA gjør.
 
-    Dette er hele poenget med fila: registeret i minnet vet mer enn det som
+    Dette er hele poenget med filen: registeret i minnet vet mer enn det som
     overlever en omstart, så en test som bare kaller vakten to ganger på rad
     ville sagt grønt om feilen som felte forrige utgave.
+
+    Fire steg, og alle fire trengs:
+
+    1. `flush_store` tvinger ut den utsatte lagringen. `async_schedule_save`
+       venter 10 eller 180 sekunder, så uten dette ville lageret vært tomt eller
+       stått på et eldre innhold.
+    2. `hass.data.pop(ir.DATA_REGISTRY)` fjerner det gamle registeret fra
+       hass.data, som er der `async_get` slår opp.
+    3. `ir.async_get.cache_clear()` er steget som er lett å hoppe over, og det
+       som felte forrige utgave av denne helperen. `async_get` er
+       `@singleton(DATA_REGISTRY)`, og singleton legger en
+       `functools.lru_cache(maxsize=1)` utenpå oppslaget i hass.data. Å sette
+       `hass.data[ir.DATA_REGISTRY]` til et friskt register er derfor uvirksomt:
+       cachen leverer det gamle objektet videre, og testene måler ingen omstart.
+       Uten dette steget ville steg 4 lastet lageret inn i det gamle objektet og
+       latt hass.data stå uten nøkkelen, altså en tilstand HA aldri er i.
+    4. `ir.async_load(hass)` bygger et nytt register og leser lageret. Modulens
+       egen funksjon brukes framfor `IssueRegistry(hass).async_load()`, siden
+       signaturen på klassemetoden er ulik i 2025.1 og 2026.9.
+
+    Etterpå er varslene lastet som HA laster ikke-persistente issues: `active`
+    er False, `data` er None, og `created` og `dismissed_version` står som før.
+    Testene asserter `active is False` nettopp for å se at det faktisk ble
+    lastet fra lager og ikke bare hentet ut av minnet igjen.
     """
     await flush_store(ir.async_get(hass)._store)
-    frisk = ir.IssueRegistry(hass)
-    await frisk.async_load()
-    hass.data[ir.DATA_REGISTRY] = frisk
+    hass.data.pop(ir.DATA_REGISTRY)
+    ir.async_get.cache_clear()
+    await ir.async_load(hass)
 
 
 async def _ignorer(hass: HomeAssistant, issue_id: str) -> None:
@@ -101,6 +129,19 @@ async def _ignorer(hass: HomeAssistant, issue_id: str) -> None:
 
 def _issue(hass: HomeAssistant, issue_id: str) -> ir.IssueEntry | None:
     return ir.async_get(hass).async_get_issue(DOMAIN, issue_id)
+
+
+def _lastet_fra_lager(hass: HomeAssistant, issue_id: str) -> ir.IssueEntry:
+    """Hent et varsel og slå fast at det kom fra lageret, ikke fra minnet.
+
+    HA laster ikke-persistente issues med `active=False`. Sto registeret igjen i
+    minnet etter `_omstart`, ville varselet vært aktivt, og testen som følger
+    ville ikke målt noen omstart.
+    """
+    issue = _issue(hass, issue_id)
+    assert issue is not None, f"{issue_id} skulle overlevd omstarten"
+    assert issue.active is False, "omstarten var ikke ekte: varselet står fortsatt aktivt"
+    return issue
 
 
 # ---------------------------------------------------------------------------
@@ -129,8 +170,10 @@ async def test_data_forsvinner_over_omstart_men_created_staar(hass: HomeAssistan
 
     etter = _issue(hass, SATSER_ISSUE_ID)
     assert etter is not None
+    assert etter is not foer, "registeret skal være bygget på nytt, ikke gjenbrukt"
+    assert etter.active is False, "et varsel lastet fra lager er inaktivt til det reises igjen"
     assert etter.data is None, "HA lagrer ikke data for ikke-persistente issues"
-    assert etter.created == foer.created, "created er det eneste som holder over omstart"
+    assert etter.created == foer.created, "created er det eneste tidsfeltet som holder over omstart"
 
 
 # ---------------------------------------------------------------------------
@@ -151,6 +194,7 @@ async def test_ignorert_satsvarsel_staar_ignorert_etter_omstart(hass: HomeAssist
     assert dempet is not None and dempet.dismissed_version is not None
 
     await _omstart(hass)
+    assert _lastet_fra_lager(hass, SATSER_ISSUE_ID).dismissed_version is not None
 
     with freeze_time(SENERE_SAMME_AAR):
         _sjekk_satsvakt(hass, SENERE_SAMME_AAR)
@@ -173,6 +217,7 @@ async def test_ignorert_norgespris_varsel_staar_ignorert_etter_omstart(hass: Hom
     await _ignorer(hass, issue_id)
 
     await _omstart(hass)
+    assert _lastet_fra_lager(hass, issue_id).dismissed_version is not None
 
     with freeze_time(SENERE_SAMME_AAR):
         _sjekk_satsvakt(hass, SENERE_SAMME_AAR)
@@ -184,7 +229,7 @@ async def test_ignorert_norgespris_varsel_staar_ignorert_etter_omstart(hass: Hom
 
 
 async def test_dempingen_taaler_flere_omstarter_samme_aar(hass: HomeAssistant) -> None:
-    """Én omstart er ikke et bevis. HA startes ofte."""
+    """Én omstart er ikke et bevis, og en HA-installasjon startes mange ganger i året."""
     await hass.config.async_set_time_zone("Europe/Oslo")
     _legg_til(hass)
 
@@ -195,6 +240,7 @@ async def test_dempingen_taaler_flere_omstarter_samme_aar(hass: HomeAssistant) -
 
     for _ in range(3):
         await _omstart(hass)
+        _lastet_fra_lager(hass, SATSER_ISSUE_ID)
         with freeze_time(SENERE_SAMME_AAR):
             _sjekk_satsvakt(hass, SENERE_SAMME_AAR)
         await hass.async_block_till_done()
@@ -215,6 +261,7 @@ async def test_dempingen_utloper_ved_neste_aarsskifte_over_omstart(hass: HomeAss
     await _ignorer(hass, SATSER_ISSUE_ID)
 
     await _omstart(hass)
+    _lastet_fra_lager(hass, SATSER_ISSUE_ID)
 
     with freeze_time(NESTE_AAR):
         _sjekk_satsvakt(hass, NESTE_AAR)

@@ -57,6 +57,11 @@ Selve HA-integrasjonen leser `p`-strømmen kontinuerlig og er ikke påvirket. De
 
 Se [research/klokke-og-tidsstempling.md](research/klokke-og-tidsstempling.md) og [research/elhub-vs-han-vs-faktura.md](research/elhub-vs-han-vs-faktura.md) for full kontekst.
 
+Attesten er sist revalidert mot `559f799`, med før/etter per komponent i
+[research/revalidering-l3a-september-2026.md](research/revalidering-l3a-september-2026.md).
+Den runden er gyldig bare for den commiten: kronetallene endrer seg når
+kostnadskjernen lander, og da må alle ti månedene kjøres på nytt.
+
 ## 7. Gap-bucket ved lang nedetid (energy_sensor)
 
 Med `energy_sensor` konfigurert (kumulativ kWh-teller) leser coordinator forbruket som differansen mot forrige avlesning, uavhengig av hvor lenge det er siden forrige poll. Er HA nede lenger enn noen få minutter, krediteres hele backlog-deltaet til klokketimen og dag/natt-tariffen som gjelder når HA er tilbake og poller igjen, ikke til timene det egentlig ble brukt i. Deltaet er bundet oppad av `MAX_ENERGY_DELTA_KWH` (100 kWh). Verdien det måles mot er baselinen i `inputadapter.py`, som er bundet til kilden sin og ikke har noen aldersgrense: etter en omstart gjenopptas den uansett hvor lenge HA var nede, så forbruket i gapet kommer med. Byttes måleren, gir første avlesning delta 0 i stedet for å lese den nye tellerstanden som forbruk.
@@ -74,6 +79,14 @@ Beslektet med punkt 7, men om prisingen. Med `energy_sensor` konfigurert: er HA 
 Konsekvens: for spot-kunder gir et enkelt flertimers-avbrudd typisk et avvik på 15-25 kr, som nullstilles ved månedsskifte. For Norgespris-kunder er strømdelen fast pris og dermed korrekt uansett; kun energiledd dag/natt bommer marginalt. Forbruket i kWh fanges korrekt uansett.
 
 Bevisst valg. En tidsriktig spot-korreksjon krever historiske timespriser for gap-vinduet, som coordinatoren ikke har tilgang til. Riemann-stien (uten `energy_sensor`) rammes ikke: der forkastes gap-forbruk over 6 minutter helt.
+
+Beslektet, og uavhengig av nedetid: `monthly_cost_kr`, `monthly_net_cost_kr` og
+`daily_cost` prises fortsatt til spotprisen som sto ved pollen, ikke til
+intervallets timepris. Energileddet og Norgespris-linjen bruker timeprisen
+etter L3a, så de tre står igjen som de siste kronetallene som følger polltiden.
+Utslaget er små ører i måneden, og det forsvinner når kostnadskjernen tar dem.
+Målt før og etter L3a rørte de seg ikke i det hele tatt, se
+[research/revalidering-l3a-september-2026.md](research/revalidering-l3a-september-2026.md).
 
 ## 9. Fem nettselskap har en annen kapasitetsledd-modell
 

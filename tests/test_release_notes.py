@@ -611,6 +611,20 @@ class TestByggKortBody:
         assert body is not None
         assert "https://example.test/eier/repo/blob/v3.0.0/CHANGELOG.md" in body
 
+    @pytest.mark.parametrize("antall", [1, 2])
+    def test_liten_release_beholder_alle_merkede_punkter(self, tmp_path, antall):
+        """Faste overskrifter og lenke kan gjøre en liten kortnote lengre enn hele."""
+        punkter = [f"- Rettet feil {nummer}" for nummer in range(antall)]
+        changelog = "## [3.0.0]\n\n### Fikset\n\n" + "\n".join(f"{punkt} <!--kort-->" for punkt in punkter)
+        root = self._repo(tmp_path)
+        hele = release_notes.bygg_body(changelog, "3.0.0", repo_root=root)
+        kort = release_notes.bygg_kort_body(changelog, "3.0.0", repo_root=root)
+        assert hele is not None and kort is not None
+        assert [linje.rstrip() for linje in kort.splitlines() if linje.startswith("- ")] == punkter
+        assert "<!--kort-->" not in kort
+        assert "/blob/v3.0.0/CHANGELOG.md" in kort
+        assert len(kort) > len(hele)
+
     def test_tom_handlingskategori_feller_som_for(self, tmp_path):
         """Vakten mot naken overskrift gjelder begge veier ut av filen."""
         changelog = "## [3.0.0]\n\n### Dette må du gjøre selv\n\n### Fikset\n\n- <!--kort--> A\n"
@@ -705,10 +719,14 @@ class TestEkteChangelogKort:
         """Starten av et punkt må være Markdown, også i GitHubs filvisning."""
         assert not any(linje.startswith("- <!--kort-->") for linje in self._changelog().splitlines())
 
-    def test_kort_note_er_vesentlig_kortere_enn_hele(self):
-        """Den leses i en smal rute i HACS. Er den like lang, er den ikke kort."""
+    def test_lang_referansenote_er_vesentlig_kortere_enn_hele(self):
+        """1.17.0 er den lange noten kortformatet ble laget for.
+
+        En ny seksjon med ett eller to punkter kan ha alle merket. Da blir
+        kortnoten lengre på grunn av den faste lenken, og det er gyldig.
+        """
         changelog = self._changelog()
-        versjon = release_notes.kjente_versjoner(changelog)[0]
+        versjon = "1.17.0"
         hele = release_notes.bygg_body(changelog, versjon)
         kort = release_notes.bygg_kort_body(changelog, versjon)
         assert hele is not None and kort is not None

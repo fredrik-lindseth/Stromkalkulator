@@ -83,8 +83,11 @@ jobber med. Seksjonen er release-noten: `scripts/release_notes.py` henter den og
 gjør relative lenker absolutte mot taggen, så skriv lenkene relativt som ellers,
 men pek bare på filer som finnes (en død lenke feller release-jobben). Krever
 releasen noe av brukeren, skriv det i en `### Dette må du gjøre selv`-kategori;
-den løftes øverst i release-body-en, og står den tom, stopper jobben. Se
-[release-notes.md](docs/release-notes.md#changelogmd).
+den løftes øverst i release-body-en, og står den tom, stopper jobben.
+Release-body-en er den korte noten: handlingskategorien pluss punktene du merker
+med `<!--kort-->`. Merk de ti eller så en bruker faktisk ser forskjell på, for
+uten et eneste merke feller `just test` og CI. Se
+[release-notes.md](docs/release-notes.md#to-utskrifter-av-den-samme-teksten).
 
 ### Release
 

@@ -38,7 +38,8 @@ CHANGELOG = f"""# Endringer
 
 ### Fikset
 
-- En ting, med [en lenke](docs/noe.md)
+- <!--kort--> En ting, med [en lenke](docs/noe.md)
+- En detalj som bare hører hjemme i hele loggen
 """
 
 KOMPONENT = "custom_components/stromkalkulator"
@@ -251,6 +252,8 @@ def test_fersk_publisering_binder_tagg_zip_og_attestasjon(
     assert sha[:12] in release["body"], "SHA-en skal stå i noten, ikke bare i loggen"
     assert attestert in release["body"]
     assert "En ting" in release["body"], "CHANGELOG-seksjonen skal være body-en"
+    assert "<!--kort-->" not in release["body"], "merket skal ikke bli med ut"
+    assert "En detalj" not in release["body"], "body-en er den korte noten, ikke hele seksjonen"
 
 
 def test_uten_attestasjon_blir_ingenting_publisert(repo: Path, sha: str, github: FalskGitHub) -> None:

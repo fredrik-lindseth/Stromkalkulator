@@ -4,6 +4,11 @@ Release-workflowen bygger body-en fra CHANGELOG.md. Går uttrekket i stykker,
 får brukerne enten feil tekst eller en feilet release, så både det som finnes
 og det som mangler må oppføre seg forutsigbart. Det samme gjelder de to
 omskrivingene body-en får: absolutte lenker og løftet handlingskategori.
+
+Body-en release.yml publiserer er den korte varianten, bygget av punktene som er
+merket med `<!--kort-->`. Den har sine egne vakter: en seksjon under arbeid uten
+et eneste merket punkt skal felle, og historikken, som aldri ble merket, skal gi
+hele seksjonen framfor å krasje.
 """
 
 from __future__ import annotations
@@ -486,3 +491,238 @@ class TestByggBody:
 
     def test_manglende_seksjon_gir_none(self, tmp_path):
         assert release_notes.bygg_body(self.CHANGELOG, "9.9.9", repo_root=self._repo(tmp_path)) is None
+
+
+class TestDelIKategorier:
+    """Punktene må kunne plukkes ut ett for ett, også når de går over flere linjer."""
+
+    def test_punkter_havner_under_riktig_kategori(self):
+        seksjon = "### Fikset\n\n- A\n- B\n\n### Lagt til\n\n- C\n"
+        assert release_notes.del_i_kategorier(seksjon) == [
+            (None, []),
+            ("Fikset", ["- A", "- B"]),
+            ("Lagt til", ["- C"]),
+        ]
+
+    def test_innrykket_fortsettelse_blir_med_i_punktet(self):
+        seksjon = "### Fikset\n\n- Første linje\n  andre linje\n- Neste punkt\n"
+        _, (_, punkter) = release_notes.del_i_kategorier(seksjon)
+        assert punkter == ["- Første linje\n  andre linje", "- Neste punkt"]
+
+    def test_tekst_for_forste_overskrift_holdes_for_seg(self):
+        seksjon = "- Uten kategori\n\n### Fikset\n\n- A\n"
+        assert release_notes.del_i_kategorier(seksjon)[0] == (None, ["- Uten kategori"])
+
+
+class TestBygggKort:
+    """Den korte noten er det HACS viser. Blir den tom, er den verre enn ingen."""
+
+    SEKSJON = """### Dette må du gjøre selv
+
+- Bekreft enhetsbyttet
+
+### Fikset
+
+- <!--kort--> Et punkt brukeren merker
+- Et punkt som hører hjemme i hele loggen
+
+### Lagt til
+
+- <!--kort--> Enda et punkt brukeren merker
+"""
+
+    def test_tar_med_hele_handlingskategorien(self):
+        kort = release_notes.bygg_kort(self.SEKSJON, "3.0.0")
+        assert kort.startswith("### Dette må du gjøre selv")
+        assert "- Bekreft enhetsbyttet" in kort
+
+    def test_tar_med_de_merkede_punktene(self):
+        kort = release_notes.bygg_kort(self.SEKSJON, "3.0.0")
+        assert "Et punkt brukeren merker" in kort
+        assert "Enda et punkt brukeren merker" in kort
+
+    def test_lar_de_umerkede_punktene_ligge(self):
+        kort = release_notes.bygg_kort(self.SEKSJON, "3.0.0")
+        assert "hele loggen" not in kort
+
+    def test_merket_selv_blir_ikke_med_ut(self):
+        assert "<!--kort-->" not in release_notes.bygg_kort(self.SEKSJON, "3.0.0")
+
+    def test_lenker_til_hele_endringsloggen(self):
+        assert "](CHANGELOG.md)" in release_notes.bygg_kort(self.SEKSJON, "3.0.0")
+
+    def test_seksjon_uten_merkede_punkter_gir_feil(self):
+        """En kort note som bare er en lenke, sier ingenting."""
+        seksjon = "### Fikset\n\n- Et punkt ingen har merket\n"
+        with pytest.raises(release_notes.UmerketFeil) as feil:
+            release_notes.bygg_kort(seksjon, "3.0.0")
+        assert feil.value.versjon == "3.0.0"
+
+    def test_merke_i_handlingskategorien_trengs_ikke(self):
+        """Handlingskategorien blir med i sin helhet, så et merke der teller ikke."""
+        seksjon = "### Dette må du gjøre selv\n\n- <!--kort--> Gjør noe\n\n### Fikset\n\n- En feil\n"
+        with pytest.raises(release_notes.UmerketFeil):
+            release_notes.bygg_kort(seksjon, "3.0.0")
+
+    def test_uten_handlingskategori_star_bare_de_merkede(self):
+        seksjon = "### Fikset\n\n- <!--kort--> Et punkt\n"
+        kort = release_notes.bygg_kort(seksjon, "3.0.0")
+        assert kort.startswith("### Det viktigste")
+
+    def test_mellomrom_i_merket_godtas(self):
+        seksjon = "### Fikset\n\n- <!-- kort --> Et punkt\n"
+        assert "Et punkt" in release_notes.bygg_kort(seksjon, "3.0.0")
+
+
+class TestErUnderArbeid:
+    def test_oeverste_seksjon_er_under_arbeid(self):
+        assert release_notes.er_under_arbeid(FALSK_CHANGELOG, "Ikke sluppet")
+
+    def test_sluppet_seksjon_er_historikk(self):
+        assert not release_notes.er_under_arbeid(FALSK_CHANGELOG, "2.0.0")
+
+
+class TestByggKortBody:
+    def _repo(self, tmp_path: Path) -> Path:
+        (tmp_path / "CHANGELOG.md").write_text("x", encoding="utf-8")
+        return tmp_path
+
+    CHANGELOG = """# Changelog
+
+## [3.0.0]
+
+### Fikset
+
+- <!--kort--> Et punkt brukeren merker
+- Et punkt til
+
+### Dette må du gjøre selv
+
+- Bekreft enhetsbyttet
+"""
+
+    def test_kort_body_har_absolutt_changelog_lenke(self, tmp_path):
+        body = release_notes.bygg_kort_body(
+            self.CHANGELOG,
+            "3.0.0",
+            repo_root=self._repo(tmp_path),
+            repo_url="https://example.test/eier/repo",
+        )
+        assert body is not None
+        assert "https://example.test/eier/repo/blob/v3.0.0/CHANGELOG.md" in body
+
+    def test_tom_handlingskategori_feller_som_for(self, tmp_path):
+        """Vakten mot naken overskrift gjelder begge veier ut av filen."""
+        changelog = "## [3.0.0]\n\n### Dette må du gjøre selv\n\n### Fikset\n\n- <!--kort--> A\n"
+        with pytest.raises(release_notes.TomKategoriFeil):
+            release_notes.bygg_kort_body(changelog, "3.0.0", repo_root=self._repo(tmp_path))
+
+    def test_umerket_seksjon_feller_nar_den_er_streng(self, tmp_path):
+        changelog = "## [3.0.0]\n\n### Fikset\n\n- Et punkt\n"
+        with pytest.raises(release_notes.UmerketFeil):
+            release_notes.bygg_kort_body(changelog, "3.0.0", repo_root=self._repo(tmp_path))
+
+    def test_umerket_historikk_gir_hele_seksjonen(self, tmp_path):
+        """En sluppet note skal kunne hentes fram igjen uten at verktøyet krasjer."""
+        changelog = "## [3.0.0]\n\n### Fikset\n\n- Et punkt\n"
+        body = release_notes.bygg_kort_body(changelog, "3.0.0", repo_root=self._repo(tmp_path), streng=False)
+        assert body is not None
+        assert "Et punkt" in body
+
+    def test_manglende_seksjon_gir_none(self, tmp_path):
+        assert (
+            release_notes.bygg_kort_body(
+                self.CHANGELOG, "9.9.9", repo_root=self._repo(tmp_path), streng=False
+            )
+            is None
+        )
+
+
+class TestCliKort:
+    def _changelog(self, tmp_path: Path, tekst: str) -> Path:
+        sti = tmp_path / "CHANGELOG.md"
+        sti.write_text(tekst, encoding="utf-8")
+        return sti
+
+    UMERKET = "# Changelog\n\n## [3.0.0]\n\n### Fikset\n\n- Et punkt ingen har merket\n"
+
+    def test_kort_gir_exit_0_og_de_merkede_punktene(self, tmp_path, capsys):
+        sti = self._changelog(
+            tmp_path,
+            "# Changelog\n\n## [3.0.0]\n\n### Fikset\n\n- <!--kort--> Viktig\n- Detalj\n",
+        )
+        kode = release_notes.main(["3.0.0", "--kort", "--changelog", str(sti), "--repo-root", str(tmp_path)])
+        assert kode == 0
+        ut = capsys.readouterr().out
+        assert "Viktig" in ut
+        assert "Detalj" not in ut
+
+    def test_umerket_seksjon_under_arbeid_gir_exit_1(self, tmp_path, capsys):
+        sti = self._changelog(tmp_path, self.UMERKET)
+        kode = release_notes.main(["3.0.0", "--kort", "--changelog", str(sti), "--repo-root", str(tmp_path)])
+        assert kode == 1
+        feil = capsys.readouterr().err
+        assert "3.0.0" in feil
+        assert "<!--kort-->" in feil
+
+    def test_umerket_historikk_gir_exit_0_og_en_merknad(self, tmp_path, capsys):
+        sti = self._changelog(
+            tmp_path,
+            "# Changelog\n\n## [4.0.0]\n\n- <!--kort--> Nyere\n\n"
+            "## [3.0.0]\n\n### Fikset\n\n- Et punkt ingen har merket\n",
+        )
+        kode = release_notes.main(["3.0.0", "--kort", "--changelog", str(sti), "--repo-root", str(tmp_path)])
+        fanget = capsys.readouterr()
+        assert kode == 0
+        assert "Et punkt ingen har merket" in fanget.out
+        assert "sluppet" in fanget.err
+
+    def test_uten_kort_star_hele_seksjonen(self, tmp_path, capsys):
+        sti = self._changelog(tmp_path, self.UMERKET)
+        kode = release_notes.main(["3.0.0", "--changelog", str(sti), "--repo-root", str(tmp_path)])
+        assert kode == 0
+        assert "Et punkt ingen har merket" in capsys.readouterr().out
+
+
+class TestEkteChangelogKort:
+    """Vakten mot en tom kort note, på repoets egen fil."""
+
+    def _changelog(self) -> str:
+        return (REPO_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+
+    def test_seksjonen_under_arbeid_har_merkede_punkter(self):
+        changelog = self._changelog()
+        versjon = release_notes.kjente_versjoner(changelog)[0]
+        seksjon = release_notes.finn_seksjon(changelog, versjon)
+        assert seksjon is not None
+        assert release_notes.merkede_punkter(seksjon), (
+            f"Seksjonen '## [{versjon}]' har ingen punkter merket med "
+            f"{release_notes.MERKE_TEKST}. Release-body-en er den korte noten, så "
+            "merk punktene en bruker faktisk merker."
+        )
+
+    def test_kort_note_er_vesentlig_kortere_enn_hele(self):
+        """Den leses i en smal rute i HACS. Er den like lang, er den ikke kort."""
+        changelog = self._changelog()
+        versjon = release_notes.kjente_versjoner(changelog)[0]
+        hele = release_notes.bygg_body(changelog, versjon)
+        kort = release_notes.bygg_kort_body(changelog, versjon)
+        assert hele is not None and kort is not None
+        assert len(kort) < len(hele) / 2
+
+    def test_kort_note_har_faa_punkter(self):
+        changelog = self._changelog()
+        versjon = release_notes.kjente_versjoner(changelog)[0]
+        kort = release_notes.bygg_kort_body(changelog, versjon)
+        assert kort is not None
+        punkter = [linje for linje in kort.splitlines() if linje.startswith("- ")]
+        assert len(punkter) <= 15, f"{len(punkter)} punkter er ikke en kort note"
+
+    def test_alle_seksjoner_kan_bygges_kort(self):
+        """Historikken er umerket, og skal gi noe fornuftig framfor å krasje."""
+        changelog = self._changelog()
+        for versjon in release_notes.kjente_versjoner(changelog):
+            body = release_notes.bygg_kort_body(
+                changelog, versjon, streng=release_notes.er_under_arbeid(changelog, versjon)
+            )
+            assert body

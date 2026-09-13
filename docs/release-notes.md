@@ -3,9 +3,9 @@
 ## CHANGELOG.md
 
 Det finnes én tekst, og den ligger i repoet. `## [X.Y.Z]`-seksjonen i
-`CHANGELOG.md` er det brukerne får se på GitHub-releasen; workflowen henter den
-med `scripts/release_notes.py` og bruker den som body. Skriv den derfor som
-brukertekst, ikke som utviklerlogg.
+`CHANGELOG.md` er kilden til alt brukerne får se; workflowen henter den med
+`scripts/release_notes.py`. Skriv den derfor som brukertekst, ikke som
+utviklerlogg.
 
 Tidligere ble noten skrevet for hånd i en GitHub-draft. Da lå den utenfor
 repoet, workflowen publiserte rå commit-liste i stedet, og teksten måtte limes
@@ -14,13 +14,74 @@ inn igjen manuelt etterpå (stromkalkulator-1dk4).
 Se selv hva en gitt versjon gir:
 
 ```bash
-python3 scripts/release_notes.py 1.16.0
+python3 scripts/release_notes.py 1.16.0         # hele seksjonen
+python3 scripts/release_notes.py 1.16.0 --kort  # det som blir release-body
 ```
 
 Exit 1 hvis seksjonen mangler, er tom, har en relativ lenke til en fil som ikke
 finnes, eller har en tom `### Dette må du gjøre selv`. Både `ci.yml` og
 `release.yml` henger på den exit-koden, så en versjon uten note blir aldri
 publisert.
+
+## To utskrifter av den samme teksten
+
+Seksjonen kommer ut på to måter, og begge er utledet av den ene filen. Ingen av
+dem skrives for hånd ved siden av.
+
+Den lange er hele seksjonen, med «Dette må du gjøre selv» løftet øverst og
+relative lenker gjort absolutte. Det er den du leser i repoet og på GitHub, og
+det `release_notes.py <versjon>` skriver ut.
+
+Den korte er release-body-en, altså det HACS viser i oppdateringspanelet inne i
+Home Assistant. Den består av hele «Dette må du gjøre selv», punktene som er
+merket med `<!--kort-->`, og en lenke til hele endringsloggen. `--kort` gir den,
+og `release_publish.py` bruker nettopp den når releasen publiseres.
+
+Den finnes fordi panelet i HACS er en smal rute folk scroller gjennom i noen
+sekunder før de trykker oppdater. Seksjonen for 1.17.0 er 43 punkter og 13 000
+tegn, og førti punkter blir ikke lest der. Den korte er 11 punkter og 4 700
+tegn.
+
+At den er utledet og ikke skrevet ved siden av, skyldes v1.15.0: den noten var
+en egen tekst utenfor repoet, og den forsvant. To håndskrevne tekster kan si
+forskjellige ting, og den ene av dem råtner alltid først.
+
+### Merkingen
+
+Sett `<!--kort-->` rett etter streken på punktene en bruker faktisk merker:
+
+```markdown
+### Fikset
+
+- <!--kort--> **Månedskostnaden lå 64 til 145 kroner for høyt.** Fastleddet ...
+- **Fjellnett vekter en uke som krysser månedsskiftet med mandagens måned**, ...
+```
+
+Merket er en HTML-kommentar. Den er usynlig når `CHANGELOG.md` leses som
+markdown på GitHub, og den står der du ser den når du skriver punktet. Den
+fjernes fra begge utskriftene.
+
+Punktene under «Dette må du gjøre selv» blir med i sin helhet og skal ikke
+merkes. Et merke der telles ikke som merket punkt.
+
+Hva som fortjener et merke, er skjønn: det brukeren ser i grensesnittet eller i
+tallene sine. En rettet avrunding hos tre nettselskap, en omskrevet
+oppsettstekst eller en ny fixtur hører hjemme i hele loggen og ingen andre
+steder. Rundt ti punkter er et fornuftig mål, men det er ikke en terskel noe
+sted i koden.
+
+### Vakten
+
+En seksjon under arbeid uten et eneste merket punkt feller med exit 1, både
+lokalt i `pytest tests/test_release_notes.py` og i `ci.yml`. En kort note som
+bare er en overskrift og en lenke sier mindre enn ingenting, så den skal ikke
+kunne publiseres. Feilmeldingen sier hvilken versjon det gjelder og viser
+merket.
+
+Seksjonen «under arbeid» er den øverste i filen. Alt under den er sluppet og er
+historikk, og historikk merkes ikke i ettertid. Ber du om `--kort` for en gammel
+versjon, får du hele seksjonen hennes og en merknad på stderr i stedet for en
+feil.
 
 ## Stil
 
@@ -99,8 +160,8 @@ release-jobben.
 
 `release.yml` bygger body-en slik:
 
-1. CHANGELOG-seksjonen, med «Dette må du gjøre selv» løftet øverst og relative
-   lenker skrevet om til absolutte
+1. Den korte CHANGELOG-noten, med «Dette må du gjøre selv» løftet øverst,
+   relative lenker skrevet om til absolutte og lenke til hele endringsloggen
 2. `## Verifisering` med commiten ZIP-en er bygget fra, SHA256-linjen og lenke
    til `SECURITY.md`
 3. `<details>`-fold med alle commits siden forrige tag
@@ -129,11 +190,12 @@ Sjekkliste før du skriver i CHANGELOG:
 - [ ] Havnet arbeidet fra forrige runde faktisk i en seksjon?
 - [ ] Beskriver punktet nettoresultatet? Rettes en feil i samme uslupne vindu
       som den ble innført, skal bare sluttilstanden stå der.
+- [ ] Er punktet noe en bruker merker? Da får det `<!--kort-->`.
 
 ## Publisering
 
-1. Døp `## [Ikke sluppet]` om til `## [X.Y.Z]` og les gjennom teksten som
-   bruker
+1. Døp `## [Ikke sluppet]` om til `## [X.Y.Z]`, les gjennom teksten som bruker,
+   og se på den korte med `python3 scripts/release_notes.py X.Y.Z --kort`
 2. Bump versjonen i `manifest.json` og `pyproject.toml`
 3. Commit og push til main
 

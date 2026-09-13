@@ -446,18 +446,33 @@ def last_ned_asset(gh: Gh, kandidat: Kandidat, asset: dict[str, Any], mal: Path)
 
 
 def hent_release_note(versjon: str, repo_root: Path) -> str:
-    """CHANGELOG-seksjonen, gjennom scripts/release_notes.py.
+    """Den korte CHANGELOG-noten, gjennom scripts/release_notes.py.
 
     Importeres framfor å kjøres som subprosess, så feilene kommer ut som
     unntak med tekst vi kan videreformidle.
+
+    Den korte varianten er det brukerne faktisk leser: HACS viser release-body-en
+    i en smal rute inne i Home Assistant, og en seksjon på førti punkter blir
+    scrollet forbi. Hele seksjonen står i CHANGELOG.md, som noten lenker til.
     """
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     import release_notes
 
     changelog = (repo_root / "CHANGELOG.md").read_text(encoding="utf-8")
     try:
-        body = release_notes.bygg_body(changelog, versjon, repo_root=repo_root)
-    except (release_notes.LenkeFeil, release_notes.TomKategoriFeil) as err:
+        body = release_notes.bygg_kort_body(
+            changelog,
+            versjon,
+            repo_root=repo_root,
+            # Historikken merkes ikke i ettertid. Slippes en gammel seksjon om
+            # igjen, får den hele teksten sin framfor å stoppe flyten.
+            streng=release_notes.er_under_arbeid(changelog, versjon),
+        )
+    except (
+        release_notes.LenkeFeil,
+        release_notes.TomKategoriFeil,
+        release_notes.UmerketFeil,
+    ) as err:
         raise Feil(f"release-noten for {versjon} er ikke klar: {err}") from err
     if body is None:
         raise Feil(

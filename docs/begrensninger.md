@@ -57,10 +57,11 @@ Selve HA-integrasjonen leser `p`-strømmen kontinuerlig og er ikke påvirket. De
 
 Se [research/klokke-og-tidsstempling.md](research/klokke-og-tidsstempling.md) og [research/elhub-vs-han-vs-faktura.md](research/elhub-vs-han-vs-faktura.md) for full kontekst.
 
-Attesten er sist revalidert mot `559f799`, med før/etter per komponent i
-[research/revalidering-l3a-september-2026.md](research/revalidering-l3a-september-2026.md).
-Den runden er gyldig bare for den commiten: kronetallene endrer seg når
-kostnadskjernen lander, og da må alle ti månedene kjøres på nytt.
+Attesten er sist revalidert mot `7ea60cb`, med før/etter per komponent i
+[research/revalidering-l3b-september-2026.md](research/revalidering-l3b-september-2026.md).
+Den runden er gyldig bare for den commiten: neste serie som rører
+`coordinator.py`, `kostnad.py` eller BKK-satsene må kjøre alle ti månedene på
+nytt.
 
 ## 7. Gap-bucket ved lang nedetid (energy_sensor)
 
@@ -80,13 +81,18 @@ Konsekvens: for spot-kunder gir et enkelt flertimers-avbrudd typisk et avvik på
 
 Bevisst valg. En tidsriktig spot-korreksjon krever historiske timespriser for gap-vinduet, som coordinatoren ikke har tilgang til. Riemann-stien (uten `energy_sensor`) rammes ikke: der forkastes gap-forbruk over 6 minutter helt.
 
-Beslektet, og uavhengig av nedetid: `monthly_cost_kr`, `monthly_net_cost_kr` og
-`daily_cost` prises fortsatt til spotprisen som sto ved pollen, ikke til
-intervallets timepris. Energileddet og Norgespris-linjen bruker timeprisen
-etter L3a, så de tre står igjen som de siste kronetallene som følger polltiden.
-Utslaget er små ører i måneden, og det forsvinner når kostnadskjernen tar dem.
-Målt før og etter L3a rørte de seg ikke i det hele tatt, se
-[research/revalidering-l3a-september-2026.md](research/revalidering-l3a-september-2026.md).
+Kostnadskjernen (L3b) tok `monthly_cost_kr`, `monthly_net_cost_kr` og
+`daily_cost_kr` ut av polltidens pris: de er nå én akkumulator sammen med
+`monthly_accumulated_cost_kr`, og fastleddet legges inn som periodebeløp i
+stedet for som en kroner-per-time-sats ganget med kilowattimer. Målt mot
+fakturaen falt `monthly_cost_kr` 64 til 145 kroner ned på riktig verdi for mai,
+juni og juli 2026, se
+[research/revalidering-l3b-september-2026.md](research/revalidering-l3b-september-2026.md).
+
+Det som står igjen er en visningskuriositet: attributtet
+`kapasitetsledd_per_kwh` er kroner per time presentert som kroner per
+kilowattime, og de to er bare like ved nøyaktig 1 kWh/h. Tallet ganges ikke inn
+i noe beløp lenger, så det rammer bare den viste prisen per kWh.
 
 ## 9. Fem nettselskap har en annen kapasitetsledd-modell
 

@@ -12,27 +12,31 @@ Vil du få inn ditt eget nettselskap? Se [verifiser-din-faktura.md](verifiser-di
 
 ## Siste revalidering
 
-Attesten er sist kjørt om igjen mot `559f799`, etter at avregningsserien L3a
-endret hvordan energi, pris og tariff bokføres. Kommandoene er
+Attesten er sist kjørt om igjen mot `7ea60cb`, etter at kostnadskjernen L3b
+bygget om hvordan kroner akkumuleres. Kommandoene er
 
 ```
 python3 scripts/research/verify_invoice_hourly.py \
     --hourly tests/fixtures/bkk_<måned>_2026_hourly.json --faktura <måned>_2026
 python3 scripts/research/verify_norgespris_eksakt.py
-UV_PROJECT_ENVIRONMENT=.venv-unit uv run --frozen --python 3.13 --group unit \
-    pytest tests/ -q
+just test
 ```
 
 Alle linjene i tabellene under står uendret gjennom serien, for
-verifiseringsskriptene og fixturene er ikke rørt av den. Det coordinatoren
-regner, flyttet seg derimot: dag/natt-splitten for mai, juni og juli 2026
-flyttet inntil 0,261 kWh over tariffgrensen uten at totalen, kapasitetsleddet
-eller `monthly_cost_kr` endret seg, og den flyttet seg mot fakturaen.
-Før/etter-tabellen og metoden står i
+verifiseringsskriptene og fixturene er ikke rørt av den, og BKK-oppføringen i
+`dso.py` er identisk. Det coordinatoren regner, flyttet seg derimot, og alt som
+flyttet seg gikk mot fakturaen: `monthly_cost_kr` falt 64 til 145 kroner ned på
+den summen delene faktisk gir, fastleddsakkumulatoren lander nå på hele
+månedsbeløpet, og snitt topp 3 treffer fakturaens verdi i alle seks månedene som
+lar seg spille gjennom coordinatoren. Forbruk i kWh og dag/natt-splitten sto
+stille til siste desimal. Før/etter-tabellen og metoden står i
+[revalidering-l3b-september-2026.md](../research/revalidering-l3b-september-2026.md),
+og runden før den i
 [revalidering-l3a-september-2026.md](../research/revalidering-l3a-september-2026.md).
 
-Kronetallene endrer seg igjen når kostnadskjernen (L3b) lander. Da må alle ti
-månedene kjøres på nytt; listen står i samme notat.
+Runden gjelder bare den commiten. Neste serie som rører `coordinator.py`,
+`kostnad.py` eller BKK-satsene må kjøre alle ti månedene på nytt; listen står i
+samme notat.
 
 ## Fakturaer
 

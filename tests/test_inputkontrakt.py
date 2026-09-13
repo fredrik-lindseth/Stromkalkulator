@@ -394,7 +394,8 @@ def test_tpi_stale_hours_er_enten_i_bruk_eller_borte() -> None:
 def test_de_to_kontraktene_er_enige_om_store_versjonene() -> None:
     """§5 her definerer Store v2, og avregning.md D bygger v3 oppå den."""
     assert "Store-skjema v2" in KONTRAKTTEKST
-    assert "| 2 | K1 |" in AVREGNINGSTEKST
+    # Cellene, ikke paddingen: tabellen justeres når dokumentet formateres.
+    assert re.search(r"\|\s*2\s*\|\s*K1\s*\|", AVREGNINGSTEKST)
 
 
 def test_prisens_observasjonstid_eies_av_avregningskontrakten() -> None:

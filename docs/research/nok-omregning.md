@@ -219,9 +219,9 @@ data, metode, forbeholdene om dataene og veien videre i
 
 | Måned   | NB 14:15 avvik | BBG 12:00 avvik | implisitt match |
 | ------- | -------------: | --------------: | --------------: |
-| 2026-02 |       +2,07 kr |        +3,15 kr |         11,3426 |
-| 2026-03 |       +0,70 kr |        +0,46 kr |         11,1616 |
-| 2026-04 |       +0,78 kr |        -1,97 kr |         11,0705 |
+| 2026-02 | +2,07 kr       | +3,15 kr        | 11,3426         |
+| 2026-03 | +0,70 kr       | +0,46 kr        | 11,1616         |
+| 2026-04 | +0,78 kr       | -1,97 kr        | 11,0705         |
 
 Februar ble verre og april bommet over til andre siden av null. Fakturaens
 implisitte kurs ligger over Norges Bank i alle tre månedene, men 12:00-kursen

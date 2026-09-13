@@ -123,11 +123,11 @@ Kilder: [Aidon 6534 bruksanvisning (Lidköping)](https://lidkoping.se/download/1
 
 Kaifa MA304H3E kjører DLMS/COSEM over HDLC på HAN-porten, ikke ASCII. Pow-U-firmwaren auto-detekterer dette og bytter parser ut fra rammeformatet.
 
-| Liste | Frekvens                | Innhold                                         |
-| ----- | ----------------------- | ----------------------------------------------- |
-| list1 | hvert 2,5 sek           | `p` (W), `V_L1-3` (V), `I_L1-3` (A)             |
-| list2 | hvert 10 sek            | utvidet sett (spenning, strøm, effekt per fase) |
-| list3 | hver time, HH:00:10     | `tpi`, `tqi`, `tpo`, `peaks0..2`                |
+| Liste | Frekvens            | Innhold                                         |
+| ----- | ------------------- | ----------------------------------------------- |
+| list1 | hvert 2,5 sek       | `p` (W), `V_L1-3` (V), `I_L1-3` (A)             |
+| list2 | hvert 10 sek        | utvidet sett (spenning, strøm, effekt per fase) |
+| list3 | hver time, HH:00:10 | `tpi`, `tqi`, `tpo`, `peaks0..2`                |
 
 Sample-skiftet i eget oppsett er empirisk verifisert ved å sammenligne målerens egen RTC (`sensor.pow_u_ams_rtc`, fra OBIS 1.0.0) mot HA-mottakstid (`last_updated_ts`) over 24 timer:
 

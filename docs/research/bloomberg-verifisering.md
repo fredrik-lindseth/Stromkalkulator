@@ -51,9 +51,9 @@ sammenligningsgrunnlaget er riktig.
 
 | Måned   | NB 14:15 avvik | BBG 12:00 avvik | NB vektet | BBG vektet | implisitt match |
 | ------- | -------------: | --------------: | --------: | ---------: | --------------: |
-| 2026-02 |       +2,07 kr |        +3,15 kr |   11,3303 |    11,3251 |         11,3426 |
-| 2026-03 |       +0,70 kr |        +0,46 kr |   11,1605 |    11,1613 |         11,1616 |
-| 2026-04 |       +0,78 kr |        -1,97 kr |   11,0614 |    11,0748 |         11,0705 |
+| 2026-02 | +2,07 kr       | +3,15 kr        | 11,3303   | 11,3251    | 11,3426         |
+| 2026-03 | +0,70 kr       | +0,46 kr        | 11,1605   | 11,1613    | 11,1616         |
+| 2026-04 | +0,78 kr       | -1,97 kr        | 11,0614   | 11,0748    | 11,0705         |
 
 Prediksjonen var at alle tre avvikene skulle krympe mot null med den ekte
 12:00-kursen. I stedet vokste februar (+2,07 → +3,15), mars krympet litt

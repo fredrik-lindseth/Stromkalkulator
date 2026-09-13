@@ -108,11 +108,11 @@ uv run --with pyyaml python scripts/sjekk_mot_fri_nettleie.py --bare-avvik
 
 Hvert nettselskap får ett av tre utfall, og exit-koden er det verste av dem:
 
-| Utfall | Exit | Betyr |
-| --- | --- | --- |
-| verifisert | 0 | alle feltene vi kan sammenligne stemmer |
-| avvik | 1 | energiledd, fastledd eller fastledd-metode spriker mer enn toleransen |
-| ufullstendig | 2 | kontrollen ble ikke gjort: ingen match i fri-nettleie, 404, nettverksfeil, ingen aktiv tariff, manglende energiledd, ukartlagt fastledd-metode, ugyldig `--dso` |
+| Utfall       | Exit | Betyr                                                                                                                                                           |
+| ------------ | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| verifisert   | 0    | alle feltene vi kan sammenligne stemmer                                                                                                                         |
+| avvik        | 1    | energiledd, fastledd eller fastledd-metode spriker mer enn toleransen                                                                                           |
+| ufullstendig | 2    | kontrollen ble ikke gjort: ingen match i fri-nettleie, 404, nettverksfeil, ingen aktiv tariff, manglende energiledd, ukartlagt fastledd-metode, ugyldig `--dso` |
 
 Ufullstendig slår avvik i exit-koden. En kjøring som ikke vet hva den ikke
 sjekket, har ikke lov å si «alt i orden». Begge listene står i rapporten og i

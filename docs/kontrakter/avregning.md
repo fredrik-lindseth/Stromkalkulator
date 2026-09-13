@@ -184,14 +184,14 @@ egne avregningsregler for produksjon.
 Det integrasjonen leser fra energisensoren. En avlesning er en observasjon av
 en kumulativ teller, ikke et forbruk.
 
-| Felt | Type | Betydning |
-| --- | --- | --- |
-| `source_identity` | str | Registry `unique_id` for entiteten. Identiteten til den fysiske kilden, ikke `entity_id`. |
-| `entity_id` | str | Kun for visning og diagnostikk. Kan endres av brukeren uten at kilden er en annen. |
-| `value_kwh` | float | Kumulativ teller, normalisert til kWh av inputadapteren (K1). |
-| `observed_at` | datetime (UTC, aware) | Entitetens `last_updated`. Dette er tiden energien gjelder for, ikke polltiden. |
-| `kvalitet` | enum | `malt`, `estimert`, `avvist`. |
-| `schema_version` | int | Skjemaversjon for avlesningen. |
+| Felt              | Type                  | Betydning                                                                                 |
+| ----------------- | --------------------- | ----------------------------------------------------------------------------------------- |
+| `source_identity` | str                   | Registry `unique_id` for entiteten. Identiteten til den fysiske kilden, ikke `entity_id`. |
+| `entity_id`       | str                   | Kun for visning og diagnostikk. Kan endres av brukeren uten at kilden er en annen.        |
+| `value_kwh`       | float                 | Kumulativ teller, normalisert til kWh av inputadapteren (K1).                             |
+| `observed_at`     | datetime (UTC, aware) | Entitetens `last_updated`. Dette er tiden energien gjelder for, ikke polltiden.           |
+| `kvalitet`        | enum                  | `malt`, `estimert`, `avvist`.                                                             |
+| `schema_version`  | int                   | Skjemaversjon for avlesningen.                                                            |
 
 `observed_at` er alltid tidssoneklar. En naiv datetime er en programmeringsfeil
 og skal kaste, ikke tolkes som lokal tid.
@@ -203,13 +203,13 @@ hjørnetilfelle. Uten teller finnes ingen avlesning i tabellen over, og brukeren
 skal likevel inn i den samme boken. Coordinatoren lager da én **syntetisk
 avlesning** per poll, med disse feltene:
 
-| Felt | Verdi for en syntetisk avlesning |
-| --- | --- |
-| `source_identity` | Effektsensorens `unique_id`. |
-| `entity_id` | Effektsensorens. |
-| `value_kwh` | Ikke en tellerstand: energien i vinduet, effekten ved pollen ganget med vinduets lengde i timer. |
-| `observed_at` | Polltiden, ikke effektsensorens `last_updated`. |
-| `kvalitet` | `estimert`. |
+| Felt              | Verdi for en syntetisk avlesning                                                                 |
+| ----------------- | ------------------------------------------------------------------------------------------------ |
+| `source_identity` | Effektsensorens `unique_id`.                                                                     |
+| `entity_id`       | Effektsensorens.                                                                                 |
+| `value_kwh`       | Ikke en tellerstand: energien i vinduet, effekten ved pollen ganget med vinduets lengde i timer. |
+| `observed_at`     | Polltiden, ikke effektsensorens `last_updated`.                                                  |
+| `kvalitet`        | `estimert`.                                                                                      |
 
 Vinduet er `(forrige polltid, polltid]`, og fordelingen over
 avregningsintervallene følger C1 som ellers. Fire ting følger av det, og de må
@@ -251,17 +251,17 @@ delta fra. `avregning_kilde` står som effektsensorens identitet.
 
 ### B2 Prisintervall
 
-| Felt | Type | Betydning |
-| --- | --- | --- |
-| `start_utc` | datetime (UTC) | Inklusiv. |
-| `slutt_utc` | datetime (UTC) | Eksklusiv. |
-| `nok_per_kwh_eks_mva` | float \| None | `None` betyr ingen pris. Aldri 0 som erstatning. |
-| `omrade` | str | NO1 til NO5. |
-| `opplosning_minutter` | int | Lengden på en prisrute (A2.1). 15 i v1. |
-| `kilde` | enum | `sensor`, `arkiv`, `manuell`. |
-| `revisjon` | enum | `forelopig`, `final`, `ukjent`. |
-| `pris_prover` | int | Antall prisruter i intervallet med godkjent prøve (A2.1). |
-| `pris_prover_ventet` | int | `60 / opplosning_minutter`, altså 1 ved timesoppløsning og 4 ved kvarter. |
+| Felt                  | Type           | Betydning                                                                 |
+| --------------------- | -------------- | ------------------------------------------------------------------------- |
+| `start_utc`           | datetime (UTC) | Inklusiv.                                                                 |
+| `slutt_utc`           | datetime (UTC) | Eksklusiv.                                                                |
+| `nok_per_kwh_eks_mva` | float \| None  | `None` betyr ingen pris. Aldri 0 som erstatning.                          |
+| `omrade`              | str            | NO1 til NO5.                                                              |
+| `opplosning_minutter` | int            | Lengden på en prisrute (A2.1). 15 i v1.                                   |
+| `kilde`               | enum           | `sensor`, `arkiv`, `manuell`.                                             |
+| `revisjon`            | enum           | `forelopig`, `final`, `ukjent`.                                           |
+| `pris_prover`         | int            | Antall prisruter i intervallet med godkjent prøve (A2.1).                 |
+| `pris_prover_ventet`  | int            | `60 / opplosning_minutter`, altså 1 ved timesoppløsning og 4 ved kvarter. |
 
 Negative priser er gyldige og klippes ikke. `urimelig_verdi`-grensen i
 [input-og-konfig.md](input-og-konfig.md#1-typede-inputresultater) gjelder
@@ -269,19 +269,19 @@ tallets absoluttverdi, så en negativ pris passerer den.
 
 ### B3 Avregnet intervall
 
-| Felt | Type | Betydning |
-| --- | --- | --- |
-| `start_utc` | datetime (UTC) | Inklusiv. |
-| `slutt_utc` | datetime (UTC) | Eksklusiv. |
-| `kwh` | float | Fordelt energi, se C1. |
-| `lokal_maned` | str | `YYYY-MM` i Europe/Oslo, avgjort av `start_utc`. |
-| `lokal_time` | int | 0 til 23 i Europe/Oslo, avgjort av `start_utc`. |
-| `tariff` | enum | `dag` eller `natt`, avgjort av `start_utc` i Europe/Oslo. |
-| `pris` | prisintervall \| None | Se B2. |
-| `regelkilde` | str | `{tariffmodus}:{dso_id}:{avgiftsaar}`, for eksempel `catalog:bkk:2027`. Alle tre leddene avgjøres av `start_utc`, og avgiftsåret er året i Europe/Oslo (C3). |
-| `kvalitet` | enum | `komplett`, `delvis_pris`, `uten_pris`, `ufullstendig`. Priskvaliteten, med `ufullstendig` som overstyring. Se under. |
-| `energikvalitet` | enum | `malt` eller `estimert`. Hvor energien i intervallet kom fra, samme enum som B1. Se under. |
-| `apen` | bool | `True` så lenge `slutt_utc` ligger fram i tid. Se C6. |
+| Felt             | Type                  | Betydning                                                                                                                                                    |
+| ---------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `start_utc`      | datetime (UTC)        | Inklusiv.                                                                                                                                                    |
+| `slutt_utc`      | datetime (UTC)        | Eksklusiv.                                                                                                                                                   |
+| `kwh`            | float                 | Fordelt energi, se C1.                                                                                                                                       |
+| `lokal_maned`    | str                   | `YYYY-MM` i Europe/Oslo, avgjort av `start_utc`.                                                                                                             |
+| `lokal_time`     | int                   | 0 til 23 i Europe/Oslo, avgjort av `start_utc`.                                                                                                              |
+| `tariff`         | enum                  | `dag` eller `natt`, avgjort av `start_utc` i Europe/Oslo.                                                                                                    |
+| `pris`           | prisintervall \| None | Se B2.                                                                                                                                                       |
+| `regelkilde`     | str                   | `{tariffmodus}:{dso_id}:{avgiftsaar}`, for eksempel `catalog:bkk:2027`. Alle tre leddene avgjøres av `start_utc`, og avgiftsåret er året i Europe/Oslo (C3). |
+| `kvalitet`       | enum                  | `komplett`, `delvis_pris`, `uten_pris`, `ufullstendig`. Priskvaliteten, med `ufullstendig` som overstyring. Se under.                                        |
+| `energikvalitet` | enum                  | `malt` eller `estimert`. Hvor energien i intervallet kom fra, samme enum som B1. Se under.                                                                   |
+| `apen`           | bool                  | `True` så lenge `slutt_utc` ligger fram i tid. Se C6.                                                                                                        |
 
 **Når `kvalitet` er `ufullstendig`.** De tre første verdiene er priskvaliteten
 etter A2.1 og C4, og de utelukker hverandre. `ufullstendig` er ikke en fjerde
@@ -333,10 +333,10 @@ i `scripts/research/maal_fordelingsregel.py` (juni 2026: 720 timer Elhub-kWh som
 fasit, timepriser fra kvarterarkivet, fasitsum 704,28 kr eks. mva). Telleren
 simuleres med jitter på pollintervallet, 20 kjøringer per rad:
 
-| Poll | Jevnt over tid | Snap til sluttintervall | Snap til startintervall |
-| --- | --- | --- | --- |
-| 5 min | -0,07 .. -0,03 kr (spenn 0,04) | -0,19 .. +0,14 kr (spenn 0,34) | -0,27 .. -0,01 kr (spenn 0,26) |
-| 30 min | -0,46 .. -0,05 kr (spenn 0,41) | -0,96 .. +1,32 kr (spenn 2,28) | -1,61 .. +0,59 kr (spenn 2,19) |
+| Poll      | Jevnt over tid                 | Snap til sluttintervall         | Snap til startintervall          |
+| --------- | ------------------------------ | ------------------------------- | -------------------------------- |
+| 5 min     | -0,07 .. -0,03 kr (spenn 0,04) | -0,19 .. +0,14 kr (spenn 0,34)  | -0,27 .. -0,01 kr (spenn 0,26)   |
+| 30 min    | -0,46 .. -0,05 kr (spenn 0,41) | -0,96 .. +1,32 kr (spenn 2,28)  | -1,61 .. +0,59 kr (spenn 2,19)   |
 | 3 t (gap) | -3,17 .. -0,95 kr (spenn 2,21) | -3,37 .. +7,06 kr (spenn 10,43) | -14,35 .. -0,43 kr (spenn 13,92) |
 
 Kolonnen som avgjør er spennet, for det er prisen på invarianten: hvor mye
@@ -406,14 +406,14 @@ spesialtilfelle i fordelingen: UTC-tidslinjen er sammenhengende gjennom begge.
 Det som er et spesialtilfelle er merkelappene, og de avgjøres alltid av
 `start_utc` omregnet til Europe/Oslo:
 
-| Sak | UTC-intervall | Lokal merkelapp | Fakturamåned | Avgiftsår i `regelkilde` |
-| --- | --- | --- | --- | --- |
-| D1 | 2026-03-29T00:00Z | 2026-03-29 01:00 CET | 2026-03 | 2026 |
-| D2 | 2026-03-29T01:00Z | 2026-03-29 03:00 CEST | 2026-03 | 2026 |
-| D3 | 2026-10-25T00:00Z | 2026-10-25 02:00 CEST | 2026-10 | 2026 |
-| D4 | 2026-10-25T01:00Z | 2026-10-25 02:00 CET | 2026-10 | 2026 |
-| D5 | 2026-03-31T22:00Z | 2026-04-01 00:00 CEST | 2026-04 | 2026 |
-| D6 | 2026-12-31T23:00Z | 2027-01-01 00:00 CET | 2027-01 | 2027 |
+| Sak | UTC-intervall     | Lokal merkelapp       | Fakturamåned | Avgiftsår i `regelkilde` |
+| --- | ----------------- | --------------------- | ------------ | ------------------------ |
+| D1  | 2026-03-29T00:00Z | 2026-03-29 01:00 CET  | 2026-03      | 2026                     |
+| D2  | 2026-03-29T01:00Z | 2026-03-29 03:00 CEST | 2026-03      | 2026                     |
+| D3  | 2026-10-25T00:00Z | 2026-10-25 02:00 CEST | 2026-10      | 2026                     |
+| D4  | 2026-10-25T01:00Z | 2026-10-25 02:00 CET  | 2026-10      | 2026                     |
+| D5  | 2026-03-31T22:00Z | 2026-04-01 00:00 CEST | 2026-04      | 2026                     |
+| D6  | 2026-12-31T23:00Z | 2027-01-01 00:00 CET  | 2027-01      | 2027                     |
 
 D1 og D2 er vårskiftet: lokal time 02 finnes ikke, og det skal ikke finnes noe
 intervall med den merkelappen. D3 og D4 er høstskiftet: to ulike intervaller
@@ -528,14 +528,14 @@ bokføring.
 Radene er fasit for fordelingsregelen. `tests/test_avregningskontrakt.py`
 kjører dem, og L1 og L2 skal kjøre dem mot sin egen implementasjon.
 
-| Sak | Fra (UTC) | Til (UTC) | Delta kWh | Fordeling (UTC-start=kWh) |
-| --- | --- | --- | --- | --- |
-| F1 | 2026-06-15T10:30:00Z | 2026-06-15T10:45:00Z | 0.400 | 2026-06-15T10:00:00Z=0.400 |
-| F2 | 2026-06-15T10:45:00Z | 2026-06-15T11:15:00Z | 1.200 | 2026-06-15T10:00:00Z=0.600; 2026-06-15T11:00:00Z=0.600 |
-| F3 | 2026-06-15T09:20:00Z | 2026-06-15T12:10:00Z | 8.500 | 2026-06-15T09:00:00Z=2.000; 2026-06-15T10:00:00Z=3.000; 2026-06-15T11:00:00Z=3.000; 2026-06-15T12:00:00Z=0.500 |
-| F4 | 2026-06-15T10:00:00Z | 2026-06-15T11:00:00Z | 2.000 | 2026-06-15T10:00:00Z=2.000 |
-| F5 | 2026-03-29T00:30:00Z | 2026-03-29T01:30:00Z | 4.000 | 2026-03-29T00:00:00Z=2.000; 2026-03-29T01:00:00Z=2.000 |
-| F6 | 2026-10-25T00:30:00Z | 2026-10-25T01:30:00Z | 4.000 | 2026-10-25T00:00:00Z=2.000; 2026-10-25T01:00:00Z=2.000 |
+| Sak | Fra (UTC)            | Til (UTC)            | Delta kWh | Fordeling (UTC-start=kWh)                                                                                      |
+| --- | -------------------- | -------------------- | --------- | -------------------------------------------------------------------------------------------------------------- |
+| F1  | 2026-06-15T10:30:00Z | 2026-06-15T10:45:00Z | 0.400     | 2026-06-15T10:00:00Z=0.400                                                                                     |
+| F2  | 2026-06-15T10:45:00Z | 2026-06-15T11:15:00Z | 1.200     | 2026-06-15T10:00:00Z=0.600; 2026-06-15T11:00:00Z=0.600                                                         |
+| F3  | 2026-06-15T09:20:00Z | 2026-06-15T12:10:00Z | 8.500     | 2026-06-15T09:00:00Z=2.000; 2026-06-15T10:00:00Z=3.000; 2026-06-15T11:00:00Z=3.000; 2026-06-15T12:00:00Z=0.500 |
+| F4  | 2026-06-15T10:00:00Z | 2026-06-15T11:00:00Z | 2.000     | 2026-06-15T10:00:00Z=2.000                                                                                     |
+| F5  | 2026-03-29T00:30:00Z | 2026-03-29T01:30:00Z | 4.000     | 2026-03-29T00:00:00Z=2.000; 2026-03-29T01:00:00Z=2.000                                                         |
+| F6  | 2026-10-25T00:30:00Z | 2026-10-25T01:30:00Z | 4.000     | 2026-10-25T00:00:00Z=2.000; 2026-10-25T01:00:00Z=2.000                                                         |
 
 F5 og F6 er de to sommertidsskiftene. At de ser trivielle ut er hele poenget:
 i UTC er de vanlige timer, og fordelingen skal ikke merke skiftet.
@@ -546,15 +546,15 @@ Radene er fasit for A2.1 og kjøres av samme testfil. Intervallet er
 `2026-06-15T10:00:00Z` til `11:00:00Z`, og polltidene er `mm:ss` etter
 intervallstart. `PRIS_SETTLE_SEKUNDER` er 60.
 
-| Sak | Oppløsning | Polls (mm:ss=NOK/kWh) | Ruter med prøve | Intervallpris | Kvalitet |
-| --- | --- | --- | --- | --- | --- |
-| P1 | 15 | 00:30=1.00; 02:00=1.00; 17:00=1.10; 32:00=1.20; 47:00=1.30 | 4 | 1.15 | komplett |
-| P2 | 15 | 02:00=1.00; 17:00=1.00; 32:00=1.00; 47:00=1.00 | 4 | 1.00 | komplett |
-| P3 | 15 | 00:10=0.90; 01:30=1.00; 16:00=1.00; 31:00=1.00; 46:00=1.00 | 4 | 1.00 | komplett |
-| P4 | 60 | 05:00=1.23 | 1 | 1.23 | komplett |
-| P5 | 15 | 02:00=1.00; 33:00=1.40 | 2 | 1.20 | delvis_pris |
-| P6 | 15 | 00:20=1.00; 15:30=1.10 | 0 | - | uten_pris |
-| P7 | 60 | 02:00=1.00; 10:00=1.40 | 1 | 1.40 | komplett |
+| Sak | Oppløsning | Polls (mm:ss=NOK/kWh)                                      | Ruter med prøve | Intervallpris | Kvalitet    |
+| --- | ---------- | ---------------------------------------------------------- | --------------- | ------------- | ----------- |
+| P1  | 15         | 00:30=1.00; 02:00=1.00; 17:00=1.10; 32:00=1.20; 47:00=1.30 | 4               | 1.15          | komplett    |
+| P2  | 15         | 02:00=1.00; 17:00=1.00; 32:00=1.00; 47:00=1.00             | 4               | 1.00          | komplett    |
+| P3  | 15         | 00:10=0.90; 01:30=1.00; 16:00=1.00; 31:00=1.00; 46:00=1.00 | 4               | 1.00          | komplett    |
+| P4  | 60         | 05:00=1.23                                                 | 1               | 1.23          | komplett    |
+| P5  | 15         | 02:00=1.00; 33:00=1.40                                     | 2               | 1.20          | delvis_pris |
+| P6  | 15         | 00:20=1.00; 15:30=1.10                                     | 0               | -             | uten_pris   |
+| P7  | 60         | 02:00=1.00; 10:00=1.40                                     | 1               | 1.40          | komplett    |
 
 P2 er feilen som gjorde denne seksjonen nødvendig: fire like priser på rad er
 fire prøver, ikke én. P3 viser settlevinduet, der prøven ti sekunder etter
@@ -569,11 +569,11 @@ Lagringsnøkkelen er `entry.entry_id`, som før ([incident
 
 Store-versjonene:
 
-| Versjon | Hvem | Innhold |
-| --- | --- | --- |
-| 1 | dagens utgave | Månedssummer, døgnmakser, akkumulerte kroner. Ingen kildeidentitet, ingen observasjonstid. |
-| 2 | K1 | Som v1, pluss `source_identity` og normalisert kWh på baseline. |
-| 3 | denne serien | Som v2, pluss `skjema_versjon`, siste behandlede observasjon og åpne intervaller med bokførte kWh og godkjente prisruter. |
+| Versjon | Hvem          | Innhold                                                                                                                   |
+| ------- | ------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| 1       | dagens utgave | Månedssummer, døgnmakser, akkumulerte kroner. Ingen kildeidentitet, ingen observasjonstid.                                |
+| 2       | K1            | Som v1, pluss `source_identity` og normalisert kWh på baseline.                                                           |
+| 3       | denne serien  | Som v2, pluss `skjema_versjon`, siste behandlede observasjon og åpne intervaller med bokførte kWh og godkjente prisruter. |
 
 Migrering v2 til v3 er enveis og gjør dette:
 
@@ -609,21 +609,21 @@ løftet over om at v2-feltene overlever i v3-filen blir innfridd.
 
 Grensesnittet L1, L2, L3a, L3b og L3c bygger mot. Nye felt:
 
-| Felt | Type | Betydning |
-| --- | --- | --- |
-| `avregning_skjema` | int | Store-skjemaversjon boken ble lest fra (3). |
-| `avregning_ufullstendig` | bool | Måneden mangler intervallhistorikk fordi den krysset migreringen. |
-| `avregning_sist_observert` | str \| None | ISO UTC for siste behandlede avlesnings `observed_at`. |
-| `avregning_kilde` | str \| None | `source_identity` for energikilden boken er ført mot. |
-| `avregning_siste_intervall` | str \| None | ISO UTC-start for siste lukkede intervall. |
-| `avregning_apne_intervaller` | int | Antall intervaller i boken som ennå ikke er lukket. |
-| `avregning_avvist_kwh` | float | kWh forkastet denne måneden (sprang, målerreset, duplikat). |
-| `kwh_uten_pris` | float | kWh bokført denne måneden i intervaller uten pris. |
-| `kwh_delvis_pris` | float | kWh bokført denne måneden i intervaller med færre prisprøver enn ventet. |
-| `monthly_stromstotte_kr` | float | Strømstøtten måneden har gitt, i kroner. Opplysning, ikke et fradrag som skal trekkes en gang til. |
-| `monthly_energiledd_dag_kr` | float | Nettleiens energiledd for dagtimene, inkl. mva, uten offentlige avgifter. |
-| `monthly_energiledd_natt_kr` | float | Tilsvarende for natt- og helgetimene. |
-| `monthly_avgifter_kr` | float | Forbruksavgift og Enova for månedens kilowattimer, inkl. mva. |
+| Felt                         | Type        | Betydning                                                                                          |
+| ---------------------------- | ----------- | -------------------------------------------------------------------------------------------------- |
+| `avregning_skjema`           | int         | Store-skjemaversjon boken ble lest fra (3).                                                        |
+| `avregning_ufullstendig`     | bool        | Måneden mangler intervallhistorikk fordi den krysset migreringen.                                  |
+| `avregning_sist_observert`   | str \| None | ISO UTC for siste behandlede avlesnings `observed_at`.                                             |
+| `avregning_kilde`            | str \| None | `source_identity` for energikilden boken er ført mot.                                              |
+| `avregning_siste_intervall`  | str \| None | ISO UTC-start for siste lukkede intervall.                                                         |
+| `avregning_apne_intervaller` | int         | Antall intervaller i boken som ennå ikke er lukket.                                                |
+| `avregning_avvist_kwh`       | float       | kWh forkastet denne måneden (sprang, målerreset, duplikat).                                        |
+| `kwh_uten_pris`              | float       | kWh bokført denne måneden i intervaller uten pris.                                                 |
+| `kwh_delvis_pris`            | float       | kWh bokført denne måneden i intervaller med færre prisprøver enn ventet.                           |
+| `monthly_stromstotte_kr`     | float       | Strømstøtten måneden har gitt, i kroner. Opplysning, ikke et fradrag som skal trekkes en gang til. |
+| `monthly_energiledd_dag_kr`  | float       | Nettleiens energiledd for dagtimene, inkl. mva, uten offentlige avgifter.                          |
+| `monthly_energiledd_natt_kr` | float       | Tilsvarende for natt- og helgetimene.                                                              |
+| `monthly_avgifter_kr`        | float       | Forbruksavgift og Enova for månedens kilowattimer, inkl. mva.                                      |
 
 De fire nye kronefeltene er ikke et nytt regnskap ved siden av det gamle.
 `monthly_energiledd_dag_kr + monthly_energiledd_natt_kr + monthly_avgifter_kr`
@@ -639,18 +639,18 @@ tallet, og to felt som skal si det samme drifter fra hverandre.
 
 Felt som beholdes med samme navn, men får rettet betydning:
 
-| Felt | Betydning etter denne kontrakten |
-| --- | --- |
-| `monthly_consumption_dag_kwh` | Sum kWh over avregnede intervaller med `tariff = dag` i måneden, ikke sum av poll-bøtter. |
-| `monthly_consumption_natt_kwh` | Tilsvarende for `natt`. |
-| `monthly_consumption_total_kwh` | Sum over alle avregnede intervaller i måneden. |
-| `current_hour_energy` | kWh bokført i det åpne intervallet, ikke i en veggklokke-bøtte. |
-| `daily_cost_kr` | Kroner fra intervaller med lokal dato lik i dag, pluss dagens andel av månedens fastledd. |
-| `monthly_accumulated_cost_strom_kr` | Kroner fra intervallenes egen pris, ikke fra prisen ved polltid. Etter strømstøtte, og etter Norgespris der den gjelder. |
-| `monthly_accumulated_cost_energiledd_kr` | Nettleiens energidel med forbruksavgift og Enova, med satsen som gjaldt i intervallet. Navnet er upresist og står likevel: se avsnittet under. |
-| `monthly_accumulated_cost_kapasitetsledd_kr` | Fastleddet som periodebeløp: kr/mnd ganger forløpt andel av måneden, regnet på nytt ved hver poll. |
-| `monthly_cost_kr` | Samme tall som `monthly_accumulated_cost_kr`. Én akkumulator, ikke to. |
-| `is_day_rate` | Uendret: tariffen akkurat nå, for visning. Avregningen bruker intervallets egen `tariff`. Begge leser samme `Tariffregel`; kopien i coordinatoren er borte. |
+| Felt                                         | Betydning etter denne kontrakten                                                                                                                            |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `monthly_consumption_dag_kwh`                | Sum kWh over avregnede intervaller med `tariff = dag` i måneden, ikke sum av poll-bøtter.                                                                   |
+| `monthly_consumption_natt_kwh`               | Tilsvarende for `natt`.                                                                                                                                     |
+| `monthly_consumption_total_kwh`              | Sum over alle avregnede intervaller i måneden.                                                                                                              |
+| `current_hour_energy`                        | kWh bokført i det åpne intervallet, ikke i en veggklokke-bøtte.                                                                                             |
+| `daily_cost_kr`                              | Kroner fra intervaller med lokal dato lik i dag, pluss dagens andel av månedens fastledd.                                                                   |
+| `monthly_accumulated_cost_strom_kr`          | Kroner fra intervallenes egen pris, ikke fra prisen ved polltid. Etter strømstøtte, og etter Norgespris der den gjelder.                                    |
+| `monthly_accumulated_cost_energiledd_kr`     | Nettleiens energidel med forbruksavgift og Enova, med satsen som gjaldt i intervallet. Navnet er upresist og står likevel: se avsnittet under.              |
+| `monthly_accumulated_cost_kapasitetsledd_kr` | Fastleddet som periodebeløp: kr/mnd ganger forløpt andel av måneden, regnet på nytt ved hver poll.                                                          |
+| `monthly_cost_kr`                            | Samme tall som `monthly_accumulated_cost_kr`. Én akkumulator, ikke to.                                                                                      |
+| `is_day_rate`                                | Uendret: tariffen akkurat nå, for visning. Avregningen bruker intervallets egen `tariff`. Begge leser samme `Tariffregel`; kopien i coordinatoren er borte. |
 
 Felt som forsvinner: ingen i denne omgang. L3c avgjør hva som kan pensjoneres
 når sensorene skrives om.

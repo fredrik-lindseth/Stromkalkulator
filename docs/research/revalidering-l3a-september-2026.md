@@ -54,29 +54,29 @@ med 10 sekunders målerkadens, og lest av rett før månedsskiftet og på
 
 Tallene er kilowattimer og kroner, «før» er `ce1ca99` og «etter» `559f799`.
 
-| Måned | Komponent | Før | Etter | Differanse | Faktura |
-| --- | --- | ---: | ---: | ---: | ---: |
-| mai 2026 | forbruk dag | 518,133 | 518,142 | +0,009 | 518,142 |
-| mai 2026 | forbruk natt | 661,170 | 661,161 | -0,009 | 661,161 |
-| mai 2026 | forbruk total | 1179,288 | 1179,288 | 0 | 1179,303 |
-| mai 2026 | energiledd akk. | 392,9551 | 392,9573 | +0,0022 | |
-| mai 2026 | Norgespris | -1032,48 | -1032,56 | -0,08 | -1032,56 |
-| mai 2026 | kapasitetsledd | 250 | 250 | 0 | 250 |
-| mai 2026 | `monthly_cost_kr` | 1377,27 | 1377,27 | 0 | |
-| juni 2026 | forbruk dag | 590,385 | 590,646 | +0,261 | 590,646 |
-| juni 2026 | forbruk natt | 443,243 | 442,982 | -0,261 | 442,982 |
-| juni 2026 | forbruk total | 1033,617 | 1033,617 | 0 | 1033,628 |
-| juni 2026 | energiledd akk. | 375,5328 | 375,5924 | +0,0596 | |
-| juni 2026 | Norgespris | -363,55 | -363,53 | +0,02 | -363,54 |
-| juni 2026 | kapasitetsledd | 250 | 250 | 0 | 250 |
-| juni 2026 | `monthly_cost_kr` | 1249,21 | 1249,21 | 0 | |
-| juli 2026 | forbruk dag | 514,202 | 514,414 | +0,212 | 514,414 |
-| juli 2026 | forbruk natt | 424,561 | 424,349 | -0,212 | 424,349 |
-| juli 2026 | forbruk total | 938,741 | 938,741 | 0 | 938,763 |
-| juli 2026 | energiledd akk. | 336,0400 | 336,0885 | +0,0485 | |
-| juli 2026 | Norgespris | -807,56 | -807,50 | +0,06 | -807,50 |
-| juli 2026 | kapasitetsledd | 250 | 250 | 0 | 250 |
-| juli 2026 | `monthly_cost_kr` | 1119,60 | 1119,60 | 0 | |
+| Måned     | Komponent         | Før      | Etter    | Differanse | Faktura  |
+| --------- | ----------------- | -------: | -------: | ---------: | -------: |
+| mai 2026  | forbruk dag       | 518,133  | 518,142  | +0,009     | 518,142  |
+| mai 2026  | forbruk natt      | 661,170  | 661,161  | -0,009     | 661,161  |
+| mai 2026  | forbruk total     | 1179,288 | 1179,288 | 0          | 1179,303 |
+| mai 2026  | energiledd akk.   | 392,9551 | 392,9573 | +0,0022    |          |
+| mai 2026  | Norgespris        | -1032,48 | -1032,56 | -0,08      | -1032,56 |
+| mai 2026  | kapasitetsledd    | 250      | 250      | 0          | 250      |
+| mai 2026  | `monthly_cost_kr` | 1377,27  | 1377,27  | 0          |          |
+| juni 2026 | forbruk dag       | 590,385  | 590,646  | +0,261     | 590,646  |
+| juni 2026 | forbruk natt      | 443,243  | 442,982  | -0,261     | 442,982  |
+| juni 2026 | forbruk total     | 1033,617 | 1033,617 | 0          | 1033,628 |
+| juni 2026 | energiledd akk.   | 375,5328 | 375,5924 | +0,0596    |          |
+| juni 2026 | Norgespris        | -363,55  | -363,53  | +0,02      | -363,54  |
+| juni 2026 | kapasitetsledd    | 250      | 250      | 0          | 250      |
+| juni 2026 | `monthly_cost_kr` | 1249,21  | 1249,21  | 0          |          |
+| juli 2026 | forbruk dag       | 514,202  | 514,414  | +0,212     | 514,414  |
+| juli 2026 | forbruk natt      | 424,561  | 424,349  | -0,212     | 424,349  |
+| juli 2026 | forbruk total     | 938,741  | 938,741  | 0          | 938,763  |
+| juli 2026 | energiledd akk.   | 336,0400 | 336,0885 | +0,0485    |          |
+| juli 2026 | Norgespris        | -807,56  | -807,50  | +0,06      | -807,50  |
+| juli 2026 | kapasitetsledd    | 250      | 250      | 0          | 250      |
+| juli 2026 | `monthly_cost_kr` | 1119,60  | 1119,60  | 0          |          |
 
 Dette er lærepengen issuet advarer om, målt: **totalforbruket, kapasitetsleddet
 og `monthly_cost_kr` står stille i alle tre månedene, mens dag/natt-splitten

@@ -1117,7 +1117,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def _oppdater_timesmaks(self, now: datetime) -> bool:
         """Skriv bokens lukkede intervaller til døgnmaks. True hvis noe endret seg.
 
-        Dette erstatter veggklokke-bøtta `_current_hour_energy` fylte.
+        Dette erstatter veggklokke-bøtten som `_current_hour_energy` var.
         Intervallene er de samme timene, men de kommer fra boken, så de er de
         samme kilowattimene som avregningen bruker og de er UTC-forankret.
         Sommertidsskiftene trenger derfor ingen egen kode her: timen som finnes

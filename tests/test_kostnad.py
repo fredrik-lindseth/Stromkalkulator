@@ -585,7 +585,7 @@ class TestDognmaksOverManedsskifte:
         assert juli["previous_month_top_3"]["2026-06-30"].kw > 0.5
         assert juli["kapasitetsledd"] == 155
 
-    def test_stromburdd_over_flere_polls_holder_juni_ute(self, coord_module):
+    def test_strombrudd_over_flere_polls_holder_juni_ute(self, coord_module):
         """Sensoren er borte fra før midnatt til et stykke inn i juli."""
         coord, hass = _coordinator(coord_module, power_w=20000)
         self._kveld(coord_module, coord, _real_datetime(2026, 6, 30), time=22)

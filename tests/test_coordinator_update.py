@@ -606,8 +606,11 @@ class TestMonthTransition:
         # Previous month should include the boundary cycle
         assert result_july["previous_month_consumption_total_kwh"] > june_consumption
         assert result_july["previous_month_cost_kr"] > june_cost
-        # Current month (July) should be empty after rollover
-        assert result_july["monthly_consumption_total_kwh"] == 0.0
+        # Juli har det som ble målt etter midnatt, ikke null: vinduet
+        # 23:59-00:01 deles ved månedsgrensen, og minuttet etter midnatt hører
+        # til juli (avregningskontrakten C6). Det gamle svaret var at hele
+        # vinduet havnet i juni og juli sto på null.
+        assert result_july["monthly_consumption_total_kwh"] == pytest.approx(0.1, abs=0.01)
 
     def test_multi_month_gap_clears_previous_month(self, coord_module):
         """If HA was down for months, previous_month should be cleared, not mislabeled."""

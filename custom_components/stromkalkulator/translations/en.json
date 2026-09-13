@@ -57,7 +57,7 @@
           "avgiftssone": "Determines VAT and consumption tax. The VAT exemption follows county, not price area: 'Nord-Norge' covers Nordland and Troms, 'Tiltakssonen' covers Finnmark and Nord-Troms (VAT Act § 6-6). Everyone else, including NO3 (Trøndelag and Møre og Romsdal), selects 'Sør-Norge' and pays 25% VAT.",
           "energiledd_dag": "Grid tariff only, for daytime. Find the amount listed as 'energiledd' or 'overføring' on your price list, before consumption tax, Enova fee and VAT.",
           "energiledd_natt": "Grid tariff only, for night/weekend. If your grid company uses a flat rate, enter the same value as for daytime.",
-          "egendefinert_kapasitetstrinn": "The fixed grid fee as your grid company lists it: kW limit and NOK/month incl. VAT, separated by a colon, with tiers separated by commas. The notation 2:155,5:250,10:415 means NOK 155/month up to 2 kW, NOK 250/month from 2 to 5 kW and NOK 415/month above 5 kW; the numbers are a format example, not prices. The top tier covers everything above the limit below it. Leave the field empty and capacity tier, monthly grid rent, monthly total, estimated monthly cost and accumulated cost stay unknown. That is deliberate: there is no price list behind 'Custom', and a guessed fixed fee looks like a price without being one."
+          "egendefinert_kapasitetstrinn": "The fixed grid fee as your grid company lists it: one tier per row in the price list, written as a kW limit and NOK/month incl. VAT separated by a colon, with tiers separated by commas. The form is 'kW limit:NOK per month,kW limit:NOK per month', the kW limits must increase, and the top tier covers everything above the limit below it. Take the amounts from your own price list or grid invoice. No example figures are shown here: there is no price list behind 'Custom', so any figures would be another grid company's prices. Leave the field empty and capacity tier, monthly grid rent, monthly total, estimated monthly cost and accumulated cost stay unknown. That is deliberate: a guessed fixed fee looks like a price without being one."
         }
       },
       "reconfigure": {
@@ -96,7 +96,7 @@
           "energiledd_natt": "Grid rent excl. VAT and taxes. Same rule as for day: an empty field follows the price list, a filled one overrides it. Use the same value as day for a flat rate.",
           "kapasitet_varsel_terskel": "Warn when margin to next capacity tier is below this value. Default: 2.0 kW.",
           "energi_frossen_timer": "Warn when the energy meter has not increased for this many hours. Default: 3. Raise it for a cabin or site that sits idle for stretches, otherwise it warns every time the main breaker is off.",
-          "egendefinert_kapasitetstrinn": "The fixed grid fee as your grid company lists it: kW limit and NOK/month incl. VAT, separated by a colon, with tiers separated by commas. The notation 2:155,5:250,10:415 means NOK 155/month up to 2 kW, NOK 250/month from 2 to 5 kW and NOK 415/month above 5 kW; the numbers are a format example, not prices. The top tier covers everything above the limit below it. Leave the field empty and capacity tier, monthly grid rent, monthly total, estimated monthly cost and accumulated cost stay unknown. That is deliberate: there is no price list behind 'Custom', and a guessed fixed fee looks like a price without being one."
+          "egendefinert_kapasitetstrinn": "The fixed grid fee as your grid company lists it: one tier per row in the price list, written as a kW limit and NOK/month incl. VAT separated by a colon, with tiers separated by commas. The form is 'kW limit:NOK per month,kW limit:NOK per month', the kW limits must increase, and the top tier covers everything above the limit below it. Take the amounts from your own price list or grid invoice. No example figures are shown here: there is no price list behind 'Custom', so any figures would be another grid company's prices. Leave the field empty and capacity tier, monthly grid rent, monthly total, estimated monthly cost and accumulated cost stay unknown. That is deliberate: a guessed fixed fee looks like a price without being one."
         }
       }
     },
@@ -109,7 +109,7 @@
       "enhet_feil_dimensjon": "The sensor measures something other than what the field asks for. Check that the power field points at a power sensor, the energy field at a cumulative kWh meter, and the price fields at a price per kWh.",
       "enhet_feil_valuta": "The price is in a currency other than kroner. The calculator has no exchange rate, so a EUR sensor cannot be used directly. Pick a sensor in NOK/kWh or øre/kWh, or build a template sensor that converts.",
       "energi_ikke_kumulativ": "The energy sensor must be a counter that only increases, that is state_class total_increasing or total. We measure the difference between readings, and a sensor showing present consumption has no difference to measure.",
-      "trinntabell_ugyldig": "The capacity tiers could not be read. Write each tier as kW limit and NOK/month separated by a colon, tiers separated by commas, with increasing kW limits: 2:155,5:250,10:415."
+      "trinntabell_ugyldig": "The capacity tiers could not be read. Write each tier as a kW limit and NOK/month separated by a colon, tiers separated by commas, with increasing kW limits: 'kW limit:NOK per month,kW limit:NOK per month'. Take the amounts from your own price list."
     },
     "abort": {
       "already_configured": "Already configured"
@@ -153,7 +153,7 @@
           "energiledd_natt": "Grid rent excl. VAT and taxes. Same rule as for day: an empty field follows the price list, a filled one overrides it. Use the same value as day for a flat rate.",
           "kapasitet_varsel_terskel": "Warn when margin to next capacity tier is below this value. Default: 2.0 kW.",
           "energi_frossen_timer": "Warn when the energy meter has not increased for this many hours. Default: 3. Raise it for a cabin or site that sits idle for stretches, otherwise it warns every time the main breaker is off.",
-          "egendefinert_kapasitetstrinn": "The fixed grid fee as your grid company lists it: kW limit and NOK/month incl. VAT, separated by a colon, with tiers separated by commas. The notation 2:155,5:250,10:415 means NOK 155/month up to 2 kW, NOK 250/month from 2 to 5 kW and NOK 415/month above 5 kW; the numbers are a format example, not prices. The top tier covers everything above the limit below it. Leave the field empty and capacity tier, monthly grid rent, monthly total, estimated monthly cost and accumulated cost stay unknown. That is deliberate: there is no price list behind 'Custom', and a guessed fixed fee looks like a price without being one."
+          "egendefinert_kapasitetstrinn": "The fixed grid fee as your grid company lists it: one tier per row in the price list, written as a kW limit and NOK/month incl. VAT separated by a colon, with tiers separated by commas. The form is 'kW limit:NOK per month,kW limit:NOK per month', the kW limits must increase, and the top tier covers everything above the limit below it. Take the amounts from your own price list or grid invoice. No example figures are shown here: there is no price list behind 'Custom', so any figures would be another grid company's prices. Leave the field empty and capacity tier, monthly grid rent, monthly total, estimated monthly cost and accumulated cost stay unknown. That is deliberate: a guessed fixed fee looks like a price without being one."
         }
       }
     },
@@ -166,7 +166,7 @@
       "enhet_feil_dimensjon": "The sensor measures something other than what the field asks for. Check that the power field points at a power sensor, the energy field at a cumulative kWh meter, and the price fields at a price per kWh.",
       "enhet_feil_valuta": "The price is in a currency other than kroner. The calculator has no exchange rate, so a EUR sensor cannot be used directly. Pick a sensor in NOK/kWh or øre/kWh, or build a template sensor that converts.",
       "energi_ikke_kumulativ": "The energy sensor must be a counter that only increases, that is state_class total_increasing or total. We measure the difference between readings, and a sensor showing present consumption has no difference to measure.",
-      "trinntabell_ugyldig": "The capacity tiers could not be read. Write each tier as kW limit and NOK/month separated by a colon, tiers separated by commas, with increasing kW limits: 2:155,5:250,10:415."
+      "trinntabell_ugyldig": "The capacity tiers could not be read. Write each tier as a kW limit and NOK/month separated by a colon, tiers separated by commas, with increasing kW limits: 'kW limit:NOK per month,kW limit:NOK per month'. Take the amounts from your own price list."
     }
   },
   "entity": {
@@ -435,6 +435,10 @@
           }
         }
       }
+    },
+    "egendefinert_fastledd_ulesbar": {
+      "title": "Capacity tiers for the custom grid company cannot be read",
+      "description": "The tier table stored for this installation cannot be parsed, so the fixed grid fee counts as unknown: 'Capacity tier', 'Monthly grid rent', 'Monthly total', 'Estimated monthly cost' and 'Accumulated cost' stay unknown, and the per-kWh prices are calculated without the fixed fee. Open Settings > Devices & Services > Strømkalkulator > Configure and enter the tiers again: a kW limit and NOK/month separated by a colon, tiers separated by commas, with increasing kW limits."
     },
     "egendefinert_fastledd": {
       "title": "Capacity tiers missing for custom grid company",

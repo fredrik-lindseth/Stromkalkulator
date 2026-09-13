@@ -87,20 +87,25 @@ class TestIsDayRateMandagEtterDst:
 
 
 class TestAkkumulatorOverDst:
-    """Energi rundt DST-skifte: cap forhindrer feil pga klokkehopp.
+    """Energi rundt DST-skifte for en bruker uten energisensor.
 
-    MAX_ELAPSED_HOURS i const.py setter taket på 6 min per intervall.
-    DST-overganger gir 1-timers hopp, som dermed automatisk avvises.
+    Vinduet måles i absolutt tid, ikke på veggklokken, og et vindu lengre enn
+    `MAX_ELAPSED_HOURS` (6 min) bokføres ikke i det hele tatt
+    (avregningskontrakten B1). Antakelsen om konstant effekt gjennom vinduet
+    holder ikke over et gap, og energien forkastes framfor å gjettes.
     """
 
-    def test_var_klokkehopp_avvises_av_cap(self, coord_module):
-        """Vår-DST: 2-timers naiv klokke-delta cappes til 6 min."""
+    def test_var_klokkehopp_forkastes(self, coord_module):
+        """Vår-DST: 01:30 til 03:30 er en ekte time, og en time er for langt.
+
+        Veggklokken viser to timer, den absolutte tiden én. Begge er over
+        seksminuttersgrensen, så ingenting bokføres, og det som *ikke* skjer er
+        at et kappet vindu bokfører en energi ingen har målt.
+        """
         coord = _coord(coord_module, power_w=6000)
         _run_update(coord_module, coord, now=_real_datetime(*VAR_SONDAG, 1, 30))
         result = _run_update(coord_module, coord, now=_real_datetime(*VAR_SONDAG, 3, 30))
-        total = result["monthly_consumption_total_kwh"]
-        # Cap: 6 kW * 0.1 t = 0.6 kWh, ikke 12 kWh
-        assert 0.0 < total < 1.0, f"forventet at cap forhindrer dobbelt-telling, fikk {total}"
+        assert result["monthly_consumption_total_kwh"] == 0.0
 
     def test_kort_intervall_over_var_dst_akkumulerer(self, coord_module):
         """5 min reell tid over vår-DST gir normal akkumulering."""
@@ -264,10 +269,15 @@ class TestTopp3RundtDst:
         assert next(iter(top_3)) == "2026-10-26"  # høyeste først
 
     def test_timegrense_pa_var_mandag_riktig_dato(self, coord_module):
-        """Time fullført kl 07:00 mandag 30.03 lagres som 2026-03-30."""
+        """Time fullført kl 07:00 mandag 30.03 lagres som 2026-03-30.
+
+        Pollene ligger fem minutter fra hverandre. Lenger enn seks ville lagt
+        hvert vindu over `MAX_ELAPSED_HOURS`, og da bokføres ingen energi i det
+        hele tatt (B1). I drift polles det hvert minutt.
+        """
         coord = _coord(coord_module, power_w=4000)
-        for minute in (0, 15, 30, 45, 59):
-            _run_update(coord_module, coord, now=_real_datetime(*VAR_MANDAG, 6, minute))
+        for minutt in range(0, 60, 5):
+            _run_update(coord_module, coord, now=_real_datetime(*VAR_MANDAG, 6, minutt))
         _run_update(coord_module, coord, now=_real_datetime(*VAR_MANDAG, 7, 0))
         assert "2026-03-30" in coord._daily_max_power
         assert "2026-03-29" not in coord._daily_max_power

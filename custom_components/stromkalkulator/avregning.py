@@ -27,6 +27,7 @@ spesialtilfelle her (C3).
 from __future__ import annotations
 
 import math
+from bisect import bisect_left
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
@@ -66,6 +67,12 @@ PRIS_SETTLE_SEKUNDER: Final[int] = 60
 
 #: Store-skjemaet denne serien skriver (D).
 SKJEMA_VERSJON: Final[int] = 3
+
+#: Hvor langt bakover `til_lagring` tar med intervaller og prisruter når den
+#: får vite hva klokken er. Det åpne intervallet pluss tre timer: nok til at en
+#: omstart med et kort gap foran seg gjenopptar med prisene sine, og lite nok
+#: til at lagringen er noen kilobyte og ikke noen hundre.
+LAGRINGSVINDU: Final[timedelta] = timedelta(hours=3)
 
 #: Flyttallsslakken i bevaringsinvarianten (C2.1).
 BEVARING_SLAKK_KWH: Final[float] = 1e-9
@@ -592,7 +599,12 @@ class Prisadapter:
         skille = krev_aware(grense, "grense")
         self._ruter = {start: prove for start, prove in self._ruter.items() if start >= skille}
 
-    def til_lagring(self) -> dict[str, Any]:
+    def til_lagring(self, fra: datetime | None = None) -> dict[str, Any]:
+        """Adapteren på Store-form, eventuelt bare rutene fra `fra` og utover.
+
+        Prisen på et lukket intervall står fast (C6), så rutene bak vinduet
+        boken lagrer har ingen jobb igjen.
+        """
         return {
             "omrade": self.omrade,
             "opplosning_minutter": self.opplosning_minutter,
@@ -601,7 +613,7 @@ class Prisadapter:
             "revisjon": str(self.revisjon),
             "ruter": [
                 {"rutestart": start.isoformat(), "polltid": prove.polltid.isoformat(), "verdi": prove.verdi}
-                for start, prove in sorted(self._ruter.items())
+                for start, prove in sorted(par for par in self._ruter.items() if fra is None or par[0] >= fra)
             ],
         }
 
@@ -677,6 +689,19 @@ class Avregningsbok:
         # mer energi eller en ny prisprøve, altså av de to tingene som kan
         # endre den.
         self._bygget: dict[datetime, AvregnetIntervall] = {}
+        #: Startene i `_poster`, sortert. Kastes når et nytt intervall kommer
+        #: til, ikke når et kjent får mer energi.
+        self._sorterte: list[datetime] | None = None
+        #: Månedssummen holdes løpende. Coordinatoren spør ved hver poll, og
+        #: en poll rører ett eller to intervaller, så summen rettes med
+        #: differansen for dem framfor å regnes opp av hele måneden.
+        self._skitne: set[datetime] = set()
+        self._bidrag: dict[datetime, tuple[float, Tariff, Intervallkvalitet]] = {}
+        self._sum_total = 0.0
+        self._sum_dag = 0.0
+        self._sum_natt = 0.0
+        self._sum_uten = 0.0
+        self._sum_delvis = 0.0
         self._sist_observert: Avlesning | None = None
         self._aktiv_maned: str | None = None
         self._arkiv: dict[str, Manedssum] = {}
@@ -718,7 +743,10 @@ class Avregningsbok:
         """Send en prisprøve videre til adapteren (A2.1)."""
         rutestart = self.pris.registrer(avlest_kl, verdi)
         if rutestart is not None:
-            self._bygget.pop(intervallstart(rutestart), None)
+            berort = intervallstart(rutestart)
+            self._bygget.pop(berort, None)
+            if berort in self._poster:
+                self._skitne.add(berort)
         return rutestart
 
     # -- energi ------------------------------------------------------------
@@ -805,8 +833,12 @@ class Avregningsbok:
                 # forsinkede avlesninger er alt avvist av C2.3.
                 avvist += kwh
                 continue
-            post = self._poster.setdefault(start, _Post())
+            if start not in self._poster:
+                self._poster[start] = _Post()
+                self._sorterte = None
+            post = self._poster[start]
             self._bygget.pop(start, None)
+            self._skitne.add(start)
             post.kwh += kwh
             if avlesning.er_estimert:
                 post.energikvalitet = Energikvalitet.ESTIMERT
@@ -832,6 +864,11 @@ class Avregningsbok:
         self._arkiv[gammel] = self.maanedssum()
         self._poster.clear()
         self._bygget.clear()
+        self._sorterte = None
+        self._skitne.clear()
+        self._bidrag.clear()
+        self._sum_total = self._sum_dag = self._sum_natt = 0.0
+        self._sum_uten = self._sum_delvis = 0.0
         self._avvist_kwh = 0.0
         self._aktiv_maned = naa_maned
         self.ufullstendig = False  # flagget fjernes ved første månedsskifte (D)
@@ -839,6 +876,12 @@ class Avregningsbok:
         return gammel
 
     # -- utdata ------------------------------------------------------------
+
+    def _starter(self) -> list[datetime]:
+        """Intervallstartene i den aktive måneden, sortert og cachet."""
+        if self._sorterte is None:
+            self._sorterte = sorted(self._poster)
+        return self._sorterte
 
     def intervaller(self, naa: datetime | None = None) -> list[AvregnetIntervall]:
         """Den aktive månedens intervaller, sortert på `start_utc`.
@@ -848,7 +891,7 @@ class Avregningsbok:
         (C6). Uten `naa` regnes alle som lukkede.
         """
         grense = krev_aware(naa, "naa") if naa is not None else None
-        return [self._bygg(start, post, grense) for start, post in sorted(self._poster.items())]
+        return [self._bygg(start, self._poster[start], grense) for start in self._starter()]
 
     def intervall(self, start_utc: datetime, naa: datetime | None = None) -> AvregnetIntervall | None:
         """Ett intervall, eller `None` om det ikke finnes energi i det.
@@ -901,43 +944,76 @@ class Avregningsbok:
         return lukkede[-1] if lukkede else None
 
     def maanedssum(self, naa: datetime | None = None) -> Manedssum:
-        """Summene for den aktive måneden (felttabellen)."""
-        return self._summer(self.intervaller(naa))
+        """Summene for den aktive måneden (felttabellen).
 
-    def _summer(self, intervaller: list[AvregnetIntervall]) -> Manedssum:
-        sum_total = sum_dag = sum_natt = sum_uten = sum_delvis = 0.0
-        for i in intervaller:
-            sum_total += i.kwh
-            if i.tariff is Tariff.DAG:
-                sum_dag += i.kwh
-            else:
-                sum_natt += i.kwh
-            priskvalitet = i.pris.kvalitet if i.pris is not None else Intervallkvalitet.UTEN_PRIS
-            if priskvalitet is Intervallkvalitet.UTEN_PRIS:
-                sum_uten += i.kwh
-            elif priskvalitet is Intervallkvalitet.DELVIS_PRIS:
-                sum_delvis += i.kwh
+        `naa` er med for symmetrien med `intervaller`; summene er de samme
+        uansett, for et åpent intervall teller like fullt det som er bokført i
+        det.
+        """
+        del naa
+        for start in self._skitne:
+            self._trekk_bidrag(start)
+            self._legg_til_bidrag(start)
+        self._skitne.clear()
         return Manedssum(
             maned=self._aktiv_maned or "",
-            kwh_total=sum_total,
-            kwh_dag=sum_dag,
-            kwh_natt=sum_natt,
-            kwh_uten_pris=sum_uten,
-            kwh_delvis_pris=sum_delvis,
+            kwh_total=self._sum_total,
+            kwh_dag=self._sum_dag,
+            kwh_natt=self._sum_natt,
+            kwh_uten_pris=self._sum_uten,
+            kwh_delvis_pris=self._sum_delvis,
             avvist_kwh=self._avvist_kwh,
-            intervaller=len(intervaller),
+            intervaller=len(self._poster),
         )
+
+    def _trekk_bidrag(self, start: datetime) -> None:
+        """Ta ut det intervallet bidro med sist. Samme tall som ble lagt til."""
+        gammelt = self._bidrag.pop(start, None)
+        if gammelt is None:
+            return
+        kwh, tariff, priskvalitet = gammelt
+        self._sum_total -= kwh
+        if tariff is Tariff.DAG:
+            self._sum_dag -= kwh
+        else:
+            self._sum_natt -= kwh
+        if priskvalitet is Intervallkvalitet.UTEN_PRIS:
+            self._sum_uten -= kwh
+        elif priskvalitet is Intervallkvalitet.DELVIS_PRIS:
+            self._sum_delvis -= kwh
+
+    def _legg_til_bidrag(self, start: datetime) -> None:
+        post = self._poster.get(start)
+        if post is None:
+            return
+        i = self._bygg(start, post, None)
+        priskvalitet = i.pris.kvalitet if i.pris is not None else Intervallkvalitet.UTEN_PRIS
+        self._bidrag[start] = (i.kwh, i.tariff, priskvalitet)
+        self._sum_total += i.kwh
+        if i.tariff is Tariff.DAG:
+            self._sum_dag += i.kwh
+        else:
+            self._sum_natt += i.kwh
+        if priskvalitet is Intervallkvalitet.UTEN_PRIS:
+            self._sum_uten += i.kwh
+        elif priskvalitet is Intervallkvalitet.DELVIS_PRIS:
+            self._sum_delvis += i.kwh
 
     def statusfelt(self, naa: datetime) -> dict[str, Any]:
         """De nye feltene i felttabellen, klare til å legges i data-dicten.
 
         Kroner er ikke med. L3b fyller resten fra de samme intervallene.
         """
-        intervaller = self.intervaller(naa)
-        sum_ = self._summer(intervaller)
-        apne = sum(1 for i in intervaller if i.apen)
-        lukkede = [i for i in intervaller if not i.apen]
-        siste = lukkede[-1] if lukkede else None
+        grense = krev_aware(naa, "naa")
+        starter = self._starter()
+        # Startene er sorterte, så de åpne er en hale: så snart et intervall er
+        # lukket, er alle foran det også lukket.
+        apne = 0
+        while apne < len(starter) and starter[-1 - apne] + AVREGNINGSINTERVALL > grense:
+            apne += 1
+        sist_lukket = starter[-1 - apne] if apne < len(starter) else None
+        siste = self.intervall(sist_lukket, grense) if sist_lukket is not None else None
+        sum_ = self.maanedssum()
         return {
             "avregning_skjema": SKJEMA_VERSJON,
             "avregning_ufullstendig": self.ufullstendig,
@@ -954,28 +1030,38 @@ class Avregningsbok:
 
     # -- persistens --------------------------------------------------------
 
-    def til_lagring(self) -> dict[str, Any]:
+    def til_lagring(self, naa: datetime | None = None) -> dict[str, Any]:
         """Bokens del av Store-filen, skjema 3 (D).
 
-        Her ligger hele den aktive måneden, ikke bare de åpne intervallene.
-        D krever de åpne; en måned er høyst 744 rader, og med alle sammen kan
-        månedssummene regnes opp igjen fra grunnen etter en omstart i stedet
-        for å bæres som et tall ingen kan etterprøve.
+        D krever de åpne intervallene og prisrutene deres. `naa` er klokken
+        lagringen skjer på, og med den skrives bare vinduet som fortsatt kan
+        endre seg: det åpne intervallet og timene rett før det.
+
+        Uten `naa` skrives hele den aktive måneden. Det er riktigere på papiret
+        og umulig i drift: lagringen skjer ved hver poll, og en måned med
+        prisruter er et par hundre kilobyte å skrive hvert minutt på et
+        SD-kort. Det som faller utenfor vinduet er ferdig avregnet, og summen
+        av det ligger i månedsfeltene coordinatoren bærer.
         """
+        beholde = intervallstart(naa) - LAGRINGSVINDU if naa is not None else None
         return {
             "skjema_versjon": SKJEMA_VERSJON,
             "aktiv_maned": self._aktiv_maned,
             "ufullstendig": self.ufullstendig,
             "avvist_kwh": self._avvist_kwh,
             "sist_observert": self._sist_observert.til_lagring() if self._sist_observert else None,
-            "pris": self.pris.til_lagring(),
+            "pris": self.pris.til_lagring(fra=beholde),
             "intervaller": [
                 {
                     "start_utc": start.isoformat(),
-                    "kwh": post.kwh,
-                    "energikvalitet": str(post.energikvalitet),
+                    "kwh": self._poster[start].kwh,
+                    "energikvalitet": str(self._poster[start].energikvalitet),
                 }
-                for start, post in sorted(self._poster.items())
+                for start in (
+                    self._starter()
+                    if beholde is None
+                    else self._starter()[bisect_left(self._starter(), beholde) :]
+                )
             ],
             "arkiv": {
                 maned: {
@@ -1014,6 +1100,7 @@ class Avregningsbok:
                 kwh=float(rad["kwh"]),
                 energikvalitet=Energikvalitet(rad.get("energikvalitet", Energikvalitet.MALT)),
             )
+        bok._skitne.update(bok._poster)
         for maned, sum_ in migrert["arkiv"].items():
             bok._arkiv[maned] = Manedssum(
                 maned=maned,

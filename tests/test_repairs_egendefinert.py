@@ -352,3 +352,92 @@ class TestFastleddVarselet:
             init_module._check_egendefinert_fastledd(hass, entry)
 
         assert _reist(mock_ir, "egendefinert_fastledd_abc") is not None
+
+    def test_ulesbar_tabell_gir_sitt_eget_varsel(self, init_module):
+        """En lagret tabell som ikke lar seg tolke er ikke det samme som ingen.
+
+        Config-flowen validerer det brukeren taster, men en håndredigert
+        `.storage` kan bære søppel. Coordinatoren regner den som ingen tabell og
+        setter fastleddet til ukjent, så uten dette varselet sitter brukeren med
+        sju sensorer på Ukjent og ingen beskjed om hvorfor.
+        """
+        hass = MagicMock()
+        entry = _make_entry(
+            entry_id="abc",
+            dso_id="custom",
+            extra_data={"egendefinert_kapasitetstrinn": "helt på trynet"},
+        )
+        mock_ir = _mock_ir()
+
+        with patch.object(init_module, "ir", mock_ir):
+            init_module._check_egendefinert_fastledd(hass, entry)
+
+        call = _reist(mock_ir, "egendefinert_fastledd_abc")
+        assert call is not None
+        assert call.kwargs["is_fixable"] is False
+        assert call.kwargs["translation_key"] == "egendefinert_fastledd_ulesbar"
+
+    def test_synkende_grenser_teller_som_ulesbar(self, init_module):
+        """Parseren er fasit, ikke en egen sjekk her som kan drive fra den."""
+        hass = MagicMock()
+        entry = _make_entry(
+            entry_id="abc",
+            dso_id="custom",
+            extra_data={"egendefinert_kapasitetstrinn": "5:250,2:155"},
+        )
+        mock_ir = _mock_ir()
+
+        with patch.object(init_module, "ir", mock_ir):
+            init_module._check_egendefinert_fastledd(hass, entry)
+
+        call = _reist(mock_ir, "egendefinert_fastledd_abc")
+        assert call is not None
+        assert call.kwargs["translation_key"] == "egendefinert_fastledd_ulesbar"
+
+    def test_ulesbar_pa_kjent_dso_gir_ikke_varsel(self, init_module):
+        """Tabellen leses bare for Egendefinert, som i coordinatoren."""
+        hass = MagicMock()
+        entry = _make_entry(
+            entry_id="abc",
+            dso_id="bkk",
+            extra_data={"egendefinert_kapasitetstrinn": "helt på trynet"},
+        )
+        mock_ir = _mock_ir()
+
+        with patch.object(init_module, "ir", mock_ir):
+            init_module._check_egendefinert_fastledd(hass, entry)
+
+        mock_ir.async_create_issue.assert_not_called()
+        mock_ir.async_delete_issue.assert_called_once()
+
+    def test_varselet_forsvinner_nar_tabellen_rettes(self, init_module):
+        hass = MagicMock()
+        entry = _make_entry(
+            entry_id="abc",
+            dso_id="custom",
+            extra_data={"egendefinert_kapasitetstrinn": "helt på trynet"},
+        )
+        mock_ir = _mock_ir()
+
+        with patch.object(init_module, "ir", mock_ir):
+            init_module._check_egendefinert_fastledd(hass, entry)
+            entry.data["egendefinert_kapasitetstrinn"] = "2:155,5:250"
+            init_module._check_egendefinert_fastledd(hass, entry)
+
+        assert _reist(mock_ir, "egendefinert_fastledd_abc") is not None
+        mock_ir.async_delete_issue.assert_called_once_with(
+            hass, init_module.DOMAIN, "egendefinert_fastledd_abc"
+        )
+
+    def test_begge_fastledd_tekstene_finnes(self, init_module):
+        """Den nye nøkkelen står i en ternær, som nøkkelvakten ikke ser."""
+        import json as _json
+        from pathlib import Path as _Path
+
+        strings = _json.loads(
+            (
+                _Path(__file__).parent.parent / "custom_components" / "stromkalkulator" / "strings.json"
+            ).read_text(encoding="utf-8")
+        )
+        assert "egendefinert_fastledd" in strings["issues"]
+        assert "egendefinert_fastledd_ulesbar" in strings["issues"]

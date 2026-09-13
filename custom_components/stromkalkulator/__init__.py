@@ -53,6 +53,7 @@ from .dso import (
     DSOFusjon,
     finn_sikringstrinn,
     hent_fastledd_metode,
+    parse_kapasitetstrinn,
 )
 
 if TYPE_CHECKING:
@@ -485,12 +486,34 @@ def _check_egendefinert_fastledd(hass: HomeAssistant, entry: StromkalkulatorConf
     på brukerens egen prisliste, så vi kan ikke spørre om en bekreftelse. Det
     forsvinner av seg selv når tabellen er fylt inn, og reises ikke for noen
     andre nettselskap.
+
+    Tabellen leses her, ikke bare telles. Config-flowen validerer det brukeren
+    taster, men en håndredigert `.storage` kan bære en tabell som ikke lar seg
+    tolke. Coordinatoren regner den som ingen tabell og setter fastleddet til
+    ukjent; sto varselet på «nøkkelen finnes», ville brukeren fått ukjente
+    sensorer uten å få vite hvorfor. Da sier vi det med en egen tekst, for
+    «fyll inn trinnene» er feil beskjed til en som har fylt dem inn.
     """
     issue_id = f"egendefinert_fastledd_{entry.entry_id}"
-    mangler = entry.data.get(CONF_DSO) == DSO_EGENDEFINERT and not entry.data.get(
-        CONF_EGENDEFINERT_KAPASITETSTRINN
-    )
-    if not mangler:
+    if entry.data.get(CONF_DSO) != DSO_EGENDEFINERT:
+        ir.async_delete_issue(hass, DOMAIN, issue_id)
+        return
+
+    lagret = str(entry.data.get(CONF_EGENDEFINERT_KAPASITETSTRINN) or "")
+    try:
+        trinn = parse_kapasitetstrinn(lagret)
+    except ValueError as feil:
+        _LOGGER.warning(
+            "Kapasitetstrinnene lagret på %s lar seg ikke lese (%s), fastleddet er ukjent",
+            entry.entry_id,
+            feil,
+        )
+        trinn = []
+        ulesbar = True
+    else:
+        ulesbar = False
+
+    if trinn:
         ir.async_delete_issue(hass, DOMAIN, issue_id)
         return
 
@@ -500,7 +523,7 @@ def _check_egendefinert_fastledd(hass: HomeAssistant, entry: StromkalkulatorConf
         issue_id,
         is_fixable=False,
         severity=ir.IssueSeverity.WARNING,
-        translation_key="egendefinert_fastledd",
+        translation_key="egendefinert_fastledd_ulesbar" if ulesbar else "egendefinert_fastledd",
     )
 
 

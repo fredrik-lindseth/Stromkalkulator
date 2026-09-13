@@ -238,8 +238,15 @@ class TestElapsedTimeClamping:
         total = result["monthly_consumption_dag_kwh"] + result["monthly_consumption_natt_kwh"]
         assert abs(total - 0.1) < 0.01
 
-    def test_large_clock_jump_clamped(self, coord_module):
-        """1 hour clock jump forward -> clamped to 0.1 h (6 min)."""
+    def test_large_clock_jump_forkastes(self, coord_module):
+        """Et vindu på en time bokføres ikke i det hele tatt.
+
+        Avregningskontrakten B1: er vinduet lengre enn `MAX_ELAPSED_HOURS`,
+        holder ikke antakelsen om konstant effekt gjennom det, og energien
+        forkastes framfor å gjettes. Timene i gapet er «uten data», ikke null
+        forbruk. Den gamle koden kappet vinduet til seks minutter og bokførte
+        0,6 kWh den ikke hadde sett.
+        """
         now = _real_datetime(2026, 4, 9, 12, 0)
         much_later = now + timedelta(hours=1)
 
@@ -249,9 +256,8 @@ class TestElapsedTimeClamping:
         _run_update(coord_module, coordinator, now=now)
         result = _run_update(coord_module, coordinator, now=much_later)
 
-        # Clamped to 0.1h: 6 kW * 0.1 = 0.6 kWh
         total = result["monthly_consumption_dag_kwh"] + result["monthly_consumption_natt_kwh"]
-        assert abs(total - 0.6) < 0.01
+        assert total == 0.0
 
     def test_clock_jump_backward_clamped_to_zero(self, coord_module):
         """Negative elapsed time (clock jump back) -> clamped to 0.0."""

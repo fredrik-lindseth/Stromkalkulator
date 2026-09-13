@@ -234,6 +234,22 @@ BEREGNING_UTELATT: dict[str, str] = {
     # hjemme, med aliaserte identifikatorer, ikke rått under beregning.
     "input_resultater": "aliaseres og vises per rolle under input_roller",
     "baseline": "aliaseres og vises i baseline-seksjonen",
+    # Avregningsbokens statusfelt (L3a). De hører hjemme i dumpen, men i en
+    # egen seksjon med sitt eget feltsett, og det er D3 (dcat
+    # stromkalkulator-2ayhpqf) som lager den. Å skyve dem inn under
+    # "beregning" nå ville endret feltsettet uten at skjemaversjonen og
+    # fingeravtrykket fulgte med.
+    "avregning_skjema": "tas med av D3, i avregningsseksjonen",
+    "avregning_ufullstendig": "tas med av D3, i avregningsseksjonen",
+    "avregning_sist_observert": "tas med av D3, i avregningsseksjonen",
+    # Kildeidentitet. Aliaseres av D3 på samme måte som baselinen, og skal
+    # aldri vises rått (input-og-konfig.md §10.1).
+    "avregning_kilde": "aliaseres av D3, som baselinen",
+    "avregning_siste_intervall": "tas med av D3, i avregningsseksjonen",
+    "avregning_apne_intervaller": "tas med av D3, i avregningsseksjonen",
+    "avregning_avvist_kwh": "tas med av D3, i avregningsseksjonen",
+    "kwh_uten_pris": "tas med av D3, i avregningsseksjonen",
+    "kwh_delvis_pris": "tas med av D3, i avregningsseksjonen",
 }
 
 # Feltene på én rad i coordinatorens `input_resultater`. Samme tanke som

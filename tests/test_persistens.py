@@ -914,8 +914,19 @@ class TestSaveDataStructure:
             "energi_baseline",
             "weekly_max_power",
             "last_energy_increase",
+            # Avregningsboken (kontrakt D). Den skriver `skjema_versjon` over,
+            # og den er én teller for hele filen: K1 satte den til 2, boken
+            # løfter den til 3.
+            "aktiv_maned",
+            "ufullstendig",
+            "avvist_kwh",
+            "sist_observert",
+            "pris",
+            "intervaller",
+            "arkiv",
         }
         assert expected_keys == set(saved_data.keys())
+        assert saved_data["skjema_versjon"] == 3
 
     def test_save_stores_current_month_as_string(self):
         coord = _reload_coord()

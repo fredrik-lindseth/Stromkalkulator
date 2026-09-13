@@ -639,10 +639,15 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._store = Store(hass, 1, f"{DOMAIN}_{entry.entry_id}")
         self._store_loaded = False
 
-    def _ny_bok(self, raa: dict[str, Any] | None = None) -> Avregningsbok:
-        """Bygg boken, eventuelt fra en lagret Store-fil (kontrakt D)."""
+    def _ny_bok(self, raa: Any = None) -> Avregningsbok:
+        """Bygg boken, eventuelt fra en lagret Store-fil (kontrakt D).
+
+        En fil som ikke er et oppslagsverk i det hele tatt behandles som ingen
+        fil. Det er samme regel som resten av lastingen følger: en ødelagt
+        lagring gir standardverdier, ikke en exception i oppstarten.
+        """
         return Avregningsbok.fra_lagring(
-            raa,
+            raa if isinstance(raa, Mapping) else None,
             tariffregel=self._tariffregel,
             tariffmodus=self.tariffmodus,
             dso_id=self._dso_id,
@@ -751,12 +756,18 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 value_kwh=resultat.verdi,
                 observed_at=_aware(resultat.observed_at),
             )
-        if not self.power_sensor or elapsed_hours <= 0 or effekt_kw is None or effekt_kw <= 0:
+        if not self.power_sensor or effekt_kw is None:
             return None
+        # Null energi er også en avlesning. Den første pollen har ikke noe
+        # vindu bak seg, og uten en avlesning der ville boken stått uten
+        # utgangspunkt og den neste pollen bokført null i stedet for vinduet
+        # sitt. En effekt på null er dessuten en måling som sier at anlegget
+        # ikke brukte noe, ikke at målingen uteble.
+        energi = effekt_kw * elapsed_hours if elapsed_hours > 0 and effekt_kw > 0 else 0.0
         return Avlesning(
             source_identity=self._kildeidentitet(self.power_sensor),
             entity_id=self.power_sensor,
-            value_kwh=effekt_kw * elapsed_hours,
+            value_kwh=energi,
             observed_at=_aware(now),
             kvalitet=Energikvalitet.ESTIMERT,
         )
@@ -831,7 +842,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 MAX_ELAPSED_HOURS,
             )
 
-        if bokforing.bokfort_kwh > 0:
+        if bokforing.bokfort_kwh > 0 and not avlesning.er_estimert:
+            # Klokken vaktholdet måler frossen teller med. Den syntetiske stien
+            # har ingen teller som kan fryse, så den skal ikke stille den.
             self._last_energy_increase = now
         self._speil_baseline()
         return bokforing
@@ -1401,10 +1414,6 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             spot_price_raw = 0.0
             spot_price_valid = False
 
-        # Vaktholdet vurderes her fordi spot_price_valid nettopp er avgjort, og
-        # før noen beregning kan skjule at inputen er borte.
-        input_problemer = self._oppdater_vakthold(now, spot_price_valid=spot_price_valid)
-
         # Normaliser til inkl. mva. Resten av kjeden behandler spot_price som inkl. mva,
         # samme enhet som STROMSTOTTE_LEVEL og NORGESPRIS_INKL_MVA. Se incident 004.
         if self.spotpris_inkl_mva:
@@ -1531,6 +1540,12 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             kapasitet_varsel = False
         else:
             kapasitet_varsel = margin_neste_trinn < self.kapasitet_varsel_terskel
+
+        # Vaktholdet vurderes etter at energien er bokført og spot_price_valid
+        # er avgjort, og før noen beregning kan skjule at inputen er borte. Det
+        # skal se den avlesningen som nettopp kom: en teller som våknet i denne
+        # pollen er ikke frossen lenger.
+        input_problemer = self._oppdater_vakthold(now, spot_price_valid=spot_price_valid)
 
         # Calculate energiledd
         energiledd = self._get_energiledd(now)
@@ -2383,7 +2398,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                             or f"entity:{self._baseline.entity_id}",
                             entity_id=self._baseline.entity_id,
                             value_kwh=self._baseline.value_kwh,
-                            observed_at=self._baseline.observed_at,
+                            observed_at=_aware(self._baseline.observed_at),
                         )
                     )
                 # Forkastet betyr at det faktisk lå en baseline der som ikke lot
@@ -2400,6 +2415,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     # ikke en forkastet baseline: den var lesbar, den har bare
                     # ingen sensor å høre til.
                     self._baseline = None
+                    self._bok.sett_baseline(None)
                 if self._baseline_forkastet:
                     _LOGGER.info(
                         "Energibaselinen i lagringsfilen manglet kildeidentitet og ble forkastet. "
@@ -2547,7 +2563,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # filen (kontrakt D). Den sto på 2 fra K1 og løftes til 3 her.
             # v1- og v2-feltene under skrives uendret, så en nedgradering
             # beholder månedsdataene sine.
-            **self._bok.til_lagring(),
+            **self._bok.til_lagring(_aware(dt_util.now())),
             "daily_max_power": self._serialize_daily_max(self._daily_max_power),
             "weekly_max_power": {
                 k: {"kw": v.kw, "dato": v.dato, "hour": v.hour} for k, v in self._weekly_max_power.items()
@@ -2596,4 +2612,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except OSError:
             _LOGGER.warning("Failed to save storage data (disk full?)")
             return
-        _LOGGER.debug("Lagret %s nøkler: %s", len(data), _uten_kildeidentitet(data))
+        if _LOGGER.isEnabledFor(logging.DEBUG):
+            # Redigeringen går gjennom hele filen, og filen er ikke liten.
+            # Den skal bare koste noe når noen faktisk leser loggen.
+            _LOGGER.debug("Lagret %s nøkler: %s", len(data), _uten_kildeidentitet(data))

@@ -339,6 +339,26 @@ Et utfylt felt betyr `manual`. Dette gjelder også en bruker som står i
 `legacy_unconfirmed`: åpner de innstillingene og lagrer uten å røre feltet, er
 svaret «følg katalogen», og modusen blir `catalog`.
 
+**Hva feltet står med når skjemaet åpnes.** Feltet forhåndsutfylles kun i
+`manual`. Home Assistant-frontenden viser `suggested_value` og sender verdien
+tilbake ved lagring selv om brukeren ikke rørte feltet, så et forslag i
+`legacy_unconfirmed` ville gjort at et besøk i innstillingene låste den
+utdaterte satsen som `manual` og slettet satsvarselet. Da hadde brukeren mistet
+både satsoppdateringen og varselet som skulle fortalt om den, ved å gjøre noe
+helt normalt. I `catalog` og `legacy_unconfirmed` står feltet tomt, og
+katalogtallet står som hint i stegbeskrivelsen. En test som fyller inn feltene
+selv kan ikke se dette; prøven skal regne ut forhåndsutfyllingen fra det ekte
+skjemaet og sende den tilbake urørt.
+
+**Bytte til Egendefinert.** Skjemaet ble tegnet for det gamle nettselskapet,
+der energiledd er en overstyring som står tomt når katalogen gjelder.
+Egendefinert har ingen katalog, og et tomt felt ville gitt en sats fra
+ingensteds. Entryet arver derfor satsen anlegget faktisk lå på: overstyringen
+om den finnes, ellers forrige nettselskaps katalogverdi. Brukeren retter tallet
+mot sin egen prisliste. Det som *ikke* skal skje, er å fylle inn
+`DSO_LIST["custom"]` sine defaulttall, for de er en mal og ikke en pris
+(incident 006).
+
 **Andre valgfrie felt.** Et tømt entitetsfelt fjerner bindingen. Det gjelder
 energisensor, eksportmåler og leverandørpris, i både options og reconfigure.
 Dagens `{**current, **user_input}` gjør at et tømt felt beholder gammel verdi,
@@ -363,7 +383,20 @@ entitetenes unique-id-er.
 | Kjent DSO, lagret sats lik katalogen | Avvik under terskelen i punkt 8 | `catalog`, lagret sats fjernes fra `entry.data` | Nei | Nei |
 | Kjent DSO, lagret sats avviker | Avvik over terskelen | `legacy_unconfirmed`, lagret sats blir stående | Ja, katalogen gjelder fra første oppstart | Ja, med valg |
 | Kjent DSO uten lagret energiledd | Feltene mangler | `catalog` | Nei | Nei |
-| Utfaset DSO (`supported: False`) | Står igjen for varselets skyld | `catalog` | Nei | Nei fra v5. Det eksisterende `dso_migration`-varselet gjelder fortsatt |
+| Utfaset DSO (`supported: False`) | Står igjen for varselets skyld | `catalog`, lagret sats fjernes fra `entry.data` | Nei | Nei fra v5. Det eksisterende `dso_migration`-varselet gjelder fortsatt |
+| Fusjonert DSO | `tso` står i `DSO_MIGRATIONS` og er tatt ut av `DSO_LIST` | `catalog`, lagret sats fjernes fra `entry.data` | Ja, det nye selskapets katalog gjelder | Nei fra v5. `dso_migration`-varselet forteller alt om flyttingen |
+| Ukjent DSO | `tso` finnes verken i `DSO_LIST` eller `DSO_MIGRATIONS` | `manual` | Nei | Nei |
+
+Oppslaget i `DSO_MIGRATIONS` skjer **før** sjekken på om nettselskapet finnes
+i `DSO_LIST`. Et fusjonert selskap er tatt ut av listen, så det ser ellers ut
+som et ukjent nettselskap, og ville fått `manual`. Deretter flytter
+`async_setup_entry` entryet over til selskapet som overtok, og da hadde det
+regnet videre med det gamle selskapets sats på det nye, for godt, uten
+tariffvarsel. Den lagrede satsen hører til selskapet de forlater.
+
+Utfaset og fusjonert mister begge den lagrede satsen, slik at `catalog` alltid
+betyr at entryet ikke bærer en sats. Ukjent DSO beholder sin: det finnes ingen
+katalog å falle tilbake på, og tallet er alt de har.
 
 Rad to og rad tre fjerner begge den lagrede satsen fra `entry.data`, slik at
 entryet ikke drifter på nytt ved neste prisendring, og i begge tilfeller merker
@@ -491,6 +524,25 @@ diagnostikken aldri viser en blanding av to polls.
 - `baseline`: `source_identity` (aliasert av diagnostikklaget), `value_kwh`,
   `observed_at`, `schema_version`, og om den ble forkastet ved siste lasting.
 - `fastledd_ukjent` og `fastledd_mangler_sikringsvalg` som de er.
+
+### 10.1 Hva som ikke skal i loggen
+
+Diagnostikkdumpen er allowlistet fordi brukere limer den inn i offentlige
+issues. `home-assistant.log` havner samme sted, og skal behandles likt.
+
+`source_identity` er `unique_id` fra entity-registeret, og hos AMS- og
+Elhub-integrasjoner er det målepunkt-ID eller målerserienummer, altså en
+identifikator som peker på én bestemt husstand. Den skal aldri stå i en
+loggmelding. Diagnostikken aliaserer den, og loggen har ikke noe alias å ty
+til, så den utelates: meldingen ved et kildebytte sier at kilden er en annen,
+ikke hvilken. Samme regel gjelder alt annet som identifiserer et anlegg utenfor
+Home Assistant: målernummer, anleggsadresse og kundenummer.
+
+Entity-id er noe annet. Det er et navn brukeren har valgt selv inne i sin egen
+installasjon, og uten det vet han ikke hvilken sensor en melding gjelder.
+Entity-id står derfor i loggen og i repair-plassholderne, sammen med den rå
+enheten en sensor faktisk rapporterer, som er det varselet handler om. Et
+repair uten dem er et varsel brukeren ikke kan handle på.
 
 ## 11. Nye nøkler som må inn alle tre steder
 

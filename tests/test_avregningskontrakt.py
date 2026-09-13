@@ -32,8 +32,10 @@ from stromkalkulator.avregning import (
     Avregningsbok,
     Energikvalitet,
     Intervallkvalitet,
+    Utfall,
     med_pris,
 )
+from stromkalkulator.const import MAX_ELAPSED_HOURS, MAX_ENERGY_DELTA_KWH
 
 ROT = Path(__file__).parent.parent
 KONTRAKT = ROT / "docs" / "kontrakter" / "avregning.md"
@@ -584,6 +586,51 @@ def test_avvist_delta_sier_hva_som_skjer_med_baselinen(nokkel: str) -> None:
     punkt = next((p for p in _randtilfeller() if nokkel in p), None)
     assert punkt, f"C1 mangler randtilfellet for {nokkel}"
     assert "baseline" in punkt.lower(), f"C1 sier ikke hva som skjer med baselinen ved {nokkel}"
+
+
+def test_grensen_selv_bokfores_og_kontrakten_sier_det() -> None:
+    """C1s «over» er strengt, og koden skal ikke avvise grensen selv.
+
+    Den gamle koden hadde `0 < delta < MAX` og avviste et delta på nøyaktig
+    `MAX_ENERGY_DELTA_KWH`. Kontrakten sier nå at grensen bokføres. Uten denne
+    vakten er det en stille uenighet igjen, og den neste som leser koden kan
+    stramme den tilbake uten at noe blir rødt.
+    """
+    punkt = next(p for p in _randtilfeller() if "MAX_ENERGY_DELTA_KWH" in p)
+    assert "strengt" in punkt, "C1 må si at «over» er strengt"
+
+    bok = Avregningsbok(dso_id="bkk")
+    bok.bokfor(_avlesning(0.0, START))
+    svar = bok.bokfor(_avlesning(MAX_ENERGY_DELTA_KWH, START + INTERVALL))
+    assert svar.utfall is not Utfall.AVVIST_SPRANG, "grensen selv skal bokføres"
+    assert bok.avvist_kwh == 0.0
+
+    over = Avregningsbok(dso_id="bkk")
+    over.bokfor(_avlesning(0.0, START))
+    svar = over.bokfor(_avlesning(MAX_ENERGY_DELTA_KWH + 0.001, START + INTERVALL))
+    assert svar.utfall is Utfall.AVVIST_SPRANG
+
+
+def test_for_langt_pollvindu_mistes_og_kappes_ikke() -> None:
+    """B1: en effektbruker uten teller mister vinduet, det blir ikke kappet.
+
+    Dette rammer alle som bare har effektmåling. Kontrakten sa lenge at vinduet
+    ble kappet til `MAX_ELAPSED_HOURS`, og da bokførte en utfører seks
+    minutters forbruk for et døgn nede. Teksten og koden måles mot hverandre
+    her, for de sto fra hverandre uten at noe var rødt.
+    """
+    punkt = next(p for p in _punkter(B1) if "MAX_ELAPSED_HOURS" in p)
+    assert "bokføres ikke" in punkt, "B1 må si at vinduet mistes"
+    assert "kapp" not in punkt.split("Dette er ikke det")[0], "B1 skal ikke love kapping"
+
+    bok = Avregningsbok(dso_id="bkk")
+    start = START
+    bok.bokfor(Avlesning("effekt", 0.0, start, kvalitet=Energikvalitet.ESTIMERT))
+    for_langt = timedelta(hours=MAX_ELAPSED_HOURS * 2)
+    svar = bok.bokfor(Avlesning("effekt", 12.0, start + for_langt, kvalitet=Energikvalitet.ESTIMERT))
+    assert svar.utfall is Utfall.AVVIST_FOR_LANGT_VINDU
+    assert svar.bokfort_kwh == 0.0, "ingenting av vinduet skal kappes inn i boken"
+    assert bok.intervaller() == []
 
 
 def test_avvist_sprang_er_synlig_i_data_dicten() -> None:

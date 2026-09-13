@@ -760,6 +760,32 @@ class TestTrinntabellISkjemaene:
         data = flow.hass.config_entries.async_update_entry.call_args.kwargs["data"]
         assert "egendefinert_kapasitetstrinn" not in data
 
+    def test_bytte_fjerner_tabellen_ogsaa_naar_feltet_sendes_med(self):
+        """Nettleseren sender det forhåndsutfylte feltet med, og det skal ikke berge tabellen.
+
+        Kommentaren ved `_TOMBARE_FELT` lovet at et bytte til et kjent
+        nettselskap fjernet tabellen, men tømmingen der virker bare når feltet
+        kommer tomt. Skjemaet står forhåndsutfylt, så i nettleseren kom det
+        alltid med en verdi, og tabellen overlevde på et entry som aldri leser
+        den (K3-dom, funn 4).
+        """
+        entry = _make_entry(dso="custom")
+        entry.data["egendefinert_kapasitetstrinn"] = "2:155"
+        flow = _make_options_flow(entry)
+
+        asyncio.run(
+            flow.async_step_init(
+                {
+                    **_skjema_uten_valgfrie(),
+                    CONF_DSO: "bkk",
+                    "egendefinert_kapasitetstrinn": "2:155",
+                }
+            )
+        )
+
+        data = flow.hass.config_entries.async_update_entry.call_args.kwargs["data"]
+        assert "egendefinert_kapasitetstrinn" not in data
+
     def test_feltet_vises_kun_for_egendefinert(self):
         cf_mod = _reload_config_flow()
         egendefinert = cf_mod._config_data_schema({CONF_DSO: "custom"})

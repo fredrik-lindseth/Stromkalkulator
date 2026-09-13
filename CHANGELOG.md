@@ -6,16 +6,32 @@ Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) og [S
 
 ### Dette må du gjøre selv
 
+- **Har du satt egne priser for et nettselskap vi ikke har, sjekk energiledd-satsen din mot prislisten.** Feltet sto merket «inkl. avgifter» i oppsettet fra 1.12.0 til og med 1.16.0, mens koden regner satsen som ren nettleie og legger forbruksavgift, Enova og mva på selv. Fulgte du teksten, telles avgiftene to ganger, rundt 10 øre/kWh for høyt i Sør-Norge. Et varsel peker deg dit, og forsvinner når du har rettet eller bekreftet satsen. Se [incident 007](docs/incidents/007-energiledd-label-inkl-avgifter.md).
+- **Bruker du Egendefinert nettselskap, må du fylle inn kapasitetstrinnene fra din egen prisliste.** De ti trinnene vi hadde liggende var en mal uten kilde bak seg, og de er fjernet. Til du har skrevet inn tabellen under Konfigurer, står kapasitetstrinn, månedlig nettleie, estimert månedskostnad og akkumulert kostnad som Ukjent i stedet for å vise et tall vi har gjettet.
+- **Et varsel kan be deg velge om nettleiesatsen skal følge katalogen vår eller være ditt eget tall.** Rundt en tredjedel av oppsettene har en lagret sats vi ikke vet om var et bevisst valg. Vi regner med katalogen mens vi venter på svar, så tallene er riktige i mellomtiden, men varselet blir stående til du har svart.
 - **Har du en prissensor uten enhet, får du ett reparasjonsvarsel som ber deg bekrefte at den er i NOK/kWh.** Integrasjonen regner videre som før imens, men antakelsen skal være synlig. Bekrefter du, kommer varselet ikke igjen. Er sensoren egentlig i øre/kWh eller NOK/MWh, sett riktig enhet på selve sensoren, så regner integrasjonen om automatisk.
 - **Peker spotprisfeltet ditt mot en sensor i EUR, må du bytte den ut.** Integrasjonen har ingen valutakurs, og den leste tidligere euro som kroner. Nå sier den nei i stedet, og du får et varsel om enheten. Lag en malsensor som regner om til kroner, eller velg en NOK-sensor.
 
 ### Fikset
 
+- **Månedskostnaden lå 64 til 145 kroner for høyt, og faller tilsvarende.** Fastleddet er et fast månedsbeløp, men det lå inne i totalprisen som en pris per kWh og ble ganget med forbruket: 396 kroner i mai der fakturaen krever 250. Nå regnes det som andelen av måneden som har gått, og månedskostnaden lander på fakturaens tall, for mai 1232,60 mot fakturaens 1232,60. `daily_cost_kr` falt rundt tre kroner per døgn av samme grunn. Statistikken din får et hakk der de gamle tallene slutter. Se [revalideringen](docs/research/revalidering-l3b-september-2026.md).
+- **Oppdaterte nettleiesatser når nå fram til anlegg som allerede er satt opp.** Til og med 1.16.0 lagret oppsettet katalogens energiledd på hvert config entry, og den lagrede verdien vant over katalogen for alltid. Alle satsoppdateringene vi har sluppet siden har derfor bare truffet nye installasjoner. Nå avgjør en tariffmodus hvor satsen kommer fra, og energiledd-feltet i innstillingene er et overstyringsfelt du kan la stå tomt.
+- **Norgespris bestilles hos Elhub, ikke hos nettselskapet.** Oppsettsteksten sendte deg feil sted, på begge språk og alle ni stedene den sto.
 - **Enheten på input-sensorene leses nå, i stedet for bare tallet.** En effektsensor i kW ble lest som watt, en energisensor i Wh som kWh og en spotprissensor i NOK/MWh som kroner per kWh. Alle tre gir tall som ser plausible ut og er tusen ganger feil, og ingenting sa fra. `W`, `kW` og `MW` for effekt, `Wh`, `kWh` og `MWh` for energi, og `NOK/kWh`, `kr/kWh`, `øre/kWh`, `NOK/MWh` og `øre/MWh` for pris regnes nå om automatisk. Se [input-sensorer.md](docs/input-sensorer.md).
+- **Eksportmåleren i kW ga tusen ganger for lav eksportinntekt.** Feltet krevde watt uten å si det, og uten å sjekke det. Den går nå gjennom samme enhetsomregning som resten, så en plusskunde med kW-sensor får ekte tall i stedet for en inntekt nær null.
+- **Energien bokføres på prisen som gjaldt da den ble målt, ikke på prisen som sto på sensoren da vi hentet data.** Før kunne kilowattimer fra én time bli priset med neste times spotpris, avhengig av når pollen falt. En time uten prisprøve blir nå stående uten pris framfor å arve nabotimens.
+- **Strømstøtte og Norgespris regnes mot timeprisen, og kilowattimene deles i én del under og én over taket** før prisen legges på. Før kunne en time som krysset kWh-taket bli priset helt på den ene siden av det.
+- **Kapasitetstrinnet regnes av et døgnmaks som holder seg i takt.** Snittet av de tre høyeste døgnene lå 0,02 til 0,04 kW under fakturaens verdi, fordi en time som ble ferdig mens måleren var borte aldri ble bokført. April lå 0,007 kW under grensen mellom 250 og 415 kroner i måneden, så det var flaks og ikke margin. I tillegg kunne forrige måneds toppdag bli med inn i den nye måneden når første poll kom uten avlesning, og da arvet den nye måneden et trinn den ikke skulle hatt.
 - **Energibaselinen er bundet til måleren den kom fra.** Byttet du energisensor, ble forskjellen mellom den gamle og den nye telleren tolket som forbruk: en ny måler som sto på 1020 der den gamle sto på 1000 ga 20 kWh du aldri hadde brukt, både i månedsforbruket og i timesmaksen. Nå starter en ny kilde en ny baseline med 0 kWh, og månedstallene står urørt.
 - **En slettet input-entitet stopper ikke lenger hele oppdateringen.** Forsvant effekt- eller spotprissensoren fra Home Assistant, feilet integrasjonen med «entity not found» før vaktholdet rakk å si fra, og alt sto stille, også energi og energiledd som ikke trengte den sensoren. Nå meldes den som et utfall, og alt som fortsatt har datagrunnlag regnes videre.
 - **En input som ikke leverer blir ikke lenger til 0.** En 0 er en måling som sier at du ikke bruker noe, og det er en annen påstand enn at målingen uteble. Effektsensorens attributt står nå tomt i stedet for å vise 0 kW mens sensoren er borte.
 - **Baselinen forkastes ikke lenger etter et døgn uten kontakt.** En hytte som sto avslått i en uke mistet baselinen sin i stillhet, og forbruket i mellomtiden forsvant. Vernet mot et urimelig sprang er fortsatt grensen på 100 kWh, som viser deg tallet i et varsel framfor å kaste det uten å si fra.
+- **Et strømbrudd gir ikke lenger varsel om at måleren står stille.** Var Home Assistant av en stund, gikk klokken som måler frossen energisensor videre gjennom nedetiden, og første poll etterpå meldte fra om noe vi aldri hadde sett. Tidspunkter i varslene vises også i lokal tid igjen, ikke UTC.
+- **Varselet om input-svikt peker på sensorene som faktisk er nede.** Falt to målere ut samtidig og den ene kom tilbake, sto varselet igjen og pekte på den friske. Nå skrives det om når listen endrer seg, og slettes først når alle er tilbake.
+- **Satsvakten ser på kalenderen hvert døgn, ikke bare ved oppstart.** En installasjon som står i månedsvis uten omstart passerte årsskiftet uten at noen så etter, og det er nettopp da forbruksavgiften og nettleien endrer seg. Norgespris-varselet gjelder nå ett anlegg om gangen, så to anlegg i samme installasjon ikke sletter varselet for hverandre. Og en vanlig lagring i innstillingene låser ikke lenger den gamle satsen på plass.
+- **Du får fjernet en valgfri sensor du en gang har valgt.** Tømte du energisensor, eksportmåler eller leverandørprisfeltet i innstillingene, ble bindingen satt inn igjen ved lagring.
+- **Reparasjonsvarsler ryddes når du sletter et anlegg.** Varsler knyttet til en config entry ble liggende igjen i Home Assistant etter at entryen var borte.
+- **Fjellnett vekter en uke som krysser månedsskiftet med mandagens måned**, slik fellesbestemmelsene deres sier, og vinduet er tolv kalendermåneder målt mot toppens egen dato i stedet for 364 dager. En topp kunne før dø nesten en uke for tidlig.
 - **Sju nettselskap hevet nettleien 1. august og 1. september 2026**, og satsene våre lå igjen på de gamle. Alle sju er verifisert mot nettselskapets egen prisliste i tillegg til fri-nettleie:
   - **Elinett** (01.08): energiledd dag 22,64 → 25,50 og natt 14,64 → 17,50 øre/kWh, alle ti kapasitetstrinn hevet, trinn 1 fra 251 til 281 kr/mnd.
   - **Elvenett** (01.09): nattsatsen var 11,00 der den skal være 5,00 øre/kWh, og de tre laveste kapasitetstrinnene var for høye, trinn 1 fra 194 til 160 kr/mnd.
@@ -30,13 +46,34 @@ Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) og [S
   - **Telemark Nett** (01.09): energileddet 25,00 → 28,00 øre/kWh, og hele kapasitetstabellen er hevet, trinn 1 fra 355 til 398 kr/mnd. Selskapet heter nå TNett og finnes på tnett.no.
 - **Fire kapasitetstrinn og to energiledd var rundet feil vei.** Vi hadde regnet bakover fra prisen inkl. mva der prislisten har en egen kolonne uten. Romsdalsnett 2-5 kW 363 → 362 og 20-25 kW 1160 → 1159 kr/mnd, Vestmar Nett 20-25 kW 1495 → 1494 kr/mnd og energileddet 17,102 → 17,10 øre/kWh, Enida 26,998/20,998 → 27,00/21,00 øre/kWh. Under en krone hver, men det er nettselskapets eget tall som gjelder.
 
+### Lagt til
+
+- **Vakthold på input-sensorene, med en ny `binary_sensor` som heter Måledata-problem.** HAN-leseren her lå nede 237 timer i strekk uten at noe sa fra, og det ble oppdaget ti dager for sent da fakturaen skulle sjekkes. Nå meldes en entitet som har stått utilgjengelig i mer enn 30 minutter, en energiteller som ikke har økt på mer enn terskelen din (default tre timer), en utløpt spotpris-cache og et forkastet energi-sprang, både som sensor og som reparasjonsvarsel som forsvinner av seg selv når sensoren er frisk igjen.
+- **Diagnostikk-dumpen sier hva inputene dine faktisk leverte**, altså tilstand, enhet og alder per rolle, pluss baselinen og hvilke reparasjonsvarsler som står ute. Entitetsnavn og måler-id-er er fortsatt aliasert, og enheten en fremmed sensor oppgir slås opp i vårt eget vokabular før den havner i filen.
+
 ### Endret
 
+- **Egendefinert nettselskap har fått et felt for dine egne kapasitetstrinn**, skrevet som «kW-grense:kr/mnd» rett fra prislisten din. Eksempelet i teksten er tomt for tall, så det ikke finnes noe å kopiere inn som ser ut som fasit.
 - **øre/kWh godtas nå som spotprisenhet.** Den ble avvist i oppsettet med beskjed om å bygge en malsensor for noe integrasjonen kan gjøre selv.
 - **Energisensoren må ha `state_class` `total_increasing` eller `total`.** Vi leser differansen mellom avlesninger, så en sensor som viser forbruket akkurat nå har ingen differanse å måle. Sto det en slik i energifeltet, ga den meningsløse tall.
 - **Vaktholdet skiller en slettet entitet fra en som svarer «utilgjengelig»**, og har fått en fjerde deteksjon for en sensor som bytter til en enhet vi ikke kan regne om. Den meldes med en gang, uten 30-minuttersfristen, siden det ikke er noe som går over av seg selv.
 - **Lagringsfilens energibaseline har fått nytt format.** Ved første oppstart etter oppdateringen forkastes den gamle avlesningen, fordi de gamle filene verken sier hvilken måler den kom fra eller hvilken enhet den var i. Det koster inntil ett pollintervall med forbruk. Månedsdata, døgnmaksimum og akkumulerte kroner beholdes.
+- Roligere brukertekst i oppsett og varsler: versalene er borte, og de lengste setningene er delt.
 - Prisside-lenkene for Mellom og Lysna pekte på adresser som er flyttet. Rettet.
+
+### Verifisert
+
+- **ZIP-en på releasesiden kan nå bygges opp igjen og sammenlignes.** Den pakkes fra git-objektene på commiten taggen peker på, så to bygg av samme versjon gir byte-lik fil og samme sha256. Release-noten får en Verifisering-seksjon med commiten og sha256-en, og [SECURITY.md](SECURITY.md) viser hvordan du etterprøver hele kjeden selv.
+- **Attestasjonen for v1.16.0 peker på en annen commit enn taggen.** Innholdet i de to commitene er identisk, så filen du lastet ned er koden taggen peker på, men bindingen mellom dem mangler. En attestasjon kan ikke lages i ettertid uten å påstå noe som ikke skjedde, så v1.16.0 blir stående slik. Fra og med denne releasen peker tagg, ZIP og attestasjon på samme commit.
+- **Telemark Nett sto halvannet år uten drift-vakt uten at noen så det.** fri-nettleie hadde døpt om filen sin til tnett.yml, og unntaket som skulle forklare den manglende treffen skjulte i stedet at kontrollen aldri ble gjort. Vakten sier nå fra om det den ikke fikk sjekket, og et unntak demper bare det ene feltet med den ene verdien, med utløpsdato.
+- **De sytten nettselskapene som fikk kapasitetstrinn fra fri-nettleie i juli er hentet fra primærkilden**, med URL og dato per oppføring. Elleve stemte tall for tall, to hadde hevet prisene, fire var rundet feil vei.
+- **Arva lar seg verifisere likevel.** Prissiden rendres med JavaScript, men den samme prislisten ligger som ren HTML bak et API-kall siden skriver ut selv. Alle satsene stemte, og selskapet holder nettleien uendret gjennom 2026.
+- **Fakturaen for august 2026 er reprodusert linje for linje**, og hele kroneregnskapet er revalidert måned for måned mot mai, juni og juli. Alt som flyttet seg, flyttet seg mot fakturaen.
+- **Oppsettsreisen kjøres nå mot ekte Home Assistant**, med kontrollert tid gjennom månedsskifte, sommertidsovergang, målerbytte og strømbrudd, i en egen isolert testlab.
+
+### Dokumentert
+
+- [Incident 007](docs/incidents/007-energiledd-label-inkl-avgifter.md): hvorfor feltet for egendefinert energiledd ba om avgiftene som koden legger på selv, og hvorfor teksten fikk stå i fem versjoner.
 
 ## [1.16.0]
 

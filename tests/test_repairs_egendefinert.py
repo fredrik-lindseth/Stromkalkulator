@@ -14,13 +14,17 @@ from __future__ import annotations
 
 import asyncio
 import importlib
+import json
 import sys
+from pathlib import Path
 from types import ModuleType
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from tests.conftest import _make_entry
+
+STRINGS = Path(__file__).parent.parent / "custom_components" / "stromkalkulator" / "strings.json"
 
 if "voluptuous" not in sys.modules:
     # voluptuous er ikke installert i testmiljøet. Samme stub som i
@@ -429,15 +433,9 @@ class TestFastleddVarselet:
             hass, init_module.DOMAIN, "egendefinert_fastledd_abc"
         )
 
-    def test_begge_fastledd_tekstene_finnes(self, init_module):
+    def test_begge_fastledd_tekstene_finnes(self):
         """Den nye nøkkelen står i en ternær, som nøkkelvakten ikke ser."""
-        import json as _json
-        from pathlib import Path as _Path
+        strings = json.loads(STRINGS.read_text(encoding="utf-8"))
 
-        strings = _json.loads(
-            (
-                _Path(__file__).parent.parent / "custom_components" / "stromkalkulator" / "strings.json"
-            ).read_text(encoding="utf-8")
-        )
         assert "egendefinert_fastledd" in strings["issues"]
         assert "egendefinert_fastledd_ulesbar" in strings["issues"]

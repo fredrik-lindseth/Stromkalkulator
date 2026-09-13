@@ -189,14 +189,26 @@ class TestMaanedligStromstotteSensor:
         return MaanedligStromstotteSensor(coord, entry)
 
     def test_normal_calculation(self):
-        """400 kWh * 0.50 strømstøtte = 200 kr."""
+        """Leser bokført støtte, ikke forbruk ganget med gjeldende sats."""
         sensor = self._make_sensor(
             {
+                "monthly_stromstotte_kr": 200.0,
                 "monthly_consumption_total_kwh": 400.0,
                 "stromstotte": 0.50,
             }
         )
         assert sensor.native_value == 200.0
+
+    def test_ignorerer_gjeldende_sats(self):
+        """Satsen endrer seg time for time; den bokførte summen gjør ikke det."""
+        sensor = self._make_sensor(
+            {
+                "monthly_stromstotte_kr": 42.0,
+                "monthly_consumption_total_kwh": 400.0,
+                "stromstotte": 0.50,
+            }
+        )
+        assert sensor.native_value == 42.0
 
     def test_zero_stromstotte(self):
         """No subsidy -> 0 kr."""

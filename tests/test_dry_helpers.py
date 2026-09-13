@@ -55,29 +55,59 @@ class _FakeCoordinatorEntity:
 
 _coord_mod.CoordinatorEntity = _FakeCoordinatorEntity
 
-from stromkalkulator.sensor import _beregn_nettleie  # noqa: E402
+from stromkalkulator.sensor import _bokfort_nettleie, _tall  # noqa: E402
 
 
-class TestBeregnNettleie:
-    """Tests for _beregn_nettleie helper."""
+class TestTall:
+    """`_tall` skal gi et tall, også når coordinatoren ikke har feltet."""
 
-    def test_basic_calculation(self):
-        result = _beregn_nettleie(100.0, 50.0, 0.4613, 0.2329, 600)
-        expected = (100.0 * 0.4613) + (50.0 * 0.2329) + 600
-        assert result == round(expected, 2)
+    def test_leser_tallet(self):
+        assert _tall({"a": 12.5}, "a") == 12.5
 
-    def test_zero_consumption(self):
-        result = _beregn_nettleie(0.0, 0.0, 0.4613, 0.2329, 600)
-        assert result == 600.0
+    def test_manglende_felt_er_null(self):
+        assert _tall({}, "a") == 0.0
 
-    def test_without_kapasitetsledd(self):
-        result = _beregn_nettleie(100.0, 50.0, 0.4613, 0.2329)
-        expected = (100.0 * 0.4613) + (50.0 * 0.2329)
-        assert result == round(expected, 2)
+    def test_none_er_null(self):
+        assert _tall({"a": None}, "a") == 0.0
 
-    def test_rounding(self):
-        result = _beregn_nettleie(33.333, 66.666, 0.1111, 0.2222, 155)
-        assert result == round((33.333 * 0.1111) + (66.666 * 0.2222) + 155, 2)
+    def test_tekst_er_null(self):
+        assert _tall({"a": "mye"}, "a") == 0.0
+
+    def test_bool_teller_ikke_som_tall(self):
+        """True er 1 i Python. Et krone- eller kWh-felt som er bool er en feil."""
+        assert _tall({"a": True}, "a") == 0.0
+
+    def test_heltall_blir_flyttall(self):
+        verdi = _tall({"a": 415}, "a")
+        assert verdi == 415.0
+        assert isinstance(verdi, float)
+
+
+class TestBokfortNettleie:
+    """Nettleien er energileddet pluss fastleddet slik boken førte dem."""
+
+    def test_summerer_de_to_bokforte_leddene(self):
+        data = {
+            "monthly_accumulated_cost_energiledd_kr": 392.9573,
+            "monthly_accumulated_cost_kapasitetsledd_kr": 249.9944,
+        }
+        assert _bokfort_nettleie(data) == pytest.approx(642.9517)
+
+    def test_ingen_bokforing_er_null(self):
+        assert _bokfort_nettleie({}) == 0.0
+
+    def test_ganger_ikke_kilowattimer_med_satser(self):
+        """Forbruk og satser i dicten skal ikke påvirke svaret."""
+        data = {
+            "monthly_accumulated_cost_energiledd_kr": 100.0,
+            "monthly_accumulated_cost_kapasitetsledd_kr": 50.0,
+            "monthly_consumption_dag_kwh": 900.0,
+            "monthly_consumption_natt_kwh": 800.0,
+            "energiledd_dag": 0.4613,
+            "energiledd_natt": 0.2329,
+            "kapasitetsledd": 415,
+        }
+        assert _bokfort_nettleie(data) == 150.0
 
 
 class _FakeDataUpdateCoordinator:

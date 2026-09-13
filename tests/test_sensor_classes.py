@@ -570,3 +570,62 @@ class TestFastleddUkjent:
         sensor = sensor_class(mock_coordinator, mock_entry)
         assert sensor.native_value is not None
         assert "fastledd_ukjent" not in (sensor.extra_state_attributes or {})
+
+
+# ---------------------------------------------------------------------------
+# Vakt: månedssensorene regner ikke lenger selv (L3c)
+# ---------------------------------------------------------------------------
+
+#: Satser og forbrukstall i data-dicten som hører til inneværende måned. De er
+#: riktige å vise, og gale å gange med hverandre: gjør sensoren det, har vi to
+#: sannheter om samme krone, en i kostnadskjernen og en her. Ordgrensene gjør
+#: at `previous_month_energiledd_dag` går fri, og den er bevisst: arkivet har
+#: ingen bokførte kroner å lese ennå (stromkalkulator-1fnzdn8).
+MAANEDENS_SATSER_OG_FORBRUK = (
+    "energiledd_dag",
+    "energiledd_natt",
+    "stromstotte",
+    "forbruksavgift_inkl",
+    "forbruksavgift_inkl_mva",
+    "enova_inkl",
+    "enova_inkl_mva",
+    "kapasitetsledd",
+    "monthly_consumption_dag_kwh",
+    "monthly_consumption_natt_kwh",
+    "monthly_consumption_total_kwh",
+)
+
+
+class TestSensorerRegnerIkkeSelv:
+    """sensor.py leser bokførte kroner. Den lager dem ikke."""
+
+    @staticmethod
+    def _kilde() -> str:
+        from pathlib import Path
+
+        sti = Path(__file__).resolve().parent.parent / "custom_components" / "stromkalkulator" / "sensor.py"
+        return sti.read_text(encoding="utf-8")
+
+    @classmethod
+    def _treff(cls, kilde: str) -> list[str]:
+        import re
+
+        monstre = [rf"\b{navn}\b\s*\*" for navn in MAANEDENS_SATSER_OG_FORBRUK]
+        monstre += [rf"\*\s*\b{navn}\b" for navn in MAANEDENS_SATSER_OG_FORBRUK]
+        return re.findall("|".join(monstre), kilde)
+
+    def test_ingen_maanedssats_ganges_med_noe(self):
+        assert self._treff(self._kilde()) == []
+
+    def test_vakten_fanger_den_gamle_skrivemaaten(self):
+        """Mutasjonsprøven: begge operandrekkefølger skal felles."""
+        assert self._treff("kr = dag_kwh * energiledd_dag")
+        assert self._treff("kr = energiledd_natt * natt_kwh")
+        assert self._treff("kr = monthly_consumption_total_kwh * stromstotte")
+        # Arkivet er unntaket, og det skal gå fri til det har kroner å lese.
+        assert not self._treff("kr = kwh * previous_month_energiledd_dag")
+
+    def test_hjelperen_som_ganget_satser_er_borte(self):
+        import stromkalkulator.sensor as sensor_mod
+
+        assert not hasattr(sensor_mod, "_beregn_nettleie")

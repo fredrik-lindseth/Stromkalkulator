@@ -101,6 +101,31 @@ def _make_coordinator(data: dict) -> MagicMock:
     return coord
 
 
+def _bok(
+    dag_kr: float = 0.0,
+    natt_kr: float = 0.0,
+    avgifter_kr: float = 0.0,
+    fastledd_kr: float = 0.0,
+    stotte_kr: float = 0.0,
+    **ekstra,
+) -> dict:
+    """Data-dicten slik coordinatoren fyller den etter at kroner er bokført.
+
+    Sensorene skal lese disse feltene. Tester som vil vise at de ikke regner
+    selv, legger på forbruk og satser som `ekstra` og forventer at de ignoreres.
+    """
+    data = {
+        "monthly_energiledd_dag_kr": dag_kr,
+        "monthly_energiledd_natt_kr": natt_kr,
+        "monthly_avgifter_kr": avgifter_kr,
+        "monthly_accumulated_cost_energiledd_kr": dag_kr + natt_kr + avgifter_kr,
+        "monthly_accumulated_cost_kapasitetsledd_kr": fastledd_kr,
+        "monthly_stromstotte_kr": stotte_kr,
+    }
+    data.update(ekstra)
+    return data
+
+
 def _make_entry(avgiftssone: str = "standard") -> MagicMock:
     entry = MagicMock()
     entry.entry_id = "test"
@@ -114,48 +139,35 @@ def _make_entry(avgiftssone: str = "standard") -> MagicMock:
 
 
 class TestMaanedligNettleieSensor:
-    """Beregner: dag_kwh * dag_pris + natt_kwh * natt_pris + kapasitet."""
+    """Leser bokført energiledd pluss bokført fastledd."""
 
     def test_normal_values(self):
-        """200 kWh dag, 100 kWh natt, BKK-priser, trinn 3 (415 kr)."""
-        data = {
-            "monthly_consumption_dag_kwh": 200.0,
-            "monthly_consumption_natt_kwh": 100.0,
-            "energiledd_dag": 0.4613,
-            "energiledd_natt": 0.2329,
-            "kapasitetsledd": 415,
-        }
+        """Mai 2026 fra BKK-fakturaen: energiledd 392,96 og fastledd 250."""
+        data = _bok(dag_kr=186.34, natt_kr=86.77, avgifter_kr=119.85, fastledd_kr=249.99)
         sensor = MaanedligNettleieSensor(_make_coordinator(data), _make_entry())
-        expected = round(200.0 * 0.4613 + 100.0 * 0.2329 + 415, 2)
-        assert sensor.native_value == expected
+        assert sensor.native_value == 642.95
 
     def test_zero_consumption(self):
-        """0 kWh forbruk: should only return kapasitetsledd."""
-        data = {
-            "monthly_consumption_dag_kwh": 0,
-            "monthly_consumption_natt_kwh": 0,
-            "energiledd_dag": 0.4613,
-            "energiledd_natt": 0.2329,
-            "kapasitetsledd": 415,
-        }
+        """Ingen energi bokført: bare fastleddet står igjen."""
+        data = _bok(fastledd_kr=415.0)
         sensor = MaanedligNettleieSensor(_make_coordinator(data), _make_entry())
         assert sensor.native_value == 415.0
 
-    def test_manual_calculation_matches(self):
-        """Verify arithmetic with known input/output."""
-        dag_kwh, natt_kwh = 350.0, 180.0
-        dag_pris, natt_pris = 0.4613, 0.2329
-        kapasitet = 600
-        data = {
-            "monthly_consumption_dag_kwh": dag_kwh,
-            "monthly_consumption_natt_kwh": natt_kwh,
-            "energiledd_dag": dag_pris,
-            "energiledd_natt": natt_pris,
-            "kapasitetsledd": kapasitet,
-        }
+    def test_ignorerer_forbruk_og_satser(self):
+        """Satser ganget med kilowattimer skal ikke kunne påvirke verdien."""
+        data = _bok(
+            dag_kr=100.0,
+            natt_kr=50.0,
+            avgifter_kr=25.0,
+            fastledd_kr=200.0,
+            monthly_consumption_dag_kwh=350.0,
+            monthly_consumption_natt_kwh=180.0,
+            energiledd_dag=0.4613,
+            energiledd_natt=0.2329,
+            kapasitetsledd=600,
+        )
         sensor = MaanedligNettleieSensor(_make_coordinator(data), _make_entry())
-        manual = round(dag_kwh * dag_pris + natt_kwh * natt_pris + kapasitet, 2)
-        assert sensor.native_value == manual
+        assert sensor.native_value == 375.0
 
     def test_returns_none_when_no_data(self):
         coord = MagicMock()
@@ -164,19 +176,27 @@ class TestMaanedligNettleieSensor:
         assert sensor.native_value is None
 
     def test_extra_state_attributes_breakdown(self):
-        """Attributes should expose dag/natt/kapasitet breakdown."""
-        data = {
-            "monthly_consumption_dag_kwh": 200.0,
-            "monthly_consumption_natt_kwh": 100.0,
-            "energiledd_dag": 0.4613,
-            "energiledd_natt": 0.2329,
-            "kapasitetsledd": 415,
-        }
+        """Splitten er fakturaens: dag, natt og avgifter hver for seg."""
+        data = _bok(dag_kr=186.34, natt_kr=86.77, avgifter_kr=119.85, fastledd_kr=249.99)
         sensor = MaanedligNettleieSensor(_make_coordinator(data), _make_entry())
         attrs = sensor.extra_state_attributes
-        assert attrs["energiledd_dag_kr"] == round(200.0 * 0.4613, 2)
-        assert attrs["energiledd_natt_kr"] == round(100.0 * 0.2329, 2)
-        assert attrs["kapasitetsledd_kr"] == 415
+        assert attrs["energiledd_dag_kr"] == 186.34
+        assert attrs["energiledd_natt_kr"] == 86.77
+        assert attrs["avgifter_kr"] == 119.85
+        assert attrs["kapasitetsledd_kr"] == 249.99
+
+    def test_attributter_summerer_til_verdien(self):
+        """De fire leddene er hele nettleien, ikke et utvalg av den."""
+        data = _bok(dag_kr=212.41, natt_kr=58.14, avgifter_kr=105.04, fastledd_kr=249.99)
+        sensor = MaanedligNettleieSensor(_make_coordinator(data), _make_entry())
+        attrs = sensor.extra_state_attributes
+        sum_attrs = (
+            attrs["energiledd_dag_kr"]
+            + attrs["energiledd_natt_kr"]
+            + attrs["avgifter_kr"]
+            + attrs["kapasitetsledd_kr"]
+        )
+        assert round(sum_attrs, 2) == sensor.native_value
 
 
 # ---------------------------------------------------------------------------
@@ -185,42 +205,52 @@ class TestMaanedligNettleieSensor:
 
 
 class TestMaanedligAvgifterSensor:
-    """Beregner: total_kwh * (forbruksavgift_inkl + enova_inkl)."""
+    """Leser bokførte avgifter, og deler dem etter forholdet mellom satsene."""
 
-    def test_standard_avgiftssone(self):
-        """Standard: full forbruksavgift + 25% mva."""
-        total_kwh = 400.0
-        data = {"monthly_consumption_total_kwh": total_kwh}
+    def test_leser_bokfort_belop(self):
+        """Verdien er feltet, ikke kilowattimer ganget med en sats."""
+        data = _bok(
+            avgifter_kr=119.85,
+            monthly_consumption_total_kwh=400.0,
+            forbruksavgift_inkl_mva=FORBRUKSAVGIFT_ALMINNELIG * 1.25,
+            enova_inkl_mva=ENOVA_AVGIFT * 1.25,
+        )
         sensor = MaanedligAvgifterSensor(_make_coordinator(data), _make_entry("standard"))
-        forbruksavgift_inkl = FORBRUKSAVGIFT_ALMINNELIG * 1.25
-        enova_inkl = ENOVA_AVGIFT * 1.25
-        expected = round(total_kwh * (forbruksavgift_inkl + enova_inkl), 2)
-        assert sensor.native_value == expected
+        assert sensor.native_value == 119.85
 
-    def test_nord_norge_avgiftssone(self):
-        """Nord-Norge: same forbruksavgift as standard from 2026, but 0% mva."""
-        total_kwh = 400.0
-        data = {"monthly_consumption_total_kwh": total_kwh}
-        sensor = MaanedligAvgifterSensor(_make_coordinator(data), _make_entry("nord_norge"))
-        # No mva
-        forbruksavgift_inkl = FORBRUKSAVGIFT_ALMINNELIG  # * 1.0
-        enova_inkl = ENOVA_AVGIFT  # * 1.0
-        expected = round(total_kwh * (forbruksavgift_inkl + enova_inkl), 2)
-        assert sensor.native_value == expected
+    def test_splitt_etter_satsforhold(self):
+        """Mai 2026: 105,10 forbruksavgift og 14,74 Enova på fakturaen."""
+        data = _bok(
+            avgifter_kr=119.85,
+            forbruksavgift_inkl_mva=FORBRUKSAVGIFT_ALMINNELIG * 1.25,
+            enova_inkl_mva=ENOVA_AVGIFT * 1.25,
+        )
+        sensor = MaanedligAvgifterSensor(_make_coordinator(data), _make_entry("standard"))
+        attrs = sensor.extra_state_attributes
+        assert attrs["forbruksavgift_kr"] == pytest.approx(105.10, abs=0.05)
+        assert attrs["enovaavgift_kr"] == pytest.approx(14.75, abs=0.05)
+        assert attrs["forbruksavgift_kr"] + attrs["enovaavgift_kr"] == pytest.approx(119.85, abs=0.01)
+        assert attrs["avgiftssone"] == "standard"
 
-    def test_tiltakssone_avgiftssone(self):
-        """Tiltakssone: 0 forbruksavgift, 0% mva, only Enova."""
-        total_kwh = 400.0
-        data = {"monthly_consumption_total_kwh": total_kwh}
+    def test_tiltakssone_gir_alt_til_enova(self):
+        """Uten forbruksavgift er hele beløpet Enova."""
+        data = _bok(avgifter_kr=5.0, forbruksavgift_inkl_mva=0.0, enova_inkl_mva=ENOVA_AVGIFT)
         sensor = MaanedligAvgifterSensor(_make_coordinator(data), _make_entry("tiltakssone"))
-        # forbruksavgift = 0, mva = 0%, only enova
-        expected = round(total_kwh * ENOVA_AVGIFT, 2)
-        assert sensor.native_value == expected
+        attrs = sensor.extra_state_attributes
+        assert attrs["forbruksavgift_kr"] == 0.0
+        assert attrs["enovaavgift_kr"] == 5.0
+
+    def test_uten_satser_i_dicten_gir_null_splitt(self):
+        """Mangler begge satsene, er null ærligere enn en divisjon med null."""
+        data = _bok(avgifter_kr=50.0)
+        sensor = MaanedligAvgifterSensor(_make_coordinator(data), _make_entry("standard"))
+        attrs = sensor.extra_state_attributes
+        assert attrs["forbruksavgift_kr"] == 0.0
+        assert attrs["enovaavgift_kr"] == 50.0
 
     def test_zero_consumption(self):
-        """0 kWh -> 0 kr avgifter."""
-        data = {"monthly_consumption_total_kwh": 0}
-        sensor = MaanedligAvgifterSensor(_make_coordinator(data), _make_entry("standard"))
+        """Ingenting bokført -> 0 kr avgifter."""
+        sensor = MaanedligAvgifterSensor(_make_coordinator(_bok()), _make_entry("standard"))
         assert sensor.native_value == 0.0
 
     def test_returns_none_when_no_data(self):
@@ -244,20 +274,20 @@ class TestMaanedligTotalSensor:
 
     @pytest.fixture
     def base_data(self):
-        return {
-            "monthly_consumption_dag_kwh": 200.0,
-            "monthly_consumption_natt_kwh": 100.0,
-            "monthly_consumption_total_kwh": 300.0,
-            "energiledd_dag": 0.4613,
-            "energiledd_natt": 0.2329,
-            "kapasitetsledd": 415,
-            "stromstotte": 0.0,
-        }
+        return _bok(
+            dag_kr=92.26,
+            natt_kr=23.29,
+            avgifter_kr=53.55,
+            fastledd_kr=415.0,
+            monthly_consumption_dag_kwh=200.0,
+            monthly_consumption_natt_kwh=100.0,
+            monthly_consumption_total_kwh=300.0,
+        )
 
     @pytest.mark.parametrize("avgiftssone", ["standard", "nord_norge", "tiltakssone"])
     def test_total_equals_nettleie_minus_stotte(self, base_data, avgiftssone):
         """total = nettleie - strømstøtte (avgifter allerede i energiledd)."""
-        base_data["stromstotte"] = 0.30
+        base_data["monthly_stromstotte_kr"] = 90.0
 
         coord = _make_coordinator(base_data)
         entry = _make_entry(avgiftssone)
@@ -265,18 +295,14 @@ class TestMaanedligTotalSensor:
         total_sensor = MaanedligTotalSensor(coord, entry)
         nettleie_sensor = MaanedligNettleieSensor(coord, entry)
 
-        total_kwh = base_data["monthly_consumption_dag_kwh"] + base_data["monthly_consumption_natt_kwh"]
-        stotte_kr = round(total_kwh * base_data["stromstotte"], 2)
-
         # total = nettleie - strømstøtte (IKKE + avgifter, de er allerede i energiledd)
-        manual = round(nettleie_sensor.native_value - stotte_kr, 2)
-        assert abs(total_sensor.native_value - manual) < 0.02
+        assert total_sensor.native_value == round(nettleie_sensor.native_value - 90.0, 2)
 
     def test_total_does_not_double_count_avgifter(self, base_data):
         """Regresjonstest: total skal IKKE inkludere avgifter separat.
 
-        energiledd_dag=0.4613 = ren energiledd + forbruksavgift + enova.
-        Hvis avgifter legges til separat, blir totalen ~30 kr for høy (300 kWh).
+        Avgiftene ligger allerede i det bokførte energileddet. Legges de til en
+        gang til, blir totalen 53,55 kr for høy i denne måneden.
         """
         coord = _make_coordinator(base_data)
         entry = _make_entry("standard")
@@ -293,13 +319,13 @@ class TestMaanedligTotalSensor:
 
     def test_stromstotte_reduces_total(self, base_data):
         """When strømstøtte > 0, total should decrease."""
-        coord_no_stotte = _make_coordinator({**base_data, "stromstotte": 0.0})
-        coord_with_stotte = _make_coordinator({**base_data, "stromstotte": 0.50})
+        coord_no_stotte = _make_coordinator({**base_data, "monthly_stromstotte_kr": 0.0})
+        coord_with_stotte = _make_coordinator({**base_data, "monthly_stromstotte_kr": 150.0})
 
         total_without = MaanedligTotalSensor(coord_no_stotte, _make_entry("standard")).native_value
         total_with = MaanedligTotalSensor(coord_with_stotte, _make_entry("standard")).native_value
 
-        assert total_with < total_without
+        assert total_with == round(total_without - 150.0, 2)
 
     def test_returns_none_when_no_data(self):
         coord = MagicMock()
@@ -309,7 +335,7 @@ class TestMaanedligTotalSensor:
 
     def test_extra_state_attributes(self, base_data):
         """Attributes should contain nettleie, strømstøtte breakdown."""
-        base_data["stromstotte"] = 0.20
+        base_data["monthly_stromstotte_kr"] = 60.0
         sensor = MaanedligTotalSensor(_make_coordinator(base_data), _make_entry("standard"))
         attrs = sensor.extra_state_attributes
         assert "nettleie_kr" in attrs
@@ -322,7 +348,7 @@ class TestMaanedligTotalSensor:
         """vektet_snittpris_kr_per_kwh == native_value / total_kwh for known consumption."""
         base_data["monthly_consumption_dag_kwh"] = 500.0
         base_data["monthly_consumption_natt_kwh"] = 200.0
-        base_data["stromstotte"] = 0.10
+        base_data["monthly_stromstotte_kr"] = 30.0
         sensor = MaanedligTotalSensor(_make_coordinator(base_data), _make_entry("standard"))
         total_kwh = 500.0 + 200.0
         expected = round(sensor.native_value / total_kwh, 4)
@@ -331,14 +357,11 @@ class TestMaanedligTotalSensor:
 
     def test_vektet_snittpris_zero_consumption(self):
         """vektet_snittpris_kr_per_kwh is None when total_kwh == 0."""
-        data = {
-            "monthly_consumption_dag_kwh": 0.0,
-            "monthly_consumption_natt_kwh": 0.0,
-            "energiledd_dag": 0.4613,
-            "energiledd_natt": 0.2329,
-            "kapasitetsledd": 415,
-            "stromstotte": 0.0,
-        }
+        data = _bok(
+            fastledd_kr=415.0,
+            monthly_consumption_dag_kwh=0.0,
+            monthly_consumption_natt_kwh=0.0,
+        )
         sensor = MaanedligTotalSensor(_make_coordinator(data), _make_entry("standard"))
         attrs = sensor.extra_state_attributes
         assert attrs["vektet_snittpris_kr_per_kwh"] is None
@@ -483,14 +506,13 @@ class TestEstimertMaanedskostnadSensor:
     """Projiserer variable kostnader til full måned + kapasitetsledd."""
 
     def _base_data(self):
-        return {
-            "monthly_consumption_dag_kwh": 150.0,
-            "monthly_consumption_natt_kwh": 50.0,
-            "energiledd_dag": 0.4613,
-            "energiledd_natt": 0.2329,
-            "kapasitetsledd": 415,
-            "stromstotte": 0.0,
-        }
+        return _bok(
+            dag_kr=69.20,
+            natt_kr=11.65,
+            avgifter_kr=35.70,
+            fastledd_kr=207.5,
+            kapasitetsledd=415,
+        )
 
     @patch("stromkalkulator.sensor.dt_util")
     def test_basic_projection_mid_month(self, mock_dt):
@@ -499,20 +521,21 @@ class TestEstimertMaanedskostnadSensor:
         mock_dt.now.return_value = datetime(2026, 4, 15, 12, 0, 0)
         data = self._base_data()
         sensor = EstimertMaanedskostnadSensor(_make_coordinator(data), _make_entry("standard"))
-        value = sensor.native_value
-        assert value is not None
 
-        # Calculate expected manually
-        # energiledd_dag/natt inkluderer allerede avgifter, ikke legg dem til separat
-        dag_kwh, natt_kwh = 150.0, 50.0
-        total_kwh = dag_kwh + natt_kwh
-        nettleie_variable = dag_kwh * 0.4613 + natt_kwh * 0.2329
-        stotte = total_kwh * 0.0
-        variable_cost = nettleie_variable - stotte
-        # 15 of 30 days -> project to 30 days
-        estimated_variable = (variable_cost / 15) * 30
-        expected = round(estimated_variable + 415, 0)
-        assert value == expected
+        # Den variable delen er bokført energiledd minus bokført støtte, skalert
+        # fra 15 til 30 dager. Fastleddet legges på som helt månedsbeløp.
+        bokfort = 69.20 + 11.65 + 35.70
+        assert sensor.native_value == round((bokfort / 15) * 30 + 415, 0)
+
+    @patch("stromkalkulator.sensor.dt_util")
+    def test_stotte_trekkes_fra_for_projisering(self, mock_dt):
+        """Støtten reduserer den variable delen, og skaleres derfor med den."""
+        mock_dt.now.return_value = datetime(2026, 4, 15, 12, 0, 0)
+        data = self._base_data()
+        data["monthly_stromstotte_kr"] = 16.55
+        sensor = EstimertMaanedskostnadSensor(_make_coordinator(data), _make_entry("standard"))
+        bokfort = 69.20 + 11.65 + 35.70 - 16.55
+        assert sensor.native_value == round((bokfort / 15) * 30 + 415, 0)
 
     @patch("stromkalkulator.sensor.dt_util")
     def test_first_day_returns_value(self, mock_dt):
@@ -560,17 +583,18 @@ class TestUkjentFastledd:
     """
 
     def _data(self, *, ukjent: bool):
-        return {
-            "monthly_consumption_dag_kwh": 150.0,
-            "monthly_consumption_natt_kwh": 50.0,
-            "monthly_consumption_total_kwh": 200.0,
-            "energiledd_dag": 0.4613,
-            "energiledd_natt": 0.2329,
-            "kapasitetsledd": 0 if ukjent else 415,
-            "stromstotte": 0.0,
-            "monthly_accumulated_cost_kr": 123.45,
-            "fastledd_ukjent": ukjent,
-        }
+        return _bok(
+            dag_kr=69.20,
+            natt_kr=11.65,
+            avgifter_kr=35.70,
+            fastledd_kr=0 if ukjent else 207.5,
+            monthly_consumption_dag_kwh=150.0,
+            monthly_consumption_natt_kwh=50.0,
+            monthly_consumption_total_kwh=200.0,
+            kapasitetsledd=0 if ukjent else 415,
+            monthly_accumulated_cost_kr=123.45,
+            fastledd_ukjent=ukjent,
+        )
 
     @pytest.mark.parametrize(
         "sensor_class",

@@ -294,10 +294,11 @@ class TestDimensjoner:
         """Vakten leser hele integrasjonen, ikke bare coordinator.py.
 
         En ny fil, eller den samme feilen skrevet med operandene i motsatt
-        rekkefølge, gikk fri før. sensor.py ganger fortsatt kilowattimer med
-        energiledd, avgifter og øyeblikksstøtte, og de treffer ikke her: det er
-        satser per kWh, som er riktig dimensjon. Fanges gjør det den dagen L3c
-        skulle gange `total_price` eller `kapasitetsledd_per_kwh` med noe.
+        rekkefølge, gikk fri før. At sensor.py heller ikke ganger kilowattimer
+        med energiledd, avgifter eller øyeblikksstøtte, er en egen vakt:
+        `TestSensorerRegnerIkkeSelv` i tests/test_sensor_classes.py. Den her
+        feller den dagen noen ganger `total_price` eller
+        `kapasitetsledd_per_kwh` med noe.
         """
         funn = {}
         for fil in sorted(PAKKEN.rglob("*.py")):

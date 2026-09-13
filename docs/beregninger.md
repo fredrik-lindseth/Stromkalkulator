@@ -141,7 +141,26 @@ Standard (med energi-sensor konfigurert): delta fra meter-registeret. Forbruk = 
 
 Fallback (kun effektsensor): Riemann-sum, forbruk = effekt × tid mellom oppdateringer. Gir 1-5 % avvik over en måned. Se [Nøyaktighet](#nøyaktighet). Forskjellen på de to metodene er forklart i [input-sensorer.md](input-sensorer.md).
 
-Klassifiseres som dag eller natt/helg ved hver oppdatering. Kostnaden akkumuleres parallelt. Estimert månedstotal projiserer fra forbruket hittil og legger til kapasitetsleddet (fast).
+Klassifiseres som dag eller natt/helg ved hver oppdatering. Kostnaden akkumuleres parallelt.
+
+## Månedlige kostnadssensorer
+
+Kronene regnes ett sted, i kostnadskjernen (`kostnad.py`), per avregnet intervall og med intervallets egen pris. Sensorene leser dem, de regner dem ikke om igjen. Konkret:
+
+| Sensor                  | Leser                                                                          |
+| ----------------------- | ------------------------------------------------------------------------------ |
+| Månedlig nettleie       | `monthly_accumulated_cost_energiledd_kr` + `monthly_accumulated_cost_kapasitetsledd_kr` |
+| Månedlig avgifter       | `monthly_avgifter_kr`                                                          |
+| Månedlig strømstøtte    | `monthly_stromstotte_kr`                                                       |
+| Månedlig nettleie total | de samme, minus `monthly_stromstotte_kr`                                       |
+| Akkumulert strømkostnad | `monthly_accumulated_cost_kr`                                                  |
+| Dagens kostnad          | `daily_cost_kr`                                                                |
+
+Det betyr at en sats som endret seg midt i måneden, eller en strømstøtte som varierte time for time, kommer riktig ut: hvert intervall ble priset da det ble bokført. Fastleddet i «Månedlig nettleie» er månedsbeløpet ganget med forløpt andel av måneden, ikke hele beløpet fra dag 1.
+
+Estimert månedstotal projiserer den bokførte variable delen (energiledd minus strømstøtte) fra dagene som er gått til hele måneden, og legger til kapasitetsleddet som helt månedsbeløp. Fastleddet faktureres uansett hvor langt måneden er kommet, så det skaleres ikke.
+
+Unntaket er «Forrige måned nettleie», som regner satser ganget med arkiverte kilowattimer fordi arkivet ikke lagrer forrige måneds bokførte kroner. Se [begrensninger.md punkt 8](begrensninger.md).
 
 ## Månedsskifte
 

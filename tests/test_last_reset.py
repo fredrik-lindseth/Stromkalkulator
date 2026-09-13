@@ -125,7 +125,10 @@ class TestMaanedsskifte:
         coord = _make_coordinator(juni_data)
         sensor = MaanedligTotalSensor(coord, _make_entry())
         juni_verdi = sensor.native_value
-        assert juni_verdi > 200
+        # Forbruket er satt rett på akkumulatoren uten at noe er bokført, så
+        # kronene her er nesten bare fastleddet for juni. Poenget er at det er
+        # et junitall som faller når juli begynner.
+        assert juni_verdi > 100
         assert sensor.last_reset == datetime(2026, 6, 1, tzinfo=OSLO)
 
         coord.data = _run_update(coord_module, c, _real_datetime(2026, 7, 1, 0, 1))
@@ -187,7 +190,11 @@ class TestPeriodestart:
 
     def test_sensorer_uten_periodenullstilling_har_ingen_last_reset(self, lokal_midnatt):
         """MEASUREMENT- og TOTAL_INCREASING-sensorer skal ikke ha last_reset."""
-        from stromkalkulator.sensor import MaanedligForbrukTotalSensor, TotalPriceSensor
+        from stromkalkulator.sensor import (
+            ForrigeMaanedToppforbrukSensor,
+            MaanedligForbrukTotalSensor,
+            TotalPriceSensor,
+        )
 
         data = {"current_month": "2026-07", "current_date": "2026-07-15"}
         coord = _make_coordinator(data)
@@ -195,6 +202,54 @@ class TestPeriodestart:
 
         assert MaanedligForbrukTotalSensor(coord, entry).last_reset is None
         assert TotalPriceSensor(coord, entry).last_reset is None
+        # Toppforbruket er MEASUREMENT og arver ikke gruppens last_reset.
+        assert ForrigeMaanedToppforbrukSensor(coord, entry).last_reset is None
+
+
+class TestForrigeMaanedSnapshot:
+    """Snapshotet av en avsluttet måned byttes ved månedsskiftet (4qba).
+
+    For statistikk-kompilatoren er byttet en nullstilling: uten last_reset
+    bokføres forskjellen mellom to måneders snapshot som et delta, og en måned
+    som var lavere enn forrige gir et negativt delta i Energy-dashboardet.
+    """
+
+    FORRIGE_MAANED_TOTAL = (
+        "ForrigeMaanedForbrukDagSensor",
+        "ForrigeMaanedForbrukNattSensor",
+        "ForrigeMaanedForbrukTotalSensor",
+        "ForrigeMaanedNettleieSensor",
+        "ForrigeMaanedNorgesprisKompensasjonSensor",
+        "ForrigeMaanedEksportKwhSensor",
+        "ForrigeMaanedEksportInntektSensor",
+    )
+
+    @pytest.mark.parametrize("navn", FORRIGE_MAANED_TOTAL)
+    def test_last_reset_er_inneverende_maanedsstart(self, navn, lokal_midnatt):
+        """Snapshotet ble byttet da denne måneden begynte, og det er svaret."""
+        import stromkalkulator.sensor as sensor_mod
+
+        coord = _make_coordinator({"current_month": "2026-07", "current_date": "2026-07-15"})
+        sensor = getattr(sensor_mod, navn)(coord, _make_entry())
+        assert sensor.last_reset == datetime(2026, 7, 1, tzinfo=OSLO)
+
+    @pytest.mark.parametrize("navn", FORRIGE_MAANED_TOTAL)
+    def test_last_reset_flytter_med_maanedsskiftet(self, navn, lokal_midnatt):
+        import stromkalkulator.sensor as sensor_mod
+
+        coord = _make_coordinator({"current_month": "2026-07", "current_date": "2026-07-31"})
+        sensor = getattr(sensor_mod, navn)(coord, _make_entry())
+        assert sensor.last_reset == datetime(2026, 7, 1, tzinfo=OSLO)
+
+        coord.data = {"current_month": "2026-08", "current_date": "2026-08-01"}
+        assert sensor.last_reset == datetime(2026, 8, 1, tzinfo=OSLO)
+
+    @pytest.mark.parametrize("navn", FORRIGE_MAANED_TOTAL)
+    def test_alle_har_state_class_total(self, navn):
+        """last_reset er bare gyldig sammen med TOTAL."""
+        import stromkalkulator.sensor as sensor_mod
+
+        assert getattr(sensor_mod, navn)._attr_state_class == "total"
 
 
 class TestCoordinatorKontrakt:

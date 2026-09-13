@@ -423,3 +423,80 @@ class TestAreaNettOmrader:
         """Finnmark og Nord-Troms: fritak for både forbruksavgift og mva."""
         for d in ("area_nett_omrade1", "area_nett_omrade2", "area_nett_omrade3"):
             assert DSO_LIST[d]["tiltakssone"] is True
+
+
+# ============================================================================
+# De 17 som ble adoptert fra fri-nettleie, verifisert mot egne prislister
+# 2026-09-13 (stromkalkulator-mmmi29)
+# ============================================================================
+
+
+class TestAdopterteDsoer:
+    """De to prisendringene og de fire avrundingsfeilene jakten fant.
+
+    Alle sytten kom inn under incident 006 med kapasitetstrinn hentet fra
+    fri-nettleie, uten at nettselskapets egen prisliste var åpnet. Disse seks
+    er de oppføringene som faktisk endret seg av å gå til primærkilden, og de
+    er verdt en vakt: fire av dem var avrundingsfeil på under én krone, altså
+    nøyaktig den klassen drift-vakten slipper gjennom på toleranse.
+    """
+
+    def test_rk_nett_energiledd_er_01_08_2026_tariffen(self):
+        """rauland-nett.no, «Prisar nettleige frå 01.08.2026»: flat 23,02 eks. mva."""
+        rk = DSO_LIST["rk_nett"]
+        assert rk["energiledd_dag_eks_mva"] == pytest.approx(0.2302)
+        assert rk["energiledd_natt_eks_mva"] == pytest.approx(0.2302)
+
+    @pytest.mark.parametrize(
+        ("avg_power", "kr_mnd"),
+        [(1.0, 305), (3.0, 396), (7.0, 549), (22.0, 1006), (300.0, 9147)],
+    )
+    def test_rk_nett_kapasitetstrinn(self, avg_power, kr_mnd):
+        assert kapasitetsledd_for_power(avg_power, DSO_LIST["rk_nett"]) == kr_mnd
+
+    def test_telemark_nett_energiledd_er_01_09_2026_tariffen(self):
+        """tnett.no NH01: 28,0 eks. mva, og 45,16 øre inkl. alle avgifter."""
+        tn = DSO_LIST["telemark_nett"]
+        assert tn["energiledd_dag_eks_mva"] == pytest.approx(0.28)
+        assert energiledd_inkl_mva(tn["energiledd_dag_eks_mva"]) == pytest.approx(0.4516, abs=0.0001)
+
+    @pytest.mark.parametrize(
+        ("avg_power", "kr_mnd"),
+        [(1.0, 398), (7.0, 506), (12.0, 948), (30.0, 2716), (200.0, 5958)],
+    )
+    def test_telemark_nett_kapasitetstrinn(self, avg_power, kr_mnd):
+        """Første trinn er 0-5 kW; TNett har ingen 0-2-deling."""
+        assert kapasitetsledd_for_power(avg_power, DSO_LIST["telemark_nett"]) == kr_mnd
+
+    def test_telemark_nett_peker_paa_tnett(self):
+        """Selskapet byttet navn og domene. Ingen fusjon, så id-en står."""
+        tn = DSO_LIST["telemark_nett"]
+        assert "tnett.no" in tn["url"]
+        assert "TNett" in tn["name"]
+
+    @pytest.mark.parametrize(
+        ("dso_id", "avg_power", "kr_mnd"),
+        [
+            # Romsdalsnett: sto 363 og 1160, altså næringstallene 290 og 928
+            # ganget med 1,25. PDF-en fakturerer 362 og 1159.
+            ("romsdalsnett", 3.0, 362),
+            ("romsdalsnett", 22.0, 1159),
+            # Vestmar: sto 1495, PDF-en skriver 1 493,75.
+            ("vestmar_nett", 22.0, 1494),
+        ],
+    )
+    def test_avrundingsfeil_under_en_krone(self, dso_id, avg_power, kr_mnd):
+        assert kapasitetsledd_for_power(avg_power, DSO_LIST[dso_id]) == kr_mnd
+
+    @pytest.mark.parametrize(
+        ("dso_id", "dag", "natt"),
+        [
+            ("enida", 0.27, 0.21),  # sto 26,998/20,998
+            ("vestmar_nett", 0.171, 0.171),  # sto 17,102, som var 21,38/1,25
+        ],
+    )
+    def test_energiledd_leses_fra_eks_mva_kolonnen(self, dso_id, dag, natt):
+        """Prislistene har egen eks-mva-kolonne. Les den, ikke regn bakover."""
+        dso = DSO_LIST[dso_id]
+        assert dso["energiledd_dag_eks_mva"] == pytest.approx(dag)
+        assert dso["energiledd_natt_eks_mva"] == pytest.approx(natt)

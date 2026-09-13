@@ -1125,6 +1125,13 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         `current_hour_energy` speiles fra det åpne intervallet, slik
         felttabellen sier den skal være.
+
+        Bare intervaller i inneværende måned teller. Boken arkiverer forrige
+        måned først når en avlesning i den nye måneden bokføres, så uten
+        avlesning står de gamle intervallene igjen etter at coordinatoren har
+        rullert og tømt døgnmaks. Uten filteret ville første poll i ny måned
+        skrevet forrige måneds toppdag inn på nytt, og trinnet for hele den
+        nye måneden ville kommet fra en dag som ikke er i den.
         """
         naa = _aware(now)
         apen = intervallstart(naa)
@@ -1132,6 +1139,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         for intervall in self._bok.intervaller(naa):
             start = intervall.start_utc
             if start >= apen or intervall.kwh <= 0:
+                continue
+            if intervall.lokal_maned != self._current_month:
                 continue
             if self._timesmaks_bokfort.get(start) == intervall.kwh:
                 continue

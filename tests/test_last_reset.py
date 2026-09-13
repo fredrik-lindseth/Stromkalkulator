@@ -53,7 +53,13 @@ class TestMaanedsskifte:
     """Månedssensorene flytter last_reset i samme oppdatering som nullstillingen."""
 
     def test_akkumulert_kostnad_nullstilles_og_flytter_last_reset(self, coord_module, lokal_midnatt):
-        """Verdien faller til 0 og last_reset flytter til 1. juli i samme data-dict."""
+        """Verdien faller til julis eget minutt og last_reset flytter i samme data-dict.
+
+        Ikke helt til null: rulleringen skjer nå før nåtidssnapshotet bygges
+        (2ferkiq), så juli-dicten viser juli, og det første minuttet av juli har
+        både forbruk og sin andel av fastleddet. Poenget for last_reset er det
+        samme: tallet er en ny måneds tall, ikke junis.
+        """
         from stromkalkulator.sensor import AkkumulertKostnadSensor
 
         juni_data, juli_data = _kjor_maanedsskifte(coord_module)
@@ -63,8 +69,9 @@ class TestMaanedsskifte:
         assert sensor.native_value > 0
         assert sensor.last_reset == datetime(2026, 6, 1, tzinfo=OSLO)
 
+        juni_verdi = sensor.native_value
         coord.data = juli_data
-        assert sensor.native_value == 0.0
+        assert 0 < sensor.native_value < juni_verdi / 100
         assert sensor.last_reset == datetime(2026, 7, 1, tzinfo=OSLO)
 
     def test_alle_maanedssensorer_flytter_last_reset(self, coord_module, lokal_midnatt):

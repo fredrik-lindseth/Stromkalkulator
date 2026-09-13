@@ -345,7 +345,11 @@ class TestExportStorage:
             "current_hour": 12,
             "monthly_export_kwh": 42.5,
             "monthly_export_revenue": 51.0,
+            # `monthly_cost` leses ikke lenger: månedskostnaden er summen av
+            # komponentene under, ikke et eget lagret tall som kan drifte fra
+            # dem (33f81xu). Den skrives fortsatt, så den står her også.
             "monthly_cost": 200.0,
+            "monthly_accumulated_cost_strom": 200.0,
             "previous_month_export_kwh": 30.0,
             "previous_month_export_revenue": 36.0,
             "previous_month_cost": 180.0,

@@ -12,10 +12,11 @@ from __future__ import annotations
 
 import asyncio
 import importlib
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from unittest.mock import MagicMock
 
 import pytest
+from stromkalkulator.avregning import OSLO, Avlesning
 from stromkalkulator.const import CONF_SIKRINGSTRINN, DSO_EGENDEFINERT, resolve_avgiftssone
 from stromkalkulator.dso import (
     DSO_LIST,
@@ -53,6 +54,21 @@ def _lag_coordinator(coord_module, dso_id, *, extra_data=None):
         extra_data=extra_data,
     )
     return coord_module.NettleieCoordinator(_make_hass(), entry)
+
+
+def _legg_time_i_boken(coord, start_oslo, kwh):
+    """Legg en ferdig avregnet time inn i boken, slik en teller ville gjort.
+
+    Timesforbruket bor i avregningsboken etter L3a, og coordinatoren leser
+    døgn- og ukesmaks derfra. Testen må derfor legge timen der, ikke i en
+    veggklokke-bøtte ved siden av.
+    """
+    # Første poll laster Store og bygger boken på nytt, så timen ville blitt
+    # kastet. Her er det ingenting å laste.
+    coord._store_loaded = True
+    felles = {"source_identity": "test:teller", "entity_id": "sensor.energi"}
+    coord._bok.bokfor(Avlesning(value_kwh=0.0, observed_at=start_oslo, **felles))
+    coord._bok.bokfor(Avlesning(value_kwh=kwh, observed_at=start_oslo + timedelta(hours=1), **felles))
 
 
 class TestFastleddMetodeIDsoData:
@@ -330,10 +346,13 @@ class TestFemVektetAr:
         assert coord._fastledd_grunnlag() == pytest.approx(7.65)
 
     def test_timesmaks_registreres_som_ukesmaks(self, coord_module):
+        """En fullført time i boken havner i ukesmaks, ikke bare i døgnmaks.
+
+        Timen legges inn i avregningsboken, som er der timesforbruket bor etter
+        L3a. Coordinatoren leser den derfra ved neste poll.
+        """
         coord = self._coord(coord_module)
-        coord._current_hour_energy = 3.5
-        coord._current_hour = 11
-        coord._current_date = "2026-06-15"
+        _legg_time_i_boken(coord, datetime(2026, 6, 15, 11, 0, tzinfo=OSLO), 3.5)
         _run_update(coord_module, coord, now=datetime(2026, 6, 15, 12, 0))
         uke = coord._weekly_max_power["2026-06-15"]
         assert uke.kw == pytest.approx(3.5)
@@ -434,9 +453,7 @@ class TestBaklengskompatibilitet:
     def test_ingen_ukesmaks_lagres_for_vanlige_dsoer(self, coord_module):
         """Ukeshistorikk er bare Fjellnetts behov og skal ikke vokse hos andre."""
         coord = _lag_coordinator(coord_module, "bkk")
-        coord._current_hour_energy = 3.5
-        coord._current_hour = 11
-        coord._current_date = "2026-06-15"
+        _legg_time_i_boken(coord, datetime(2026, 6, 15, 11, 0, tzinfo=OSLO), 3.5)
         _run_update(coord_module, coord, now=datetime(2026, 6, 15, 12, 0))
         assert coord._weekly_max_power == {}
 

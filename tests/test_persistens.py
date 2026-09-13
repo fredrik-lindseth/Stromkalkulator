@@ -909,6 +909,13 @@ class TestSaveDataStructure:
             "monthly_accumulated_cost_strom",
             "monthly_accumulated_cost_energiledd",
             "monthly_accumulated_cost_kapasitetsledd",
+            # Kostnadskjernen (L3b): splitten av energileddet, strømstøtten i
+            # kroner, og åpningsbalansen for et energiledd fra før splitten.
+            "monthly_stromstotte",
+            "monthly_energiledd_dag",
+            "monthly_energiledd_natt",
+            "monthly_avgifter",
+            "monthly_energiledd_apning",
             "previous_month_export_kwh",
             "previous_month_export_revenue",
             "previous_month_cost",

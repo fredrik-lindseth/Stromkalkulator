@@ -663,13 +663,14 @@ class TestDailyCost:
         entry = _make_entry()
         coordinator = coord_module.NettleieCoordinator(hass, entry)
 
-        # First call: no accumulation (no previous timestamp)
+        # Første kall har ingen energi bak seg, men fastleddet påløper uansett:
+        # det er et periodebeløp, og klokken er tolv på dagen.
         result1 = _run_update(coord_module, coordinator, now=now)
-        assert result1["daily_cost_kr"] == 0.0
+        assert result1["daily_cost_kr"] > 0.0
 
-        # Second call: should accumulate cost
+        # Andre kall legger energien oppå.
         result2 = _run_update(coord_module, coordinator, now=later)
-        assert result2["daily_cost_kr"] > 0.0
+        assert result2["daily_cost_kr"] > result1["daily_cost_kr"]
 
     def test_daily_cost_resets_on_date_change(self, coord_module):
         """Daily cost should reset to 0 when the date changes."""
@@ -694,8 +695,12 @@ class TestDailyCost:
         day2_time = day1_later + timedelta(minutes=1)
         result_day2 = _run_update(coord_module, coordinator, now=day2_time)
 
-        # Cost should be reset (no energy at 0 W means nothing new accumulated)
-        assert result_day2["daily_cost_kr"] == 0.0
+        # Energidelen er nullstilt, og det som står igjen er fastleddets andel.
+        # Klokken er fortsatt tolv på dagen i testen, bare datoen er dyttet, så
+        # andelen er tolv timer av måneden.
+        fastledd_i_dag = result_day2["kapasitetsledd"] * (12 * 3600 + 120) / (30 * 24 * 3600)
+        assert result_day2["daily_cost_kr"] == pytest.approx(fastledd_i_dag, abs=0.01)
+        assert result_day2["daily_cost_kr"] < result_day1["daily_cost_kr"]
 
 
 class TestDailyMaxPower:
@@ -831,11 +836,13 @@ class TestOffentligeAvgifter:
 class TestDailyCostCorrectness:
     """Verify daily_cost uses total_price without double-counting."""
 
-    def test_daily_cost_matches_total_price_times_energy(self, coord_module):
-        """daily_cost should equal total_price * energy_kwh (no double fees/støtte).
+    def test_daily_cost_er_energi_pluss_dagens_andel_av_fastleddet(self, coord_module):
+        """daily_cost = energikroner + dagens andel av månedens fastledd.
 
-        Regresjonstest: gammel kode brukte (total_price_inkl_avgifter - stromstotte)
-        som dobbelttelte avgifter og trakk fra strømstøtte to ganger.
+        Regresjonstest i to retninger. Den gamle var at avgifter ble telt to
+        ganger og strømstøtte trukket fra to ganger. Den nye er at fastleddet
+        ikke lenger ganges inn som en kr/kWh-sats: det er et periodebeløp, og
+        dagens andel av det legges til som kroner (33f81xu).
         """
         now = _real_datetime(2026, 4, 9, 12, 0)  # Thursday noon
         later = now + timedelta(minutes=1)
@@ -854,13 +861,17 @@ class TestDailyCostCorrectness:
 
         # energy_kwh = 6 kW * (1/60) hours = 0.1 kWh
         energy_kwh = (power_w / 1000) * (1 / 60)
-        expected_cost = result["total_price"] * energy_kwh
+        energi_kr = result["strompris_per_kwh_etter_stotte"] * energy_kwh
+        # 9. april kl. 12: tolv timer inn i et døgn, i en måned på 30 dager.
+        fastledd_i_dag = result["kapasitetsledd"] * (12 * 3600) / (30 * 24 * 3600)
+        expected_cost = energi_kr + fastledd_i_dag
 
         # daily_cost_kr rundes til 2 desimaler, bruk abs-toleranse
         assert result["daily_cost_kr"] == pytest.approx(expected_cost, abs=0.01), (
-            f"daily_cost={result['daily_cost_kr']}, expected={expected_cost}. "
-            "daily_cost skal bruke total_price direkte."
+            f"daily_cost={result['daily_cost_kr']}, expected={expected_cost}."
         )
+        # Og ikke den gamle dimensjonsfeilen: fastledd per kWh ganget med kWh.
+        assert result["daily_cost_kr"] != pytest.approx(result["total_price"] * energy_kwh, abs=0.01)
 
     def test_daily_cost_norgespris_no_stromstotte_subtraction(self, coord_module):
         """Norgespris-kunde: daily_cost skal IKKE trekke fra strømstøtte.
@@ -880,12 +891,12 @@ class TestDailyCostCorrectness:
         result = _run_update(coord_module, coordinator, now=later)
 
         energy_kwh = (6000 / 1000) * (1 / 60)
-        expected_cost = result["total_price"] * energy_kwh
+        fastledd_i_dag = result["kapasitetsledd"] * (12 * 3600) / (30 * 24 * 3600)
+        expected_cost = result["strompris_per_kwh"] * energy_kwh + fastledd_i_dag
 
         # daily_cost_kr rundes til 2 desimaler, bruk abs-toleranse
         assert result["daily_cost_kr"] == pytest.approx(expected_cost, abs=0.01), (
-            "Norgespris daily_cost skal bruke total_price direkte, "
-            "ikke trekke fra strømstøtte de ikke mottar."
+            "Norgespris daily_cost skal regne med norgesprisen, ikke trekke fra strømstøtte de ikke mottar."
         )
 
 

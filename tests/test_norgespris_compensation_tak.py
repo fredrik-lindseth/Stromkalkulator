@@ -7,17 +7,18 @@ etter at månedsforbruket passerte taket på 5000 kWh (bolig) / 1000 kWh
 på sammenligningssensoren, fordi timene over taket faktisk faktureres til
 spot, ikke til Norgespris.
 
-Fixen er å gate akkumuleringen på `not norgespris_over_tak`, samme tak-logikk
-som `total_price`.
-
-Begrensning som er kjent og akseptert: hvis taket nås midt i en time, telles
-hele timen i den bucketen som var aktiv da `_async_update_data` kjørte.
-Coordinator polles hvert minutt, så feilen er < 1 min forbruk.
+Første fiks var å slå av akkumuleringen når `norgespris_over_tak` var sann.
+Den lot fortsatt hele poll-deltaet bli enten helt med eller helt utenfor, etter
+hvor i minuttet grensen falt. Kostnadskjernen deler i stedet kilowattimene i én
+del under og én over taket før prisen legges på (234odp5), så grensen treffer
+på kilowattimen framfor på pollen.
 """
 
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+
+import pytest
 
 from tests.conftest import _make_entry, _make_hass, _run_update
 
@@ -140,16 +141,15 @@ class TestNorgesprisCompensationOverTak:
         # Krysser taket mellom syklus 10 og 11.
         result = _run_minutes(coord_module, coordinator, start, 20)
 
-        # Akkumulering skjer kun for sykluser der monthly_total_kwh < 5000 ETTER
-        # at energien er lagt til. Med start 4990 kWh og 1 kWh per syklus:
-        # syklus 1: total=4991, bidrag (telles). ... syklus 9: total=4999,
-        # bidrag (telles). syklus 10: total=5000 → over_tak → ingen bidrag.
-        # 9 sykluser * 1 kWh * (0.50 - 2.00) = -13.5 kr.
-        # Bug-versjon ville gitt 20 * -1.5 = -30 kr.
+        # Taket deler kilowattimene, det slår ikke av en bryter (234odp5).
+        # Start 4990 kWh, 20 kWh forbrukt: nøyaktig 10 av dem ligger under
+        # 5000-taket og får kompensasjon, de ti andre får ingen.
+        # 10 kWh * (0.50 - 2.00) = -15.0 kr.
+        # Den gamle koden prisen hele poll-deltaet etter månedstotalen etterpå
+        # og landet på -13.5; uten noen tak-håndtering i det hele tatt: -30.
         compensation = result["monthly_norgespris_compensation_kr"]
-        assert -14.0 < compensation < -13.0, (
-            f"Compensation {compensation} indikerer at akkumulering ikke "
-            f"stoppet ved taket (bug ville gitt rundt -30.0)."
+        assert compensation == pytest.approx(-15.0, abs=0.01), (
+            f"Compensation {compensation} skal dekke nøyaktig de 10 kilowattimene som lå under taket."
         )
         assert result["norgespris_over_tak"] is True
         assert result["monthly_consumption_total_kwh"] > 5000
@@ -173,31 +173,25 @@ class TestNorgesprisCompensationFritidsbolig:
         # 20 sykluser à 1 kWh = 20 kWh. Krysser 1000-taket etter ca 5 sykluser.
         result = _run_minutes(coord_module, coordinator, start, 20)
 
-        # Start 995, 1 kWh per syklus. Syklus 1-4 lander på 996-999 (under tak,
-        # bidrar). Syklus 5 lander på 1000 (>= tak → ingen bidrag). 4 sykluser
-        # * 1 kWh * (0.50 - 2.00) = -6.0 kr. Bug-versjon: -30 kr.
+        # Start 995, 20 kWh forbrukt: 5 kWh under 1000-taket.
+        # 5 kWh * (0.50 - 2.00) = -7.5 kr.
         compensation = result["monthly_norgespris_compensation_kr"]
-        assert -6.5 < compensation < -5.5, (
-            f"Fritidsbolig-kompensasjon {compensation} ser ut til å ignorere "
-            f"1000-kWh-taket (bug ville gitt rundt -30.0)."
+        assert compensation == pytest.approx(-7.5, abs=0.01), (
+            f"Fritidsbolig-kompensasjon {compensation} skal dekke de 5 kilowattimene under 1000-kWh-taket."
         )
         assert result["norgespris_over_tak"] is True
 
 
 class TestNorgesprisCompensationBoundaryCrossing:
-    """Tak-overgang midt i en akkumulering (kjent sub-time-begrensning)."""
+    """Eksakt takgrense inne i ett intervall."""
 
-    def test_boundary_crossing_documented_behavior(self, coord_module):
-        """Tak-overgang ved presis 5000 kWh: dokumenter at sub-time-feilen aksepteres.
+    def test_kilowattimen_som_naar_taket_er_med(self, coord_module):
+        """Den kilowattimen som tar totalen til nøyaktig 5000 ligger under taket.
 
-        Når akkumuleringen passerer 5000 kWh midt i en time, vil den
-        polling-syklusen som tipper teller over enten bli helt med eller helt
-        utenfor kompensasjons-bucketen, avhengig av rekkefølgen. Dette er en
-        kjent og akseptert sub-minutt-presisjonsfeil. Coordinator polles hvert
-        minutt og kan ikke allokere delvis forbruk.
-
-        Denne testen sjekker at gatingen IKKE er per-time-rekursiv (dvs. den
-        teller hele timen i én bucket, ikke deler den).
+        Taket er en mengde kilowattimer, ikke et tidspunkt. Deltaet deles i én
+        del under og én over taket før prisen legges på (234odp5), så et
+        pollvindu som krysser grensen blir ikke lenger enten helt med eller helt
+        utenfor etter hvor i minuttet grensen falt.
         """
         start = _real_datetime(2026, 4, 9, 12, 0)
         # 60 kW: 1 kWh per minutt.
@@ -206,31 +200,31 @@ class TestNorgesprisCompensationBoundaryCrossing:
         coordinator = coord_module.NettleieCoordinator(hass, entry)
         _align_month(coordinator, start)
 
-        # Start på 4999 kWh. Første poll-syklus akkumulerer ca 1 kWh
-        # (avhengig av elapsed-cap). Andre syklus krysser klart taket.
         coordinator._monthly_consumption = coord_module.ConsumptionData(dag=4999.0, natt=0.0)
         coordinator._monthly_norgespris_compensation = 0.0
 
-        # Først kjør ett poll for å sette _last_update
         _run_update(coord_module, coordinator, now=start)
-        # Andre poll: elapsed = 1 min cappet til MAX_ELAPSED_HOURS=0.1h=6 min.
-        # 60 kW * 1/60 t = 1 kWh akkumulert. Total = 5000.
-        # norgespris_over_tak vurderes mot monthly_total_kwh som leses ETTER
-        # akkumulering, så total = 5000 >= 5000 → over_tak = True.
         result = _run_update(coord_module, coordinator, now=start + timedelta(minutes=1))
 
-        # Den syklusen som tipper teller over taket ble ikke akkumulert i
-        # kompensasjonen (fordi total er >= 5000 i samme syklus). Det er den
-        # konservative tolkningen. Verifiser at kompensasjonen er 0 eller
-        # negativ med liten verdi, IKKE de fulle -1.50 kr som bugen ga.
+        # 4999 -> 5000: hele kilowattimen ligger under taket.
+        # 1 kWh * (0.50 - 2.00) = -1.5 kr.
         compensation = result["monthly_norgespris_compensation_kr"]
-        # Rekkefølgen i _async_update_data avgjør: energien akkumuleres i
-        # _monthly_consumption FØRST, deretter leses monthly_total_kwh =
-        # _monthly_consumption.total og norgespris_over_tak = total >= tak, og
-        # til slutt legges kompensasjonen til kun `if not norgespris_over_tak`.
-        # Den syklusen som tipper total til 5000 ser derfor over_tak = True og
-        # hopper over bidraget. Forventet: compensation = 0.
-        assert abs(compensation) < 0.001, (
-            f"Forventet at den tippende syklusen ble skipped (compensation=0), fikk {compensation}."
-        )
+        assert compensation == pytest.approx(-1.5, abs=0.01)
+        assert result["norgespris_over_tak"] is True
+
+    def test_kilowattimen_etter_taket_er_ikke_med(self, coord_module):
+        """Står totalen på taket, gir neste kilowattime ingen kompensasjon."""
+        start = _real_datetime(2026, 4, 9, 12, 0)
+        hass = _make_hass(power_w=60_000, spot_price=2.00)
+        entry = _make_entry(har_norgespris=True)
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+        _align_month(coordinator, start)
+
+        coordinator._monthly_consumption = coord_module.ConsumptionData(dag=5000.0, natt=0.0)
+        coordinator._monthly_norgespris_compensation = 0.0
+
+        _run_update(coord_module, coordinator, now=start)
+        result = _run_update(coord_module, coordinator, now=start + timedelta(minutes=1))
+
+        assert result["monthly_norgespris_compensation_kr"] == pytest.approx(0.0, abs=0.001)
         assert result["norgespris_over_tak"] is True

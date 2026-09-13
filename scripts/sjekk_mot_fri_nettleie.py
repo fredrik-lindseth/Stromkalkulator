@@ -131,6 +131,35 @@ class Unntak:
 # ville ropt om hver uke, og begge er ting et menneske har tatt stilling til på
 # en dato. Derfor har begge en utløpsdato: stillheten er lånt, ikke gitt.
 KJENTE_AVVIK: dict[str, tuple[Unntak, ...]] = {
+    "rk_nett": (
+        Unntak(
+            felt=FELT_DAG,
+            signatur="23.02 vs 20.14 øre",
+            gyldig_til=date(2026, 12, 1),
+            grunn=(
+                "RK Nett hevet nettleien 01.08.2026. Vi følger selskapets egen prisside "
+                "rauland-nett.no/nettleige (verifisert 2026-09-13), som har 01.08-tariffen "
+                "øverst og 01.01-tariffen under «Eldre nettprisar». fri-nettleie står "
+                "fortsatt på 01.10.2025-tariffen, sist oppdatert 2025-10-22. Fjern når "
+                "rknett.yml har fått 01.08.2026-tariffen."
+            ),
+        ),
+        Unntak(
+            felt=FELT_NATT,
+            signatur="23.02 vs 20.14 øre",
+            gyldig_til=date(2026, 12, 1),
+            grunn="Samme som dag: RK Nett har flat sats, og fri-nettleie ligger etter.",
+        ),
+        Unntak(
+            felt=FELT_FASTLEDD,
+            signatur="trinn 1: 305 vs 266 kr/mnd",
+            gyldig_til=date(2026, 12, 1),
+            grunn=(
+                "Samme 01.08.2026-tariff. Hele trinntabellen er hentet ordrett fra "
+                "rauland-nett.no; fri-nettleie har den gamle."
+            ),
+        ),
+    ),
     "telemark_nett": (
         Unntak(
             felt=FELT_MATCH,
@@ -139,9 +168,11 @@ KJENTE_AVVIK: dict[str, tuple[Unntak, ...]] = {
             grunn=(
                 "fri-nettleie hadde telemark.yml da kapasitetstrinnene ble hentet 2026-07-28, "
                 "men filen er borte fra tariffer/ (og ligger ikke i tariffer/old/) per "
-                "2026-09-12. Satsene står på telemark-nett.no sin egen prisside. Sjekk ved "
-                "fornyelse om selskapet er fusjonert inn i et annet nettselskap; er det "
-                "tilfellet, hører det hjemme i DSO_MIGRATIONS, ikke her."
+                "2026-09-12. Selskapet heter nå TNett AS og har flyttet til tnett.no; vi fant "
+                "ingen fusjon, bare navne- og domeneskifte, så dette hører ikke hjemme i "
+                "DSO_MIGRATIONS. Satsene er verifisert mot tnett.no/prisar/nettleige-1 "
+                "(01.09.2026-tariffen) 2026-09-13. Sjekk ved fornyelse om fri-nettleie har "
+                "lagt selskapet inn igjen under en ny slug."
             ),
         ),
     ),

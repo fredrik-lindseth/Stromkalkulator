@@ -15,8 +15,9 @@ ekte `homeassistant` i samme miljø ville kollidert med stubbene.
 | `just test-ha target=current` | `tests_ha/` | `ha-current` | 3.14   | 2026.9.2       |
 
 `just test` er `test-unit` og `check` i ett, og er det AGENTS.md ber om før
-commit. `just test-e2e` finnes, men feiler med en melding: Docker-laget er ikke
-bygget ennå, se [tests_e2e/README.md](../tests_e2e/README.md).
+commit. `just test-e2e target=current` kjører en separat Docker-basert HA-server
+med livssyklusscenarioer og komprimert juni-avspilling fra timefixturen.
+Det laget tester en committet release-ZIP; se [Docker-testlab](#docker-testlab).
 
 Gruppene står i `[dependency-groups]` i `pyproject.toml` og er låst i
 `uv.lock`. HA-versjonen står ikke der direkte: den følger av
@@ -109,6 +110,54 @@ config-flow-steg. Bredden (full config-flow, options og reload, migrering,
 repairs, to entries, månedsskifte og DST med kontrollert klokke) kommer med
 dcat-issue `stromkalkulator-6b54ywj`, som også eier tidsbudsjettet for dette
 avsnittet.
+
+## Docker-testlab
+
+`just test-e2e target=current` bygger HACS-ZIP fra `HEAD`, starter et eget
+Compose-prosjekt med offisielt HA-image låst til tagg og linux/amd64-digest,
+oppretter integrasjonen gjennom config-flow og spiller av juni-fixturen.
+Ucommittede integrasjonsendringer inngår ikke i denne testen. Python 3 og
+Docker med Compose er nok på verten; driveren bruker HAs egne avhengigheter
+inne i containeren. Porten er en tilfeldig ledig port på `127.0.0.1`.
+
+Navngitte scenarioer dekker onboarding, energiøkning, restart uten
+dobbeltbokføring, målerbytte, fjernet valgfri input, ugyldig enhet, manglende
+input med recovery og sprang i energitelleren. Full månedsavspilling venter
+på kvitterte kWh i små batcher, fordi HA samler manuelle refresh-kall og
+integrasjonen avviser sprang over 100 kWh. Forvent rundt 10–20 minutter på
+en varm Docker-cache; CI har 28 minutter for kjøringen og 35 for hele jobben.
+Lokalt verifisert 13. september 2026 mot current: alle scenarioer og 720
+juni-timer bestod på omtrent 10 minutter med varmt image-cache. En separat
+tvunget feil bekreftet at containere og nettverk ryddes også ved feil, og
+eksportert evidens inneholdt ingen av testlabens passord eller tokens.
+GitHub-jobben må fortsatt bekreftes grønn i CI.
+
+Avspillingen endrer ingen klokke. Rapporten skiller HA-integrasjonens
+bokførte kWh fra historisk kildeavstemming. HA bruker dagens dato og tariff,
+så historisk dag/natt, kroner, månedsskifte, årsskifte og DST skal fortsatt
+testes deterministisk i `tests_ha/` og replay-testene. Juni-fixturen har
+2 Wh totalavvik og 36/38 Wh dag/natt-avvik mot fakturaen; disse står synlig i
+rapporten med toleranser på 10 Wh totalt og 50 Wh per tariffperiode.
+HA-energidelta må derimot matche det faktisk avspilte forbruket innen 2 Wh.
+
+For en instans du kan klikke i, og feil du kan la vare i timer:
+
+```bash
+python3 tests_e2e/run.py up
+# Kommandoen skriver URL, lokal påloggingsfil og lab-mappe.
+python3 tests_e2e/run.py replay --run-dir /sti/skrevet/av/up
+python3 tests_e2e/run.py scenario --run-dir /sti/skrevet/av/up --name outage_han
+python3 tests_e2e/run.py scenario --run-dir /sti/skrevet/av/up --name recover_inputs
+python3 tests_e2e/run.py down --run-dir /sti/skrevet/av/up
+```
+
+`run` rydder containere/nettverk også ved feil; `up` beholder instansen til
+`down`. Den midlertidige config-mappen beholdes lokalt og inneholder testlabens
+egen pålogging. CI laster bare opp redigerte logger, scenario-trace og
+versjons-/avstemmingsrapport, aldri config, tokens eller full storage.
+Ingen produksjonsconfig, privat målearkiv eller supervisor-token brukes.
+Les [tests_e2e/README.md](../tests_e2e/README.md) for feilsimulering,
+validering av cleanup og presise begrensninger.
 
 ## Live-tester i Home Assistant
 

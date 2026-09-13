@@ -1,0 +1,82 @@
+homeassistant:
+  name: Strømkalkulator testlab
+  latitude: 60.0
+  longitude: 5.0
+  elevation: 0
+  time_zone: Europe/Oslo
+  country: "NO"
+  unit_system: metric
+  currency: NOK
+frontend:
+api:
+config:
+history:
+logbook:
+recorder:
+  purge_keep_days: 2
+logger:
+  default: warning
+  logs:
+    custom_components.stromkalkulator: info
+input_number:
+  e2e_energy:
+    name: E2E energiteller
+    min: 0
+    max: 1000000000
+    step: 0.001
+    mode: box
+  e2e_energy_new:
+    name: E2E ny energiteller
+    min: 0
+    max: 1000000000
+    step: 0.001
+    mode: box
+  e2e_power:
+    name: E2E effekt
+    min: 0
+    max: 100000
+    step: 0.001
+    mode: box
+  e2e_spot:
+    name: E2E spotpris eks mva
+    min: -100
+    max: 100
+    step: 0.000001
+    mode: box
+  e2e_export:
+    name: E2E eksporteffekt
+    min: 0
+    max: 100000
+    step: 0.001
+    mode: box
+template:
+  - sensor:
+      - name: E2E energy
+        unique_id: e2e_energy
+        state: "{{ states('input_number.e2e_energy') }}"
+        device_class: energy
+        state_class: total_increasing
+        unit_of_measurement: kWh
+      - name: E2E energy new
+        unique_id: e2e_energy_new
+        state: "{{ states('input_number.e2e_energy_new') }}"
+        device_class: energy
+        state_class: total_increasing
+        unit_of_measurement: kWh
+      - name: E2E power
+        unique_id: e2e_power
+        state: "{{ states('input_number.e2e_power') }}"
+        device_class: power
+        state_class: measurement
+        unit_of_measurement: W
+      - name: E2E spot
+        unique_id: e2e_spot
+        state: "{{ states('input_number.e2e_spot') }}"
+        state_class: measurement
+        unit_of_measurement: NOK/kWh
+      - name: E2E export
+        unique_id: e2e_export
+        state: "{{ states('input_number.e2e_export') }}"
+        device_class: power
+        state_class: measurement
+        unit_of_measurement: W

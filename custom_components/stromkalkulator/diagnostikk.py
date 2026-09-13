@@ -93,7 +93,7 @@ if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
 
-DIAGNOSTICS_SCHEMA_VERSION: int = 2
+DIAGNOSTICS_SCHEMA_VERSION: int = 3
 
 # Valgene brukeren har tatt, uten entity-id-ene. Disse er trygge å vise rått:
 # de sier hva integrasjonen regnet med, ikke hvem som regnet.
@@ -109,12 +109,19 @@ VALG_ALLOWLIST: tuple[str, ...] = (
     CONF_KAPASITET_VARSEL_TERSKEL,
     CONF_ENERGI_FROSSEN_TIMER,
     CONF_EGENDEFINERT_SATSER_BEKREFTET,
-    # Brukerens egen trinntabell er en tariff, ikke personopplysninger, og
-    # den forklarer hvorfor fastleddet er som det er.
-    CONF_EGENDEFINERT_KAPASITETSTRINN,
     CONF_PRISENHET_BEKREFTET,
     CONF_TARIFFMODUS,
 )
+
+# Konfigvalg som er behandlet, men ikke vises her. Samme tanke som
+# `BEREGNING_UTELATT`: et nytt valg skal kreve en beslutning, ikke bli glemt.
+VALG_UTELATT: dict[str, str] = {
+    # Trinntabellen er en tariff og hører hjemme i dumpen, men den er fritekst
+    # brukeren har skrevet, og tekstvakten gjorde den derfor til en markør i
+    # hver eneste dump. Tallene coordinatoren leste ut av den står i
+    # dso-seksjonen, og der bærer de ingen strenger noen kan plante i.
+    CONF_EGENDEFINERT_KAPASITETSTRINN: "vises tallparsert som dso.kapasitetstrinn",
+}
 
 # Inputrollene. Selve entity-id-en aliaseres; her står bare koblingen fra
 # rolle til konfignøkkel. Tilstanden på rollen kommer fra coordinatorens
@@ -348,6 +355,24 @@ NESTEDE_NOKLER: frozenset[str] = frozenset(
     }
 )
 
+# Sikringstrinnene hos et OV_TREFASE-nettselskap: id-en som ligger i konfigen,
+# og label-en coordinatoren setter som trinnbeskrivelse. Begge er vår egen
+# katalogdata fra dso.py, ikke noe brukeren har skrevet. Uten dem kan ikke
+# dumpen si hvilket trinn fastleddet ble regnet av hos Alut eller Netera, og
+# det er nettopp «fastleddet stemmer ikke»-saken.
+SIKRINGSTRINN_TEKSTER: frozenset[str] = frozenset(
+    str(trinn[felt])
+    for oppforing in DSO_LIST.values()
+    for trinn in oppforing.get("fastledd_sikringstrinn", [])
+    for felt in ("id", "label")
+    if trinn.get(felt)
+)
+
+# Trinnbeskrivelsene coordinatoren setter når det ikke finnes noe trinn å peke
+# på. Kopi av strengene i `_get_kapasitetsledd`, vaktet av motvakten i
+# tests/test_diagnostics.py som kjører ett DSO per fastledd-metode.
+TRINN_UTEN_TABELL: frozenset[str] = frozenset({"fastledd ukjent", "sikringsstørrelse ikke valgt"})
+
 # Resultattypene coordinatoren navngir inputresultatene med.
 RESULTAT_TYPER: frozenset[str] = frozenset({"gyldig", "utilgjengelig", "ugyldig"})
 
@@ -437,6 +462,7 @@ REPAIR_SORTER: frozenset[str] = frozenset(
         "sikringstrinn_mangler",
         "prisenhet_ubekreftet",
         "energi_delta_forkastet",
+        "egendefinert_fastledd",
         TARIFF_ISSUE_PREFIX.rstrip("_"),
         EGENDEFINERT_ISSUE_PREFIX.rstrip("_"),
     }
@@ -489,6 +515,8 @@ TEKST_VOKABULAR: frozenset[str] = frozenset(
     | set(REPAIR_SORTER)
     | set(REPAIR_GJELDER)
     | set(REPAIR_ALVORLIGHET)
+    | set(SIKRINGSTRINN_TEKSTER)
+    | set(TRINN_UTEN_TABELL)
 )
 
 # Strengene som ikke er et fast ord, men et format koden selv lager.
@@ -499,8 +527,12 @@ TEKST_FORMATER: tuple[re.Pattern[str], ...] = (
     re.compile(r"\d{2}-\d{2}"),  # sesonggrense (MM-DD)
     re.compile(r"\d{2}-\d{2} til \d{2}-\d{2}"),  # aktiv energiledd-periode
     re.compile(r">?\d+(-\d+)? kW"),  # kapasitetstrinn-intervall
+    re.compile(r"\d+\.\d{2} kW vektet årstopp"),  # trinnbeskrivelse for FEM_VEKTET_ÅR
     re.compile(r"(?:" + "|".join(MAANEDSNAVN) + r") \d{4}"),  # previous_month_name
-    re.compile(r"\d+\.\d+\.\d+[0-9A-Za-z.+-]*"),  # versjonsstreng
+    # Versjonsstreng: tre tall, så HAs egne forhånds- og dev-suffikser og et
+    # semver-suffiks. Mønsteret sto som «tre tall pluss hva som helst», og da
+    # gikk «1.0.0nesttunveien_42» rett gjennom.
+    re.compile(r"\d+\.\d+\.\d+(a\d+|b\d+|rc\d+|\.dev\d+)?(-[0-9A-Za-z.]+)?(\+[0-9A-Za-z.]+)?"),
     re.compile(r"<utelatt: \w+>"),  # rens() sin markør for ukjent type
 )
 
@@ -538,6 +570,7 @@ UTELATT_MED_VILJE: tuple[str, ...] = (
     "full forbrukshistorikk (snapshotet forklarer én oppdatering)",
     "målerens kildeidentitet, altså unique_id eller målepunkt-ID (aliasert)",
     "teksten i repair-varslene, som gjengir entity-id-en i klartekst",
+    "brukerens trinntabell som råtekst (tallene står i dso-seksjonen)",
 )
 
 
@@ -813,6 +846,14 @@ def _dso_seksjon(coordinator: Any) -> dict[str, Any]:
         "energiledd_dag_inkl_mva": rens_trygg(getattr(coordinator, "energiledd_dag", None)),
         "energiledd_natt_inkl_mva": rens_trygg(getattr(coordinator, "energiledd_natt", None)),
         "kapasitetstrinn_count": len(getattr(coordinator, "kapasitetstrinn", []) or []),
+        # Selve tabellen, som par av tall: [kW-grense, kr/mnd inkl. mva]. For
+        # Egendefinert er dette brukerens egen trinntabell slik parseren leste
+        # den, og uten den kan ingen se hvorfor fastleddet ble som det ble.
+        # Øverste trinn har ingen øvre grense, og `inf` finnes ikke i JSON, så
+        # den står som None.
+        "kapasitetstrinn": rens_trygg(
+            [list(trinn) for trinn in getattr(coordinator, "kapasitetstrinn", []) or []]
+        ),
         # Metoden er halve svaret på «hvorfor stemmer ikke fastleddet».
         # Uten den i diagnostikken må man gjette fra DSO-id-en.
         "fastledd_metode": rens_trygg(getattr(coordinator, "fastledd_metode", None)),

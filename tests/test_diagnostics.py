@@ -13,6 +13,8 @@ nøkler uten at noen merket det.
 
 from __future__ import annotations
 
+import ast
+import hashlib
 import json
 import sys
 from dataclasses import dataclass, field
@@ -48,12 +50,15 @@ from stromkalkulator.diagnostikk import (  # noqa: E402
     ROLLE_TIL_CONF,
     TEKST_MARKOR,
     VALG_ALLOWLIST,
+    VALG_UTELATT,
     Aliaser,
     bygg_diagnostikk,
     enhet_visning,
     rens,
     rens_trygg,
+    tekstvakt,
 )
+from stromkalkulator.dso import DSO_LIST, FASTLEDD_METODER, hent_fastledd_metode  # noqa: E402
 from stromkalkulator.inputadapter import ENHETSTABELL, Baseline  # noqa: E402
 
 from tests.conftest import _make_entry, _make_hass, _run_update  # noqa: E402
@@ -569,8 +574,9 @@ class TestSkjemaVakt:
             if navn.startswith("CONF_") and isinstance(verdi, str)
         }
         assert alle, "fant ingen CONF-nøkler i const.py, da vakter denne testen ingenting"
-        behandlet = set(VALG_ALLOWLIST) | set(ROLLE_TIL_CONF.values())
+        behandlet = set(VALG_ALLOWLIST) | set(ROLLE_TIL_CONF.values()) | set(VALG_UTELATT)
         assert not alle - behandlet, f"CONF-nøkler uten plass i diagnostikken: {sorted(alle - behandlet)}"
+        assert not set(VALG_ALLOWLIST) & set(VALG_UTELATT)
 
     def test_hvert_felt_paa_en_ekte_problemrad_er_behandlet(self, coord_module):
         """Rad-allowlisten må følge `_vakthold_problem`, ikke bare påstå det.
@@ -1081,10 +1087,446 @@ class TestSkjemaVaktD2:
         assert not set(BASELINE_ALLOWLIST) & set(BASELINE_UTELATT)
         assert not set(INPUT_RESULTAT_ALLOWLIST) & set(INPUT_RESULTAT_UTELATT)
 
-    def test_skjemaversjonen_er_bumpet_for_de_nye_feltene(self):
-        assert DIAGNOSTICS_SCHEMA_VERSION == 2
-
     def test_rollene_har_de_samme_feltene(self):
         roller = _dump()["input_roller"]
         felt = {frozenset(rad) for rad in roller.values()}
         assert len(felt) == 1, "rollene har ulike felt, og da kan de ikke sammenlignes"
+
+
+# ---------------------------------------------------------------------------
+# Fingeravtrykket av feltsettet
+# ---------------------------------------------------------------------------
+
+# Dicter der nøklene er data og ikke skjema: en dato, et trinn, en rolle vi
+# tilfeldigvis har sist gyldig tid for. Feltet selv teller med, innholdet
+# gjør det ikke, så en annen fixture eller en annen målemåned ikke endrer
+# fingeravtrykket.
+VERDIDICTER: frozenset[str] = frozenset(
+    {
+        "vakthold.input_sist_gyldig",
+        "beregning.top_3_days",
+        "beregning.previous_month_top_3",
+        "beregning.tarifforigin",
+        "beregning.energiledd_perioder[]",
+    }
+)
+
+
+def _feltsett(dump):
+    """Hvert navngitte felt i dumpen, som en sti: «vakthold.input_problemer[].type».
+
+    Bare navn. Verdier, rekkefølge, kommentarer og vokabularer er ikke med, så
+    en ny DSO, en ny repair-sort eller en omskrevet docstring rører ikke
+    fingeravtrykket. Et nytt eller fjernet felt gjør det.
+    """
+    felt: set[str] = set()
+
+    def gaa(verdi, sti):
+        if isinstance(verdi, dict):
+            if sti in VERDIDICTER:
+                return
+            for nokkel, under in verdi.items():
+                barn = f"{sti}.{nokkel}" if sti else str(nokkel)
+                felt.add(barn)
+                gaa(under, barn)
+        elif isinstance(verdi, list):
+            for under in verdi:
+                gaa(under, f"{sti}[]")
+
+    gaa(dump, "")
+    return felt
+
+
+def _fingeravtrykk(felt):
+    return hashlib.sha256("\n".join(sorted(felt)).encode()).hexdigest()[:16]
+
+
+def _full_dump():
+    """En dump der hver seksjon er fylt, så alle feltene faktisk er med.
+
+    En tom baseline eller et tomt issue-register skjuler halve skjemaet, og et
+    fingeravtrykk av et halvt skjema vokter bare den halvdelen.
+    """
+    problemrad = dict.fromkeys(PROBLEM_ALLOWLIST)
+    problemrad["entity_id"] = HEMMELIG_ENTITET
+    coordinator = FakeCoordinator(
+        data={
+            "input_resultater": {rolle: _resultat() for rolle in ROLLE_TIL_CONF},
+            "baseline": _baseline(),
+            "input_problemer": [problemrad],
+        }
+    )
+    issues = {(konst.DOMAIN, "satser_utdatert"): FakeIssue()}
+    return _dump(FakeEntry(coordinator=coordinator), issues=issues)
+
+
+# Feltsettet slik det så ut da hver skjemaversjon ble sluppet. Utvides eller
+# krympes feltsettet, skal versjonen bumpes og en ny linje legges til her;
+# linjene over er historikk og skal ikke røres.
+SKJEMA_FINGERAVTRYKK: dict[int, str] = {
+    3: "57667d2cbd0c23aa",
+}
+
+
+class TestSkjemaFingeravtrykk:
+    """Vakten som feller en skjemautvidelse uten bump.
+
+    K3 la et felt i `VALG_ALLOWLIST` og et i `BEREGNING_ALLOWLIST` uten at noe
+    ble rødt, fordi versjonstesten bare pinnet tallet mot seg selv. Den pinner
+    nå tallet mot feltene.
+    """
+
+    def test_feltsettet_er_pinnet_mot_skjemaversjonen(self):
+        felt = _feltsett(_full_dump())
+        fasit = SKJEMA_FINGERAVTRYKK.get(DIAGNOSTICS_SCHEMA_VERSION)
+        assert fasit is not None, (
+            f"skjemaversjon {DIAGNOSTICS_SCHEMA_VERSION} har ingen linje i SKJEMA_FINGERAVTRYKK"
+        )
+        assert _fingeravtrykk(felt) == fasit, (
+            "feltsettet i dumpen er ikke det som er pinnet for skjemaversjon "
+            f"{DIAGNOSTICS_SCHEMA_VERSION}. Er felt lagt til eller fjernet, bump "
+            "DIAGNOSTICS_SCHEMA_VERSION og legg inn fingeravtrykket "
+            f"{_fingeravtrykk(felt)} på en ny linje i SKJEMA_FINGERAVTRYKK.\n"
+            f"feltene nå ({len(felt)}):\n" + "\n".join(sorted(felt))
+        )
+
+    def test_historikken_stopper_paa_naavaerende_versjon(self):
+        assert max(SKJEMA_FINGERAVTRYKK) == DIAGNOSTICS_SCHEMA_VERSION
+        assert len(set(SKJEMA_FINGERAVTRYKK.values())) == len(SKJEMA_FINGERAVTRYKK), (
+            "to skjemaversjoner med samme feltsett: da var bumpen unødvendig"
+        )
+
+    def test_fingeravtrykket_taaler_en_ny_dso_og_en_ny_repair_sort(self):
+        """Vokabularer er ikke felt, og skal ikke kreve en versjonsbump."""
+        for_ = _fingeravtrykk(_feltsett(_full_dump()))
+        issues = {
+            (konst.DOMAIN, "satser_utdatert"): FakeIssue(),
+            (konst.DOMAIN, f"dso_delt_{HEMMELIG_ENTRY_ID}"): FakeIssue(),
+        }
+        problemrad = dict.fromkeys(PROBLEM_ALLOWLIST)
+        problemrad["entity_id"] = HEMMELIG_ENTITET
+        coordinator = FakeCoordinator(
+            data={
+                "input_resultater": {rolle: _resultat() for rolle in ROLLE_TIL_CONF},
+                "baseline": _baseline(),
+                "input_problemer": [problemrad],
+            },
+            dso={"name": "BKK"},
+        )
+        etter = _fingeravtrykk(_feltsett(_dump(FakeEntry(coordinator=coordinator), issues=issues)))
+        assert for_ == etter
+
+    def test_et_nytt_felt_i_en_seksjon_endrer_fingeravtrykket(self):
+        """Selve mutasjonen dommeren kjørte: et felt til i dso-seksjonen."""
+        felt = _feltsett(_full_dump())
+        assert _fingeravtrykk(felt | {"dso.et_felt_ingen_har_lagt_til"}) != _fingeravtrykk(felt)
+
+
+# ---------------------------------------------------------------------------
+# Repair-sortene, lest ut av koden som lager dem
+# ---------------------------------------------------------------------------
+
+KOMPONENT = ROT / "custom_components" / "stromkalkulator"
+
+# De to indirekte veiene til en issue-id: vaktholdets løkke over
+# `_VAKTHOLD_ISSUE_PREFIX` (dekket av test_alle_issue_sorter_koden_lager_er_kjent)
+# og `_reis_med_aarsdemping`, som får id-en inn som parameter fra kallere vi
+# leser konstanten til. Dukker det opp en tredje, skal denne testen si fra.
+KJENTE_INDIREKTE = {"prefix", "issue_id"}
+
+
+def _modulkonstanter():
+    """Navn -> verdi for hver strengkonstant på modulnivå i komponenten."""
+    konstanter: dict[str, str] = {}
+    for fil in sorted(KOMPONENT.glob("*.py")):
+        for node in ast.parse(fil.read_text(encoding="utf-8")).body:
+            if isinstance(node, ast.Assign) and len(node.targets) == 1:
+                mal, verdi = node.targets[0], node.value
+            elif isinstance(node, ast.AnnAssign) and node.value is not None:
+                mal, verdi = node.target, node.value
+            else:
+                continue
+            if isinstance(mal, ast.Name) and isinstance(verdi, ast.Constant) and isinstance(verdi.value, str):
+                konstanter[mal.id] = verdi.value
+    return konstanter
+
+
+def _les_issue_id(uttrykk, konstanter):
+    """Hva et uttrykk blir til: («full» | «prefiks» | «ukjent», tekst)."""
+    if isinstance(uttrykk, ast.Constant) and isinstance(uttrykk.value, str):
+        return "full", uttrykk.value
+    if isinstance(uttrykk, ast.Name):
+        if uttrykk.id in konstanter:
+            return "full", konstanter[uttrykk.id]
+        return "ukjent", uttrykk.id
+    if isinstance(uttrykk, ast.JoinedStr):
+        tekst = ""
+        for bit in uttrykk.values:
+            if isinstance(bit, ast.Constant):
+                tekst += str(bit.value)
+                continue
+            indre = bit.value
+            if isinstance(indre, ast.Name) and indre.id in konstanter:
+                tekst += konstanter[indre.id]
+                continue
+            if not tekst:
+                return "ukjent", ast.unparse(indre)
+            return "prefiks", tekst
+        return "full", tekst
+    return "ukjent", ast.unparse(uttrykk)
+
+
+def _issue_ider_fra_kilden():
+    """Issue-id-ene koden kan lage, lest ut av kildekoden.
+
+    Tre steder teller: tredjeargumentet til `async_create_issue`, hver
+    tilordning til en variabel som heter `issue_id`, og modulkonstantene som
+    heter `*_ISSUE_ID` eller `*_ISSUE_PREFIX` og finnes nettopp for dette.
+    """
+    konstanter = _modulkonstanter()
+    fulle: set[str] = set()
+    prefikser: set[str] = set()
+    ukjente: set[str] = set()
+
+    for navn, verdi in konstanter.items():
+        if navn.endswith("_ISSUE_ID"):
+            fulle.add(verdi)
+        elif navn.endswith("_ISSUE_PREFIX"):
+            prefikser.add(verdi)
+
+    for fil in sorted(KOMPONENT.glob("*.py")):
+        if fil.name == "diagnostikk.py":
+            continue
+        kandidater = []
+        for node in ast.walk(ast.parse(fil.read_text(encoding="utf-8"))):
+            if isinstance(node, ast.Call) and getattr(node.func, "attr", None) == "async_create_issue":
+                if len(node.args) >= 3:
+                    kandidater.append(node.args[2])
+                kandidater += [kw.value for kw in node.keywords if kw.arg == "issue_id"]
+            elif isinstance(node, ast.Assign) and any(
+                isinstance(mal, ast.Name) and mal.id == "issue_id" for mal in node.targets
+            ):
+                kandidater.append(node.value)
+        for uttrykk in kandidater:
+            slag, tekst = _les_issue_id(uttrykk, konstanter)
+            {"full": fulle, "prefiks": prefikser, "ukjent": ukjente}[slag].add(tekst)
+
+    return fulle, prefikser, ukjente
+
+
+class TestRepairSorterMotKilden:
+    """REPAIR_SORTER var en håndkopi, og en håndkopi driver.
+
+    K3s `egendefinert_fastledd` manglet i den, og varselet sto som «<tekst
+    utelatt>» i hver dump uten at noe ble rødt. Nå leses sortene ut av koden
+    som lager dem.
+    """
+
+    def test_hver_issue_id_koden_lager_er_kjent(self):
+        fulle, prefikser, _ = _issue_ider_fra_kilden()
+        assert fulle, "fant ingen issue-id-er i kildekoden, da vakter denne testen ingenting"
+        for tekst in sorted(fulle):
+            assert tekst in REPAIR_SORTER, f"issue-id-en «{tekst}» mangler i REPAIR_SORTER"
+        for tekst in sorted(prefikser):
+            sort = tekst.rstrip("_")
+            assert sort in REPAIR_SORTER or any(s.startswith(tekst) for s in REPAIR_SORTER), (
+                f"issue-prefikset «{tekst}» mangler i REPAIR_SORTER"
+            )
+
+    def test_de_indirekte_veiene_er_de_vi_vet_om(self):
+        """En ny indirekte id-bygging skal kreve en beslutning, ikke gli forbi."""
+        _, _, ukjente = _issue_ider_fra_kilden()
+        assert ukjente == KJENTE_INDIREKTE, (
+            f"issue-id-er denne vakten ikke klarer å lese: {sorted(ukjente - KJENTE_INDIREKTE)}"
+        )
+
+    def test_egendefinert_fastledd_vises_med_sort(self):
+        """Selve driften dommeren målte: sorten sto som markør i dumpen."""
+        issues = {(konst.DOMAIN, f"egendefinert_fastledd_{HEMMELIG_ENTRY_ID}"): FakeIssue()}
+        dump = _dump(FakeEntry(coordinator=FakeCoordinator()), issues=issues)
+        assert dump["repairs"]["issues"][0]["sort"] == "egendefinert_fastledd"
+        assert dump["repairs"]["issues"][0]["gjelder"] == "dette_anlegget"
+
+
+# ---------------------------------------------------------------------------
+# Ett nettselskap per fastledd-metode
+# ---------------------------------------------------------------------------
+
+# (nettselskap, sikringstrinn, trinnbeskrivelsen coordinatoren skal lage).
+# Motvakten kjørte bare bkk, og så ingen av de fire andre metodene: for et
+# sikringsbasert nettselskap sto både valget og trinnbeskrivelsen som
+# «<tekst utelatt>», altså nettopp det en fastleddsak trenger.
+FASTLEDD_PROVER: dict[str, tuple[str, str | None, str | None]] = {
+    "TRE_DØGNMAX_MND": ("bkk", None, None),
+    "MND_MAX": ("sor_aurdal_energi", None, None),
+    "OV_TREFASE": ("alut", "inntil_3x125a", "Inntil 3 x 125 A"),
+    "FEM_VEKTET_ÅR": ("fjellnett", None, None),
+    "UKJENT": ("tinfos", None, None),
+}
+
+
+def _ekte_dump(coord_module, dso_id, sikringstrinn=None, trinntabell=None):
+    """Dump av en ekte coordinator for et gitt nettselskap."""
+    ekstra: dict[str, str] = {}
+    if sikringstrinn is not None:
+        ekstra[konst.CONF_SIKRINGSTRINN] = sikringstrinn
+    if trinntabell is not None:
+        ekstra[konst.CONF_EGENDEFINERT_KAPASITETSTRINN] = trinntabell
+    entry = _make_entry(dso_id=dso_id, energy_sensor="sensor.energy", extra_data=ekstra)
+    coordinator = coord_module.NettleieCoordinator(_make_hass(), entry)
+    coordinator.data = _run_update(coord_module, coordinator)
+    fake = FakeEntry(
+        data={konst.CONF_DSO: dso_id, **ekstra},
+        coordinator=coordinator,
+    )
+    return _dump(fake)
+
+
+class TestHverFastleddMetode:
+    """Dumpen må være like lesbar hos et sikrings-nettselskap som hos BKK."""
+
+    def test_provene_dekker_hver_metode(self):
+        assert set(FASTLEDD_PROVER) == set(FASTLEDD_METODER)
+
+    @pytest.mark.parametrize("metode", sorted(FASTLEDD_PROVER))
+    def test_nettselskapet_har_metoden_provet_paastar(self, metode):
+        dso_id = FASTLEDD_PROVER[metode][0]
+        assert hent_fastledd_metode(DSO_LIST[dso_id]) == metode
+
+    @pytest.mark.parametrize("metode", sorted(FASTLEDD_PROVER))
+    def test_dumpen_er_ren_for_hver_metode(self, coord_module, metode):
+        dso_id, sikringstrinn, beskrivelse = FASTLEDD_PROVER[metode]
+        dump = _ekte_dump(coord_module, dso_id, sikringstrinn)
+        tekst = json.dumps(dump, allow_nan=False, ensure_ascii=False)
+        assert TEKST_MARKOR not in tekst, "tekstvakten sensurerte en ekte verdi"
+        assert NOKKEL_MARKOR not in tekst, "tekstvakten sensurerte en ekte nøkkel"
+        assert dump["dso"]["fastledd_metode"] == metode
+        if sikringstrinn is not None:
+            assert dump["config_entry"]["valg"][konst.CONF_SIKRINGSTRINN] == sikringstrinn
+            assert dump["beregning"]["kapasitetstrinn_intervall"] == beskrivelse
+
+    def test_netera_er_det_andre_sikringsselskapet(self, coord_module):
+        """To nettselskap deler metoden, men ingen trinn-id-er."""
+        dump = _ekte_dump(coord_module, "netera", "230v_0_10")
+        assert dump["config_entry"]["valg"][konst.CONF_SIKRINGSTRINN] == "230v_0_10"
+        assert dump["beregning"]["kapasitetstrinn_intervall"] == "0-10 A (230 V)"
+        assert TEKST_MARKOR not in json.dumps(dump, ensure_ascii=False)
+
+    def test_sikringstrinn_uten_valg_sier_hvorfor(self, coord_module):
+        dump = _ekte_dump(coord_module, "alut")
+        assert dump["beregning"]["kapasitetstrinn_intervall"] == "sikringsstørrelse ikke valgt"
+        assert dump["beregning"]["fastledd_mangler_sikringsvalg"] is True
+        assert TEKST_MARKOR not in json.dumps(dump, ensure_ascii=False)
+
+    def test_en_plantet_trinn_id_slipper_ikke_gjennom(self):
+        """Vokabularet er katalogen vår, ikke hva som helst i konfigfeltet."""
+        entry = FakeEntry(
+            data={konst.CONF_SIKRINGSTRINN: HEMMELIG_ADRESSE},
+            coordinator=FakeCoordinator(),
+        )
+        dump = _dump(entry)
+        assert dump["config_entry"]["valg"][konst.CONF_SIKRINGSTRINN] == TEKST_MARKOR
+        assert HEMMELIG_ADRESSE not in json.dumps(dump, ensure_ascii=False)
+
+
+# ---------------------------------------------------------------------------
+# Trinntabellen for Egendefinert
+# ---------------------------------------------------------------------------
+
+
+class TestTrinntabell:
+    """Egendefinert-brukeren er nettopp den vi trenger tabellen fra.
+
+    Kommentaren i VALG_ALLOWLIST sa at trinntabellen forklarte fastleddet.
+    Det gjorde den ikke: fritekstfeltet ble en markør i hver dump. Tallene
+    parseren leste står nå under dso, og de bærer ingen strenger.
+    """
+
+    def test_brukerens_trinn_staar_som_tall(self, coord_module):
+        dump = _ekte_dump(coord_module, "custom", trinntabell="2:155,5:250")
+        assert dump["dso"]["kapasitetstrinn"] == [[2.0, 155], [5.0, 250]]
+        assert dump["dso"]["kapasitetstrinn_count"] == 2
+        assert TEKST_MARKOR not in json.dumps(dump, ensure_ascii=False)
+
+    def test_raateksten_er_ikke_med(self, coord_module):
+        dump = _ekte_dump(coord_module, "custom", trinntabell="2:155,5:250")
+        assert konst.CONF_EGENDEFINERT_KAPASITETSTRINN not in dump["config_entry"]["valg"]
+        assert "2:155,5:250" not in json.dumps(dump, ensure_ascii=False)
+
+    def test_uten_tabell_sier_dumpen_at_fastleddet_er_ukjent(self, coord_module):
+        dump = _ekte_dump(coord_module, "custom")
+        assert dump["dso"]["kapasitetstrinn"] == []
+        assert dump["beregning"]["fastledd_ukjent"] is True
+        assert dump["beregning"]["kapasitetstrinn_intervall"] == "fastledd ukjent"
+        assert TEKST_MARKOR not in json.dumps(dump, ensure_ascii=False)
+
+    def test_katalogtrinnene_staar_ogsaa(self, coord_module):
+        """Tabellen som ble regnet med, ikke bare antallet rader."""
+        dump = _ekte_dump(coord_module, "bkk")
+        assert dump["dso"]["kapasitetstrinn"][0] == [2.0, 155]
+        # Øverste trinn har ingen øvre grense, og JSON har ingen uendelig.
+        assert dump["dso"]["kapasitetstrinn"][-1][0] is None
+
+    def test_en_plantet_streng_i_trinntabellen_sensureres(self):
+        coordinator = FakeCoordinator(kapasitetstrinn=[(2, HEMMELIG_ADRESSE)])
+        dump = _dump(FakeEntry(coordinator=coordinator))
+        assert dump["dso"]["kapasitetstrinn"] == [[2, TEKST_MARKOR]]
+        assert HEMMELIG_ADRESSE not in json.dumps(dump, ensure_ascii=False)
+
+
+class TestVersjonsformatet:
+    """«Tre tall, så hva som helst» slapp en adresse gjennom.
+
+    Ingen brukerstyrt vei dit i dag, men formatet er det eneste som skiller en
+    versjonsstreng fra en fritekst, og det skal ikke hvile på at ingen finner
+    veien.
+    """
+
+    @pytest.mark.parametrize(
+        "versjon",
+        ["1.17.0", "2025.8.1", "2026.1.0b3", "2026.2.0.dev202601010223", "1.0.0-rc.1", "1.0.0+build.7"],
+    )
+    def test_ekte_versjoner_slipper_gjennom(self, versjon):
+        assert tekstvakt(versjon)
+
+    @pytest.mark.parametrize("juks", ["1.0.0nesttunveien42", "1.0.0nesttunveien-42", "1.0.0.Nesttunveien"])
+    def test_en_adresse_bak_tre_tall_slipper_ikke(self, juks):
+        assert not tekstvakt(juks)
+
+
+class TestLekkasjeproberTrinn:
+    """Egne forsøk på å lekke gjennom feltene denne runden la til.
+
+    De nye veiene inn er trinntabellen, sikringstrinn-valget og trinnlisten i
+    dso-seksjonen. Alle tre er tall eller katalogord hos oss, og alle tre tar
+    imot det coordinatoren gir dem.
+    """
+
+    def test_trinntabellen_som_fritekst_lekker_ikke(self):
+        entry = FakeEntry(
+            data={
+                konst.CONF_EGENDEFINERT_KAPASITETSTRINN: f"2:155,{HEMMELIG_ADRESSE}",
+                konst.CONF_SIKRINGSTRINN: HEMMELIG_MAALEPUNKT,
+            },
+            coordinator=FakeCoordinator(),
+        )
+        tekst = json.dumps(_dump(entry), ensure_ascii=False)
+        for plantet in (HEMMELIG_ADRESSE, HEMMELIG_MAALEPUNKT, "Nesttunveien"):
+            assert plantet not in tekst, f"{plantet} lekket ut gjennom et trinnfelt"
+
+    def test_en_plantet_noekkel_i_trinnlisten_sensureres(self):
+        coordinator = FakeCoordinator(kapasitetstrinn=[(2, {HEMMELIG_ADRESSE: HEMMELIG_MAALEPUNKT})])
+        dump = _dump(FakeEntry(coordinator=coordinator))
+        assert dump["dso"]["kapasitetstrinn"] == [[2, {NOKKEL_MARKOR: TEKST_MARKOR}]]
+        tekst = json.dumps(dump, ensure_ascii=False)
+        assert HEMMELIG_ADRESSE not in tekst
+        assert HEMMELIG_MAALEPUNKT not in tekst
+
+    def test_et_plantet_sikringstrinn_i_en_option_lekker_ikke(self):
+        entry = FakeEntry(
+            options={konst.CONF_SIKRINGSTRINN: HEMMELIG_STI},
+            data={konst.CONF_SIKRINGSTRINN: f"inntil_3x125a {HEMMELIG_STI}"},
+            coordinator=FakeCoordinator(),
+        )
+        tekst = json.dumps(_dump(entry), ensure_ascii=False)
+        assert HEMMELIG_STI not in tekst

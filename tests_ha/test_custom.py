@@ -284,3 +284,25 @@ async def test_sensorene_staar_som_ukjent_uten_tabell(hass: HomeAssistant) -> No
         hass.states.get("sensor.nettleie_egendefinert_energy_tariff").attributes.get("fastledd_ukjent")
         is None
     )
+
+
+async def test_ulesbar_tabell_gir_sitt_eget_varsel(hass: HomeAssistant) -> None:
+    """En lagret tabell coordinatoren forkaster skal ikke gå stille forbi.
+
+    Config-flowen validerer det som tastes inn, men `.storage` kan være
+    håndredigert, og da regner coordinatoren fastleddet som ukjent. Sto varselet
+    på «nøkkelen finnes», satt brukeren med ukjente sensorer og ingen beskjed.
+    """
+    _sett_states(hass)
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        version=5,
+        data=_entry_data(**{CONF_EGENDEFINERT_KAPASITETSTRINN: "5:250,2:155"}),
+    )
+    await _last(hass, entry)
+
+    issue = ir.async_get(hass).async_get_issue(DOMAIN, f"egendefinert_fastledd_{entry.entry_id}")
+    assert issue is not None
+    assert issue.translation_key == "egendefinert_fastledd_ulesbar"
+    assert entry.runtime_data.data["fastledd_ukjent"] is True
+    assert hass.states.get("sensor.nettleie_egendefinert_capacity_tier").state == "unknown"

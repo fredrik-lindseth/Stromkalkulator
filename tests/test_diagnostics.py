@@ -531,6 +531,12 @@ class TestInnhold:
         assert beregning["total_price"] == 1.5
         assert set(beregning) == set(BEREGNING_ALLOWLIST)
 
+    @pytest.mark.parametrize("bokforte_kroner", [False, True])
+    def test_forrige_maaneds_bokforingsstatus_forklarer_ukjente_kostnader(self, bokforte_kroner):
+        coordinator = FakeCoordinator(data={"previous_month_bokforte_kroner": bokforte_kroner})
+        dump = json.loads(json.dumps(_dump(FakeEntry(coordinator=coordinator)), allow_nan=False))
+        assert dump["beregning"]["previous_month_bokforte_kroner"] is bokforte_kroner
+
     def test_forrige_maaneds_bokforte_kroner_er_med(self):
         arkiv = {
             "previous_month_energiledd_dag_kr": 123.4567,
@@ -1200,6 +1206,8 @@ SKJEMA_FINGERAVTRYKK: dict[int, str] = {
     5: "319de8578855d72e",
     # 6: forrige måneds bokførte energiledd, avgifter og strømstøtte.
     6: "72f4afa9f1bff34b",
+    # 7: kvaliteten på forrige måneds kostnadsarkiv.
+    7: "b5ded1b9e8eafdb3",
 }
 
 

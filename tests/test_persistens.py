@@ -90,6 +90,7 @@ class TestSaveLoadCycle:
         assert saved_data["previous_month_energiledd_natt_kr"] == 67.89
         assert saved_data["previous_month_avgifter_kr"] == 45.67
         assert saved_data["previous_month_stromstotte_kr"] == 12.34
+        assert saved_data["previous_month_bokforte_kroner"] is True
 
         # Now create a new coordinator and load the saved data
         def make_store_with_data(hass, version, key):
@@ -120,6 +121,7 @@ class TestSaveLoadCycle:
         assert coordinator2._previous_month_energiledd_natt_kr == 67.89
         assert coordinator2._previous_month_avgifter_kr == 45.67
         assert coordinator2._previous_month_stromstotte_kr == 12.34
+        assert coordinator2._previous_month_bokforte_kroner is True
 
     def test_load_empty_store_uses_defaults(self):
         """Loading from empty store should keep default values."""
@@ -914,6 +916,7 @@ class TestSaveDataStructure:
             "previous_month_energiledd_natt_kr",
             "previous_month_avgifter_kr",
             "previous_month_stromstotte_kr",
+            "previous_month_bokforte_kroner",
             "daily_cost",
             "current_date",
             "current_hour_energy",
@@ -1039,6 +1042,53 @@ class TestLoadMissingFields:
         assert coordinator._previous_month_consumption == coord.ConsumptionData()
         assert coordinator._previous_month_top_3 == {}
         assert coordinator._previous_month_name is None
+
+    def test_legacy_previous_month_without_booked_components_is_explicitly_unknown(self):
+        """Ikke dikt opp nettleie fra gammel kWh, sats eller total strømregning."""
+        coord = _reload_coord()
+        stored_data = {
+            "current_month": "2026-09",
+            "previous_month_name": "august 2026",
+            "previous_month_consumption": {"dag": 475.519, "natt": 489.448},
+            "previous_month_kapasitetsledd": 250,
+            "previous_month_energiledd_dag": 0.2877,
+            "previous_month_energiledd_natt": 0.105,
+            # Dette er totalen med strøm og kan ikke splittes til nettleie.
+            "previous_month_cost": 1065.80,
+        }
+
+        def make_store(hass, version, key):
+            store = MagicMock()
+            store.async_load = AsyncMock(return_value=stored_data)
+            store.async_save = AsyncMock()
+            store.async_remove = AsyncMock()
+            return store
+
+        coord.Store = MagicMock(side_effect=make_store)
+        coordinator = coord.NettleieCoordinator(MagicMock(), _make_entry())
+        asyncio.run(coordinator._load_stored_data())
+
+        assert coordinator._previous_month_bokforte_kroner is False
+        assert coordinator._previous_month_cost == 1065.80
+
+        asyncio.run(coordinator._save_stored_data())
+        persisted = coordinator._store.async_save.call_args.args[0]
+        assert persisted["previous_month_bokforte_kroner"] is False
+        assert persisted["previous_month_cost"] == 1065.80
+
+        from stromkalkulator.sensor import ForrigeMaanedNettleieSensor
+
+        coordinator.data = {
+            "previous_month_name": coordinator._previous_month_name,
+            "previous_month_bokforte_kroner": coordinator._previous_month_bokforte_kroner,
+            "previous_month_kapasitetsledd": coordinator._previous_month_kapasitetsledd,
+        }
+        sensor = ForrigeMaanedNettleieSensor(coordinator, _make_entry())
+        assert sensor.native_value is None
+        assert sensor.extra_state_attributes == {"maaned": "august 2026", "bokforte_kroner": False}
+
+        asyncio.run(coordinator._handle_month_rollover(datetime(2026, 10, 1, tzinfo=OSLO)))
+        assert coordinator._previous_month_bokforte_kroner is True
 
 
 # =============================================================================

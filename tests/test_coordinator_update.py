@@ -78,6 +78,7 @@ class TestBasicUpdate:
             "previous_month_energiledd_natt_kr",
             "previous_month_avgifter_kr",
             "previous_month_stromstotte_kr",
+            "previous_month_bokforte_kroner",
             "stromstotte_tak_naadd",
             "norgespris_over_tak",
             "boligtype",
@@ -541,6 +542,7 @@ class TestMonthTransition:
         assert result["previous_month_consumption_natt_kwh"] == 300.0
         assert result["previous_month_name"] == "mars 2026"
         assert len(result["previous_month_top_3"]) == 3
+        assert result["previous_month_bokforte_kroner"] is True
 
         # Current month should be reset
         assert result["monthly_consumption_dag_kwh"] == 0.0

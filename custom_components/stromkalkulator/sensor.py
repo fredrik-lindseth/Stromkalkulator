@@ -1749,6 +1749,12 @@ class ForrigeMaanedNettleieSensor(ForrigeMaanedBaseSensor):
         data = self.coordinator.data
         if not data:
             return None
+        # Et gammelt Store-arkiv har kWh og satser, men ikke de bokførte
+        # komponentene. `previous_month_cost` kan ikke brukes som erstatning:
+        # det inneholder også strøm. Ukjent er bedre enn å vise bare
+        # kapasitetsleddet eller å gjette med sats * kWh.
+        if data.get("previous_month_name") and not data.get("previous_month_bokforte_kroner", False):
+            return None
         return round(
             _tall(data, "previous_month_energiledd_dag_kr")
             + _tall(data, "previous_month_energiledd_natt_kr")
@@ -1764,6 +1770,8 @@ class ForrigeMaanedNettleieSensor(ForrigeMaanedBaseSensor):
         data = self.coordinator.data
         if not data:
             return None
+        if data.get("previous_month_name") and not data.get("previous_month_bokforte_kroner", False):
+            return {"maaned": data.get("previous_month_name"), "bokforte_kroner": False}
         return {
             "maaned": data.get("previous_month_name"),
             "energiledd_dag_kr": round(_tall(data, "previous_month_energiledd_dag_kr"), 2),
@@ -1774,6 +1782,7 @@ class ForrigeMaanedNettleieSensor(ForrigeMaanedBaseSensor):
             "kapasitetstrinn": data.get("previous_month_kapasitetstrinn", ""),
             "snitt_topp_3_kw": data.get("previous_month_avg_top_3_kw", 0.0),
             "norgespris_differanse_kr": data.get("previous_month_norgespris_diff_kr", 0.0),
+            "bokforte_kroner": True,
         }
 
 

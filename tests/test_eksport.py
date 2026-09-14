@@ -292,6 +292,22 @@ class TestMonthTransitionExport:
         # Etter rollover er juli nullstilt
         assert july_result["monthly_export_kwh"] == 0.0
 
+    def test_deler_eksport_ved_midnatt(self, coord_module):
+        """Et pollvindu over midnatt gir hver måned sin tidsandel."""
+        hass = _make_hass(power_w=5000, spot_price=1.20, export_power_w=3000)
+        entry = _make_entry(export_power_sensor="sensor.export_power")
+        coordinator = coord_module.NettleieCoordinator(hass, entry)
+
+        _run_update(coord_module, coordinator, now=_real_datetime(2026, 6, 30, 23, 59))
+        result = _run_update(coord_module, coordinator, now=_real_datetime(2026, 7, 1, 0, 2))
+
+        # 3 kW i tre minutter = 0,15 kWh. Ett minutt hører til juni, to juli.
+        assert result["previous_month_export_kwh"] == 0.05
+        assert result["monthly_export_kwh"] == 0.10
+        # 1,20 inkl. mva er 0,96 eks. mva; inntekten følger samme fordeling.
+        assert result["previous_month_export_revenue_kr"] == 0.05
+        assert result["monthly_export_revenue_kr"] == 0.10
+
 
 class TestExportStorage:
     """Export data persists to storage."""

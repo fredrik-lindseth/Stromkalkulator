@@ -25,6 +25,7 @@ from .avregning import (
     Tariff,
     Tariffregel,
     Utfall,
+    fordel_delta,
     intervallstart,
     lokal_dato,
     lokal_maned,
@@ -1089,6 +1090,57 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._legg_til_kroner(nye - self._kr_bokfort.get(start, INGEN_KRONER), lokal_dato(start))
             self._kr_bokfort[start] = nye
 
+    def _etterbokfor_lukket_maned(self, now: datetime, bokforing: Bokforing) -> bool:
+        """Før en forsinket hale inn i måneden coordinatoren allerede lukket.
+
+        Ved en poll uten avlesning rett etter midnatt må coordinatoren likevel
+        rullere sensorene til den nye måneden. Kommer den neste avlesningen
+        etterpå, deler boken deltaet ved midnatt. Den gamle delen kan da ikke
+        gå inn i inneværende månedsbøker, men den skal heller ikke forsvinne
+        fra forrige måneds kWh eller kroner.
+
+        ``fordeling`` er bare energien denne avlesningen la til. Den prises
+        derfor som en ny hale etter den allerede arkiverte månedssummen, ikke
+        som hele timeintervallet på nytt. Det bevarer også takdelingen for
+        strømstøtte og Norgespris.
+        """
+        forrige_dag = now.replace(day=1) - timedelta(days=1)
+        forrige_maned = forrige_dag.strftime("%Y-%m")
+        if self._current_month != now.strftime(
+            "%Y-%m"
+        ) or self._previous_month_name != self._format_month_name(forrige_dag):
+            return False
+
+        berorte = sorted(start for start in bokforing.fordeling if lokal_maned(start) == forrige_maned)
+        if not berorte:
+            return False
+
+        kwh_for = self._previous_month_consumption.total
+        endret = False
+        for start in berorte:
+            intervall = self._bok.intervall(start, _aware(now))
+            if intervall is None:
+                _LOGGER.warning("Mangler intervall for forsinket hale i %s", forrige_maned)
+                continue
+            kwh = bokforing.fordeling[start]
+            kroner = kroner_for_intervall(
+                replace(intervall, kwh=kwh), self._satser(intervall), kwh_for=kwh_for
+            )
+            if intervall.tariff is Tariff.DAG:
+                self._previous_month_consumption.dag += kwh
+            else:
+                self._previous_month_consumption.natt += kwh
+            self._previous_month_cost += kroner.energi_kr
+            self._previous_month_energiledd_dag_kr += kroner.energiledd_dag_kr
+            self._previous_month_energiledd_natt_kr += kroner.energiledd_natt_kr
+            self._previous_month_avgifter_kr += kroner.avgifter_kr
+            self._previous_month_stromstotte_kr += kroner.stromstotte_kr
+            self._previous_month_norgespris_compensation += kroner.norgespris_kompensasjon_kr
+            self._previous_month_norgespris_diff += kroner.norgespris_differanse_kr
+            kwh_for += kwh
+            endret = True
+        return endret
+
     def _legg_til_kroner(self, diff: Kroner, dato: str) -> None:
         """Legg en differanse inn i månedens og dagens bøker."""
         self._monthly_accumulated_cost_strom += diff.strom_kr
@@ -1653,6 +1705,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             energy_kwh += bokforing.bokfort_kwh
             if bokforing.bokfort_kwh > 0 or bokforing.avvist_kwh:
                 dirty = True
+            if self._etterbokfor_lukket_maned(now, bokforing):
+                dirty = True
             # Rullerte boken inne i bokføringen, trenger det ingen egen gren
             # her: `_boksum_for_maaneden` leser arkivet når coordinatoren står
             # i måneden boken lukket, og den aktive boken når den står i den
@@ -1674,23 +1728,33 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self._oppdater_timesmaks(now):
             dirty = True
 
-        # Eksport-akkumulering (plusskunder med solceller)
+        # Eksport-akkumulering (plusskunder med solceller). Eksport er en
+        # effektmåling, ikke en teller, så energien fordeles over pollvinduet
+        # før månedsskiftet arkiverer den gamle måneden.
         export_energy_kwh = 0.0
+        eksport_etter_rullering_kwh = 0.0
+        eksport_etter_rullering_kr = 0.0
         if self.export_power_sensor and elapsed_hours > 0:
             export_power_w = self._effekt_watt(INPUT_ROLLE_EKSPORT)
             export_power_kw = (export_power_w or 0.0) / 1000
             if export_power_kw > 0:
                 export_energy_kwh = export_power_kw * elapsed_hours
-                self._monthly_export_kwh += export_energy_kwh
-                dirty = True
-                # Inntekten bokføres i samme slengen som kilowattimene, og
-                # begge deler før månedsskiftet arkiveres. Sto de på hver sin
-                # side av rulleringen, ville siste syklus lagt kWh i den gamle
-                # måneden og kronene i den nye. Kraftleverandører betaler
-                # plusskunder spotpris eks. mva; mva er ikke aktuelt på salg
-                # fra privatperson (accountant-funn #1).
-                if spot_price_valid:
-                    self._monthly_export_revenue += spot_price_eks_mva * export_energy_kwh
+                # Kraftleverandører betaler plusskunder spotpris eks. mva;
+                # mva er ikke aktuelt på salg fra privatperson.
+                for start, kwh in fordel_delta(
+                    _aware(now) - timedelta(hours=elapsed_hours), _aware(now), export_energy_kwh
+                ).items():
+                    inntekt = spot_price_eks_mva * kwh if spot_price_valid else 0.0
+                    if lokal_maned(start) == self._current_month:
+                        self._monthly_export_kwh += kwh
+                        self._monthly_export_revenue += inntekt
+                        dirty = True
+                    elif lokal_maned(start) == now.strftime("%Y-%m"):
+                        # Coordinatoren står fortsatt i forrige måned frem til
+                        # rulleringen under. Behold den nye delen kort, slik at
+                        # den lander i juli etter at juni er arkivert.
+                        eksport_etter_rullering_kwh += kwh
+                        eksport_etter_rullering_kr += inntekt
 
         self._last_update = now
         self._current_hour = now.hour
@@ -1707,6 +1771,11 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._monthly_consumption = self._forbruk_fra_boken(ConsumptionData())
             if self._oppdater_timesmaks(now):
                 dirty = True
+
+        if eksport_etter_rullering_kwh:
+            self._monthly_export_kwh += eksport_etter_rullering_kwh
+            self._monthly_export_revenue += eksport_etter_rullering_kr
+            dirty = True
 
         # Det åpne intervallet regnes opp uansett: en prisprøve kan ha endret
         # timeprisen uten at noen energi ble bokført. Etter en rullering er det

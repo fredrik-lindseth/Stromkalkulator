@@ -94,7 +94,7 @@ if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
 
-DIAGNOSTICS_SCHEMA_VERSION: int = 5
+DIAGNOSTICS_SCHEMA_VERSION: int = 6
 
 # Valgene brukeren har tatt, uten entity-id-ene. Disse er trygge å vise rått:
 # de sier hva integrasjonen regnet med, ikke hvem som regnet.
@@ -195,6 +195,10 @@ BEREGNING_ALLOWLIST: tuple[str, ...] = (
     "previous_month_kapasitetstrinn",
     "previous_month_energiledd_dag",
     "previous_month_energiledd_natt",
+    "previous_month_energiledd_dag_kr",
+    "previous_month_energiledd_natt_kr",
+    "previous_month_avgifter_kr",
+    "previous_month_stromstotte_kr",
     "stromstotte_tak_naadd",
     "norgespris_over_tak",
     "stromstotte_gjenstaaende_kwh",

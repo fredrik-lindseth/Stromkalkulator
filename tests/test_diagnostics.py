@@ -531,6 +531,17 @@ class TestInnhold:
         assert beregning["total_price"] == 1.5
         assert set(beregning) == set(BEREGNING_ALLOWLIST)
 
+    def test_forrige_maaneds_bokforte_kroner_er_med(self):
+        arkiv = {
+            "previous_month_energiledd_dag_kr": 123.4567,
+            "previous_month_energiledd_natt_kr": 89.0123,
+            "previous_month_avgifter_kr": 45.6789,
+            "previous_month_stromstotte_kr": 12.3456,
+        }
+        coordinator = FakeCoordinator(data=arkiv)
+        beregning = _dump(FakeEntry(coordinator=coordinator))["beregning"]
+        assert {nokkel: beregning[nokkel] for nokkel in arkiv} == arkiv
+
     def test_diagnostics_py_er_et_tynt_kall(self):
         import asyncio
 
@@ -1187,6 +1198,8 @@ SKJEMA_FINGERAVTRYKK: dict[int, str] = {
     4: "5e19c921aa05721a",
     # 5: avregningsgrunnlag og normaliserte inputverdier; options_overstyrer fjernet.
     5: "319de8578855d72e",
+    # 6: forrige måneds bokførte energiledd, avgifter og strømstøtte.
+    6: "72f4afa9f1bff34b",
 }
 
 

@@ -418,6 +418,15 @@ class TestForrigeMaanedNettleieSensor:
         assert attrs["stromstotte_kr"] == 10.0
         assert "kilde" not in attrs
 
+    def test_legacy_archive_without_booked_components_is_unknown(self):
+        data = {
+            "previous_month_name": "august 2026",
+            "previous_month_bokforte_kroner": False,
+            "previous_month_kapasitetsledd": 250,
+        }
+        sensor = ForrigeMaanedNettleieSensor(_make_coordinator(data), _make_entry())
+        assert sensor.native_value is None
+
     def test_returns_none_when_no_data(self):
         coord = MagicMock()
         coord.data = None

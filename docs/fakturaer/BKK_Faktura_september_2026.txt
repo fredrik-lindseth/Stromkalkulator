@@ -1,0 +1,116 @@
+                                                                                                                                      Side 1 av 2
+                                                                                           BKK
+                                                                                           E-post: kundepost@bkk.no
+                                    BKK, Postboks 7050, 5020 Bergen                        Web: www.bkk.no / mine sider
+                                                                                           Telefon: 55127000
+
+                                                                                           Foretaksregisteret NO 976 944 801
+                                                                                           IBAN: NO 7252010661641 BIC: DNBBANK0KXXX
+
+
+
+                                    Ola Nordmann
+                                                                                           Faktura
+                                    Eksempelveien 123
+                                    5000 BERGEN                                            Ditt kundenummer:         12345678
+                                                                                           Fakturanummer:            12345688
+                                                                                           Fakturadato:              02.10.2026
+                                                                                           Ditt kontonr.:            12345678901
+
+
+                                    Nettleie                                     606,71
+                                    Norgespris                                -1.140,51
+                                    Tilgode (Herav MVA 121,34)                  -533,80
+
+
+
+
+                                    Beløpet utbetales
+
+
+
+                                    Betalingsinformasjon
+                                    Tilgode:            Kontonummer                        KID                            Forfallsdato
+                                    533,80              1234 56 78901                      0123456789018                  12.10.2026
+
+
+
+
+BU04_1451_225428.efa /s.572 #:286
+
+
+
+
+                                       Har du fått en faktura fra oss på 0 kroner?
+
+                                       Når norgesprisbeløpet eller strømstøtten er høyere enn beløpet på nettleiefakturaen din,
+                                       resulterer det i et minusbeløp, og eFaktura sendes derfor ut som en faktura på 0 kroner.
+                                       Du trenger ikke å godkjenne eller gjøre noe med eFakturaen i nettbanken. Dersom
+                                       minusbeløpet er over 100 kroner, blir pengene utbetalt til kontonummeret ditt på
+                                       forfallsdato, hvis det er under 100 kroner får du det trukket fra på neste faktura. Dersom du
+                                       får nettleien på fakturaen fra strømleverandøren din (gjennomfakturering), blir beløpet
+                                       trukket fra der.
+                                                                                                                                                         Side 2 av 2
+
+                                    Netteier: Bkk AS
+                                    Leveringsadresse: Eksempelveien 123 .
+                                                                                                       Ved skifte av kraftleverandør, skal målepunkt-ID og
+                                    Målepunkt-ID:      707000000000000001
+                                                                                                       leveringsadresse oppgis til ny kraftleverandør.
+                                    Målernr:           1234567890123456
+                                    Produkt:           Nettleie
+                                    Prisområde:        NO5
+                                    Antatt årsforbruk: 15948 kWh
+
+
+                                    Fakturagrunnlag
+                                    Maks effekt:     5,126 kW, målt 16.09.2026 kl. 16:00
+                                                     4,355 kW, målt 27.09.2026 kl. 17:00
+                                                     4,275 kW, målt 05.09.2026 kl. 16:00
+
+                                    Målernummer               Periode             Beskrivelse                Avlesning          Forbruk kWh
+                                    1234567890123456          01.09.26 - 01.10.26 Forbruk                    BKK                     984,791
+
+
+                                    Nettleie                  Periode                                        Forbruk            Pris                     Sum kr
+                                    Energiledd dag            01.09.26 - 01.10.26                            557,794 kWh        35,963 øre/kWh            200,60
+                                    Energiledd natt/helg      01.09.26 - 01.10.26                            426,997 kWh        13,125 øre/kWh             56,04
+                                    Norgespris                01.09.26 - 01.10.26                            984,791 kWh        -1,1581 kr/kWh         -1.140,51
+                                    Kapasitet 2-5 kW          01.09.26 - 01.10.26                            30 dager           250 kr/Mnd                250,00
+                                    Forbruksavgift            01.09.26 - 01.10.26                            984,791 kWh        8,913 øre/kWh              87,76
+                                    Enovaavgift               01.09.26 - 01.10.26                            984,791 kWh        1,25 øre/kWh               12,31
+
+                                    Sum (Herav MVA 121,34)                                                                                             -533,80
+
+
+                                           Forbruk for: Eksempelveien 123
+                                    kWh                                                   Forrige år     Siste år
+
+                                    2250
+
+                                    1800
+
+                                    1350
+
+                                    900
+
+                                    450
+
+                                    0
+
+
+
+
+BU04_1451_225428.efa /s.573 #:286
+                                               Okt      Nov       Des      Jan      Feb         Mar    Apr          Mai   Jun      Jul    Aug    Sep
+
+
+
+
+                                        For å se en mer detaljert beregning av forbruk og fakturabeløp, kan du gå inn på Mine sider på bkk.no Der
+                                        finner du oversikt over strømforbruket ditt time for time. På bkk.no kan du lese mer om hva nettleien består av.
+
+                                        For informasjon om energi- og klimatiltak, se www.enova.no eller kontakt Enova på svarer@enova.no.
+
+                                        Ved innsigelser mot fakturaen, ta kontakt med oss på kundepost@bkk.no. Du har også mulighet til å klage til
+                                        Elklagenemda, www.elklagenemda.no.

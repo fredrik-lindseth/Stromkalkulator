@@ -731,13 +731,18 @@ class TestManedsforbrukOverManedsskifte:
         forste = _run_update(coord_module, coord, now=_real_datetime(2026, 7, 1, 0, 1))
         assert forste["monthly_consumption_total_kwh"] == 0.0
         assert forste["previous_month_consumption_total_kwh"] == pytest.approx(juni_total, abs=0.2)
+        juni_kostnad = forste["previous_month_cost_kr"]
+        juni_energiledd = forste["previous_month_energiledd_natt_kr"]
 
         paa_igjen()
         andre = _run_update(coord_module, coord, now=_real_datetime(2026, 7, 1, 0, 2))
         # Avlesningen 23:59-00:02 bærer ett minutts energi og fordeles over
-        # tre: to tredeler er julis. Uten rettingen sto det 29,9 her.
+        # tre: to tredeler er julis. Den siste tredelen føres tilbake til juni
+        # selv om sensor-snapshotet allerede rullerte uten avlesning.
         assert andre["monthly_consumption_total_kwh"] == pytest.approx(0.067, abs=0.02)
-        assert andre["previous_month_consumption_total_kwh"] == pytest.approx(juni_total, abs=0.2)
+        assert andre["previous_month_consumption_total_kwh"] == pytest.approx(juni_total + 0.033, abs=0.01)
+        assert andre["previous_month_cost_kr"] > juni_kostnad
+        assert andre["previous_month_energiledd_natt_kr"] > juni_energiledd
 
         tredje = _run_update(coord_module, coord, now=_real_datetime(2026, 7, 1, 0, 3))
         assert tredje["monthly_consumption_total_kwh"] == pytest.approx(0.167, abs=0.02)

@@ -6,7 +6,7 @@ Hver rapport her er en attest på at integrasjonen regner riktig for et gitt net
 
 | Nettselskap | Prisområde | Avgiftssone | Antall verifiserte måneder | Siste verifisering | Avtale                             |
 | ----------- | ---------- | ----------- | -------------------------- | ------------------ | ---------------------------------- |
-| BKK         | NO5        | Standard    | 10                         | august 2026        | Spotpris (2025), Norgespris (2026) |
+| BKK         | NO5        | Standard    | 11                         | september 2026     | Spotpris (2025), Norgespris (2026) |
 
 Vil du få inn ditt eget nettselskap? Se [verifiser-din-faktura.md](verifiser-din-faktura.md).
 
@@ -45,6 +45,7 @@ Hver lenke er en verifiseringsrapport med full gjennomgang: forbruk, priser, eff
 ### 2026 (Norgespris, 2026-satser)
 
 - [August 2026](bkk-august-2026.md) (linje for linje og time for time verifisert; 177 av 744 timer har kWh fra Elhub etter HAN-utfallet 01.-08. august)
+- [September 2026](bkk-september-2026.md) (linje for linje og time for time verifisert; Norgespris treffer på -0,004 kr mot publiserte Final-priser)
 - [Juli 2026](bkk-juli-2026.md) (linje for linje verifisert; time-for-time delvis, HAN-utfall 29.-31. juli)
 - [Juni 2026](bkk-juni-2026.md)
 - [Mai 2026](bkk-mai-2026.md)

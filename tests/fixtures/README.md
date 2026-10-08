@@ -27,7 +27,7 @@ Desember 2025 og første halvdel av januar 2026 kommer fra Tibber Pulse-sensor,
 resten fra Pow-U HAN-modul (installert 30.01.26). Begge måler samme fysiske
 meter, så akkumulerte kWh-verdier er kontinuerlige.
 
-### `elhub_<måned>_<år>.json`
+### `elhub_<måned>_<år>.json` og `elvia_august_2026.json`
 
 Intervallenergi per time, hentet rett fra Elhub-CSV-en. Dette er
 fakturagrunnlaget BKK leser, og det er uavhengig av HAN-måleren: en måned der
@@ -42,14 +42,19 @@ HAN-leseren var nede har likevel full Elhub-dekning. Fasiten i
 | `elhub_mai_2026.json`     |   744 | 1179,303 |      1179,303 |
 | `elhub_juni_2026.json`    |   720 | 1033,628 |      1033,628 |
 | `elhub_juli_2026.json`    |   744 |  938,763 |       938,763 |
+| `elvia_august_2026.json`  |   744 |  668,585 |        668,585 |
 
 Bare `Fra` og `Volum` er med. Kundenavn, målepunkt-ID og
 registreringstidspunkt blir liggende i den private CSV-en, på samme måte som
 `bkk_*_hourly.json` ikke har navn eller fakturanummer.
 
-August 2026 mangler, for Elhub-CSV-en er ikke lastet ned. Måneden er derfor
-merket ufullstendig i `tests/test_replay_hendelser.py` og avstemmes ikke mot
-faktura; HAN-fixturen mangler 176 av 744 timer og duger ikke som erstatning.
+`elvia_august_2026.json` er en separat, anonymisert NO1/Elvia-fixture. Den
+avstemmes i `tests/test_faktura_elvia.py` mot Elvia-fakturaen: forbruk,
+dag/natt-fordeling, energiledd og kapasitet. Den har ikke spotpris per time,
+så strømstøtte kan ennå ikke reproduseres time-for-time.
+
+August 2026 mangler fortsatt i BKK/NO5-replayet. HAN-fixturen mangler 176 av
+744 timer og duger ikke som erstatning.
 
 ### `final_pris_<måned>_<år>.json`
 

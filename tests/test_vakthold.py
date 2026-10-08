@@ -229,6 +229,69 @@ class TestFrossenTeller:
         assert problem["timer"] >= 3
         assert f"energi_frossen_{coord.entry.entry_id}" in _issue_ids(coord_module.ir)
 
+    @pytest.mark.parametrize("unit, export", [("W", 2500), ("kW", 2.5)])
+    def test_solcelleeksport_starter_frossen_frist_paa_nytt(self, coord_module, unit, export):
+        benk = Sensorbenk()
+        benk.ENHETER = {**benk.ENHETER, "sensor.export_power": unit}
+        benk.sett("sensor.power", 0)
+        benk.sett("sensor.export_power", export)
+        coord = _lag_coordinator(coord_module, benk, export_power_sensor="sensor.export_power")
+        start = datetime(2026, 6, 15, 12, 0)
+        _poll(coord_module, coord, start)
+        slutt = start + timedelta(hours=6)
+        resultat = _poll(coord_module, coord, slutt)
+        assert resultat["maaledata_problem"] is False
+        assert FROSSEN not in _typer(resultat)
+        assert coord._last_energy_increase == slutt
+        assert f"energi_frossen_{coord.entry.entry_id}" not in _issue_ids(coord_module.ir)
+
+        # Import starter igjen uten tellerøkning: en hel ny frist gjelder.
+        benk.sett("sensor.export_power", 0)
+        benk.sett("sensor.power", 1000)
+        assert FROSSEN not in _typer(_poll(coord_module, coord, slutt + timedelta(hours=2)))
+        assert FROSSEN in _typer(_poll(coord_module, coord, slutt + timedelta(hours=4)))
+
+    def test_eksport_fjerner_eksisterende_frossen_varsel(self, coord_module):
+        benk = Sensorbenk()
+        benk.sett("sensor.export_power", 0)
+        coord = _lag_coordinator(coord_module, benk, export_power_sensor="sensor.export_power")
+        start = datetime(2026, 6, 15, 12, 0)
+        _poll(coord_module, coord, start)
+        assert FROSSEN in _typer(_poll(coord_module, coord, start + timedelta(hours=4)))
+        benk.sett("sensor.power", 0)
+        benk.sett("sensor.export_power", 2500)
+        resultat = _poll(coord_module, coord, start + timedelta(hours=5))
+        assert resultat["maaledata_problem"] is False
+        assert f"energi_frossen_{coord.entry.entry_id}" in _slettede_issue_ids(coord_module.ir)
+
+    @pytest.mark.parametrize("export", [0, -100, "unavailable", "unknown", None, 999999])
+    def test_uten_gyldig_positiv_eksport_varsles_frossen(self, coord_module, export):
+        benk = Sensorbenk()
+        benk.sett("sensor.power", 0)
+        benk.sett("sensor.export_power", export)
+        coord = _lag_coordinator(coord_module, benk, export_power_sensor="sensor.export_power")
+        start = datetime(2026, 6, 15, 12, 0)
+        _poll(coord_module, coord, start)
+        assert FROSSEN in _typer(_poll(coord_module, coord, start + timedelta(hours=4)))
+
+    def test_eksport_med_feil_enhet_skjuler_ikke_frossen_teller(self, coord_module):
+        benk = Sensorbenk()
+        benk.ENHETER = {**benk.ENHETER, "sensor.export_power": "kWh"}
+        benk.sett("sensor.power", 0)
+        benk.sett("sensor.export_power", 2500)
+        coord = _lag_coordinator(coord_module, benk, export_power_sensor="sensor.export_power")
+        start = datetime(2026, 6, 15, 12, 0)
+        _poll(coord_module, coord, start)
+        assert {FROSSEN, "enhet"} <= _typer(_poll(coord_module, coord, start + timedelta(hours=4)))
+
+    def test_positiv_import_skal_fortsatt_varsle_med_eksport(self, coord_module):
+        benk = Sensorbenk()
+        benk.sett("sensor.export_power", 2500)
+        coord = _lag_coordinator(coord_module, benk, export_power_sensor="sensor.export_power")
+        start = datetime(2026, 6, 15, 12, 0)
+        _poll(coord_module, coord, start)
+        assert FROSSEN in _typer(_poll(coord_module, coord, start + timedelta(hours=4)))
+
     def test_terskel_er_konfigurerbar(self, coord_module):
         benk = Sensorbenk()
         coord = _lag_coordinator(coord_module, benk, extra_data={"energi_frossen_timer": 24})

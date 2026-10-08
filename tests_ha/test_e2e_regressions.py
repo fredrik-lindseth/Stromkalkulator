@@ -198,3 +198,29 @@ async def test_invalid_unit_recovery(hass, lab):
     assert await lab.poll() == 0
     assert issues.async_get_issue(DOMAIN, issue_id) is None
     assert await lab.poll(10001.25) == 1.25
+
+
+async def test_solar_export_clears_frozen_meter_repair(hass, lab, freezer):
+    """A stationary import counter is expected during measured solar export."""
+    issues = ir.async_get(hass)
+    issue_id = f"energi_frossen_{lab.entry.entry_id}"
+    freezer.tick(timedelta(hours=4))
+    assert await lab.poll() == 0
+    assert issues.async_get_issue(DOMAIN, issue_id) is not None
+
+    hass.states.async_set(POWER, "0", {"unit_of_measurement": "W"})
+    hass.states.async_set(EXPORT, "2.5", {"unit_of_measurement": "kW"})
+    assert await lab.poll() == 0
+    assert issues.async_get_issue(DOMAIN, issue_id) is None
+    freezer.tick(timedelta(hours=4))
+    assert await lab.poll() == 0
+    assert issues.async_get_issue(DOMAIN, issue_id) is None
+
+    hass.states.async_set(EXPORT, "0", {"unit_of_measurement": "kW"})
+    hass.states.async_set(POWER, "1000", {"unit_of_measurement": "W"})
+    freezer.tick(timedelta(hours=2))
+    assert await lab.poll() == 0
+    assert issues.async_get_issue(DOMAIN, issue_id) is None
+    freezer.tick(timedelta(hours=2))
+    assert await lab.poll() == 0
+    assert issues.async_get_issue(DOMAIN, issue_id) is not None

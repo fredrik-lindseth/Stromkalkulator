@@ -37,6 +37,7 @@ from tests.test_faktura_bkk import (
     FAKTURA_JUNI_2026,
     FAKTURA_MAI_2026,
     FAKTURA_MARS_2026,
+    FAKTURA_SEPTEMBER_2026,
 )
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
@@ -89,6 +90,13 @@ FAKTURA_MAP: dict[str, tuple[str, dict, datetime]] = {
         "bkk_august_2026_hourly.json",
         FAKTURA_AUGUST_2026,
         datetime(2026, 8, 1),
+    ),
+    # September har én Elhub-overstyrt time: 01.09 kl. 00 bar med seg 1,376 kWh
+    # fra 31.08 kl. 23, der tpi frøs. tpi_start_kwh er justert for det.
+    "september_2026": (
+        "bkk_september_2026_hourly.json",
+        FAKTURA_SEPTEMBER_2026,
+        datetime(2026, 9, 1),
     ),
 }
 
@@ -322,9 +330,18 @@ class TestReplayDesember2025:
 
 @pytest.mark.parametrize(
     "replay",
-    ["februar_2026", "mars_2026", "april_2026", "mai_2026", "juni_2026", "juli_2026", "august_2026"],
+    [
+        "februar_2026",
+        "mars_2026",
+        "april_2026",
+        "mai_2026",
+        "juni_2026",
+        "juli_2026",
+        "august_2026",
+        "september_2026",
+    ],
     indirect=True,
-    ids=["februar", "mars", "april", "mai", "juni", "juli", "august"],
+    ids=["februar", "mars", "april", "mai", "juni", "juli", "august", "september"],
 )
 class TestReplayParametrized:
     """Samme replay for feb-juni, parametrisert via indirect fixture.

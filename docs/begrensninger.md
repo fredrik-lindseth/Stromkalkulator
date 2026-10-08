@@ -8,7 +8,7 @@ All faktura-verifisering er gjort mot eget oppsett:
 
 | Komponent               | Verdi                                   |
 | ----------------------- | --------------------------------------- |
-| Nettselskap             | BKK (NO5), verifisert mot 10 fakturaer  |
+| Nettselskap             | BKK (NO5), verifisert mot 11 fakturaer  |
 | Måler                   | Kaifa MA304H3E                          |
 | HAN-leser               | Pow-U (AMSleser.no, AmsToMqtt-firmware) |
 | Strømleverandør         | Tibber Norge AS                         |

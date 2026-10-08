@@ -5118,7 +5118,7 @@ wheels = [
 
 [[package]]
 name = "stromkalkulator"
-version = "1.18.0"
+version = "1.18.1"
 source = { virtual = "." }
 
 [package.dev-dependencies]

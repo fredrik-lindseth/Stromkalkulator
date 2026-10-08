@@ -102,6 +102,12 @@ Var HAN-leseren nede ved periodestart, er `metadata.tpi_start_kwh` også `null`.
 Sett den til tpi ved første målte time minus Elhub-forbruket fram dit; ellers
 kan ikke måneden legges inn i `tests/test_coordinator_replay.py`.
 
+Frøs tpi i forrige måneds siste time (august 2026: 31.08 kl. 23 målte 0,0 kWh),
+kommer den energien med i HAN-deltaet for første time i ny måned. Sjekk time 00
+den 1. mot Elhub. Er den for høy med omtrent forrige måneds siste Elhub-time,
+overstyres den med `fyll_datahull_fra_elhub.py --overstyr`, og `tpi_start_kwh`
+flyttes opp med differansen, ellers teller replayen den med i feil måned.
+
 ### 4. Legg til fixture i `tests/test_faktura_bkk.py`
 
 Kopier `FAKTURA_APRIL_2026`-blokken, endre navn til `FAKTURA_MAI_2026` og fyll inn nye tall fra fakturaen. Legg navnet til i `@pytest.fixture(params=[...])`-blokken.
@@ -125,6 +131,16 @@ python3 scripts/research/verify_invoice_hourly.py \
 # og kjør eksakt-sjekken for alle måneder med prisdekning:
 just verify-norgespris
 ```
+
+### 5b. Legg måneden inn i replay-testene og de genererte tabellene
+
+- `FAKTURA_MAP` og parametriseringen i `tests/test_coordinator_replay.py`.
+- `MANEDER` i `scripts/research/lag_replay_fixtures.py`, og kjør scriptet. Det
+  skriver `tests/fixtures/elhub_<måned>_2026.json` og `final_pris_<måned>_2026.json`.
+- `FAKTURAER` og `AVSTEMBARE` i `tests/test_replay_hendelser.py`.
+- `python3 scripts/research/verify_norgespris_eksakt.py --emit-markdown` og
+  `python3 scripts/research/inject_generated.py`, som oppdaterer tabellen i
+  `docs/research/norgespris-eksakt-match.md`.
 
 ### 6. Sjekk avvik mot april
 
@@ -166,7 +182,7 @@ Kopier `docs/fakturaer/bkk-april-2026.md` til `bkk-mai-2026.md` og oppdater tall
 
 ### 8. Oppdater referanse.md
 
-Øk verifiserte måneder i `docs/fakturaer/referanse.md` og README-tabellen.
+Øk verifiserte måneder i `docs/fakturaer/referanse.md` og README-tabellen i både `README.md` og `README.en.md`.
 
 ### 9. Anonymiser personlig data
 

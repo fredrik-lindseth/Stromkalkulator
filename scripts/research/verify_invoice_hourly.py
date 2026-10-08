@@ -149,6 +149,19 @@ FAKTURAER: dict[str, dict[str, Any]] = {
         "forventet_nettleie_kr": 583.31,
         "forventet_total_kr": -403.07,
     },
+    "september_2026": {
+        "forbruk_dag_kwh": 557.794,
+        "forbruk_natt_kwh": 426.997,
+        "forbruk_total_kwh": 984.791,
+        "forventet_energiledd_dag_kr": 200.60,
+        "forventet_energiledd_natt_kr": 56.04,
+        "forventet_forbruksavgift_kr": 87.76,
+        "forventet_enovaavgift_kr": 12.31,
+        "forventet_kapasitet_kr": 250.00,
+        "forventet_norgespris_kr": -1140.51,
+        "forventet_nettleie_kr": 606.71,
+        "forventet_total_kr": -533.80,
+    },
 }
 
 

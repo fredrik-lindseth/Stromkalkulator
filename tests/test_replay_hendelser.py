@@ -99,10 +99,22 @@ FAKTURAER: dict[str, dict[str, float]] = {
         "norgespris_kr": -986.38,
         "nettleie_kr": 583.31,
     },
+    "september_2026": {
+        "forbruk_dag_kwh": 557.794,
+        "forbruk_natt_kwh": 426.997,
+        "forbruk_total_kwh": 984.791,
+        "energiledd_dag_kr": 200.60,
+        "energiledd_natt_kr": 56.04,
+        "forbruksavgift_kr": 87.76,
+        "enovaavgift_kr": 12.31,
+        "kapasitet_kr": 250.00,
+        "norgespris_kr": -1140.51,
+        "nettleie_kr": 606.71,
+    },
 }
 
 # Månedene fasiten har både intervallenergi og Final-pris for.
-AVSTEMBARE = ("mai_2026", "juni_2026", "juli_2026", "august_2026")
+AVSTEMBARE = ("mai_2026", "juni_2026", "juli_2026", "august_2026", "september_2026")
 
 # Måneder med prisdekning, men uten energifasit. De er ufullstendige, og det
 # skal stå i en test framfor å forsvinne i et skip. Tom nå: august fikk

@@ -52,6 +52,7 @@ MANEDER: Final[list[str]] = [
     "juni_2026",
     "juli_2026",
     "august_2026",
+    "september_2026",
 ]
 
 

@@ -6,6 +6,8 @@ Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) og [S
 
 ### Fikset
 
+- **Solcelleeksport gir ikke lenger falskt varsel om frossen energimåler.** Når importeffekten er 0 og eksportmåleren viser gyldig positiv effekt, er det normalt at importtelleren står stille. Varslet ryddes, og hele varslingsfristen gjelder igjen etter eksporten. Krever at eksportmåleren er konfigurert. <!--kort-->
+
 - **En forsinket måleravlesning rett etter månedsskiftet mister ikke lenger den siste energien eller kostnaden fra forrige måned.** Dette traff bare når måleren var borte akkurat ved midnatt; den forsinkede delen føres nå tilbake til riktig månedsarkiv. <!--kort-->
 - **Solcelleeksport deles nå ved månedsskiftet.** Kilowattimer og inntekt fra et pollvindu som krysser midnatt havner nå i riktig måned, i stedet for hele beløpet i den gamle. <!--kort-->
 - **Forrige måneds nettleie leser nå de bokførte kronebeløpene fra månedsarkivet.** Tidligere regnet sensoren energileddet på nytt med siste sats i måneden, som ga feil når en sats endret seg underveis. En måned som allerede var arkivert før denne oppdateringen vises som ukjent, fordi de bokførte delbeløpene ikke fantes da; neste månedsskifte lager et komplett arkiv. <!--kort-->

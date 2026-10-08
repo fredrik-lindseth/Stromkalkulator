@@ -248,6 +248,13 @@ Tretimersgrensen for frossen teller er justerbar under Configure (1 til 48
 timer). Hev den på en hytte eller et anlegg som står uten forbruk i perioder,
 ellers varsler den hver gang hovedbryteren er av.
 
+Når importeffekten er 0 og den konfigurerte eksportmåleren viser gyldig,
+positiv eksport, er det normalt at importtelleren står stille. Frossen-varselet
+ryddes da, og fristen starter på nytt ved hver slik avlesning. Når eksporten
+stopper, må hele terskelen passere igjen før telleren varsles som frossen.
+Dette krever en konfigurert eksportmåler; manglende eller ugyldig eksportdata
+undertrykker ikke varselet, og positiv import overvåkes fortsatt.
+
 Hva som skjer med tallene mens en input er nede:
 
 - Effektmåler nede: døgnmaks og dermed kapasitetstrinnet blir for lavt.

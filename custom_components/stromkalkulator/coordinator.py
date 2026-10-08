@@ -1382,7 +1382,14 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # sensoren rapporterer men telleren står stille, og det er usant når
         # sensoren er borte.
         if self.energy_sensor and gyldig_naa.get(INPUT_ROLLE_ENERGI, False):
-            if self._last_energy_increase is None:
+            eksport_w = self._effekt_watt(INPUT_ROLLE_EKSPORT)
+            if self._effekt_watt(INPUT_ROLLE_EFFEKT) == 0 and eksport_w is not None and eksport_w > 0:
+                # Under solcelleeksport uten import skal importtelleren stå
+                # stille. Start fristen på nytt, også for å unngå et varsel
+                # straks eksporten stopper. Ugyldig eksport er ikke bevis
+                # på produksjon, og positiv import skal fortsatt overvåkes.
+                self._last_energy_increase = now
+            elif self._last_energy_increase is None:
                 # Fersk installasjon, eller lagret verdi som manglet: start
                 # klokken nå framfor å melde frossen på null grunnlag.
                 self._last_energy_increase = now

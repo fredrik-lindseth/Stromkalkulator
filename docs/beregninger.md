@@ -133,6 +133,8 @@ Akkumuleres time for time. Hopper over hvis spotpris-sensor er ugyldig (mer enn 
 
 Når eksport-effektsensor er konfigurert, akkumuleres `spot_price_eks_mva × eksportert_kWh`. Privatperson har ikke utgående mva på salg av kraft, så strømleverandøren betaler eks. mva.
 
+Energien fordeles over UTC-kvarterene den ble levert i og prises med hvert kvarters observerte pris. En senere poll bruker ikke sin pris på eldre eksport. Null og negative priser er gyldige. Mangler en pris, beholdes kjent inntekt og energi uten pris separat; samlet inntekt og nettokostnad vises som ukjent til grunnlaget er komplett. Nye prisobservasjoner kan korrigere de siste tre timene.
+
 Netto månedskostnad = brutto kostnad minus eksportinntekt.
 
 ## Månedlig forbruk

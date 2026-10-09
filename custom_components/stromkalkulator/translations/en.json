@@ -344,7 +344,7 @@
   "issues": {
     "vakthold_utfall": {
       "title": "Strømkalkulator is not receiving data from {input}",
-      "description": "Hours without data, per sensor:\n\n{detaljer}\n\nWhile they are gone, consumption and cost stand still without the numbers looking wrong. Check the integration that owns the sensor, the HAN reader and the network. The list updates as sensors return, and the warning clears itself once they all deliver again."
+      "description": "Hours without data, per sensor:\n\n{detaljer}\n\nMissing inputs affect the calculations that depend on them. Known consumption and cost components are still booked when their inputs are valid. Check the integration that owns the sensor, the HAN reader and the network. The list updates as sensors return, and the warning clears itself once they all deliver again."
     },
     "vakthold_frossen": {
       "title": "The energy meter is not moving",
@@ -352,7 +352,7 @@
     },
     "vakthold_spot_utlopt": {
       "title": "The spot price is too old to calculate with",
-      "description": "{entity_id} has not delivered a valid price for {timer} hours, and the cached price has expired. Consumption is still counted in kWh, but cost, subsidy and the Norgespris comparison stand still until the price returns."
+      "description": "{entity_id} has not delivered a valid price for {timer} hours, and the cached price has expired. Consumption, grid charges, taxes and known Norgespris below the consumption cap are still booked. Spot-dependent energy cost, subsidy and the Norgespris comparison lack a price basis. Missing price coverage remains visible in data quality."
     },
     "energi_delta_forkastet": {
       "title": "A jump in the energy meter was discarded",

@@ -94,7 +94,7 @@ if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
 
-DIAGNOSTICS_SCHEMA_VERSION: int = 7
+DIAGNOSTICS_SCHEMA_VERSION: int = 8
 
 # Valgene brukeren har tatt, uten entity-id-ene. Disse er trygge å vise rått:
 # de sier hva integrasjonen regnet med, ikke hvem som regnet.
@@ -226,13 +226,20 @@ BEREGNING_ALLOWLIST: tuple[str, ...] = (
     "eksport_konfigurert",
     "monthly_export_kwh",
     "monthly_export_revenue_kr",
+    "monthly_export_known_revenue_kr",
+    "monthly_export_kwh_uten_pris",
+    "monthly_export_price_complete",
     "monthly_cost_kr",
     "monthly_net_cost_kr",
     "previous_month_export_kwh",
     "previous_month_export_revenue_kr",
+    "previous_month_export_known_revenue_kr",
+    "previous_month_export_kwh_uten_pris",
+    "previous_month_export_price_complete",
     "previous_month_cost_kr",
     "previous_month_net_cost_kr",
     "previous_month_bokforte_kroner",
+    "previous_month_fastledd_grunnlag_bekreftet",
 )
 
 # Nøkler i coordinator.data som med vilje ikke ligger under "beregning".

@@ -702,6 +702,7 @@ class Avregningsbok:
         self._sum_natt = 0.0
         self._sum_uten = 0.0
         self._sum_delvis = 0.0
+        self._ferdige_intervaller = 0
         self._sist_observert: Avlesning | None = None
         self._aktiv_maned: str | None = None
         self._arkiv: dict[str, Manedssum] = {}
@@ -869,6 +870,7 @@ class Avregningsbok:
         self._bidrag.clear()
         self._sum_total = self._sum_dag = self._sum_natt = 0.0
         self._sum_uten = self._sum_delvis = 0.0
+        self._ferdige_intervaller = 0
         self._avvist_kwh = 0.0
         self._aktiv_maned = naa_maned
         self.ufullstendig = False  # flagget fjernes ved første månedsskifte (D)
@@ -963,7 +965,7 @@ class Avregningsbok:
             kwh_uten_pris=self._sum_uten,
             kwh_delvis_pris=self._sum_delvis,
             avvist_kwh=self._avvist_kwh,
-            intervaller=len(self._poster),
+            intervaller=self._ferdige_intervaller + len(self._poster),
         )
 
     def _trekk_bidrag(self, start: datetime) -> None:
@@ -1044,11 +1046,33 @@ class Avregningsbok:
         av det ligger i månedsfeltene coordinatoren bærer.
         """
         beholde = intervallstart(naa) - LAGRINGSVINDU if naa is not None else None
+        starter = self._starter()
+        beholdte = starter if beholde is None else starter[bisect_left(starter, beholde) :]
+        sum_ = self.maanedssum()
+        ferdige: dict[str, float | int] = {
+            "kwh_total": sum_.kwh_total,
+            "kwh_dag": sum_.kwh_dag,
+            "kwh_natt": sum_.kwh_natt,
+            "kwh_uten_pris": sum_.kwh_uten_pris,
+            "kwh_delvis_pris": sum_.kwh_delvis_pris,
+            "intervaller": sum_.intervaller - len(beholdte),
+        }
+        # Beholdt vindu regnes opp fra intervallene ved innlasting. Resten
+        # lagres som ferdige summer, også prisdekningen som ellers går tapt.
+        for start in beholdte:
+            kwh, tariff, kvalitet = self._bidrag[start]
+            ferdige["kwh_total"] -= kwh
+            ferdige["kwh_dag" if tariff is Tariff.DAG else "kwh_natt"] -= kwh
+            if kvalitet is Intervallkvalitet.UTEN_PRIS:
+                ferdige["kwh_uten_pris"] -= kwh
+            elif kvalitet is Intervallkvalitet.DELVIS_PRIS:
+                ferdige["kwh_delvis_pris"] -= kwh
         return {
             "skjema_versjon": SKJEMA_VERSJON,
             "aktiv_maned": self._aktiv_maned,
             "ufullstendig": self.ufullstendig,
             "avvist_kwh": self._avvist_kwh,
+            "ferdige_sum": ferdige,
             "sist_observert": self._sist_observert.til_lagring() if self._sist_observert else None,
             "pris": self.pris.til_lagring(fra=beholde),
             "intervaller": [
@@ -1057,11 +1081,7 @@ class Avregningsbok:
                     "kwh": self._poster[start].kwh,
                     "energikvalitet": str(self._poster[start].energikvalitet),
                 }
-                for start in (
-                    self._starter()
-                    if beholde is None
-                    else self._starter()[bisect_left(self._starter(), beholde) :]
-                )
+                for start in beholdte
             ],
             "arkiv": {
                 maned: {
@@ -1091,6 +1111,13 @@ class Avregningsbok:
         bok.ufullstendig = bool(migrert["ufullstendig"])
         bok._aktiv_maned = migrert["aktiv_maned"]
         bok._avvist_kwh = float(migrert["avvist_kwh"])
+        ferdige = migrert["ferdige_sum"]
+        bok._sum_total = float(ferdige.get("kwh_total", 0.0))
+        bok._sum_dag = float(ferdige.get("kwh_dag", 0.0))
+        bok._sum_natt = float(ferdige.get("kwh_natt", 0.0))
+        bok._sum_uten = float(ferdige.get("kwh_uten_pris", 0.0))
+        bok._sum_delvis = float(ferdige.get("kwh_delvis_pris", 0.0))
+        bok._ferdige_intervaller = int(ferdige.get("intervaller", 0))
         if migrert["sist_observert"]:
             bok._sist_observert = Avlesning.fra_lagring(migrert["sist_observert"])
         if migrert["pris"] and kwargs.get("prisadapter") is None:
@@ -1129,6 +1156,7 @@ def migrer_lagring(raa: Mapping[str, Any] | None) -> dict[str, Any]:
         "aktiv_maned",
         "ufullstendig",
         "avvist_kwh",
+        "ferdige_sum",
         "sist_observert",
         "pris",
         "intervaller",
@@ -1140,6 +1168,7 @@ def migrer_lagring(raa: Mapping[str, Any] | None) -> dict[str, Any]:
         "aktiv_maned": None,
         "ufullstendig": True,
         "avvist_kwh": 0.0,
+        "ferdige_sum": {},
         "sist_observert": None,
         "pris": None,
         "intervaller": [],
@@ -1162,6 +1191,7 @@ def migrer_lagring(raa: Mapping[str, Any] | None) -> dict[str, Any]:
         "aktiv_maned": raa.get("aktiv_maned"),
         "ufullstendig": bool(raa.get("ufullstendig", False)),
         "avvist_kwh": float(raa.get("avvist_kwh", 0.0)),
+        "ferdige_sum": dict(raa.get("ferdige_sum", {})),
         "sist_observert": raa.get("sist_observert"),
         "pris": raa.get("pris"),
         "intervaller": list(raa.get("intervaller", [])),

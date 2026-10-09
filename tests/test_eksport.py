@@ -86,9 +86,8 @@ class TestExportAccumulation:
         """Plusskunder får betalt spotpris eks. mva, ikke inkl. mva.
 
         Privatperson som selger kraft tilbake til strømleverandøren får
-        kraft-prisen uten mva (privat har ikke utgående mva). Se incident 004
-        og accountant-funn #1: før denne fixen ble eksportinntekt overrapportert
-        med 25 % i Sør-Norge.
+        kraft-prisen uten mva (privat har ikke utgående mva). Se incident 004:
+        inkludert mva ville overrapportert eksportinntekten med 25 % i Sør-Norge.
         """
         spot_price_inkl_mva = 1.50
         export_w = 6000
@@ -363,7 +362,7 @@ class TestExportStorage:
             "monthly_export_revenue": 51.0,
             # `monthly_cost` leses ikke lenger: månedskostnaden er summen av
             # komponentene under, ikke et eget lagret tall som kan drifte fra
-            # dem (33f81xu). Den skrives fortsatt, så den står her også.
+            # dem. Den skrives fortsatt, så den står her også.
             "monthly_cost": 200.0,
             "monthly_accumulated_cost_strom": 200.0,
             "previous_month_export_kwh": 30.0,

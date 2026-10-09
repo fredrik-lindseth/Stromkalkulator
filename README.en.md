@@ -20,6 +20,8 @@
 
 Home Assistant integration that calculates the actual electricity price in Norway, including grid tariffs, taxes, and government subsidies.
 
+Strømkalkulator owns cost calculation and accounting. [Effektvakt](https://github.com/fredrik-lindseth/hacs-effektvakt) owns alerts and load control to reduce consumption and costs, and is the home for any future price planning. Nord Pool supplies the market prices used by calculations and planning.
+
 ## What you get
 
 Sensors showing what electricity actually costs:
@@ -135,6 +137,8 @@ Previous month's data for invoice verification.
 ### Export (Eksport)
 
 Solar export for prosumers (disabled by default).
+
+Export revenue uses the price for the quarter-hour when the energy was supplied. Missing price coverage makes revenue and net cost unknown, with the known subtotal in attributes. Net cost also requires a known fixed charge.
 
 ## Using with Energy Dashboard
 

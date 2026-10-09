@@ -99,3 +99,30 @@ async def test_gammel_store_bevarer_maaned_og_migrerer_en_gang(hass, freezer, ga
     assert await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
     assert (await store.async_load())["monthly_energiledd_apning"] == 45.0
+
+
+@pytest.mark.parametrize("lagret", [[1, 2, 3], {"current_month": ["feil"], "eksportbok": {"pris": []}}])
+async def test_skadet_store_hindrer_ikke_ekte_ha_oppstart(hass, freezer, lagret):
+    freezer.move_to("2026-06-15T10:00:00+00:00")
+    await hass.config.async_update(time_zone="Europe/Oslo")
+    hass.states.async_set("sensor.skadet_effekt", "1000", {"unit_of_measurement": "W"})
+    hass.states.async_set("sensor.skadet_pris", "0.8", {"unit_of_measurement": "NOK/kWh"})
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        version=5,
+        data={
+            "tso": "bkk",
+            "boligtype": "bolig",
+            "avgiftssone": "standard",
+            "tariffmodus": "catalog",
+            "power_sensor": "sensor.skadet_effekt",
+            "spot_price_sensor": "sensor.skadet_pris",
+        },
+    )
+    await Store(hass, 1, f"{DOMAIN}_{entry.entry_id}").async_save(lagret)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    assert entry.runtime_data.data["current_month"] == "2026-06"
+    assert entry.runtime_data.data["monthly_export_kwh"] == 0
+    assert await hass.config_entries.async_unload(entry.entry_id)

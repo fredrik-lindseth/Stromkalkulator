@@ -80,6 +80,7 @@ from stromkalkulator.sensor import (  # noqa: E402
     MaanedligForbrukNattSensor,
     MaanedligForbrukTotalSensor,
     MaanedligNettleieSensor,
+    MaanedligNettokostnadSensor,
     MaanedligNorgesprisDifferanseSensor,
     MaanedligTotalSensor,
     MaksForbrukSensor,
@@ -102,6 +103,25 @@ from stromkalkulator.sensor import (  # noqa: E402
 from tests.vakter import ganget_med  # noqa: E402
 
 # --- Fixtures ---
+
+
+@pytest.mark.parametrize("ukjent", [False, True])
+@pytest.mark.parametrize("prisdekning", [False, True])
+def test_nettokostnad_krever_kjent_fastledd_og_eksportpris(ukjent, prisdekning):
+    coordinator = MagicMock()
+    coordinator.data = {
+        "monthly_net_cost_kr": -0.07,
+        "fastledd_ukjent": ukjent,
+        "monthly_export_price_complete": prisdekning,
+    }
+    entry = MagicMock()
+    entry.entry_id = "bolig"
+    entry.data = {"tso": "egendefinert"}
+    sensor = MaanedligNettokostnadSensor(coordinator, entry)
+    assert sensor.native_value == (None if ukjent or not prisdekning else -0.07)
+    assert bool(sensor.extra_state_attributes.get("fastledd_ukjent")) is ukjent
+    assert sensor.extra_state_attributes["eksport_prisdekning_fullstendig"] is prisdekning
+
 
 SAMPLE_DATA = {
     "energiledd": 0.4613,

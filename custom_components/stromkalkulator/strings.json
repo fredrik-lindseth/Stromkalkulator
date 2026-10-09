@@ -344,7 +344,7 @@
   "issues": {
     "vakthold_utfall": {
       "title": "Strømkalkulator får ikke data fra {input}",
-      "description": "Timer uten data, per sensor:\n\n{detaljer}\n\nSå lenge de er borte står forbruk og kostnad stille, uten at tallene ser feil ut. Sjekk integrasjonen som eier sensoren, HAN-leseren og nettverket. Listen oppdaterer seg når en sensor kommer tilbake, og varselet forsvinner av seg selv når alle leverer igjen."
+      "description": "Timer uten data, per sensor:\n\n{detaljer}\n\nManglende input rammer beregningene som avhenger av den. Kjent forbruk og kjente kostnadskomponenter bokføres fortsatt når grunnlaget deres er gyldig. Sjekk integrasjonen som eier sensoren, HAN-leseren og nettverket. Listen oppdaterer seg når en sensor kommer tilbake, og varselet forsvinner av seg selv når alle leverer igjen."
     },
     "vakthold_frossen": {
       "title": "Energimåleren står stille",
@@ -352,7 +352,7 @@
     },
     "vakthold_spot_utlopt": {
       "title": "Spotprisen er for gammel til å regne med",
-      "description": "{entity_id} har ikke levert en gyldig pris på {timer} timer, og den mellomlagrede prisen er utløpt. Forbruket telles fortsatt i kWh, men kostnad, strømstøtte og Norgespris-sammenligning står stille til prisen er tilbake."
+      "description": "{entity_id} har ikke levert en gyldig pris på {timer} timer, og den mellomlagrede prisen er utløpt. Forbruk, nettleie, avgifter og kjent Norgespris under forbrukstaket bokføres fortsatt. Spotavhengig kraftkostnad, strømstøtte og Norgespris-sammenligning mangler prisgrunnlag. Manglende prisdekning vises i datakvaliteten."
     },
     "energi_delta_forkastet": {
       "title": "Et sprang i energimåleren ble forkastet",

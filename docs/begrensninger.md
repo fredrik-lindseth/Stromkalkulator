@@ -103,13 +103,12 @@ fakturaen falt `monthly_cost_kr` 64 til 145 kroner ned på riktig verdi for mai,
 juni og juli 2026, se
 [research/revalidering-l3b-september-2026.md](research/revalidering-l3b-september-2026.md).
 
-Sensorene leser de samme kronene fra september 2026 (L3c). Ett unntak står
-igjen: «Forrige måned nettleie» regner satser ganget med arkiverte
-kilowattimer, fordi arkivet ikke lagrer forrige måneds bokførte kroner. Den
-bommer når energileddsatsen endret seg midt i måneden, altså ved nyttår og for
-sesong-nettselskap 1. april og 1. november. Attributtet `kilde` på sensoren sier
-det, og fikses i stromkalkulator-1fnzdn8.
-
+Sensorene leser de bokførte kronene, også for forrige måned. Ved
+månedsskifte arkiveres energiledd, avgifter og støtte som kronebeløp sammen
+med månedens fastledd. Sene intervaller korrigerer den arkiverte måneden;
+fastleddet beregnes da med tariffgrunnlaget som ble lagret for den måneden.
+Et gammelt lagringsarkiv uten bokførte kroner gir Ukjent framfor et anslag
+basert på dagens satser.
 Det som ellers står igjen er en visningskuriositet: attributtet
 `kapasitetsledd_per_kwh` er kroner per time presentert som kroner per
 kilowattime, og de to er bare like ved nøyaktig 1 kWh/h. Tallet ganges ikke inn
@@ -117,30 +116,30 @@ i noe beløp lenger, så det rammer bare den viste prisen per kWh.
 
 ## 9. Fem nettselskap har en annen kapasitetsledd-modell
 
-Kapasitetsleddet beregnes som snittet av de tre høyeste døgnmaksene i måneden. Det er den vanligste innretningen, og 69 av de 74 valgbare oppføringene i `dso.py` bruker den. RME anbefaler den ikke, de skriver at nettselskapene «har en viss frihet til å bestemme hvordan de vil differensiere» fastleddet, og nevner både døgnmaks, snitt av flere døgnmakser og sikringsstørrelse som lovlige innretninger ([RME: Nettleie for forbruk](https://www.nve.no/reguleringsmyndigheten/regulering/nettvirksomhet/nettleie/nettleie-for-forbruk/)). De fem under bryter altså ingen regel. Alle fem er implementert etter sin egen modell, men de har hver sin restbegrensning:
+Kapasitetsleddet beregnes som snittet av de tre høyeste døgnmaksene i måneden. Det er den vanligste innretningen, og 69 av de 74 valgbare oppføringene i `dso.py` bruker den. RME anbefaler den ikke, de skriver at nettselskapene «har en viss frihet til å bestemme hvordan de vil differensiere» fastleddet, og nevner både døgnmaks, snitt av flere døgnmakser og sikringsstørrelse som lovlige innretninger ([RME: Nettleie for forbruk](https://www.nve.no/reguleringsmyndigheten/regulering/nettvirksomhet/nettleie/nettleie-for-forbruk/)). De fire med kjent metode er implementert etter sine egne beregningsregler. For Tinfos er metoden fortsatt ukjent, og beregningen bruker en uttrykkelig uverifisert antakelse. Begrensningene er:
 
 | Nettselskap       | Metode          | Hva som gjelder nå                                                             |
 | ----------------- | --------------- | ------------------------------------------------------------------------------ |
 | Sør Aurdal Energi | `MND_MAX`       | Månedsmaksen bestemmer trinnet. Ingen restbegrensning.                         |
 | Alut, Netera      | `OV_TREFASE`    | Fastledd etter hovedsikring. Du må velge sikringsstørrelsen selv.              |
 | Fjellnett         | `FEM_VEKTET_ÅR` | Lineær sats fra fem sesongvektede ukestopper. Trenger tolv måneders historikk. |
-| Tinfos            | `UKJENT`        | Nettselskapet publiserer ikke metoden. Beløpet er merket uverifisert.          |
+| Tinfos            | `UKJENT`        | Regnes med tre døgnmaks som uverifisert antakelse, merket på sensoren. |
 
 Alut og Netera fakturerer etter størrelsen på hovedsikringen, som ingen sensor kan lese. Du velger raden fra prislisten i oppsettet, eller under Configure hvis du hadde integrasjonen fra før. Til den er valgt, står kapasitetstrinn-sensoren som Ukjent, og fastleddet mangler i månedskostnad og fakturaestimat. Det er et bevisst valg: et gjettet trinn ville sett riktig ut og vært feil, og hos Netera skiller trinnene seg med en faktor to.
 
-Fjellnett har ingen trinn. Fastleddet er grunnbeløp pluss en sats per kW, der kW er snittet av de fem høyeste ukestoppene over løpende tolv måneder, sesongvektet. Vi bygger opp den historikken fra dagen du installerer integrasjonen, så det første året viser sensoren for lite (i starten bare grunnbeløpet) og konvergerer mot riktig beløp over tolv måneder. Vi kan ikke hente historikk bakover, den ligger hos Fjellnett og i Elhub. Beløpet rundes til hele kroner per måned, som resten av satsene, altså opptil 50 øre/mnd unna Fjellnetts øre-eksakte beløp.
+Fjellnett har ingen trinn. Fastleddet er grunnbeløp pluss en sats per kW, der kW er snittet av de fem høyeste ukestoppene over løpende tolv måneder, sesongvektet. Vi bygger opp den historikken fra dagen du installerer integrasjonen, så det første året viser sensoren for lite (i starten bare grunnbeløpet) og konvergerer mot riktig beløp over tolv måneder. Vi kan ikke hente historikk bakover, den ligger hos Fjellnett og i Elhub. Fjellnetts beregning runder fortsatt beløpet til hele kroner per måned, altså opptil 50 øre/mnd unna et øre-eksakt beløp. Dette gjelder denne beregningsmetoden; katalogens trinnpriser beholder nå publiserte ørebeløp.
 
-Tinfos publiserer ikke tariffen sin, og fri-nettleie har sendt dem en forespørsel uten å få svar. Trinnprisene stemmer, men ingen av kildene vet hvilken kW-verdi de slås opp med. Vi regner med NVE-modellen og setter attributtet `metode_uverifisert` på sensoren. Har du en Tinfos-faktura, se [bidra med faktura](fakturaer/bidra-med-faktura.md).
+Tinfos publiserer ikke tariffen sin, og fri-nettleie har sendt dem en forespørsel uten å få svar. Datasettet har eldre trinnpriser, men ingen av kildene bekrefter hvilken kW-verdi de slås opp med. Integrasjonen beregner likevel fastleddet med snittet av tre døgnmaks og de lagrede trinnprisene. Sensoren merker antakelsen med `metode_uverifisert`. Fastleddet inngår i totalsummene, så disse må også vurderes som uverifiserte for Tinfos; de blir ikke automatisk Ukjent fordi metoden er ukjent. Har du en Tinfos-faktura, se [bidra med faktura](fakturaer/bidra-med-faktura.md).
 
 Metodenavnene er fri-nettleies. Detaljer i [beregninger.md](beregninger.md#nettselskap-med-en-annen-metode), historikken i [incident 006](incidents/006-kapasitetstrinn-uten-kilde.md).
 
-Én ting til om Fjellnett: energiledd og fastledd følger nettselskapets egen prisliste fra 01.07.2026, mens fri-nettleie fortsatt har 01.01.2026-tariffen. Avviket er ført opp i `KJENTE_AVVIK` i drift-vakten og fjernes når fri-nettleie er oppdatert.
+Fjellnetts energiledd og fastledd følger prislisten fra 01.07.2026. Fri-nettleie har nå samme tariffperiode, og kontrollen 9. oktober 2026 fant ikke prisavvik. Det tidligere unntaket i drift-vakten er fjernet.
 
 ## 10. To nettselskap vi ikke får verifisert godt nok
 
 Drift-vakten sammenligner mot fri-nettleie hver uke, men den fanger bare det begge kildene ser. Disse to har et hull ingen av dem dekker.
 
-Area Nett har tre prisområder med ulik pris, og hvilket som gjelder avgjøres av adressen. Du velger området selv i oppsettet: område 1 (Nordkapp, Måsøy), område 2 (Karasjok, Porsanger) eller område 3 (Gamvik, Lebesby). Har du integrasjonen fra før, står du på den utfasede oppføringen som regner med område 2, og et repair-varsel ber deg velge. Laveste trinn spriker fra 358 til 525 kr/mnd mellom områdene, så valget betyr noe. Kilde er Areas eget prisblad for 2026. For område 1 avviker fri-nettleie i de tre øverste trinnene, ført opp i `KJENTE_AVVIK`.
+Area Nett har tre prisområder med ulik pris, og hvilket som gjelder avgjøres av adressen. Du velger området selv i oppsettet: område 1 (Nordkapp, Måsøy), område 2 (Karasjok, Porsanger) eller område 3 (Gamvik, Lebesby). Har du integrasjonen fra før, står du på den utfasede oppføringen som regner med område 2, og et repair-varsel ber deg velge. Laveste trinn spriker fra 358 til 525 kr/mnd mellom områdene, så valget betyr noe. Kilde er Areas eget prisblad for 2026. Kontrollen 9. oktober 2026 fant ikke avvik i husholdningenes trinnpriser mot fri-nettleie. Kundetype og energitariff må likevel vurderes separat; prislikhet bekrefter ikke hele tariffmodellen.
 
 Tinfos er dekket i punkt 9. Ingen kilde finnes for metoden.
 
@@ -169,3 +168,19 @@ Reelle avvik som påvirker brukeren:
 | Kapasitetstrinn-grense | 165 kr/mnd | 0              | Kun hvis permanent på grense                    |
 
 Total typisk ukjent feil er under 5 kr/mnd for en vanlig bruker, altså under 0,1 % av fakturasummen. Integrasjonen kan trygt brukes for fakturakontroll og fanger reelle feil i størrelsesorden 50 kr+.
+
+
+## Tariffvarianter og innmating
+
+Katalogen dekker de tariffvariantene som er oppgitt i oppsettet. Netera-valget
+bruker standardavtalen med flatt energiledd. Den valgfrie sommer-/vinteravtalen
+som [Netera tilbyr](https://netera.no/nettleie/avtaler/privat/) er ikke modellert;
+kunder med denne avtalen kan ikke bruke katalogberegningen som fakturafasit.
+Sikringsstørrelse og 230/400 V velges separat i oppsettet.
+
+Eksportinntekten er spotverdi av eksportert energi. Den inkluderer ikke
+nettselskapets innmatingstariff eller kraftleverandørens egne salgsvilkår.
+For eksempel har [Glitre en egen godtgjørelse for innmating](https://www.glitrenett.no/kunde/nettleie-og-priser/priser-produksjon-av-strom).
+Denne kommer i tillegg til strømleverandørens oppgjør. Derfor er netto
+månedskostnad for plusskunder en avgrenset beregning, selv når alle
+eksportintervaller har kjent spotpris.

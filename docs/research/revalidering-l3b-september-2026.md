@@ -222,8 +222,8 @@ summerer til feltet, og det er dokumentert og bevisst.
 ## August 2026 er fortsatt ikke avstembar
 
 Uendret fra L3a-runden. 176 av 744 timer mangler HAN-måling, Elhub-CSV-en for
-august er ikke lastet ned (`stromkalkulator-r568ale`), og 31.08 kl. 00 står
-bevisst ufylt (`stromkalkulator-3u7fttz`). Måneden er merket DELVIS i
+august er ikke lastet ned, og 31.08 kl. 00 står
+bevisst ufylt. Måneden er merket DELVIS i
 `verify_invoice_hourly.py`, og utskriften er bit-identisk før og etter serien.
 Den er ikke revalidert utover det.
 

@@ -6,6 +6,11 @@ Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) og [S
 
 ### Fikset
 
+- Oppdatert nettleietariffer fra 1. oktober 2026 for Asker, Barents, Etna, Glitre, Kystnett, Midtnett og Norgesnett mot offisielle kilder. <!--kort-->
+- Kapasitetstrinn beholder publiserte ørepriser gjennom beregning, lagring og omstart. <!--kort-->
+- Midtnett og Areas tre områder bruker egen fastleddtabell når anlegget er konfigurert som fritidsbolig, også ved fast bosted. <!--kort-->
+- Asker, Midtnett og Norgesnett følger klokkestyrt dag-/nattariff også i helger og på helligdager. <!--kort-->
+- Fastledd og tilhørende totaler vises som ukjent utenfor kildebekreftede trinn: over 25 kW hos Etna og fra 75 kW hos Nettselskapet. <!--kort-->
 - Rekonfigurering bruker én omlasting ved endring og ingen ved uendret lagring. Tilpasset Home Assistants kommende krav uten å heve minimumsversjonen. <!--kort-->
 - Norgespris under forbrukstaket bokføres også når spotprisen mangler. Manglende prisgrunnlag for sammenligninger beholdes synlig. <!--kort-->
 - Eksportinntekt bruker prisen fra kvarteret energien ble levert i. Manglende prisdekning gir ukjent inntekt og nettokostnad, med kjent delbeløp i attributtene. <!--kort-->
@@ -17,6 +22,7 @@ Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) og [S
 
 - Oppdatert dashboard- og varseleksempler for kapasitetsmargin og måleproblemer, med støtte for både eldre og nyere Home Assistant.
 - Samstemt norske og engelske sensorbeskrivelser og Home Assistant-varsler med regnskapsberegningene og datakvaliteten.
+- Beskrevet Neteras valgfrie sesongavtale og avgrenset tariff- og eksportberegningene til det kildegrunnlaget støtter.
 
 ## [1.18.1]
 

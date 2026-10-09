@@ -1,4 +1,4 @@
-"""Fast mirrors of named Docker scenarios (stromkalkulator-271siks).
+"""Fast mirrors of named Docker scenarios.
 
 These assert HA entity states and the real repairs registry with a frozen
 clock. Docker still owns HTTP/onboarding, process restart and release packing;

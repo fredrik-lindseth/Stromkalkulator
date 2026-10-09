@@ -20,16 +20,15 @@ tidligere inkl-mva-verdier (formel: inkl/1.25 - 0.0713 - 0.01 for standard-sone)
 og arver ~0,5% avrunding fra display-avrundede kilder. Bør re-verifiseres mot
 DSO-prisliste ved oppdatering.
 
-Sist oppdatert: Juli 2026 (Elvia og Nettselskapet hevet priser 01.07.2026)
+Sist kontrollert: Oktober 2026. Se docs/satsendringer.md for satser og kilder.
 """
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from decimal import ROUND_HALF_UP, Decimal
 from typing import Any, Final, NotRequired, TypedDict
 
 # Type for kapasitetstrinn: tuple of (kW-grense, kr/mnd)
-type KapasitetstrinnTuple = tuple[float, int]
+type KapasitetstrinnTuple = tuple[float, float]
 
 # === FASTLEDD-METODER ===
 # Hvordan nettselskapet bestemmer fastleddet (kapasitetsleddet). Navnene er
@@ -104,7 +103,7 @@ class KapasitetstrinnDict(TypedDict):
 
     min: int
     max: int
-    pris: int
+    pris: float
 
 
 class EnergileddPeriode(TypedDict):
@@ -138,6 +137,9 @@ class DSOEntry(TypedDict):
     energiledd_natt_eks_mva: float
     url: str
     kapasitetstrinn: list[KapasitetstrinnTuple | KapasitetstrinnDict]
+    kapasitetstrinn_per_boligtype: NotRequired[dict[str, list[KapasitetstrinnTuple | KapasitetstrinnDict]]]
+    kjent_fastledd_maks_kw: NotRequired[float]
+    kjent_fastledd_maks_kw_inkludert: NotRequired[bool]
     tiltakssone: NotRequired[bool]
     helg_som_natt: NotRequired[bool]  # Default True. False = kun klokkeslett styrer dag/natt.
     terskel_inkludert: NotRequired[bool]  # Default True. False = eksakt grensetreff hører til lavere trinn.
@@ -170,6 +172,14 @@ class DSOEntry(TypedDict):
     # Kun FEM_VEKTET_ÅR: vektfaktor per måned (1-12) som effektene skaleres med
     # før de fem høyeste plukkes ut.
     fastledd_sesongfaktor: NotRequired[dict[int, float]]
+
+
+def hent_kapasitetstrinn(dso: DSOEntry, boligtype: str) -> list[KapasitetstrinnTuple | KapasitetstrinnDict]:
+    """Velg kildebekreftet kundetariff, ellers nettselskapets standardtabell."""
+    # Fast bosted endrer støttevilkårene, ikke den oppgitte bygningstypen.
+    if boligtype == "fritidsbolig_fast":
+        boligtype = "fritidsbolig"
+    return dso.get("kapasitetstrinn_per_boligtype", {}).get(boligtype, dso["kapasitetstrinn"])
 
 
 @dataclass(frozen=True)
@@ -252,7 +262,7 @@ def parse_kapasitetstrinn(tekst: str) -> list[KapasitetstrinnTuple]:
             if not trinn:
                 raise ValueError(f"«{par}» mangler kolon mellom kW-grense og pris")
             forrige_grense, forrige_pris = trinn[-1]
-            trinn[-1] = (forrige_grense, _rund_krone(f"{forrige_pris}.{_bare_siffer(par)}"))
+            trinn[-1] = (forrige_grense, _som_tall(f"{forrige_pris:g}.{_bare_siffer(par)}", "pris"))
             continue
         raa_grense, _, raa_pris = par.partition(":")
         grense = _som_tall(raa_grense, "kW-grense")
@@ -263,7 +273,7 @@ def parse_kapasitetstrinn(tekst: str) -> list[KapasitetstrinnTuple]:
             raise ValueError(f"Prisen kan ikke være negativ, fikk «{raa_pris.strip()}»")
         if trinn and grense <= trinn[-1][0]:
             raise ValueError(f"kW-grensene må stige: {grense} kommer etter {trinn[-1][0]}")
-        trinn.append((grense, _rund_krone(pris)))
+        trinn.append((grense, pris))
     return trinn
 
 
@@ -286,14 +296,9 @@ def _som_tall(raa: str, hva: str) -> float:
         raise ValueError(f"«{raa.strip()}» er ikke et tall ({hva})") from feil
 
 
-def _rund_krone(pris: float | str) -> int:
-    """Prisen lagres i hele kroner, som resten av `kapasitetstrinn`."""
-    return int(Decimal(str(pris)).quantize(Decimal(1), ROUND_HALF_UP))
-
-
 def finn_kapasitetstrinn(
     trinn: list[KapasitetstrinnTuple], grunnlag_kw: float, terskel_inkludert: bool = True
-) -> tuple[int, int, str]:
+) -> tuple[float, int, str]:
     """Slå opp fastledd for et effektgrunnlag: (kr/mnd, trinnummer, beskrivelse).
 
     Én definisjon av grenseoppslaget, brukt av både coordinator og tester. En
@@ -388,48 +393,48 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "Glitre Nett",
         "prisomrade": "NO1",
         "supported": True,
-        "energiledd_dag_eks_mva": 0.256,  # 25,60 øre/kWh ren energiledd (per 01.07.2026)
-        "energiledd_natt_eks_mva": 0.136,  # 13,60 øre/kWh ren energiledd (per 01.07.2026)
+        # Kilde: https://www.glitrenett.no/kunde/nettleie-og-priser/nettleiepriser-privatkunde
+        # Tariff fra 2026-10-01, verifisert 2026-10-09; energiledd eks. mva og avgifter.
+        "energiledd_dag_eks_mva": 0.2787,
+        "energiledd_natt_eks_mva": 0.1587,
         "url": "https://www.glitrenett.no/kunde/nettleie-og-priser/nettleiepriser-privatkunde",
         "helg_som_natt": False,
-        # Kilde: glitrenett.no per 01.07.2026 (verifisert 2026-07-28). Energileddet
-        # sto stille, kun kapasitetsleddet ble hevet.
         "kapasitetstrinn": [
-            (2, 160),
-            (5, 233),  # 232,50 kr/mnd
-            (10, 390),
-            (15, 730),
-            (20, 965),
-            (25, 1210),
-            (50, 1885),
-            (75, 2990),
-            (100, 3990),
-            (float("inf"), 6665),
+            (2, 165),
+            (5, 270),
+            (10, 455),
+            (15, 765),
+            (20, 1025),
+            (25, 1275),
+            (50, 2062.50),
+            (75, 3075),
+            (100, 4105),
+            (float("inf"), 7190),
         ],
     },
     "norgesnett": {
         "name": "Norgesnett (Glitre Nett)",
         "prisomrade": "NO1",
         "supported": True,
-        # Norgesnett er en del av Glitre Nett, men kunder faktureres etter egne tariffer.
-        # Kilde: norgesnett.no, tabellen "Nettleiepriser privat 1. juli 2026,
-        # kapasitetstariff" (per 01.07.2026, verifisert 2026-08-07). Publiserte
-        # energiledd er inkl. alt: 42,16 (dag) og 27,16 (natt) øre/kWh.
-        # Dag/natt-klokkeslettene under er fra tidligere kilde, ikke verifisert nå.
-        "energiledd_dag_eks_mva": 0.25598,  # 25,60 øre/kWh ren energiledd (dag 06-22)
-        "energiledd_natt_eks_mva": 0.13598,  # 13,60 øre/kWh ren energiledd (natt 22-06)
+        # Kilde: https://norgesnett.no/kunde/nettleie-privat/
+        # Tariff fra 2026-10-01, verifisert 2026-10-09, nå samme priser som Glitre.
+        # Næringssiden oppgir rent energiledd 27,87/15,87; privat 45/30 inkl. alt.
+        "energiledd_dag_eks_mva": 0.2787,
+        "energiledd_natt_eks_mva": 0.1587,
+        # https://norgesnett.no/kunde/ny-nettleie/: redusert pris mellom 22 og 06.
+        "helg_som_natt": False,
         "url": "https://norgesnett.no/kunde/nettleie-privat/",
         "kapasitetstrinn": [
-            (2, 140),  # 0-1,99 kW
-            (5, 233),  # 2-4,99 kW: 232,50 kr/mnd
-            (10, 390),  # 5-9,99 kW
-            (15, 695),  # 10-14,99 kW
-            (20, 935),  # 15-19,99 kW
-            (25, 1145),  # 20-24,99 kW
-            (50, 1813),  # 25-49,99 kW: 1812,50 kr/mnd
-            (75, 2813),  # 50-74,99 kW: 2812,50 kr/mnd
-            (100, 3813),  # 75-99,99 kW: 3812,50 kr/mnd
-            (float("inf"), 6113),  # >100 kW: 6112,50 kr/mnd
+            (2, 165),
+            (5, 270),
+            (10, 455),
+            (15, 765),
+            (20, 1025),
+            (25, 1275),
+            (50, 2062.50),
+            (75, 3075),
+            (100, 4105),
+            (float("inf"), 7190),
         ],
     },
     "tensio_tn": {
@@ -756,6 +761,10 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "Nettselskapet",
         "prisomrade": "NO3",
         "supported": True,
+        # Privatprislisten ender på «50-75 kW», uten avklart inklusjon
+        # av grensen. Fra og med 75 er fastleddet derfor ukjent.
+        "kjent_fastledd_maks_kw": 75,
+        "kjent_fastledd_maks_kw_inkludert": False,
         # Namdal (Trøndelag) - HAR 25% mva (ikke mva-fritak)
         # Sesongpriser, verifisert 2026-07-28 mot nettselskapet.as og fri-nettleie:
         # vinter (nov-apr) 12,7/2,7, sommer (mai-okt) 11,6/1,6. Base = vinter (fallback).
@@ -770,14 +779,14 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         # helgetariff. Bekreftet av kunde i GitHub-issue #11.
         "helg_som_natt": False,
         "url": "https://nettselskapet.as/strompris",
-        # Kilde: nettselskapet.as/strompris per 01.07.2026 (verifisert 2026-07-28)
+        # Kilde: nettselskapet.as/strompris per 01.07.2026 (verifisert 2026-10-09)
         "kapasitetstrinn": [
-            (2, 163),  # 0-2 kW: 162,50 kr/mnd
+            (2, 162.50),  # 0-2 kW: 162,50 kr/mnd
             (5, 300),  # 2-5 kW: 300 kr/mnd
-            (10, 513),  # 5-10 kW: 512,50 kr/mnd
-            (15, 763),  # 10-15 kW: 762,50 kr/mnd
-            (20, 988),  # 15-20 kW: 987,50 kr/mnd
-            (25, 1238),  # 20-25 kW: 1237,50 kr/mnd
+            (10, 512.50),  # 5-10 kW: 512,50 kr/mnd
+            (15, 762.50),  # 10-15 kW: 762,50 kr/mnd
+            (20, 987.50),  # 15-20 kW: 987,50 kr/mnd
+            (25, 1237.50),  # 20-25 kW: 1237,50 kr/mnd
             (50, 2125),  # 25-50 kW: 2125 kr/mnd
             (float("inf"), 3325),  # 50-75 kW: 3325 kr/mnd
         ],
@@ -863,6 +872,19 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
             (25, 1103),
             (float("inf"), 1365),
         ],
+        # Hytter, område 1-3: offisiell månedskolonne (2026), uten mva.
+        # https://www.area.no/getfile.php/132156-1766066155/Filer/20251218_Tariffer%202026.pdf
+        "kapasitetstrinn_per_boligtype": {
+            "fritidsbolig": [
+                (2, 578),
+                (5, 667),
+                (10, 731),
+                (15, 1016),
+                (20, 1143),
+                (25, 1143),
+                (float("inf"), 1143),
+            ],
+        },
     },
     "area_nett_omrade2": {
         "name": "Area Nett Område 2 (Karasjok, Porsanger)",
@@ -886,6 +908,19 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
             (25, 1102),
             (float("inf"), 1365),
         ],
+        # Hytter, område 1-3: offisiell månedskolonne (2026), uten mva.
+        # https://www.area.no/getfile.php/132156-1766066155/Filer/20251218_Tariffer%202026.pdf
+        "kapasitetstrinn_per_boligtype": {
+            "fritidsbolig": [
+                (2, 578),
+                (5, 667),
+                (10, 731),
+                (15, 1016),
+                (20, 1143),
+                (25, 1143),
+                (float("inf"), 1143),
+            ],
+        },
     },
     "area_nett_omrade3": {
         "name": "Area Nett Område 3 (Gamvik, Lebesby)",
@@ -908,6 +943,19 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
             (25, 1102),
             (float("inf"), 1365),
         ],
+        # Hytter, område 1-3: offisiell månedskolonne (2026), uten mva.
+        # https://www.area.no/getfile.php/132156-1766066155/Filer/20251218_Tariffer%202026.pdf
+        "kapasitetstrinn_per_boligtype": {
+            "fritidsbolig": [
+                (2, 578),
+                (5, 667),
+                (10, 731),
+                (15, 1016),
+                (20, 1143),
+                (25, 1143),
+                (float("inf"), 1143),
+            ],
+        },
     },
     "area_nett": {
         "name": "Area Nett (velg område)",
@@ -943,20 +991,24 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "Asker Nett",
         "prisomrade": "NO1",
         "supported": True,
-        "energiledd_dag_eks_mva": 0.2387,  # 23,87 øre/kWh ren energiledd (2026, dag 06-22)
-        "energiledd_natt_eks_mva": 0.1587,  # 15,87 øre/kWh ren energiledd (2026, natt 22-06)
-        "url": "https://askernett.no/prisliste-for-privatkunder-i-2026/",
+        # Kilde: https://askernett.no/prisliste-for-privatkunder-okt-2026/
+        # Tariff fra 2026-10-01, verifisert 2026-10-09; energiledd eks. mva og avgifter.
+        "energiledd_dag_eks_mva": 0.2987,
+        "energiledd_natt_eks_mva": 0.1987,
+        "url": "https://askernett.no/prisliste-for-privatkunder-okt-2026/",
+        # Prislisten definerer bare dag 06-22 og natt 22-06, uten helgeunntak.
+        "helg_som_natt": False,
         "kapasitetstrinn": [
-            (2, 215),  # 0-2 kW: 215 kr/mnd
-            (5, 270),  # 2-5 kW: 270 kr/mnd
-            (10, 395),  # 5-10 kW: 395 kr/mnd
-            (15, 825),  # 10-15 kW: 825 kr/mnd
-            (20, 1030),  # 15-20 kW: 1030 kr/mnd
-            (25, 1300),  # 20-25 kW: 1300 kr/mnd
-            (50, 1840),  # 25-50 kW: 1840 kr/mnd
-            (75, 2900),  # 50-75 kW: 2900 kr/mnd
-            (100, 3890),  # 75-100 kW: 3890 kr/mnd
-            (float("inf"), 6250),  # >100 kW: 6250 kr/mnd
+            (2, 225),
+            (5, 320),
+            (10, 500),
+            (15, 850),
+            (20, 1090),
+            (25, 1350),
+            (50, 2130),
+            (75, 3150),
+            (100, 4200),
+            (float("inf"), 7300),
         ],
     },
     "barents_nett": {
@@ -964,17 +1016,19 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "prisomrade": "NO4",
         "tiltakssone": True,  # Finnmark - fritatt for mva og forbruksavgift
         "supported": True,
-        # Tiltakssone: ren energiledd 11,32 øre + Enova 1,0 = 12,32 øre/kWh sluttpris.
-        "energiledd_dag_eks_mva": 0.1132,  # 11,32 øre/kWh ren energiledd (2026, tiltakssone)
-        "energiledd_natt_eks_mva": 0.1132,  # Flat sats hele døgnet (2026)
+        # Tiltakssone: ren energiledd 10,75 øre + Enova 1,0 = 11,75 øre/kWh sluttpris.
+        # Kilde: https://www.barents-nett.no/getfile.php/1315602-1790233965/Bilder/Nett/Nettleiebrosjyre%2001.10.2026.pdf
+        # Tariff fra 2026-10-01, verifisert 2026-10-09; energiledd eks. mva og avgifter.
+        "energiledd_dag_eks_mva": 0.1075,
+        "energiledd_natt_eks_mva": 0.1075,
         "url": "https://www.barents-nett.no/kundeservice/nett-og-nettleie/",
-        "kapasitetstrinn": [  # 2026-priser
-            {"min": 0, "max": 2, "pris": 517},
-            {"min": 2, "max": 5, "pris": 569},
-            {"min": 5, "max": 10, "pris": 620},
-            {"min": 10, "max": 15, "pris": 673},
-            {"min": 15, "max": 20, "pris": 776},
-            {"min": 20, "max": 999, "pris": 931},
+        "kapasitetstrinn": [
+            {"min": 0, "max": 2, "pris": 491},
+            {"min": 2, "max": 5, "pris": 541},
+            {"min": 5, "max": 10, "pris": 589},
+            {"min": 10, "max": 15, "pris": 639},
+            {"min": 15, "max": 20, "pris": 737},
+            {"min": 20, "max": 999, "pris": 884},
         ],
     },
     "bindal_kraftnett": {
@@ -1436,21 +1490,22 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "prisomrade": "NO4",
         "supported": True,
         # NO4 mva-fritak. Coordinator legger på forbruksavgift 7,13 + Enova 1,0.
-        "energiledd_dag_eks_mva": 0.18,  # 18,00 øre/kWh ren energiledd (nord_norge)
-        "energiledd_natt_eks_mva": 0.18,  # Flat sats - ingen dag/natt-differensiering
+        # Kilde: https://kystnett.no/Nettleie/?Article=68
+        # Tariff fra 2026-10-01, verifisert 2026-10-09; energiledd eks. mva og avgifter.
+        "energiledd_dag_eks_mva": 0.17,
+        "energiledd_natt_eks_mva": 0.17,
         "url": "https://kystnett.no/nettleie",
-        # Kapasitetstrinn: fri-nettleie kystnett.yml, tariff gyldig fra 2024-01-01 (hentet 2026-07-28)
         "kapasitetstrinn": [
-            (5, 493),
-            (10, 890),
-            (15, 1286),
-            (20, 1682),
-            (25, 2079),
-            (50, 3268),
-            (75, 5250),
-            (100, 7231),
-            (150, 10204),
-            (float("inf"), 14168),
+            (5, 508),
+            (10, 916),
+            (15, 1324),
+            (20, 1733),
+            (25, 2141),
+            (50, 3366),
+            (75, 5407),
+            (100, 7448),
+            (150, 10510),
+            (float("inf"), 14593),
         ],
     },
     "lucerna": {
@@ -1532,10 +1587,13 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "Midtnett",
         "prisomrade": "NO1",
         "supported": True,
-        # Kilde: Midtnett PDF 2026.
-        "energiledd_dag_eks_mva": 0.23862,  # 23,86 øre/kWh ren energiledd (2026, dag 06-22)
-        "energiledd_natt_eks_mva": 0.18862,  # 18,86 øre/kWh ren energiledd (2026, natt 22-06)
+        # Kilde: https://midtnett.no/wp-content/uploads/2026/09/Pris-fra-1.okt-2026.pdf
+        # Tariff fra 2026-10-01, verifisert 2026-10-09; energiledd eks. mva og avgifter.
+        "energiledd_dag_eks_mva": 0.31,
+        "energiledd_natt_eks_mva": 0.26,
         "url": "https://midtnett.no/nettleie-informasjon-og-priser/",
+        # Prislisten definerer bare dag 06-22 og natt 22-06, uten helgeunntak.
+        "helg_som_natt": False,
         "kapasitetstrinn": [
             (5, 275),
             (10, 413),
@@ -1547,6 +1605,20 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
             (100, 3250),
             (float("inf"), 3750),
         ],
+        # FB22 fra samme offisielle prisliste, inkl. mva som standardtabellen.
+        "kapasitetstrinn_per_boligtype": {
+            "fritidsbolig": [
+                (5, 330),
+                (10, 495),
+                (15, 750),
+                (20, 1125),
+                (25, 1500),
+                (50, 2096),
+                (75, 3144),
+                (100, 3900),
+                (float("inf"), 4500),
+            ],
+        },
     },
     "modalen_kraftlag": {
         "name": "Modalen Kraftlag",
@@ -1573,8 +1645,9 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "Netera",
         "prisomrade": "NO3",
         "supported": True,
-        # Korrigert 2026-05-25: Netera fjernet sesongprising i 2026. Flat 20,0 hele året.
-        # Tidligere 2025-tariff (20,91) hadde Høylast vinter 20,9 / lavlast 18,6.
+        # Standardavtalen fra 2026 har flat 20,0 hele året. Netera tilbyr også
+        # en valgfri sommer-/vinteravtale; den varianten er ikke modellert her.
+        # Kilde: netera.no/nettleie/avtaler/privat/, kontrollert 2026-10-09.
         "energiledd_dag_eks_mva": 0.20,  # 20,0 øre/kWh ren energiledd (2026, flat)
         "energiledd_natt_eks_mva": 0.20,
         "url": "https://www.netera.no/nettleie/avtaler/privat/",
@@ -2261,19 +2334,21 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "Etna Nett",
         "prisomrade": "NO1",
         "supported": True,
-        # Verifisert 2026-05-30 mot fri-nettleie (Etna-Nett tariff 1. mai 2026):
-        # prisen steg 2026-05-01 fra 24,55/17,59 til 25,55/18,59.
-        "energiledd_dag_eks_mva": 0.2555,  # 25,55 øre/kWh ren energiledd (2026, fra 01.05)
-        "energiledd_natt_eks_mva": 0.1859,  # 18,59 øre/kWh ren energiledd (2026, fra 01.05)
+        # Husholdningstabellen gjelder til og med 25 kW; over dette viser
+        # prislisten til næring uten entydig fastledd for husholdninger.
+        "kjent_fastledd_maks_kw": 25,
+        # Kilde: https://etna.no/uploads/Etna-Nett-NETTLEIEPRISER-GJELDENE-FRA-1-OKTOBER-2026.pdf
+        # Tariff fra 2026-10-01, verifisert 2026-10-09; energiledd eks. mva og avgifter.
+        "energiledd_dag_eks_mva": 0.2755,
+        "energiledd_natt_eks_mva": 0.2059,
         "url": "https://etna.no/om-nettleie",
-        # Kapasitetstrinn: fri-nettleie etna.yml, tariff gyldig fra 2026-05-01 (hentet 2026-07-28)
         "kapasitetstrinn": [
             (2, 350),
             (5, 525),
-            (10, 623),
-            (15, 769),
-            (20, 1015),
-            (float("inf"), 1269),
+            (10, 623.70),
+            (15, 768.80),
+            (20, 1015.30),
+            (float("inf"), 1269.20),
         ],
     },
     "tinfos": {

@@ -98,6 +98,37 @@ def test_arkiverte_trinnpriser_endres_ikke_med_nye_options(coord_module):
     assert coord._previous_month_fastledd_snapshot["metode"] != coord.fastledd_metode
 
 
+@pytest.mark.parametrize("restart", [False, True])
+def test_ore_i_fastledd_bevares_ved_lukking_restart_og_sen_hale(coord_module, restart):
+    coord, states = _oppsett(coord_module)
+    coord.kapasitetstrinn = [(5, 250.25), (float("inf"), 415.70)]
+    foer = _lukk_med_hale_som_mangler(coord_module, coord, states)
+    assert foer["previous_month_kapasitetsledd"] == 250.25
+    if restart:
+        asyncio.run(coord._save_stored_data())
+        lagret = json.loads(json.dumps(coord._store.async_save.call_args.args[0], allow_nan=False))
+        assert lagret["previous_month_kapasitetsledd"] == 250.25
+        ny = coord_module.NettleieCoordinator(coord.hass, coord.entry)
+        ny._store.async_load = AsyncMock(return_value=lagret)
+        coord = ny
+        asyncio.run(coord._load_stored_data())
+        assert coord._previous_month_kapasitetsledd == 250.25
+        assert coord._previous_month_fastledd_snapshot["trinn"] == [[5.0, 250.25], [None, 415.70]]
+    etter = _poll(coord_module, coord, states, "2026-07-01T00:05:00+02:00", 106.9)
+    assert etter["previous_month_kapasitetsledd"] == 415.70
+    assert etter["previous_month_cost_kr"] - foer["previous_month_cost_kr"] >= 165.45
+    igjen = _poll(coord_module, coord, states, "2026-07-01T00:06:00+02:00", 106.9)
+    assert igjen["previous_month_cost_kr"] == etter["previous_month_cost_kr"]
+
+
+@pytest.mark.parametrize("pris", [float("nan"), float("inf"), -1])
+def test_snapshot_med_ugyldig_trinnpris_avvises(coord_module, pris):
+    coord, _ = _oppsett(coord_module)
+    snapshot = coord._fastledd_snapshot({})
+    snapshot["trinn"] = [[None, pris]]
+    assert coord._les_fastledd_snapshot(snapshot) is None
+
+
 def test_fem_aarsuker_fryses_og_samme_uke_i_juli_blander_ikke_juni(coord_module):
     coord, states = _oppsett(coord_module, "fjellnett")
     assert coord.fastledd_metode == FASTLEDD_FEM_VEKTET_AR
@@ -127,7 +158,8 @@ def test_eldre_topptre_fungerer_men_manglende_aarsuker_gjettes_ikke(coord_module
         if dso == "bkk":
             assert etter["previous_month_kapasitetsledd"] == 415
         else:
-            assert etter["previous_month_kapasitetsledd"] == foer["previous_month_kapasitetsledd"]
+            assert etter["previous_month_kapasitetsledd"] is None
+            assert coord._previous_month_kapasitetsledd == foer["previous_month_kapasitetsledd"]
             assert not etter["previous_month_fastledd_grunnlag_bekreftet"]
 
 

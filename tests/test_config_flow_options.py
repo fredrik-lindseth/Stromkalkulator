@@ -548,7 +548,7 @@ class TestTommeValgfrieFelt:
 
     Før gjeninnførte `{**current, **user_input}` den gamle verdien, og da kunne
     ingen fjerne en energisensor, en leverandørprissensor eller en eksportmåler
-    de en gang hadde valgt (stromkalkulator-2zskcrd).
+    de en gang hadde valgt.
     """
 
     def test_options_fjerner_alle_tre_bindingene(self):

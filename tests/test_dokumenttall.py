@@ -206,7 +206,7 @@ def _husholdningssum(entry: dict[str, Any]) -> float:
 
 
 def test_unike_husholdningssummer_i_galskapen() -> None:
-    """«67 av de 71 oppføringene med kW-trinn gir sin egen unike sum.»"""
+    """Unike priser og oppføringer følger de gjeldende katalogsatsene."""
     summer = [_husholdningssum(entry) for entry in MED_KW_TRINN.values()]
     teller = Counter(summer)
     unike = sum(1 for sum_kr in summer if teller[sum_kr] == 1)

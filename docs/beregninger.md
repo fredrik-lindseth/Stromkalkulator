@@ -14,7 +14,25 @@ For eksportinntekt (plusskunder) brukes spotpris eks. mva, siden privatperson ik
 
 Nettleie = energiledd + kapasitetsledd.
 
+Midtnett har egne kapasitetstrinn for fritidsboliger (FB22). Begge valgene
+«Fritidsbolig» og «Fritidsbolig (fast bosted)» bruker FB22; fast bosted påvirker
+støttevilkårene separat. «Bolig» bruker HN22. Prisene følger
+[Midtnetts prisliste fra 1. oktober 2026](https://midtnett.no/wp-content/uploads/2026/09/Pris-fra-1.okt-2026.pdf).
+Area Nett har også en egen hyttefastledd-tabell, felles for område 1–3,
+fra [Areas tariffblad for 2026](https://www.area.no/getfile.php/132156-1766066155/Filer/20251218_Tariffer%202026.pdf).
+Begge fritidsboligvalg bruker denne fastledd-tabellen. Areas sesonggrenser
+og separate hytteenergiledd for område 3 er foreløpig ikke avklart i
+beregningsgrunnlaget; energileddet bruker fortsatt områdets boligpriser.
+Andre nettselskap bruker standardtabellen når ingen egen kundetariff er
+kildebekreftet. Endrer du boligtype, brukes den nye tabellen etter omlasting,
+mens en allerede lukket måned beholder tabellen den ble avregnet med.
+
 ### Kapasitetsledd
+
+Nettselskapets [privatprisliste fra 1. juli 2026](https://nettselskapet.as/strompris)
+ender ved trinnet 50–75 kW, uten å avklare om øvre grense er inkludert.
+Fakturagrunnlag fra og med 75 kW gir derfor ukjent fastledd og kostnad;
+vi bruker ikke siste trinn som en prisforutsetning utenfor bekreftet omfang.
 
 Bestemmes av snittet av maks timesforbruk på de tre dagene med høyest forbruk i måneden. Vi sporer høyeste fullførte time per dag (samme metode som Elhub), velger topp-3, snittet bestemmer trinn.
 
@@ -49,7 +67,7 @@ Vi holder høyeste time per uke i `weekly_max_power`, nøklet på mandagens dato
 
 Ett punkt sier kilden ingenting om: Fjellnett skriver «løpende siste 12 mnd, forut for fakturatermin», men ikke om et helt uketall eller en kalenderdato er grensen i deres eget system. Vi måler mot toppens egen dato, fordi det er effekten som skal ha vært innenfor de tolv månedene. Måler Fjellnett i stedet mot ukenummeret, holder vi en ukestopp i inntil seks dager for lenge. Det slår bare ut når nettopp den toppen er blant de fem høyeste.
 
-`UKJENT` betyr at nettselskapet ikke publiserer metoden. Tinfos gjør ikke det, og fri-nettleie har en åpen forespørsel til dem. Vi regner med NVE-modellen og setter `metode_uverifisert` på sensoren, framfor å gjette på en annen modell.
+`UKJENT` betyr at nettselskapet ikke publiserer metoden. Tinfos gjør ikke det, og fri-nettleie har en åpen forespørsel til dem. Vi bruker snittet av tre døgnmaks som en uverifisert antakelse og setter `metode_uverifisert` på sensoren. Fastleddet inngår i totalsummene; ukjent metode gjør ikke i seg selv disse sensorene utilgjengelige.
 
 Metoden er en sats på lik linje med prisene: `scripts/sjekk_mot_fri_nettleie.py` sammenligner den mot fri-nettleie og feller exit-koden hvis et nettselskap har byttet modell.
 
@@ -137,6 +155,12 @@ Energien fordeles over UTC-kvarterene den ble levert i og prises med hvert kvart
 
 Netto månedskostnad = brutto kostnad minus eksportinntekt.
 
+Eksportinntekten dekker spotverdien av solgt energi. Den inkluderer ikke
+nettselskapets separate godtgjørelse eller tariff for innmating, eller
+strømleverandørens avtalte tillegg og gebyrer ved salg. Netto månedskostnad
+er derfor ikke en fullstendig fakturasum for plusskunder. Se
+[avgrensningene](begrensninger.md#tariffvarianter-og-innmating).
+
 ## Månedlig forbruk
 
 Standard (med energi-sensor konfigurert): delta fra meter-registeret. Forbruk = `energy_sensor.state - forrige_avlesning`. Identisk med Elhub og fakturaen.
@@ -162,7 +186,7 @@ Det betyr at en sats som endret seg midt i måneden, eller en strømstøtte som 
 
 Estimert månedstotal projiserer den bokførte variable delen (energiledd minus strømstøtte) fra dagene som er gått til hele måneden, og legger til kapasitetsleddet som helt månedsbeløp. Fastleddet faktureres uansett hvor langt måneden er kommet, så det skaleres ikke.
 
-Unntaket er «Forrige måned nettleie», som regner satser ganget med arkiverte kilowattimer fordi arkivet ikke lagrer forrige måneds bokførte kroner. Se [begrensninger.md punkt 8](begrensninger.md).
+«Forrige måned nettleie» leser arkiverte, bokførte kroner og månedens fastledd. Et eldre lagringsarkiv uten disse kronebeløpene gir Ukjent framfor å bli regnet om med dagens satser. Se [begrensninger.md punkt 8](begrensninger.md).
 
 ## Månedsskifte
 

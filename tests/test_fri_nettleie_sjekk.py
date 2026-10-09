@@ -574,3 +574,35 @@ class TestKjenteAvvikListen:
                 assert unntak.felt in self.FELT, f"{dso_id}: ukjent felt {unntak.felt}"
                 assert unntak.grunn.strip(), f"{dso_id}: unntak uten begrunnelse"
                 assert isinstance(unntak.gyldig_til, date)
+
+
+@pytest.mark.parametrize("avvik,utfall", [(False, 0), (True, 1)])
+def test_midtnett_fritid_sjekkes_selv_naar_boligtabellen_stemmer(stub_nett, avvik, utfall):
+    # Årspriser eks. mva fra fri-nettleies Midtnett-tabeller 2026-10-01.
+    grenser = [0, 5, 10, 15, 20, 25, 50, 75, 100]
+    tariffer = []
+    for gruppe, priser in (
+        ("husholdning", [2640, 3960, 6000, 9000, 12000, 16764, 25152, 31200, 36000]),
+        ("fritid", [3168, 4752, 7200, 10800, 14400, 20124, 30180, 37440, 43200]),
+    ):
+        if avvik and gruppe == "fritid":
+            priser[0] += 1200
+        tariffer.append(
+            {
+                "kundegrupper": [gruppe],
+                "gyldig_fra": "2026-10-01",
+                "energiledd": {
+                    "grunnpris": 26,
+                    "unntak": [{"navn": "Høylast", "timer": "6-21", "pris": 31}],
+                },
+                "fastledd": {
+                    "metode": "TRE_DØGNMAX_MND",
+                    "terskler": [
+                        {"terskel": grense, "pris": pris}
+                        for grense, pris in zip(grenser, priser, strict=True)
+                    ],
+                },
+            }
+        )
+    stub_nett({"midtnett": {"tariffer": tariffer}})
+    assert sjekk.main(["--dso", "midtnett", "--dato", "2026-10-09"]) == utfall

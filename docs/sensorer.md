@@ -267,19 +267,106 @@ entities:
   - entity: sensor.kapasitetstrinn
 ```
 
-Varsel ved nærhet til neste trinn:
+### Kapasitetsvarsel og opphør
+
+Bruk den eksisterende **Kapasitetsvarsel**-sensoren: den følger terskelen i
+Configure (standard 2,0 kW), så automasjonen trenger ingen egen terskel.
+Eksemplet under erstatter samme Home Assistant-varsel når kapasitetsvarselet
+opphører. Det virker fra Home Assistant **2025.1**. Lim det inn i YAML-editoren
+for én automasjon. Bytt entity-ID til din egen; ID-en avhenger av språket under
+oppsett, nettselskap og navn du har endret selv.
 
 ```yaml
-automation:
-  - trigger:
-      - platform: numeric_state
-        entity_id: sensor.nettleie_bkk_margin_til_neste_trinn
-        below: 1.0
-    action:
-      - service: notify.mobile_app
-        data:
-          message: "{{ states('sensor.nettleie_bkk_margin_til_neste_trinn') }} kW til neste kapasitetstrinn."
+alias: Kapasitetsvarsel
+triggers:
+  - trigger: state
+    entity_id: binary_sensor.nettleie_bkk_kapasitetsvarsel
+    to: "on"
+    id: warning
+  - trigger: state
+    entity_id: binary_sensor.nettleie_bkk_kapasitetsvarsel
+    from: "on"
+    to: "off"
+    id: cleared
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: warning
+        sequence:
+          - action: persistent_notification.create
+            data:
+              notification_id: stromkalkulator_bkk_kapasitet
+              title: "Kapasitetsvarsel"
+              message: "{{ state_attr('binary_sensor.nettleie_bkk_kapasitetsvarsel', 'margin_kw') }} kW til neste kapasitetstrinn."
+      - conditions:
+          - condition: trigger
+            id: cleared
+        sequence:
+          - action: persistent_notification.create
+            data:
+              notification_id: stromkalkulator_bkk_kapasitet
+              title: "Kapasitetsvarsel opphørt"
+              message: "Kapasitetsvarselet er ikke lenger aktivt."
+mode: queued
 ```
+
+Opphør krever `on` → `off`: manglende data (`unknown`/`unavailable`) blir
+ikke meldt som opphør. Bruk en egen varsel-ID per installasjon. Dette er et
+varsel om beregnet margin i månedens kapasitetstrinn, ikke en prognose for hvor
+mye last du kan legge på resten av timen. Laststyring hører hjemme i Effektvakt.
+
+I Home Assistant **2026.7** ble formålsrettede triggers og conditions standard
+i automasjonseditoren. Fra **2026.10** kan du velge triggeren direkte under
+**Triggered by**, uten å skrive en ID. YAML-en over bruker eksplisitte ID-er,
+som også virker i eldre versjoner. Se de offisielle
+[juli-notene](https://www.home-assistant.io/blog/2026/07/01/release-20267/) og
+[oktober-notene](https://www.home-assistant.io/blog/2026/10/07/release-202610/).
+
+### Margin som gauge
+
+```yaml
+type: gauge
+entity: sensor.nettleie_bkk_margin_til_neste_trinn
+name: Margin til neste trinn
+min: 0
+max: 10
+needle: true
+severity:
+  red: 0
+  yellow: 1
+  green: 2
+```
+
+Liten margin er rød; større margin er grønn. Tilpass skala og fargegrenser
+til oppsettet ditt; `severity` er bare visning og endrer ikke varselterskelen.
+Kortet virker i **2025.1**; det nye utseendet fra
+[2026.4](https://www.home-assistant.io/blog/2026/04/01/release-20264/#gauge-card-redesign)
+kommer automatisk. Ved høyeste trinn eller fastledd uten effekttrinn kan
+marginen være 0 uten at et dyrere trinn finnes; les også Kapasitetsvarsel.
+
+### Måleproblemer på dashboardet
+
+Vis dette kortet mens **Måledata-problem** er på. Trykk på entiteten for å
+se attributtet `problemer`; reparasjoner finnes også under Innstillinger.
+
+```yaml
+type: conditional
+conditions:
+  - entity: binary_sensor.nettleie_bkk_maledata_problem
+    state: "on"
+card:
+  type: entities
+  title: Sjekk input-sensorene
+  entities:
+    - entity: binary_sensor.nettleie_bkk_maledata_problem
+    - entity: binary_sensor.nettleie_bkk_kapasitetsvarsel
+```
+
+Kortet virker i **2025.1**. I **2026.10** støtter korteditorens Visibility-fane
+vilkårene fra automasjonseditoren og viser om hvert vilkår er oppfylt. Her
+holder det med et enkelt state-vilkår. Se
+[forbedringene i synlighet](https://www.home-assistant.io/blog/2026/10/07/release-202610/#show-a-card-only-when-it-matters).
 
 ## Faktura-verifisering
 

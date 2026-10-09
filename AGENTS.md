@@ -2,6 +2,20 @@
 
 Home Assistant-integrasjon for nettleie, strømstøtte og Norgespris-sammenligning i Norge.
 
+## Ansvarsområde
+
+Strømkalkulator beregner og forklarer strøm- og nettleiekostnader. Integrasjonen
+eier norske tariffer, avgifter, strømstøtte, Norgespris og etterprøvbar
+avregning. Nord Pool og andre priskilder leverer spotprisgrunnlaget.
+
+Eventuelle beregninger av kommende priser følger samme ansvarsområde:
+kostnadsgrunnlag og synliggjøring av forutsetninger. Valg av kjøretidspunkt,
+prisoptimalisering og styring av laster hører til Effektvakt eller brukerens
+automasjoner. Ikke bygg en laststyrings- eller planleggingsmotor her.
+
+Private arbeidsnotater og intern oppgavesporing skal ikke inn i offentlige
+filer, tester eller commit-meldinger.
+
 ## Hovedfiler
 
 - `custom_components/stromkalkulator/`: integrasjonskode
@@ -132,17 +146,6 @@ dem reproduseres Norgespris-linjen eksakt (verifisert juni 2026). HA-recorderen
 lagrer prisene slik de så ut ved publisering og kan ha foreløpig valutakurs på
 søndager, så den duger ikke som fasit. Bakgrunn:
 [docs/research/norgespris-eksakt-match.md](docs/research/norgespris-eksakt-match.md).
-
-## Issue-tracking
-
-Namespace i dcat er `stromkalkulator`. GitHub Issues er kun for eksterne
-brukerrapporter; de besvares og lukkes der, men arbeidet de utløser
-registreres i dcat.
-
-Oppkoblingen mot den sentrale basen er to gitignorede filer: `.dogcatrc` i
-repo-roten med stien til basen, og `.dogcats/config.local.toml` med
-`namespace = "stromkalkulator"`. Mangler de (fersk klone), gjenskap dem etter
-mønsteret i leirnes.no-repoet. Issue-data skal aldri committes hit.
 
 ## Dokumentasjon
 

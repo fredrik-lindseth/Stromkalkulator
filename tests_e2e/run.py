@@ -44,7 +44,7 @@ TOPPDAGER_FORRIGE = {
     "2026-08-17": {"kw": 8.1, "hour": 7},
     "2026-08-23": {"kw": 7.6, "hour": 20},
 }
-IMAGE = "ghcr.io/home-assistant/home-assistant:2026.9.2@sha256:542890f4a7ef9269b7a5ac23ada303b327537c62fa0f866e49daebc61cb44caa"
+IMAGE = "ghcr.io/home-assistant/home-assistant:2026.10.0@sha256:956a5d9effc091888cd34cb0b6fb4f66c448d257d20519e72302557682734fd0"
 
 
 def command(args: list[str], *, timeout: int = 180, env: dict | None = None) -> str:

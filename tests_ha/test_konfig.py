@@ -10,6 +10,9 @@ Kjøres av `just test-ha target=minimum` og `target=current`.
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
+import pytest
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
@@ -251,6 +254,74 @@ async def test_reconfigure_fjerner_tomte_valgfrie_felt(hass: HomeAssistant) -> N
     assert CONF_ENERGY_SENSOR not in entry.data
     assert CONF_EXPORT_POWER_SENSOR not in entry.data
     assert CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR not in entry.data
+
+
+@pytest.mark.parametrize("inngang", ["reconfigure", "options"])
+@pytest.mark.parametrize("endret", [False, True])
+async def test_konfigurasjonsendring_har_en_reload_eier(
+    hass: HomeAssistant, inngang: str, endret: bool
+) -> None:
+    """En virkelig endring lastes én gang; identisk lagring lastes ikke.
+
+    Spionen lar HAs ekte reload kjøre, slik at både listeneren, coordinatoren
+    og entitetsregisteret inngår. Første lagring normaliserer skjemastandardene.
+    """
+    _sett_states(hass)
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        version=5,
+        title="Hjemme",
+        unique_id="boligens_stabile_id",
+        data=_basisdata(**{CONF_TARIFFMODUS: "catalog", "bevart_felt": "behold meg"}),
+    )
+    await _last(hass, entry)
+
+    async def aapne():
+        if inngang == "reconfigure":
+            return await entry.start_reconfigure_flow(hass)
+        return await hass.config_entries.options.async_init(entry.entry_id)
+
+    manager = hass.config_entries.flow if inngang == "reconfigure" else hass.config_entries.options
+    resultat = await aapne()
+    await manager.async_configure(
+        resultat["flow_id"], user_input=_frontend_forhaandsutfylling(resultat["data_schema"])
+    )
+    await hass.async_block_till_done()
+
+    data_foer = dict(entry.data)
+    coordinator_foer = entry.runtime_data
+    registry = er.async_get(hass)
+    ider_foer = {
+        (e.entity_id, e.unique_id) for e in er.async_entries_for_config_entry(registry, entry.entry_id)
+    }
+    assert ider_foer
+    resultat = await aapne()
+    utfylt = _frontend_forhaandsutfylling(resultat["data_schema"])
+    if endret:
+        utfylt[CONF_HAR_NORGESPRIS] = True
+
+    with patch.object(hass.config_entries, "async_reload", wraps=hass.config_entries.async_reload) as reload:
+        resultat = await manager.async_configure(resultat["flow_id"], user_input=utfylt)
+        await hass.async_block_till_done()
+
+        if endret:
+            reload.assert_awaited_once_with(entry.entry_id)
+        else:
+            reload.assert_not_awaited()
+
+    if inngang == "reconfigure":
+        assert resultat["type"] == "abort"
+        assert resultat["reason"] == "reconfigure_successful"
+    assert entry.state is ConfigEntryState.LOADED
+    assert entry.unique_id == "boligens_stabile_id"
+    assert entry.title == "Hjemme"
+    assert entry.version == 5
+    assert entry.data == {**data_foer, CONF_HAR_NORGESPRIS: endret}
+    assert entry.data["bevart_felt"] == "behold meg"
+    assert (entry.runtime_data is not coordinator_foer) is endret
+    assert {
+        (e.entity_id, e.unique_id) for e in er.async_entries_for_config_entry(registry, entry.entry_id)
+    } == ider_foer
 
 
 async def test_energiledd_er_valgfritt_i_options(hass: HomeAssistant) -> None:
@@ -538,8 +609,10 @@ async def test_folg_katalog_skriver_modus_og_laster_paa_nytt(hass: HomeAssistant
     await _last(hass, entry)
     flow = await _tariffvarsel_flow(hass, entry)
 
-    await flow.async_step_folg_katalog()
-    await hass.async_block_till_done()
+    with patch.object(hass.config_entries, "async_reload", wraps=hass.config_entries.async_reload) as reload:
+        await flow.async_step_folg_katalog()
+        await hass.async_block_till_done()
+        reload.assert_awaited_once_with(entry.entry_id)
 
     assert entry.data[CONF_TARIFFMODUS] == "catalog"
     assert CONF_ENERGILEDD_DAG not in entry.data

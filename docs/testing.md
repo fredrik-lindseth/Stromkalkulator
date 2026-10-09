@@ -12,7 +12,7 @@ ekte `homeassistant` i samme miljø ville kollidert med stubbene.
 | `just test-unit`           | `tests/`   | `unit`       | 3.13   | stubbet        |
 | `just check`               | hele repo  | `kvalitet`   | 3.13   | ingen          |
 | `just test-ha target=minimum` | `tests_ha/` | `ha-minimum` | 3.13   | 2025.1.0       |
-| `just test-ha target=current` | `tests_ha/` | `ha-current` | 3.14   | 2026.9.2       |
+| `just test-ha target=current` | `tests_ha/` | `ha-current` | 3.14   | 2026.10.0       |
 
 `just test` er `test-unit` og `check` i ett, og er det AGENTS.md ber om før
 commit. `just test-e2e target=current` kjører en separat Docker-basert HA-server
@@ -22,11 +22,11 @@ Det laget tester en committet release-ZIP; se [Docker-testlab](#docker-testlab).
 Gruppene står i `[dependency-groups]` i `pyproject.toml` og er låst i
 `uv.lock`. HA-versjonen står ikke der direkte: den følger av
 `pytest-homeassistant-custom-component`, som pinner `homeassistant` eksakt.
-`0.13.201` gir HA 2025.1.0, `0.13.365` gir HA 2026.9.2. De to gruppene er
+`0.13.201` gir HA 2025.1.0, `0.13.371` gir HA 2026.10.0. De to gruppene er
 erklært som `conflicts` i `[tool.uv]`, så uv låser dem som atskilte grener
 framfor å prøve å få dem inn i samme miljø.
 
-Python-versjonene er ikke fritt valg. HA 2026.9 krever 3.14.2 eller nyere, og
+Python-versjonene er ikke fritt valg. HA 2026.10 krever 3.14.2 eller nyere, og
 `pytest-homeassistant-custom-component` for 2025.1 krever 3.12 eller nyere.
 `uv` henter begge selv, så du trenger ikke installere dem.
 
@@ -160,12 +160,10 @@ repair-sekvens et automatisk E2E-krav, skal den få et tilsvarende deterministis
 bevis. HA-serverens egen bootstrap/tokenutveksling tilhører Docker-harnesset.
 Isolasjon, sladding, kildeavstemming og opprydding ved feil testes også
 offline i `tests_e2e/test_harness.py`.
-Historisk fakturarevalidering eies av `stromkalkulator-443xvtv`; HAN-fixturer
-og Elhub/fakturagrunnlag er ulike kilder og skal ha kildeangitte forventninger.
+Historisk fakturarevalidering bruker HAN-fixturer og Elhub/fakturagrunnlag
+som ulike kilder og skal ha kildeangitte forventninger.
 
-`stromkalkulator-271siks` eier dette scenariokartet.
-`stromkalkulator-2uw4t9a` er aktiv etterfølger til `stromkalkulator-6b54ywj`
-og eier ekte-HA-kontraktene. Metadata for alle plattformer og bevart identitet
+Metadata for alle plattformer og bevart identitet
 ved reload kontrolleres i `test_metadata.py`; `test_store_migrering.py`
 kontrollerer eldre DSO-nøkkel og entry-format v1 gjennom ekte HA Store,
 med bevart måned og engangsmigrering.
@@ -213,8 +211,8 @@ inngår current-E2E i `release.yml` sin `needs: ci`. Jobben `Releaseport`
 krever eksplisitt `success` fra hvert testlag; manglende, feilet, kansellert
 eller hoppet over resultat stopper release. Evidensartefakten heter
 `ha-e2e-current-<SHA>` og inneholder scenario-trace, rapport, versjon og
-redigert logg. Første grønne GitHub-kjøring må dokumenteres i
-`stromkalkulator-3txx3k3` før saken lukkes.
+redigert logg. Første grønne GitHub-kjøring må dokumenteres med kandidat-SHA
+og evidensartefakt.
 
 Verken `upgrade` eller `vakthold` kjøres av standardløpet. Grønn release-CI
 beviser derfor ikke disse særskilte Docker-løpene; deres resultater må
@@ -279,7 +277,7 @@ om hva `last_energy_increase` og `last_update` sto på da HA startet.
 En kjent oppstartsfeil i driveren kan gi falskt rødt etter omstart:
 `ready()` venter bare på `/api/`, som kan svare før HA er `RUNNING` og før
 entitetene finnes. Da kan `update_entity` bli kalt for tidlig, blant annet i
-`test_frossen_teller_varsles` (stromkalkulator-516lois). Dette er ikke rettet i
+`test_frossen_teller_varsles`. Dette er ikke rettet i
 driveren ennå. En permanent retting må vente på både ferdig HA-oppstart og
 nødvendige entiteter, og så bestå hele vaktholdsekvensen inkludert
 strømbrudd-motprøven. En grønn enkeltprøve etter ekstra venting er nyttig

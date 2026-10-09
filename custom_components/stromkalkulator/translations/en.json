@@ -112,7 +112,8 @@
       "trinntabell_ugyldig": "The capacity tiers could not be read. Write each tier as a kW limit and NOK/month separated by a colon, tiers separated by commas, with increasing kW limits: 'kW limit:NOK per month,kW limit:NOK per month'. Take the amounts from your own price list."
     },
     "abort": {
-      "already_configured": "Already configured"
+      "already_configured": "Already configured",
+      "reconfigure_successful": "Configuration updated"
     }
   },
   "options": {

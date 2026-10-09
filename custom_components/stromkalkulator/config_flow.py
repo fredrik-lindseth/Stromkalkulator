@@ -809,10 +809,10 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
         """Reconfigure an existing entry via the standard HA entry menu.
 
         Reuses the same schema, validation and DSO-derivation as the options
-        flow. Unlike the options flow (which writes to entry.data via
-        async_update_entry), this persists via async_update_reload_and_abort,
-        the idiomatic reconfigure API. unique_id is entry_id and stays put
-        regardless of which power sensor is chosen.
+        flow. The entry update listener owns reloading, as it does for options
+        and repairs. async_update_entry and async_abort also work on HA 2025.1,
+        which predates async_update_and_abort. An unchanged entry needs no reload.
+        unique_id is entry_id and stays put regardless of the chosen power sensor.
         """
         entry: config_entries.ConfigEntry = self._get_reconfigure_entry()
         errors: dict[str, str] = {}
@@ -822,10 +822,8 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
             if not errors:
                 _apply_dso_derivation(user_input, dict(entry.data))
                 new_data: dict[str, Any] = _ny_entry_data(dict(entry.data), user_input)
-                return self.async_update_reload_and_abort(
-                    entry,
-                    data=new_data,
-                )
+                self.hass.config_entries.async_update_entry(entry, data=new_data)
+                return self.async_abort(reason="reconfigure_successful")
 
         return self.async_show_form(
             step_id="reconfigure",

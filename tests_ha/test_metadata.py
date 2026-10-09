@@ -48,9 +48,12 @@ async def test_alle_plattformer_publiserer_metadata_og_beholder_identitet(hass, 
             assert entity.unique_id.startswith(f"{entry.entry_id}_")
             assert entity.has_entity_name
             assert entity.translation_key
-            device = dr.async_get(hass).async_get(entity.device_id)
+            device_registry = dr.async_get(hass)
+            device = device_registry.async_get(entity.device_id)
             assert device is not None
-            assert entry.entry_id in device.config_entries
+            # The public lookup works before and after HA switched devices to
+            # a single config entry; config_entries itself is now deprecated.
+            assert device in dr.async_entries_for_config_entry(device_registry, entry.entry_id)
             assert all(
                 domain == DOMAIN and identifier.startswith(f"{entry.entry_id}_")
                 for domain, identifier in device.identifiers

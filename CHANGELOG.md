@@ -2,6 +2,16 @@
 
 Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) og [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Ikke sluppet]
+
+### Fikset
+
+- Rekonfigurering bruker én omlasting ved endring og ingen ved uendret lagring. Tilpasset Home Assistants kommende krav uten å heve minimumsversjonen. <!--kort-->
+
+### Dokumentasjon
+
+- Oppdatert dashboard- og varseleksempler for kapasitetsmargin og måleproblemer, med støtte for både eldre og nyere Home Assistant.
+
 ## [1.18.1]
 
 ### Fikset

@@ -112,7 +112,8 @@
       "trinntabell_ugyldig": "Kapasitetstrinnene lar seg ikke lese. Skriv hvert trinn som kW-grense og kr/mnd skilt av kolon, trinnene skilt av komma og kW-grensene stigende: «kW-grense:kr/mnd,kW-grense:kr/mnd». Beløpene henter du fra prislisten din."
     },
     "abort": {
-      "already_configured": "Allerede konfigurert"
+      "already_configured": "Allerede konfigurert",
+      "reconfigure_successful": "Konfigurasjonen er oppdatert"
     }
   },
   "options": {

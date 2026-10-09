@@ -1,6 +1,6 @@
 # Kastbar Home Assistant-testlab
 
-Docker-delen av `stromkalkulator-52kpgv4`: offisielt HA-image med frontend,
+Docker-lab med offisielt HA-image, frontend,
 egen pålogging, templates og helpers som mates av eksisterende BKK-timeverdier.
 Hver kjøring får eget Compose-prosjekt, ledig loopback-port og midlertidig config.
 
@@ -35,9 +35,9 @@ tidlig feilende scenario betyr at etterfølgende scenarioer ikke er prøvd.
 Kjør uten pipe til `tail`, eller bruk `set -o pipefail`, slik at testens
 exit-kode ikke erstattes av utskriftskommandoens.
 
-Image: `ghcr.io/home-assistant/home-assistant:2026.9.2`, linux/amd64-manifest
-`sha256:542890f4a7ef9269b7a5ac23ada303b327537c62fa0f866e49daebc61cb44caa`.
-Digest ble lest fra GHCR 13. september 2026. Ved oppgradering må Compose,
+Image: `ghcr.io/home-assistant/home-assistant:2026.10.0`, linux/amd64-manifest
+`sha256:956a5d9effc091888cd34cb0b6fb4f66c448d257d20519e72302557682734fd0`.
+Digest ble lest fra GHCR 9. oktober 2026. Ved oppgradering må Compose,
 imageverdien i `run.py` og current-testmålet vurderes sammen.
 
 ## En instans du kan klikke i
@@ -178,7 +178,7 @@ Sommertid prøves ikke her. Laben kan ikke flytte klokken, og
 `state == "RUNNING"` og hovedentiteten for hvert lagrede anlegg. API-et kan
 svare før dette; en tidligere driver sendte da `update_entity` mens entiteten
 ikke fantes. Det ga «Entity … not found» og kunne la frossen-scenarioet lese en
-tom varselliste (stromkalkulator-516lois).
+tom varselliste.
 
 Denne readiness-sjekken er en del av alle scenarioer etter restart. En endring
 her skal verifiseres med full `vakthold`, inkludert

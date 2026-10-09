@@ -111,10 +111,11 @@ class TestDictFormatKapasitetstrinn:
 
         coordinator = coord_module.NettleieCoordinator(hass, entry)
 
-        # First tier: {"min": 0, "max": 2, "pris": 517} -> (2, 517)
-        assert coordinator.kapasitetstrinn[0] == (2, 517)
-        # Last tier: {"min": 20, "max": 999, "pris": 931} -> (999, 931)
-        assert coordinator.kapasitetstrinn[-1] == (999, 931)
+        # Published household prices from 1 October 2026.
+        # First tier: {"min": 0, "max": 2, "pris": 491} -> (2, 491)
+        assert coordinator.kapasitetstrinn[0] == (2, 491)
+        # Last tier: {"min": 20, "max": 999, "pris": 884} -> (999, 884)
+        assert coordinator.kapasitetstrinn[-1] == (999, 884)
 
     def test_barents_nett_update_runs(self, coord_module):
         """Full update with dict-format DSO should not crash."""

@@ -4,16 +4,16 @@ name: Release
 # av denne grafen (`needs: ci`), ikke som separate workflows vi håper er ferdige.
 # Tidligere hang jobben på `workflow_run` fra CI, mens HACS-valideringen og
 # Hassfest var egne kjøringer: en release kunne gå ut før de var ferdige, eller
-# selv om de hadde feilet (stromkalkulator-2dobu6k).
+# selv om de hadde feilet.
 #
 # Kandidaten er `github.sha`, altså commiten denne kjøringen tilhører. Både CI
 # og releasesteget sjekker ut nøyaktig den, så det finnes ikke et vindu der main
-# kan flytte seg mellom testing, bygging og tagging (stromkalkulator-4rw6g9u).
+# kan flytte seg mellom testing, bygging og tagging.
 #
 # Selve flyten ligger i scripts/release_publish.py, som er testbar og
 # gjenopptakbar. Draften publiseres som siste kall; feiler noe før det, finnes
 # det ingen halv release å rydde, og en ny kjøring på samme SHA plukker opp der
-# den slapp (stromkalkulator-5k7d7qp).
+# den slapp.
 
 on:
   push:

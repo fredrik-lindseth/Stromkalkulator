@@ -10,8 +10,8 @@ Endringsserien L3a flyttet tre ting i hvordan avregningsgrunnlaget regnes:
 energi bokføres på måletidens tariff i stedet for pollens, en time uten
 prisprøve arver ikke lenger naboens pris, og Norgespris-linjen regnes mot
 timeprisen framfor prisen ved poll. Alle tre kan flytte kroner mellom
-komponenter uten at totalen sier fra, og det er nøyaktig det
-`stromkalkulator-443xvtv` ber om å få målt.
+komponenter uten at totalen sier fra. Denne revalideringen måler derfor
+endringene per komponent.
 
 Merk rekkefølgen i loggen: `dae8102` («wip: coordinator bokfører gjennom
 avregningsboken») ligger *før* `fea9c9e` og bærer mesteparten av
@@ -132,7 +132,6 @@ og Elhub-CSV-en for august er ikke lastet ned. Én time, 31.08 kl. 00, står
 bevisst ufylt i påvente av en beslutning. Måneden er derfor merket DELVIS i
 `verify_invoice_hourly.py` og står i `UFULLSTENDIGE` i replay-testene, og den
 er ikke revalidert her utover at utskriften er uendret fra før serien.
-Nedlastingen spores i `stromkalkulator-r568ale`.
 
 ## Kommandoen som produserte før/etter-tabellen
 
@@ -246,4 +245,4 @@ attesten kjøres om igjen for alle ti verifiserte måneder:
   Forbruk i kWh, dag/natt-splitten og kapasitetsleddet skal derimot stå stille;
   gjør de ikke det, har L3b rørt noe den ikke skulle.
 - **August 2026** kan ikke avstemmes mot faktura før Elhub-CSV-en er lastet ned
-  (`stromkalkulator-r568ale`) og beslutningen om 31.08 kl. 00 er tatt.
+  og beslutningen om 31.08 kl. 00 er tatt.

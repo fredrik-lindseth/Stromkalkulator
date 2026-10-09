@@ -109,7 +109,8 @@ kilowattimene, satsene som gjaldt siste dag i måneden og kapasitetstrinnet, så
 det finnes ikke noe å lese. Tallet stemmer når satsene sto stille gjennom
 måneden, og bommer når de ikke gjorde det, altså ved nyttår og for
 sesong-nettselskap 1. april og 1. november. Sensoren sier det selv i
-attributtet `kilde`, og arkiveringen er ført som `stromkalkulator-1fnzdn8`.
+attributtet `kilde`. Dette beskriver tilstanden ved L3c-målingen; senere
+versjoner arkiverer og leser bokførte kroner også for forrige måned.
 
 ## Slik gjøres målingen om igjen
 

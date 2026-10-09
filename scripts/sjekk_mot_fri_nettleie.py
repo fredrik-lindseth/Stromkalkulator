@@ -131,35 +131,6 @@ class Unntak:
 # ville ropt om hver uke, og begge er ting et menneske har tatt stilling til på
 # en dato. Derfor har begge en utløpsdato: stillheten er lånt, ikke gitt.
 KJENTE_AVVIK: dict[str, tuple[Unntak, ...]] = {
-    "rk_nett": (
-        Unntak(
-            felt=FELT_DAG,
-            signatur="23.02 vs 20.14 øre",
-            gyldig_til=date(2026, 12, 1),
-            grunn=(
-                "RK Nett hevet nettleien 01.08.2026. Vi følger selskapets egen prisside "
-                "rauland-nett.no/nettleige (verifisert 2026-09-13), som har 01.08-tariffen "
-                "øverst og 01.01-tariffen under «Eldre nettprisar». fri-nettleie står "
-                "fortsatt på 01.10.2025-tariffen, sist oppdatert 2025-10-22. Fjern når "
-                "rknett.yml har fått 01.08.2026-tariffen."
-            ),
-        ),
-        Unntak(
-            felt=FELT_NATT,
-            signatur="23.02 vs 20.14 øre",
-            gyldig_til=date(2026, 12, 1),
-            grunn="Samme som dag: RK Nett har flat sats, og fri-nettleie ligger etter.",
-        ),
-        Unntak(
-            felt=FELT_FASTLEDD,
-            signatur="trinn 1: 305 vs 266 kr/mnd",
-            gyldig_til=date(2026, 12, 1),
-            grunn=(
-                "Samme 01.08.2026-tariff. Hele trinntabellen er hentet ordrett fra "
-                "rauland-nett.no; fri-nettleie har den gamle."
-            ),
-        ),
-    ),
     "tinfos": (
         Unntak(
             felt=FELT_FASTLEDD_METODE_UKJENT,
@@ -604,6 +575,28 @@ def kontroller_dso(var_id: str, entry: dict[str, Any], remote_slugs: set[str], p
                 Utfall.AVVIK,
             )
         )
+
+    # Eksplisitte kundetabeller må også overvåkes; husholdning alene kan
+    # være korrekt mens fritidsbolig får feil fastledd.
+    for boligtype, trinn in entry.get("kapasitetstrinn_per_boligtype", {}).items():
+        kundegruppe = {"fritidsbolig": "fritid"}.get(boligtype, boligtype)
+        kundetariff = aktiv_tariff(data, paa, kundegruppe)
+        kundetrinn = deres_trinn(kundetariff, mva_faktor) if kundetariff else None
+        avvik = (
+            sammenlign_fastledd(vaare_trinn({"kapasitetstrinn": trinn}), kundetrinn)
+            if kundetrinn is not None
+            else f"ingen aktiv kW-trinntariff for {kundegruppe} på {paa}"
+        )
+        if avvik:
+            funn.append(
+                Funn(
+                    var_id,
+                    FELT_FASTLEDD,
+                    f"{boligtype}: {avvik}",
+                    f"[K] {prefiks}  fastledd {boligtype}: {avvik}",
+                    Utfall.AVVIK if kundetrinn is not None else Utfall.UFULLSTENDIG,
+                )
+            )
 
     if var_metode == FASTLEDD_UKJENT:
         # Prisene er sjekket, men ingen av kildene vet hvilken kW-verdi de slås

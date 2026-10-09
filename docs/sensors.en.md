@@ -142,6 +142,10 @@ The sensor sums booked amounts from the monthly archive and adds the full monthl
 
 Delayed readings can also correct the previous month's peak hours and fixed charge. The calculation basis and tariff are frozen at month rollover. Older storage may lack this basis for annual weighted charges; a late correction then makes the grid tariff unknown with `fastledd_grunnlag_bekreftet: false`, because later annual peaks cannot establish the historical charge.
 
+Capacity tiers preserve prices to the øre. Midtnett and Area's three regions have separate fixed-charge tables for configured holiday homes, including permanent residence. Area region 3 still has unresolved holiday-home energy charges and conflicting seasonal sources; see the [limitations](begrensninger.md) (Norwegian). Etna's household fixed charge is verified only up to and including 25 kW. A higher billing basis makes the fixed charge and total unknown, including after a late correction of the previous month.
+
+Nettselskapet's published table ends at 50–75 kW without clarifying exactly 75. At or above 75 kW, the fixed charge and dependent totals are therefore unknown. Custom capacity tables use the prices entered by the user.
+
 These snapshots set `last_reset` to the start of the current month. The value is replaced wholesale at the change of month, and without `last_reset` the HA statistics would record the difference between two months as a delta.
 
 The "Forrige måned toppforbruk" sensor has `maaned`, `topp_1_dato`, `topp_1_kw`, `topp_1_time`, `topp_2_dato`, `topp_2_kw`, `topp_2_time`, `topp_3_dato`, `topp_3_kw`, `topp_3_time`.
@@ -159,6 +163,8 @@ For prosumers. Requires a configured export power sensor. All disabled by defaul
 | _(optional)_ Forrige måned eksport inntekt | NOK  | Export revenue last month             |
 
 Export revenue uses the spot price for the quarter-hour when the energy was supplied. Zero and negative prices are valid. With missing price coverage, revenue and net cost are unknown; revenue attributes show the known subtotal and `kwh_uten_pris`. Net cost also requires a known fixed charge.
+
+This is the spot value of exported energy. Feed-in compensation from the grid company and separate terms in the supplier's prosumer contract are not included.
 
 ## Measurement data watchdog
 

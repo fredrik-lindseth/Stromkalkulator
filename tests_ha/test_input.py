@@ -110,7 +110,7 @@ async def test_enhetene_normaliseres_gjennom_ekte_states(hass: HomeAssistant) ->
 async def test_kildebytte_gir_delta_null_og_beholder_maanedsdata(hass: HomeAssistant) -> None:
     """1000 til 1020 på en ny måler er ikke 20 kWh forbruk.
 
-    Dette er reproen fra stromkalkulator-40mbs7k, kjørt hele veien gjennom
+    Regresjonen ved målerbytte kjøres hele veien gjennom
     lagring og oppfriskning mot ekte HA.
     """
     _registrer_energimaaler(hass, "gammel-maaler")

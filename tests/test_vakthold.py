@@ -905,7 +905,7 @@ class TestSlettetEntitet:
     Før kastet coordinatoren `UpdateFailed` før vaktholdet rakk å si fra, og
     stoppet samtidig energi og energiledd som ikke trengte den sensoren. Nå
     melder vaktholdet utfallet med `finnes: false`, og alt som fortsatt har
-    datagrunnlag regner videre (stromkalkulator-37d1wwi).
+    datagrunnlag regner videre.
     """
 
     def test_slettet_effektsensor_melder_utfall_uten_a_felle_oppdateringen(self, coord_module):

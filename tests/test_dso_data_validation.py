@@ -160,15 +160,15 @@ class TestDSOKapasitetstrinn:
             )
 
     def test_trinn_prices_are_positive(self, dso_entry):
-        """All capacity tier prices must be positive integers."""
+        """Capacity tier prices retain published ore and must be positive numbers."""
         dso_id, data = dso_entry
         for i, t in enumerate(data["kapasitetstrinn"]):
             if isinstance(t, dict):
                 price = t["pris"]
             else:
                 price = t[1]
-            assert isinstance(price, int), (
-                f"{dso_id}: trinn {i + 1} pris skal være int, fikk {type(price).__name__}"
+            assert isinstance(price, (int, float)), (
+                f"{dso_id}: trinn {i + 1} pris skal være et tall, fikk {type(price).__name__}"
             )
             assert price > 0, f"{dso_id}: trinn {i + 1} pris skal være positiv, fikk {price}"
 
@@ -326,6 +326,9 @@ class TestDSOListIntegrity:
         """
         # Nettselskap som med rette har samme tariff, med grunn.
         TILLATT_DELT = {
+            # Begge offisielle privatprislister fra 2026-10-01 bekrefter
+            # samme tabell: norgesnett.no/kunde/nettleie-privat/ og Glitre.
+            frozenset({"glitre", "norgesnett"}): "Lik kildebekreftet privatkundetariff fra oktober 2026",
             frozenset({"elvia", "rakkestad_energi"}): "Rakkestad er del av Elvia",
             frozenset({"area_nett", "area_nett_omrade2"}): (
                 "Utfaset area_nett bruker område 2 som interim til brukeren velger område, se delt_i i dso.py"

@@ -10,8 +10,8 @@ on:
   workflow_call:
 
 # HACS- og Hassfest-valideringen hører hjemme her, ikke i egne workflows.
-# Release venter på denne grafen, og det den ikke ser, kan den ikke vente på
-# (stromkalkulator-2dobu6k). De samme to kjøres også nattlig fra validate.yml og
+# Release venter på denne grafen, og det den ikke ser, kan den ikke vente på.
+# De samme to kjøres også nattlig fra validate.yml og
 # hassfest.yml, fordi begge kan bli røde av endringer utenfor repoet.
 #
 # CI kaller de samme just-oppskriftene som kjøres lokalt og av pre-commit.
@@ -19,7 +19,7 @@ on:
 # feller byggingen hvis dokumentasjonen sier noe annet enn oppskriftene.
 #
 # Actionversjonene er pinnet til majortagg der en majortagg finnes, og de er
-# gjennomgått i stromkalkulator-3m5o02u. To avvik som skal stå:
+# gjennomgått i september 2026. To avvik som skal stå:
 #
 #   setup-uv er pinnet til en eksakt versjon, ikke `@v10`. Astral sluttet å
 #   publisere major- og minortagger fra og med v8.0.0, nettopp for å unngå

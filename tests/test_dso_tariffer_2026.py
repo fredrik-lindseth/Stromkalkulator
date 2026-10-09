@@ -8,9 +8,12 @@ coordinator (energiledd_eks_mva + forbruksavgift + Enova) * (1 + mva).
 
 from __future__ import annotations
 
+from datetime import datetime
 from decimal import ROUND_HALF_UP, Decimal
+from zoneinfo import ZoneInfo
 
 import pytest
+from stromkalkulator.avregning import Tariff, Tariffregel
 from stromkalkulator.const import (
     ENOVA_AVGIFT,
     FORBRUKSAVGIFT_ALMINNELIG,
@@ -24,7 +27,7 @@ def energiledd_inkl_mva(eks_mva: float) -> float:
     return (eks_mva + FORBRUKSAVGIFT_ALMINNELIG + ENOVA_AVGIFT) * (1 + MVA_SATS)
 
 
-def kapasitetsledd_for_power(avg_power_kw: float, dso: dict) -> int:
+def kapasitetsledd_for_power(avg_power_kw: float, dso: dict) -> float:
     """Fastledd i kr/mnd, via produksjonskodens eget grenseoppslag.
 
     Tidligere var dette en lokal kopi med `<=` for alle nettselskap. Den
@@ -241,7 +244,8 @@ class TestNettselskapet2026:
     """Nettselskapet AS hevet kapasitetsleddet 01.07.2026 (GitHub-issue #11).
 
     Energileddet står stille, men fastleddet gikk opp ~18%. Prislisten deres
-    skiller kun på klokkeslett, ikke ukedag.
+    skiller kun på klokkeslett, ikke ukedag. Alle åtte fastledd er kontrollert
+    9. oktober 2026; publiserte ørebeløp skal bevares gjennom trinnoppslaget.
     Kilde: nettselskapet.as/strompris (priser inkl. mva i egen kolonne).
     """
 
@@ -264,12 +268,12 @@ class TestNettselskapet2026:
     @pytest.mark.parametrize(
         ("avg_power", "expected_kr_mnd"),
         [
-            (1.0, 163),  # 0-2 kW: 162,50   (var 137,50)
+            (1.0, 162.50),  # 0-2 kW: 162,50   (var 137,50)
             (3.0, 300),  # 2-5 kW: 300      (var 250)
-            (7.0, 513),  # 5-10 kW: 512,50  (var 425)
-            (12.0, 763),  # 10-15 kW: 762,50 (var 625)
-            (17.0, 988),  # 15-20 kW: 987,50 (var 812,50)
-            (22.0, 1238),  # 20-25 kW: 1237,50 (var 1025)
+            (7.0, 512.50),  # 5-10 kW: 512,50  (var 425)
+            (12.0, 762.50),  # 10-15 kW: 762,50 (var 625)
+            (17.0, 987.50),  # 15-20 kW: 987,50 (var 812,50)
+            (22.0, 1237.50),  # 20-25 kW: 1237,50 (var 1025)
             (30.0, 2125),  # 25-50 kW: 2125   (var 1750)
             (60.0, 3325),  # 50-75 kW: 3325   (var 2750)
         ],
@@ -279,67 +283,67 @@ class TestNettselskapet2026:
 
 
 # ============================================================================
-# Norgesnett: ny tariff 01.07.2026. Asker Nett: verifisert uendret.
+# Norgesnett: ny tariff 01.10.2026. Asker Nett: ny tariff 01.10.2026.
 # ============================================================================
 
 
 class TestNorgesnett2026:
-    """Norgesnett hevet energiledd og alle ti kapasitetstrinn 01.07.2026.
-    Satsene er verifisert mot norgesnett.no 2026-08-07."""
+    """Norgesnett hevet energiledd og alle ti kapasitetstrinn 01.10.2026.
+    Satsene er verifisert mot norgesnett.no 2026-10-09."""
 
     @pytest.fixture
     def norgesnett(self):
         return DSO_LIST["norgesnett"]
 
-    def test_dag_inkl_alt_matcher_norgesnett_42_16_ore(self, norgesnett):
-        """Norgesnett per 01.07.2026: dag 42,16 øre/kWh inkl. alle avgifter."""
+    def test_dag_inkl_alt_matcher_norgesnett_45_ore(self, norgesnett):
+        """Norgesnett per 01.10.2026: dag 45,00 øre/kWh inkl. alle avgifter."""
         inkl = energiledd_inkl_mva(norgesnett["energiledd_dag_eks_mva"])
-        # (0,25598 + 0,0713 + 0,01) * 1,25 = 0,4216
-        assert inkl == pytest.approx(0.4216, abs=0.001)
+        # (0,2787 + 0,0713 + 0,01) * 1,25 = 0,45
+        assert inkl == pytest.approx(0.45, abs=0.001)
 
-    def test_natt_inkl_alt_matcher_norgesnett_27_16_ore(self, norgesnett):
-        """Norgesnett per 01.07.2026: natt 27,16 øre/kWh inkl. alle avgifter."""
+    def test_natt_inkl_alt_matcher_norgesnett_30_ore(self, norgesnett):
+        """Norgesnett per 01.10.2026: natt 30,00 øre/kWh inkl. alle avgifter."""
         inkl = energiledd_inkl_mva(norgesnett["energiledd_natt_eks_mva"])
-        # (0,13598 + 0,0713 + 0,01) * 1,25 = 0,2716
-        assert inkl == pytest.approx(0.2716, abs=0.001)
+        # (0,1587 + 0,0713 + 0,01) * 1,25 = 0,30
+        assert inkl == pytest.approx(0.30, abs=0.001)
 
     @pytest.mark.parametrize(
         ("avg_power", "expected_kr_mnd"),
         [
-            (1.0, 140),
-            (3.0, 233),  # 232,50
-            (7.0, 390),
-            (12.0, 695),
-            (17.0, 935),
-            (22.0, 1145),
-            (30.0, 1813),  # 1812,50
-            (60.0, 2813),  # 2812,50
-            (80.0, 3813),  # 3812,50
-            (120.0, 6113),  # 6112,50
+            (1.0, 165),
+            (3.0, 270),
+            (7.0, 455),
+            (12.0, 765),
+            (17.0, 1025),
+            (22.0, 1275),
+            (30.0, 2062.50),
+            (60.0, 3075),
+            (80.0, 4105),
+            (120.0, 7190),
         ],
     )
     def test_kapasitetsledd_per_trinn(self, norgesnett, avg_power, expected_kr_mnd):
         assert kapasitetsledd_for_power(avg_power, norgesnett) == expected_kr_mnd
 
 
-class TestAskerNett2026Uendret:
-    """Asker Nett: trippelsjekk bekrefter at eksisterende tariff er korrekt."""
+class TestAskerNettOktober2026:
+    """Asker Netts publiserte totalsatser fra 1. oktober 2026."""
 
     @pytest.fixture
     def asker(self):
         return DSO_LIST["asker_nett"]
 
-    def test_dag_inkl_alt_matcher_asker_40_ore(self, asker):
-        """Asker Nett 2026: dag 40 øre/kWh inkl. alt."""
+    def test_dag_inkl_alt_matcher_asker_47_5_ore(self, asker):
+        """Asker Nett oktober 2026: dag 47,5 øre/kWh inkl. alt."""
         inkl = energiledd_inkl_mva(asker["energiledd_dag_eks_mva"])
-        # (0,2387 + 0,0713 + 0,01) * 1,25 = 0,40
-        assert inkl == pytest.approx(0.40, abs=0.001)
+        # (0,2987 + 0,0713 + 0,01) * 1,25 = 0,475
+        assert inkl == pytest.approx(0.475, abs=0.001)
 
-    def test_natt_inkl_alt_matcher_asker_30_ore(self, asker):
-        """Asker Nett 2026: natt 30 øre/kWh inkl. alt."""
+    def test_natt_inkl_alt_matcher_asker_35_ore(self, asker):
+        """Asker Nett oktober 2026: natt 35 øre/kWh inkl. alt."""
         inkl = energiledd_inkl_mva(asker["energiledd_natt_eks_mva"])
-        # (0,1587 + 0,0713 + 0,01) * 1,25 = 0,30
-        assert inkl == pytest.approx(0.30, abs=0.001)
+        # (0,1987 + 0,0713 + 0,01) * 1,25 = 0,35
+        assert inkl == pytest.approx(0.35, abs=0.001)
 
 
 # ============================================================================
@@ -577,3 +581,38 @@ class TestArva2026:
     def test_no4_uten_mva(self, arva):
         """NO4: satsene over er ren netteierandel, uten mva å trekke ut."""
         assert arva["prisomrade"] == "NO4"
+
+
+@pytest.mark.parametrize(
+    "dso_id,dag_ore,natt_ore,trinn",
+    [
+        ("asker_nett", 29.87, 19.87, [225, 320, 500, 850, 1090, 1350, 2130, 3150, 4200, 7300]),
+        ("barents_nett", 10.75, 10.75, [491, 541, 589, 639, 737, 884]),
+        ("etna_nett", 27.55, 20.59, [350, 525, 623.70, 768.80, 1015.30, 1269.20]),
+        ("norgesnett", 27.87, 15.87, [165, 270, 455, 765, 1025, 1275, 2062.50, 3075, 4105, 7190]),
+        ("glitre", 27.87, 15.87, [165, 270, 455, 765, 1025, 1275, 2062.50, 3075, 4105, 7190]),
+        ("kystnett", 17, 17, [508, 916, 1324, 1733, 2141, 3366, 5407, 7448, 10510, 14593]),
+        ("midtnett", 31, 26, [275, 413, 625, 938, 1250, 1746, 2620, 3250, 3750]),
+    ],
+)
+def test_tariffer_fra_oktober_2026_mot_offisielle_prislister(dso_id, dag_ore, natt_ore, trinn):
+    """Fasiter fra kildene i docs/satsendringer.md, ikke hentet fra fri-nettleie."""
+    dso = DSO_LIST[dso_id]
+    assert dso["energiledd_dag_eks_mva"] * 100 == pytest.approx(dag_ore)
+    assert dso["energiledd_natt_eks_mva"] * 100 == pytest.approx(natt_ore)
+    assert [rad["pris"] if isinstance(rad, dict) else rad[1] for rad in dso["kapasitetstrinn"]] == trinn
+
+
+@pytest.mark.parametrize("dso_id", ["asker_nett", "midtnett", "norgesnett"])
+@pytest.mark.parametrize("maned,dag", [(10, 10), (10, 11), (12, 25)])
+@pytest.mark.parametrize(
+    "time,forventet", [(5, Tariff.NATT), (6, Tariff.DAG), (21, Tariff.DAG), (22, Tariff.NATT)]
+)
+def test_asker_midtnett_klokketariff_ogsa_helg_og_helligdag(
+    dso_id: str, maned: int, dag: int, time: int, forventet: Tariff
+) -> None:
+    """Oktoberprislistene gir kun klokkegrenser, uten helge-/helligdagsrabatt."""
+    dso = DSO_LIST[dso_id]
+    regel = Tariffregel(helg_som_natt=dso.get("helg_som_natt", True))
+    tidspunkt = datetime(2026, maned, dag, time, tzinfo=ZoneInfo("Europe/Oslo"))
+    assert regel.tariff(tidspunkt) is forventet

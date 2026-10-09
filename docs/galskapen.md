@@ -10,10 +10,12 @@ Sammenligner man prislistene til alle nettselskapene, er det åpenbart at de har
 brukt den friheten hver på sin måte. Denne integrasjonen skal regne ut nettleien og
 dekker alle nettselskapene, men oppgaven har ingen generell løsning.
 
-## Én husholdning, 69 priser
+## Én husholdning, 68 priser
 
 Ta én husholdning. Snitt av tre døgnmakser på eksakt 5,0 kW, 600 kWh på dagtid og
-400 kWh om natten, i juli. Så flytter du den rundt i landet.[^husholdning]
+400 kWh om natten, med juli som sesongvalg. Så flytter du den rundt i
+landet med katalogsatsene kontrollert 9. oktober 2026. Dette er et
+sammenligningseksempel, ikke en historisk juli-faktura.[^husholdning]
 
 | Nettselskap      | Energiledd | Fastledd | Sum        |
 | ---------------- | ---------- | -------- | ---------- |
@@ -24,8 +26,9 @@ Ta én husholdning. Snitt av tre døgnmakser på eksakt 5,0 kW, 600 kWh på dagt
 | Elvia            | 404,00 kr  | 420 kr   | 824,00 kr  |
 | Vang Energiverk  | 264,12 kr  | 819 kr   | 1083,12 kr |
 | Elmea            | 411,10 kr  | 747 kr   | 1158,10 kr |
+| Kystnett         | 251,30 kr  | 916 kr   | 1167,30 kr |
 
-Dyreste er 2,26 ganger billigste, og 67 av de 71 oppføringene med
+Dyreste er 2,28 ganger billigste, og 65 av de 71 oppføringene med
 kW-trinn gir sin egen unike sum. At prisene varierer er greit nok. Mer interessant er
 fordelingen mellom de to leddene: hos Modalen er 74 % av nettleien energiledd,
 hos Noranett 14 %.
@@ -35,11 +38,12 @@ forbruk til natten. Hos Noranett er det fastleddet, altså å holde effekttoppen
 nede. Forholdet mellom de to er rundt fem til én begge veier.[^andel] Hvilket
 spareråd som lønner seg avhenger dermed av hvilket nettselskap kunden har.
 
-## Fastleddet måler fem forskjellige ting
+## Fastleddet følger flere forskjellige modeller
 
 Snitt av de tre høyeste døgnmaksene i måneden er den vanligste innretningen, og
-69 av de 74 oppføringene bruker den.[^antall] De fem andre måler noe annet, og
-to av dem måler ikke effekt i det hele tatt.[^metoder]
+69 av de 74 oppføringene bruker den.[^antall] Fire har andre kjente
+beregningsregler, og for Tinfos er metoden ukjent. To av de fire måler ikke
+effekt i det hele tatt.[^metoder]
 
 Alut og Netera setter fastleddet etter hovedsikringen. Alut har to satser, over og
 under 3 x 125 A, og skriver det rett ut i prislisten.[^alut] Netera har fem rader,
@@ -74,17 +78,34 @@ Sør Aurdal Energi bruker månedens enkeltstående høyeste time, ikke snittet a
 tre.[^soraurdal] Én time med badstue og induksjonstopp avgjør dermed hele
 månedens fastledd.
 
-Ingen av de fem bryter regelverket. Sikringsstørrelse står oppført hos RME som et
+De kjente alternativene er innenfor regelverket. Sikringsstørrelse står hos RME som et
 gyldig alternativ, på linje med døgnmaks. Det som gjør dem vanskelige å fange
 opp, er at prislistene deres ser helt alminnelige ut, og at ingen av dem skriver
 at de måler noe annet enn de andre gjør.
 
+## Samme nettselskap, to avtaler
+
+Hos Netera må kunden også velge hvilken avtale energileddet skal følge.
+Prislisten for 2026 tilbyr en valgfri sesongavtale: 36,3 øre/kWh om vinteren
+og 33,4 øre/kWh om sommeren, inkludert avgifter og mva. Vinteren varer fra
+1. november til 30. april, sommeren fra 1. mai til 31. oktober. Kunden må
+kontakte nettselskapet for å få denne avtalen.[^neteraavtale]
+
+To naboer med samme nettselskap, hovedsikring og forbruk kan dermed få ulike
+energiledd fordi de har valgt forskjellige avtaler. Navnet på nettselskapet og
+måleverdiene forteller ikke hvilken avtale kunden har. En kalkulator trenger
+også det avtalevalget for å beregne riktig.
+
+Netera-valget i denne integrasjonen bruker standardavtalens flate energiledd.
+Den valgfrie sesongavtalen er foreløpig ikke modellert; begrensningen er
+beskrevet i [tariffvarianter](begrensninger.md#tariffvarianter-og-innmating).
+
 ## Hva «natt» betyr
 
-Alle nettselskapene har lavere energiledd om natten. De er ikke enige om når
-natten begynner, eller om helgen teller.
+Noen nettselskap har flatt energiledd, andre lavere pris om natten. De med
+dag/natt-skille er ikke enige om når natten begynner, eller om helgen teller.
 
-Sytti selskap gir nattpris hele helgen. Fem gjør det ikke, så hos dem koster lørdag
+I katalogen er åtte oppføringer markert uten helgerabatt. Hos dem koster lørdag
 klokken 14 like mye som tirsdag klokken 14. Det utgjør 1 792 timer i året, altså
 44 % mer tid til dagpris.[^dagtimer]
 
@@ -106,7 +127,8 @@ jobben jeg trodde NVE gjorde. Prosjektet samler alle norske nettleietariffer i
 maskinlesbart format, delt opp i ledd, nivå og trinn. Datasettet viser samtidig
 hvor lite av problemet som lar seg normalisere bort.
 
-Spørsmålet «har dette selskapet helgerabatt?» besvares der på fire måter. Åtte
+I gjennomgangen 29. juli 2026 ble spørsmålet «har dette selskapet helgerabatt?»
+besvart der på fire måter. Åtte
 selskap skriver `dager: [virkedag]`, seks skriver `dager: [ukedag]`, åtte skriver
 `dager: [alle]`, og 29 har et dag/natt-skille uten å si hvilke dager det
 gjelder.[^dager] Skjemaet sier ikke om «virkedag» og «ukedag» betyr det samme. Tensio TN skriver `[alle]` og Tensio TS skriver
@@ -164,13 +186,16 @@ oppdaget fordi et annet datasett var uenig.
 ## Prisene følger ikke kalenderåret
 
 Det er fristende å tro at satsene i det minste kan merkes «2026-priser» og
-oppdateres ved nyttår. De 73 gjeldende husholdningstariffene i fri-nettleie trer
-i kraft på 19 forskjellige datoer, fra 1. januar 2024 til 1. juli 2026.[^datoer]
-Tretti selskap har ikke rørt satsene siden nyttår, seks endret dem i juli, og tre
-har priser som har stått urørt siden 1. januar 2024.
+oppdateres ved nyttår. I gjennomgangen 29. juli 2026 hadde de 73 aktive
+husholdningstariffene i fri-nettleie 19 forskjellige ikrafttredelsesdatoer,
+fra 1. januar 2024 til 1. juli 2026.[^datoer] Tretti selskap hadde ikke rørt
+satsene siden nyttår, seks endret dem i juli, og tre hadde priser som sto
+urørt siden 1. januar 2024. Dette er et datert øyeblikksbilde; senere
+prisendringer står i [satsendringene](satsendringer.md).
 
 Underveis flytter selskapene på seg. Skiakernett fusjonerte inn i Vevig. Rakkestad
-Energi er blitt Elvia. Norgesnett eies av Glitre Nett og har egne, lavere priser.
+Energi er blitt Elvia. Norgesnett eies av Glitre Nett og har fra 1. oktober
+2026 samme publiserte husholdningspriser, men beholdes som eget katalogvalg.
 Noranett er tre separate tariffsett. Area Nett er tre prisområder delt etter kommune,
 med 358, 390 og 525 kr/mnd i laveste trinn, så adressen avgjør prisen innenfor
 samme selskap.[^identitet] Selv spørsmålet om hvor mange nettselskap som finnes,
@@ -178,10 +203,11 @@ har ikke et stabilt svar.
 
 ## Regnestykket
 
-Rommet av mulige tariffer lar seg telle. Det er fem observerte fastledd-metoder,
+Rommet av mulige tariffer lar seg telle. I kartleggingen 29. juli 2026 var det
+fem observerte fastledd-metoder,
 24 trinnsekvenser, to terskelregler ved eksakt grensetreff, fem energiledd-former,
 to helgeregler, to varianter av ekstra helligdager og tre avgiftssoner. Ganget
-sammen blir det 14 400 kombinasjoner, og 41 av dem er besatt.[^kombinasjoner]
+sammen ga det 14 400 kombinasjoner, og 41 av dem var besatt.[^kombinasjoner]
 
 41 besatte punkter av 14 400 er et nesten tomt rom. Det er ingen struktur å
 generalisere fra, og ingenting hindrer et selskap i å flytte seg til en av de
@@ -218,8 +244,9 @@ prisliste gjør. Se [bidra med faktura](fakturaer/bidra-med-faktura.md).
     fastleddet for 5,0 kW. Juli er valgt fordi det skiller sesongselskapene fra de
     andre. Tre oppføringer er utelatt fordi de ikke har en kW-trinntabell i det
     hele tatt (Alut, Netera, Fjellnett), så N = 71. Billigst er Stram med
-    512,40 kr og dyrest Elmea med 1158,10 kr, begge i Nord-Norge uten mva. 67 av
-    de 71 summene er unike; to par deler sum.
+    512,40 kr og dyrest Kystnett med 1167,30 kr, begge i Nord-Norge uten mva. 65 av
+    de 71 summene er unike; tre par deler sum. Tallene bruker katalogsatsene
+    kontrollert 9. oktober 2026, med juli som sesongvalg.
 
 [^andel]: Energileddets andel av nettleien i samme regnestykke: Modalen Kraftlag
     73,9 %, Havnett 59,7 %, Elvia 49,0 %, BKK 47,1 %, Stram 35,6 %, Vang
@@ -230,8 +257,10 @@ prisliste gjør. Se [bidra med faktura](fakturaer/bidra-med-faktura.md).
     `TRE_DØGNMAX_MND` (69 av de 74, og `Egendefinert` bruker den også),
     `OV_TREFASE` (Alut, Netera), `FEM_VEKTET_ÅR` (Fjellnett), `MND_MAX`
     (Sør Aurdal Energi) og `UKJENT` (Tinfos, som ikke publiserer metoden sin,
-    og der fri-nettleie har en åpen forespørsel til selskapet). Alle fem er
-    implementert. Hva de gjør og hvordan, står i
+    og der fri-nettleie har en åpen forespørsel til selskapet). De kjente
+    metodene er implementert. For Tinfos brukes tre døgnmaks som en
+    uverifisert antakelse, merket med `metode_uverifisert`; det beregnede
+    fastleddet inngår også i totalsummene. Detaljene står i
     [beregninger.md](beregninger.md#nettselskap-med-en-annen-metode).
 
 [^alut]: «For husholdning og hytter med etterspurt effekt/- overbelastningsvern
@@ -239,6 +268,11 @@ prisliste gjør. Se [bidra med faktura](fakturaer/bidra-med-faktura.md).
     4 500 kr årlig» ([alut.no](https://alut.no/nettleie/)). Alut er i NO4 uten
     mva, så `dso.py` lagrer 292 og 375 kr/mnd. Fri-nettleie koder de samme to satsene
     som terskler 0 og 125, uten å oppgi at enheten er ampere.
+
+[^neteraavtale]: [Neteras prisliste for privatkunder](https://netera.no/nettleie/avtaler/privat/),
+    gyldig fra 1. januar 2026, kontrollert 9. oktober 2026. Sesongavtalen er
+    oppgitt som et valgfritt alternativ til standardavtalen. Alle prisene på
+    privatkundesiden inkluderer mva., forbruksavgift og Enovaavgift.
 
 [^netera]: Prisliste gyldig fra 1. januar 2026
     ([netera.no](https://www.netera.no/nettleie/avtaler/privat/), «Alle priser er
@@ -252,9 +286,9 @@ prisliste gjør. Se [bidra med faktura](fakturaer/bidra-med-faktura.md).
     ([fjellnett.no](https://www.fjellnett.no/nettleie/nettleiepriser/), priser fra
     1. juli 2026). Siden formulerer metoden som «Gjennomsnittet av de fem høyeste
     effektene, løpende siste 12 mnd, forut for fakturatermin, som blir brukt som
-    grunnlag for avregning». Fri-nettleie ligger én tariff bak her, med 534 kr/kW
-    og energiledd 12,90 øre fra 1. januar, og beskriver Fjellnett med 22 terskler i
-    1 kW-steg, altså en trinntabell tegnet opp av en rett linje.
+    grunnlag for avregning». Ved kontrollen 9. oktober 2026 hadde fri-nettleie
+    samme juli-tariff. Datasettet beskriver den lineære metoden som en
+    trinntabell; integrasjonen bruker grunnbeløpet og satsen direkte.
 
 [^soraurdal]: «Fastledd fastsettes på bakgrunn av den timen i måneden du har
     høyest gjennomsnittlig forbruk (månedsmaksimal)», sae.no, kundeinformasjon
@@ -264,9 +298,10 @@ prisliste gjør. Se [bidra med faktura](fakturaer/bidra-med-faktura.md).
     går den motsatte vei, og eksakt 5,0 kW koster 415 kr/mnd i stedet for 250.
 
 [^dagtimer]: 2026 har 253 dager som er hverdag og ikke helligdag. Med helgerabatt
-    gir det 4 048 timer til dagpris, uten gir det 5 840. De fem uten helgerabatt
-    er Glitre Nett, Nettselskapet, Stannum, Tensio TN og Tensio TS
-    (`helg_som_natt: false`).
+    gir det 4 048 timer til dagpris, uten gir det 5 840. De åtte katalogvalgene
+    uten helgerabatt er Asker Nett, Glitre Nett, Midtnett, Nettselskapet,
+    Norgesnett, Stannum, Tensio TN og Tensio TS (`helg_som_natt: false`),
+    kontrollert mot katalogen 9. oktober 2026.
 
 [^helligdager]: `_bevegelige_helligdager` i `const.py` regner skjærtorsdag,
     langfredag, 1. og 2. påskedag, Kristi himmelfartsdag og 1. og 2. pinsedag som
@@ -278,7 +313,8 @@ prisliste gjør. Se [bidra med faktura](fakturaer/bidra-med-faktura.md).
 
 [^bkkjul]: `helligdager_ekstra: ["12-24", "12-31"]`, verifisert mot BKK-fakturaer
     fra oktober 2025 til april 2026. Begge datoene er torsdager i 2026, altså 32
-    timer lavtariff som ingen av de andre 74 oppføringene har. Julaften og
+    timer lavtariff som ingen av de andre valgbare oppføringene har eksplisitt
+    kildebekreftelse for i katalogen. Julaften og
     nyttårsaften er ikke helligdager etter helligdagsfredsloven § 2.
 
 [^dager]: Av de 50 selskapene med tidsstyrt energiledd i fri-nettleie oppgir 8
@@ -305,10 +341,12 @@ prisliste gjør. Se [bidra med faktura](fakturaer/bidra-med-faktura.md).
     gir tallet selskapet trykker. De seks oppføringene med en kommentar om
     dobbelttrekk er Arva, Alut, Føre, Romsdalsnett, S-Nett og Straumnett.
     Nettselskapet gjør det motsatte og trykker begge kolonner, 130,00 eks. mva og
-    162,50 inkl. mva for laveste trinn. Vi lagrer hele kroner per måned, så det
-    blir 163, altså 50 øre for høyt. Fri-nettleie gjør et tredje valg og oppgir alt
-    uten avgifter, med fastledd i kr/år, så sammenligningen mot dem er
-    `pris / 12 * mva-faktor` med halve kroner rundet opp.
+    162,50 inkl. mva for laveste trinn. Katalogen rundet tidligere dette til
+    163, altså 50 øre for høyt. Alle åtte trinn er nå kontrollert mot prislisten
+    fra 1. juli 2026 og bevarer publiserte ørebeløp, i likhet med de
+    kildeverifiserte oktoberprisene for Etna, Glitre og Norgesnett. Det betyr ikke at alle eldre avrundinger er
+    gjennomgått. Fri-nettleie oppgir fastledd i kr/år uten avgifter, så
+    sammenligningen må også ta hensyn til omregning og kildens presisjon.
 
 [^soner]: Mva-fritaket følger av merverdiavgiftsloven § 6-6 og gjelder Nordland,
     Troms og Finnmark. Tiltakssonen har i tillegg fritak for forbruksavgift.
@@ -339,17 +377,20 @@ prisliste gjør. Se [bidra med faktura](fakturaer/bidra-med-faktura.md).
 
 [^identitet]: `DSO_MIGRATIONS` i `dso.py` mapper `skiakernett` til `vevig`
     (fusjon 1. januar 2025). Rakkestad Energi har identiske satser og trinn som
-    Elvia, men står som egen oppføring fordi brukere har valgt den. Norgesnett er
-    billigere enn Glitre Nett på hvert enkelt trinn. Noranett, Noranett Andøy og
+    Elvia, men står som egen oppføring fordi brukere har valgt den. Norgesnett
+    hadde lavere priser enn Glitre Nett fram til oktober 2026. Begges
+    offisielle prislister fra 1. oktober viser nå samme husholdningstariff. Noranett, Noranett Andøy og
     Noranett Hadsel har 310, 310 og 270 kr/mnd i laveste trinn. Area Nett har tre
     husholdningsområder med 525, 390 og 358 kr/mnd i laveste trinn (uten mva,
     siden det er tiltakssonen), pluss en fjerde fri-nettleie-fil for fritidsbolig.
     Vi lagret 250 fram til 28. juli 2026, et tall som ikke fantes i noe område. Glitre Nett og Føie har tre
     GLN-numre hver, Arva har to. Midtnett har to gjeldende tariffer, der
-    fritidsbolig betaler 20 % mer i fastledd enn husholdning på samme energiledd,
-    en dimensjon `DSOEntry` ikke har.
+    fritidsbolig betaler omtrent 20 % mer i fastledd enn husholdning på samme
+    energiledd. Katalogen støtter nå denne forskjellen gjennom egne trinn per
+    boligtype; de publiserte FB22- og HN22-beløpene brukes direkte.
 
-[^kombinasjoner]: Trinnsekvensene er 24 unike rekker av kW-grenser over de 72
+[^kombinasjoner]: Historisk kartlegging 29. juli 2026: Trinnsekvensene var
+    24 unike rekker av kW-grenser over de 72
     oppføringene som har trinn, der den vanligste (0-2-5-10-15-20-25-50-75-100)
     dekker 27 selskap og 14 av rekkene har ett selskap hver. Antall trinn spenner
     fra fem hos Havnett til 20 hos Noranett. Sygnir har 1 kW-oppløsning opp til

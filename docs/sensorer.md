@@ -164,6 +164,10 @@ Sensoren summerer de bokførte kronebeløpene fra månedsarkivet og legger til h
 
 Forsinkede avlesninger kan også rette forrige måneds topptimer og fastledd. Beregningsgrunnlag og tariff fryses ved månedsskiftet. For årsvektet fastledd kan eldre lagring mangle dette grunnlaget; en sen korrigering gir da ukjent nettleie med `fastledd_grunnlag_bekreftet: false`, siden årets senere topper ikke kan brukes som historisk fasit.
 
+Kapasitetstrinn beholder ørepriser. Midtnett og Areas tre områder har egne fastleddtabeller for konfigurert fritidsbolig, også ved fast bosted. Area område 3 har fortsatt uavklart energiledd for hytter og motstridende sesongkilder; se [begrensningene](begrensninger.md). Hos Etna er husholdningens fastledd bare bekreftet til og med 25 kW. Høyere fakturagrunnlag gir ukjent fastledd og total, også etter en sen korrigering av forrige måned.
+
+Nettselskapets publiserte tabell ender ved 50–75 kW uten å avklare eksakt 75. Fra og med 75 kW er derfor fastleddet og avhengige totaler ukjent. Egendefinerte trinntabeller følger brukerens egne oppgitte priser.
+
 Snapshotene her har `last_reset` satt til starten av inneværende måned. Verdien byttes i sin helhet ved månedsskiftet, og uten `last_reset` ville HA-statistikken bokført forskjellen mellom to måneder som et delta.
 
 Toppforbruk-sensoren har `maaned`, `topp_1_dato`, `topp_1_kw`, `topp_1_time`, `topp_2_dato`, `topp_2_kw`, `topp_2_time`, `topp_3_dato`, `topp_3_kw`, `topp_3_time`.
@@ -181,6 +185,8 @@ For plusskunder. Krever konfigurert eksport-effektsensor. Alle deaktivert som st
 | _(valgfri)_ Forrige måned eksport inntekt | NOK   | Eksportinntekt forrige måned         |
 
 Eksportinntekten beregnes med spotprisen for kvarteret energien ble levert i. Null og negative priser er gyldige. Mangler prisdekning, vises inntekt og nettokostnad som ukjent; inntektssensorens attributter viser kjent delbeløp og `kwh_uten_pris`. Nettokostnad krever også et kjent fastledd.
+
+Dette er eksportens spotverdi. Innmatingsgodtgjørelse fra nettselskapet og egne vilkår i leverandørens plusskundeavtale er ikke inkludert.
 
 ## Vakthold på måledataene
 

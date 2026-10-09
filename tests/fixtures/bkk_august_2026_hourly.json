@@ -34,7 +34,7 @@
      "2026-08-31T00:00:00+02:00": {
       "recorder_nok_kwh": 1.35957,
       "publisert_nok_kwh": 1.364737,
-      "begrunnelse": "Båret verdi, avgjort for hånd av Fredrik 13.09.2026 (stromkalkulator-3u7fttz). Timen ligger 0,52 øre fra sin egen publiserte pris, men 0,01 øre fra 23:45-kvarteret kvelden før, altså femti ganger nærmere gårsdagen enn sin egen time. De to andre randtimene i august viser samme mønster (4,2 og 7,7 øre fra egen time, 0 og 0,35 fra kvarteret), og 31.08 er den tetteste av dem mot kvelden før. Automatikken tar den ikke fordi hele døgnet er hullet, så kurs-årgangen ikke lar seg måle og krav 2 i randtimeregelen ikke kan prøves. De rå avstandene er entydige nok, og kostnaden ved å ta feil er under ett øre."
+      "begrunnelse": "Båret verdi, avgjort for hånd av Fredrik 13.09.2026. Timen ligger 0,52 øre fra sin egen publiserte pris, men 0,01 øre fra 23:45-kvarteret kvelden før, altså femti ganger nærmere gårsdagen enn sin egen time. De to andre randtimene i august viser samme mønster (4,2 og 7,7 øre fra egen time, 0 og 0,35 fra kvarteret), og 31.08 er den tetteste av dem mot kvelden før. Automatikken tar den ikke fordi hele døgnet er hullet, så kurs-årgangen ikke lar seg måle og krav 2 i randtimeregelen ikke kan prøves. De rå avstandene er entydige nok, og kostnaden ved å ta feil er under ett øre."
      }
     }
    },

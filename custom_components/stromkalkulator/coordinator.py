@@ -95,6 +95,7 @@ from .dso import (
     finn_sikringstrinn,
     grunnlag_i_lavere_trinn,
     hent_fastledd_metode,
+    hent_kapasitetstrinn,
     parse_kapasitetstrinn,
 )
 from .eksport import Eksportbok
@@ -378,7 +379,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     energiledd_natt: float
     _energiledd_perioder_inkl: list[tuple[str, str, float, float]]  # (fra, til, dag_inkl, natt_inkl)
     _energiledd_perioder_eks: list[tuple[str, str, float, float]]  # samme, uten avgifter og mva
-    kapasitetstrinn: list[tuple[float, int]]
+    kapasitetstrinn: list[tuple[float, float]]
     fastledd_metode: str
     fastledd_lineaer: FastleddLineaer | None
     fastledd_sesongfaktor: dict[int, float]
@@ -396,7 +397,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     _previous_month_norgespris_diff: float
     _monthly_norgespris_compensation: float
     _previous_month_norgespris_compensation: float
-    _previous_month_kapasitetsledd: int
+    _previous_month_kapasitetsledd: float
     _previous_month_kapasitetstrinn: str
     _previous_month_energiledd_dag: float
     _previous_month_energiledd_natt: float
@@ -509,12 +510,12 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Get kapasitetstrinn from DSO
         # Normalize: some DSOs (e.g. Barents Nett) use dict format {"min", "max", "pris"}
         # Convert to standard tuple format (kW_threshold, NOK_per_month)
-        raw_trinn = self.dso["kapasitetstrinn"]
+        raw_trinn = hent_kapasitetstrinn(self.dso, self.boligtype)
         if raw_trinn and isinstance(raw_trinn[0], dict):
             dict_trinn = cast("list[KapasitetstrinnDict]", raw_trinn)
             self.kapasitetstrinn = [(entry["max"], entry["pris"]) for entry in dict_trinn]
         else:
-            self.kapasitetstrinn = cast("list[tuple[float, int]]", raw_trinn)
+            self.kapasitetstrinn = cast("list[tuple[float, float]]", raw_trinn)
 
         # Egendefinert har ingen prisliste, så trinnene er brukerens egne eller
         # ingen. En ulesbar tabell behandles som ingen: config-flowen avviser
@@ -1153,6 +1154,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Frys beregningsgrunnlag og satser uten å flytte den aktive måneden."""
         return {
             "metode": self.fastledd_metode,
+            "kjent_fastledd_maks_kw": self.dso.get("kjent_fastledd_maks_kw"),
+            "kjent_fastledd_maks_kw_inkludert": self.dso.get("kjent_fastledd_maks_kw_inkludert", True),
             "daily_max": self._serialize_daily_max(daily_max),
             "weekly_max": {
                 k: {"kw": v.kw, "dato": v.dato, "hour": v.hour} for k, v in self._weekly_max_power.items()
@@ -1225,8 +1228,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         snapshot: dict[str, Any],
         daily: dict[str, DailyMaxEntry],
         weekly: dict[str, WeeklyMaxEntry],
-    ) -> tuple[int, str]:
+    ) -> tuple[float, str]:
         """Historisk fastledd, regnet med den lukkede månedens tariffvalg."""
+        belop: float
         metode = snapshot["metode"]
         if metode == FASTLEDD_OV_TREFASE:
             # Sikringstrinn påvirkes ikke av en forsinket effektmåling.
@@ -1251,7 +1255,14 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         grunnlag = (
             (max(topper) if metode == FASTLEDD_MND_MAX else sum(topper) / len(topper)) if topper else 0.0
         )
-        trinn = [(float("inf") if kw is None else float(kw), int(kr)) for kw, kr in snapshot["trinn"]]
+        kildegrense = snapshot.get("kjent_fastledd_maks_kw")
+        if kildegrense is not None and (
+            grunnlag > float(kildegrense)
+            or (grunnlag == float(kildegrense) and not snapshot.get("kjent_fastledd_maks_kw_inkludert", True))
+        ):
+            self._previous_month_fastledd_grunnlag_bekreftet = False
+            return 0, "fastledd utenfor kjent kildegrunnlag"
+        trinn = [(float("inf") if kw is None else float(kw), float(kr)) for kw, kr in snapshot["trinn"]]
         if not trinn:
             return 0, "fastledd ukjent"
         belop, _, beskrivelse = finn_kapasitetstrinn(trinn, grunnlag, bool(snapshot["terskel_inkludert"]))
@@ -1272,7 +1283,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # i går, og skal ikke dukke opp i morgendagens tall.
             self._daily_cost += diff.energi_kr
 
-    def _oppdater_fastledd(self, now: datetime, kapasitetsledd: int) -> None:
+    def _oppdater_fastledd(self, now: datetime, kapasitetsledd: float) -> None:
         """Fastleddet som periodebeløp: kr/mnd ganger forløpt andel av måneden.
 
         Regnet på nytt ved hver poll framfor å summeres opp av små tidsbiter.
@@ -1290,7 +1301,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             belop, forlopt_andel_av_maaned(_aware(now))
         )
 
-    def _oppdater_fastledd_helmaaned(self, kapasitetsledd: int) -> None:
+    def _oppdater_fastledd_helmaaned(self, kapasitetsledd: float) -> None:
         """Sett fastleddet til hele månedens beløp, for måneden som lukkes.
 
         Nettselskapet fakturerer sluttrinnet for hele fakturamåneden, så det er
@@ -1300,7 +1311,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         belop = None if self._fastledd_ukjent() or self._mangler_sikringsvalg() else kapasitetsledd
         self._monthly_accumulated_cost_kapasitetsledd = fastledd_belop(belop, 1.0)
 
-    def _fastledd_i_dag(self, now: datetime, kapasitetsledd: int) -> float:
+    def _fastledd_i_dag(self, now: datetime, kapasitetsledd: float) -> float:
         """Dagens andel av månedens fastledd, i kroner."""
         belop = None if self._fastledd_ukjent() or self._mangler_sikringsvalg() else kapasitetsledd
         naa = _aware(now)
@@ -1664,7 +1675,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             prev_top_3 = self._get_top_3_days()
             self._previous_month_top_3 = prev_top_3
             self._previous_month_fastledd_snapshot = self._fastledd_snapshot(self._daily_max_power)
-            self._previous_month_fastledd_grunnlag_bekreftet = True
+            self._previous_month_fastledd_grunnlag_bekreftet = not self._fastledd_ukjent()
             # TRE_DØGNMAX_MND, MND_MAX og UKJENT leser bare inneværende måned, så
             # uten målinger finnes det ikke noe grunnlag å arkivere. OV_TREFASE og
             # FEM_VEKTET_ÅR har et beløp uansett (sikringsstørrelse, grunnbeløp).
@@ -2171,7 +2182,11 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if prev_top_3
             else 0.0,
             "previous_month_name": self._previous_month_name,
-            "previous_month_kapasitetsledd": self._previous_month_kapasitetsledd,
+            "previous_month_kapasitetsledd": (
+                self._previous_month_kapasitetsledd
+                if self._previous_month_fastledd_grunnlag_bekreftet
+                else None
+            ),
             "previous_month_kapasitetstrinn": self._previous_month_kapasitetstrinn,
             "previous_month_energiledd_dag": self._previous_month_energiledd_dag,
             "previous_month_energiledd_natt": self._previous_month_energiledd_natt,
@@ -2362,16 +2377,27 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return 0.0
         return sum(top_3) / 3 if len(top_3) >= 3 else sum(top_3) / len(top_3)
 
-    def _fastledd_ukjent(self) -> bool:
+    def _fastledd_ukjent(self, grunnlag_kw: float | None = None) -> bool:
         """Om fastleddet er ukjent fordi ingen kjenner trinnene.
 
-        Gjelder Egendefinert uten brukeroppgitt trinntabell. Nettselskapene i
-        `dso.py` har enten trinn med kilde eller en annen fastledd-metode, så
-        dette er ikke en tilstand et katalogoppsett kan havne i. Kapasitetsledd
-        og alt som bygger på det blir ukjent (kontrakt §9), framfor et
-        plausibelt beløp uten kilde (incident 006).
+        Gjelder manglende trinntabell og fakturagrunnlag utenfor den
+        kildebekreftede katalogtariffen. Sensorer som bygger på fastleddet
+        blir ukjent, framfor et plausibelt beløp uten kilde.
         """
-        return self.fastledd_metode in FASTLEDD_TRINNBASERTE and not self.kapasitetstrinn
+        kildegrense = self.dso.get("kjent_fastledd_maks_kw")
+        grunnlag = self._fastledd_grunnlag() if grunnlag_kw is None else grunnlag_kw
+        return bool(
+            (self.fastledd_metode in FASTLEDD_TRINNBASERTE and not self.kapasitetstrinn)
+            or (
+                kildegrense is not None
+                and (
+                    grunnlag > kildegrense
+                    or (
+                        grunnlag == kildegrense and not self.dso.get("kjent_fastledd_maks_kw_inkludert", True)
+                    )
+                )
+            )
+        )
 
     def _mangler_sikringsvalg(self) -> bool:
         """Om et sikringsbasert fastledd står uten gyldig brukervalg."""
@@ -2388,17 +2414,17 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             + self.fastledd_lineaer["sats_kw_aar_eks_mva"] * grunnlag_kw
         )
         maaned = aar_eks_mva / 12 * (1 + get_mva_sats(self.avgiftssone))
-        # Halve kroner rundes opp, som i dso.py. Innebygd round() gjør bankers
+        # Denne lineære metoden runder halve kroner opp. Innebygd round() gjør bankers
         # rounding og ville gitt 453 der nettselskapet fakturerer 453,75.
         return int(Decimal(maaned).quantize(Decimal(1), ROUND_HALF_UP))
 
-    def _get_kapasitetsledd(self, grunnlag_kw: float) -> tuple[int, int | None, str]:
+    def _get_kapasitetsledd(self, grunnlag_kw: float) -> tuple[float, int | None, str]:
         """Fastledd i kr/mnd for et effektgrunnlag.
 
         Returns: (pris, trinnummer, trinnbeskrivelse). Trinnummer er None der
         nettselskapet ikke har trinn, eller der sikringsstørrelsen mangler.
         """
-        if self._fastledd_ukjent():
+        if self._fastledd_ukjent(grunnlag_kw):
             # Ingen gjetning: uten brukerens egne trinn finnes det ikke noe
             # beløp å slå opp, og 0 her betyr «regnet uten fastledd», ikke
             # «fastleddet er null». Sensorene viser Ukjent.
@@ -2711,6 +2737,30 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self._previous_month_fastledd_grunnlag_bekreftet = (
                     data.get("previous_month_fastledd_grunnlag_bekreftet", True) is True
                 )
+                # Et eldre snapshot kan inneholde det åpne katalogtrinnet
+                # fra før kildens øvre grense ble kjent. Ikke vis det som
+                # en bekreftet fakturapris bare fordi ingen ny hale kommer.
+                snapshot = self._previous_month_fastledd_snapshot
+                grense = (
+                    snapshot.get("kjent_fastledd_maks_kw")
+                    if snapshot is not None
+                    else self.dso.get("kjent_fastledd_maks_kw")
+                )
+                if grense is not None:
+                    topper = sorted((e.kw for e in self._previous_month_top_3.values()), reverse=True)[:3]
+                    metode = snapshot["metode"] if snapshot else self.fastledd_metode
+                    grunnlag = (
+                        (max(topper) if metode == FASTLEDD_MND_MAX else sum(topper) / len(topper))
+                        if topper
+                        else 0.0
+                    )
+                    inkludert = (
+                        snapshot.get("kjent_fastledd_maks_kw_inkludert", True)
+                        if snapshot
+                        else self.dso.get("kjent_fastledd_maks_kw_inkludert", True)
+                    )
+                    if grunnlag > float(grense) or (grunnlag == float(grense) and not inkludert):
+                        self._previous_month_fastledd_grunnlag_bekreftet = False
                 self._previous_month_name = data.get("previous_month_name")
                 self._previous_month_norgespris_diff = self._validate_float(
                     data.get("previous_month_norgespris_diff", 0.0)
@@ -2721,11 +2771,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self._previous_month_norgespris_compensation = self._validate_float(
                     data.get("previous_month_norgespris_compensation", 0.0)
                 )
-                prev_kap = data.get("previous_month_kapasitetsledd", 0)
-                try:
-                    self._previous_month_kapasitetsledd = int(prev_kap)
-                except (ValueError, TypeError):
-                    self._previous_month_kapasitetsledd = 0
+                self._previous_month_kapasitetsledd = self._validate_float(
+                    data.get("previous_month_kapasitetsledd", 0)
+                )
                 self._previous_month_kapasitetstrinn = str(data.get("previous_month_kapasitetstrinn", ""))
                 self._previous_month_energiledd_dag = self._validate_float(
                     data.get("previous_month_energiledd_dag", self.energiledd_dag)
@@ -3073,13 +3121,27 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             snapshot = dict(raw)
             if snapshot["metode"] not in FASTLEDD_METODER:
                 return None
-            snapshot["trinn"] = [[None if kw is None else float(kw), int(kr)] for kw, kr in snapshot["trinn"]]
+            snapshot["trinn"] = [
+                [None if kw is None else float(kw), float(kr)] for kw, kr in snapshot["trinn"]
+            ]
             if any(
-                (kw is not None and (not math.isfinite(kw) or kw <= 0)) or kr < 0
+                (kw is not None and (not math.isfinite(kw) or kw <= 0)) or not math.isfinite(kr) or kr < 0
                 for kw, kr in snapshot["trinn"]
             ):
                 return None
             snapshot["mva_sats"] = float(snapshot["mva_sats"])
+            kildegrense = snapshot.get("kjent_fastledd_maks_kw", self.dso.get("kjent_fastledd_maks_kw"))
+            if kildegrense is not None:
+                kildegrense = float(kildegrense)
+                if not math.isfinite(kildegrense) or kildegrense <= 0:
+                    return None
+            snapshot["kjent_fastledd_maks_kw"] = kildegrense
+            inkludert = snapshot.get(
+                "kjent_fastledd_maks_kw_inkludert", self.dso.get("kjent_fastledd_maks_kw_inkludert", True)
+            )
+            if not isinstance(inkludert, bool):
+                return None
+            snapshot["kjent_fastledd_maks_kw_inkludert"] = inkludert
             if not math.isfinite(snapshot["mva_sats"]) or snapshot["mva_sats"] < 0:
                 return None
             snapshot["terskel_inkludert"] = bool(snapshot["terskel_inkludert"])

@@ -25,7 +25,6 @@ from .avregning import (
     Tariff,
     Tariffregel,
     Utfall,
-    fordel_delta,
     intervallstart,
     lokal_dato,
     lokal_maned,
@@ -88,6 +87,7 @@ from .const import (
 )
 from .dso import (
     FASTLEDD_FEM_VEKTET_AR,
+    FASTLEDD_METODER,
     FASTLEDD_MND_MAX,
     FASTLEDD_OV_TREFASE,
     FASTLEDD_TRINNBASERTE,
@@ -97,6 +97,7 @@ from .dso import (
     hent_fastledd_metode,
     parse_kapasitetstrinn,
 )
+from .eksport import Eksportbok
 from .inputadapter import (
     BASELINE_NOKKEL,
     ENHETSGRUNNER,
@@ -579,6 +580,10 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Track previous month's data for invoice verification
         self._previous_month_consumption = ConsumptionData()
         self._previous_month_top_3: dict[str, DailyMaxEntry] = {}
+        # Grunnlag og tariff slik de sto da måneden ble lukket. Årsuker i den
+        # aktive måneden kan senere ha høyere topper i samme lokale uke.
+        self._previous_month_fastledd_snapshot: dict[str, Any] | None = None
+        self._previous_month_fastledd_grunnlag_bekreftet = True
         self._previous_month_name = None
         self._previous_month_norgespris_diff = 0.0
         self._previous_month_norgespris_compensation = 0.0
@@ -597,6 +602,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Eksport-akkumulering (plusskunder med solceller)
         self._monthly_export_kwh = 0.0
         self._monthly_export_revenue = 0.0
+        self._eksportbok = Eksportbok()
         self._previous_month_export_kwh = 0.0
         self._previous_month_export_revenue = 0.0
         self._previous_month_cost = 0.0
@@ -1139,7 +1145,117 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._previous_month_norgespris_diff += kroner.norgespris_differanse_kr
             kwh_for += kwh
             endret = True
+        if endret:
+            self._etterbokfor_lukket_fastledd(now, berorte)
         return endret
+
+    def _fastledd_snapshot(self, daily_max: dict[str, DailyMaxEntry]) -> dict[str, Any]:
+        """Frys beregningsgrunnlag og satser uten å flytte den aktive måneden."""
+        return {
+            "metode": self.fastledd_metode,
+            "daily_max": self._serialize_daily_max(daily_max),
+            "weekly_max": {
+                k: {"kw": v.kw, "dato": v.dato, "hour": v.hour} for k, v in self._weekly_max_power.items()
+            },
+            "trinn": [[None if math.isinf(kw) else kw, kr] for kw, kr in self.kapasitetstrinn],
+            "terskel_inkludert": self._terskel_inkludert,
+            "lineaer": dict(self.fastledd_lineaer) if self.fastledd_lineaer else None,
+            "sesongfaktor": {str(k): v for k, v in self.fastledd_sesongfaktor.items()},
+            "mva_sats": get_mva_sats(self.avgiftssone),
+        }
+
+    def _etterbokfor_lukket_fastledd(self, now: datetime, berorte: list[datetime]) -> None:
+        """Rett tidligere døgn/årstopper og hele månedens fastledd én gang."""
+        snapshot = self._previous_month_fastledd_snapshot
+        if snapshot is None:
+            # Eldre lagring har bare topp-3. Det holder for stigende månedlige
+            # topper, men årets ukesgrunnlag ved lukking kan ikke gjenskapes
+            # fra dagens årsuker: den nye måneden kan ha endret samme uke.
+            if self._trenger_ukesmaks:
+                self._previous_month_fastledd_grunnlag_bekreftet = False
+                _LOGGER.warning("Mangler historisk årsukegrunnlag; tidligere fastledd beholdes uendret")
+                daily = dict(self._previous_month_top_3)
+                self._oppdater_lukkede_topper(now, berorte, daily, None)
+                self._previous_month_top_3 = dict(
+                    sorted(daily.items(), key=lambda p: p[1].kw, reverse=True)[:3]
+                )
+                return
+            snapshot = self._fastledd_snapshot(self._previous_month_top_3)
+            self._previous_month_fastledd_snapshot = snapshot
+        daily = self._validate_daily_max_power(snapshot.get("daily_max", {}))
+        weekly = self._validate_weekly_max_power(snapshot.get("weekly_max", {}))
+        self._oppdater_lukkede_topper(now, berorte, daily, weekly)
+        snapshot["daily_max"] = self._serialize_daily_max(daily)
+        snapshot["weekly_max"] = {k: {"kw": v.kw, "dato": v.dato, "hour": v.hour} for k, v in weekly.items()}
+        self._previous_month_top_3 = dict(sorted(daily.items(), key=lambda p: p[1].kw, reverse=True)[:3])
+        belop, beskrivelse = self._lukket_fastledd(snapshot, daily, weekly)
+        self._previous_month_cost += belop - self._previous_month_kapasitetsledd
+        self._previous_month_kapasitetsledd = belop
+        self._previous_month_kapasitetstrinn = beskrivelse
+
+    def _oppdater_lukkede_topper(
+        self,
+        now: datetime,
+        berorte: list[datetime],
+        daily: dict[str, DailyMaxEntry],
+        weekly: dict[str, WeeklyMaxEntry] | None,
+    ) -> None:
+        """Kun den gamle månedens topper, aldri den aktive månedens døgnmaks."""
+        for start in berorte:
+            intervall = self._bok.intervall(start, _aware(now))
+            if intervall is None:
+                continue
+            dato, time = lokal_dato(start), lokal_time(start)
+            kw = round(intervall.kwh, 3)
+            tidligere = daily.get(dato)
+            if tidligere is None or kw > tidligere.kw:
+                daily[dato] = DailyMaxEntry(kw=kw, hour=time)
+            if weekly is not None:
+                uke = self._ukestart(date.fromisoformat(dato)).isoformat()
+                uketopp = weekly.get(uke)
+                if uketopp is None or kw > uketopp.kw:
+                    weekly[uke] = WeeklyMaxEntry(kw=kw, dato=dato, hour=time)
+            if self._trenger_ukesmaks:
+                # Den korrigerte timen er også en del av det løpende året,
+                # men får ikke overskrive en høyere topp fra den nye måneden.
+                self._registrer_ukesmaks(dato, kw, time)
+
+    def _lukket_fastledd(
+        self,
+        snapshot: dict[str, Any],
+        daily: dict[str, DailyMaxEntry],
+        weekly: dict[str, WeeklyMaxEntry],
+    ) -> tuple[int, str]:
+        """Historisk fastledd, regnet med den lukkede månedens tariffvalg."""
+        metode = snapshot["metode"]
+        if metode == FASTLEDD_OV_TREFASE:
+            # Sikringstrinn påvirkes ikke av en forsinket effektmåling.
+            return self._previous_month_kapasitetsledd, self._previous_month_kapasitetstrinn
+        if metode == FASTLEDD_FEM_VEKTET_AR:
+            faktorer = snapshot.get("sesongfaktor", {})
+            topper = sorted(
+                (
+                    e.kw * faktorer.get(str(self._ukestart(date.fromisoformat(e.dato)).month), 1.0)
+                    for e in weekly.values()
+                ),
+                reverse=True,
+            )[:FEM_VEKTET_ANTALL_TOPPER]
+            grunnlag = round(sum(topper) / len(topper), 2) if topper else 0.0
+            lineaer = snapshot.get("lineaer")
+            if not lineaer:
+                return 0, f"{grunnlag:.2f} kW vektet årstopp"
+            aar = lineaer["grunnbelop_aar_eks_mva"] + lineaer["sats_kw_aar_eks_mva"] * grunnlag
+            belop = int(Decimal(aar / 12 * (1 + snapshot["mva_sats"])).quantize(Decimal(1), ROUND_HALF_UP))
+            return belop, f"{grunnlag:.2f} kW vektet årstopp"
+        topper = sorted((e.kw for e in daily.values()), reverse=True)[:3]
+        grunnlag = (
+            (max(topper) if metode == FASTLEDD_MND_MAX else sum(topper) / len(topper)) if topper else 0.0
+        )
+        trinn = [(float("inf") if kw is None else float(kw), int(kr)) for kw, kr in snapshot["trinn"]]
+        if not trinn:
+            return 0, "fastledd ukjent"
+        belop, _, beskrivelse = finn_kapasitetstrinn(trinn, grunnlag, bool(snapshot["terskel_inkludert"]))
+        return belop, beskrivelse
 
     def _legg_til_kroner(self, diff: Kroner, dato: str) -> None:
         """Legg en differanse inn i månedens og dagens bøker."""
@@ -1519,6 +1635,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._previous_month_export_revenue = 0.0
             self._previous_month_cost = 0.0
             self._previous_month_top_3 = {}
+            self._previous_month_fastledd_snapshot = None
+            self._previous_month_fastledd_grunnlag_bekreftet = True
             self._previous_month_kapasitetsledd = 0
             self._previous_month_kapasitetstrinn = ""
             self._previous_month_energiledd_dag_kr = 0.0
@@ -1545,6 +1663,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # Compute kapasitetsledd for previous month before reset
             prev_top_3 = self._get_top_3_days()
             self._previous_month_top_3 = prev_top_3
+            self._previous_month_fastledd_snapshot = self._fastledd_snapshot(self._daily_max_power)
+            self._previous_month_fastledd_grunnlag_bekreftet = True
             # TRE_DØGNMAX_MND, MND_MAX og UKJENT leser bare inneværende måned, så
             # uten målinger finnes det ikke noe grunnlag å arkivere. OV_TREFASE og
             # FEM_VEKTET_ÅR har et beløp uansett (sikringsstørrelse, grunnbeløp).
@@ -1664,6 +1784,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 else raw_spot
             )
             self._bok.registrer_prisprove(_aware(now), prove_eks_mva)
+            if self.export_power_sensor:
+                self._eksportbok.registrer_pris(_aware(now), prove_eks_mva)
             spot_price_raw = raw_spot
             self._last_spot_price = spot_price_raw
             self._last_spot_price_time = now
@@ -1683,11 +1805,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # samme enhet som STROMSTOTTE_LEVEL og NORGESPRIS_INKL_MVA. Se incident 004.
         if self.spotpris_inkl_mva:
             spot_price = spot_price_raw
-            spot_price_eks_mva = (
-                spot_price_raw / (1 + mva_sats_for_spot) if mva_sats_for_spot > 0 else spot_price_raw
-            )
         else:
-            spot_price_eks_mva = spot_price_raw
             spot_price = spot_price_raw * (1 + mva_sats_for_spot)
 
         # Dagsboken nullstilles før energien bokføres. Skjedde det etterpå,
@@ -1702,7 +1820,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Avlesningen går i boken, som fordeler den over avregningsintervallene
         # etter observasjonstid (C1). Tariffen kommer fra intervallets egen
         # start, ikke fra klokken pollen står på.
-        dirty = False
+        dirty = bool(self.export_power_sensor and raw_spot is not None)
         energy_kwh = 0.0
         berorte: set[datetime] = set()
         aapningsbalanse = self._aapningsbalanse()
@@ -1735,33 +1853,24 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self._oppdater_timesmaks(now):
             dirty = True
 
-        # Eksport-akkumulering (plusskunder med solceller). Eksport er en
-        # effektmåling, ikke en teller, så energien fordeles over pollvinduet
-        # før månedsskiftet arkiverer den gamle måneden.
+        # Eksport fordeles i egne UTC-prisruter. Forbruksboken kan allerede ha
+        # glemt forrige måneds prøver; eksportboken eier derfor sine egne.
         export_energy_kwh = 0.0
-        eksport_etter_rullering_kwh = 0.0
-        eksport_etter_rullering_kr = 0.0
         if self.export_power_sensor and elapsed_hours > 0:
             export_power_w = self._effekt_watt(INPUT_ROLLE_EKSPORT)
             export_power_kw = (export_power_w or 0.0) / 1000
             if export_power_kw > 0:
                 export_energy_kwh = export_power_kw * elapsed_hours
-                # Kraftleverandører betaler plusskunder spotpris eks. mva;
-                # mva er ikke aktuelt på salg fra privatperson.
-                for start, kwh in fordel_delta(
-                    _aware(now) - timedelta(hours=elapsed_hours), _aware(now), export_energy_kwh
-                ).items():
-                    inntekt = spot_price_eks_mva * kwh if spot_price_valid else 0.0
-                    if lokal_maned(start) == self._current_month:
-                        self._monthly_export_kwh += kwh
-                        self._monthly_export_revenue += inntekt
-                        dirty = True
-                    elif lokal_maned(start) == now.strftime("%Y-%m"):
-                        # Coordinatoren står fortsatt i forrige måned frem til
-                        # rulleringen under. Behold den nye delen kort, slik at
-                        # den lander i juli etter at juni er arkivert.
-                        eksport_etter_rullering_kwh += kwh
-                        eksport_etter_rullering_kr += inntekt
+                self._eksportbok.bokfor(
+                    _aware(now).astimezone(UTC) - timedelta(hours=elapsed_hours),
+                    _aware(now),
+                    export_energy_kwh,
+                )
+                dirty = True
+        self._eksportbok.avslutt_eldre(_aware(now))
+        eksportsum = self._eksportbok.maaned(self._current_month)
+        self._monthly_export_kwh = eksportsum.kwh
+        self._monthly_export_revenue = eksportsum.inntekt_kr
 
         self._last_update = now
         self._current_hour = now.hour
@@ -1779,10 +1888,13 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if self._oppdater_timesmaks(now):
                 dirty = True
 
-        if eksport_etter_rullering_kwh:
-            self._monthly_export_kwh += eksport_etter_rullering_kwh
-            self._monthly_export_revenue += eksport_etter_rullering_kr
-            dirty = True
+        eksportsum = self._eksportbok.maaned(self._current_month)
+        self._monthly_export_kwh = eksportsum.kwh
+        self._monthly_export_revenue = eksportsum.inntekt_kr
+        forrige_eksportmaned = (now.replace(day=1) - timedelta(days=1)).strftime("%Y-%m")
+        forrige_eksportsum = self._eksportbok.maaned(forrige_eksportmaned)
+        self._previous_month_export_kwh = forrige_eksportsum.kwh
+        self._previous_month_export_revenue = forrige_eksportsum.inntekt_kr
 
         # Det åpne intervallet regnes opp uansett: en prisprøve kan ha endret
         # timeprisen uten at noen energi ble bokført. Etter en rullering er det
@@ -1989,6 +2101,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         aktiv_dag, aktiv_natt = self._get_aktive_energileddsatser(now)
         perioder_meta = self._serialize_perioder()
         aktiv_periode = self._aktiv_periode_label(now)
+        eksportsum = self._eksportbok.maaned(self._current_month)
+        forrige_eksportmaned = (now.replace(day=1) - timedelta(days=1)).strftime("%Y-%m")
+        forrige_eksportsum = self._eksportbok.maaned(forrige_eksportmaned)
 
         return {
             # Bokens egne statusfelt (felttabellen i avregningskontrakten).
@@ -2048,6 +2163,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "previous_month_consumption_natt_kwh": round(self._previous_month_consumption.natt, 3),
             "previous_month_consumption_total_kwh": round(self._previous_month_consumption.total, 3),
             "previous_month_top_3": prev_top_3,
+            "previous_month_fastledd_grunnlag_bekreftet": self._previous_month_fastledd_grunnlag_bekreftet,
             "previous_month_avg_top_3_kw": round(
                 sum(e.kw for e in prev_top_3.values()) / max(len(prev_top_3), 1),
                 2,
@@ -2109,14 +2225,33 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             ),
             "eksport_konfigurert": self.export_power_sensor is not None,
             "monthly_export_kwh": round(self._monthly_export_kwh, 3),
-            "monthly_export_revenue_kr": round(self._monthly_export_revenue, 2),
+            "monthly_export_revenue_kr": (
+                round(self._monthly_export_revenue, 2) if eksportsum.kwh_uten_pris <= 1e-9 else None
+            ),
+            "monthly_export_known_revenue_kr": round(self._monthly_export_revenue, 2),
+            "monthly_export_kwh_uten_pris": round(eksportsum.kwh_uten_pris, 6),
+            "monthly_export_price_complete": eksportsum.kwh_uten_pris <= 1e-9,
             "monthly_cost_kr": round(self._monthly_cost, 2),
             "monthly_net_cost_kr": round(self._monthly_cost - self._monthly_export_revenue, 2),
             "previous_month_export_kwh": round(self._previous_month_export_kwh, 3),
-            "previous_month_export_revenue_kr": round(self._previous_month_export_revenue, 2),
-            "previous_month_cost_kr": round(self._previous_month_cost, 2),
-            "previous_month_net_cost_kr": round(
-                self._previous_month_cost - self._previous_month_export_revenue, 2
+            "previous_month_export_revenue_kr": (
+                round(self._previous_month_export_revenue, 2)
+                if forrige_eksportsum.kwh_uten_pris <= 1e-9
+                else None
+            ),
+            "previous_month_export_known_revenue_kr": round(self._previous_month_export_revenue, 2),
+            "previous_month_export_kwh_uten_pris": round(forrige_eksportsum.kwh_uten_pris, 6),
+            "previous_month_export_price_complete": forrige_eksportsum.kwh_uten_pris <= 1e-9,
+            "previous_month_cost_kr": (
+                round(self._previous_month_cost, 2)
+                if self._previous_month_fastledd_grunnlag_bekreftet
+                else None
+            ),
+            "previous_month_net_cost_kr": (
+                round(self._previous_month_cost - self._previous_month_export_revenue, 2)
+                if self._previous_month_fastledd_grunnlag_bekreftet
+                and forrige_eksportsum.kwh_uten_pris <= 1e-9
+                else None
             ),
         }
 
@@ -2539,13 +2674,17 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if not data:
             old_store: Store[dict[str, Any]] = Store(self.hass, 1, f"{DOMAIN}_{self._dso_id}")
             data = await old_store.async_load()
-            if data:
+            if isinstance(data, dict) and data:
                 _LOGGER.info("Migrated data from DSO-based storage to entry-based storage")
                 try:
                     await self._store.async_save(data)
                     await old_store.async_remove()
                 except OSError as err:
                     _LOGGER.warning("Storage migration failed: %s", err)
+
+        if data is not None and not isinstance(data, dict):
+            _LOGGER.warning("Corrupt storage data, using defaults: expected a dictionary")
+            data = None
 
         # Boken leser hele filen, ikke bare sine egne nøkler: en v1- eller
         # v2-fil har ingen intervallhistorikk å gjenskape, og måneden den
@@ -2565,6 +2704,12 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 )
                 self._previous_month_top_3 = self._validate_daily_max_power(
                     data.get("previous_month_top_3", {})
+                )
+                self._previous_month_fastledd_snapshot = self._les_fastledd_snapshot(
+                    data.get("previous_month_fastledd_snapshot")
+                )
+                self._previous_month_fastledd_grunnlag_bekreftet = (
+                    data.get("previous_month_fastledd_grunnlag_bekreftet", True) is True
                 )
                 self._previous_month_name = data.get("previous_month_name")
                 self._previous_month_norgespris_diff = self._validate_float(
@@ -2666,10 +2811,18 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 stored_month = data.get("current_month")
                 if stored_month is not None:
                     # Backward compat: old format stored month as integer
-                    if isinstance(stored_month, int):
+                    if type(stored_month) is int and 1 <= stored_month <= 12:
                         # Cannot reconstruct year from int alone; assume current year
                         stored_month = f"{dt_util.now().year}-{stored_month:02d}"
-                    if stored_month != self._current_month:
+                    try:
+                        if not isinstance(stored_month, str) or len(stored_month) != 7:
+                            raise ValueError("ugyldig måned")
+                        maanedsstart = datetime.fromisoformat(f"{stored_month}-01")
+                        # Eksportåpningen trenger også en representerbar forrige måned.
+                        _ = maanedsstart - timedelta(days=1)
+                    except (ValueError, OverflowError):
+                        _LOGGER.warning("Ignorerer ugyldig lagret current_month: %s", stored_month)
+                    else:
                         # Set to stored month so the normal month-transition in
                         # _async_update_data fires and properly archives previous month data
                         self._current_month = stored_month
@@ -2769,6 +2922,35 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # et intervall som ikke endrer seg mer bidrar aldri en gang til.
         self._speil_baseline()
         self._bygg_kronebokforing()
+        eksport_lagret = data.get("eksportbok") if data else None
+        eksportbok = None
+        if isinstance(eksport_lagret, dict):
+            try:
+                eksportbok = Eksportbok.fra_lagring(eksport_lagret)
+            except (TypeError, ValueError, KeyError, AttributeError, OverflowError) as err:
+                _LOGGER.warning("Ugyldig eksportbok; bruker lagrede månedsåpninger: %s", err)
+        if eksportbok is not None:
+            self._eksportbok = eksportbok
+        else:
+            # Eldre summer har ikke rutefordeling. Behold dem som åpning,
+            # og pris bare ny energi gjennom den separate eksportboken.
+            # En skadet nyere bok kan ha mistet prisgap. Behold delsummen,
+            # men ikke påstå komplett prisdekning uten den tapte historikken.
+            self._eksportbok = Eksportbok()
+            self._eksportbok.sett_apning(
+                self._current_month,
+                self._monthly_export_kwh,
+                self._monthly_export_revenue,
+                prisdekning_ukjent=eksport_lagret is not None,
+            )
+            maanedsstart = datetime.fromisoformat(f"{self._current_month}-01")
+            forrige = (maanedsstart - timedelta(days=1)).strftime("%Y-%m")
+            self._eksportbok.sett_apning(
+                forrige,
+                self._previous_month_export_kwh,
+                self._previous_month_export_revenue,
+                prisdekning_ukjent=eksport_lagret is not None,
+            )
 
     def _bygg_kronebokforing(self) -> None:
         """Sett `_kr_bokfort` til det bokens intervaller svarer til nå (C5).
@@ -2883,6 +3065,51 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Convert DailyMaxEntry dict to JSON-serializable format."""
         return {k: {"kw": v.kw, "hour": v.hour} for k, v in data.items()}
 
+    def _les_fastledd_snapshot(self, raw: object) -> dict[str, Any] | None:
+        """Les valgfri historikk; eldre lagring og skadde felt er ikke et grunnlag."""
+        if not isinstance(raw, dict):
+            return None
+        try:
+            snapshot = dict(raw)
+            if snapshot["metode"] not in FASTLEDD_METODER:
+                return None
+            snapshot["trinn"] = [[None if kw is None else float(kw), int(kr)] for kw, kr in snapshot["trinn"]]
+            if any(
+                (kw is not None and (not math.isfinite(kw) or kw <= 0)) or kr < 0
+                for kw, kr in snapshot["trinn"]
+            ):
+                return None
+            snapshot["mva_sats"] = float(snapshot["mva_sats"])
+            if not math.isfinite(snapshot["mva_sats"]) or snapshot["mva_sats"] < 0:
+                return None
+            snapshot["terskel_inkludert"] = bool(snapshot["terskel_inkludert"])
+            lineaer = snapshot.get("lineaer")
+            if lineaer is not None:
+                snapshot["lineaer"] = {
+                    key: float(lineaer[key]) for key in ("grunnbelop_aar_eks_mva", "sats_kw_aar_eks_mva")
+                }
+                if any(not math.isfinite(v) or v < 0 for v in snapshot["lineaer"].values()):
+                    return None
+            snapshot["sesongfaktor"] = {
+                str(int(key)): float(value) for key, value in snapshot.get("sesongfaktor", {}).items()
+            }
+            if any(
+                not 1 <= int(k) <= 12 or not math.isfinite(v) or v < 0
+                for k, v in snapshot["sesongfaktor"].items()
+            ):
+                return None
+            snapshot["daily_max"] = self._serialize_daily_max(
+                self._validate_daily_max_power(snapshot.get("daily_max", {}))
+            )
+            weekly = self._validate_weekly_max_power(snapshot.get("weekly_max", {}))
+            snapshot["weekly_max"] = {
+                k: {"kw": v.kw, "dato": v.dato, "hour": v.hour} for k, v in weekly.items()
+            }
+            return snapshot
+        except (KeyError, TypeError, ValueError, OverflowError, AttributeError):
+            _LOGGER.warning("Uleselig historisk fastledd-grunnlag; bruker tilgjengelig eldre historikk")
+            return None
+
     async def _save_stored_data(self) -> None:
         """Save data to disk."""
         data: dict[str, Any] = {
@@ -2905,6 +3132,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "natt": self._previous_month_consumption.natt,
             },
             "previous_month_top_3": self._serialize_daily_max(self._previous_month_top_3),
+            "previous_month_fastledd_snapshot": self._previous_month_fastledd_snapshot,
+            "previous_month_fastledd_grunnlag_bekreftet": self._previous_month_fastledd_grunnlag_bekreftet,
             "previous_month_name": self._previous_month_name,
             "monthly_norgespris_diff": self._monthly_norgespris_diff,
             "previous_month_norgespris_diff": self._previous_month_norgespris_diff,
@@ -2925,6 +3154,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "current_hour": self._current_hour,
             "monthly_export_kwh": self._monthly_export_kwh,
             "monthly_export_revenue": self._monthly_export_revenue,
+            "eksportbok": self._eksportbok.til_lagring(),
             "monthly_cost": self._monthly_cost,
             "monthly_accumulated_cost": self._monthly_accumulated_cost,
             "monthly_accumulated_cost_strom": self._monthly_accumulated_cost_strom,

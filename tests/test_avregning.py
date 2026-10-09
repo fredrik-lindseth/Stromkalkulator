@@ -721,6 +721,35 @@ def test_omstart_gjenopptar_energi_pris_og_baseline() -> None:
     assert svar.bokfort_kwh == pytest.approx(1.0, abs=1e-9)
 
 
+def test_omstart_bevarer_ferdige_maanedssummer_utenfor_lagringsvindu() -> None:
+    """Prisdekning overlever flere restarter selv om gamle intervaller utelates."""
+    bok = _bok()
+    bok.bokfor(_les(100.0, TIME))
+    bok.registrer_prisprove(TIME + timedelta(hours=1, minutes=1), 1.0)
+    for minutt in (1, 16, 31, 46):
+        bok.registrer_prisprove(TIME + timedelta(hours=2, minutes=minutt), 2.0)
+    for time in range(1, 9):
+        bok.bokfor(_les(100.0 + time, TIME + timedelta(hours=time)))
+
+    naa = TIME + timedelta(hours=8)
+    foer = bok.maanedssum()
+    assert foer.kwh_total == 8.0
+    assert foer.kwh_uten_pris == 6.0
+    assert foer.kwh_delvis_pris == 1.0
+    for _ in range(3):
+        lagret = bok.til_lagring(naa)
+        assert len(lagret["intervaller"]) < foer.intervaller
+        bok = Avregningsbok.fra_lagring(lagret, dso_id="bkk")
+        assert bok.maanedssum() == foer
+
+    bok.bokfor(_les(109.0, TIME + timedelta(hours=9)))
+    etter = bok.maanedssum()
+    assert etter.kwh_total == 9.0
+    assert etter.kwh_uten_pris == 7.0
+    assert etter.kwh_delvis_pris == 1.0
+    assert etter.intervaller == 9
+
+
 def test_migrering_fra_v2_gir_tom_bok_merket_ufullstendig() -> None:
     """D: månedssummene fra v2 kan ikke gjøres om til intervallhistorikk."""
     v2 = {"version": 2, "monthly_consumption_total_kwh": 412.0, "source_identity": "meter-1"}

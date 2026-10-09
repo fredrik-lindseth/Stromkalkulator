@@ -155,7 +155,20 @@ class TestGjenopptattDelta:
 
 
 class TestManglendePris:
-    """Et intervall uten pris gir ingen kraftkroner, men nettleien er kjent."""
+    """Manglende spot hindrer ikke bokføring av kjent fastpris eller nettleie."""
+
+    @pytest.mark.parametrize("kwh_for, kraft", [(0.0, 5.0), (4995.0, 2.5), (5000.0, 0.0)])
+    def test_norgespris_uten_spot_bokforer_kjent_del(self, kwh_for, kraft):
+        kroner = kroner_for_intervall(
+            _intervall(10.0, pris_eks_mva=None),
+            replace(SATSER, har_norgespris=True),
+            kwh_for=kwh_for,
+        )
+        assert kroner.strom_kr == pytest.approx(kraft)
+        assert kroner.energiledd_kr == pytest.approx(5.0)
+        assert kroner.kwh_uten_pris == 10.0
+        assert kroner.norgespris_kompensasjon_kr == 0.0
+        assert kroner.norgespris_differanse_kr == 0.0
 
     def test_uten_pris_ingen_kraft_men_energiledd(self):
         kroner = kroner_for_intervall(_intervall(4.0, pris_eks_mva=None), SATSER, kwh_for=0.0)

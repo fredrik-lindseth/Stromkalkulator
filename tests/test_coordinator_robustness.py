@@ -110,12 +110,12 @@ class TestSpotprisCaching:
         hass = MagicMock()
 
         def get_state(eid):
+            if "export" in eid:
+                return _make_state(3000)
             if "power" in eid:
                 return _make_state(5000)
             if "spot" in eid:
                 return unavailable_state
-            if "export" in eid:
-                return _make_state(3000)
             return None
 
         hass.states.get = MagicMock(side_effect=get_state)
@@ -130,8 +130,12 @@ class TestSpotprisCaching:
 
         # Selv med Norgespris skal vi ikke akkumulere besparelse mot 0.0-spot
         assert result["monthly_norgespris_diff_kr"] == 0.0
-        # Eksportinntekt skal ikke akkumuleres uten gyldig spot
-        assert result["monthly_export_revenue_kr"] == 0.0
+        # Eksportenergi bevares, men totalinntekt er ukjent uten prisgrunnlag.
+        assert result["monthly_export_revenue_kr"] is None
+        assert result["monthly_export_known_revenue_kr"] == 0.0
+        assert result["monthly_export_kwh_uten_pris"] == 0.05
+        assert result["monthly_export_kwh"] == 0.05
+        assert result["monthly_export_price_complete"] is False
 
     def test_slettet_spotsensor_gir_ugyldig_pris_ikke_updatefailed(self, coord_module):
         """En slettet spotsensor skal melde seg, ikke felle hele oppdateringen.

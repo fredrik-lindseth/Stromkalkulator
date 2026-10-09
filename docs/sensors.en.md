@@ -136,9 +136,11 @@ Stored at the change of month. Used for invoice verification.
 
 All have a `maaned` attribute (e.g. "januar 2026").
 
-The "Forrige måned nettleie" sensor also has `energiledd_dag_kr`, `energiledd_natt_kr`, `kapasitetsledd_kr`, `snitt_topp_3_kw`, `norgespris_differanse_kr` and `kilde`.
+The "Forrige måned nettleie" sensor also has `energiledd_dag_kr`, `energiledd_natt_kr`, `avgifter_kr`, `stromstotte_kr`, `kapasitetsledd_kr`, `snitt_topp_3_kw`, `norgespris_differanse_kr` and `bokforte_kroner`.
 
-`kilde` reads `satser ganget med kWh, ikke bokførte kroner`. The previous month is the one place the integration still computes grid tariff itself: the archive keeps the kilowatt-hours, the rates that applied on the last day of the month and the capacity tier, but no booked kroner. The number is right when the rates held still through the month, and off when they did not.
+The sensor sums booked amounts from the monthly archive and adds the full monthly capacity charge. Rate changes during the month are preserved. An older archive without booked components is shown as unknown with `bokforte_kroner: false`; the next month rollover creates a complete archive.
+
+Delayed readings can also correct the previous month's peak hours and fixed charge. The calculation basis and tariff are frozen at month rollover. Older storage may lack this basis for annual weighted charges; a late correction then makes the grid tariff unknown with `fastledd_grunnlag_bekreftet: false`, because later annual peaks cannot establish the historical charge.
 
 These snapshots set `last_reset` to the start of the current month. The value is replaced wholesale at the change of month, and without `last_reset` the HA statistics would record the difference between two months as a delta.
 
@@ -155,6 +157,8 @@ For prosumers. Requires a configured export power sensor. All disabled by defaul
 | _(optional)_ Månedlig nettokostnad         | NOK  | Consumption cost minus export revenue |
 | _(optional)_ Forrige måned eksport kWh     | kWh  | Exported energy last month            |
 | _(optional)_ Forrige måned eksport inntekt | NOK  | Export revenue last month             |
+
+Export revenue uses the spot price for the quarter-hour when the energy was supplied. Zero and negative prices are valid. With missing price coverage, revenue and net cost are unknown; revenue attributes show the known subtotal and `kwh_uten_pris`. Net cost also requires a known fixed charge.
 
 ## Measurement data watchdog
 
@@ -175,8 +179,10 @@ Three things turn it on:
   increased for more hours than the threshold. Set it under Configure, default
   three hours. Raise it for a cabin or site that sits idle for stretches.
 - Expired spot price: the spot price has been gone longer than the two hour
-  cache. Consumption is still counted in kWh, but cost, subsidy and the
-  Norgespris comparison stand still until the price returns.
+  cache. Consumption, grid charges, taxes and known Norgespris below the
+  consumption cap are still booked. Spot-dependent energy cost, subsidy and
+  the Norgespris comparison lack a price basis; missing coverage remains visible
+  in data quality.
 
 Attributes:
 
@@ -391,10 +397,14 @@ Find the `entry_id` in the URL under Settings > Devices & Services > Strømkalku
 | `monthly_accumulated_cost`       | float  | Accumulated monthly cost (kr)                 |
 | `previous_month_consumption`     | dict   | Consumption last month                        |
 | `previous_month_top_3`           | dict   | Top-3 last month                              |
+| `previous_month_fastledd_snapshot` | dict/null | Historical tariff and peak basis for late corrections |
+| `previous_month_fastledd_grunnlag_bekreftet` | bool | Whether the historical fixed charge can be verified |
 | `previous_month_kapasitetsledd`  | int    | Capacity charge last month (kr/month)         |
 | `previous_month_kapasitetstrinn` | string | Tier range last month (e.g. `"5-10 kW"`)      |
 | `monthly_export_kwh`             | float  | Export this month                             |
 | `monthly_export_revenue`         | float  | Export revenue this month                     |
+| `eksportbok`                     | dict   | Export price slots, energy and monthly balances |
+| `ferdige_sum`                    | dict   | Consumption and price coverage outside the short interval window |
 | `monthly_cost`                   | float  | Total consumption cost this month (kr)        |
 
 #### Examples

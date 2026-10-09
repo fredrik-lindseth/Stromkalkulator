@@ -163,9 +163,9 @@ def kroner_for_intervall(
     `kwh_for` er månedens kilowattimer før dette intervallet, og er det som
     avgjør hvor takene for strømstøtte og Norgespris faller inne i intervallet.
 
-    Et intervall uten pris gir ingen kroner for kraften (C4: aldri null, aldri
-    naboens pris), men energiledd og avgifter regnes like fullt. De avhenger av
-    tariffen og datoen, ikke av spotprisen, og den vet vi.
+    Uten spotpris bokføres fortsatt kjent Norgespris under forbrukstaket,
+    energiledd og avgifter. Spotavhengige beløp og sammenligninger kan ikke
+    regnes; manglende spotdekning beholdes synlig i `kwh_uten_pris`.
     """
     kwh = intervall.kwh
     if kwh <= 0:
@@ -182,9 +182,12 @@ def kroner_for_intervall(
 
     pris_eks_mva = intervall.nok_per_kwh_eks_mva
     if pris_eks_mva is None:
-        # Kilowattimene er kjent, prisen er det ikke. De står synlig i
-        # `kwh_uten_pris` framfor å bli priset med noe vi ikke har.
-        return replace(grunn, kwh_uten_pris=kwh)
+        kjent_kraft = (
+            satser.norgespris_inkl_mva * _under_tak(kwh, kwh_for, satser.norgespris_max_kwh)
+            if satser.har_norgespris
+            else 0.0
+        )
+        return replace(grunn, strom_kr=kjent_kraft, kwh_uten_pris=kwh)
 
     spot = pris_eks_mva * (1 + satser.mva_sats)
     stotte_sats = stromstotte_per_kwh(spot, satser.stromstotte_terskel)

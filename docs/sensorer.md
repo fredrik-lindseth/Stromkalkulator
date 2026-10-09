@@ -158,9 +158,11 @@ Devicen har også knappen **Lag fakturarapport**. Den lager en varsling (persist
 
 Alle har `maaned`-attributt (f.eks. "januar 2026").
 
-Nettleie-sensoren har også `energiledd_dag_kr`, `energiledd_natt_kr`, `kapasitetsledd_kr`, `snitt_topp_3_kw`, `norgespris_differanse_kr` og `kilde`.
+Nettleie-sensoren har også `energiledd_dag_kr`, `energiledd_natt_kr`, `avgifter_kr`, `stromstotte_kr`, `kapasitetsledd_kr`, `snitt_topp_3_kw`, `norgespris_differanse_kr` og `bokforte_kroner`.
 
-`kilde` sier `satser ganget med kWh, ikke bokførte kroner`. Forrige måned er det eneste stedet integrasjonen fortsatt regner nettleie selv: arkivet lagrer kilowattimene, satsene som gjaldt siste dag i måneden og kapasitetstrinnet, men ingen bokførte kroner. Tallet stemmer når satsene sto stille gjennom måneden, og bommer når de ikke gjorde det.
+Sensoren summerer de bokførte kronebeløpene fra månedsarkivet og legger til hele månedens kapasitetsledd. Satsendringer underveis i måneden bevares. Et eldre arkiv uten bokførte delbeløp vises som ukjent med `bokforte_kroner: false`; neste månedsskifte lager et komplett arkiv.
+
+Forsinkede avlesninger kan også rette forrige måneds topptimer og fastledd. Beregningsgrunnlag og tariff fryses ved månedsskiftet. For årsvektet fastledd kan eldre lagring mangle dette grunnlaget; en sen korrigering gir da ukjent nettleie med `fastledd_grunnlag_bekreftet: false`, siden årets senere topper ikke kan brukes som historisk fasit.
 
 Snapshotene her har `last_reset` satt til starten av inneværende måned. Verdien byttes i sin helhet ved månedsskiftet, og uten `last_reset` ville HA-statistikken bokført forskjellen mellom to måneder som et delta.
 
@@ -177,6 +179,8 @@ For plusskunder. Krever konfigurert eksport-effektsensor. Alle deaktivert som st
 | _(valgfri)_ Månedlig nettokostnad         | NOK   | Forbrukskostnad minus eksportinntekt |
 | _(valgfri)_ Forrige måned eksport kWh     | kWh   | Eksportert energi forrige måned      |
 | _(valgfri)_ Forrige måned eksport inntekt | NOK   | Eksportinntekt forrige måned         |
+
+Eksportinntekten beregnes med spotprisen for kvarteret energien ble levert i. Null og negative priser er gyldige. Mangler prisdekning, vises inntekt og nettokostnad som ukjent; inntektssensorens attributter viser kjent delbeløp og `kwh_uten_pris`. Nettokostnad krever også et kjent fastledd.
 
 ## Vakthold på måledataene
 
@@ -197,8 +201,9 @@ Tre ting slår den på:
   på flere timer enn terskelen. Terskelen settes under Configure, default tre
   timer. Hev den på en hytte eller et anlegg som står tomt i perioder.
 - Utløpt spotpris: spotprisen har vært borte lenger enn cachen på to timer.
-  Forbruket telles fortsatt i kWh, men kostnad, strømstøtte og
-  Norgespris-sammenligning står stille til prisen er tilbake.
+  Forbruk, nettleie, avgifter og kjent Norgespris under forbrukstaket bokføres fortsatt.
+  Spotavhengig kraftkostnad, strømstøtte og Norgespris-sammenligning mangler
+  prisgrunnlag. Manglende dekning vises i datakvaliteten.
 
 Attributter:
 
@@ -411,10 +416,14 @@ Finn `entry_id` i URL-en under Settings > Devices & Services > Strømkalkulator.
 | `monthly_accumulated_cost`       | float  | Akkumulert månedskostnad (kr)                      |
 | `previous_month_consumption`     | dict   | Forbruk forrige måned                              |
 | `previous_month_top_3`           | dict   | Topp-3 forrige måned                               |
+| `previous_month_fastledd_snapshot` | dict/null | Historisk tariff og toppgrunnlag for sen korrigering |
+| `previous_month_fastledd_grunnlag_bekreftet` | bool | Om historisk fastledd kan etterprøves |
 | `previous_month_kapasitetsledd`  | int    | Kapasitetsledd forrige måned (kr/mnd)              |
 | `previous_month_kapasitetstrinn` | string | Trinn-intervall forrige måned (f.eks. `"5-10 kW"`) |
 | `monthly_export_kwh`             | float  | Eksport denne måneden                              |
 | `monthly_export_revenue`         | float  | Eksportinntekt denne måneden                       |
+| `eksportbok`                     | dict   | Eksportens prisruter, energi og månedsbalanser      |
+| `ferdige_sum`                    | dict   | Forbruk og prisdekning utenfor det korte intervallvinduet |
 | `monthly_cost`                   | float  | Total forbrukskostnad denne måneden (kr)           |
 
 #### Eksempler

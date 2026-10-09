@@ -249,8 +249,10 @@ def test_fersk_publisering_binder_tagg_zip_og_attestasjon(
     assert release["draft"] is False
     assert release["target_commitish"] == sha
     assert hashlib.sha256(github.asset_innhold()).hexdigest() == attestert
-    assert sha[:12] in release["body"], "SHA-en skal stå i noten, ikke bare i loggen"
-    assert attestert in release["body"]
+    assert sha[:12] not in release["body"], "HACS-noten skal handle om brukerens funksjoner"
+    assert attestert not in release["body"], "ZIP-beviset skal ikke fylle brukerteksten"
+    assert "Alle commits" not in release["body"]
+    assert "## Verifisering" not in release["body"]
     assert "En ting" in release["body"], "CHANGELOG-seksjonen skal være body-en"
     assert "<!--kort-->" not in release["body"], "merket skal ikke bli med ut"
     assert "En detalj" not in release["body"], "body-en er den korte noten, ikke hele seksjonen"
@@ -615,7 +617,7 @@ def test_draft_fra_en_annen_commit_gjenbrukes_ikke(
     assert publiser(repo, ny_sha) == release_publish.EXIT_STOPP
     assert github.tagg() is None, "taggen ble opprettet før draften var sjekket"
     assert github.release()["draft"] is True
-    assert sha[:12] in github.release()["body"], "draften hører fortsatt til den gamle commiten"
+    assert github.release()["target_commitish"] == sha, "draften hører fortsatt til den gamle commiten"
 
 
 def test_handskrevet_draft_gjenbrukes_fortsatt(

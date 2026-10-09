@@ -1,5 +1,24 @@
 # Release notes
 
+Leseren har allerede installert integrasjonen. Beskriv endringene fra forrige versjon og bare handlingene som er nødvendige for oppgraderingen. Installasjon, dashbordoppsett og valgfrie blueprints står i README. Skriv hele avsnitt og listepunkter på én linje uten manuell linjebryting. Bruk vanlige ord og konkrete endringer. Sjekk tidligere manifestversjoner i git før du kaller en release den første.
+
+## Skriv for HACS i Home Assistant
+
+GitHub-release-bodyen vises inne i Home Assistant. Den korte noten skal derfor
+beskrive funksjoner, synlige feilrettinger og nødvendige handlinger, normalt
+5–10 korte punkter. Ved første release beskriver den hva brukeren får.
+Unngå implementasjonshistorikk og tekniske bevis i denne teksten.
+
+Bruk `<!--kort-->` bare på de brukerrettede punktene. Testresultater, CI,
+refaktorering og datakildepinner kan stå i full CHANGELOG eller
+utviklerdokumentasjonen. Commit-logg og byggedetaljer legges ikke til
+release-bodyen automatisk. Tagg, ZIP og attestasjon kontrolleres fortsatt av
+release-porten; [SECURITY.md](../SECURITY.md) viser hvordan de etterprøves.
+
+Les den genererte korte noten før publisering, med handlingene først og lenke
+til full endringslogg sist. Kontroller at hvert punkt forklarer hva brukeren
+får eller merker, og at det faktisk er kort nok til en oppdateringsdialog.
+
 ## CHANGELOG.md
 
 Det finnes én tekst, og den ligger i repoet. `## [X.Y.Z]`-seksjonen i
@@ -9,7 +28,7 @@ utviklerlogg.
 
 Tidligere ble noten skrevet for hånd i en GitHub-draft. Da lå den utenfor
 repoet, workflowen publiserte rå commit-liste i stedet, og teksten måtte limes
-inn igjen manuelt etterpå (stromkalkulator-1dk4).
+inn igjen manuelt etterpå.
 
 Se selv hva en gitt versjon gir:
 
@@ -159,15 +178,10 @@ release-jobben.
 
 ## Hva workflowen legger til
 
-`release.yml` bygger body-en slik:
-
-1. Den korte CHANGELOG-noten, med «Dette må du gjøre selv» løftet øverst,
-   relative lenker skrevet om til absolutte og lenke til hele endringsloggen
-2. `## Verifisering` med commiten ZIP-en er bygget fra, SHA256-linjen og lenke
-   til `SECURITY.md`
-3. `<details>`-fold med alle commits siden forrige tag
-
-De to siste er automatiske. Ikke skriv dem inn i CHANGELOG.
+`release.yml` bruker bare den korte CHANGELOG-noten som release-body.
+«Dette må du gjøre selv» løftes øverst, relative lenker blir absolutte, og en
+lenke til hele endringsloggen legges sist. Byggeinformasjon og commit-logg
+legges ikke til. Tagg, ZIP og attestasjon verifiseres separat.
 
 ## En sluppet seksjon er historikk
 
@@ -432,7 +446,9 @@ den krever skrivetilgang på GitHub.
 
 Rett i CHANGELOG.md først, så teksten i repoet er fasiten, og speil den til
 releasen. `gh release edit --notes` overskriver hele body-en, så hent den
-eksisterende først og behold Verifisering-delen og commit-folden:
+eksisterende først. Eldre releaser har en Verifisering-del og commit-fold;
+behold disse når en historisk note rettes. Nye noter følger den korte
+brukerteksten:
 
 ```bash
 gh release view vX.Y.Z --json body -q .body

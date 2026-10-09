@@ -147,6 +147,26 @@ lagrer prisene slik de så ut ved publisering og kan ha foreløpig valutakurs p�
 søndager, så den duger ikke som fasit. Bakgrunn:
 [docs/research/norgespris-eksakt-match.md](docs/research/norgespris-eksakt-match.md).
 
+## Release-noter for Home Assistant
+
+GitHub-release-bodyen er teksten brukerne leser i HACS inne i Home Assistant.
+Skriv for den flaten: korte punkter om funksjoner, synlige rettelser og hva
+brukeren må gjøre. Første release beskriver hva brukeren får; senere releaser
+beskriver forskjellen fra forrige versjon.
+
+- Merk bare brukerrelevante punkter med `<!--kort-->`. Lengden følger endringene, uten et fast antall punkter.
+- Anta at leseren allerede har installert integrasjonen. Installasjon og valgfritt oppsett hører hjemme i README. `### Dette må du gjøre selv` er bare for nødvendige handlinger ved oppgradering.
+- Skriv hele avsnitt og listepunkter på én linje, uten manuell linjebryting. Bruk vanlige ord og konkrete endringer, uten fet ledetekst, reklamespråk eller mekanisk like punkter.
+- Sjekk tidligere manifestversjoner i git før du omtaler en utgivelse som den første. Manglende GitHub-releaser betyr ikke at tidligere versjoner mangler.
+- Legg testtall, CI, refaktorering, datakildepinner og annen utviklerinformasjon
+  i full CHANGELOG eller utviklerdokumentasjonen, uten kortmerke.
+- Release-bodyen skal ikke fylles med commit-logg, SHA-er eller byggedetaljer.
+  Proveniens bevises gjennom tagg, ZIP og attestasjon; se `SECURITY.md`.
+- Generer og les den faktiske korte release-noten før publisering. En kort
+  overskrift gjør ikke et langt avsnitt kort.
+
+Detaljer og kontrollkommandoer: [docs/release-notes.md](docs/release-notes.md).
+
 ## Dokumentasjon
 
 - [docs/domain-rules.md](docs/domain-rules.md): domene-regler, avgifter, sjekklister, kilder

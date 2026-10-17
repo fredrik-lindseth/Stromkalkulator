@@ -172,7 +172,7 @@ Disse er ikke kritiske for å validere integrasjonen, men gir teknisk innsikt.
 
 ## Hvor data ligger
 
-- Elhub-CSV: `Måleverdier/elhub_*.csv`
+- Elhub-timeserier: `tests/fixtures/elhub_*_2026.json`
 - HAN-data: `tests/fixtures/bkk_april_2026_hourly.json`
 - BKK-faktura: `Fakturaer/Receipt-2735-6144-7538.pdf` (sjekk filnavn)
 - Test-fixture med fakturalinjer: `tests/test_faktura_bkk.py` (`FAKTURA_APRIL_2026`)

@@ -2,7 +2,7 @@
 
 Henter time-data fra Nord Pool dataportal-API (offentlig, men kun siste ~30
 dager uten innlogging), EUR/NOK fra Norges Bank SDMX-JSON og forbruk fra
-Elhub-CSV. Beregner forbruksvektet snitt-spot og sammenligner med fakturaens
+Elhub-fixturen. Beregner forbruksvektet snitt-spot og sammenligner med fakturaens
 implisitte snittspot utledet fra Norgespris-kompensasjonen.
 
 Foretrekker lokale snapshot-fixturer hvis de finnes
@@ -19,13 +19,12 @@ Bakgrunn:
     EUR/MWh + NB-kurs (forward-fill, same-day) matcher fakturaen innenfor
     0,04 %.
 
-Konfigurer øverst (YEAR, MONTH, ELHUB_CSV, FAKTURA_*) for en annen måned.
+Konfigurer øverst (YEAR, MONTH, ELHUB_FIXTURE, FAKTURA_*) for en annen måned.
 Kjør uten avhengigheter utover Python 3.11+ standardbibliotek.
 """
 
 from __future__ import annotations
 
-import csv
 import json
 import time
 import urllib.request
@@ -41,7 +40,9 @@ YEAR: Final[int] = 2026
 MONTH: Final[int] = 4  # april
 DELIVERY_AREA: Final[str] = "NO5"
 
-ELHUB_CSV: Final[Path] = Path(__file__).resolve().parent.parent.parent / "Måleverdier" / "elhub_april.csv"
+ELHUB_FIXTURE: Final[Path] = (
+    Path(__file__).resolve().parent.parent.parent / "tests" / "fixtures" / "elhub_april_2026.json"
+)
 
 # Fakturadata for sammenligning (april 2026)
 FAKTURA_FORBRUK_KWH: Final[float] = 1381.83
@@ -170,17 +171,12 @@ def forward_fill_rates(days: list[str], nb_rates: dict[str, float]) -> dict[str,
 
 
 def load_elhub_hourly(path: Path) -> dict[str, float]:
-    """Les Elhub-eksport til {iso_local_hour: kwh}."""
+    """Les Elhub-fixturen til {iso_local_hour: kwh}."""
+    data = json.loads(path.read_text(encoding="utf-8"))
     out: dict[str, float] = {}
-    with path.open() as f:
-        reader = csv.reader(f, delimiter=";")
-        next(reader)
-        for row in reader:
-            fra = row[0]
-            kwh = float(row[3].replace(",", "."))
-            dt = datetime.fromisoformat(fra)
-            key = dt.replace(minute=0, second=0, microsecond=0).isoformat()
-            out[key] = kwh
+    for rad in data["hours"]:
+        dt = datetime.fromisoformat(rad["start_local"])
+        out[dt.replace(minute=0, second=0, microsecond=0).isoformat()] = float(rad["kwh"])
     return out
 
 
@@ -215,8 +211,8 @@ def main() -> None:
     days_in_month = sorted({h[:10] for h in eur_per_hour})
     filled = forward_fill_rates(days_in_month, nb_rates)
 
-    print(f"\nLeser Elhub-forbruk fra {ELHUB_CSV.name}...")
-    elhub = load_elhub_hourly(ELHUB_CSV)
+    print(f"\nLeser Elhub-forbruk fra {ELHUB_FIXTURE.name}...")
+    elhub = load_elhub_hourly(ELHUB_FIXTURE)
     total_kwh = sum(elhub.get(h, 0.0) for h in eur_per_hour)
     print(f"  Total kWh i NP-vinduet: {total_kwh:.3f}")
     print(f"  Faktura forbruk:        {FAKTURA_FORBRUK_KWH:.2f}")

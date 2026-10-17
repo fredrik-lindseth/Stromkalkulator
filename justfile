@@ -10,7 +10,7 @@ default:
 
 # Kjør alle verify-scripts som støtter --emit-markdown og oppdater
 # docs/research/_generated/. Krever ikke internett, bruker kun lokale
-# fixturer i tests/fixtures/ og Måleverdier/.
+# fixturer i tests/fixtures/.
 verify-all:
     @echo "→ match_norgespris_variants (april 2026)"
     python3 scripts/research/match_norgespris_variants.py --emit-markdown

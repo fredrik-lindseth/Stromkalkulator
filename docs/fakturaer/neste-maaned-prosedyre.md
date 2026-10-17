@@ -41,7 +41,7 @@ direkte, så ingen EUR→NOK-omregning trengs for månedssjekken.
    omme: en eksport tatt midt i måneden dekker bare dagene så langt (juli
    2026-eksporten tatt 6. juli dekket bare 1.-5. juli)
 4. Lagre originalen i `_private/Måleverdier/elhub_<måned>.csv` (gitignored, beholder rådata). `verify_norgespris_eksakt.py` plukker den opp automatisk på det navnet, og Elhub-kWh er fasiten for eksakt-sjekken (HAN-serien kan ha aggregatglipper, jf. 2. pinsedag 2026).
-5. Kopier også til `Måleverdier/elhub_<måned>.csv` om du vil ha den committet. CSV-innholdet har ingen personlig info, men kun én demo-måned committes vanligvis.
+5. Rå CSV committes ikke. Timeserien havner i `tests/fixtures/elhub_<måned>_<år>.json` via `scripts/research/lag_replay_fixtures.py`.
 
 ### 3b. Fyll hull i fixturen
 
@@ -221,7 +221,7 @@ git diff | grep -E '<dine ekte verdier>' || echo "OK, ingen treff"
 ### 10. Commit
 
 ```bash
-git add Fakturaer/ Måleverdier/ tests/fixtures/ tests/test_faktura_bkk.py docs/fakturaer/
+git add tests/fixtures/ tests/test_faktura_bkk.py docs/fakturaer/
 git commit -m "verifisering: BKK mai 2026"
 ```
 

@@ -1,7 +1,7 @@
 """Prøv mange NOK-omregnings-varianter mot BKK-fakturaen til vi finner perfekt match.
 
 Henter rå EUR/MWh + EXR (Nord Pools egen valutakurs) fra hvakosterstrommen.no
-(speil av Nord Pool day-ahead), EUR/NOK fra Norges Bank, forbruk fra Elhub-CSV.
+(speil av Nord Pool day-ahead), EUR/NOK fra Norges Bank, forbruk fra Elhub-fixturen.
 Beregner forbruksvektet snittspot per variant og sammenligner med fakturaen.
 
 Bakgrunn: docs/research/nok-omregning.md.
@@ -28,7 +28,6 @@ Flagg:
 from __future__ import annotations
 
 import argparse
-import csv
 import json
 import sys
 import time
@@ -49,7 +48,7 @@ MONTH: Final[int] = 4
 DELIVERY_AREA: Final[str] = "NO5"
 
 ROOT: Final[Path] = Path(__file__).resolve().parent.parent.parent
-ELHUB_CSV: Final[Path] = ROOT / "Måleverdier" / "elhub_april.csv"
+ELHUB_FIXTURE: Final[Path] = ROOT / "tests" / "fixtures" / "elhub_april_2026.json"
 NB_SNAPSHOT: Final[Path] = ROOT / "tests" / "fixtures" / "nb_eur_nok_2026.json"
 NP_SNAPSHOT: Final[Path] = ROOT / "tests" / "fixtures" / "nordpool_eur_no5_2026.json"
 GENERATED_DIR: Final[Path] = ROOT / "docs" / "research" / "_generated"
@@ -97,16 +96,12 @@ def fetch_hks_day(d: date, area: str) -> list[dict]:
 
 
 def load_elhub_hourly(path: Path) -> dict[str, float]:
-    """Returner {iso_local_hour_no_minutes: kwh}."""
+    """Les Elhub-fixturen til {iso_local_hour: kwh}."""
+    data = json.loads(path.read_text(encoding="utf-8"))
     out: dict[str, float] = {}
-    with path.open() as f:
-        reader = csv.reader(f, delimiter=";")
-        next(reader)
-        for row in reader:
-            dt = datetime.fromisoformat(row[0])
-            kwh = float(row[3].replace(",", "."))
-            key = dt.replace(minute=0, second=0, microsecond=0).isoformat()
-            out[key] = kwh
+    for rad in data["hours"]:
+        dt = datetime.fromisoformat(rad["start_local"])
+        out[dt.replace(minute=0, second=0, microsecond=0).isoformat()] = float(rad["kwh"])
     return out
 
 
@@ -463,7 +458,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     no_network = args.no_network or args.emit_markdown
 
-    elhub = load_elhub_hourly(ELHUB_CSV)
+    elhub = load_elhub_hourly(ELHUB_FIXTURE)
     nb_rates = load_nb_rates()
 
     if no_network:

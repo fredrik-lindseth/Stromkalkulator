@@ -160,12 +160,10 @@ repair-sekvens et automatisk E2E-krav, skal den få et tilsvarende deterministis
 bevis. HA-serverens egen bootstrap/tokenutveksling tilhører Docker-harnesset.
 Isolasjon, sladding, kildeavstemming og opprydding ved feil testes også
 offline i `tests_e2e/test_harness.py`.
-Historisk fakturarevalidering eies av `stromkalkulator-443xvtv`; HAN-fixturer
+Historisk fakturarevalidering er en egen sak; HAN-fixturer
 og Elhub/fakturagrunnlag er ulike kilder og skal ha kildeangitte forventninger.
 
-`stromkalkulator-271siks` eier dette scenariokartet.
-`stromkalkulator-2uw4t9a` er aktiv etterfølger til `stromkalkulator-6b54ywj`
-og eier ekte-HA-kontraktene. Metadata for alle plattformer og bevart identitet
+Ekte-HA-kontraktene følges opp som egen sak. Metadata for alle plattformer og bevart identitet
 ved reload kontrolleres i `test_metadata.py`; `test_store_migrering.py`
 kontrollerer eldre DSO-nøkkel og entry-format v1 gjennom ekte HA Store,
 med bevart måned og engangsmigrering.
@@ -213,8 +211,7 @@ inngår current-E2E i `release.yml` sin `needs: ci`. Jobben `Releaseport`
 krever eksplisitt `success` fra hvert testlag; manglende, feilet, kansellert
 eller hoppet over resultat stopper release. Evidensartefakten heter
 `ha-e2e-current-<SHA>` og inneholder scenario-trace, rapport, versjon og
-redigert logg. Første grønne GitHub-kjøring må dokumenteres i
-`stromkalkulator-3txx3k3` før saken lukkes.
+redigert logg. Første grønne GitHub-kjøring må dokumenteres før saken lukkes.
 
 Verken `upgrade` eller `vakthold` kjøres av standardløpet. Grønn release-CI
 beviser derfor ikke disse særskilte Docker-løpene; deres resultater må
@@ -279,7 +276,7 @@ om hva `last_energy_increase` og `last_update` sto på da HA startet.
 En kjent oppstartsfeil i driveren kan gi falskt rødt etter omstart:
 `ready()` venter bare på `/api/`, som kan svare før HA er `RUNNING` og før
 entitetene finnes. Da kan `update_entity` bli kalt for tidlig, blant annet i
-`test_frossen_teller_varsles` (stromkalkulator-516lois). Dette er ikke rettet i
+`test_frossen_teller_varsles`. Dette er ikke rettet i
 driveren ennå. En permanent retting må vente på både ferdig HA-oppstart og
 nødvendige entiteter, og så bestå hele vaktholdsekvensen inkludert
 strømbrudd-motprøven. En grønn enkeltprøve etter ekstra venting er nyttig

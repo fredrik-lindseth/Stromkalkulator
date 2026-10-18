@@ -9,7 +9,7 @@ utviklerlogg.
 
 Tidligere ble noten skrevet for hånd i en GitHub-draft. Da lå den utenfor
 repoet, workflowen publiserte rå commit-liste i stedet, og teksten måtte limes
-inn igjen manuelt etterpå (stromkalkulator-1dk4).
+inn igjen manuelt etterpå.
 
 Se selv hva en gitt versjon gir:
 
@@ -320,7 +320,7 @@ fortsatt en ekte prøvepublisering:
   annen gren. Skulle den likevel starte, stopper vakten i scriptet.
 
 Prøvekjøringen mot en engangstagg, som står i akseptansekriteriene for
-stromkalkulator-5k7d7qp, er fortsatt ikke gjort. Veien er nå ryddet:
+den gjenopptakbare releasen, er fortsatt ikke gjort. Veien er nå ryddet:
 `proveslipp` fra en gren med manifestversjon `0.0.0`, og taggen slettes
 etterpå. Den krever et push, og er derfor ikke kjørt her.
 
@@ -331,7 +331,7 @@ problem.
 
 ### Actionversjonene
 
-Gjennomgått 13. september 2026 (stromkalkulator-3m5o02u). Premisset om at det
+Gjennomgått 13. september 2026. Premisset om at det
 finnes en nyere major for alle fire, holdt bare for to av dem.
 
 `actions/checkout` gikk fra `@v6` til `@v7`. Den eneste bruddendringen i v7 er
@@ -393,8 +393,8 @@ som alt er ute, blir ikke bedre av at hver push til main etterpå går rød.
 
 #### Kan det rettes i ettertid?
 
-Mekanisk ja, og det er verdt å skrive ned hvorfor vi lar være
-(stromkalkulator-4xkynb1). Filen sier ellers at det ikke går, og det er feil.
+Mekanisk ja, og det er verdt å skrive ned hvorfor vi lar være.
+Filen sier ellers at det ikke går, og det er feil.
 
 `actions/attest-build-provenance` tar `subject-digest` og `subject-name` i
 stedet for `subject-path`. En `workflow_dispatch` på taggen `v1.16.0` gir

@@ -306,7 +306,7 @@ class TestEnhetsnormalisering:
 class TestKildebundetBaseline:
     """§5: baselinen hører til én fysisk måler.
 
-    Dette er feilen fra stromkalkulator-40mbs7k: persistens lagret siste kWh
+    Dette er en tidligere feil: persistens lagret siste kWh
     uten sensor-id, så forskjellen mot den gamle måleren ble tolket som forbruk.
     """
 

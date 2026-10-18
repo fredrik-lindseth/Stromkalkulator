@@ -1,6 +1,6 @@
 # Kastbar Home Assistant-testlab
 
-Docker-delen av `stromkalkulator-52kpgv4`: offisielt HA-image med frontend,
+Docker-delen av E2E-testingen: offisielt HA-image med frontend,
 egen pålogging, templates og helpers som mates av eksisterende BKK-timeverdier.
 Hver kjøring får eget Compose-prosjekt, ledig loopback-port og midlertidig config.
 
@@ -178,7 +178,7 @@ Sommertid prøves ikke her. Laben kan ikke flytte klokken, og
 `state == "RUNNING"` og hovedentiteten for hvert lagrede anlegg. API-et kan
 svare før dette; en tidligere driver sendte da `update_entity` mens entiteten
 ikke fantes. Det ga «Entity … not found» og kunne la frossen-scenarioet lese en
-tom varselliste (stromkalkulator-516lois).
+tom varselliste.
 
 Denne readiness-sjekken er en del av alle scenarioer etter restart. En endring
 her skal verifiseres med full `vakthold`, inkludert

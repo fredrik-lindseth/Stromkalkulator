@@ -60,7 +60,7 @@ Se [måler-hardware.md](måler-hardware.md). Gjenstående:
 - [x] Norgespris-avvik forklart med EUR/NOK-snittberegning (innenfor 0,2 %)
 - [x] Norgespris-avvik lukket: eksakt match (0,00 kr) mot publiserte Final-priser for juni 2026, recorder-avviket var prisårgang, se [research/norgespris-eksakt-match.md](research/norgespris-eksakt-match.md)
 - [x] Måler-spec lest (Kaifa KFM_001 og Aidon RJ45 HAN v1.6): 10 sek dokumentert som design, se [måler-hardware.md](måler-hardware.md#han-broadcast-timing)
-- [ ] Test med Tibber Pulse parallelt (krever fysisk bytte av HAN-leser, se `stromkalkulator-450dw5`)
+- [ ] Test med Tibber Pulse parallelt (krever fysisk bytte av HAN-leser)
 - [ ] Oppdater [måler-hardware.md](måler-hardware.md) ved nye funn (løpende, ikke en engangsoppgave)
 
 ### Fase 3: Bygg verktøyene
@@ -83,7 +83,7 @@ Se [måler-hardware.md](måler-hardware.md). Gjenstående:
 
 - [x] Brukerveiledning skrevet: [verifiser-din-faktura.md](fakturaer/verifiser-din-faktura.md)
 - [ ] Parametriser scripts for andre AMS-lesere (Tibber Pulse, Tibber Bridge, andre Pow-U-varianter)
-- [ ] Parametriser for andre DSO-er enn BKK (se `stromkalkulator-2b94op`)
+- [ ] Parametriser for andre DSO-er enn BKK
 
 ### Fase 6: Beslutning om release
 

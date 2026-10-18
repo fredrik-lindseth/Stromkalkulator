@@ -2,9 +2,9 @@
 """Sjekk at testpakken i repoet stemmer med den som kjører på Home Assistant.
 
 `packages/stromkalkulator_test.yaml` finnes to steder: her i repoet og
-installert på HA. De har driftet fra hverandre før uten at noe fanget det
-(stromkalkulator-5uwhkc), så dette scriptet sammenligner de to og slår opp
-hver entitetsreferanse i pakken mot faktiske states.
+installert på HA. De har driftet fra hverandre før uten at noe fanget det,
+så dette scriptet sammenligner de to og slår opp hver entitetsreferanse i
+pakken mot faktiske states.
 
 Tre ting sjekkes:
 

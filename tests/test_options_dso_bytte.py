@@ -1,9 +1,9 @@
 """Tester for options-flow ved DSO-bytte og øre/kWh-validering.
 
 Dekker to bugs:
-- stromkalkulator-16hk: bytte av DSO i options må re-resolve energiledd og
+- Bytte av DSO i options må re-resolve energiledd og
   avgiftssone, ellers arver du forrige DSOs satser med ny DSOs kapasitetstrinn.
-- stromkalkulator-3hnc: _validate_spot_sensor må avvise øre/kWh-sensorer, ellers
+- _validate_spot_sensor må avvise øre/kWh-sensorer, ellers
   tolker coordinator verdien som NOK/kWh og hele kjeden blir 100x for lav.
 
 Scaffoldingen speiler test_config_flow_options.py: voluptuous, selectors og

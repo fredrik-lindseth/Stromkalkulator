@@ -3,7 +3,7 @@
 
 CHANGELOG-seksjonen ER release-noten. Release-workflowen kaller dette scriptet
 og bruker utskriften som body, så teksten lever i repoet og ikke bare i en
-GitHub-draft som kan forsvinne (stromkalkulator-1dk4).
+GitHub-draft som kan forsvinne.
 
 To ting skiller utskriften fra rå CHANGELOG-tekst:
 

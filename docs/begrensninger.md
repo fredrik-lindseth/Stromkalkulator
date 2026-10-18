@@ -108,7 +108,7 @@ igjen: «Forrige måned nettleie» regner satser ganget med arkiverte
 kilowattimer, fordi arkivet ikke lagrer forrige måneds bokførte kroner. Den
 bommer når energileddsatsen endret seg midt i måneden, altså ved nyttår og for
 sesong-nettselskap 1. april og 1. november. Attributtet `kilde` på sensoren sier
-det, og fikses i stromkalkulator-1fnzdn8.
+det. Rettingen er ikke gjort ennå.
 
 Det som ellers står igjen er en visningskuriositet: attributtet
 `kapasitetsledd_per_kwh` er kroner per time presentert som kroner per

@@ -372,7 +372,7 @@ CONF_ENERGY_SENSOR = "energy_sensor"
 class TestValiderSensorfelt:
     """Adapteren fanger feil sensorvalg i oppsett, options og reconfigure.
 
-    Regresjon for stromkalkulator-34qzbh: bruker hadde pekt spot_price_sensor
+    Regresjon: en bruker hadde pekt spot_price_sensor
     mot en kr-totalsensor (~877 kr). Alle Elvia-derivater ble katastrofalt feil
     uten advarsel.
 

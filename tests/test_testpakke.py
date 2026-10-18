@@ -134,7 +134,7 @@ def test_referanser_til_integrasjonen_finnes(pakke: dict, integrasjonsslugger: d
 def test_ingen_utdaterte_stromstotte_terskler() -> None:
     """2024- og 2025-tersklene skal ikke stå igjen som aktiv beregning.
 
-    Driften i stromkalkulator-5uwhkc var nettopp dette: HA-kopien regnet med
+    Den tidligere driften var nettopp dette: HA-kopien regnet med
     2024-terskelen. Historikk-kommentaren får stå, tallene i templatene ikke.
     """
     aktive = [

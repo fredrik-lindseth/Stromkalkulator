@@ -429,7 +429,7 @@ class TestAreaNettOmrader:
 
 # ============================================================================
 # De 17 som ble adoptert fra fri-nettleie, verifisert mot egne prislister
-# 2026-09-13 (stromkalkulator-mmmi29)
+# 2026-09-13
 # ============================================================================
 
 
@@ -505,7 +505,7 @@ class TestAdopterteDsoer:
 
 
 # ============================================================================
-# Arva, verifisert mot egen prisside 2026-09-13 (stromkalkulator-bjuas8)
+# Arva, verifisert mot egen prisside 2026-09-13
 # ============================================================================
 
 

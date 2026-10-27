@@ -95,6 +95,7 @@ from .dso import (
     finn_sikringstrinn,
     grunnlag_i_lavere_trinn,
     hent_fastledd_metode,
+    hent_kapasitetstrinn,
     parse_kapasitetstrinn,
 )
 from .inputadapter import (
@@ -377,7 +378,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     energiledd_natt: float
     _energiledd_perioder_inkl: list[tuple[str, str, float, float]]  # (fra, til, dag_inkl, natt_inkl)
     _energiledd_perioder_eks: list[tuple[str, str, float, float]]  # samme, uten avgifter og mva
-    kapasitetstrinn: list[tuple[float, int]]
+    kapasitetstrinn: list[tuple[float, float]]
     fastledd_metode: str
     fastledd_lineaer: FastleddLineaer | None
     fastledd_sesongfaktor: dict[int, float]
@@ -395,7 +396,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     _previous_month_norgespris_diff: float
     _monthly_norgespris_compensation: float
     _previous_month_norgespris_compensation: float
-    _previous_month_kapasitetsledd: int
+    _previous_month_kapasitetsledd: float
     _previous_month_kapasitetstrinn: str
     _previous_month_energiledd_dag: float
     _previous_month_energiledd_natt: float
@@ -508,12 +509,12 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Get kapasitetstrinn from DSO
         # Normalize: some DSOs (e.g. Barents Nett) use dict format {"min", "max", "pris"}
         # Convert to standard tuple format (kW_threshold, NOK_per_month)
-        raw_trinn = self.dso["kapasitetstrinn"]
+        raw_trinn = hent_kapasitetstrinn(self.dso, self.boligtype)
         if raw_trinn and isinstance(raw_trinn[0], dict):
             dict_trinn = cast("list[KapasitetstrinnDict]", raw_trinn)
             self.kapasitetstrinn = [(entry["max"], entry["pris"]) for entry in dict_trinn]
         else:
-            self.kapasitetstrinn = cast("list[tuple[float, int]]", raw_trinn)
+            self.kapasitetstrinn = cast("list[tuple[float, float]]", raw_trinn)
 
         # Egendefinert har ingen prisliste, så trinnene er brukerens egne eller
         # ingen. En ulesbar tabell behandles som ingen: config-flowen avviser
@@ -1156,7 +1157,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # i går, og skal ikke dukke opp i morgendagens tall.
             self._daily_cost += diff.energi_kr
 
-    def _oppdater_fastledd(self, now: datetime, kapasitetsledd: int) -> None:
+    def _oppdater_fastledd(self, now: datetime, kapasitetsledd: float) -> None:
         """Fastleddet som periodebeløp: kr/mnd ganger forløpt andel av måneden.
 
         Regnet på nytt ved hver poll framfor å summeres opp av små tidsbiter.
@@ -1174,7 +1175,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             belop, forlopt_andel_av_maaned(_aware(now))
         )
 
-    def _oppdater_fastledd_helmaaned(self, kapasitetsledd: int) -> None:
+    def _oppdater_fastledd_helmaaned(self, kapasitetsledd: float) -> None:
         """Sett fastleddet til hele månedens beløp, for måneden som lukkes.
 
         Nettselskapet fakturerer sluttrinnet for hele fakturamåneden, så det er
@@ -1184,7 +1185,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         belop = None if self._fastledd_ukjent() or self._mangler_sikringsvalg() else kapasitetsledd
         self._monthly_accumulated_cost_kapasitetsledd = fastledd_belop(belop, 1.0)
 
-    def _fastledd_i_dag(self, now: datetime, kapasitetsledd: int) -> float:
+    def _fastledd_i_dag(self, now: datetime, kapasitetsledd: float) -> float:
         """Dagens andel av månedens fastledd, i kroner."""
         belop = None if self._fastledd_ukjent() or self._mangler_sikringsvalg() else kapasitetsledd
         naa = _aware(now)
@@ -2257,7 +2258,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # rounding og ville gitt 453 der nettselskapet fakturerer 453,75.
         return int(Decimal(maaned).quantize(Decimal(1), ROUND_HALF_UP))
 
-    def _get_kapasitetsledd(self, grunnlag_kw: float) -> tuple[int, int | None, str]:
+    def _get_kapasitetsledd(self, grunnlag_kw: float) -> tuple[float, int | None, str]:
         """Fastledd i kr/mnd for et effektgrunnlag.
 
         Returns: (pris, trinnummer, trinnbeskrivelse). Trinnummer er None der
@@ -2576,11 +2577,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self._previous_month_norgespris_compensation = self._validate_float(
                     data.get("previous_month_norgespris_compensation", 0.0)
                 )
-                prev_kap = data.get("previous_month_kapasitetsledd", 0)
-                try:
-                    self._previous_month_kapasitetsledd = int(prev_kap)
-                except (ValueError, TypeError):
-                    self._previous_month_kapasitetsledd = 0
+                self._previous_month_kapasitetsledd = self._validate_float(
+                    data.get("previous_month_kapasitetsledd", 0)
+                )
                 self._previous_month_kapasitetstrinn = str(data.get("previous_month_kapasitetstrinn", ""))
                 self._previous_month_energiledd_dag = self._validate_float(
                     data.get("previous_month_energiledd_dag", self.energiledd_dag)

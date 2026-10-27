@@ -206,7 +206,7 @@ def _husholdningssum(entry: dict[str, Any]) -> float:
 
 
 def test_unike_husholdningssummer_i_galskapen() -> None:
-    """«67 av de 71 oppføringene med kW-trinn gir sin egen unike sum.»"""
+    """«65 av de 71 oppføringene med kW-trinn gir sin egen unike sum.»"""
     summer = [_husholdningssum(entry) for entry in MED_KW_TRINN.values()]
     teller = Counter(summer)
     unike = sum(1 for sum_kr in summer if teller[sum_kr] == 1)
@@ -216,7 +216,7 @@ def test_unike_husholdningssummer_i_galskapen() -> None:
         r"(\d+) av de (\d+) oppføringene med kW-trinn gir sin egen unike sum",
     ) == (unike, len(summer))
     assert _tall("docs/galskapen.md", r"så N = (\d+)") == (len(summer),)
-    # Overskriften teller ulike priser, ikke oppføringer: to par deler sum.
+    # Overskriften teller ulike priser, ikke oppføringer: tre par deler sum.
     assert _tall("docs/galskapen.md", r"## Én husholdning, (\d+) priser") == (len(set(summer)),)
     assert _tall("docs/galskapen.md", r"(\d+) av de (\d+) summene er unike") == (
         unike,

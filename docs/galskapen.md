@@ -10,10 +10,10 @@ Sammenligner man prislistene til alle nettselskapene, er det åpenbart at de har
 brukt den friheten hver på sin måte. Denne integrasjonen skal regne ut nettleien og
 dekker alle nettselskapene, men oppgaven har ingen generell løsning.
 
-## Én husholdning, 69 priser
+## Én husholdning, 68 priser
 
 Ta én husholdning. Snitt av tre døgnmakser på eksakt 5,0 kW, 600 kWh på dagtid og
-400 kWh om natten, i juli. Så flytter du den rundt i landet.[^husholdning]
+400 kWh om natten, med gjeldende katalogsatser og juli som sommermåned. Så flytter du den rundt i landet.[^husholdning]
 
 | Nettselskap      | Energiledd | Fastledd | Sum        |
 | ---------------- | ---------- | -------- | ---------- |
@@ -25,7 +25,7 @@ Ta én husholdning. Snitt av tre døgnmakser på eksakt 5,0 kW, 600 kWh på dagt
 | Vang Energiverk  | 264,12 kr  | 819 kr   | 1083,12 kr |
 | Elmea            | 411,10 kr  | 747 kr   | 1158,10 kr |
 
-Dyreste er 2,26 ganger billigste, og 67 av de 71 oppføringene med
+Dyreste er 2,26 ganger billigste, og 65 av de 71 oppføringene med
 kW-trinn gir sin egen unike sum. At prisene varierer er greit nok. Mer interessant er
 fordelingen mellom de to leddene: hos Modalen er 74 % av nettleien energiledd,
 hos Noranett 14 %.
@@ -218,8 +218,8 @@ prisliste gjør. Se [bidra med faktura](fakturaer/bidra-med-faktura.md).
     fastleddet for 5,0 kW. Juli er valgt fordi det skiller sesongselskapene fra de
     andre. Tre oppføringer er utelatt fordi de ikke har en kW-trinntabell i det
     hele tatt (Alut, Netera, Fjellnett), så N = 71. Billigst er Stram med
-    512,40 kr og dyrest Elmea med 1158,10 kr, begge i Nord-Norge uten mva. 67 av
-    de 71 summene er unike; to par deler sum.
+    512,40 kr og dyrest Elmea med 1158,10 kr, begge i Nord-Norge uten mva. 65 av
+    de 71 summene er unike; tre par deler sum.
 
 [^andel]: Energileddets andel av nettleien i samme regnestykke: Modalen Kraftlag
     73,9 %, Havnett 59,7 %, Elvia 49,0 %, BKK 47,1 %, Stram 35,6 %, Vang

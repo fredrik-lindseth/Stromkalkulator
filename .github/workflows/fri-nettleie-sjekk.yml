@@ -39,7 +39,7 @@ env:
 jobs:
   sjekk-fri-nettleie:
     name: Sjekk pris-drift mot fri-nettleie
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Checkout

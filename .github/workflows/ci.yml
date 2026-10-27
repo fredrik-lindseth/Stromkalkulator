@@ -42,7 +42,7 @@ jobs:
     name: Releaseport
     if: always()
     needs: [test-unit, check, test-ha, test-e2e, hacs, hassfest]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Krev grønt fra alle kandidatens tester
@@ -69,7 +69,7 @@ jobs:
 
   test-unit:
     name: Unit (stubbet HA)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -102,7 +102,7 @@ jobs:
 
   check:
     name: Kvalitet (ruff, mypy, vulture)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -161,7 +161,7 @@ jobs:
 
   test-ha:
     name: Ekte HA (${{ matrix.target }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -191,7 +191,7 @@ jobs:
   # om igjen, flyten er gjenopptakbar.
   hacs:
     name: HACS-validering
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Checkout
@@ -204,7 +204,7 @@ jobs:
 
   hassfest:
     name: Hassfest
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Checkout

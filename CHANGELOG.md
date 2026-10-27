@@ -2,6 +2,19 @@
 
 Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) og [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Ikke sluppet]
+
+### Fikset
+
+- Oppdatert nettleietariffer fra 1. oktober 2026 for Asker, Barents, Etna, Glitre, Kystnett, Midtnett og tidligere Norgesnett mot nettselskapenes egne prislister. <!--kort-->
+- Midtnett bruker egen fastleddtabell for fritidsbolig, også ved fast bosted. <!--kort-->
+- Kapasitetstrinn med ørepriser hos Glitre og tidligere Norgesnett beholder desimalene gjennom omstart. <!--kort-->
+
+### Vedlikehold
+
+- Lagt til kategorien `energy.energy_prices` i integrasjonsmanifestet i tråd med [Home Assistants kategorier](https://contributors.home-assistant.io/core/integrations/categories/).
+- Låst alle GitHub Actions-jobber til Ubuntu 24.04 for å unngå automatisk miljøbytte når `ubuntu-latest` flyttes til Ubuntu 26.04.
+
 ## [1.18.1]
 
 ### Fikset

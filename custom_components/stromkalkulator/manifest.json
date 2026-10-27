@@ -1,6 +1,9 @@
 {
   "domain": "stromkalkulator",
   "name": "Strømkalkulator",
+  "categories": [
+    "energy.energy_prices"
+  ],
   "codeowners": [
     "@fredrik-lindseth"
   ],

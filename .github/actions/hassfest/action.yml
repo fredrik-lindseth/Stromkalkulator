@@ -1,0 +1,20 @@
+name: Hassfest med manifestkategorier
+description: Bygg og kjør den offisielle validatoren fra en fastlåst Home Assistant-revisjon.
+
+# ghcr.io/home-assistant/hassfest:latest fra 2026-10-24 mangler categories,
+# mens HACS allerede forventer feltet. Bygg uendret offisiell kilde til det
+# publiserte image-et støtter feltet; ingen valideringer hoppes over.
+runs:
+  using: composite
+  steps:
+    - name: Bygg offisiell Hassfest
+      shell: bash
+      run: |
+        docker build \
+          --file script/hassfest/docker/Dockerfile \
+          --tag hassfest-local \
+          https://github.com/home-assistant/core.git#e8e4ba84e950d7d1e2096995ab76565e4042ad3b
+
+    - name: Valider integrasjonen
+      shell: bash
+      run: docker run --rm --volume "$GITHUB_WORKSPACE:/github/workspace" hassfest-local

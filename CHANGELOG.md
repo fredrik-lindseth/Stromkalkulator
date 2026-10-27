@@ -13,6 +13,7 @@ Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) og [S
 ### Vedlikehold
 
 - Lagt til kategorien `energy.energy_prices` i integrasjonsmanifestet i tråd med [Home Assistants kategorier](https://contributors.home-assistant.io/core/integrations/categories/).
+- Hassfest bygges fra en fastlåst offisiell Home Assistant-revisjon med støtte for manifestkategorier, siden det publiserte validator-image-et ennå avviser feltet.
 - Låst alle GitHub Actions-jobber til Ubuntu 24.04 for å unngå automatisk miljøbytte når `ubuntu-latest` flyttes til Ubuntu 26.04.
 
 ## [1.18.1]

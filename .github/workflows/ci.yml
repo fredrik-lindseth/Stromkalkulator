@@ -184,8 +184,9 @@ jobs:
       - name: Run real-HA tests
         run: just test-ha ${{ matrix.target }}
 
-  # De to validatorene kjører mot `@main` og `@master` hos andre, og de snakker
-  # med GitHubs API. Er de trege eller ustabile, blokkerer de releasen framfor å
+  # HACS følger @main; Hassfest bygges fra fastlåst offisiell core-kilde fordi
+  # det publiserte image-et ennå mangler categories. Begge bruker eksterne
+  # tjenester. Er de trege eller ustabile, blokkerer de releasen framfor å
   # slippe noe gjennom, og det er riktig vei å feile. Timeouten er der for at en
   # hengende validator ikke skal holde concurrency-låsen i timevis; kjør jobben
   # om igjen, flyten er gjenopptakbar.
@@ -211,4 +212,4 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Hassfest validation
-        uses: home-assistant/actions/hassfest@master
+        uses: ./.github/actions/hassfest

@@ -50,6 +50,21 @@ KOMPONENT = "custom_components/stromkalkulator"
 # --------------------------------------------------------------------------
 
 
+@pytest.fixture(autouse=True)
+def isoler_git_miljo(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Testrepoene skal være uavhengige av repoet som kjører Git-hooken.
+
+    Pre-push eksporterer blant annet GIT_DIR og GIT_INDEX_FILE. Uten å
+    fjerne dem kan git -C i et testrepo bruke indeks og metadata fra
+    arbeidsrepoet, selv om testrepoet har sin egen .git-mappe.
+    """
+    lokale_variabler = subprocess.run(
+        ["git", "rev-parse", "--local-env-vars"], capture_output=True, text=True, check=True
+    ).stdout.splitlines()
+    for navn in lokale_variabler:
+        monkeypatch.delenv(navn, raising=False)
+
+
 def _git(rot: Path, *argv: str) -> str:
     miljo = {
         **os.environ,

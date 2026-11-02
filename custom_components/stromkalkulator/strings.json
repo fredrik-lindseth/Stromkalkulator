@@ -23,6 +23,8 @@
           "spotpris_inkl_mva": "Spotpris-sensor leverer priser inkl. mva",
           "energy_sensor": "Energimåler-sensor (kWh, valgfri)",
           "electricity_provider_price_sensor": "Strømleverandør-sensor (valgfri)",
+          "stromavtale_paaslag_kwh": "Påslag/rabatt fra strømleverandør (NOK/kWh, inkl. mva)",
+          "stromavtale_fastbelop": "Månedsbeløp/rabatt fra strømleverandør (NOK/mnd, inkl. mva)",
           "export_power_sensor": "Eksport-effektmåler (W, valgfri)"
         },
         "data_description": {
@@ -31,6 +33,8 @@
           "spotpris_inkl_mva": "La stå av for HA-core nordpool-integrasjon (leverer eks. mva). Slå på hvis sensoren din allerede inkluderer mva (f.eks. eldre custom_components/nordpool med VAT=true, eller egendefinert template-sensor).",
           "energy_sensor": "Kumulativ kWh-teller fra AMS-måleren. Anbefales for eksakte fakturatall. Se docs/input-sensorer.md for detaljer.",
           "electricity_provider_price_sensor": "Sensor med totalprisen fra din strømleverandør (f.eks. Tibber «Electricity price»). Kun for å vise «Total strømpris (strømavtale)»-sensoren som sammenligning mot din faktiske avtale. Påvirker ingen andre beregninger. Hopp over hvis du har spotpris direkte eller Norgespris.",
+          "stromavtale_paaslag_kwh": "Oppgi påslag som positivt tall eller rabatt som negativt tall, i NOK/kWh inkl. mva. Beløpet følger forbruket, men påvirker ikke beregningen av strømstøtte eller Norgespris.",
+          "stromavtale_fastbelop": "Oppgi månedsbeløp som positivt tall eller rabatt som negativt tall, i kroner inkl. mva. Beløpet fordeles over måneden.",
           "export_power_sensor": "Effektmåler for eksport til nettet (OBIS 2.7.0) i watt, kun for plusskunder med solceller. Brukes til å beregne salgsinntekt og netto månedskostnad. Hopp over hvis du ikke har solceller."
         }
       },
@@ -62,7 +66,7 @@
       },
       "reconfigure": {
         "title": "Strømkalkulator innstillinger",
-        "description": "Endre nettselskap, sensorer eller Norgespris-innstillinger.\n\nEnergiledd-feltene er overstyringer. Står de tomme, gjelder prislisten til nettselskapet, og satsen oppdateres av seg selv når prislisten endres. Prislisten til {dso} fører nå dag {katalog_dag} og natt {katalog_natt}, i øre/kWh med avgifter og mva. Egendefinert nettselskap har ingen prisliste, så der gjelder alltid tallene du har lagt inn selv.",
+        "description": "Endre nettselskap, sensorer, strømavtalepriser eller Norgespris-innstillinger.\n\nEnergiledd-feltene er overstyringer. Står de tomme, gjelder prislisten til nettselskapet, og satsen oppdateres av seg selv når prislisten endres. Prislisten til {dso} fører nå dag {katalog_dag} og natt {katalog_natt}, i øre/kWh med avgifter og mva. Egendefinert nettselskap har ingen prisliste, så der gjelder alltid tallene du har lagt inn selv.",
         "data": {
           "tso": "Nettselskap",
           "sikringstrinn": "Hovedsikring",
@@ -74,6 +78,8 @@
           "spotpris_inkl_mva": "Spotpris-sensor leverer priser inkl. mva",
           "energy_sensor": "Energimåler-sensor (kWh, valgfri)",
           "electricity_provider_price_sensor": "Strømleverandør-sensor (valgfri)",
+          "stromavtale_paaslag_kwh": "Påslag/rabatt fra strømleverandør (NOK/kWh, inkl. mva)",
+          "stromavtale_fastbelop": "Månedsbeløp/rabatt fra strømleverandør (NOK/mnd, inkl. mva)",
           "export_power_sensor": "Eksport-effektmåler (W, valgfri)",
           "energiledd_dag": "Energiledd dag (NOK/kWh, eks. mva og avgifter)",
           "energiledd_natt": "Energiledd natt/helg (NOK/kWh, eks. mva og avgifter)",
@@ -91,6 +97,8 @@
           "spotpris_inkl_mva": "La stå av for HA-core nordpool-integrasjon (leverer eks. mva). Slå på hvis sensoren din allerede inkluderer mva.",
           "energy_sensor": "Kumulativ energi-teller fra AMS-måleren (OBIS 1.8.0, total forbruk i kWh). Anbefales: gir eksakt forbruk mot faktura. Uten denne brukes effektmåleren med Riemann-summering.",
           "electricity_provider_price_sensor": "Sensor med totalprisen fra din strømleverandør (f.eks. Tibber «Electricity price»). Kun for å vise «Total strømpris (strømavtale)»-sensoren som sammenligning mot din faktiske avtale. Påvirker ingen andre beregninger. Hopp over hvis du har spotpris direkte eller Norgespris.",
+          "stromavtale_paaslag_kwh": "Oppgi påslag som positivt tall eller rabatt som negativt tall, i NOK/kWh inkl. mva. Beløpet følger forbruket, men påvirker ikke strømstøtte eller Norgespris.",
+          "stromavtale_fastbelop": "Oppgi månedsbeløp som positivt tall eller rabatt som negativt tall, i kroner inkl. mva. Beløpet fordeles over måneden.",
           "export_power_sensor": "Effektmåler for eksport til nettet (OBIS 2.7.0) i watt, kun for plusskunder med solceller. Brukes til å beregne salgsinntekt og netto månedskostnad. Hopp over hvis du ikke har solceller.",
           "energiledd_dag": "Ren nettleie eks. mva og avgifter. La feltet stå tomt for å følge nettselskapets prisliste, så oppdateres satsen av seg selv når prislisten endres. Fyller du inn et tall, er det ditt som gjelder til du tømmer feltet igjen.",
           "energiledd_natt": "Ren nettleie eks. mva og avgifter. Samme regel som for dag: tomt felt følger prislisten, utfylt felt gjelder foran den. Sett samme verdi som dag for flat sats.",

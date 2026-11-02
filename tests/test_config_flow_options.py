@@ -98,6 +98,8 @@ from stromkalkulator.const import (  # noqa: E402
     CONF_KAPASITET_VARSEL_TERSKEL,
     CONF_POWER_SENSOR,
     CONF_SPOT_PRICE_SENSOR,
+    CONF_STROMAVTALE_FASTBELOP,
+    CONF_STROMAVTALE_PAASLAG_KWH,
     CONF_TARIFFMODUS,
     DEFAULT_ENERGI_FROSSEN_TIMER,
     DOMAIN,
@@ -312,6 +314,8 @@ class TestOptionsFlowValidReconfiguration:
             CONF_ENERGILEDD_DAG: 0.3500,
             CONF_ENERGILEDD_NATT: 0.1500,
             CONF_KAPASITET_VARSEL_TERSKEL: 3.0,
+            CONF_STROMAVTALE_PAASLAG_KWH: -0.075,
+            CONF_STROMAVTALE_FASTBELOP: -49.0,
         }
 
         asyncio.run(flow.async_step_init(user_input))
@@ -325,6 +329,8 @@ class TestOptionsFlowValidReconfiguration:
         assert updated_data[CONF_ENERGILEDD_DAG] == 0.3500
         assert updated_data[CONF_ENERGILEDD_NATT] == 0.1500
         assert updated_data[CONF_HAR_NORGESPRIS] is True
+        assert updated_data[CONF_STROMAVTALE_PAASLAG_KWH] == -0.075
+        assert updated_data[CONF_STROMAVTALE_FASTBELOP] == -49.0
 
         # Flow should create entry (completion)
         flow.async_create_entry.assert_called_once()
@@ -370,6 +376,22 @@ class TestFrossenTerskelFelt:
         entry = _make_entry()
         assert CONF_ENERGI_FROSSEN_TIMER not in entry.data
         assert DEFAULT_ENERGI_FROSSEN_TIMER == 3.0
+
+    def test_paaslagsfeltene_er_synlige_og_kan_tommes(self):
+        cf_mod = _reload_config_flow()
+        current = {
+            **_make_entry().data,
+            CONF_STROMAVTALE_PAASLAG_KWH: -0.075,
+            CONF_STROMAVTALE_FASTBELOP: -49.0,
+        }
+
+        felter = cf_mod._config_data_schema(current)
+        ny = cf_mod._ny_entry_data(current, _skjema_uten_valgfrie())
+
+        assert CONF_STROMAVTALE_PAASLAG_KWH in felter
+        assert CONF_STROMAVTALE_FASTBELOP in felter
+        assert CONF_STROMAVTALE_PAASLAG_KWH not in ny
+        assert CONF_STROMAVTALE_FASTBELOP not in ny
 
 
 # ===========================================================================
@@ -486,7 +508,10 @@ class TestReconfigureFlow:
 
         flow.async_update_reload_and_abort.assert_not_called()
         flow.async_show_form.assert_called_once()
-        assert flow.async_show_form.call_args[1]["step_id"] == "reconfigure"
+        form = flow.async_show_form.call_args[1]
+        assert form["step_id"] == "reconfigure"
+        assert CONF_STROMAVTALE_PAASLAG_KWH in form["data_schema"]
+        assert CONF_STROMAVTALE_FASTBELOP in form["data_schema"]
 
     def test_valid_reconfigure_persists_via_reload_and_abort(self):
         entry = _make_entry()
@@ -503,6 +528,8 @@ class TestReconfigureFlow:
             CONF_ENERGILEDD_DAG: 0.3500,
             CONF_ENERGILEDD_NATT: 0.1500,
             CONF_KAPASITET_VARSEL_TERSKEL: 3.0,
+            CONF_STROMAVTALE_PAASLAG_KWH: -0.075,
+            CONF_STROMAVTALE_FASTBELOP: -49.0,
         }
 
         asyncio.run(flow.async_step_reconfigure(user_input))
@@ -517,6 +544,8 @@ class TestReconfigureFlow:
         # custom beholder brukerens energiledd (ingen DSO-avledning)
         assert updated[CONF_ENERGILEDD_DAG] == 0.3500
         assert updated[CONF_ENERGILEDD_NATT] == 0.1500
+        assert updated[CONF_STROMAVTALE_PAASLAG_KWH] == -0.075
+        assert updated[CONF_STROMAVTALE_FASTBELOP] == -49.0
         # unique_id er entry_id og skal ikke sendes med (uendret ved reconfigure)
         assert "unique_id" not in call.kwargs
 

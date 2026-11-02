@@ -23,6 +23,8 @@
           "spotpris_inkl_mva": "Spot price sensor delivers prices incl. VAT",
           "energy_sensor": "Energy meter sensor (kWh, optional)",
           "electricity_provider_price_sensor": "Electricity provider sensor (optional)",
+          "stromavtale_paaslag_kwh": "Electricity provider markup/discount (NOK/kWh, incl. VAT)",
+          "stromavtale_fastbelop": "Electricity provider monthly charge/discount (NOK/month, incl. VAT)",
           "export_power_sensor": "Export power sensor (W, optional)"
         },
         "data_description": {
@@ -31,6 +33,8 @@
           "spotpris_inkl_mva": "Leave off for HA-core nordpool integration (delivers excl. VAT). Turn on if your sensor already includes VAT (e.g. the older custom_components/nordpool with VAT=true, or a custom template sensor).",
           "energy_sensor": "Cumulative kWh counter from the AMS smart meter. Recommended for exact invoice numbers. See docs/input-sensorer.md for details.",
           "electricity_provider_price_sensor": "Sensor with the total price from your electricity provider (e.g. Tibber 'Electricity price'). Only used to populate the 'Total price (electricity contract)' sensor for comparison against your actual contract. Does not affect any other calculation. Skip if you have spot price directly or Norgespris.",
+          "stromavtale_paaslag_kwh": "Enter a markup as a positive value or a discount as a negative value, in NOK/kWh incl. VAT. It follows consumption but does not affect strømstøtte or Norgespris.",
+          "stromavtale_fastbelop": "Enter the monthly charge as a positive value or a discount as a negative value, incl. VAT. The amount is prorated across the month.",
           "export_power_sensor": "Power sensor for export to the grid (OBIS 2.7.0) in watts, for prosumers with solar panels only. Used to calculate export revenue and net monthly cost. Skip if you don't have solar panels."
         }
       },
@@ -62,7 +66,7 @@
       },
       "reconfigure": {
         "title": "Strømkalkulator settings",
-        "description": "Change grid company, sensors or Norgespris settings.\n\nThe energiledd fields are overrides. Leave them empty and the grid company's price list applies, with the rate updating itself whenever the list changes. The price list for {dso} currently states day {katalog_dag} and night {katalog_natt}, in øre/kWh with taxes and VAT. A custom grid company has no price list, so there the numbers you entered yourself always apply.",
+        "description": "Change grid company, sensors, electricity contract charges or Norgespris settings.\n\nThe energiledd fields are overrides. Leave them empty and the grid company's price list applies, with the rate updating itself whenever the list changes. The price list for {dso} currently states day {katalog_dag} and night {katalog_natt}, in øre/kWh with taxes and VAT. A custom grid company has no price list, so there the numbers you entered yourself always apply.",
         "data": {
           "tso": "Grid company",
           "sikringstrinn": "Main fuse",
@@ -74,6 +78,8 @@
           "spotpris_inkl_mva": "Spot price sensor delivers prices incl. VAT",
           "energy_sensor": "Energy meter sensor (kWh, optional)",
           "electricity_provider_price_sensor": "Electricity provider sensor (optional)",
+          "stromavtale_paaslag_kwh": "Electricity provider markup/discount (NOK/kWh, incl. VAT)",
+          "stromavtale_fastbelop": "Electricity provider monthly charge/discount (NOK/month, incl. VAT)",
           "export_power_sensor": "Export power sensor (W, optional)",
           "energiledd_dag": "Energy tariff day (NOK/kWh, excl. VAT and taxes)",
           "energiledd_natt": "Energy tariff night/weekend (NOK/kWh, excl. VAT and taxes)",
@@ -91,6 +97,8 @@
           "spotpris_inkl_mva": "Leave off for HA-core nordpool integration (delivers excl. VAT). Turn on if your sensor already includes VAT.",
           "energy_sensor": "Cumulative kWh counter from the AMS smart meter (OBIS 1.8.0). Recommended for exact invoice numbers. Without it, the power sensor is used with Riemann summation.",
           "electricity_provider_price_sensor": "Sensor with the total price from your electricity provider (e.g. Tibber 'Electricity price'). Only used to populate the 'Total price (electricity contract)' sensor for comparison against your actual contract. Does not affect any other calculation. Skip if you have spot price directly or Norgespris.",
+          "stromavtale_paaslag_kwh": "Enter a markup as a positive value or a discount as a negative value, in NOK/kWh incl. VAT. It follows consumption but does not affect strømstøtte or Norgespris.",
+          "stromavtale_fastbelop": "Enter the monthly charge as a positive value or a discount as a negative value, incl. VAT. The amount is prorated across the month.",
           "export_power_sensor": "Power sensor for export to the grid (OBIS 2.7.0) in watts, for prosumers with solar panels only. Used to calculate export revenue and net monthly cost. Skip if you don't have solar panels.",
           "energiledd_dag": "Grid rent excl. VAT and taxes. Leave the field empty to follow the grid company's price list, and the rate updates itself when the list changes. Enter a number and yours applies until you clear the field again.",
           "energiledd_natt": "Grid rent excl. VAT and taxes. Same rule as for day: an empty field follows the price list, a filled one overrides it. Use the same value as day for a flat rate.",

@@ -14,6 +14,8 @@ DOMAIN: Final[str] = "stromkalkulator"
 CONF_POWER_SENSOR: Final[str] = "power_sensor"
 CONF_SPOT_PRICE_SENSOR: Final[str] = "spot_price_sensor"
 CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR: Final[str] = "electricity_provider_price_sensor"
+CONF_STROMAVTALE_PAASLAG_KWH: Final[str] = "stromavtale_paaslag_kwh"
+CONF_STROMAVTALE_FASTBELOP: Final[str] = "stromavtale_fastbelop"
 # NOTE: The string value remains "tso" for backward compatibility with
 # existing Home Assistant config entries stored on disk.
 CONF_DSO: Final[str] = "tso"

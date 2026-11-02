@@ -48,6 +48,7 @@ class TestBasicAccumulation:
         """Andre oppdatering akkumulerer alle tre komponenter."""
         hass = _make_hass(power_w=5000, spot_price=1.20)
         entry = _make_entry()
+        entry.data["stromavtale_paaslag_kwh"] = 0.075
         c = coord_module.NettleieCoordinator(hass, entry)
 
         t0 = _real_datetime(2026, 6, 15, 12, 0)
@@ -272,6 +273,7 @@ class TestStoragePersistence:
         # Verdier er lagret
         assert "monthly_accumulated_cost" in saved_data
         assert "monthly_accumulated_cost_strom" in saved_data
+        assert "monthly_accumulated_cost_stromavtale_paaslag" in saved_data
         assert "monthly_accumulated_cost_energiledd" in saved_data
         assert "monthly_accumulated_cost_kapasitetsledd" in saved_data
         assert saved_data["monthly_accumulated_cost"] > 0
@@ -292,6 +294,9 @@ class TestStoragePersistence:
         assert c2._monthly_accumulated_cost_strom == pytest.approx(
             saved_data["monthly_accumulated_cost_strom"], abs=1e-10
         )
+        assert c2._monthly_accumulated_cost_stromavtale_paaslag == pytest.approx(
+            saved_data["monthly_accumulated_cost_stromavtale_paaslag"], abs=1e-10
+        )
         assert c2._monthly_accumulated_cost_energiledd == pytest.approx(
             saved_data["monthly_accumulated_cost_energiledd"], abs=1e-10
         )
@@ -300,7 +305,9 @@ class TestStoragePersistence:
         # handler om. Før første poll står det derfor på null.
         assert c2._monthly_accumulated_cost_kapasitetsledd == 0.0
         assert c2._monthly_accumulated_cost == pytest.approx(
-            saved_data["monthly_accumulated_cost_strom"] + saved_data["monthly_accumulated_cost_energiledd"],
+            saved_data["monthly_accumulated_cost_strom"]
+            + saved_data["monthly_accumulated_cost_stromavtale_paaslag"]
+            + saved_data["monthly_accumulated_cost_energiledd"],
             abs=1e-10,
         )
 
@@ -357,6 +364,8 @@ class TestSensorClass:
         coord.data = {
             "monthly_accumulated_cost_kr": 123.4567,
             "monthly_accumulated_cost_strom_kr": 80.1234,
+            "monthly_accumulated_cost_stromavtale_paaslag_kr": 1.2345,
+            "monthly_accumulated_cost_stromavtale_fastbelop_kr": 2.3456,
             "monthly_accumulated_cost_energiledd_kr": 30.5678,
             "monthly_accumulated_cost_kapasitetsledd_kr": 12.7655,
             "monthly_consumption_total_kwh": 200.5,
@@ -377,6 +386,8 @@ class TestSensorClass:
         s = self._make_sensor()
         attrs = s.extra_state_attributes
         assert attrs["strompris_kr"] == 80.1234
+        assert attrs["stromavtale_paaslag_kr"] == 1.2345
+        assert attrs["stromavtale_fastbelop_kr"] == 2.3456
         assert attrs["energiledd_kr"] == 30.5678
         assert attrs["kapasitetsledd_kr"] == 12.7655
         assert attrs["total_kwh"] == 200.5

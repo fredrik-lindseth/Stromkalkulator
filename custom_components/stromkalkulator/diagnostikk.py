@@ -71,6 +71,8 @@ from .const import (
     CONF_SIKRINGSTRINN,
     CONF_SPOT_PRICE_SENSOR,
     CONF_SPOTPRIS_INKL_MVA,
+    CONF_STROMAVTALE_FASTBELOP,
+    CONF_STROMAVTALE_PAASLAG_KWH,
     CONF_TARIFFMODUS,
     DOMAIN,
     EGENDEFINERT_ISSUE_PREFIX,
@@ -122,6 +124,8 @@ VALG_UTELATT: dict[str, str] = {
     # hver eneste dump. Tallene coordinatoren leste ut av den står i
     # dso-seksjonen, og der bærer de ingen strenger noen kan plante i.
     CONF_EGENDEFINERT_KAPASITETSTRINN: "vises tallparsert som dso.kapasitetstrinn",
+    CONF_STROMAVTALE_PAASLAG_KWH: "personlig strømavtalepris vises ikke i diagnostikk",
+    CONF_STROMAVTALE_FASTBELOP: "personlig strømavtalepris vises ikke i diagnostikk",
 }
 
 # Inputrollene. Selve entity-id-en aliaseres; her står bare koblingen fra
@@ -257,6 +261,11 @@ BEREGNING_UTELATT: dict[str, str] = {
     "kwh_uten_pris": "står i avregningsseksjonen",
     "kwh_delvis_pris": "står i avregningsseksjonen",
     "avregning_grunnlag": "frosset grunnlag, allowlistet i avregningsseksjonen",
+    "stromavtale_paaslag_kwh": "personlig strømavtalepris vises ikke i diagnostikk",
+    "stromavtale_fastbelop_kr": "personlig strømavtalepris vises ikke i diagnostikk",
+    "stromavtale_fastbelop_per_kwh": "personlig strømavtalepris vises ikke i diagnostikk",
+    "monthly_accumulated_cost_stromavtale_paaslag_kr": "personlig strømavtalepris vises ikke i diagnostikk",
+    "monthly_accumulated_cost_stromavtale_fastbelop_kr": "personlig strømavtalepris vises ikke i diagnostikk",
 }
 
 AVREGNING_ALLOWLIST = (

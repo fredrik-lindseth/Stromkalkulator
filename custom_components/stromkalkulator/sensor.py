@@ -496,6 +496,10 @@ class TotalPriceSensor(NettleieBaseSensor):
                     "spot_price": self.coordinator.data.get("spot_price"),
                     "energiledd": self.coordinator.data.get("energiledd"),
                     "kapasitetsledd_per_kwh": self.coordinator.data.get("kapasitetsledd_per_kwh"),
+                    "stromavtale_paaslag_per_kwh": self.coordinator.data.get("stromavtale_paaslag_kwh"),
+                    "stromavtale_fastbelop_per_kwh": self.coordinator.data.get(
+                        "stromavtale_fastbelop_per_kwh"
+                    ),
                     "dso": self.coordinator.data.get("dso"),
                 }
             )
@@ -1575,6 +1579,12 @@ class AkkumulertKostnadSensor(MaanedligBaseSensor):
                     "kapasitetsledd_kr": self.coordinator.data.get(
                         "monthly_accumulated_cost_kapasitetsledd_kr"
                     ),
+                    "stromavtale_paaslag_kr": self.coordinator.data.get(
+                        "monthly_accumulated_cost_stromavtale_paaslag_kr"
+                    ),
+                    "stromavtale_fastbelop_kr": self.coordinator.data.get(
+                        "monthly_accumulated_cost_stromavtale_fastbelop_kr"
+                    ),
                     "total_kwh": self.coordinator.data.get("monthly_consumption_total_kwh"),
                     "bruk": "Velg som 'Use an entity tracking total costs' i Energy Dashboard",
                 }
@@ -1611,9 +1621,14 @@ class EstimertMaanedskostnadSensor(MaanedligBaseSensor):
         # Energileddet i bokføringen inkluderer allerede forbruksavgift + enova.
         variabel_kr = _tall(data, "monthly_accumulated_cost_energiledd_kr") - _tall(
             data, "monthly_stromstotte_kr"
-        )
+        ) + _tall(data, "monthly_accumulated_cost_stromavtale_paaslag_kr")
         estimert_variabel = (variabel_kr / day_of_month) * dim
-        return round(estimert_variabel + _tall(data, "kapasitetsledd"), 0)
+        return round(
+            estimert_variabel
+            + _tall(data, "kapasitetsledd")
+            + _tall(data, "stromavtale_fastbelop_kr"),
+            0,
+        )
 
 
 # =============================================================================

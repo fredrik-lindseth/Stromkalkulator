@@ -26,6 +26,8 @@ from .const import (
     CONF_HAR_NORGESPRIS,
     CONF_SIKRINGSTRINN,
     CONF_SPOTPRIS_INKL_MVA,
+    CONF_STROMAVTALE_FASTBELOP,
+    CONF_STROMAVTALE_PAASLAG_KWH,
     CONF_TARIFFMODUS,
     DEFAULT_DSO,
     DOMAIN,
@@ -182,11 +184,14 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     derfor aldri fram til en bruker som allerede hadde satt opp anlegget sitt.
     Migreringen rører kun `entry.data`, aldri lagringsfilen med måledata, og
     aldri entry_id eller entitetenes unique-id-er: ingen akkumulator går tapt.
+
+    v5 -> v6: Legger til strømavtale-påslag per kWh og fast månedsbeløp.
+    Begge starter på null for eksisterende brukere.
     """
     # Nedgraderingsvern: en entry med høyere versjon enn koden kjenner kommer
     # fra en nyere installasjon som er rullet tilbake. Ikke last den med et
-    # ukjent skjema. Gjeldende versjon er 5 (config_flow VERSION).
-    if entry.version > 5:
+    # ukjent skjema. Gjeldende versjon er 6 (config_flow VERSION).
+    if entry.version > 6:
         return False
 
     if entry.version == 1:
@@ -276,6 +281,15 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             entry.entry_id,
             modus,
         )
+
+    if entry.version == 5:
+        new_data = {
+            **entry.data,
+            CONF_STROMAVTALE_PAASLAG_KWH: 0.0,
+            CONF_STROMAVTALE_FASTBELOP: 0.0,
+        }
+        hass.config_entries.async_update_entry(entry, data=new_data, version=6)
+        _LOGGER.info("Migrerte config entry %s fra v5 til v6 (strømavtale-påslag)", entry.entry_id)
 
     return True
 

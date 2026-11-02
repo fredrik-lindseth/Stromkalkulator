@@ -10,6 +10,10 @@ Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) og [S
 - Midtnett bruker egen fastleddtabell for fritidsbolig, også ved fast bosted. <!--kort-->
 - Kapasitetstrinn med ørepriser hos Glitre og tidligere Norgesnett beholder desimalene gjennom omstart. <!--kort-->
 
+### Lagt til
+
+- **Strømavtalens påslag per kWh og månedsbeløp kan nå legges inn i innstillingene.** Negative verdier registreres som rabatter. Beløpene tas med i kostnadene, men endrer ikke strømstøtte eller Norgespris. <!--kort-->
+
 ### Vedlikehold
 
 - Lagt til kategorien `energy.energy_prices` i integrasjonsmanifestet i tråd med [Home Assistants kategorier](https://contributors.home-assistant.io/core/integrations/categories/).

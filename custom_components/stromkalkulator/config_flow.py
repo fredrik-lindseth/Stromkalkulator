@@ -33,6 +33,8 @@ from .const import (
     CONF_SIKRINGSTRINN,
     CONF_SPOT_PRICE_SENSOR,
     CONF_SPOTPRIS_INKL_MVA,
+    CONF_STROMAVTALE_FASTBELOP,
+    CONF_STROMAVTALE_PAASLAG_KWH,
     CONF_TARIFFMODUS,
     DEFAULT_DSO,
     DEFAULT_ENERGI_FROSSEN_TIMER,
@@ -270,6 +272,7 @@ def _config_data_schema(current: dict[str, Any]) -> vol.Schema:
                     domain="sensor",
                 ),
             ),
+            **_stromavtale_felt(current),
             vol.Optional(
                 CONF_EXPORT_POWER_SENSOR,
                 description={"suggested_value": current.get(CONF_EXPORT_POWER_SENSOR)},
@@ -331,6 +334,36 @@ def _energiledd_sats_selector() -> selector.NumberSelector:
             mode=selector.NumberSelectorMode.BOX,
         ),
     )
+
+
+def _stromavtale_felt(current: dict[str, Any]) -> dict[Any, Any]:
+    """Valgfrie strømavtalesatser, begge oppgitt inkl. mva."""
+    return {
+        vol.Optional(
+            CONF_STROMAVTALE_PAASLAG_KWH,
+            description={"suggested_value": current.get(CONF_STROMAVTALE_PAASLAG_KWH)},
+        ): selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=-10,
+                max=10,
+                step="any",
+                unit_of_measurement="NOK/kWh",
+                mode=selector.NumberSelectorMode.BOX,
+            ),
+        ),
+        vol.Optional(
+            CONF_STROMAVTALE_FASTBELOP,
+            description={"suggested_value": current.get(CONF_STROMAVTALE_FASTBELOP)},
+        ): selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=-1000,
+                max=1000,
+                step="any",
+                unit_of_measurement="NOK/month",
+                mode=selector.NumberSelectorMode.BOX,
+            ),
+        ),
+    }
 
 
 def _energiledd_felt(current: dict[str, Any], egendefinert: bool) -> dict[Any, Any]:
@@ -438,6 +471,8 @@ def _tariffhint(current: dict[str, Any]) -> dict[str, str]:
 _TOMBARE_FELT: tuple[str, ...] = (
     CONF_ENERGY_SENSOR,
     CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR,
+    CONF_STROMAVTALE_PAASLAG_KWH,
+    CONF_STROMAVTALE_FASTBELOP,
     CONF_EXPORT_POWER_SENSOR,
     # Trinntabellen følger samme regel: tømmer brukeren feltet, er fastleddet
     # ukjent igjen. Feltet finnes bare for Egendefinert, så et bytte til et
@@ -588,7 +623,8 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
     # VERSION 5: `tariffmodus` sier hvor energiledd-satsen kommer fra. Før vant
     # en sats lagret på entryet over dso.py, og oppsettet lagret katalogens sats
     # på alle, så en tariffendring nådde aldri fram. Se kontrakt §6 og §7.
-    VERSION: int = 5
+    # VERSION 6: konfigurerbart strømavtale-påslag per kWh og fast månedsbeløp.
+    VERSION: int = 6
 
     def __init__(self) -> None:
         """Initialize the config flow."""
@@ -702,6 +738,7 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
                             domain="sensor",
                         ),
                     ),
+                    **_stromavtale_felt(self._data),
                     vol.Optional(CONF_EXPORT_POWER_SENSOR): selector.EntitySelector(
                         selector.EntitySelectorConfig(
                             domain="sensor",

@@ -160,10 +160,37 @@ class TestManglendePris:
     def test_uten_pris_ingen_kraft_men_energiledd(self):
         kroner = kroner_for_intervall(_intervall(4.0, pris_eks_mva=None), SATSER, kwh_for=0.0)
         assert kroner.strom_kr == 0.0
+        assert kroner.strom_paaslag_kr == 0.0
         assert kroner.kwh_uten_pris == pytest.approx(4.0)
         # Energileddet avhenger av tariffen og datoen, ikke av spotprisen.
         assert kroner.energiledd_dag_kr == pytest.approx(4.0 * 0.20)
         assert kroner.avgifter_kr == pytest.approx(4.0 * 0.30)
+
+    def test_leverandorpaaslag_bokfores_uten_spotpris(self):
+        satser = replace(SATSER, strom_paaslag_inkl_mva=0.07)
+        kroner = kroner_for_intervall(_intervall(4.0, pris_eks_mva=None), satser)
+
+        assert kroner.strom_kr == 0.0
+        assert kroner.strom_paaslag_kr == pytest.approx(0.28)
+        assert kroner.energi_kr == pytest.approx(4 * (0.07 + 0.20 + 0.30))
+
+    def test_leverandorpaaslag_paavirker_ikke_stromstotte(self):
+        satser = replace(SATSER, strom_paaslag_inkl_mva=0.07)
+        uten_paaslag = kroner_for_intervall(_intervall(4.0), SATSER)
+        med_paaslag = kroner_for_intervall(_intervall(4.0), satser)
+
+        assert med_paaslag.stromstotte_kr == uten_paaslag.stromstotte_kr
+        assert med_paaslag.strom_kr == uten_paaslag.strom_kr
+        assert med_paaslag.strom_paaslag_kr == pytest.approx(0.28)
+
+    def test_negativt_leverandorpaaslag_gir_rabatt(self):
+        satser = replace(SATSER, strom_paaslag_inkl_mva=-0.07)
+        kroner = kroner_for_intervall(_intervall(4.0), satser)
+
+        assert kroner.strom_paaslag_kr == pytest.approx(-0.28)
+        assert kroner.energi_kr == pytest.approx(
+            kroner.strom_kr - 0.28 + kroner.energiledd_kr
+        )
 
     def test_nullforbruk_gir_ingen_kroner(self):
         assert kroner_for_intervall(_intervall(0.0), SATSER, kwh_for=0.0) == INGEN_KRONER
@@ -347,6 +374,8 @@ class TestMinuttpoll:
         assert data["monthly_cost_kr"] == pytest.approx(data["monthly_accumulated_cost_kr"], abs=0.01)
         assert data["monthly_accumulated_cost_kr"] == pytest.approx(
             data["monthly_accumulated_cost_strom_kr"]
+            + data["monthly_accumulated_cost_stromavtale_paaslag_kr"]
+            + data["monthly_accumulated_cost_stromavtale_fastbelop_kr"]
             + data["monthly_accumulated_cost_energiledd_kr"]
             + data["monthly_accumulated_cost_kapasitetsledd_kr"],
             abs=1e-6,
@@ -398,6 +427,46 @@ class TestNullforbruk:
         assert data["monthly_accumulated_cost_kapasitetsledd_kr"] > 0
         assert data["monthly_cost_kr"] == pytest.approx(
             data["monthly_accumulated_cost_kapasitetsledd_kr"], abs=0.01
+        )
+
+    @pytest.mark.parametrize("fastbelop", [80.0, -80.0])
+    def test_leverandorens_fastbelop_loper_uten_forbruk(self, coord_module, fastbelop):
+        coord, _ = _coordinator(coord_module, power_w=0)
+        coord.stromavtale_fastbelop = fastbelop
+        start = _real_datetime(2026, 6, 15, 12, 0)
+        _run_update(coord_module, coord, now=start)
+        data = _run_update(coord_module, coord, now=start + timedelta(minutes=1))
+
+        assert data["monthly_consumption_total_kwh"] == 0.0
+        assert data["monthly_accumulated_cost_stromavtale_fastbelop_kr"] == pytest.approx(
+            fastbelop * forlopt_andel_av_maaned(start.replace(tzinfo=OSLO) + timedelta(minutes=1))
+        )
+        assert data["monthly_cost_kr"] == pytest.approx(
+            data["monthly_accumulated_cost_kapasitetsledd_kr"]
+            + data["monthly_accumulated_cost_stromavtale_fastbelop_kr"],
+            abs=0.01,
+        )
+
+
+class TestLeverandorpaaslagCoordinator:
+    """Leverandørens kWh-påslag følger forbruket, ikke støtteberegningen."""
+
+    def test_paaslag_bokfores_separat_fra_strompris(self, coord_module):
+        coord, _ = _coordinator(coord_module, power_w=6000)
+        coord.stromavtale_paaslag_kwh = 0.075
+        start = _real_datetime(2026, 6, 15, 12, 0)
+        _run_update(coord_module, coord, now=start)
+        data = _run_update(coord_module, coord, now=start + timedelta(minutes=1))
+
+        assert data["monthly_accumulated_cost_stromavtale_paaslag_kr"] == pytest.approx(
+            data["monthly_consumption_total_kwh"] * 0.075
+        )
+        assert data["monthly_cost_kr"] == pytest.approx(
+            data["monthly_accumulated_cost_strom_kr"]
+            + data["monthly_accumulated_cost_stromavtale_paaslag_kr"]
+            + data["monthly_accumulated_cost_energiledd_kr"]
+            + data["monthly_accumulated_cost_kapasitetsledd_kr"],
+            abs=0.01,
         )
 
 

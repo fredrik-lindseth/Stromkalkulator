@@ -94,7 +94,7 @@ class TestV1ToV2Migration:
         result = _migrate(init_module, hass, entry)
 
         assert result is True
-        assert entry.version == 5  # kjedet helt fram via v2-, v3- og v4-grenene
+        assert entry.version == 6  # kjedet helt fram via v2-, v3-, v4- og v5-grenene
         assert entry.data["energiledd_dag"] == pytest.approx(0.31870, abs=1e-5)
 
     def test_converts_energiledd_natt_inkl_to_eks(self, init_module):
@@ -144,7 +144,7 @@ class TestV1ToV2Migration:
 
         assert "energiledd_dag" not in entry.data
         assert "energiledd_natt" not in entry.data
-        assert entry.version == 5
+        assert entry.version == 6
 
     def test_nord_norge_no_mva_no_forbruksavgift_reduction(self, init_module):
         """Nord-Norge: mva-fritak, men full forbruksavgift fra 2026."""
@@ -272,7 +272,7 @@ class TestV2ToV3Migration:
 
         assert result is True
         assert entry.data["spotpris_inkl_mva"] is False
-        assert entry.version == 5
+        assert entry.version == 6
 
     def test_standard_avgiftssone_creates_repair_issue(self, init_module):
         """Sør-Norge (standard) skal få repair-issue om mva-sjekk."""
@@ -382,7 +382,7 @@ class TestV3ToV4Migration:
         result = _migrate(init_module, hass, entry)
 
         assert result is True
-        assert entry.version == 5
+        assert entry.version == 6
         assert entry.unique_id == "entry_v3"
 
     def test_preserves_data(self, init_module):
@@ -430,7 +430,7 @@ class TestChainedMigration:
         result = _migrate(init_module, hass, entry)
 
         assert result is True
-        assert entry.version == 5
+        assert entry.version == 6
         # v1→v2: energiledd konvertert
         assert entry.data["energiledd_dag"] == pytest.approx(0.31870, abs=1e-5)
         # v2→v3: spotpris-flag satt og repair-issue laget
@@ -467,7 +467,7 @@ class TestV4ToV5Migration:
         entry = _make_entry(version=4, data=data, entry_id=entry_id, unique_id=entry_id)
         hass = _make_hass(entry)
         assert _migrate(init_module, hass, entry) is True
-        assert entry.version == 5
+        assert entry.version == 6
         return entry
 
     def test_gammel_katalogsats_gir_legacy_og_beholder_tallet(self, init_module):
@@ -602,10 +602,10 @@ class TestV4ToV5Migration:
 
 
 class TestIdempotency:
-    """v5 → v5 skal være no-op."""
+    """v5 migreres, v6 er idempotent."""
 
-    def test_v5_returns_true_without_changes(self, init_module):
-        """Allerede migrert entry skal returnere True uten å røre data."""
+    def test_v5_gets_zero_supplier_charges(self, init_module):
+        """Eldre oppsett starter uten nye strømavtalepåslag."""
         original_data = {
             "tso": "bkk",
             "avgiftssone": "standard",
@@ -621,22 +621,36 @@ class TestIdempotency:
         result = _migrate(init_module, hass, entry)
 
         assert result is True
-        assert entry.data == original_data
-        assert entry.version == 5
-        hass.config_entries.async_update_entry.assert_not_called()
+        assert entry.data["stromavtale_paaslag_kwh"] == 0.0
+        assert entry.data["stromavtale_fastbelop"] == 0.0
+        assert entry.version == 6
+        hass.config_entries.async_update_entry.assert_called_once()
         mock_ir.async_create_issue.assert_not_called()
 
+    def test_v6_returns_true_without_changes(self, init_module):
+        """Allerede migrert entry skal returnere True uten å røre data."""
+        original_data = {"tso": "bkk", "stromavtale_paaslag_kwh": 0.0}
+        entry = _make_entry(version=6, data=original_data, entry_id="entry1", unique_id="entry1")
+        hass = _make_hass(entry)
+
+        result = _migrate(init_module, hass, entry)
+
+        assert result is True
+        assert entry.data == original_data
+        assert entry.version == 6
+        hass.config_entries.async_update_entry.assert_not_called()
+
     def test_future_version_returns_false_downgrade_protection(self, init_module):
-        """Hypotetisk v6-entry (fra nedgradering) skal avvises, ikke lastes.
+        """Hypotetisk v7-entry (fra nedgradering) skal avvises, ikke lastes.
 
         HA-konvensjon: returner False når entry.version er høyere enn koden
         støtter, så en nedgradert installasjon ikke laster et ukjent skjema.
         """
-        entry = _make_entry(version=6, data={"tso": "bkk"})
+        entry = _make_entry(version=7, data={"tso": "bkk"})
         hass = _make_hass(entry)
 
         result = _migrate(init_module, hass, entry)
 
         assert result is False
-        assert entry.version == 6
+        assert entry.version == 7
         hass.config_entries.async_update_entry.assert_not_called()

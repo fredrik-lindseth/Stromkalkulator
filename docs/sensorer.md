@@ -66,8 +66,8 @@ Hos Alut og Netera fakturerer nettselskapet etter hovedsikringens størrelse, ik
 
 | Sensor                                    | Enhet   | Beskrivelse                                      |
 | ----------------------------------------- | ------- | ------------------------------------------------ |
-| Total strømpris (før støtte)              | NOK/kWh | Spotpris + nettleie, før strømstøtte trekkes fra |
-| Strømpris per kWh                         | NOK/kWh | Spotpris + energiledd, uten kapasitetsledd       |
+| Total strømpris (før støtte)              | NOK/kWh | Spotpris + leverandørpåslag + nettleie, før støtte |
+| Strømpris per kWh                         | NOK/kWh | Spotpris + leverandørpåslag + energiledd, uten kapasitetsledd |
 | _(valgfri)_ Total strømpris (strømavtale) | NOK/kWh | Med strømselskapets pris i stedet for spotpris   |
 
 ### Diagnostikk (avgifter)
@@ -86,8 +86,8 @@ Hos Alut og Netera fakturerer nettselskapet etter hovedsikringens størrelse, ik
 | -------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Strømstøtte                                  | NOK/kWh | Statens støtte per kWh når spotpris > 96,25 øre (90% av overskytende)                                                                                                   |
 | Spotpris etter støtte                        | NOK/kWh | Spotpris minus strømstøtte                                                                                                                                              |
-| Total strømpris etter støtte                 | NOK/kWh | Reell totalpris: spotpris + nettleie - støtte                                                                                                                           |
-| Totalpris inkl. avgifter                     | NOK/kWh | Prissensor for Energy Dashboard. Kapasitetsledd fordelt per kWh (unøyaktig ved avvikende forbruk). For korrekt total: bruk [Akkumulert strømkostnad](#energy-dashboard) |
+| Total strømpris etter støtte                 | NOK/kWh | Spotpris + leverandørpåslag + nettleie - støtte                                                                                                                         |
+| Totalpris inkl. avgifter                     | NOK/kWh | Prissensor for Energy Dashboard. Kapasitetsledd og leverandørens månedsbeløp fordelt per kWh (unøyaktig ved avvikende forbruk). For korrekt total: bruk [Akkumulert strømkostnad](#energy-dashboard) |
 | Strømstøtte aktiv nå (binary_sensor)         | on/off  | På når spotpris er over terskel                                                                                                                                         |
 | Strømstøtte gjenstående kWh                  | kWh     | Hvor mye av månedens støtte-tak som er igjen (bolig=5000, fritidsbolig=0)                                                                                               |
 | _(valgfri)_ Strømpris per kWh (etter støtte) | NOK/kWh | Som "Strømpris per kWh", men med støtte trukket fra                                                                                                                     |
@@ -96,7 +96,7 @@ Hos Alut og Netera fakturerer nettselskapet etter hovedsikringens størrelse, ik
 
 | Sensor                           | Enhet   | Beskrivelse                                                       |
 | -------------------------------- | ------- | ----------------------------------------------------------------- |
-| Total strømpris (norgespris)     | NOK/kWh | Hva du ville betalt med Norgespris: fast 50 øre + nettleie        |
+| Total strømpris (norgespris)     | NOK/kWh | Norgespris + leverandørpåslag + nettleie                           |
 | Strømpris (Norgespris-ordningen) | NOK/kWh | Ren strømdel: fast 50 øre under tak, spotpris over tak            |
 | Prisforskjell (norgespris)       | NOK/kWh | Positiv = du betaler mer enn Norgespris (Norgespris er billigere) |
 | Norgespris aktiv nå              | on/off  | På hvis du har valgt Norgespris                                   |
@@ -123,7 +123,7 @@ Attributter på "Månedlig forbruk totalt": `dag_kwh`, `natt_kwh`, `dag_pct`, `n
 | ----------------------------------- | ----- | ------------------------------------------------------- |
 | Månedlig nettleie total             | NOK   | Bunnlinjen: nettleie + avgifter - støtte                |
 | Dagens kostnad                      | NOK   | Akkumulert kostnad siden midnatt                        |
-| Estimert månedskostnad              | NOK   | Prognose for hele måneden, basert på forbruket hittil   |
+| Estimert månedskostnad              | NOK   | Prognose for hele måneden, inkludert strømavtalens påslag og månedsbeløp |
 | Norgespris besparelse               | NOK   | Akkumulert besparelse/tap vs alternativ avtale          |
 | Norgespris-kompensasjon             | NOK   | Akkumulert (norgespris - spotpris) × kWh denne måneden  |
 | _(valgfri)_ Månedlig nettleie       | NOK   | Bokført nettleie hittil: energiledd + fastledd          |
@@ -131,7 +131,7 @@ Attributter på "Månedlig forbruk totalt": `dag_kwh`, `natt_kwh`, `dag_pct`, `n
 | _(valgfri)_ Månedlig strømstøtte    | NOK   | Bokført støtte denne måneden                            |
 | _(valgfri)_ Akkumulert strømkostnad | NOK   | For Energy Dashboard med korrekte månedstotaler         |
 
-Attributter på "Akkumulert strømkostnad": `strompris_kr`, `energiledd_kr`, `kapasitetsledd_kr`, `total_kwh`.
+Attributter på "Akkumulert strømkostnad": `strompris_kr`, `stromavtale_paaslag_kr`, `stromavtale_fastbelop_kr`, `energiledd_kr`, `kapasitetsledd_kr`, `total_kwh`.
 
 Attributter på "Månedlig nettleie total": `nettleie_kr`, `stromstotte_kr`, `forbruk_dag_kwh`, `forbruk_natt_kwh`, `forbruk_total_kwh`, `vektet_snittpris_kr_per_kwh`.
 

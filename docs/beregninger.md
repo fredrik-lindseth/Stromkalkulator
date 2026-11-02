@@ -107,7 +107,9 @@ Kilde: [Regjeringens strømtiltak](https://www.regjeringen.no/no/tema/energi/str
 
 ## Totalpris
 
-Summen av kraftpris (spot etter strømstøtte eller Norgespris), nettleie og kapasitetsledd-andel.
+Summen av kraftpris (spot etter strømstøtte eller Norgespris), strømavtalens påslag per kWh, nettleie og kapasitetsledd-andeler. Strømavtalens månedsbeløp fordeles over tid i kostnadssensorene.
+
+Leverandørpåslagene settes i innstillingene og oppgis inkl. mva. kWh-påslaget følger forbruket, også når spotprisen mangler. Det legges til etter at spotbasert strømstøtte og Norgespris er beregnet; det endrer derfor ikke støtte eller Norgespris-kompensasjon. Fast månedsbeløp er en egen periodekostnad, ikke en sats som ganges med kWh.
 
 To Energy Dashboard-strategier:
 
@@ -153,18 +155,18 @@ Kronene regnes ett sted, i kostnadskjernen (`kostnad.py`), per avregnet interval
 | Månedlig avgifter       | `monthly_avgifter_kr`                                                          |
 | Månedlig strømstøtte    | `monthly_stromstotte_kr`                                                       |
 | Månedlig nettleie total | de samme, minus `monthly_stromstotte_kr`                                       |
-| Akkumulert strømkostnad | `monthly_accumulated_cost_kr`                                                  |
+| Akkumulert strømkostnad | `monthly_accumulated_cost_kr`, med strømavtalens påslag og månedsbeløp        |
 | Dagens kostnad          | `daily_cost_kr`                                                                |
 
 Det betyr at en sats som endret seg midt i måneden, eller en strømstøtte som varierte time for time, kommer riktig ut: hvert intervall ble priset da det ble bokført. Fastleddet i «Månedlig nettleie» er månedsbeløpet ganget med forløpt andel av måneden, ikke hele beløpet fra dag 1.
 
-Estimert månedstotal projiserer den bokførte variable delen (energiledd minus strømstøtte) fra dagene som er gått til hele måneden, og legger til kapasitetsleddet som helt månedsbeløp. Fastleddet faktureres uansett hvor langt måneden er kommet, så det skaleres ikke.
+Estimert månedstotal projiserer bokført energiledd minus strømstøtte og leverandørens kWh-påslag fra dagene som er gått til hele måneden. Kapasitetsleddet og strømavtalens fastbeløp legges til som hele månedsbeløp; de faktureres uansett hvor langt måneden er kommet, så de skaleres ikke.
 
 Unntaket er «Forrige måned nettleie», som regner satser ganget med arkiverte kilowattimer fordi arkivet ikke lagrer forrige måneds bokførte kroner. Se [begrensninger.md punkt 8](begrensninger.md).
 
 ## Månedsskifte
 
-Ved månedsskifte arkiveres `monthly_consumption`, topp-3 effekter, kapasitetsledd og kostnader til "forrige måned"-feltene. Nåværende måned nullstilles. Lagres til disk.
+Ved månedsskifte arkiveres `monthly_consumption`, topp-3 effekter, kapasitetsledd og kostnader, inkludert leverandørpåslag, til "forrige måned"-feltene. Nåværende måned nullstilles. Lagres til disk.
 
 Energi akkumulert i selve overgangs-syklusen havner i forrige måned.
 

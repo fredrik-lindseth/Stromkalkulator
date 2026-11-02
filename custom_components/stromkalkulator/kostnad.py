@@ -59,7 +59,8 @@ class Satser:
     `energiledd_inkl_mva` er tallet `dso.py` leverer, altså nettleiens
     energiledd med forbruksavgift og Enova oppi. `avgifter_inkl_mva` er den
     delen av det som er offentlige avgifter, slik at de to kan skilles i
-    bokføringen uten at noen regner energileddet to ganger.
+    bokføringen uten at noen regner energileddet to ganger. `strom_paaslag_inkl_mva`
+    er strømavtalens kWh-påslag; det legges til etter støtteberegningen.
     """
 
     energiledd_inkl_mva: float
@@ -70,6 +71,7 @@ class Satser:
     stromstotte_max_kwh: float
     norgespris_max_kwh: float
     har_norgespris: bool
+    strom_paaslag_inkl_mva: float = 0.0
 
     @property
     def nett_energiledd_inkl_mva(self) -> float:
@@ -93,6 +95,7 @@ class Kroner:
     """
 
     strom_kr: float = 0.0
+    strom_paaslag_kr: float = 0.0
     stromstotte_kr: float = 0.0
     energiledd_dag_kr: float = 0.0
     energiledd_natt_kr: float = 0.0
@@ -116,7 +119,7 @@ class Kroner:
     @property
     def energi_kr(self) -> float:
         """Alt som følger kilowattimene. Fastledd er ikke med; det er en periode."""
-        return self.strom_kr + self.energiledd_kr
+        return self.strom_kr + self.strom_paaslag_kr + self.energiledd_kr
 
     def __add__(self, annen: Kroner) -> Kroner:
         return Kroner(*(getattr(self, f.name) + getattr(annen, f.name) for f in fields(self)))
@@ -174,6 +177,7 @@ def kroner_for_intervall(
     dag = intervall.tariff is Tariff.DAG
     nett_energiledd = satser.nett_energiledd_inkl_mva * kwh
     grunn = Kroner(
+        strom_paaslag_kr=satser.strom_paaslag_inkl_mva * kwh,
         energiledd_dag_kr=nett_energiledd if dag else 0.0,
         energiledd_natt_kr=0.0 if dag else nett_energiledd,
         avgifter_kr=satser.avgifter_inkl_mva * kwh,
@@ -209,6 +213,7 @@ def kroner_for_intervall(
 
     return Kroner(
         strom_kr=strom_kr,
+        strom_paaslag_kr=grunn.strom_paaslag_kr,
         stromstotte_kr=stromstotte_kr,
         energiledd_dag_kr=grunn.energiledd_dag_kr,
         energiledd_natt_kr=grunn.energiledd_natt_kr,

@@ -51,6 +51,8 @@ from .const import (
     CONF_SIKRINGSTRINN,
     CONF_SPOT_PRICE_SENSOR,
     CONF_SPOTPRIS_INKL_MVA,
+    CONF_STROMAVTALE_FASTBELOP,
+    CONF_STROMAVTALE_PAASLAG_KWH,
     DEFAULT_DSO,
     DEFAULT_ENERGI_FROSSEN_TIMER,
     DEFAULT_KAPASITET_VARSEL_TERSKEL,
@@ -411,6 +413,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     _previous_month_export_revenue: float
     _previous_month_cost: float
     _monthly_accumulated_cost_strom: float
+    _monthly_accumulated_cost_stromavtale_paaslag: float
+    _monthly_accumulated_cost_stromavtale_fastbelop: float
     _monthly_stromstotte: float
     _monthly_energiledd_dag: float
     _monthly_energiledd_natt: float
@@ -438,6 +442,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.power_sensor = entry.data.get(CONF_POWER_SENSOR)
         self.spot_price_sensor = entry.data.get(CONF_SPOT_PRICE_SENSOR)
         self.electricity_company_price_sensor = entry.data.get(CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR)
+        self.stromavtale_paaslag_kwh = _som_sats(entry.data.get(CONF_STROMAVTALE_PAASLAG_KWH), 0.0)
+        self.stromavtale_fastbelop = _som_sats(entry.data.get(CONF_STROMAVTALE_FASTBELOP), 0.0)
         self.export_power_sensor = entry.data.get(CONF_EXPORT_POWER_SENSOR)
         # Valgfri kumulativ energi-sensor (kWh, OBIS 1.8.0 fra AMS-måler).
         # Når satt: brukes som primær kilde via delta-akkumulasjon i stedet for
@@ -606,6 +612,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # fastleddet bokføres per avregnet intervall; fastleddet er et
         # periodebeløp og regnes på nytt ved hver poll (kostnad.py).
         self._monthly_accumulated_cost_strom = 0.0
+        self._monthly_accumulated_cost_stromavtale_paaslag = 0.0
+        self._monthly_accumulated_cost_stromavtale_fastbelop = 0.0
         self._monthly_stromstotte = 0.0
         self._monthly_energiledd_dag = 0.0
         self._monthly_energiledd_natt = 0.0
@@ -1007,7 +1015,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     @property
     def _monthly_accumulated_cost(self) -> float:
-        """Månedens kostnad: alt som følger energien, pluss fastleddet.
+        """Månedens kostnad: energiposter pluss de tidsfordelte månedsbeløpene.
 
         Én akkumulator, ikke to. `monthly_cost_kr` og
         `monthly_accumulated_cost_kr` var to veier til samme tall og kunne
@@ -1015,6 +1023,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """
         return (
             self._monthly_accumulated_cost_strom
+            + self._monthly_accumulated_cost_stromavtale_paaslag
+            + self._monthly_accumulated_cost_stromavtale_fastbelop
             + self._monthly_accumulated_cost_energiledd
             + self._monthly_accumulated_cost_kapasitetsledd
         )
@@ -1042,6 +1052,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             stromstotte_max_kwh=get_stromstotte_max_kwh(self.boligtype),
             norgespris_max_kwh=get_norgespris_max_kwh(self.boligtype),
             har_norgespris=self.har_norgespris,
+            strom_paaslag_inkl_mva=self.stromavtale_paaslag_kwh,
         )
 
     def _kwh_fra_og_med(self, naa: datetime, starter: set[datetime]) -> dict[datetime, float]:
@@ -1145,6 +1156,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def _legg_til_kroner(self, diff: Kroner, dato: str) -> None:
         """Legg en differanse inn i månedens og dagens bøker."""
         self._monthly_accumulated_cost_strom += diff.strom_kr
+        self._monthly_accumulated_cost_stromavtale_paaslag += diff.strom_paaslag_kr
         self._monthly_stromstotte += diff.stromstotte_kr
         self._monthly_energiledd_dag += diff.energiledd_dag_kr
         self._monthly_energiledd_natt += diff.energiledd_natt_kr
@@ -1158,7 +1170,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._daily_cost += diff.energi_kr
 
     def _oppdater_fastledd(self, now: datetime, kapasitetsledd: float) -> None:
-        """Fastleddet som periodebeløp: kr/mnd ganger forløpt andel av måneden.
+        """Oppdater månedsbeløpene etter forløpt andel av måneden.
 
         Regnet på nytt ved hver poll framfor å summeres opp av små tidsbiter.
         To ting følger av det. Et trinnskifte midt i måneden gjelder hele
@@ -1174,9 +1186,12 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._monthly_accumulated_cost_kapasitetsledd = fastledd_belop(
             belop, forlopt_andel_av_maaned(_aware(now))
         )
+        self._monthly_accumulated_cost_stromavtale_fastbelop = fastledd_belop(
+            self.stromavtale_fastbelop, forlopt_andel_av_maaned(_aware(now))
+        )
 
     def _oppdater_fastledd_helmaaned(self, kapasitetsledd: float) -> None:
-        """Sett fastleddet til hele månedens beløp, for måneden som lukkes.
+        """Sett fastleddene til hele månedsbeløpet for måneden som lukkes.
 
         Nettselskapet fakturerer sluttrinnet for hele fakturamåneden, så det er
         det tallet som arkiveres, ikke andelen som var forløpt da siste poll
@@ -1184,12 +1199,14 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """
         belop = None if self._fastledd_ukjent() or self._mangler_sikringsvalg() else kapasitetsledd
         self._monthly_accumulated_cost_kapasitetsledd = fastledd_belop(belop, 1.0)
+        self._monthly_accumulated_cost_stromavtale_fastbelop = self.stromavtale_fastbelop
 
     def _fastledd_i_dag(self, now: datetime, kapasitetsledd: float) -> float:
         """Dagens andel av månedens fastledd, i kroner."""
         belop = None if self._fastledd_ukjent() or self._mangler_sikringsvalg() else kapasitetsledd
         naa = _aware(now)
-        return fastledd_belop(belop, andel_av_maaned(sekunder_forlopt_i_dogn(naa), naa))
+        andel = andel_av_maaned(sekunder_forlopt_i_dogn(naa), naa)
+        return fastledd_belop(belop, andel) + fastledd_belop(self.stromavtale_fastbelop, andel)
 
     def _oppdater_timesmaks(self, now: datetime) -> bool:
         """Skriv bokens lukkede intervaller til døgnmaks. True hvis noe endret seg.
@@ -1561,6 +1578,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # en tidsvektet blanding av trinnene den var innom. Fastleddet
             # settes til fullt beløp før kostnaden arkiveres.
             self._oppdater_fastledd_helmaaned(self._previous_month_kapasitetsledd)
+            self._monthly_accumulated_cost_stromavtale_fastbelop = self.stromavtale_fastbelop
             self._previous_month_cost = self._monthly_cost
 
         # Archive energiledd rates for accurate previous-month calculations.
@@ -1585,6 +1603,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._monthly_export_kwh = 0.0
         self._monthly_export_revenue = 0.0
         self._monthly_accumulated_cost_strom = 0.0
+        self._monthly_accumulated_cost_stromavtale_paaslag = 0.0
+        self._monthly_accumulated_cost_stromavtale_fastbelop = 0.0
         self._monthly_stromstotte = 0.0
         self._monthly_energiledd_dag = 0.0
         self._monthly_energiledd_natt = 0.0
@@ -1850,6 +1870,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # fastledd er et periodebeløp (kostnad.py).
         dim = days_in_month(now)
         fastledd_per_kwh = (kapasitetsledd / dim) / 24
+        stromavtale_prisledd = self.stromavtale_paaslag_kwh + (self.stromavtale_fastbelop / dim / 24)
 
         # Norgespris - fast pris basert på avgiftssone
         norgespris = get_norgespris_inkl_mva(self.avgiftssone)
@@ -1860,14 +1881,14 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         if self.har_norgespris:
             if norgespris_over_tak:
-                total_price = spot_price + energiledd + fastledd_per_kwh
-                total_price_uten_stotte = spot_price + energiledd + fastledd_per_kwh
+                total_price = spot_price + energiledd + fastledd_per_kwh + stromavtale_prisledd
+                total_price_uten_stotte = spot_price + energiledd + fastledd_per_kwh + stromavtale_prisledd
             else:
-                total_price = norgespris + energiledd + fastledd_per_kwh
-                total_price_uten_stotte = norgespris + energiledd + fastledd_per_kwh
+                total_price = norgespris + energiledd + fastledd_per_kwh + stromavtale_prisledd
+                total_price_uten_stotte = norgespris + energiledd + fastledd_per_kwh + stromavtale_prisledd
         else:
-            total_price = spot_price - stromstotte + energiledd + fastledd_per_kwh
-            total_price_uten_stotte = spot_price + energiledd + fastledd_per_kwh
+            total_price = spot_price - stromstotte + energiledd + fastledd_per_kwh + stromavtale_prisledd
+            total_price_uten_stotte = spot_price + energiledd + fastledd_per_kwh + stromavtale_prisledd
 
         # Norgespris comparison: use Norgespris if under cap, else spotpris
         # strompris_norgespris er ren strømdel uten nettleie (for ApexCharts-sammenligning
@@ -1876,19 +1897,19 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             strompris_norgespris = spot_price
         else:
             strompris_norgespris = norgespris
-        total_pris_norgespris = strompris_norgespris + energiledd + fastledd_per_kwh
+        total_pris_norgespris = strompris_norgespris + energiledd + fastledd_per_kwh + stromavtale_prisledd
 
         # Strømpris per kWh (uten kapasitetsledd)
         if self.har_norgespris:
             if norgespris_over_tak:
-                strompris_per_kwh = spot_price + energiledd
-                strompris_per_kwh_etter_stotte = spot_price + energiledd
+                strompris_per_kwh = spot_price + energiledd + self.stromavtale_paaslag_kwh
+                strompris_per_kwh_etter_stotte = spot_price + energiledd + self.stromavtale_paaslag_kwh
             else:
-                strompris_per_kwh = norgespris + energiledd
-                strompris_per_kwh_etter_stotte = norgespris + energiledd
+                strompris_per_kwh = norgespris + energiledd + self.stromavtale_paaslag_kwh
+                strompris_per_kwh_etter_stotte = norgespris + energiledd + self.stromavtale_paaslag_kwh
         else:
-            strompris_per_kwh = spot_price + energiledd
-            strompris_per_kwh_etter_stotte = spot_price - stromstotte + energiledd
+            strompris_per_kwh = spot_price + energiledd + self.stromavtale_paaslag_kwh
+            strompris_per_kwh_etter_stotte = spot_price - stromstotte + energiledd + self.stromavtale_paaslag_kwh
 
         # Offentlige avgifter (for Energy Dashboard)
         mva_sats = get_mva_sats(self.avgiftssone)
@@ -1903,15 +1924,16 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Kroner spart per kWh: positiv = du sparer med nåværende avtale
         # Samme fortegn som _monthly_norgespris_diff (alternativ - din pris)
         if self.har_norgespris:
-            alternativ_pris = spot_price - stromstotte + energiledd + fastledd_per_kwh
+            alternativ_pris = (
+                spot_price - stromstotte + energiledd + fastledd_per_kwh + stromavtale_prisledd
+            )
         else:
             alternativ_pris = total_pris_norgespris
         kroner_spart_per_kwh = alternativ_pris - total_price
 
         # Kraft, energiledd, avgifter, strømstøtte og Norgespris-linjen er alt
-        # bokført per avregnet intervall over, med intervallets egen pris.
-        # Fastleddet er det eneste som gjenstår, og det er et periodebeløp:
-        # kr/mnd ganger forløpt andel av måneden, regnet på nytt her.
+        # bokført per avregnet intervall over. Begge månedsbeløpene fordeles
+        # etter forløpt tid, uavhengig av forbruk.
         self._oppdater_fastledd(now, kapasitetsledd)
 
         # Get electricity company price if configured
@@ -2005,6 +2027,11 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "kapasitetstrinn_nummer": kw["trinn_nummer"],
             "kapasitetstrinn_intervall": kw["trinn_intervall"],
             "kapasitetsledd_per_kwh": round(kw["fastledd_per_kwh"], 4),
+            "stromavtale_paaslag_kwh": self.stromavtale_paaslag_kwh,
+            "stromavtale_fastbelop_kr": self.stromavtale_fastbelop,
+            "stromavtale_fastbelop_per_kwh": round(
+                self.stromavtale_fastbelop / days_in_month(now) / 24, 6
+            ),
             "fastledd_metode": self.fastledd_metode,
             "fastledd_grunnlag_kw": round(kw["fastledd_grunnlag"], 2),
             "fastledd_mangler_sikringsvalg": self._mangler_sikringsvalg(),
@@ -2104,6 +2131,12 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "monthly_avgifter_kr": round(self._monthly_avgifter, 4),
             "monthly_accumulated_cost_kr": round(self._monthly_accumulated_cost, 4),
             "monthly_accumulated_cost_strom_kr": round(self._monthly_accumulated_cost_strom, 4),
+            "monthly_accumulated_cost_stromavtale_paaslag_kr": round(
+                self._monthly_accumulated_cost_stromavtale_paaslag, 4
+            ),
+            "monthly_accumulated_cost_stromavtale_fastbelop_kr": round(
+                self._monthly_accumulated_cost_stromavtale_fastbelop, 4
+            ),
             "monthly_accumulated_cost_energiledd_kr": round(self._monthly_accumulated_cost_energiledd, 4),
             "monthly_accumulated_cost_kapasitetsledd_kr": round(
                 self._monthly_accumulated_cost_kapasitetsledd, 4
@@ -2626,6 +2659,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self._monthly_accumulated_cost_strom = self._validate_float(
                     data.get("monthly_accumulated_cost_strom", 0.0)
                 )
+                self._monthly_accumulated_cost_stromavtale_paaslag = self._validate_float(
+                    data.get("monthly_accumulated_cost_stromavtale_paaslag", 0.0)
+                )
                 self._monthly_stromstotte = self._validate_float(data.get("monthly_stromstotte", 0.0))
                 if any(
                     nokkel in data
@@ -2648,8 +2684,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     self._monthly_energiledd_apning = self._validate_float(
                         data.get("monthly_accumulated_cost_energiledd", 0.0)
                     )
-                # Fastleddet regnes på nytt ved hver poll og lastes ikke. Det
-                # lagrede tallet er med for nedgradering og for diagnostikken.
+                # Månedsbeløpene regnes på nytt ved hver poll og lastes ikke.
+                # De lagrede summene er med for nedgradering og diagnostikk.
                 self._previous_month_export_kwh = self._validate_float(
                     data.get("previous_month_export_kwh", 0.0)
                 )
@@ -2927,6 +2963,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "monthly_cost": self._monthly_cost,
             "monthly_accumulated_cost": self._monthly_accumulated_cost,
             "monthly_accumulated_cost_strom": self._monthly_accumulated_cost_strom,
+            "monthly_accumulated_cost_stromavtale_paaslag": (
+                self._monthly_accumulated_cost_stromavtale_paaslag
+            ),
             "monthly_accumulated_cost_energiledd": self._monthly_accumulated_cost_energiledd,
             "monthly_accumulated_cost_kapasitetsledd": self._monthly_accumulated_cost_kapasitetsledd,
             "monthly_stromstotte": self._monthly_stromstotte,

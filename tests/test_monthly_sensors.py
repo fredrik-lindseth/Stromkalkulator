@@ -520,12 +520,14 @@ class TestEstimertMaanedskostnadSensor:
         # April has 30 days, mock day 15
         mock_dt.now.return_value = datetime(2026, 4, 15, 12, 0, 0)
         data = self._base_data()
+        data["monthly_accumulated_cost_stromavtale_paaslag_kr"] = 7.0
+        data["stromavtale_fastbelop_kr"] = 49.0
         sensor = EstimertMaanedskostnadSensor(_make_coordinator(data), _make_entry("standard"))
 
         # Den variable delen er bokført energiledd minus bokført støtte, skalert
         # fra 15 til 30 dager. Fastleddet legges på som helt månedsbeløp.
-        bokfort = 69.20 + 11.65 + 35.70
-        assert sensor.native_value == round((bokfort / 15) * 30 + 415, 0)
+        bokfort = 69.20 + 11.65 + 35.70 + 7.0
+        assert sensor.native_value == round((bokfort / 15) * 30 + 415 + 49.0, 0)
 
     @patch("stromkalkulator.sensor.dt_util")
     def test_stotte_trekkes_fra_for_projisering(self, mock_dt):

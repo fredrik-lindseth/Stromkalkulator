@@ -109,7 +109,7 @@ Kilde: [Regjeringens strømtiltak](https://www.regjeringen.no/no/tema/energi/str
 
 Summen av kraftpris (spot etter strømstøtte eller Norgespris), strømavtalens påslag per kWh, nettleie og kapasitetsledd-andeler. Strømavtalens månedsbeløp fordeles over tid i kostnadssensorene.
 
-Leverandørpåslagene settes i innstillingene og oppgis inkl. mva. kWh-påslaget følger forbruket, også når spotprisen mangler. Det legges til etter at spotbasert strømstøtte og Norgespris er beregnet; det endrer derfor ikke støtte eller Norgespris-kompensasjon. Fast månedsbeløp er en egen periodekostnad, ikke en sats som ganges med kWh.
+Leverandørens kWh-påslag og månedsbeløp settes i innstillingene inkl. mva. Positive verdier er tillegg, negative verdier er rabatter. KWh-beløpet følger forbruket, også når spotprisen mangler. Det legges til etter at spotbasert strømstøtte og Norgespris er beregnet; fortegnet endrer derfor ikke støtte eller Norgespris-kompensasjon. Månedsbeløpet er en egen periodekostnad, ikke en sats som ganges med kWh.
 
 To Energy Dashboard-strategier:
 

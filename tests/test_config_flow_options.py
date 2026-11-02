@@ -314,8 +314,8 @@ class TestOptionsFlowValidReconfiguration:
             CONF_ENERGILEDD_DAG: 0.3500,
             CONF_ENERGILEDD_NATT: 0.1500,
             CONF_KAPASITET_VARSEL_TERSKEL: 3.0,
-            CONF_STROMAVTALE_PAASLAG_KWH: 0.075,
-            CONF_STROMAVTALE_FASTBELOP: 49.0,
+            CONF_STROMAVTALE_PAASLAG_KWH: -0.075,
+            CONF_STROMAVTALE_FASTBELOP: -49.0,
         }
 
         asyncio.run(flow.async_step_init(user_input))
@@ -329,8 +329,8 @@ class TestOptionsFlowValidReconfiguration:
         assert updated_data[CONF_ENERGILEDD_DAG] == 0.3500
         assert updated_data[CONF_ENERGILEDD_NATT] == 0.1500
         assert updated_data[CONF_HAR_NORGESPRIS] is True
-        assert updated_data[CONF_STROMAVTALE_PAASLAG_KWH] == 0.075
-        assert updated_data[CONF_STROMAVTALE_FASTBELOP] == 49.0
+        assert updated_data[CONF_STROMAVTALE_PAASLAG_KWH] == -0.075
+        assert updated_data[CONF_STROMAVTALE_FASTBELOP] == -49.0
 
         # Flow should create entry (completion)
         flow.async_create_entry.assert_called_once()
@@ -381,8 +381,8 @@ class TestFrossenTerskelFelt:
         cf_mod = _reload_config_flow()
         current = {
             **_make_entry().data,
-            CONF_STROMAVTALE_PAASLAG_KWH: 0.075,
-            CONF_STROMAVTALE_FASTBELOP: 49.0,
+            CONF_STROMAVTALE_PAASLAG_KWH: -0.075,
+            CONF_STROMAVTALE_FASTBELOP: -49.0,
         }
 
         felter = cf_mod._config_data_schema(current)
@@ -528,8 +528,8 @@ class TestReconfigureFlow:
             CONF_ENERGILEDD_DAG: 0.3500,
             CONF_ENERGILEDD_NATT: 0.1500,
             CONF_KAPASITET_VARSEL_TERSKEL: 3.0,
-            CONF_STROMAVTALE_PAASLAG_KWH: 0.075,
-            CONF_STROMAVTALE_FASTBELOP: 49.0,
+            CONF_STROMAVTALE_PAASLAG_KWH: -0.075,
+            CONF_STROMAVTALE_FASTBELOP: -49.0,
         }
 
         asyncio.run(flow.async_step_reconfigure(user_input))
@@ -544,8 +544,8 @@ class TestReconfigureFlow:
         # custom beholder brukerens energiledd (ingen DSO-avledning)
         assert updated[CONF_ENERGILEDD_DAG] == 0.3500
         assert updated[CONF_ENERGILEDD_NATT] == 0.1500
-        assert updated[CONF_STROMAVTALE_PAASLAG_KWH] == 0.075
-        assert updated[CONF_STROMAVTALE_FASTBELOP] == 49.0
+        assert updated[CONF_STROMAVTALE_PAASLAG_KWH] == -0.075
+        assert updated[CONF_STROMAVTALE_FASTBELOP] == -49.0
         # unique_id er entry_id og skal ikke sendes med (uendret ved reconfigure)
         assert "unique_id" not in call.kwargs
 

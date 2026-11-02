@@ -344,7 +344,7 @@ def _stromavtale_felt(current: dict[str, Any]) -> dict[Any, Any]:
             description={"suggested_value": current.get(CONF_STROMAVTALE_PAASLAG_KWH)},
         ): selector.NumberSelector(
             selector.NumberSelectorConfig(
-                min=0,
+                min=-10,
                 max=10,
                 step="any",
                 unit_of_measurement="NOK/kWh",
@@ -356,7 +356,7 @@ def _stromavtale_felt(current: dict[str, Any]) -> dict[Any, Any]:
             description={"suggested_value": current.get(CONF_STROMAVTALE_FASTBELOP)},
         ): selector.NumberSelector(
             selector.NumberSelectorConfig(
-                min=0,
+                min=-1000,
                 max=1000,
                 step="any",
                 unit_of_measurement="NOK/month",

@@ -12,7 +12,7 @@ Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) og [S
 
 ### Lagt til
 
-- **Strømavtalens påslag per kWh og faste månedsbeløp kan nå legges inn i innstillingene.** Begge tas med i kostnadene; påslaget endrer ikke strømstøtte eller Norgespris. <!--kort-->
+- **Strømavtalens påslag per kWh og månedsbeløp kan nå legges inn i innstillingene.** Negative verdier registreres som rabatter. Beløpene tas med i kostnadene, men endrer ikke strømstøtte eller Norgespris. <!--kort-->
 
 ### Vedlikehold
 

@@ -251,3 +251,32 @@ def test_ugyldig_lagret_eksportsum_avvises(felt, verdi):
     lagret["ferdige"] = {"2026-06": {"kwh": 1, "inntekt_kr": -2, "kwh_uten_pris": 0, felt: verdi}}
     with pytest.raises(ValueError):
         Eksportbok.fra_lagring(lagret)
+
+
+def test_samme_eksportpris_skriver_ikke_lagringen_hvert_minutt(coord_module):
+    """Lagringen skrives når en prisrute får ny pris, ikke ved hver prøve."""
+    pris = [1]
+    hass = _make_hass(power_w=0, spot_price=1, export_power_w=0)
+    opprinnelig = hass.states.get.side_effect
+    hass.states.get.side_effect = lambda entitet: (
+        _make_state(pris[0]) if entitet == "sensor.spot_price" else opprinnelig(entitet)
+    )
+    entry = _make_entry(export_power_sensor="sensor.export_power", spotpris_inkl_mva=False)
+    coord = coord_module.NettleieCoordinator(hass, entry)
+    coord._store_loaded = True
+    coord._current_month = "2026-06"
+
+    def lagringer():
+        return coord._store.async_save.call_count
+
+    _run_update(coord_module, coord, now=tid(12, 1))
+    etter_forste = lagringer()
+    assert etter_forste == 1, "Første pris i ruten skal lagres"
+    for minutt in (2, 3, 4):
+        _run_update(coord_module, coord, now=tid(12, minutt))
+    assert lagringer() == etter_forste, "Samme pris i samme rute skal ikke lagres på nytt"
+    _run_update(coord_module, coord, now=tid(12, 16))
+    assert lagringer() == etter_forste + 1, "Ny rute har ny pris"
+    pris[0] = 2
+    _run_update(coord_module, coord, now=tid(12, 17))
+    assert lagringer() == etter_forste + 2, "Endret pris i ruten skal lagres"

@@ -22,6 +22,7 @@ Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) og [S
 
 ### Vedlikehold
 
+- Med eksportsensor skrives lagringsfilen bare når en eksportpris faktisk endrer seg eller energi bokføres, ikke hvert minutt. Det sparer skrivinger på SD-kort.
 - Lagt til kategorien `energy.energy_prices` i integrasjonsmanifestet i tråd med [Home Assistants kategorier](https://contributors.home-assistant.io/core/integrations/categories/).
 - Hassfest kjører med Home Assistants standardaction igjen, siden det publiserte validator-image-et godtar manifestkategorier fra 2026.11.
 - Testmiljøet for nyeste Home Assistant kjører nå mot 2026.10.4, både `just test-ha target=current` og Docker-testlabben. Home Assistant 2026.11 er ikke publisert på PyPI ennå, så neste løft er én pin unna. Kjøringen ga ingen deprecation-advarsler fra integrasjonen.

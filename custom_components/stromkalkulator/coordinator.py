@@ -1777,6 +1777,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # telles i `kwh_uten_pris`, den får ikke naboens pris (C2.5, C4).
         mva_sats_for_spot = get_mva_sats(self.avgiftssone)
         raw_spot = self._read_price_sensor(INPUT_ROLLE_SPOTPRIS)
+        eksportpris_endret = False
         if raw_spot is not None:
             prove_eks_mva = (
                 raw_spot / (1 + mva_sats_for_spot)
@@ -1784,8 +1785,12 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 else raw_spot
             )
             self._bok.registrer_prisprove(_aware(now), prove_eks_mva)
-            if self.export_power_sensor:
-                self._eksportbok.registrer_pris(_aware(now), prove_eks_mva)
+            # Eksportboken lagres når en rute får ny pris, ikke ved hver
+            # prøve: samme pris hvert minutt ville skrevet hele filen 1440
+            # ganger i døgnet.
+            eksportpris_endret = bool(self.export_power_sensor) and self._eksportbok.registrer_pris(
+                _aware(now), prove_eks_mva
+            )
             spot_price_raw = raw_spot
             self._last_spot_price = spot_price_raw
             self._last_spot_price_time = now
@@ -1820,7 +1825,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Avlesningen går i boken, som fordeler den over avregningsintervallene
         # etter observasjonstid (C1). Tariffen kommer fra intervallets egen
         # start, ikke fra klokken pollen står på.
-        dirty = bool(self.export_power_sensor and raw_spot is not None)
+        dirty = eksportpris_endret
         energy_kwh = 0.0
         berorte: set[datetime] = set()
         aapningsbalanse = self._aapningsbalanse()

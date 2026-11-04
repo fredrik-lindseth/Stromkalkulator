@@ -47,9 +47,17 @@ class Eksportbok:
         self._energi: dict[datetime, float] = {}
         self._ferdige: dict[str, Eksportsum] = {}
 
-    def registrer_pris(self, avlest_kl: datetime, pris_eks_mva: float) -> None:
-        """Samme godkjenningsregler som for forbruk; null og negativt er priser."""
-        self.pris.registrer(avlest_kl, pris_eks_mva)
+    def registrer_pris(self, avlest_kl: datetime, pris_eks_mva: float) -> bool:
+        """Samme godkjenningsregler som for forbruk; null og negativt er priser.
+
+        True når en rute fikk en annen pris enn den hadde. En ny prøve med
+        samme pris endrer ingen inntekt, og er ikke grunn til å lagre.
+        """
+        rute = prisrutestart(krev_aware(avlest_kl, "avlest_kl"), self.pris.opplosning_minutter)
+        foer = self.pris.ruter_i(intervallstart(rute)).get(rute)
+        if self.pris.registrer(avlest_kl, pris_eks_mva) is None:
+            return False
+        return self.pris.ruter_i(intervallstart(rute)).get(rute) != foer
 
     def bokfor(self, fra: datetime, til: datetime, kwh: float) -> None:
         """Fordel effektmålingens energi etter faktisk tid i hver prisrute."""

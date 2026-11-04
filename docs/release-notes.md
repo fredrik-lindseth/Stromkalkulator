@@ -385,8 +385,8 @@ Attesteringssteget ble hoppet over; hele publiseringsveien gjenstår som
 beskrevet over.
 
 De tre nattlige workflowene, `validate.yml`, `fri-nettleie-sjekk.yml` og
-`hassfest.yml`, står fortsatt på `actions/checkout@v6`. Samme vurdering gjelder
-dem; de lå utenfor mandatet i denne runden.
+`hassfest.yml`, lå utenfor mandatet i denne runden og ble løftet til
+`actions/checkout@v7` senere med samme vurdering. Alle workflowene står nå på v7.
 
 ### Det v1.16.0 viser
 

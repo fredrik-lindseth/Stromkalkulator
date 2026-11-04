@@ -14,7 +14,8 @@ dekker alle nettselskapene, men oppgaven har ingen generell løsning.
 
 Ta én husholdning. Snitt av tre døgnmakser på eksakt 5,0 kW, 600 kWh på dagtid og
 400 kWh om natten, med juli som sesongvalg. Så flytter du den rundt i
-landet med katalogsatsene kontrollert 27. oktober 2026. Dette er et
+landet med katalogsatsene kontrollert 27. oktober 2026, med Føie og
+Romsdalsnett oppdatert 4. november. Dette er et
 sammenligningseksempel, ikke en historisk juli-faktura.[^husholdning]
 
 | Nettselskap      | Energiledd | Fastledd | Sum        |
@@ -246,7 +247,9 @@ prisliste gjør. Se [bidra med faktura](fakturaer/bidra-med-faktura.md).
     hele tatt (Alut, Netera, Fjellnett), så N = 71. Billigst er Stram med
     512,40 kr og dyrest Kystnett med 1167,30 kr, begge i Nord-Norge uten mva. 65 av
     de 71 summene er unike; tre par deler sum. Tallene bruker katalogsatsene
-    kontrollert 27. oktober 2026, med juli som sesongvalg.
+    kontrollert 27. oktober 2026, med Føie og Romsdalsnett oppdatert 4. november
+    til tariffene fra 1. november, og juli som sesongvalg. Ingen av de to står i
+    tabellen, og tellingene og ytterpunktene over er de samme etter oppdateringen.
 
 [^andel]: Energileddets andel av nettleien i samme regnestykke: Modalen Kraftlag
     73,9 %, Havnett 59,7 %, Elvia 49,0 %, BKK 47,1 %, Stram 35,6 %, Vang

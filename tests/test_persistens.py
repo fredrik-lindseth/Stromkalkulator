@@ -1420,3 +1420,45 @@ def test_skadet_eksportbok_beholder_signerte_maanedsaapninger(coord_module, eksp
     assert coord._eksportbok.maaned("2026-05").kwh == 20
     assert coord._eksportbok.maaned("2026-05").inntekt_kr == -8
     assert coord._eksportbok.maaned("2026-06").kwh_uten_pris == (0 if eksportbok is None else 10)
+
+
+@pytest.mark.parametrize("restart", [False, True])
+def test_omstart_gir_ikke_falsk_takdifferanse(coord_module, monkeypatch, restart):
+    """Kronene til lagrede intervaller regnes opp med riktig forbruk foran seg.
+
+    Boken lagrer bare de siste timene som intervaller; resten er ferdige
+    summer. Regnes `kwh_for` mot hele månedssummen, får de beholdte
+    intervallene for lite forbruk foran seg, og neste poll bokfører
+    differansen mot strømstøttetaket som om noe hadde endret seg.
+    """
+    import json
+
+    from tests.conftest import _make_hass, _make_state, _run_update
+
+    monkeypatch.setattr(coord_module, "get_stromstotte_max_kwh", lambda _boligtype: 9)
+    states = {"sensor.power": _make_state(0, "W"), "sensor.spot_price": _make_state(2, "NOK/kWh")}
+    hass = _make_hass()
+    hass.states.get.side_effect = states.get
+    entry = _make_entry(energy_sensor="sensor.energy")
+    coord = coord_module.NettleieCoordinator(hass, entry)
+
+    def poll(c, naa, kwh):
+        states["sensor.energy"] = _make_state(kwh, "kWh", last_updated=naa)
+        return _run_update(coord_module, c, now=naa)
+
+    start = datetime(2026, 6, 15, 8, 2, tzinfo=OSLO)
+    for steg in range(12):
+        poll(coord, start + timedelta(minutes=30 * steg), 100.0 + steg)
+    if restart:
+        asyncio.run(coord._save_stored_data())
+        lagret = json.loads(json.dumps(coord._store.async_save.call_args.args[0], allow_nan=False))
+        assert lagret["ferdige_sum"]["kwh_total"] > 0
+        ny = coord_module.NettleieCoordinator(hass, entry)
+        ny._store.async_load = AsyncMock(return_value=lagret)
+        ny._store.async_save = AsyncMock()
+        coord = ny
+    svar = poll(coord, start + timedelta(hours=5, minutes=45), 111.5)
+    # 2 kWh per time fra 08:02. Taket på 9 kWh nås i 12-timen, så 9 kWh
+    # gir støtte: (2,00 - 0,9625) * 0,9 kr per kWh, uavhengig av omstart.
+    assert svar["monthly_consumption_total_kwh"] == pytest.approx(11.5)
+    assert svar["monthly_stromstotte_kr"] == pytest.approx(9 * (2 - 0.9625) * 0.9, abs=1e-4)

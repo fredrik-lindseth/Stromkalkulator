@@ -29,6 +29,7 @@ from .avregning import (
     lokal_dato,
     lokal_maned,
     lokal_time,
+    summer_intervaller,
 )
 from .const import (
     AVGIFTSSONE_STANDARD,
@@ -3010,8 +3011,11 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._kr_bokfort = {}
         if not self._fores_av_boken():
             return
-        kwh_for = max(0.0, self._monthly_consumption.total - self._bok.maanedssum().kwh_total)
-        for intervall in self._bok.intervaller():
+        # Boken har bare de siste timene som intervaller; det som ligger foran
+        # dem, også de ferdige summene fra lagringen, er totalen minus dem.
+        intervaller = self._bok.intervaller()
+        kwh_for = max(0.0, self._monthly_consumption.total - summer_intervaller(intervaller))
+        for intervall in intervaller:
             self._kr_bokfort[intervall.start_utc] = kroner_for_intervall(
                 intervall, self._satser(intervall), kwh_for=kwh_for
             )

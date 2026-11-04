@@ -1622,6 +1622,14 @@ class TestTrinntabell:
         assert dump["beregning"]["kapasitetstrinn_intervall"] == "fastledd ukjent"
         assert TEKST_MARKOR not in json.dumps(dump, ensure_ascii=False)
 
+    def test_lukket_maaned_over_kildegrensen_er_kjent_ord(self, coord_module):
+        """Forrige måneds trinntekst er samme ord som inneværende måned bruker."""
+        coord = coord_module.NettleieCoordinator(_make_hass(), _make_entry(dso_id="etna_nett"))
+        daily = {"2026-09-01": coord_module.DailyMaxEntry(30.0, 12)}
+        _, tekst = coord._lukket_fastledd(coord._fastledd_snapshot(daily), daily, {})
+        assert tekst == "fastledd ukjent"
+        assert tekstvakt(tekst)
+
     def test_katalogtrinnene_staar_ogsaa(self, coord_module):
         """Tabellen som ble regnet med, ikke bare antallet rader."""
         dump = _ekte_dump(coord_module, "bkk")

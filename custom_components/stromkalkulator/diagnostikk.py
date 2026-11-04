@@ -88,6 +88,7 @@ from .const import (
     VAKTHOLD_UTFALL,
 )
 from .dso import DSO_LIST, DSO_MIGRATIONS, FASTLEDD_METODER
+from .fastledd import FASTLEDD_UKJENT_TEKST, SIKRINGSVALG_MANGLER_TEKST
 from .inputadapter import NORMALISERT_ENHET, kanoniser_enhet
 
 if TYPE_CHECKING:
@@ -455,10 +456,9 @@ SIKRINGSTRINN_TEKSTER: frozenset[str] = frozenset(
     if trinn.get(felt)
 )
 
-# Trinnbeskrivelsene coordinatoren setter når det ikke finnes noe trinn å peke
-# på. Kopi av strengene i `_get_kapasitetsledd`, vaktet av motvakten i
-# tests/test_diagnostics.py som kjører ett DSO per fastledd-metode.
-TRINN_UTEN_TABELL: frozenset[str] = frozenset({"fastledd ukjent", "sikringsstørrelse ikke valgt"})
+# Trinnbeskrivelsene fastleddregelen setter når det ikke finnes noe trinn å
+# peke på, for både inneværende og forrige måned.
+TRINN_UTEN_TABELL: frozenset[str] = frozenset({FASTLEDD_UKJENT_TEKST, SIKRINGSVALG_MANGLER_TEKST})
 
 # Resultattypene coordinatoren navngir inputresultatene med.
 RESULTAT_TYPER: frozenset[str] = frozenset({"gyldig", "utilgjengelig", "ugyldig"})

@@ -16,6 +16,7 @@ custom_components/stromkalkulator/
 ├── inputadapter.py  # validering, enheter og kildebundet energibaseline
 ├── avregning.py     # energi og pris fordelt på UTC-intervaller
 ├── kostnad.py       # kroner per intervall og fastledd som periodebeløp
+├── fastledd.py      # fastleddregelen: grunnlag, kildegrense og kr/mnd
 ├── sensor.py        # alle sensorer
 ├── binary_sensor.py # varsler (kapasitet, måledata, aktiv ordning)
 ├── button.py        # "Lag fakturarapport"-knapp

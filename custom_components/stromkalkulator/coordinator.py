@@ -7,7 +7,6 @@ import math
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass, replace
 from datetime import UTC, date, datetime, timedelta
-from decimal import ROUND_HALF_UP, Decimal
 from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.helpers import issue_registry as ir
@@ -90,10 +89,8 @@ from .const import (
 from .dso import (
     FASTLEDD_FEM_VEKTET_AR,
     FASTLEDD_METODER,
-    FASTLEDD_MND_MAX,
     FASTLEDD_OV_TREFASE,
     FASTLEDD_TRINNBASERTE,
-    finn_kapasitetstrinn,
     finn_sikringstrinn,
     grunnlag_i_lavere_trinn,
     hent_fastledd_metode,
@@ -101,6 +98,15 @@ from .dso import (
     parse_kapasitetstrinn,
 )
 from .eksport import Eksportbok, Eksportsum
+from .fastledd import (
+    Fastleddtariff,
+    fastledd_belop_ukjent,
+    fastledd_for_grunnlag,
+    fastledd_grunnlag,
+    fastledd_ukjent,
+    ukestart,
+    utenfor_kildegrense,
+)
 from .inputadapter import (
     BASELINE_NOKKEL,
     ENHETSGRUNNER,
@@ -138,7 +144,6 @@ _LOGGER = logging.getLogger(__name__)
 # FEM_VEKTET_ÅR ser tolv måneder bakover. Fjellnett skriver «løpende siste 12
 # mnd», ikke 52 uker, så vinduet regnes i kalendermåneder mot toppens egen dato.
 FEM_VEKTET_VINDU_MAANEDER = 12
-FEM_VEKTET_ANTALL_TOPPER = 5
 
 
 @dataclass
@@ -1165,21 +1170,28 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         forrige_maned = self._arkivert_forrige_maaned(now)
         return self._eksportbok.maaned(forrige_maned) if forrige_maned else Eksportsum()
 
+    def _fastleddtariff(self) -> Fastleddtariff:
+        """Tariffen inneværende måned regnes med. Bygges per kall fra feltene."""
+        return Fastleddtariff(
+            metode=self.fastledd_metode,
+            mva_sats=get_mva_sats(self.avgiftssone),
+            trinn=tuple(self.kapasitetstrinn),
+            terskel_inkludert=self._terskel_inkludert,
+            kildegrense_kw=self.dso.get("kjent_fastledd_maks_kw"),
+            kildegrense_inkludert=self.dso.get("kjent_fastledd_maks_kw_inkludert", True),
+            lineaer=self.fastledd_lineaer,
+            sesongfaktor=self.fastledd_sesongfaktor,
+            sikringstrinn=finn_sikringstrinn(self.dso, self.sikringstrinn_valg),
+        )
+
     def _fastledd_snapshot(self, daily_max: dict[str, DailyMaxEntry]) -> dict[str, Any]:
         """Frys beregningsgrunnlag og satser uten å flytte den aktive måneden."""
         return {
-            "metode": self.fastledd_metode,
-            "kjent_fastledd_maks_kw": self.dso.get("kjent_fastledd_maks_kw"),
-            "kjent_fastledd_maks_kw_inkludert": self.dso.get("kjent_fastledd_maks_kw_inkludert", True),
+            **self._fastleddtariff().til_snapshot(),
             "daily_max": self._serialize_daily_max(daily_max),
             "weekly_max": {
                 k: {"kw": v.kw, "dato": v.dato, "hour": v.hour} for k, v in self._weekly_max_power.items()
             },
-            "trinn": [[None if math.isinf(kw) else kw, kr] for kw, kr in self.kapasitetstrinn],
-            "terskel_inkludert": self._terskel_inkludert,
-            "lineaer": dict(self.fastledd_lineaer) if self.fastledd_lineaer else None,
-            "sesongfaktor": {str(k): v for k, v in self.fastledd_sesongfaktor.items()},
-            "mva_sats": get_mva_sats(self.avgiftssone),
         }
 
     def _etterbokfor_lukket_fastledd(self, now: datetime, berorte: list[datetime]) -> None:
@@ -1225,7 +1237,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if tidligere is None or kw > tidligere.kw:
                 daily[dato] = DailyMaxEntry(kw=kw, hour=time)
             if weekly is not None:
-                uke = self._ukestart(date.fromisoformat(dato)).isoformat()
+                uke = ukestart(date.fromisoformat(dato)).isoformat()
                 uketopp = weekly.get(uke)
                 if uketopp is None or kw > uketopp.kw:
                     weekly[uke] = WeeklyMaxEntry(kw=kw, dato=dato, hour=time)
@@ -1241,42 +1253,16 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         weekly: dict[str, WeeklyMaxEntry],
     ) -> tuple[float, str]:
         """Historisk fastledd, regnet med den lukkede månedens tariffvalg."""
-        belop: float
-        metode = snapshot["metode"]
-        if metode == FASTLEDD_OV_TREFASE:
+        tariff = Fastleddtariff.fra_snapshot(snapshot)
+        if tariff.metode == FASTLEDD_OV_TREFASE:
             # Sikringstrinn påvirkes ikke av en forsinket effektmåling.
             return self._previous_month_kapasitetsledd, self._previous_month_kapasitetstrinn
-        if metode == FASTLEDD_FEM_VEKTET_AR:
-            faktorer = snapshot.get("sesongfaktor", {})
-            topper = sorted(
-                (
-                    e.kw * faktorer.get(str(self._ukestart(date.fromisoformat(e.dato)).month), 1.0)
-                    for e in weekly.values()
-                ),
-                reverse=True,
-            )[:FEM_VEKTET_ANTALL_TOPPER]
-            grunnlag = round(sum(topper) / len(topper), 2) if topper else 0.0
-            lineaer = snapshot.get("lineaer")
-            if not lineaer:
-                return 0, f"{grunnlag:.2f} kW vektet årstopp"
-            aar = lineaer["grunnbelop_aar_eks_mva"] + lineaer["sats_kw_aar_eks_mva"] * grunnlag
-            belop = int(Decimal(aar / 12 * (1 + snapshot["mva_sats"])).quantize(Decimal(1), ROUND_HALF_UP))
-            return belop, f"{grunnlag:.2f} kW vektet årstopp"
-        topper = sorted((e.kw for e in daily.values()), reverse=True)[:3]
-        grunnlag = (
-            (max(topper) if metode == FASTLEDD_MND_MAX else sum(topper) / len(topper)) if topper else 0.0
+        grunnlag = fastledd_grunnlag(
+            tariff, (e.kw for e in daily.values()), ((e.kw, e.dato) for e in weekly.values())
         )
-        kildegrense = snapshot.get("kjent_fastledd_maks_kw")
-        if kildegrense is not None and (
-            grunnlag > float(kildegrense)
-            or (grunnlag == float(kildegrense) and not snapshot.get("kjent_fastledd_maks_kw_inkludert", True))
-        ):
+        if fastledd_ukjent(tariff, grunnlag):
             self._previous_month_fastledd_grunnlag_bekreftet = False
-            return 0, "fastledd utenfor kjent kildegrunnlag"
-        trinn = [(float("inf") if kw is None else float(kw), float(kr)) for kw, kr in snapshot["trinn"]]
-        if not trinn:
-            return 0, "fastledd ukjent"
-        belop, _, beskrivelse = finn_kapasitetstrinn(trinn, grunnlag, bool(snapshot["terskel_inkludert"]))
+        belop, _, beskrivelse = fastledd_for_grunnlag(tariff, grunnlag)
         return belop, beskrivelse
 
     def _legg_til_kroner(self, diff: Kroner, dato: str) -> None:
@@ -2284,15 +2270,6 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Om nettselskapet avregner ukestopper over et rullerende år."""
         return self.fastledd_metode == FASTLEDD_FEM_VEKTET_AR
 
-    def _sesongvekt(self, maaned: int) -> float:
-        """Vektfaktor for en måned. 1,0 når nettselskapet ikke sesongvekter."""
-        return self.fastledd_sesongfaktor.get(maaned, 1.0)
-
-    @staticmethod
-    def _ukestart(dag: date) -> date:
-        """Mandagen i uken dagen ligger i."""
-        return dag - timedelta(days=dag.weekday())
-
     def _registrer_timesmaks(self, dato: str, kwh: float, hour: int | None) -> bool:
         """Bokfør en fullført times snitteffekt. True hvis noe ble endret.
 
@@ -2315,7 +2292,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         Hele uken vektes med mandagens måned, så alle timene i uken har samme
         vekt og den høyeste rå kW-en er også den høyeste vektede. Derfor
-        sammenlignes rå kW her. Vektingen skjer i `_vektet`, før de fem høyeste
+        sammenlignes rå kW her. Vektingen skjer i `fastledd.vektet_kw`, før de fem høyeste
         plukkes ut, slik fellesbestemmelsene beskriver rekkefølgen.
         """
         try:
@@ -2323,25 +2300,12 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except ValueError:
             _LOGGER.warning("Ugyldig dato for ukesmaks: %s", dato)
             return False
-        nokkel = self._ukestart(dag).isoformat()
+        nokkel = ukestart(dag).isoformat()
         forrige = self._weekly_max_power.get(nokkel)
         if forrige is not None and kw <= forrige.kw:
             return False
         self._weekly_max_power[nokkel] = WeeklyMaxEntry(kw=kw, dato=dato, hour=hour)
         return True
-
-    def _vektet(self, entry: WeeklyMaxEntry) -> float:
-        """Ukestoppens sesongvektede effekt.
-
-        Vekten følger mandagen i uken, ikke toppens egen måned. Fjellnett:
-        «Når ei uke går over et månedsskift, vil det være mandag i starten på
-        uka som bestemmer hvilken sesongfaktor som effekten blir vekta med.»
-        """
-        try:
-            dag = date.fromisoformat(entry.dato)
-        except ValueError:
-            return entry.kw
-        return entry.kw * self._sesongvekt(self._ukestart(dag).month)
 
     def _prune_ukesmaks(self, now: datetime) -> bool:
         """Kast ukestopper som har falt ut av tolvmånedersvinduet.
@@ -2361,51 +2325,21 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return bool(utgaatt)
 
     def _fastledd_grunnlag(self) -> float:
-        """Effektverdien i kW som nettselskapets fastledd-metode legger til grunn.
-
-        NVE-modellen bruker snittet av de tre høyeste døgnmaksene i måneden. De
-        fem nettselskapene som avviker, er dokumentert i docs/beregninger.md.
-        """
-        if self.fastledd_metode == FASTLEDD_MND_MAX:
-            return max((e.kw for e in self._daily_max_power.values()), default=0.0)
-        if self.fastledd_metode == FASTLEDD_FEM_VEKTET_AR:
-            vektet = sorted((self._vektet(e) for e in self._weekly_max_power.values()), reverse=True)[
-                :FEM_VEKTET_ANTALL_TOPPER
-            ]
-            if not vektet:
-                return 0.0
-            # Nettselskapet fakturerer effekten med to desimaler.
-            return round(sum(vektet) / len(vektet), 2)
-        top_3 = [e.kw for e in self._get_top_3_days().values()]
-        if not top_3:
-            return 0.0
-        return sum(top_3) / 3 if len(top_3) >= 3 else sum(top_3) / len(top_3)
+        """Effektverdien i kW fastleddet for inneværende måned slås opp med."""
+        return fastledd_grunnlag(
+            self._fastleddtariff(),
+            (e.kw for e in self._daily_max_power.values()),
+            ((e.kw, e.dato) for e in self._weekly_max_power.values()),
+        )
 
     def _fastledd_ukjent(self, grunnlag_kw: float | None = None) -> bool:
-        """Om fastleddet er ukjent fordi ingen kjenner trinnene.
-
-        Gjelder manglende trinntabell og fakturagrunnlag utenfor den
-        kildebekreftede katalogtariffen. Sensorer som bygger på fastleddet
-        blir ukjent, framfor et plausibelt beløp uten kilde.
-        """
-        kildegrense = self.dso.get("kjent_fastledd_maks_kw")
+        """Om inneværende måneds fastledd er ukjent fordi ingen kjenner trinnene."""
         grunnlag = self._fastledd_grunnlag() if grunnlag_kw is None else grunnlag_kw
-        return bool(
-            (self.fastledd_metode in FASTLEDD_TRINNBASERTE and not self.kapasitetstrinn)
-            or (
-                kildegrense is not None
-                and (
-                    grunnlag > kildegrense
-                    or (
-                        grunnlag == kildegrense and not self.dso.get("kjent_fastledd_maks_kw_inkludert", True)
-                    )
-                )
-            )
-        )
+        return fastledd_ukjent(self._fastleddtariff(), grunnlag)
 
     def _fastledd_belop_ukjent(self) -> bool:
         """Om månedens fastleddbeløp er ukjent, av trinnene eller sikringsvalget."""
-        return self._fastledd_ukjent() or self._mangler_sikringsvalg()
+        return fastledd_belop_ukjent(self._fastleddtariff(), self._fastledd_grunnlag())
 
     def _mangler_sikringsvalg(self) -> bool:
         """Om et sikringsbasert fastledd står uten gyldig brukervalg."""
@@ -2413,48 +2347,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return False
         return finn_sikringstrinn(self.dso, self.sikringstrinn_valg) is None
 
-    def _lineart_fastledd(self, grunnlag_kw: float) -> int:
-        """Fastledd i kr/mnd inkl. mva for grunnbeløp + sats per kW."""
-        if self.fastledd_lineaer is None:
-            return 0
-        aar_eks_mva = (
-            self.fastledd_lineaer["grunnbelop_aar_eks_mva"]
-            + self.fastledd_lineaer["sats_kw_aar_eks_mva"] * grunnlag_kw
-        )
-        maaned = aar_eks_mva / 12 * (1 + get_mva_sats(self.avgiftssone))
-        # Denne lineære metoden runder halve kroner opp. Innebygd round() gjør bankers
-        # rounding og ville gitt 453 der nettselskapet fakturerer 453,75.
-        return int(Decimal(maaned).quantize(Decimal(1), ROUND_HALF_UP))
-
     def _get_kapasitetsledd(self, grunnlag_kw: float) -> tuple[float, int | None, str]:
-        """Fastledd i kr/mnd for et effektgrunnlag.
-
-        Returns: (pris, trinnummer, trinnbeskrivelse). Trinnummer er None der
-        nettselskapet ikke har trinn, eller der sikringsstørrelsen mangler.
-        """
-        if self._fastledd_ukjent(grunnlag_kw):
-            # Ingen gjetning: uten brukerens egne trinn finnes det ikke noe
-            # beløp å slå opp, og 0 her betyr «regnet uten fastledd», ikke
-            # «fastleddet er null». Sensorene viser Ukjent.
-            return 0, None, "fastledd ukjent"
-
-        if self.fastledd_metode == FASTLEDD_OV_TREFASE:
-            valgt = finn_sikringstrinn(self.dso, self.sikringstrinn_valg)
-            if valgt is None:
-                # Ingen gjetning: sikringsstørrelse kan ikke leses av en
-                # effektsensor, og et plausibelt beløp ville skjult feilen.
-                return 0, None, "sikringsstørrelse ikke valgt"
-            nummer, trinn = valgt
-            return trinn["kr_mnd"], nummer, trinn["label"]
-
-        if self.fastledd_metode == FASTLEDD_FEM_VEKTET_AR:
-            return (
-                self._lineart_fastledd(grunnlag_kw),
-                None,
-                f"{grunnlag_kw:.2f} kW vektet årstopp",
-            )
-
-        return finn_kapasitetstrinn(self.kapasitetstrinn, grunnlag_kw, self._terskel_inkludert)
+        """Fastledd i kr/mnd for et effektgrunnlag: (pris, trinnummer, beskrivelse)."""
+        return fastledd_for_grunnlag(self._fastleddtariff(), grunnlag_kw)
 
     def _serialize_perioder(self) -> list[dict[str, Any]] | None:
         """Returner energiledd-periodene som dict-liste for sensor-attributter.
@@ -2748,27 +2643,14 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 # Et eldre snapshot kan inneholde det åpne katalogtrinnet
                 # fra før kildens øvre grense ble kjent. Ikke vis det som
                 # en bekreftet fakturapris bare fordi ingen ny hale kommer.
+                # Uten snapshot er dagens grense det beste som finnes.
                 snapshot = self._previous_month_fastledd_snapshot
-                grense = (
-                    snapshot.get("kjent_fastledd_maks_kw")
-                    if snapshot is not None
-                    else self.dso.get("kjent_fastledd_maks_kw")
+                lukket = Fastleddtariff.fra_snapshot(snapshot) if snapshot else self._fastleddtariff()
+                lukket_grunnlag = fastledd_grunnlag(
+                    lukket, (e.kw for e in self._previous_month_top_3.values()), ()
                 )
-                if grense is not None:
-                    topper = sorted((e.kw for e in self._previous_month_top_3.values()), reverse=True)[:3]
-                    metode = snapshot["metode"] if snapshot else self.fastledd_metode
-                    grunnlag = (
-                        (max(topper) if metode == FASTLEDD_MND_MAX else sum(topper) / len(topper))
-                        if topper
-                        else 0.0
-                    )
-                    inkludert = (
-                        snapshot.get("kjent_fastledd_maks_kw_inkludert", True)
-                        if snapshot
-                        else self.dso.get("kjent_fastledd_maks_kw_inkludert", True)
-                    )
-                    if grunnlag > float(grense) or (grunnlag == float(grense) and not inkludert):
-                        self._previous_month_fastledd_grunnlag_bekreftet = False
+                if utenfor_kildegrense(lukket, lukket_grunnlag):
+                    self._previous_month_fastledd_grunnlag_bekreftet = False
                 self._previous_month_name = data.get("previous_month_name")
                 self._previous_month_norgespris_diff = self._validate_float(
                     data.get("previous_month_norgespris_diff", 0.0)

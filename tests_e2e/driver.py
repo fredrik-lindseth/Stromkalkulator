@@ -421,6 +421,8 @@ class Driver:
         "maks_forbruk_3",
         "gjennomsnitt_forbruk",
         "forrige_maaned_toppforbruk",
+        "forrige_maaned_eksport_kwh",
+        "forrige_maaned_eksport_inntekt",
     )
     KAPASITETSAVHENGIGE = (
         "kapasitetstrinn",

@@ -40,10 +40,27 @@ TOPPDAGER = {
     "{maaned}-09": {"kw": 4.75, "hour": 19},
 }
 TOPPDAGER_FORRIGE = {
-    "2026-08-04": {"kw": 9.2, "hour": 18},
-    "2026-08-17": {"kw": 8.1, "hour": 7},
-    "2026-08-23": {"kw": 7.6, "hour": 20},
+    "{maaned}-04": {"kw": 9.2, "hour": 18},
+    "{maaned}-17": {"kw": 8.1, "hour": 7},
+    "{maaned}-23": {"kw": 7.6, "hour": 20},
 }
+# `previous_month_name` slik coordinatoren har skrevet det siden v0.31.0,
+# «oktober 2026». Måneden må være kalendermåneden før den laben kjører i, ellers
+# er arkivet foreldet og forrige måneds eksport leses ikke.
+MAANEDSNAVN = (
+    "januar",
+    "februar",
+    "mars",
+    "april",
+    "mai",
+    "juni",
+    "juli",
+    "august",
+    "september",
+    "oktober",
+    "november",
+    "desember",
+)
 IMAGE = "ghcr.io/home-assistant/home-assistant:2026.10.4@sha256:21935614df6d9f24f680a1ef749f0570d2d6b7936c606c0a44253ae875865c04"
 
 
@@ -281,17 +298,26 @@ def oppgraderingsveien(lab: Lab, args: argparse.Namespace) -> None:
     lab.driver("seed_akkumulatorer", timeout=600)
     tilstand = lab.les_state()
     lab.compose("stop", "ha", timeout=90)
-    maaned = datetime.now().strftime("%Y-%m")
+    naa = datetime.now()
+    maaned = naa.strftime("%Y-%m")
+    forrige = naa.replace(day=1) - timedelta(days=1)
     toppdager = {key.format(maaned=maaned): value for key, value in TOPPDAGER.items()}
+    toppdager_forrige = {
+        key.format(maaned=forrige.strftime("%Y-%m")): value for key, value in TOPPDAGER_FORRIGE.items()
+    }
     for entry_id in tilstand["utganger"]:
         lab.skriv_lagring(
             entry_id,
             {
-                "previous_month_name": "2026-08",
+                "previous_month_name": f"{MAANEDSNAVN[forrige.month - 1]} {forrige.year}",
                 "previous_month_consumption": {"dag": 612.5, "natt": 421.125},
                 "previous_month_cost": 1875.5,
                 "previous_month_kapasitetsledd": 415.0,
-                "previous_month_top_3": TOPPDAGER_FORRIGE,
+                "previous_month_top_3": toppdager_forrige,
+                # Den gamle utgaven har bare summene, ingen eksportbok. De
+                # skal stå uendret etter oppgraderingen.
+                "previous_month_export_kwh": 87.25,
+                "previous_month_export_revenue": 61.5,
                 # Døgnmaks bokføres først når en klokketime er ferdig, så en
                 # lab som lever i minutter har ingen. Uten disse ville
                 # oppgraderingstesten sammenlignet Ukjent med Ukjent.

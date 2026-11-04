@@ -1,100 +1,60 @@
 #!/usr/bin/env python3
-"""Generate brand images for home-assistant/brands repo.
+"""Lag merkevarebildene Home Assistant leser fra integrasjonens brand/-mappe.
 
-Usage:
-    .venv/bin/python3 scripts/generate_brand_images.py
+Bruk:
+    uv run --with pillow python scripts/generate_brand_images.py [--output DIR]
 
-This script generates properly sized images from the source files in images/
-for submission to the home-assistant/brands repository.
+Kildene er images/icon.png (kvadratisk) og images/logo-light.png (liggende).
+Uten --output skrives bildene til custom_components/stromkalkulator/brand/.
+Skriv til en annen mappe først og sammenlign hvis du bare vil se resultatet.
 
-Requirements:
-    - Pillow (pip install pillow)
-
-Output:
-    - custom_components/stromkalkulator/icon.png (256x256)
-    - custom_components/stromkalkulator/icon@2x.png (512x512)
-    - custom_components/stromkalkulator/logo.png (korteste side 256px)
-    - custom_components/stromkalkulator/logo@2x.png (korteste side 512px)
+Utdata:
+    - icon.png (256x256)
+    - icon@2x.png (512x512)
+    - logo.png (korteste side 256px)
+    - logo@2x.png (nøyaktig dobbel logo.png)
 """
 
+import argparse
 from pathlib import Path
 
 from PIL import Image
 
-
-def resize_to_shortest_side(img: Image.Image, target_shortest: int) -> Image.Image:
-    """Resize image so shortest side matches target, maintaining aspect ratio."""
-    width, height = img.size
-    if width < height:
-        # Width is shortest
-        new_width = target_shortest
-        new_height = int(height * (target_shortest / width))
-    else:
-        # Height is shortest
-        new_height = target_shortest
-        new_width = int(width * (target_shortest / height))
-
-    return img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+PROSJEKTROT = Path(__file__).parent.parent
+KILDER = PROSJEKTROT / "images"
+BRAND = PROSJEKTROT / "custom_components" / "stromkalkulator" / "brand"
 
 
-def resize_square(img: Image.Image, size: int) -> Image.Image:
-    """Resize image to square dimensions."""
-    return img.resize((size, size), Image.Resampling.LANCZOS)
+def korteste_side(img: Image.Image, mål: int) -> tuple[int, int]:
+    """Dimensjoner der korteste side er `mål` og sideforholdet beholdes."""
+    bredde, høyde = img.size
+    if bredde < høyde:
+        return mål, round(høyde * mål / bredde)
+    return round(bredde * mål / høyde), mål
+
+
+def lagre(img: Image.Image, størrelse: tuple[int, int], sti: Path) -> None:
+    img.resize(størrelse, Image.Resampling.LANCZOS).save(sti, "PNG", optimize=True)
+    print(f"  {sti.name}: {størrelse[0]}x{størrelse[1]}")
 
 
 def main() -> None:
-    """Generate all brand images."""
-    # Paths
-    project_root = Path(__file__).parent.parent
-    source_dir = project_root / "images"
-    output_dir = project_root / "custom_components" / "stromkalkulator"
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--output", type=Path, default=BRAND, help="mappe å skrive til")
+    utdata: Path = parser.parse_args().output
+    utdata.mkdir(parents=True, exist_ok=True)
 
-    # Source files
-    logo_source = source_dir / "logo.png"
-    icon_source = source_dir / "icon.png"
+    ikon = Image.open(KILDER / "icon.png")
+    logo = Image.open(KILDER / "logo-light.png")
 
-    print(f"Source logo: {logo_source}")
-    print(f"Source icon: {icon_source}")
-    print(f"Output dir: {output_dir}")
-    print()
+    lagre(ikon, (256, 256), utdata / "icon.png")
+    lagre(ikon, (512, 512), utdata / "icon@2x.png")
 
-    # Load source images
-    logo_img = Image.open(logo_source)
-    icon_img = Image.open(icon_source)
-
-    print(f"Logo source size: {logo_img.size}")
-    print(f"Icon source size: {icon_img.size}")
-    print()
-
-    # Generate icons (square, from icon source)
-    print("Generating icons...")
-
-    icon_256 = resize_square(icon_img, 256)
-    icon_256.save(output_dir / "icon.png", "PNG", optimize=True)
-    print(f"  icon.png: {icon_256.size}")
-
-    icon_512 = resize_square(icon_img, 512)
-    icon_512.save(output_dir / "icon@2x.png", "PNG", optimize=True)
-    print(f"  icon@2x.png: {icon_512.size}")
-
-    # Generate logos (landscape, shortest side requirement)
-    # Normal: shortest side 128-256px (we use 256 for max quality)
-    # hDPI: shortest side 256-512px (we use 512 for max quality)
-    print("Generating logos...")
-
-    logo_normal = resize_to_shortest_side(logo_img, 256)
-    logo_normal.save(output_dir / "logo.png", "PNG", optimize=True)
-    print(f"  logo.png: {logo_normal.size}")
-
-    logo_hdpi = resize_to_shortest_side(logo_img, 512)
-    logo_hdpi.save(output_dir / "logo@2x.png", "PNG", optimize=True)
-    print(f"  logo@2x.png: {logo_hdpi.size}")
-
-    print()
-    print("Done! Generated images in:", output_dir)
-    print()
-    print("For brands repo submission, copy to:")
-    print("  custom_integrations/stromkalkulator/")
+    # @2x er dobbel 1x heller enn egen avrunding, så de to logoene har
+    # nøyaktig samme sideforhold (760x256 og 1520x512 fra en 1080x364-kilde).
+    bredde, høyde = korteste_side(logo, 256)
+    lagre(logo, (bredde, høyde), utdata / "logo.png")
+    lagre(logo, (bredde * 2, høyde * 2), utdata / "logo@2x.png")
 
 
 if __name__ == "__main__":

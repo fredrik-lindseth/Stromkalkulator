@@ -1,9 +1,8 @@
-"""Kontrakt for lokale merkevarebilder i nyere Home Assistant.
+"""Kontrakt for merkevarebildene Home Assistant leser fra integrasjonen.
 
 Fra Home Assistant 2026.3 leser Brands-integrasjonen bilder fra
 ``custom_components/<domain>/brand/`` før den prøver den sentrale CDN-en.
-Kopiene her må derfor følge de gamle fallback-bildene byte-for-byte, og ha
-dimensjonene Brands API godtar.
+Bildene der må være PNG med dimensjonene Brands API godtar.
 """
 
 from __future__ import annotations
@@ -13,8 +12,7 @@ from pathlib import Path
 
 import pytest
 
-KOMPONENT = Path(__file__).parent.parent / "custom_components" / "stromkalkulator"
-BRAND = KOMPONENT / "brand"
+BRAND = Path(__file__).parent.parent / "custom_components" / "stromkalkulator" / "brand"
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
 FORVENTEDE_BILDER = {
@@ -34,13 +32,12 @@ def _png_dimensjoner(sti: Path) -> tuple[int, int]:
 
 
 @pytest.mark.parametrize(("filnavn", "dimensjoner"), FORVENTEDE_BILDER.items())
-def test_lokale_brandbilder_er_gyldige_og_i_takt_med_fallback(
-    filnavn: str, dimensjoner: tuple[int, int]
-) -> None:
-    """Ny HA bruker brand/, mens eldre HA fortsatt kan bruke rotfilene."""
-    lokal = BRAND / filnavn
-    fallback = KOMPONENT / filnavn
+def test_brandbilder_er_png_med_riktige_dimensjoner(filnavn: str, dimensjoner: tuple[int, int]) -> None:
+    bilde = BRAND / filnavn
 
-    assert lokal.is_file(), f"{lokal} mangler"
-    assert _png_dimensjoner(lokal) == dimensjoner
-    assert lokal.read_bytes() == fallback.read_bytes(), f"{filnavn} er ulik lokal fallback"
+    assert bilde.is_file(), f"{bilde} mangler"
+    assert _png_dimensjoner(bilde) == dimensjoner
+
+
+def test_brand_har_bare_de_forventede_bildene() -> None:
+    assert {p.name for p in BRAND.iterdir()} == set(FORVENTEDE_BILDER)

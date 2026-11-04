@@ -35,9 +35,9 @@ tidlig feilende scenario betyr at etterfølgende scenarioer ikke er prøvd.
 Kjør uten pipe til `tail`, eller bruk `set -o pipefail`, slik at testens
 exit-kode ikke erstattes av utskriftskommandoens.
 
-Image: `ghcr.io/home-assistant/home-assistant:2026.10.0`, linux/amd64-manifest
-`sha256:956a5d9effc091888cd34cb0b6fb4f66c448d257d20519e72302557682734fd0`.
-Digest ble lest fra GHCR 9. oktober 2026. Ved oppgradering må Compose,
+Image: `ghcr.io/home-assistant/home-assistant:2026.10.4`, linux/amd64-manifest
+`sha256:21935614df6d9f24f680a1ef749f0570d2d6b7936c606c0a44253ae875865c04`.
+Digest ble lest fra GHCR 4. november 2026. Ved oppgradering må Compose,
 imageverdien i `run.py` og current-testmålet vurderes sammen.
 
 ## En instans du kan klikke i

@@ -12,7 +12,7 @@ ekte `homeassistant` i samme miljø ville kollidert med stubbene.
 | `just test-unit`           | `tests/`   | `unit`       | 3.13   | stubbet        |
 | `just check`               | hele repo  | `kvalitet`   | 3.13   | ingen          |
 | `just test-ha target=minimum` | `tests_ha/` | `ha-minimum` | 3.13   | 2025.1.0       |
-| `just test-ha target=current` | `tests_ha/` | `ha-current` | 3.14   | 2026.10.0       |
+| `just test-ha target=current` | `tests_ha/` | `ha-current` | 3.14   | 2026.10.4       |
 
 `just test` er `test-unit` og `check` i ett, og er det AGENTS.md ber om før
 commit. `just test-e2e target=current` kjører en separat Docker-basert HA-server
@@ -22,7 +22,7 @@ Det laget tester en committet release-ZIP; se [Docker-testlab](#docker-testlab).
 Gruppene står i `[dependency-groups]` i `pyproject.toml` og er låst i
 `uv.lock`. HA-versjonen står ikke der direkte: den følger av
 `pytest-homeassistant-custom-component`, som pinner `homeassistant` eksakt.
-`0.13.201` gir HA 2025.1.0, `0.13.371` gir HA 2026.10.0. De to gruppene er
+`0.13.201` gir HA 2025.1.0, `0.13.375` gir HA 2026.10.4. De to gruppene er
 erklært som `conflicts` i `[tool.uv]`, så uv låser dem som atskilte grener
 framfor å prøve å få dem inn i samme miljø.
 

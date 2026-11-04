@@ -1,6 +1,6 @@
 services:
   ha:
-    image: ghcr.io/home-assistant/home-assistant:2026.10.0@sha256:956a5d9effc091888cd34cb0b6fb4f66c448d257d20519e72302557682734fd0
+    image: ghcr.io/home-assistant/home-assistant:2026.10.4@sha256:21935614df6d9f24f680a1ef749f0570d2d6b7936c606c0a44253ae875865c04
     platform: linux/amd64
     environment:
       TZ: Europe/Oslo

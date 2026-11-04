@@ -156,6 +156,13 @@ class TestBuildReportTomData:
         r = _report(dict(_FULL, previous_month_kapasitetstrinn=None))
         assert "(ikke tilgjengelig)" in r
 
+    def test_ukjent_kapasitetsledd_skrives_ikke_som_none(self):
+        r = _report(
+            dict(_FULL, previous_month_kapasitetsledd=None, previous_month_fastledd_grunnlag_bekreftet=False)
+        )
+        assert "None" not in r
+        assert "| Kapasitetsledd (kr/mnd) | ukjent: " in r
+
 
 class TestAsyncPress:
     def test_kaller_async_create_med_riktig_args(self):

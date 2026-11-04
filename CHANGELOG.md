@@ -20,6 +20,7 @@ Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) og [S
 - Omstart bevarer månedens historiske forbruk og summer for manglende og delvis prisdekning. Strømstøtte og Norgespris rundt månedstaket får ikke lenger en falsk korreksjon etter omstart. <!--kort-->
 - Forsinkede avlesninger retter også forrige måneds topptimer, kapasitetstrinn og fastledd med den månedens tariffgrunnlag. En måned som ble lukket før oppdateringen, beholder fastleddet sitt i stedet for å regnes om med dagens tariff. <!--kort-->
 - Forrige måneds fastledd og nettleie vises som ukjent når sikringsvalget mangler, slik inneværende måned allerede gjorde.
+- Fakturarapporten skriver «ukjent» med forklaring i stedet for «None» når forrige måneds kapasitetsledd ikke er bekreftet.
 
 ### Vedlikehold
 

@@ -109,6 +109,14 @@ class FakturaRapportButton(CoordinatorEntity, ButtonEntity):
         forbruk_natt = data.get("previous_month_consumption_natt_kwh", 0.0)
         forbruk_total = data.get("previous_month_consumption_total_kwh", 0.0)
         kapasitetsledd = data.get("previous_month_kapasitetsledd", 0)
+        if kapasitetsledd is None:
+            # Coordinatoren skjuler beløpet når grunnlaget ikke er bekreftet.
+            # Rapporten limes inn i et issue, og «None» ser ut som en feil i
+            # integrasjonen framfor et beløp den med vilje ikke påstår.
+            kapasitetsledd = (
+                "ukjent: mangler kildebekreftet trinn eller sikringsvalg for måneden, "
+                "så fastleddet er ikke regnet"
+            )
         kapasitetstrinn = data.get("previous_month_kapasitetstrinn") or "(ikke tilgjengelig)"
         avg_top_3 = data.get("previous_month_avg_top_3_kw", 0.0)
         norgespris_diff = data.get("previous_month_norgespris_diff_kr", 0.0)

@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from custom_components.stromkalkulator.eksport import Eksportbok
+from custom_components.stromkalkulator.eksport import Eksportbok, Eksportsum
 from tests.conftest import _make_entry, _make_hass, _make_state, _run_update
 
 
@@ -203,6 +203,31 @@ def test_forrige_maaneds_eksport_gjelder_maaneden_som_ble_arkivert(coord_module)
     assert svar["previous_month_export_kwh"] == 0
     assert svar["previous_month_export_revenue_kr"] == 0
     assert svar["previous_month_export_kwh_uten_pris"] == 0
+
+
+def test_lagrede_eksportsummer_er_bokens_ogsaa_ved_maanedsskiftet(coord_module):
+    """Summene ved siden av boken er til nedgradering, og skal være bokens egne.
+
+    De ble tidligere speilet i egne felt og kopiert ved rulleringen, men regnet
+    om fra boken etterpå. Lagringen leser nå boken direkte.
+    """
+    oslo = ZoneInfo("Europe/Oslo")
+    coord = coordinator_med_pris(coord_module, [1])
+    _run_update(coord_module, coord, now=datetime(2026, 6, 30, 23, 58, tzinfo=oslo))
+    svar = _run_update(coord_module, coord, now=datetime(2026, 7, 1, 0, 2, tzinfo=oslo))
+    lagret = coord._store.async_save.call_args.args[0]
+    assert svar["previous_month_export_kwh"] > 0
+    assert lagret["previous_month_export_kwh"] == pytest.approx(svar["previous_month_export_kwh"], abs=1e-3)
+    assert lagret["previous_month_export_revenue"] == pytest.approx(
+        svar["previous_month_export_revenue_kr"], abs=0.01
+    )
+    assert lagret["monthly_export_kwh"] == pytest.approx(svar["monthly_export_kwh"], abs=1e-3)
+    assert lagret["monthly_export_revenue"] == pytest.approx(svar["monthly_export_revenue_kr"], abs=0.01)
+
+
+@pytest.mark.parametrize("uten_pris,komplett", [(0.0, True), (1e-10, True), (1e-6, False)])
+def test_prisdekningen_tilgir_bare_flyttallsstoy(uten_pris, komplett):
+    assert Eksportsum(kwh=1.0, kwh_uten_pris=uten_pris).prisdekning_komplett is komplett
 
 
 @pytest.mark.parametrize("verdi", [float("nan"), float("inf"), -1, "feil"])

@@ -11,7 +11,15 @@ from dataclasses import asdict, dataclass
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
-from .avregning import LAGRINGSVINDU, Prisadapter, intervallstart, krev_aware, lokal_maned, prisrutestart
+from .avregning import (
+    BEVARING_SLAKK_KWH,
+    LAGRINGSVINDU,
+    Prisadapter,
+    intervallstart,
+    krev_aware,
+    lokal_maned,
+    prisrutestart,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -24,6 +32,11 @@ class Eksportsum:
     kwh: float = 0.0
     inntekt_kr: float = 0.0
     kwh_uten_pris: float = 0.0
+
+    @property
+    def prisdekning_komplett(self) -> bool:
+        """Om all energien har pris, med flyttallsstøy regnet som null."""
+        return self.kwh_uten_pris <= BEVARING_SLAKK_KWH
 
 
 class Eksportbok:
@@ -129,7 +142,7 @@ class Eksportbok:
             datetime.fromisoformat(f"{maaned}-01")
             kwh = tall(sum_["kwh"])
             uten_pris = tall(sum_["kwh_uten_pris"])
-            if uten_pris > kwh + 1e-9:
+            if uten_pris > kwh + BEVARING_SLAKK_KWH:
                 raise ValueError("prisgap større enn eksportenergien")
             bok._ferdige[maaned] = Eksportsum(kwh, tall(sum_["inntekt_kr"], signert=True), uten_pris)
         return bok

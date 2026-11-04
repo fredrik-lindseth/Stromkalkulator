@@ -15,7 +15,6 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
 from .avregning import (
-    BEVARING_SLAKK_KWH,
     OSLO,
     Avlesning,
     Avregningsbok,
@@ -413,10 +412,6 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     _previous_month_avgifter_kr: float
     _previous_month_stromstotte_kr: float
     _previous_month_bokforte_kroner: bool
-    _monthly_export_kwh: float
-    _monthly_export_revenue: float
-    _previous_month_export_kwh: float
-    _previous_month_export_revenue: float
     _previous_month_cost: float
     _monthly_accumulated_cost_strom: float
     _monthly_stromstotte: float
@@ -608,11 +603,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._previous_month_bokforte_kroner = True
 
         # Eksport-akkumulering (plusskunder med solceller)
-        self._monthly_export_kwh = 0.0
-        self._monthly_export_revenue = 0.0
+        # Eksportboken er eneste kilde til eksportsummene; de speiles ikke i
+        # egne felt.
         self._eksportbok = Eksportbok()
-        self._previous_month_export_kwh = 0.0
-        self._previous_month_export_revenue = 0.0
         self._previous_month_cost = 0.0
 
         # Akkumulert kostnad for Energy Dashboard (stat_cost). Alt utenom
@@ -1165,10 +1158,16 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return None
         return forrige_dag.strftime("%Y-%m")
 
-    def _forrige_eksportsum(self, now: datetime) -> Eksportsum:
-        """Eksporten i den arkiverte forrige måneden, ikke kalendermåneden før."""
-        forrige_maned = self._arkivert_forrige_maaned(now)
-        return self._eksportbok.maaned(forrige_maned) if forrige_maned else Eksportsum()
+    def _eksportsummer(self) -> tuple[Eksportsum, Eksportsum]:
+        """Inneværende og arkivert forrige måneds eksport, rett fra eksportboken.
+
+        Forrige måned er den som faktisk ble arkivert, ikke kalendermåneden
+        før: etter et flermånedersgap finnes det ingen.
+        """
+        maanedsstart = datetime.fromisoformat(f"{self._current_month}-01")
+        forrige_maned = self._arkivert_forrige_maaned(maanedsstart)
+        forrige = self._eksportbok.maaned(forrige_maned) if forrige_maned else Eksportsum()
+        return self._eksportbok.maaned(self._current_month), forrige
 
     def _fastleddtariff(self) -> Fastleddtariff:
         """Tariffen inneværende måned regnes med. Bygges per kall fra feltene."""
@@ -1636,8 +1635,6 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._previous_month_name = None
             self._previous_month_norgespris_diff = 0.0
             self._previous_month_norgespris_compensation = 0.0
-            self._previous_month_export_kwh = 0.0
-            self._previous_month_export_revenue = 0.0
             self._previous_month_cost = 0.0
             self._previous_month_top_3 = {}
             self._previous_month_fastledd_snapshot = None
@@ -1654,8 +1651,6 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._previous_month_name = self._format_month_name(prev_month_date)
             self._previous_month_norgespris_diff = self._monthly_norgespris_diff
             self._previous_month_norgespris_compensation = self._monthly_norgespris_compensation
-            self._previous_month_export_kwh = self._monthly_export_kwh
-            self._previous_month_export_revenue = self._monthly_export_revenue
             self._previous_month_energiledd_dag_kr = self._monthly_energiledd_dag
             self._previous_month_energiledd_natt_kr = self._monthly_energiledd_natt
             self._previous_month_avgifter_kr = self._monthly_avgifter
@@ -1708,8 +1703,6 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._monthly_norgespris_diff = 0.0
         self._monthly_norgespris_compensation = 0.0
         self._kr_bokfort = {}
-        self._monthly_export_kwh = 0.0
-        self._monthly_export_revenue = 0.0
         self._monthly_accumulated_cost_strom = 0.0
         self._monthly_stromstotte = 0.0
         self._monthly_energiledd_dag = 0.0
@@ -1875,9 +1868,6 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 )
                 dirty = True
         self._eksportbok.avslutt_eldre(_aware(now))
-        eksportsum = self._eksportbok.maaned(self._current_month)
-        self._monthly_export_kwh = eksportsum.kwh
-        self._monthly_export_revenue = eksportsum.inntekt_kr
 
         self._last_update = now
         self._current_hour = now.hour
@@ -1894,13 +1884,6 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._monthly_consumption = self._forbruk_fra_boken(ConsumptionData())
             if self._oppdater_timesmaks(now):
                 dirty = True
-
-        eksportsum = self._eksportbok.maaned(self._current_month)
-        self._monthly_export_kwh = eksportsum.kwh
-        self._monthly_export_revenue = eksportsum.inntekt_kr
-        forrige_eksportsum = self._forrige_eksportsum(now)
-        self._previous_month_export_kwh = forrige_eksportsum.kwh
-        self._previous_month_export_revenue = forrige_eksportsum.inntekt_kr
 
         # Det åpne intervallet regnes opp uansett: en prisprøve kan ha endret
         # timeprisen uten at noen energi ble bokført. Etter en rullering er det
@@ -2059,6 +2042,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if dirty:
             await self._save_stored_data()
 
+        # Etter rulleringen, så forrige måned er den som nettopp ble arkivert.
+        eksportsum, forrige_eksportsum = self._eksportsummer()
+
         return self._build_data_dict(
             energiledd=energiledd,
             kapasitetsledd=kapasitetsledd,
@@ -2099,6 +2085,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             neste_trinn_pris=neste_trinn_pris,
             kapasitet_varsel=kapasitet_varsel,
             input_problemer=input_problemer,
+            eksportsum=eksportsum,
+            forrige_eksportsum=forrige_eksportsum,
         )
 
     def _build_data_dict(self, **kw: Any) -> dict[str, Any]:
@@ -2111,8 +2099,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         aktiv_dag, aktiv_natt = self._get_aktive_energileddsatser(now)
         perioder_meta = self._serialize_perioder()
         aktiv_periode = self._aktiv_periode_label(now)
-        eksportsum = self._eksportbok.maaned(self._current_month)
-        forrige_eksportsum = self._forrige_eksportsum(now)
+        eksportsum: Eksportsum = kw["eksportsum"]
+        forrige_eksportsum: Eksportsum = kw["forrige_eksportsum"]
 
         return {
             # Bokens egne statusfelt (felttabellen i avregningskontrakten).
@@ -2237,27 +2225,27 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self._monthly_accumulated_cost_kapasitetsledd, 4
             ),
             "eksport_konfigurert": self.export_power_sensor is not None,
-            "monthly_export_kwh": round(self._monthly_export_kwh, 3),
+            "monthly_export_kwh": round(eksportsum.kwh, 3),
             # Inntekten er kjent delsum, samme regel som forbrukets kroner:
             # energi uten pris gir ingen kroner og står synlig i
             # `*_kwh_uten_pris` (kontrakt C4). Et kvarter uten pris skal ikke
             # gjøre resten av måneden ukjent.
-            "monthly_export_revenue_kr": round(self._monthly_export_revenue, 2),
+            "monthly_export_revenue_kr": round(eksportsum.inntekt_kr, 2),
             "monthly_export_kwh_uten_pris": round(eksportsum.kwh_uten_pris, 6),
-            "monthly_export_price_complete": eksportsum.kwh_uten_pris <= BEVARING_SLAKK_KWH,
+            "monthly_export_price_complete": eksportsum.prisdekning_komplett,
             "monthly_cost_kr": round(self._monthly_cost, 2),
-            "monthly_net_cost_kr": round(self._monthly_cost - self._monthly_export_revenue, 2),
-            "previous_month_export_kwh": round(self._previous_month_export_kwh, 3),
-            "previous_month_export_revenue_kr": round(self._previous_month_export_revenue, 2),
+            "monthly_net_cost_kr": round(self._monthly_cost - eksportsum.inntekt_kr, 2),
+            "previous_month_export_kwh": round(forrige_eksportsum.kwh, 3),
+            "previous_month_export_revenue_kr": round(forrige_eksportsum.inntekt_kr, 2),
             "previous_month_export_kwh_uten_pris": round(forrige_eksportsum.kwh_uten_pris, 6),
-            "previous_month_export_price_complete": forrige_eksportsum.kwh_uten_pris <= BEVARING_SLAKK_KWH,
+            "previous_month_export_price_complete": forrige_eksportsum.prisdekning_komplett,
             "previous_month_cost_kr": (
                 round(self._previous_month_cost, 2)
                 if self._previous_month_fastledd_grunnlag_bekreftet
                 else None
             ),
             "previous_month_net_cost_kr": (
-                round(self._previous_month_cost - self._previous_month_export_revenue, 2)
+                round(self._previous_month_cost - forrige_eksportsum.inntekt_kr, 2)
                 if self._previous_month_fastledd_grunnlag_bekreftet
                 else None
             ),
@@ -2601,6 +2589,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _load_stored_data(self) -> None:
         """Load stored data from disk."""
         data: dict[str, Any] | None = await self._store.async_load()
+        eksport_aapning = forrige_eksport_aapning = (0.0, 0.0)
 
         # Migration: try to load from old DSO-based storage if new storage is empty
         if not data:
@@ -2704,9 +2693,12 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         key in data for key in bokforte_komponenter
                     )
                 self._daily_cost = self._validate_float(data.get("daily_cost", 0.0))
-                # Eksport-data
-                self._monthly_export_kwh = self._validate_float(data.get("monthly_export_kwh", 0.0))
-                self._monthly_export_revenue = self._validate_float(data.get("monthly_export_revenue", 0.0))
+                # Eksportsummene fra før eksportboken. Brukes bare som åpning
+                # når filen ikke har en lesbar bok.
+                eksport_aapning = (
+                    self._validate_float(data.get("monthly_export_kwh", 0.0)),
+                    self._validate_float(data.get("monthly_export_revenue", 0.0)),
+                )
                 # `monthly_cost` og `monthly_accumulated_cost` leses ikke: de er
                 # summer av feltene under, og en lagret sum som kan avvike fra
                 # delene sine er nettopp den motstriden 33f81xu handler om.
@@ -2737,11 +2729,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     )
                 # Fastleddet regnes på nytt ved hver poll og lastes ikke. Det
                 # lagrede tallet er med for nedgradering og for diagnostikken.
-                self._previous_month_export_kwh = self._validate_float(
-                    data.get("previous_month_export_kwh", 0.0)
-                )
-                self._previous_month_export_revenue = self._validate_float(
-                    data.get("previous_month_export_revenue", 0.0)
+                forrige_eksport_aapning = (
+                    self._validate_float(data.get("previous_month_export_kwh", 0.0)),
+                    self._validate_float(data.get("previous_month_export_revenue", 0.0)),
                 )
                 self._previous_month_cost = self._validate_float(data.get("previous_month_cost", 0.0))
                 self._current_date = data.get("current_date", dt_util.now().strftime("%Y-%m-%d"))
@@ -2879,18 +2869,12 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # men ikke påstå komplett prisdekning uten den tapte historikken.
             self._eksportbok = Eksportbok()
             self._eksportbok.sett_apning(
-                self._current_month,
-                self._monthly_export_kwh,
-                self._monthly_export_revenue,
-                prisdekning_ukjent=eksport_lagret is not None,
+                self._current_month, *eksport_aapning, prisdekning_ukjent=eksport_lagret is not None
             )
             maanedsstart = datetime.fromisoformat(f"{self._current_month}-01")
             forrige = (maanedsstart - timedelta(days=1)).strftime("%Y-%m")
             self._eksportbok.sett_apning(
-                forrige,
-                self._previous_month_export_kwh,
-                self._previous_month_export_revenue,
-                prisdekning_ukjent=eksport_lagret is not None,
+                forrige, *forrige_eksport_aapning, prisdekning_ukjent=eksport_lagret is not None
             )
 
     def _bygg_kronebokforing(self) -> None:
@@ -3070,6 +3054,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def _save_stored_data(self) -> None:
         """Save data to disk."""
+        eksportsum, forrige_eksportsum = self._eksportsummer()
         data: dict[str, Any] = {
             # Boken skriver `skjema_versjon` selv, og den er én teller for hele
             # filen (kontrakt D). Den sto på 2 fra K1 og løftes til 3 her.
@@ -3110,8 +3095,10 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "current_date": self._current_date,
             "current_hour_energy": self._current_hour_energy,
             "current_hour": self._current_hour,
-            "monthly_export_kwh": self._monthly_export_kwh,
-            "monthly_export_revenue": self._monthly_export_revenue,
+            # Summene skrives ved siden av boken, for nedgradering til en
+            # utgave uten eksportbok.
+            "monthly_export_kwh": eksportsum.kwh,
+            "monthly_export_revenue": eksportsum.inntekt_kr,
             "eksportbok": self._eksportbok.til_lagring(),
             "monthly_cost": self._monthly_cost,
             "monthly_accumulated_cost": self._monthly_accumulated_cost,
@@ -3123,8 +3110,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "monthly_energiledd_natt": self._monthly_energiledd_natt,
             "monthly_avgifter": self._monthly_avgifter,
             "monthly_energiledd_apning": self._monthly_energiledd_apning,
-            "previous_month_export_kwh": self._previous_month_export_kwh,
-            "previous_month_export_revenue": self._previous_month_export_revenue,
+            "previous_month_export_kwh": forrige_eksportsum.kwh,
+            "previous_month_export_revenue": forrige_eksportsum.inntekt_kr,
             "previous_month_cost": self._previous_month_cost,
             "last_update": self._last_update.isoformat() if self._last_update else None,
             BASELINE_NOKKEL: self._baseline.som_lagret() if self._baseline else None,

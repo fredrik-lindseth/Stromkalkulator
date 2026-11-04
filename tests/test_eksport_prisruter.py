@@ -280,3 +280,36 @@ def test_samme_eksportpris_skriver_ikke_lagringen_hvert_minutt(coord_module):
     pris[0] = 2
     _run_update(coord_module, coord, now=tid(12, 17))
     assert lagringer() == etter_forste + 2, "Endret pris i ruten skal lagres"
+
+
+def test_gamle_maanedsbalanser_ryddes_ogsaa_fra_eldre_lagring(coord_module):
+    """En lagringsfil med to års balanser lastes, og bare det som vises beholdes."""
+    lagret = Eksportbok().til_lagring()
+    lagret["ferdige"] = {
+        f"{aar}-{mnd:02d}": {"kwh": 10.0, "inntekt_kr": 5.0, "kwh_uten_pris": 0.0}
+        for aar in (2024, 2025, 2026)
+        for mnd in range(1, 13)
+        if f"{aar}-{mnd:02d}" <= "2026-06"
+    }
+    lagret["ferdige"]["2026-05"] = {"kwh": 20.0, "inntekt_kr": 8.0, "kwh_uten_pris": 0.0}
+    coord = coordinator_med_pris(coord_module, [1])
+    coord._store.async_load = AsyncMock(
+        return_value={
+            "current_month": "2026-06",
+            "previous_month_name": "mai 2026",
+            "eksportbok": lagret,
+        }
+    )
+    svar = _run_update(coord_module, coord, now=datetime(2026, 6, 15, 12, 2, tzinfo=ZoneInfo("Europe/Oslo")))
+    assert set(coord._eksportbok.til_lagring()["ferdige"]) == {"2026-05", "2026-06"}
+    assert svar["previous_month_export_kwh"] == 20
+    assert svar["previous_month_export_revenue_kr"] == 8
+    assert svar["monthly_export_kwh"] == pytest.approx(10, abs=0.2)
+
+
+def test_aarsskiftet_beholder_desember():
+    bok = Eksportbok()
+    for maaned in ("2026-11", "2026-12"):
+        bok.sett_apning(maaned, 1.0, 1.0)
+    bok.avslutt_eldre(datetime(2027, 1, 1, 0, 30, tzinfo=UTC))
+    assert set(bok.til_lagring()["ferdige"]) == {"2026-12"}

@@ -2,6 +2,8 @@
 
 De siste tre timene beholdes for nye prøver og omstart. Eldre ruter foldes
 inn i månedsbalanser med både kjent inntekt og energi uten prisgrunnlag.
+Bare inneværende og forrige måneds balanse beholdes; det er dem
+coordinatoren viser, og en sen rute kan ikke være eldre enn forrige måned.
 """
 
 from __future__ import annotations
@@ -37,6 +39,12 @@ class Eksportsum:
     def prisdekning_komplett(self) -> bool:
         """Om all energien har pris, med flyttallsstøy regnet som null."""
         return self.kwh_uten_pris <= BEVARING_SLAKK_KWH
+
+
+def _forrige_maaned(maaned: str) -> str:
+    """`YYYY-MM` for måneden før. Strengene sorterer kronologisk."""
+    aar, mnd = int(maaned[:4]), int(maaned[5:7])
+    return f"{aar - 1}-12" if mnd == 1 else f"{aar}-{mnd - 1:02d}"
 
 
 class Eksportbok:
@@ -104,7 +112,11 @@ class Eksportbok:
         )
 
     def avslutt_eldre(self, naa: datetime) -> None:
-        """Fold inn gamle ruter før prisene slippes; ukjent energi beholdes."""
+        """Fold inn gamle ruter før prisene slippes; ukjent energi beholdes.
+
+        Månedsbalanser eldre enn forrige måned slippes her, ellers ville
+        lagringen vokst med én måned per måned så lenge anlegget lever.
+        """
         grense = prisrutestart(krev_aware(naa, "naa")) - LAGRINGSVINDU
         for rute in list(self._energi):
             if rute < grense:
@@ -113,6 +125,9 @@ class Eksportbok:
                 fast.kwh += bidrag.kwh
                 fast.inntekt_kr += bidrag.inntekt_kr
                 fast.kwh_uten_pris += bidrag.kwh_uten_pris
+        eldste = _forrige_maaned(lokal_maned(naa))
+        for maaned in [m for m in self._ferdige if m < eldste]:
+            del self._ferdige[maaned]
         self.pris.glem_for(grense)
 
     def til_lagring(self) -> dict[str, Any]:

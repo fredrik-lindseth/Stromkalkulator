@@ -14,13 +14,13 @@ from tests.conftest import _make_entry, _make_hass, _make_state, _run_update
 OSLO = ZoneInfo("Europe/Oslo")
 
 
-def _oppsett(coord_module, dso="bkk"):
+def _oppsett(coord_module, dso="bkk", sikringstrinn="inntil_3x125a"):
     states = {
         "sensor.power": _make_state(0, "W"),
         "sensor.spot_price": _make_state(1, "NOK/kWh"),
     }
     entry = _make_entry(
-        dso_id=dso, energy_sensor="sensor.energy", extra_data={"sikringstrinn": "inntil_3x125a"}
+        dso_id=dso, energy_sensor="sensor.energy", extra_data={"sikringstrinn": sikringstrinn}
     )
     hass = _make_hass()
     hass.states.get.side_effect = states.get
@@ -148,19 +148,39 @@ def test_fem_aarsuker_fryses_og_samme_uke_i_juli_blander_ikke_juni(coord_module)
     assert not coord._daily_max_power
 
 
-def test_eldre_topptre_fungerer_men_manglende_aarsuker_gjettes_ikke(coord_module):
-    for dso in ("bkk", "fjellnett"):
-        coord, states = _oppsett(coord_module, dso)
-        foer = _lukk_med_hale_som_mangler(coord_module, coord, states)
-        coord._previous_month_fastledd_snapshot = None
-        etter = _poll(coord_module, coord, states, "2026-07-01T00:05:00+02:00", 106.9)
-        assert etter["previous_month_top_3"]["2026-06-30"].kw == pytest.approx(6)
-        if dso == "bkk":
-            assert etter["previous_month_kapasitetsledd"] == 415
-        else:
-            assert etter["previous_month_kapasitetsledd"] is None
-            assert coord._previous_month_kapasitetsledd == foer["previous_month_kapasitetsledd"]
-            assert not etter["previous_month_fastledd_grunnlag_bekreftet"]
+@pytest.mark.parametrize("dso", ["bkk", "fjellnett"])
+def test_uten_snapshot_beholdes_lukket_maaneds_fastledd(coord_module, dso):
+    """Eldre lagring har ingen tariff fra den lukkede måneden å regne om med.
+
+    Dagens trinn kan ha endret seg siden (Føie og Romsdalsnett 1. november),
+    så en sen hale skal rette toppene, men la fastleddet stå slik måneden ble
+    lukket med sin egen tariff, og fortsatt vise det.
+    """
+    coord, states = _oppsett(coord_module, dso)
+    foer = _lukk_med_hale_som_mangler(coord_module, coord, states)
+    coord._previous_month_fastledd_snapshot = None
+    coord.kapasitetstrinn = [(10, 999), (float("inf"), 1999)]
+    if coord.fastledd_lineaer:
+        coord.fastledd_lineaer = {"grunnbelop_aar_eks_mva": 9999, "sats_kw_aar_eks_mva": 9999}
+    etter = _poll(coord_module, coord, states, "2026-07-01T00:05:00+02:00", 106.9)
+    assert etter["previous_month_top_3"]["2026-06-30"].kw == pytest.approx(6)
+    assert etter["previous_month_kapasitetsledd"] == foer["previous_month_kapasitetsledd"]
+    assert etter["previous_month_kapasitetstrinn"] == foer["previous_month_kapasitetstrinn"]
+    assert etter["previous_month_fastledd_grunnlag_bekreftet"] is True
+    assert coord._previous_month_fastledd_snapshot is None
+    # Energien fra halen kommer med, fastleddet er det samme.
+    assert etter["previous_month_cost_kr"] > foer["previous_month_cost_kr"]
+    assert etter["previous_month_cost_kr"] - foer["previous_month_cost_kr"] < 50
+
+
+def test_lukket_sikringsmaaned_uten_gyldig_valg_er_ukjent(coord_module):
+    """Samme regel som inneværende måned: uten sikringsvalg er fastleddet ukjent."""
+    coord, states = _oppsett(coord_module, "alut", sikringstrinn="finnes_ikke")
+    assert coord._mangler_sikringsvalg()
+    foer = _lukk_med_hale_som_mangler(coord_module, coord, states)
+    assert foer["previous_month_fastledd_grunnlag_bekreftet"] is False
+    assert foer["previous_month_kapasitetsledd"] is None
+    assert foer["previous_month_cost_kr"] is None
 
 
 @pytest.mark.parametrize("raw", [None, [], {"metode": "FEM_VEKTET_ÅR"}, {"metode": 1, "trinn": []}])

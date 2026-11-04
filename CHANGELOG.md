@@ -17,7 +17,8 @@ Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) og [S
 - Eksportinntekt bruker prisen fra kvarteret energien ble levert i. Manglende prisdekning gir ukjent inntekt og nettokostnad, med kjent delbeløp i attributtene. <!--kort-->
 - Nettokostnad vises som ukjent når fastleddet er ukjent. <!--kort-->
 - Omstart bevarer månedens historiske forbruk og summer for manglende og delvis prisdekning. <!--kort-->
-- Forsinkede avlesninger retter også forrige måneds topptimer, kapasitetstrinn og fastledd med den månedens tariffgrunnlag. <!--kort-->
+- Forsinkede avlesninger retter også forrige måneds topptimer, kapasitetstrinn og fastledd med den månedens tariffgrunnlag. En måned som ble lukket før oppdateringen, beholder fastleddet sitt i stedet for å regnes om med dagens tariff. <!--kort-->
+- Forrige måneds fastledd og nettleie vises som ukjent når sikringsvalget mangler, slik inneværende måned allerede gjorde.
 
 ### Vedlikehold
 

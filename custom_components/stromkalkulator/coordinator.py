@@ -1171,20 +1171,16 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Rett tidligere døgn/årstopper og hele månedens fastledd én gang."""
         snapshot = self._previous_month_fastledd_snapshot
         if snapshot is None:
-            # Eldre lagring har bare topp-3. Det holder for stigende månedlige
-            # topper, men årets ukesgrunnlag ved lukking kan ikke gjenskapes
-            # fra dagens årsuker: den nye måneden kan ha endret samme uke.
-            if self._trenger_ukesmaks:
-                self._previous_month_fastledd_grunnlag_bekreftet = False
-                _LOGGER.warning("Mangler historisk årsukegrunnlag; tidligere fastledd beholdes uendret")
-                daily = dict(self._previous_month_top_3)
-                self._oppdater_lukkede_topper(now, berorte, daily, None)
-                self._previous_month_top_3 = dict(
-                    sorted(daily.items(), key=lambda p: p[1].kw, reverse=True)[:3]
-                )
-                return
-            snapshot = self._fastledd_snapshot(self._previous_month_top_3)
-            self._previous_month_fastledd_snapshot = snapshot
+            # Eldre lagring har bare topp-3, ikke tariffen måneden ble lukket
+            # med, og dso.py har ingen tariffhistorikk. Dagens trinn kan være
+            # endret siden, og årets ukesgrunnlag ved lukking kan ikke
+            # gjenskapes. Toppene rettes; fastleddet står slik måneden ble
+            # lukket med sin egen tariff.
+            _LOGGER.warning("Mangler tariffgrunnlaget fra månedsslutt; tidligere fastledd beholdes uendret")
+            daily = dict(self._previous_month_top_3)
+            self._oppdater_lukkede_topper(now, berorte, daily, None)
+            self._previous_month_top_3 = dict(sorted(daily.items(), key=lambda p: p[1].kw, reverse=True)[:3])
+            return
         daily = self._validate_daily_max_power(snapshot.get("daily_max", {}))
         weekly = self._validate_weekly_max_power(snapshot.get("weekly_max", {}))
         self._oppdater_lukkede_topper(now, berorte, daily, weekly)
@@ -1296,7 +1292,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         Andelen måles i absolutt tid, så mars og oktober er ikke
         spesialtilfeller (3jebp9g).
         """
-        belop = None if self._fastledd_ukjent() or self._mangler_sikringsvalg() else kapasitetsledd
+        belop = None if self._fastledd_belop_ukjent() else kapasitetsledd
         self._monthly_accumulated_cost_kapasitetsledd = fastledd_belop(
             belop, forlopt_andel_av_maaned(_aware(now))
         )
@@ -1308,12 +1304,12 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         det tallet som arkiveres, ikke andelen som var forløpt da siste poll
         kom inn.
         """
-        belop = None if self._fastledd_ukjent() or self._mangler_sikringsvalg() else kapasitetsledd
+        belop = None if self._fastledd_belop_ukjent() else kapasitetsledd
         self._monthly_accumulated_cost_kapasitetsledd = fastledd_belop(belop, 1.0)
 
     def _fastledd_i_dag(self, now: datetime, kapasitetsledd: float) -> float:
         """Dagens andel av månedens fastledd, i kroner."""
-        belop = None if self._fastledd_ukjent() or self._mangler_sikringsvalg() else kapasitetsledd
+        belop = None if self._fastledd_belop_ukjent() else kapasitetsledd
         naa = _aware(now)
         return fastledd_belop(belop, andel_av_maaned(sekunder_forlopt_i_dogn(naa), naa))
 
@@ -1675,7 +1671,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             prev_top_3 = self._get_top_3_days()
             self._previous_month_top_3 = prev_top_3
             self._previous_month_fastledd_snapshot = self._fastledd_snapshot(self._daily_max_power)
-            self._previous_month_fastledd_grunnlag_bekreftet = not self._fastledd_ukjent()
+            self._previous_month_fastledd_grunnlag_bekreftet = not self._fastledd_belop_ukjent()
             # TRE_DØGNMAX_MND, MND_MAX og UKJENT leser bare inneværende måned, så
             # uten målinger finnes det ikke noe grunnlag å arkivere. OV_TREFASE og
             # FEM_VEKTET_ÅR har et beløp uansett (sikringsstørrelse, grunnbeløp).
@@ -2398,6 +2394,10 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 )
             )
         )
+
+    def _fastledd_belop_ukjent(self) -> bool:
+        """Om månedens fastleddbeløp er ukjent, av trinnene eller sikringsvalget."""
+        return self._fastledd_ukjent() or self._mangler_sikringsvalg()
 
     def _mangler_sikringsvalg(self) -> bool:
         """Om et sikringsbasert fastledd står uten gyldig brukervalg."""

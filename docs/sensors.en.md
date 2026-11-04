@@ -140,7 +140,7 @@ The "Forrige måned nettleie" sensor also has `energiledd_dag_kr`, `energiledd_n
 
 The sensor sums booked amounts from the monthly archive and adds the full monthly capacity charge. Rate changes during the month are preserved. An older archive without booked components is shown as unknown with `bokforte_kroner: false`; the next month rollover creates a complete archive.
 
-Delayed readings can also correct the previous month's peak hours and fixed charge. The calculation basis and tariff are frozen at month rollover. Older storage may lack this basis for annual weighted charges; a late correction then makes the grid tariff unknown with `fastledd_grunnlag_bekreftet: false`, because later annual peaks cannot establish the historical charge.
+Delayed readings can also correct the previous month's peak hours and fixed charge. The calculation basis and tariff are frozen at month rollover. A month closed by an older version lacks this basis. A late reading then corrects the peaks, while the fixed charge stays as the month was closed, since today's tariff may have changed and later annual peaks are not the historical record. The previous month's fixed charge is also unknown when the fuse size choice is missing, as it is for the current month.
 
 Capacity tiers preserve prices to the øre. Midtnett and Area's three regions have separate fixed-charge tables for configured holiday homes, including permanent residence. Area region 3 still has unresolved holiday-home energy charges and conflicting seasonal sources; see the [limitations](begrensninger.md) (Norwegian). Etna's household fixed charge is verified only up to and including 25 kW. A higher billing basis makes the fixed charge and total unknown, including after a late correction of the previous month.
 

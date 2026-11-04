@@ -162,7 +162,7 @@ Nettleie-sensoren har også `energiledd_dag_kr`, `energiledd_natt_kr`, `avgifter
 
 Sensoren summerer de bokførte kronebeløpene fra månedsarkivet og legger til hele månedens kapasitetsledd. Satsendringer underveis i måneden bevares. Et eldre arkiv uten bokførte delbeløp vises som ukjent med `bokforte_kroner: false`; neste månedsskifte lager et komplett arkiv.
 
-Forsinkede avlesninger kan også rette forrige måneds topptimer og fastledd. Beregningsgrunnlag og tariff fryses ved månedsskiftet. For årsvektet fastledd kan eldre lagring mangle dette grunnlaget; en sen korrigering gir da ukjent nettleie med `fastledd_grunnlag_bekreftet: false`, siden årets senere topper ikke kan brukes som historisk fasit.
+Forsinkede avlesninger kan også rette forrige måneds topptimer og fastledd. Beregningsgrunnlag og tariff fryses ved månedsskiftet. En måned som ble lukket av en eldre versjon, mangler dette grunnlaget. Da retter en sen avlesning toppene, mens fastleddet blir stående slik måneden ble lukket, siden dagens tariff kan være endret siden og årets senere topper ikke er historisk fasit. Forrige måneds fastledd er også ukjent når sikringsvalget mangler, slik det er for inneværende måned.
 
 Kapasitetstrinn beholder ørepriser. Midtnett og Areas tre områder har egne fastleddtabeller for konfigurert fritidsbolig, også ved fast bosted. Area område 3 har fortsatt uavklart energiledd for hytter og motstridende sesongkilder; se [begrensningene](begrensninger.md). Hos Etna er husholdningens fastledd bare bekreftet til og med 25 kW. Høyere fakturagrunnlag gir ukjent fastledd og total, også etter en sen korrigering av forrige måned.
 

@@ -1,9 +1,8 @@
 name: Hassfest (nattlig)
 
-# Samme validator som i CI. Det publiserte Hassfest-image-et mangler ennå
-# categories; den lokale actionen bygger uendret offisiell core-kilde fra en
-# fastlåst revisjon. Oppdater revisjonen ved nye krav, og gå tilbake til
-# standardactionen når image-et støtter feltet.
+# Samme begrunnelse som validate.yml: hassfest kjøres i ci.yml for hver PR og
+# hver releasekandidat, og om natten her, fordi Home Assistant kan skjerpe
+# kravene til manifest.json uten at vi har rørt filen.
 
 on:
   schedule:
@@ -21,4 +20,4 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Hassfest validation
-        uses: ./.github/actions/hassfest
+        uses: home-assistant/actions/hassfest@master

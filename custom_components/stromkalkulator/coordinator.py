@@ -1280,7 +1280,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # i går, og skal ikke dukke opp i morgendagens tall.
             self._daily_cost += diff.energi_kr
 
-    def _oppdater_fastledd(self, now: datetime, kapasitetsledd: float) -> None:
+    def _oppdater_fastledd(self, now: datetime, belop: float | None) -> None:
         """Fastleddet som periodebeløp: kr/mnd ganger forløpt andel av måneden.
 
         Regnet på nytt ved hver poll framfor å summeres opp av små tidsbiter.
@@ -1291,26 +1291,23 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         gang, i stedet for et stille hull for de nitten dagene før (K3, funn 5).
 
         Andelen måles i absolutt tid, så mars og oktober er ikke
-        spesialtilfeller (3jebp9g).
+        spesialtilfeller (3jebp9g). `belop` er None når fastleddet er ukjent.
         """
-        belop = None if self._fastledd_belop_ukjent() else kapasitetsledd
         self._monthly_accumulated_cost_kapasitetsledd = fastledd_belop(
             belop, forlopt_andel_av_maaned(_aware(now))
         )
 
-    def _oppdater_fastledd_helmaaned(self, kapasitetsledd: float) -> None:
+    def _oppdater_fastledd_helmaaned(self, belop: float | None) -> None:
         """Sett fastleddet til hele månedens beløp, for måneden som lukkes.
 
         Nettselskapet fakturerer sluttrinnet for hele fakturamåneden, så det er
         det tallet som arkiveres, ikke andelen som var forløpt da siste poll
         kom inn.
         """
-        belop = None if self._fastledd_belop_ukjent() else kapasitetsledd
         self._monthly_accumulated_cost_kapasitetsledd = fastledd_belop(belop, 1.0)
 
-    def _fastledd_i_dag(self, now: datetime, kapasitetsledd: float) -> float:
+    def _fastledd_i_dag(self, now: datetime, belop: float | None) -> float:
         """Dagens andel av månedens fastledd, i kroner."""
-        belop = None if self._fastledd_belop_ukjent() else kapasitetsledd
         naa = _aware(now)
         return fastledd_belop(belop, andel_av_maaned(sekunder_forlopt_i_dogn(naa), naa))
 
@@ -1672,7 +1669,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             prev_top_3 = self._get_top_3_days()
             self._previous_month_top_3 = prev_top_3
             self._previous_month_fastledd_snapshot = self._fastledd_snapshot(self._daily_max_power)
-            self._previous_month_fastledd_grunnlag_bekreftet = not self._fastledd_belop_ukjent()
+            grunnlag = self._fastledd_grunnlag()
+            belop_ukjent = self._fastledd_belop_ukjent(grunnlag)
+            self._previous_month_fastledd_grunnlag_bekreftet = not belop_ukjent
             # TRE_DØGNMAX_MND, MND_MAX og UKJENT leser bare inneværende måned, så
             # uten målinger finnes det ikke noe grunnlag å arkivere. OV_TREFASE og
             # FEM_VEKTET_ÅR har et beløp uansett (sikringsstørrelse, grunnbeløp).
@@ -1680,14 +1679,14 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self._previous_month_kapasitetsledd = 0
                 self._previous_month_kapasitetstrinn = ""
             else:
-                prev_kap, _, prev_trinn = self._get_kapasitetsledd(self._fastledd_grunnlag())
+                prev_kap, _, prev_trinn = self._get_kapasitetsledd(grunnlag)
                 self._previous_month_kapasitetsledd = prev_kap
                 self._previous_month_kapasitetstrinn = prev_trinn
 
             # Måneden som lukkes fakturerer sluttrinnet for hele måneden, ikke
             # en tidsvektet blanding av trinnene den var innom. Fastleddet
             # settes til fullt beløp før kostnaden arkiveres.
-            self._oppdater_fastledd_helmaaned(self._previous_month_kapasitetsledd)
+            self._oppdater_fastledd_helmaaned(None if belop_ukjent else self._previous_month_kapasitetsledd)
             self._previous_month_cost = self._monthly_cost
 
         # Archive energiledd rates for accurate previous-month calculations.
@@ -1918,10 +1917,13 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         # Effektgrunnlaget nettselskapets fastledd-metode bruker. Sammenfaller med
         # snittet av topp-3 for NVE-modellen, men ikke for de fem som avviker.
-        fastledd_grunnlag = self._fastledd_grunnlag()
+        # Regnes én gang per poll; alt under som trenger grunnlaget får det herfra.
+        fastledd_grunnlag_kw = self._fastledd_grunnlag()
 
         # Calculate capacity tier
-        kapasitetsledd, trinn_nummer, trinn_intervall = self._get_kapasitetsledd(fastledd_grunnlag)
+        kapasitetsledd, trinn_nummer, trinn_intervall = self._get_kapasitetsledd(fastledd_grunnlag_kw)
+        fastledd_ukjent_naa = self._fastledd_ukjent(fastledd_grunnlag_kw)
+        fastledd_maaned = None if self._fastledd_belop_ukjent(fastledd_grunnlag_kw) else kapasitetsledd
 
         # Calculate margin to next tier. Bare meningsfullt der trinnet følger målt
         # effekt: sikringsbasert og lineært fastledd endrer seg ikke med forbruket.
@@ -1929,9 +1931,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         neste_trinn_pris = kapasitetsledd
         if self.fastledd_metode in FASTLEDD_TRINNBASERTE:
             for i, (threshold, _price) in enumerate(self.kapasitetstrinn):
-                if self._avg_in_lower_tier(fastledd_grunnlag, threshold):
+                if self._avg_in_lower_tier(fastledd_grunnlag_kw, threshold):
                     if i + 1 < len(self.kapasitetstrinn):
-                        margin_neste_trinn = round(threshold - fastledd_grunnlag, 2)
+                        margin_neste_trinn = round(threshold - fastledd_grunnlag_kw, 2)
                         neste_trinn_pris = self.kapasitetstrinn[i + 1][1]
                     break
 
@@ -2030,7 +2032,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # bokført per avregnet intervall over, med intervallets egen pris.
         # Fastleddet er det eneste som gjenstår, og det er et periodebeløp:
         # kr/mnd ganger forløpt andel av måneden, regnet på nytt her.
-        self._oppdater_fastledd(now, kapasitetsledd)
+        self._oppdater_fastledd(now, fastledd_maaned)
 
         # Get electricity company price if configured
         electricity_company_price = None
@@ -2063,7 +2065,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             trinn_nummer=trinn_nummer,
             trinn_intervall=trinn_intervall,
             fastledd_per_kwh=fastledd_per_kwh,
-            fastledd_i_dag=self._fastledd_i_dag(now, kapasitetsledd),
+            fastledd_i_dag=self._fastledd_i_dag(now, fastledd_maaned),
             spot_price=spot_price,
             spot_price_valid=spot_price_valid,
             stromstotte=stromstotte,
@@ -2085,7 +2087,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             electricity_company_total=electricity_company_total,
             current_power_kw=current_power_kw,
             avg_power=avg_power,
-            fastledd_grunnlag=fastledd_grunnlag,
+            fastledd_grunnlag=fastledd_grunnlag_kw,
+            fastledd_ukjent=fastledd_ukjent_naa,
             top_3=top_3,
             now=now,
             stromstotte_max=stromstotte_max,
@@ -2128,7 +2131,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "fastledd_metode": self.fastledd_metode,
             "fastledd_grunnlag_kw": round(kw["fastledd_grunnlag"], 2),
             "fastledd_mangler_sikringsvalg": self._mangler_sikringsvalg(),
-            "fastledd_ukjent": self._fastledd_ukjent(),
+            "fastledd_ukjent": kw["fastledd_ukjent"],
             "spot_price": round(kw["spot_price"], 4),
             "spot_price_valid": kw["spot_price_valid"],
             "stromstotte": round(kw["stromstotte"], 4),
@@ -2337,9 +2340,9 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         grunnlag = self._fastledd_grunnlag() if grunnlag_kw is None else grunnlag_kw
         return fastledd_ukjent(self._fastleddtariff(), grunnlag)
 
-    def _fastledd_belop_ukjent(self) -> bool:
+    def _fastledd_belop_ukjent(self, grunnlag_kw: float) -> bool:
         """Om månedens fastleddbeløp er ukjent, av trinnene eller sikringsvalget."""
-        return fastledd_belop_ukjent(self._fastleddtariff(), self._fastledd_grunnlag())
+        return fastledd_belop_ukjent(self._fastleddtariff(), grunnlag_kw)
 
     def _mangler_sikringsvalg(self) -> bool:
         """Om et sikringsbasert fastledd står uten gyldig brukervalg."""

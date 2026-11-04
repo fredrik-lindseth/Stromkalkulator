@@ -9,6 +9,7 @@ låser at de tre veiene gir samme svar for samme tariff og topper.
 
 import asyncio
 import json
+from datetime import datetime
 from unittest.mock import AsyncMock
 
 import pytest
@@ -26,7 +27,7 @@ from stromkalkulator.fastledd import (
     utenfor_kildegrense,
 )
 
-from tests.conftest import _make_entry, _make_hass
+from tests.conftest import _make_entry, _make_hass, _run_update
 
 TRINN = ((2.0, 100.0), (5.0, 200.0), (float("inf"), 300.0))
 
@@ -111,3 +112,20 @@ def test_aapen_lukket_og_lastet_maaned_er_enige(coord_module, dso_id, topper):
     )
     asyncio.run(lastet._load_stored_data())
     assert lastet._previous_month_fastledd_grunnlag_bekreftet is not aapen_ukjent
+
+
+def test_grunnlaget_regnes_en_gang_per_poll(coord_module, monkeypatch):
+    """Grunnlaget sorterer alle døgnmaks, så det sendes videre i stedet for å regnes om."""
+    kall = []
+    ekte = coord_module.fastledd_grunnlag
+
+    def tell(*args, **kwargs):
+        kall.append(1)
+        return ekte(*args, **kwargs)
+
+    monkeypatch.setattr(coord_module, "fastledd_grunnlag", tell)
+    coord = coord_module.NettleieCoordinator(_make_hass(), _make_entry(dso_id="bkk"))
+    coord._store_loaded = True
+    coord._current_month = "2026-06"
+    _run_update(coord_module, coord, now=datetime(2026, 6, 20, 12))
+    assert len(kall) == 1

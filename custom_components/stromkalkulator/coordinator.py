@@ -16,6 +16,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
 from .avregning import (
+    BEVARING_SLAKK_KWH,
     OSLO,
     Avlesning,
     Avregningsbok,
@@ -99,7 +100,7 @@ from .dso import (
     hent_kapasitetstrinn,
     parse_kapasitetstrinn,
 )
-from .eksport import Eksportbok
+from .eksport import Eksportbok, Eksportsum
 from .inputadapter import (
     BASELINE_NOKKEL,
     ENHETSGRUNNER,
@@ -1112,11 +1113,8 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         som hele timeintervallet på nytt. Det bevarer også takdelingen for
         strømstøtte og Norgespris.
         """
-        forrige_dag = now.replace(day=1) - timedelta(days=1)
-        forrige_maned = forrige_dag.strftime("%Y-%m")
-        if self._current_month != now.strftime(
-            "%Y-%m"
-        ) or self._previous_month_name != self._format_month_name(forrige_dag):
+        forrige_maned = self._arkivert_forrige_maaned(now)
+        if self._current_month != now.strftime("%Y-%m") or forrige_maned is None:
             return False
 
         berorte = sorted(start for start in bokforing.fordeling if lokal_maned(start) == forrige_maned)
@@ -1150,6 +1148,22 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if endret:
             self._etterbokfor_lukket_fastledd(now, berorte)
         return endret
+
+    def _arkivert_forrige_maaned(self, now: datetime) -> str | None:
+        """`YYYY-MM` for måneden forrige-måned-feltene beskriver, eller None.
+
+        Etter et flermånedersgap er feltene nullstilt uten navn, og da finnes
+        det ingen arkivert måned å føre en sen hale eller lese eksport fra.
+        """
+        forrige_dag = now.replace(day=1) - timedelta(days=1)
+        if self._previous_month_name != self._format_month_name(forrige_dag):
+            return None
+        return forrige_dag.strftime("%Y-%m")
+
+    def _forrige_eksportsum(self, now: datetime) -> Eksportsum:
+        """Eksporten i den arkiverte forrige måneden, ikke kalendermåneden før."""
+        forrige_maned = self._arkivert_forrige_maaned(now)
+        return self._eksportbok.maaned(forrige_maned) if forrige_maned else Eksportsum()
 
     def _fastledd_snapshot(self, daily_max: dict[str, DailyMaxEntry]) -> dict[str, Any]:
         """Frys beregningsgrunnlag og satser uten å flytte den aktive måneden."""
@@ -1899,8 +1913,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         eksportsum = self._eksportbok.maaned(self._current_month)
         self._monthly_export_kwh = eksportsum.kwh
         self._monthly_export_revenue = eksportsum.inntekt_kr
-        forrige_eksportmaned = (now.replace(day=1) - timedelta(days=1)).strftime("%Y-%m")
-        forrige_eksportsum = self._eksportbok.maaned(forrige_eksportmaned)
+        forrige_eksportsum = self._forrige_eksportsum(now)
         self._previous_month_export_kwh = forrige_eksportsum.kwh
         self._previous_month_export_revenue = forrige_eksportsum.inntekt_kr
 
@@ -2110,8 +2123,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         perioder_meta = self._serialize_perioder()
         aktiv_periode = self._aktiv_periode_label(now)
         eksportsum = self._eksportbok.maaned(self._current_month)
-        forrige_eksportmaned = (now.replace(day=1) - timedelta(days=1)).strftime("%Y-%m")
-        forrige_eksportsum = self._eksportbok.maaned(forrige_eksportmaned)
+        forrige_eksportsum = self._forrige_eksportsum(now)
 
         return {
             # Bokens egne statusfelt (felttabellen i avregningskontrakten).
@@ -2237,23 +2249,19 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             ),
             "eksport_konfigurert": self.export_power_sensor is not None,
             "monthly_export_kwh": round(self._monthly_export_kwh, 3),
-            "monthly_export_revenue_kr": (
-                round(self._monthly_export_revenue, 2) if eksportsum.kwh_uten_pris <= 1e-9 else None
-            ),
-            "monthly_export_known_revenue_kr": round(self._monthly_export_revenue, 2),
+            # Inntekten er kjent delsum, samme regel som forbrukets kroner:
+            # energi uten pris gir ingen kroner og står synlig i
+            # `*_kwh_uten_pris` (kontrakt C4). Et kvarter uten pris skal ikke
+            # gjøre resten av måneden ukjent.
+            "monthly_export_revenue_kr": round(self._monthly_export_revenue, 2),
             "monthly_export_kwh_uten_pris": round(eksportsum.kwh_uten_pris, 6),
-            "monthly_export_price_complete": eksportsum.kwh_uten_pris <= 1e-9,
+            "monthly_export_price_complete": eksportsum.kwh_uten_pris <= BEVARING_SLAKK_KWH,
             "monthly_cost_kr": round(self._monthly_cost, 2),
             "monthly_net_cost_kr": round(self._monthly_cost - self._monthly_export_revenue, 2),
             "previous_month_export_kwh": round(self._previous_month_export_kwh, 3),
-            "previous_month_export_revenue_kr": (
-                round(self._previous_month_export_revenue, 2)
-                if forrige_eksportsum.kwh_uten_pris <= 1e-9
-                else None
-            ),
-            "previous_month_export_known_revenue_kr": round(self._previous_month_export_revenue, 2),
+            "previous_month_export_revenue_kr": round(self._previous_month_export_revenue, 2),
             "previous_month_export_kwh_uten_pris": round(forrige_eksportsum.kwh_uten_pris, 6),
-            "previous_month_export_price_complete": forrige_eksportsum.kwh_uten_pris <= 1e-9,
+            "previous_month_export_price_complete": forrige_eksportsum.kwh_uten_pris <= BEVARING_SLAKK_KWH,
             "previous_month_cost_kr": (
                 round(self._previous_month_cost, 2)
                 if self._previous_month_fastledd_grunnlag_bekreftet
@@ -2262,7 +2270,6 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "previous_month_net_cost_kr": (
                 round(self._previous_month_cost - self._previous_month_export_revenue, 2)
                 if self._previous_month_fastledd_grunnlag_bekreftet
-                and forrige_eksportsum.kwh_uten_pris <= 1e-9
                 else None
             ),
         }

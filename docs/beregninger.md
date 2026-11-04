@@ -151,7 +151,7 @@ Akkumuleres time for time. Hopper over hvis spotpris-sensor er ugyldig (mer enn 
 
 Når eksport-effektsensor er konfigurert, akkumuleres `spot_price_eks_mva × eksportert_kWh`. Privatperson har ikke utgående mva på salg av kraft, så strømleverandøren betaler eks. mva.
 
-Energien fordeles over UTC-kvarterene den ble levert i og prises med hvert kvarters observerte pris. En senere poll bruker ikke sin pris på eldre eksport. Null og negative priser er gyldige. Mangler en pris, beholdes kjent inntekt og energi uten pris separat; samlet inntekt og nettokostnad vises som ukjent til grunnlaget er komplett. Nye prisobservasjoner kan korrigere de siste tre timene.
+Energien fordeles over UTC-kvarterene den ble levert i og prises med hvert kvarters observerte pris. En senere poll bruker ikke sin pris på eldre eksport. Null og negative priser er gyldige. Mangler en pris, gir den energien ingen kroner, slik det er for forbruket ([avregningskontrakten C4](kontrakter/avregning.md#c4-intervaller-uten-data-eller-uten-pris)). Inntekt og nettokostnad viser da kjent delbeløp, og energien uten pris står i `kwh_uten_pris` med `prisgrunnlag_komplett: false`. Prisen hentes ikke i ettertid fra prissensorens dagsliste: den er visning, ikke en observasjon i kvarteret, og et kvarter som fikk pris etterpå ville gitt et sprang i en TOTAL-sensor. En ny prøve i samme kvarter kan rette energien som alt er bokført der.
 
 Netto månedskostnad = brutto kostnad minus eksportinntekt.
 

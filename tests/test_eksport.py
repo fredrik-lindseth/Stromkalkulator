@@ -351,7 +351,7 @@ class TestExportStorage:
             "current_month": "2026-06",
             "previous_month_consumption": {"dag": 0.0, "natt": 0.0},
             "previous_month_top_3": {},
-            "previous_month_name": None,
+            "previous_month_name": "mai 2026",
             "monthly_norgespris_diff": 0.0,
             "previous_month_norgespris_diff": 0.0,
             "daily_cost": 5.0,

@@ -1943,11 +1943,13 @@ class MaanedligEksportInntektSensor(EksportBaseSensor):
         if self.coordinator.data:
             kwh = self.coordinator.data.get("monthly_export_kwh", 0)
             revenue = self.coordinator.data.get("monthly_export_revenue_kr", 0)
+            uten_pris = self.coordinator.data.get("monthly_export_kwh_uten_pris", 0)
+            # Inntekten er kjent delsum, så snittet regnes over energien som har pris.
+            med_pris = kwh - uten_pris
             return {
                 "eksport_kwh": kwh,
-                "snitt_spotpris": round(revenue / kwh, 4) if kwh > 0 and revenue is not None else None,
-                "kjent_inntekt_kr": self.coordinator.data.get("monthly_export_known_revenue_kr"),
-                "kwh_uten_pris": self.coordinator.data.get("monthly_export_kwh_uten_pris", 0),
+                "snitt_spotpris": round(revenue / med_pris, 4) if med_pris > 1e-9 else None,
+                "kwh_uten_pris": uten_pris,
                 "prisgrunnlag_komplett": self.coordinator.data.get("monthly_export_price_complete", True),
                 "note": "Eksport betales til spotpris, ingen nettleie, avgifter eller stromstotte",
             }
@@ -1970,11 +1972,7 @@ class MaanedligNettokostnadSensor(EksportBaseSensor):
     @property
     def native_value(self) -> float | None:
         """Return net cost (consumption cost minus export revenue)."""
-        if (
-            self.coordinator.data
-            and not self._fastledd_ukjent()
-            and self.coordinator.data.get("monthly_export_price_complete", True)
-        ):
+        if self.coordinator.data and not self._fastledd_ukjent():
             return cast("float | None", self.coordinator.data.get("monthly_net_cost_kr"))
         return None
 
@@ -1986,6 +1984,7 @@ class MaanedligNettokostnadSensor(EksportBaseSensor):
                 {
                     "forbrukskostnad_kr": self.coordinator.data.get("monthly_cost_kr"),
                     "eksportinntekt_kr": self.coordinator.data.get("monthly_export_revenue_kr"),
+                    "eksport_kwh_uten_pris": self.coordinator.data.get("monthly_export_kwh_uten_pris", 0),
                     "eksport_prisdekning_fullstendig": self.coordinator.data.get(
                         "monthly_export_price_complete", True
                     ),
@@ -2054,7 +2053,6 @@ class ForrigeMaanedEksportInntektSensor(EksportBaseSensor):
             return {
                 "maaned": self.coordinator.data.get("previous_month_name"),
                 "nettokostnad_kr": self.coordinator.data.get("previous_month_net_cost_kr"),
-                "kjent_inntekt_kr": self.coordinator.data.get("previous_month_export_known_revenue_kr"),
                 "kwh_uten_pris": self.coordinator.data.get("previous_month_export_kwh_uten_pris", 0),
                 "prisgrunnlag_komplett": self.coordinator.data.get(
                     "previous_month_export_price_complete", True

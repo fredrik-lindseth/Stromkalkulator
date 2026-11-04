@@ -130,9 +130,8 @@ class TestSpotprisCaching:
 
         # Selv med Norgespris skal vi ikke akkumulere besparelse mot 0.0-spot
         assert result["monthly_norgespris_diff_kr"] == 0.0
-        # Eksportenergi bevares, men totalinntekt er ukjent uten prisgrunnlag.
-        assert result["monthly_export_revenue_kr"] is None
-        assert result["monthly_export_known_revenue_kr"] == 0.0
+        # Eksportenergi bevares; inntekten er kjent delsum, her ingenting.
+        assert result["monthly_export_revenue_kr"] == 0.0
         assert result["monthly_export_kwh_uten_pris"] == 0.05
         assert result["monthly_export_kwh"] == 0.05
         assert result["monthly_export_price_complete"] is False

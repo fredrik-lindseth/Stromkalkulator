@@ -162,7 +162,7 @@ For prosumers. Requires a configured export power sensor. All disabled by defaul
 | _(optional)_ Forrige måned eksport kWh     | kWh  | Exported energy last month            |
 | _(optional)_ Forrige måned eksport inntekt | NOK  | Export revenue last month             |
 
-Export revenue uses the spot price for the quarter-hour when the energy was supplied. Zero and negative prices are valid. With missing price coverage, revenue and net cost are unknown; revenue attributes show the known subtotal and `kwh_uten_pris`. Net cost also requires a known fixed charge.
+Export revenue uses the spot price for the quarter-hour when the energy was supplied. Zero and negative prices are valid. Energy in a quarter-hour without a price earns no kroner, the same rule as for consumption. Revenue and net cost are then the known subtotal: `prisgrunnlag_komplett: false` and `kwh_uten_pris` on the revenue sensor, and `eksport_prisdekning_fullstendig` and `eksport_kwh_uten_pris` on net cost, show how much is missing. The average price covers only priced energy. The amount is not filled in later, so the total does not jump when the price returns. Net cost also requires a known fixed charge.
 
 This is the spot value of exported energy. Feed-in compensation from the grid company and separate terms in the supplier's prosumer contract are not included.
 

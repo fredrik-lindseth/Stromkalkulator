@@ -103,8 +103,7 @@ def test_coordinator_prisgap_bruker_ikke_nabo_eller_visningscache(coord_module):
     _run_update(coord_module, coord, now=tid(12, 59))
     pris[0] = 2
     svar = _run_update(coord_module, coord, now=tid(13, 2))
-    assert svar["monthly_export_revenue_kr"] is None
-    assert svar["monthly_export_known_revenue_kr"] == 0.4
+    assert svar["monthly_export_revenue_kr"] == 0.4
     assert svar["monthly_export_kwh_uten_pris"] == 0.1
     assert svar["monthly_export_price_complete"] is False
 
@@ -133,8 +132,7 @@ def test_visningscache_er_ikke_prisgrunnlag_for_ny_eksport(coord_module):
     pris[0] = "unavailable"
     svar = _run_update(coord_module, coord, now=tid(13, 2))
     assert svar["spot_price_valid"] is True  # visningscachen er fortsatt lovlig
-    assert svar["monthly_export_revenue_kr"] is None
-    assert svar["monthly_export_known_revenue_kr"] == 0.1
+    assert svar["monthly_export_revenue_kr"] == 0.1
     assert svar["monthly_export_kwh_uten_pris"] == 0.2
 
 
@@ -150,23 +148,61 @@ def test_coordinator_prisgap_overlever_store_og_restart(coord_module):
     igjen._store.async_load = AsyncMock(return_value=lagret)
     igjen._store.async_save = AsyncMock()
     svar = _run_update(coord_module, igjen, now=tid(13, 3))
-    assert svar["monthly_export_revenue_kr"] is None
+    assert svar["monthly_export_revenue_kr"] == -0.6
     assert svar["monthly_export_kwh_uten_pris"] == 0.1
-    assert svar["monthly_export_known_revenue_kr"] == -0.6
+    assert svar["monthly_export_price_complete"] is False
 
 
-def test_inntektssensor_prisgap_viser_ukjent_med_kjent_delsum(coord_module):
+def test_inntektssensor_prisgap_viser_kjent_delsum_med_dekning(coord_module):
     from stromkalkulator.sensor import MaanedligEksportInntektSensor
 
-    coord = coordinator_med_pris(coord_module, ["unavailable"])
+    pris = ["unavailable"]
+    coord = coordinator_med_pris(coord_module, pris)
     _run_update(coord_module, coord, now=tid(12, 59))
+    pris[0] = 2
     data = _run_update(coord_module, coord, now=tid(13, 2))
     visning = MagicMock(data=data)
     sensor = MaanedligEksportInntektSensor(visning, _make_entry())
-    assert sensor.native_value is None
-    assert sensor.extra_state_attributes["snitt_spotpris"] is None
-    assert sensor.extra_state_attributes["kwh_uten_pris"] == 0.3
-    assert sensor.extra_state_attributes["kjent_inntekt_kr"] == 0.0
+    assert sensor.native_value == 0.4
+    attrs = sensor.extra_state_attributes
+    # Snittet er over energien som har pris, ikke over hele eksporten.
+    assert attrs["snitt_spotpris"] == 2.0
+    assert attrs["kwh_uten_pris"] == 0.1
+    assert attrs["prisgrunnlag_komplett"] is False
+
+
+def test_kort_prisgap_gjor_ikke_resten_av_maaneden_ukjent(coord_module):
+    """Ett kvarter uten pris, f.eks. en omstart midt på dagen, skal ikke
+    gjøre inntekt og nettokostnad ukjent til månedsskiftet. Senere kvarter
+    med pris legges til den kjente delsummen, og summen hopper ikke."""
+    pris = ["unavailable"]
+    coord = coordinator_med_pris(coord_module, pris)
+    _run_update(coord_module, coord, now=tid(12, 59))
+    pris[0] = 2
+    foer = _run_update(coord_module, coord, now=tid(13, 2))
+    etter = _run_update(coord_module, coord, now=tid(13, 5))
+    assert etter["monthly_export_kwh_uten_pris"] == 0.1
+    assert etter["monthly_export_price_complete"] is False
+    assert etter["monthly_export_revenue_kr"] == pytest.approx(foer["monthly_export_revenue_kr"] + 0.6)
+    assert etter["monthly_net_cost_kr"] == pytest.approx(
+        etter["monthly_cost_kr"] - etter["monthly_export_revenue_kr"], abs=0.01
+    )
+
+
+def test_forrige_maaneds_eksport_gjelder_maaneden_som_ble_arkivert(coord_module):
+    """Etter et flermånedersgap er forrige måned nullstilt uten navn. Eksporten
+    som lå i kalendermåneden før skal da ikke vises som om den var arkivert."""
+    oslo = ZoneInfo("Europe/Oslo")
+    coord = coordinator_med_pris(coord_module, [1])
+    _run_update(coord_module, coord, now=datetime(2026, 4, 30, 12, 2, tzinfo=oslo))
+    # Oppdateringene har stått i to måneder; den første etterpå ligger rett
+    # etter midnatt, så eksportvinduet bak den krysser inn i juni.
+    svar = _run_update(coord_module, coord, now=datetime(2026, 7, 1, 0, 2, tzinfo=oslo))
+    assert coord._eksportbok.maaned("2026-06").kwh > 0
+    assert svar["previous_month_name"] is None
+    assert svar["previous_month_export_kwh"] == 0
+    assert svar["previous_month_export_revenue_kr"] == 0
+    assert svar["previous_month_export_kwh_uten_pris"] == 0
 
 
 @pytest.mark.parametrize("verdi", [float("nan"), float("inf"), -1, "feil"])

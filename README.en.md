@@ -138,7 +138,7 @@ Previous month's data for invoice verification.
 
 Solar export for prosumers (disabled by default).
 
-Export revenue uses the price for the quarter-hour when the energy was supplied. Missing price coverage makes revenue and net cost unknown, with the known subtotal in attributes. Net cost also requires a known fixed charge.
+Export revenue uses the price for the quarter-hour when the energy was supplied. If a quarter-hour has no price, for example during a restart, revenue and net cost show the known subtotal, and the attributes say how much energy lacks a price. Net cost also requires a known fixed charge.
 
 ## Using with Energy Dashboard
 

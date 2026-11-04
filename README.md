@@ -115,7 +115,7 @@ Forrige måneds data for faktura-verifisering.
 
 Solcelle-eksport for plusskunder (deaktivert som standard).
 
-Eksportinntekt bruker prisen for kvarteret energien ble levert i. Mangler prisdekning, vises inntekt og nettokostnad som ukjent med kjent delbeløp i attributtene. Nettokostnad krever også kjent fastledd.
+Eksportinntekt bruker prisen for kvarteret energien ble levert i. Mangler et kvarter pris, for eksempel under en omstart, viser inntekt og nettokostnad kjent delbeløp, og attributtene sier hvor mye energi som mangler pris. Nettokostnad krever også kjent fastledd.
 
 ## Bruk med Energy Dashboard
 

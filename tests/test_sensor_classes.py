@@ -107,10 +107,13 @@ from tests.vakter import ganget_med  # noqa: E402
 
 @pytest.mark.parametrize("ukjent", [False, True])
 @pytest.mark.parametrize("prisdekning", [False, True])
-def test_nettokostnad_krever_kjent_fastledd_og_eksportpris(ukjent, prisdekning):
+def test_nettokostnad_krever_kjent_fastledd_og_viser_eksportdekning(ukjent, prisdekning):
     coordinator = MagicMock()
     coordinator.data = {
         "monthly_net_cost_kr": -0.07,
+        "monthly_cost_kr": 0.33,
+        "monthly_export_revenue_kr": 0.4,
+        "monthly_export_kwh_uten_pris": 0 if prisdekning else 0.1,
         "fastledd_ukjent": ukjent,
         "monthly_export_price_complete": prisdekning,
     }
@@ -118,9 +121,14 @@ def test_nettokostnad_krever_kjent_fastledd_og_eksportpris(ukjent, prisdekning):
     entry.entry_id = "bolig"
     entry.data = {"tso": "egendefinert"}
     sensor = MaanedligNettokostnadSensor(coordinator, entry)
-    assert sensor.native_value == (None if ukjent or not prisdekning else -0.07)
-    assert bool(sensor.extra_state_attributes.get("fastledd_ukjent")) is ukjent
-    assert sensor.extra_state_attributes["eksport_prisdekning_fullstendig"] is prisdekning
+    # Prisgapet i eksporten gjør ikke nettokostnaden ukjent: den er kjent
+    # delsum, og dekningen står i attributtene.
+    assert sensor.native_value == (None if ukjent else -0.07)
+    attrs = sensor.extra_state_attributes
+    assert bool(attrs.get("fastledd_ukjent")) is ukjent
+    assert attrs["eksportinntekt_kr"] == 0.4
+    assert attrs["eksport_kwh_uten_pris"] == (0 if prisdekning else 0.1)
+    assert attrs["eksport_prisdekning_fullstendig"] is prisdekning
 
 
 SAMPLE_DATA = {

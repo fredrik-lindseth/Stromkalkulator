@@ -184,7 +184,7 @@ For plusskunder. Krever konfigurert eksport-effektsensor. Alle deaktivert som st
 | _(valgfri)_ Forrige måned eksport kWh     | kWh   | Eksportert energi forrige måned      |
 | _(valgfri)_ Forrige måned eksport inntekt | NOK   | Eksportinntekt forrige måned         |
 
-Eksportinntekten beregnes med spotprisen for kvarteret energien ble levert i. Null og negative priser er gyldige. Mangler prisdekning, vises inntekt og nettokostnad som ukjent; inntektssensorens attributter viser kjent delbeløp og `kwh_uten_pris`. Nettokostnad krever også et kjent fastledd.
+Eksportinntekten beregnes med spotprisen for kvarteret energien ble levert i. Null og negative priser er gyldige. Energi i et kvarter uten pris gir ingen kroner, samme regel som for forbruket. Inntekt og nettokostnad er da kjent delbeløp: `prisgrunnlag_komplett: false` og `kwh_uten_pris` på inntektssensoren, og `eksport_prisdekning_fullstendig` og `eksport_kwh_uten_pris` på nettokostnaden, viser hvor mye som mangler. Snittprisen regnes over energien som har pris. Beløpet fylles ikke inn senere, så summen hopper ikke når prisen kommer tilbake. Nettokostnad krever også et kjent fastledd.
 
 Dette er eksportens spotverdi. Innmatingsgodtgjørelse fra nettselskapet og egne vilkår i leverandørens plusskundeavtale er ikke inkludert.
 

@@ -1188,9 +1188,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return {
             **self._fastleddtariff().til_snapshot(),
             "daily_max": self._serialize_daily_max(daily_max),
-            "weekly_max": {
-                k: {"kw": v.kw, "dato": v.dato, "hour": v.hour} for k, v in self._weekly_max_power.items()
-            },
+            "weekly_max": self._serialize_weekly_max(self._weekly_max_power),
         }
 
     def _etterbokfor_lukket_fastledd(self, now: datetime, berorte: list[datetime]) -> None:
@@ -1211,7 +1209,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         weekly = self._validate_weekly_max_power(snapshot.get("weekly_max", {}))
         self._oppdater_lukkede_topper(now, berorte, daily, weekly)
         snapshot["daily_max"] = self._serialize_daily_max(daily)
-        snapshot["weekly_max"] = {k: {"kw": v.kw, "dato": v.dato, "hour": v.hour} for k, v in weekly.items()}
+        snapshot["weekly_max"] = self._serialize_weekly_max(weekly)
         self._previous_month_top_3 = dict(sorted(daily.items(), key=lambda p: p[1].kw, reverse=True)[:3])
         belop, beskrivelse = self._lukket_fastledd(snapshot, daily, weekly)
         self._previous_month_cost += belop - self._previous_month_kapasitetsledd
@@ -2998,6 +2996,11 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Convert DailyMaxEntry dict to JSON-serializable format."""
         return {k: {"kw": v.kw, "hour": v.hour} for k, v in data.items()}
 
+    @staticmethod
+    def _serialize_weekly_max(data: dict[str, WeeklyMaxEntry]) -> dict[str, dict[str, Any]]:
+        """WeeklyMaxEntry-er som JSON. Samme form leses av `_validate_weekly_max_power`."""
+        return {k: {"kw": v.kw, "dato": v.dato, "hour": v.hour} for k, v in data.items()}
+
     def _les_fastledd_snapshot(self, raw: object) -> dict[str, Any] | None:
         """Les valgfri historikk; eldre lagring og skadde felt er ikke et grunnlag."""
         if not isinstance(raw, dict):
@@ -3049,9 +3052,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self._validate_daily_max_power(snapshot.get("daily_max", {}))
             )
             weekly = self._validate_weekly_max_power(snapshot.get("weekly_max", {}))
-            snapshot["weekly_max"] = {
-                k: {"kw": v.kw, "dato": v.dato, "hour": v.hour} for k, v in weekly.items()
-            }
+            snapshot["weekly_max"] = self._serialize_weekly_max(weekly)
             return snapshot
         except (KeyError, TypeError, ValueError, OverflowError, AttributeError):
             _LOGGER.warning("Uleselig historisk fastledd-grunnlag; bruker tilgjengelig eldre historikk")
@@ -3067,9 +3068,7 @@ class NettleieCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # beholder månedsdataene sine.
             **self._bok.til_lagring(_aware(dt_util.now())),
             "daily_max_power": self._serialize_daily_max(self._daily_max_power),
-            "weekly_max_power": {
-                k: {"kw": v.kw, "dato": v.dato, "hour": v.hour} for k, v in self._weekly_max_power.items()
-            },
+            "weekly_max_power": self._serialize_weekly_max(self._weekly_max_power),
             "monthly_consumption": {
                 "dag": self._monthly_consumption.dag,
                 "natt": self._monthly_consumption.natt,

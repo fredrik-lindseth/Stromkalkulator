@@ -129,3 +129,13 @@ def test_grunnlaget_regnes_en_gang_per_poll(coord_module, monkeypatch):
     coord._current_month = "2026-06"
     _run_update(coord_module, coord, now=datetime(2026, 6, 20, 12))
     assert len(kall) == 1
+
+
+def test_ukesmaks_rundtur_gjennom_lagringsformatet(coord_module):
+    """Lagring og snapshot skriver ukestoppene i formen valideringen leser."""
+    uker = {
+        "2026-03-30": coord_module.WeeklyMaxEntry(kw=8.0, dato="2026-03-31", hour=17),
+        "2026-04-06": coord_module.WeeklyMaxEntry(kw=6.5, dato="2026-04-07", hour=None),
+    }
+    lagret = json.loads(json.dumps(coord_module.NettleieCoordinator._serialize_weekly_max(uker)))
+    assert coord_module.NettleieCoordinator._validate_weekly_max_power(lagret) == uker

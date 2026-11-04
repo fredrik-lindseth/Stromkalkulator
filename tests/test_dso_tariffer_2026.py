@@ -244,7 +244,8 @@ class TestNettselskapet2026:
     """Nettselskapet AS hevet kapasitetsleddet 01.07.2026 (GitHub-issue #11).
 
     Energileddet står stille, men fastleddet gikk opp ~18%. Prislisten deres
-    skiller kun på klokkeslett, ikke ukedag.
+    skiller kun på klokkeslett, ikke ukedag. Alle åtte fastledd er kontrollert
+    9. oktober 2026; publiserte ørebeløp skal bevares gjennom trinnoppslaget.
     Kilde: nettselskapet.as/strompris (priser inkl. mva i egen kolonne).
     """
 
@@ -267,12 +268,12 @@ class TestNettselskapet2026:
     @pytest.mark.parametrize(
         ("avg_power", "expected_kr_mnd"),
         [
-            (1.0, 163),  # 0-2 kW: 162,50   (var 137,50)
+            (1.0, 162.50),  # 0-2 kW: 162,50   (var 137,50)
             (3.0, 300),  # 2-5 kW: 300      (var 250)
-            (7.0, 513),  # 5-10 kW: 512,50  (var 425)
-            (12.0, 763),  # 10-15 kW: 762,50 (var 625)
-            (17.0, 988),  # 15-20 kW: 987,50 (var 812,50)
-            (22.0, 1238),  # 20-25 kW: 1237,50 (var 1025)
+            (7.0, 512.50),  # 5-10 kW: 512,50  (var 425)
+            (12.0, 762.50),  # 10-15 kW: 762,50 (var 625)
+            (17.0, 987.50),  # 15-20 kW: 987,50 (var 812,50)
+            (22.0, 1237.50),  # 20-25 kW: 1237,50 (var 1025)
             (30.0, 2125),  # 25-50 kW: 2125   (var 1750)
             (60.0, 3325),  # 50-75 kW: 3325   (var 2750)
         ],
@@ -482,10 +483,10 @@ class TestAdopterteDsoer:
     @pytest.mark.parametrize(
         ("dso_id", "avg_power", "kr_mnd"),
         [
-            # Romsdalsnett: sto 363 og 1160, altså næringstallene 290 og 928
-            # ganget med 1,25. PDF-en fakturerer 362 og 1159.
-            ("romsdalsnett", 3.0, 362),
-            ("romsdalsnett", 22.0, 1159),
+            # Romsdalsnett: PDF-en fra 1.11.2026 skriver 381 og 1219 inkl. mva.
+            # Næringstallene 305 og 975 ganget med 1,25 gir 381,25 og 1218,75.
+            ("romsdalsnett", 3.0, 381),
+            ("romsdalsnett", 22.0, 1219),
             # Vestmar: sto 1495, PDF-en skriver 1 493,75.
             ("vestmar_nett", 22.0, 1494),
         ],
@@ -587,7 +588,7 @@ class TestArva2026:
     [
         ("asker_nett", 29.87, 19.87, [225, 320, 500, 850, 1090, 1350, 2130, 3150, 4200, 7300]),
         ("barents_nett", 10.75, 10.75, [491, 541, 589, 639, 737, 884]),
-        ("etna_nett", 27.55, 20.59, [350, 525, 623, 769, 1015, 1269]),
+        ("etna_nett", 27.55, 20.59, [350, 525, 623.70, 768.80, 1015.30, 1269.20]),
         ("norgesnett", 27.87, 15.87, [165, 270, 455, 765, 1025, 1275, 2062.50, 3075, 4105, 7190]),
         ("glitre", 27.87, 15.87, [165, 270, 455, 765, 1025, 1275, 2062.50, 3075, 4105, 7190]),
         ("kystnett", 17, 17, [508, 916, 1324, 1733, 2141, 3366, 5407, 7448, 10510, 14593]),
@@ -595,6 +596,21 @@ class TestArva2026:
     ],
 )
 def test_tariffer_fra_oktober_2026_mot_offisielle_prislister(dso_id, dag_ore, natt_ore, trinn):
+    """Fasiter fra kildene i docs/satsendringer.md, ikke hentet fra fri-nettleie."""
+    dso = DSO_LIST[dso_id]
+    assert dso["energiledd_dag_eks_mva"] * 100 == pytest.approx(dag_ore)
+    assert dso["energiledd_natt_eks_mva"] * 100 == pytest.approx(natt_ore)
+    assert [rad["pris"] if isinstance(rad, dict) else rad[1] for rad in dso["kapasitetstrinn"]] == trinn
+
+
+@pytest.mark.parametrize(
+    "dso_id,dag_ore,natt_ore,trinn",
+    [
+        ("foie", 21, 13.5, [300, 387.50, 550, 862.50, 1087.50, 1393.80, 1856.30, 3062.50, 3625]),
+        ("romsdalsnett", 32.29, 21.78, [305, 381, 459, 762, 1067, 1219, 1675, 2285, 2590, 3047]),
+    ],
+)
+def test_tariffer_fra_november_2026_mot_offisielle_prislister(dso_id, dag_ore, natt_ore, trinn):
     """Fasiter fra kildene i docs/satsendringer.md, ikke hentet fra fri-nettleie."""
     dso = DSO_LIST[dso_id]
     assert dso["energiledd_dag_eks_mva"] * 100 == pytest.approx(dag_ore)

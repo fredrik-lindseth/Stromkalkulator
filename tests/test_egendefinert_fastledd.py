@@ -63,12 +63,12 @@ class TestParserenLeserBrukerensTabell:
         assert parse_kapasitetstrinn(" 2 : 155 , 5 : 250 ") == [(2.0, 155), (5.0, 250)]
 
     def test_punktum_som_desimaltegn(self):
-        """155.5 kr/mnd rundes til hele kroner, som i katalogen."""
-        assert parse_kapasitetstrinn("2:155.5") == [(2.0, 156)]
+        """Publiserte øre beholdes også i brukerens tabell."""
+        assert parse_kapasitetstrinn("2:155.5") == [(2.0, 155.5)]
 
     def test_komma_som_desimaltegn(self):
         """Komma skiller par, men «155,5» uten kolon etter er ett tall."""
-        assert parse_kapasitetstrinn("2:155,5") == [(2.0, 156)]
+        assert parse_kapasitetstrinn("2:155,5") == [(2.0, 155.5)]
 
     def test_desimalgrense(self):
         assert parse_kapasitetstrinn("2.5:155") == [(2.5, 155)]

@@ -2,6 +2,20 @@
 
 Home Assistant-integrasjon for nettleie, strømstøtte og Norgespris-sammenligning i Norge.
 
+## Ansvarsområde
+
+Strømkalkulator beregner og forklarer strøm- og nettleiekostnader. Integrasjonen
+eier norske tariffer, avgifter, strømstøtte, Norgespris og etterprøvbar
+avregning. Nord Pool og andre priskilder leverer spotprisgrunnlaget.
+
+Eventuelle beregninger av kommende priser følger samme ansvarsområde:
+kostnadsgrunnlag og synliggjøring av forutsetninger. Valg av kjøretidspunkt,
+prisoptimalisering og styring av laster hører til Effektvakt eller brukerens
+automasjoner. Ikke bygg en laststyrings- eller planleggingsmotor her.
+
+Private arbeidsnotater og intern oppgavesporing skal ikke inn i offentlige
+filer, tester eller commit-meldinger.
+
 ## Hovedfiler
 
 - `custom_components/stromkalkulator/`: integrasjonskode
@@ -133,16 +147,25 @@ lagrer prisene slik de så ut ved publisering og kan ha foreløpig valutakurs p�
 søndager, så den duger ikke som fasit. Bakgrunn:
 [docs/research/norgespris-eksakt-match.md](docs/research/norgespris-eksakt-match.md).
 
-## Issue-tracking
+## Release-noter for Home Assistant
 
-Namespace i dcat er `stromkalkulator`. GitHub Issues er kun for eksterne
-brukerrapporter; de besvares og lukkes der, men arbeidet de utløser
-registreres i dcat.
+GitHub-release-bodyen er teksten brukerne leser i HACS inne i Home Assistant.
+Skriv for den flaten: korte punkter om funksjoner, synlige rettelser og hva
+brukeren må gjøre. Første release beskriver hva brukeren får; senere releaser
+beskriver forskjellen fra forrige versjon.
 
-Oppkoblingen mot den sentrale basen er to gitignorede filer: `.dogcatrc` i
-repo-roten med stien til basen, og `.dogcats/config.local.toml` med
-`namespace = "stromkalkulator"`. Mangler de (fersk klone), gjenskap dem etter
-mønsteret i leirnes.no-repoet. Issue-data skal aldri committes hit.
+- Merk bare brukerrelevante punkter med `<!--kort-->`. Lengden følger endringene, uten et fast antall punkter.
+- Anta at leseren allerede har installert integrasjonen. Installasjon og valgfritt oppsett hører hjemme i README. `### Dette må du gjøre selv` er bare for nødvendige handlinger ved oppgradering.
+- Skriv hele avsnitt og listepunkter på én linje, uten manuell linjebryting. Bruk vanlige ord og konkrete endringer, uten fet ledetekst, reklamespråk eller mekanisk like punkter.
+- Sjekk tidligere manifestversjoner i git før du omtaler en utgivelse som den første. Manglende GitHub-releaser betyr ikke at tidligere versjoner mangler.
+- Legg testtall, CI, refaktorering, datakildepinner og annen utviklerinformasjon
+  i full CHANGELOG eller utviklerdokumentasjonen, uten kortmerke.
+- Release-bodyen skal ikke fylles med commit-logg, SHA-er eller byggedetaljer.
+  Proveniens bevises gjennom tagg, ZIP og attestasjon; se `SECURITY.md`.
+- Generer og les den faktiske korte release-noten før publisering. En kort
+  overskrift gjør ikke et langt avsnitt kort.
+
+Detaljer og kontrollkommandoer: [docs/release-notes.md](docs/release-notes.md).
 
 ## Dokumentasjon
 

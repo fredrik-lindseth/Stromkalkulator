@@ -25,7 +25,6 @@ Sist kontrollert: Oktober 2026. Se docs/satsendringer.md for satser og kilder.
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from decimal import ROUND_HALF_UP, Decimal
 from typing import Any, Final, NotRequired, TypedDict
 
 # Type for kapasitetstrinn: tuple of (kW-grense, kr/mnd)
@@ -139,6 +138,8 @@ class DSOEntry(TypedDict):
     url: str
     kapasitetstrinn: list[KapasitetstrinnTuple | KapasitetstrinnDict]
     kapasitetstrinn_per_boligtype: NotRequired[dict[str, list[KapasitetstrinnTuple | KapasitetstrinnDict]]]
+    kjent_fastledd_maks_kw: NotRequired[float]
+    kjent_fastledd_maks_kw_inkludert: NotRequired[bool]
     tiltakssone: NotRequired[bool]
     helg_som_natt: NotRequired[bool]  # Default True. False = kun klokkeslett styrer dag/natt.
     terskel_inkludert: NotRequired[bool]  # Default True. False = eksakt grensetreff hører til lavere trinn.
@@ -261,7 +262,7 @@ def parse_kapasitetstrinn(tekst: str) -> list[KapasitetstrinnTuple]:
             if not trinn:
                 raise ValueError(f"«{par}» mangler kolon mellom kW-grense og pris")
             forrige_grense, forrige_pris = trinn[-1]
-            trinn[-1] = (forrige_grense, _rund_krone(f"{forrige_pris}.{_bare_siffer(par)}"))
+            trinn[-1] = (forrige_grense, _som_tall(f"{forrige_pris:g}.{_bare_siffer(par)}", "pris"))
             continue
         raa_grense, _, raa_pris = par.partition(":")
         grense = _som_tall(raa_grense, "kW-grense")
@@ -272,7 +273,7 @@ def parse_kapasitetstrinn(tekst: str) -> list[KapasitetstrinnTuple]:
             raise ValueError(f"Prisen kan ikke være negativ, fikk «{raa_pris.strip()}»")
         if trinn and grense <= trinn[-1][0]:
             raise ValueError(f"kW-grensene må stige: {grense} kommer etter {trinn[-1][0]}")
-        trinn.append((grense, _rund_krone(pris)))
+        trinn.append((grense, pris))
     return trinn
 
 
@@ -293,11 +294,6 @@ def _som_tall(raa: str, hva: str) -> float:
         return float(tekst)
     except ValueError as feil:
         raise ValueError(f"«{raa.strip()}» er ikke et tall ({hva})") from feil
-
-
-def _rund_krone(pris: float | str) -> int:
-    """Prisen lagres i hele kroner, som resten av `kapasitetstrinn`."""
-    return int(Decimal(str(pris)).quantize(Decimal(1), ROUND_HALF_UP))
 
 
 def finn_kapasitetstrinn(
@@ -609,19 +605,22 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "Føie",
         "prisomrade": "NO1",
         "supported": True,
-        "energiledd_dag_eks_mva": 0.16502,  # 16,50 øre/kWh ren energiledd (2026, dag 06-22)
-        "energiledd_natt_eks_mva": 0.09998,  # 10,00 øre/kWh ren energiledd (2026, natt 22-06)
+        # Kilde: https://www.foie.no/nettleie/priser-fra-1.-november
+        # Tariff fra 2026-11-01, verifisert 2026-11-04; energiledd eks. mva og avgifter.
+        "energiledd_dag_eks_mva": 0.21,  # 21,00 øre/kWh ren energiledd (dag 06-22)
+        "energiledd_natt_eks_mva": 0.135,  # 13,50 øre/kWh ren energiledd (natt 22-06)
         "url": "https://www.foie.no/nettleie/priser",
+        # Kr/mnd inkl. mva, ordrett fra samme side.
         "kapasitetstrinn": [
-            (2, 238),  # 0-2 kW: 237,5 kr/mnd
-            (5, 294),  # 2-5 kW: 293,8 kr/mnd
-            (10, 419),  # 5-10 kW: 418,8 kr/mnd
-            (15, 663),  # 10-15 kW: 662,5 kr/mnd
-            (20, 838),  # 15-20 kW: 837,5 kr/mnd
-            (25, 1075),  # 20-25 kW: 1075 kr/mnd
-            (50, 1438),  # 25-50 kW: 1437,5 kr/mnd
-            (75, 2375),  # 50-75 kW: 2375 kr/mnd
-            (float("inf"), 3000),  # 75+ kW: 3000 kr/mnd
+            (2, 300),
+            (5, 387.50),
+            (10, 550),
+            (15, 862.50),
+            (20, 1087.50),
+            (25, 1393.80),
+            (50, 1856.30),
+            (75, 3062.50),
+            (float("inf"), 3625),
         ],
     },
     "linea": {
@@ -765,6 +764,10 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "Nettselskapet",
         "prisomrade": "NO3",
         "supported": True,
+        # Privatprislisten ender på «50-75 kW», uten avklart inklusjon
+        # av grensen. Fra og med 75 er fastleddet derfor ukjent.
+        "kjent_fastledd_maks_kw": 75,
+        "kjent_fastledd_maks_kw_inkludert": False,
         # Namdal (Trøndelag) - HAR 25% mva (ikke mva-fritak)
         # Sesongpriser, verifisert 2026-07-28 mot nettselskapet.as og fri-nettleie:
         # vinter (nov-apr) 12,7/2,7, sommer (mai-okt) 11,6/1,6. Base = vinter (fallback).
@@ -779,14 +782,14 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         # helgetariff. Bekreftet av kunde i GitHub-issue #11.
         "helg_som_natt": False,
         "url": "https://nettselskapet.as/strompris",
-        # Kilde: nettselskapet.as/strompris per 01.07.2026 (verifisert 2026-07-28)
+        # Kilde: nettselskapet.as/strompris per 01.07.2026 (verifisert 2026-10-09)
         "kapasitetstrinn": [
-            (2, 163),  # 0-2 kW: 162,50 kr/mnd
+            (2, 162.50),  # 0-2 kW: 162,50 kr/mnd
             (5, 300),  # 2-5 kW: 300 kr/mnd
-            (10, 513),  # 5-10 kW: 512,50 kr/mnd
-            (15, 763),  # 10-15 kW: 762,50 kr/mnd
-            (20, 988),  # 15-20 kW: 987,50 kr/mnd
-            (25, 1238),  # 20-25 kW: 1237,50 kr/mnd
+            (10, 512.50),  # 5-10 kW: 512,50 kr/mnd
+            (15, 762.50),  # 10-15 kW: 762,50 kr/mnd
+            (20, 987.50),  # 15-20 kW: 987,50 kr/mnd
+            (25, 1237.50),  # 20-25 kW: 1237,50 kr/mnd
             (50, 2125),  # 25-50 kW: 2125 kr/mnd
             (float("inf"), 3325),  # 50-75 kW: 3325 kr/mnd
         ],
@@ -872,6 +875,19 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
             (25, 1103),
             (float("inf"), 1365),
         ],
+        # Hytter, område 1-3: offisiell månedskolonne (2026), uten mva.
+        # https://www.area.no/getfile.php/132156-1766066155/Filer/20251218_Tariffer%202026.pdf
+        "kapasitetstrinn_per_boligtype": {
+            "fritidsbolig": [
+                (2, 578),
+                (5, 667),
+                (10, 731),
+                (15, 1016),
+                (20, 1143),
+                (25, 1143),
+                (float("inf"), 1143),
+            ],
+        },
     },
     "area_nett_omrade2": {
         "name": "Area Nett Område 2 (Karasjok, Porsanger)",
@@ -895,6 +911,19 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
             (25, 1102),
             (float("inf"), 1365),
         ],
+        # Hytter, område 1-3: offisiell månedskolonne (2026), uten mva.
+        # https://www.area.no/getfile.php/132156-1766066155/Filer/20251218_Tariffer%202026.pdf
+        "kapasitetstrinn_per_boligtype": {
+            "fritidsbolig": [
+                (2, 578),
+                (5, 667),
+                (10, 731),
+                (15, 1016),
+                (20, 1143),
+                (25, 1143),
+                (float("inf"), 1143),
+            ],
+        },
     },
     "area_nett_omrade3": {
         "name": "Area Nett Område 3 (Gamvik, Lebesby)",
@@ -917,6 +946,19 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
             (25, 1102),
             (float("inf"), 1365),
         ],
+        # Hytter, område 1-3: offisiell månedskolonne (2026), uten mva.
+        # https://www.area.no/getfile.php/132156-1766066155/Filer/20251218_Tariffer%202026.pdf
+        "kapasitetstrinn_per_boligtype": {
+            "fritidsbolig": [
+                (2, 578),
+                (5, 667),
+                (10, 731),
+                (15, 1016),
+                (20, 1143),
+                (25, 1143),
+                (float("inf"), 1143),
+            ],
+        },
     },
     "area_nett": {
         "name": "Area Nett (velg område)",
@@ -1606,8 +1648,9 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "Netera",
         "prisomrade": "NO3",
         "supported": True,
-        # Korrigert 2026-05-25: Netera fjernet sesongprising i 2026. Flat 20,0 hele året.
-        # Tidligere 2025-tariff (20,91) hadde Høylast vinter 20,9 / lavlast 18,6.
+        # Standardavtalen fra 2026 har flat 20,0 hele året. Netera tilbyr også
+        # en valgfri sommer-/vinteravtale; den varianten er ikke modellert her.
+        # Kilde: netera.no/nettleie/avtaler/privat/, kontrollert 2026-10-09.
         "energiledd_dag_eks_mva": 0.20,  # 20,0 øre/kWh ren energiledd (2026, flat)
         "energiledd_natt_eks_mva": 0.20,
         "url": "https://www.netera.no/nettleie/avtaler/privat/",
@@ -1839,30 +1882,27 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "Romsdalsnett",
         "prisomrade": "NO3",
         "supported": True,
-        # Verifisert 2026-09-13 mot Romsdalsnett sin egen tariff-PDF
-        # (romsdalsnettas.no/s/Tariff-01012026-eelt.pdf, "gjeldende fra
-        # 01.01.2026"). Tariff N100: ukedager dagtid 30,72, helg dagtid 20,72 og
-        # natt kl. 22-06 20,72 øre/kWh ekskl. mva, med avgiftene i egen rad under.
-        "energiledd_dag_eks_mva": 0.3072,  # 30,72 øre/kWh ren energiledd (2026, dag)
-        "energiledd_natt_eks_mva": 0.2072,  # 20,72 øre/kWh ren energiledd (2026, natt)
+        # Kilde: https://www.romsdalsnettas.no/s/Tariff-01112026.pdf ("Nettleiepriser
+        # gjeldende fra 01.11.2026"), verifisert 2026-11-04. Tariff N100: ukedager
+        # dagtid 32,29, helg dagtid og natt kl. 22-06 21,78 øre/kWh ekskl. mva, med
+        # avgiftene i egen rad under.
+        "energiledd_dag_eks_mva": 0.3229,  # 32,29 øre/kWh ren energiledd (dag)
+        "energiledd_natt_eks_mva": 0.2178,  # 21,78 øre/kWh ren energiledd (natt og helg)
         "url": "https://www.romsdalsnettas.no/nettleie/",
-        # Kapasitetstrinn i kr/mnd inkl. mva, ordrett fra samme PDF (verifisert
-        # 2026-09-13). Sto 363 og 1160 på 2-5 og 20-25 kW, som var
-        # næringstallene 290 og 928 ganget med 1,25; Romsdalsnett fakturerer
-        # 362 og 1159. Spranget 435 -> 725 mellom 10 og 15 kW og de flate
-        # trinnene over 25 kW er ekte. "Gjennomsnittet av de tre timene du brukte
+        # Kapasitetstrinn i kr/mnd inkl. mva, ordrett fra samme PDF. Spranget
+        # mellom 10 og 15 kW er ekte. "Gjennomsnittet av de tre timene du brukte
         # mest strøm måneden før, fordelt på tre ulike dager", altså etterskuddsvis.
         "kapasitetstrinn": [
-            (2, 290),
-            (5, 362),
-            (10, 435),
-            (15, 725),
-            (20, 1015),
-            (25, 1159),
-            (50, 1594),
-            (75, 2174),
-            (100, 2464),
-            (float("inf"), 2899),
+            (2, 305),
+            (5, 381),
+            (10, 459),
+            (15, 762),
+            (20, 1067),
+            (25, 1219),
+            (50, 1675),
+            (75, 2285),
+            (100, 2590),
+            (float("inf"), 3047),
         ],
     },
     "s_nett": {
@@ -2294,6 +2334,9 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "name": "Etna Nett",
         "prisomrade": "NO1",
         "supported": True,
+        # Husholdningstabellen gjelder til og med 25 kW; over dette viser
+        # prislisten til næring uten entydig fastledd for husholdninger.
+        "kjent_fastledd_maks_kw": 25,
         # Kilde: https://etna.no/uploads/Etna-Nett-NETTLEIEPRISER-GJELDENE-FRA-1-OKTOBER-2026.pdf
         # Tariff fra 2026-10-01, verifisert 2026-10-27; energiledd eks. mva og avgifter.
         "energiledd_dag_eks_mva": 0.2755,
@@ -2302,10 +2345,10 @@ DSO_LIST: Final[dict[str, DSOEntry]] = {
         "kapasitetstrinn": [
             (2, 350),
             (5, 525),
-            (10, 623),
-            (15, 769),
-            (20, 1015),
-            (float("inf"), 1269),
+            (10, 623.70),
+            (15, 768.80),
+            (20, 1015.30),
+            (float("inf"), 1269.20),
         ],
     },
     "tinfos": {

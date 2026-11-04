@@ -38,9 +38,9 @@ ha-minimum = [
     "aiohasupervisor==0.2.2b5",
 ]
 # Current = nyeste HA vi har sett på. Låst eksplisitt, aldri flytende:
-# 0.13.365 pinner homeassistant==2026.9.2 og krever Python 3.14.
+# 0.13.371 pinner homeassistant==2026.10.0 og krever Python 3.14.
 ha-current = [
-    "pytest-homeassistant-custom-component==0.13.365",
+    "pytest-homeassistant-custom-component==0.13.371",
 ]
 
 [tool.uv]

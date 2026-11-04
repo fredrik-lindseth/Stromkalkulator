@@ -6,22 +6,42 @@ nettselskap. CHANGELOG sier at satsene er oppdatert. Her står hvilke.
 Reglene for hvordan en sats endres, altså kildekrav, mva-kolonner og
 drift-vakten, står i [domain-rules.md](domain-rules.md#endre-satser).
 
+## November 2026
+
+Kontrollert 4. november 2026 mot nettselskapenes egne prislister, etter at fri-nettleie meldte nye satser fra 1. november. Energiledd er øre/kWh uten mva og offentlige avgifter. Fastledd er kr/mnd inklusive mva, ordrett fra kilden.
+
+| Nettselskap | Energiledd dag/natt, før → nå | Fastledd | Offisiell kilde |
+| --- | --- | --- | --- |
+| Føie | 16,50/10,00 → 21,00/13,50 | 300, 387,50, 550, 862,50, 1087,50, 1393,80, 1856,30, 3062,50 og 3625; første 238 → 300 | [Priser fra 1. november](https://www.foie.no/nettleie/priser-fra-1.-november) |
+| Romsdalsnett | 30,72/20,72 → 32,29/21,78 | 305, 381, 459, 762, 1067, 1219, 1675, 2285, 2590 og 3047; første 290 → 305 | [Tariff-PDF fra 01.11.2026](https://www.romsdalsnettas.no/s/Tariff-01112026.pdf) |
+
+Føie oppgir nå trinnene med øre, og de beholdes slik. Tidligere sto de rundet til hele kroner.
+
+Areas tre husholdningsområder har egen hyttekolonne i [Areas tariffliste for 2026](https://www.area.no/getfile.php/132156-1766066155/Filer/20251218_Tariffer%202026.pdf), men fri-nettleie har bare husholdningstabellen. Hullet står som kjent unntak i satsvakten fram til 2027-tariffene er publisert.
+
 ## Oktober 2026
 
-Kontrollert 27. oktober 2026 mot nettselskapenes egne prislister. Energiledd er øre/kWh uten mva og offentlige avgifter. Fastledd er kr/mnd med eventuell mva. Satsendringene gjelder fra 1. oktober.
+Kontrollen 9. oktober fant seks prisavvik mot fri-nettleie. Alle er rettet etter kontroll mot nettselskapets egen prisliste, gjeldende fra 1. oktober 2026, og satsene er kontrollert på nytt 27. oktober. Energiledd nedenfor er øre/kWh uten mva og offentlige avgifter. Fastledd er kr/mnd inklusive eventuell mva.
 
-| Nettselskap | Energiledd dag/natt, før → nå | Fastledd | Kilde |
+| Nettselskap | Energiledd dag/natt, før → nå | Fastledd | Offisiell kilde |
 | --- | --- | --- | --- |
-| Asker Nett | 23,87/15,87 → 29,87/19,87 | Første trinn 215 → 225; alle trinn oppdatert | [Prisliste](https://askernett.no/prisliste-for-privatkunder-okt-2026/) |
-| Barents Nett | 11,32 → 10,75 | Første trinn 517 → 491; alle trinn oppdatert | [Tariffbrosjyre](https://www.barents-nett.no/getfile.php/1315602-1790233965/Bilder/Nett/Nettleiebrosjyre%2001.10.2026.pdf) |
-| Etna Nett | 25,55/18,59 → 27,55/20,59 | Eksisterende trinn beholdt | [Prisliste](https://etna.no/uploads/Etna-Nett-NETTLEIEPRISER-GJELDENE-FRA-1-OKTOBER-2026.pdf) |
-| Glitre Nett og tidligere Norgesnett | 25,60/13,60 → 27,87/15,87 | 165, 270, 455, 765, 1025, 1275, 2062,50, 3075, 4105 og 7190 | [Privatkundetariff](https://www.glitrenett.no/kunde/nettleie-og-priser/nettleiepriser-privatkunde) |
-| Kystnett | 18,00 → 17,00 | Første trinn 493 → 508; alle trinn oppdatert | [Prisliste](https://kystnett.no/Nettleie/?Article=68) |
+| Asker Nett | 23,87/15,87 → 29,87/19,87 | Alle trinn endret; første 215 → 225 | [Prisliste](https://askernett.no/prisliste-for-privatkunder-okt-2026/) |
+| Barents Nett | 11,32 → 10,75, flat sats | Alle trinn redusert; første 517 → 491 | [Tariffbrosjyre](https://www.barents-nett.no/getfile.php/1315602-1790233965/Bilder/Nett/Nettleiebrosjyre%2001.10.2026.pdf) |
+| Etna Nett | 25,55/18,59 → 27,55/20,59 | Bevarer publiserte ørebeløp: 623,70, 768,80, 1015,30 og 1269,20 | [Prisliste](https://etna.no/uploads/Etna-Nett-NETTLEIEPRISER-GJELDENE-FRA-1-OKTOBER-2026.pdf) |
+| Glitre Nett | 25,60/13,60 → 27,87/15,87 | 165, 270, 455, 765, 1025, 1275, 2062,50, 3075, 4105 og 7190; første 160 → 165 | [Privatkundetariff](https://www.glitrenett.no/kunde/nettleie-og-priser/nettleiepriser-privatkunde) |
+| Tidligere Norgesnett | 25,598/13,598 → 27,87/15,87 | Samme trinn som Glitre; første 140 → 165 | [Privatkundetariff](https://www.glitrenett.no/kunde/nettleie-og-priser/nettleiepriser-privatkunde) |
+| Kystnett | 18,00 → 17,00, flat sats | Alle trinn økt; første 493 → 508 | [Prisliste](https://kystnett.no/Nettleie/?Article=68) |
 | Midtnett | 23,862/18,862 → 31,00/26,00 | Husholdning uendret; egen FB22-tabell for fritidsbolig | [Prisliste HN22/FB22](https://midtnett.no/wp-content/uploads/2026/09/Pris-fra-1.okt-2026.pdf) |
 
-Asker, Midtnett og tidligere Norgesnett bruker klokkegrensene 06–22/22–06 også i helger og på helligdager. Midtnetts publiserte månedskolonne inklusive mva brukes direkte; avrundingsforskjeller mot fri-nettleies årsbeløp er under én krone og dokumenterer ikke alene en feil oppstrøms.
+Tidligere Norgesnett-kunder ble [overført til Glitres kundeløsning i oktober](https://www.glitrenett.no/informasjon/fra-norgesnett-til-glitre-nett-slik-pavirker-endringen-deg). Norgesnetts gamle nettsider er avviklet, og satsvakten følger nå den felles Glitre-tariffen.
 
-Tidligere Norgesnett-kunder ble [overført til Glitres kundeløsning i oktober](https://www.glitrenett.no/informasjon/fra-norgesnett-til-glitre-nett-slik-pavirker-endringen-deg). Norgesnetts gamle nettsider er avviklet, og satsvakten følger nå den felles Glitre-tariffen. De tre gamle RK Nett-unntakene er fjernet fordi prisene nå samsvarer.
+Nettselskapets fastledd fra 1. juli 2026 er kontrollert mot [den offisielle prislisten](https://nettselskapet.as/strompris). Alle åtte rader er verifisert; fem tidligere avrundinger er rettet med 50 øre hver: 163 → 162,50, 513 → 512,50, 763 → 762,50, 988 → 987,50 og 1238 → 1237,50 kr/mnd. Dette er en presisjonsretting, ikke en ny tariff fra oktober.
+
+Asker Nett, Midtnett og tidligere Norgesnett bruker klokkegrensene 06–22/22–06 også i helger og på helligdager. De offisielle prislistene definerer dag og natt uten helgeunntak, og fri-nettleies tidsregler samsvarer med dette. Tidligere ga standardregelen nattpris hele helgen.
+
+Midtnetts publiserte fastledd inklusive mva brukes direkte. Noen av dem avviker med under én krone fra fri-nettleies omregning av årsbeløp uten mva, og det alene er ikke en bekreftet feil i fri-nettleie. Barents er fritatt for mva og forbruksavgift; Kystnett er fritatt for mva. Enova kommer i tillegg til de rene energileddene. De nasjonale avgiftssatsene er uendret.
+
+Sammenligningsskriptet dekker aktive husholdningstariffer, dag-/nattbeløp, fastledd og beregningsmetode. Det er ikke en full kontroll av alle kundegrupper eller kalenderregler. Tinfos har fortsatt ukjent fastleddsmetode og kan ikke regnes som verifisert fastledd. De tre gamle unntakene for RK Nett er fjernet fordi kildene nå samsvarer.
 
 ## Runden i september 2026
 

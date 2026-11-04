@@ -898,6 +898,10 @@ class TestSaveDataStructure:
         asyncio.run(coordinator._save_stored_data())
 
         expected_keys = {
+            "eksportbok",
+            "ferdige_sum",
+            "previous_month_fastledd_snapshot",
+            "previous_month_fastledd_grunnlag_bekreftet",
             "daily_max_power",
             "monthly_consumption",
             "current_month",
@@ -1382,3 +1386,37 @@ class TestAvregningsbokPersistens:
             asyncio.run(coordinator._save_stored_data())
 
         assert "Lagret" not in caplog.text
+
+
+@pytest.mark.parametrize("maaned", [["feil"], {}, "2026-13", "2026-2", "0001-01", 0, 13, True])
+def test_ugyldig_lagret_maaned_beholder_oppstartsmaaneden(coord_module, maaned):
+    coord = coord_module.NettleieCoordinator(MagicMock(), _make_entry())
+    opprinnelig = coord._current_month
+    coord._store.async_load = AsyncMock(return_value={"current_month": maaned})
+    asyncio.run(coord._load_stored_data())
+    assert coord._current_month == opprinnelig
+    assert coord._eksportbok.maaned(opprinnelig).kwh == 0
+
+
+@pytest.mark.parametrize(
+    "eksportbok",
+    [None, [], {}, {"pris": []}, {"pris": {}, "energi": [], "ferdige": {"2026-06": {"kwh": "feil"}}}],
+)
+def test_skadet_eksportbok_beholder_signerte_maanedsaapninger(coord_module, eksportbok):
+    coord = coord_module.NettleieCoordinator(MagicMock(), _make_entry())
+    coord._store.async_load = AsyncMock(
+        return_value={
+            "current_month": "2026-06",
+            "monthly_export_kwh": 10,
+            "monthly_export_revenue": -3.5,
+            "previous_month_export_kwh": 20,
+            "previous_month_export_revenue": -8,
+            **({"eksportbok": eksportbok} if eksportbok is not None else {}),
+        }
+    )
+    asyncio.run(coord._load_stored_data())
+    assert coord._eksportbok.maaned("2026-06").kwh == 10
+    assert coord._eksportbok.maaned("2026-06").inntekt_kr == -3.5
+    assert coord._eksportbok.maaned("2026-05").kwh == 20
+    assert coord._eksportbok.maaned("2026-05").inntekt_kr == -8
+    assert coord._eksportbok.maaned("2026-06").kwh_uten_pris == (0 if eksportbok is None else 10)

@@ -263,8 +263,9 @@ Hva som skjer med tallene mens en input er nede:
   tilbake, kan hele hullet komme som ett sprang. Er spranget over 100 kWh,
   forkastes det, og du får et eget varsel med tallet, siden et sprang like
   gjerne kan være et målerbytte som ekte forbruk.
-- Spotpris nede: kWh telles videre, men kostnad, strømstøtte og
-  Norgespris-sammenligning fryser når cachen på to timer er tom.
+- Spotpris nede: kWh, nettleie, avgifter og kjent Norgespris under taket
+  bokføres videre. Spotavhengige beløp og sammenligninger mangler
+  prisgrunnlag når cachen på to timer er tom; dekningen vises i datakvaliteten.
 - Strømleverandør-sensor nede: bare sammenligningssensoren «Total strømpris
   (strømavtale)» blir borte. Ingen alarm, bare et attributt.
 

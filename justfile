@@ -56,7 +56,7 @@ verify-norgespris:
 #
 #   unit + kvalitet   tests/ med stubbet Home Assistant, Python 3.13
 #   ha-minimum        tests_ha/ mot ekte HA 2025.1.0 (Python 3.13)
-#   ha-current        tests_ha/ mot ekte HA 2026.9.2 (Python 3.14)
+#   ha-current        tests_ha/ mot ekte HA 2026.10.0 (Python 3.14)
 #
 # Gruppene står i pyproject.toml og er låst i uv.lock. Versjonstabellen med
 # begrunnelse står i docs/testing.md. Pre-commit og CI kaller de samme

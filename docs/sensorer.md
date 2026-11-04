@@ -158,9 +158,15 @@ Devicen har også knappen **Lag fakturarapport**. Den lager en varsling (persist
 
 Alle har `maaned`-attributt (f.eks. "januar 2026").
 
-Nettleie-sensoren har også `energiledd_dag_kr`, `energiledd_natt_kr`, `kapasitetsledd_kr`, `snitt_topp_3_kw`, `norgespris_differanse_kr` og `kilde`.
+Nettleie-sensoren har også `energiledd_dag_kr`, `energiledd_natt_kr`, `avgifter_kr`, `stromstotte_kr`, `kapasitetsledd_kr`, `snitt_topp_3_kw`, `norgespris_differanse_kr` og `bokforte_kroner`.
 
-`kilde` sier `satser ganget med kWh, ikke bokførte kroner`. Forrige måned er det eneste stedet integrasjonen fortsatt regner nettleie selv: arkivet lagrer kilowattimene, satsene som gjaldt siste dag i måneden og kapasitetstrinnet, men ingen bokførte kroner. Tallet stemmer når satsene sto stille gjennom måneden, og bommer når de ikke gjorde det.
+Sensoren summerer de bokførte kronebeløpene fra månedsarkivet og legger til hele månedens kapasitetsledd. Satsendringer underveis i måneden bevares. Et eldre arkiv uten bokførte delbeløp vises som ukjent med `bokforte_kroner: false`; neste månedsskifte lager et komplett arkiv.
+
+Forsinkede avlesninger kan også rette forrige måneds topptimer og fastledd. Beregningsgrunnlag og tariff fryses ved månedsskiftet. For årsvektet fastledd kan eldre lagring mangle dette grunnlaget; en sen korrigering gir da ukjent nettleie med `fastledd_grunnlag_bekreftet: false`, siden årets senere topper ikke kan brukes som historisk fasit.
+
+Kapasitetstrinn beholder ørepriser. Midtnett og Areas tre områder har egne fastleddtabeller for konfigurert fritidsbolig, også ved fast bosted. Area område 3 har fortsatt uavklart energiledd for hytter og motstridende sesongkilder; se [begrensningene](begrensninger.md). Hos Etna er husholdningens fastledd bare bekreftet til og med 25 kW. Høyere fakturagrunnlag gir ukjent fastledd og total, også etter en sen korrigering av forrige måned.
+
+Nettselskapets publiserte tabell ender ved 50–75 kW uten å avklare eksakt 75. Fra og med 75 kW er derfor fastleddet og avhengige totaler ukjent. Egendefinerte trinntabeller følger brukerens egne oppgitte priser.
 
 Snapshotene her har `last_reset` satt til starten av inneværende måned. Verdien byttes i sin helhet ved månedsskiftet, og uten `last_reset` ville HA-statistikken bokført forskjellen mellom to måneder som et delta.
 
@@ -177,6 +183,10 @@ For plusskunder. Krever konfigurert eksport-effektsensor. Alle deaktivert som st
 | _(valgfri)_ Månedlig nettokostnad         | NOK   | Forbrukskostnad minus eksportinntekt |
 | _(valgfri)_ Forrige måned eksport kWh     | kWh   | Eksportert energi forrige måned      |
 | _(valgfri)_ Forrige måned eksport inntekt | NOK   | Eksportinntekt forrige måned         |
+
+Eksportinntekten beregnes med spotprisen for kvarteret energien ble levert i. Null og negative priser er gyldige. Mangler prisdekning, vises inntekt og nettokostnad som ukjent; inntektssensorens attributter viser kjent delbeløp og `kwh_uten_pris`. Nettokostnad krever også et kjent fastledd.
+
+Dette er eksportens spotverdi. Innmatingsgodtgjørelse fra nettselskapet og egne vilkår i leverandørens plusskundeavtale er ikke inkludert.
 
 ## Vakthold på måledataene
 
@@ -197,8 +207,9 @@ Tre ting slår den på:
   på flere timer enn terskelen. Terskelen settes under Configure, default tre
   timer. Hev den på en hytte eller et anlegg som står tomt i perioder.
 - Utløpt spotpris: spotprisen har vært borte lenger enn cachen på to timer.
-  Forbruket telles fortsatt i kWh, men kostnad, strømstøtte og
-  Norgespris-sammenligning står stille til prisen er tilbake.
+  Forbruk, nettleie, avgifter og kjent Norgespris under forbrukstaket bokføres fortsatt.
+  Spotavhengig kraftkostnad, strømstøtte og Norgespris-sammenligning mangler
+  prisgrunnlag. Manglende dekning vises i datakvaliteten.
 
 Attributter:
 
@@ -267,19 +278,106 @@ entities:
   - entity: sensor.kapasitetstrinn
 ```
 
-Varsel ved nærhet til neste trinn:
+### Kapasitetsvarsel og opphør
+
+Bruk den eksisterende **Kapasitetsvarsel**-sensoren: den følger terskelen i
+Configure (standard 2,0 kW), så automasjonen trenger ingen egen terskel.
+Eksemplet under erstatter samme Home Assistant-varsel når kapasitetsvarselet
+opphører. Det virker fra Home Assistant **2025.1**. Lim det inn i YAML-editoren
+for én automasjon. Bytt entity-ID til din egen; ID-en avhenger av språket under
+oppsett, nettselskap og navn du har endret selv.
 
 ```yaml
-automation:
-  - trigger:
-      - platform: numeric_state
-        entity_id: sensor.nettleie_bkk_margin_til_neste_trinn
-        below: 1.0
-    action:
-      - service: notify.mobile_app
-        data:
-          message: "{{ states('sensor.nettleie_bkk_margin_til_neste_trinn') }} kW til neste kapasitetstrinn."
+alias: Kapasitetsvarsel
+triggers:
+  - trigger: state
+    entity_id: binary_sensor.nettleie_bkk_kapasitetsvarsel
+    to: "on"
+    id: warning
+  - trigger: state
+    entity_id: binary_sensor.nettleie_bkk_kapasitetsvarsel
+    from: "on"
+    to: "off"
+    id: cleared
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: warning
+        sequence:
+          - action: persistent_notification.create
+            data:
+              notification_id: stromkalkulator_bkk_kapasitet
+              title: "Kapasitetsvarsel"
+              message: "{{ state_attr('binary_sensor.nettleie_bkk_kapasitetsvarsel', 'margin_kw') }} kW til neste kapasitetstrinn."
+      - conditions:
+          - condition: trigger
+            id: cleared
+        sequence:
+          - action: persistent_notification.create
+            data:
+              notification_id: stromkalkulator_bkk_kapasitet
+              title: "Kapasitetsvarsel opphørt"
+              message: "Kapasitetsvarselet er ikke lenger aktivt."
+mode: queued
 ```
+
+Opphør krever `on` → `off`: manglende data (`unknown`/`unavailable`) blir
+ikke meldt som opphør. Bruk en egen varsel-ID per installasjon. Dette er et
+varsel om beregnet margin i månedens kapasitetstrinn, ikke en prognose for hvor
+mye last du kan legge på resten av timen. Laststyring hører hjemme i Effektvakt.
+
+I Home Assistant **2026.7** ble formålsrettede triggers og conditions standard
+i automasjonseditoren. Fra **2026.10** kan du velge triggeren direkte under
+**Triggered by**, uten å skrive en ID. YAML-en over bruker eksplisitte ID-er,
+som også virker i eldre versjoner. Se de offisielle
+[juli-notene](https://www.home-assistant.io/blog/2026/07/01/release-20267/) og
+[oktober-notene](https://www.home-assistant.io/blog/2026/10/07/release-202610/).
+
+### Margin som gauge
+
+```yaml
+type: gauge
+entity: sensor.nettleie_bkk_margin_til_neste_trinn
+name: Margin til neste trinn
+min: 0
+max: 10
+needle: true
+severity:
+  red: 0
+  yellow: 1
+  green: 2
+```
+
+Liten margin er rød; større margin er grønn. Tilpass skala og fargegrenser
+til oppsettet ditt; `severity` er bare visning og endrer ikke varselterskelen.
+Kortet virker i **2025.1**; det nye utseendet fra
+[2026.4](https://www.home-assistant.io/blog/2026/04/01/release-20264/#gauge-card-redesign)
+kommer automatisk. Ved høyeste trinn eller fastledd uten effekttrinn kan
+marginen være 0 uten at et dyrere trinn finnes; les også Kapasitetsvarsel.
+
+### Måleproblemer på dashboardet
+
+Vis dette kortet mens **Måledata-problem** er på. Trykk på entiteten for å
+se attributtet `problemer`; reparasjoner finnes også under Innstillinger.
+
+```yaml
+type: conditional
+conditions:
+  - entity: binary_sensor.nettleie_bkk_maledata_problem
+    state: "on"
+card:
+  type: entities
+  title: Sjekk input-sensorene
+  entities:
+    - entity: binary_sensor.nettleie_bkk_maledata_problem
+    - entity: binary_sensor.nettleie_bkk_kapasitetsvarsel
+```
+
+Kortet virker i **2025.1**. I **2026.10** støtter korteditorens Visibility-fane
+vilkårene fra automasjonseditoren og viser om hvert vilkår er oppfylt. Her
+holder det med et enkelt state-vilkår. Se
+[forbedringene i synlighet](https://www.home-assistant.io/blog/2026/10/07/release-202610/#show-a-card-only-when-it-matters).
 
 ## Faktura-verifisering
 
@@ -324,10 +422,14 @@ Finn `entry_id` i URL-en under Settings > Devices & Services > Strømkalkulator.
 | `monthly_accumulated_cost`       | float  | Akkumulert månedskostnad (kr)                      |
 | `previous_month_consumption`     | dict   | Forbruk forrige måned                              |
 | `previous_month_top_3`           | dict   | Topp-3 forrige måned                               |
+| `previous_month_fastledd_snapshot` | dict/null | Historisk tariff og toppgrunnlag for sen korrigering |
+| `previous_month_fastledd_grunnlag_bekreftet` | bool | Om historisk fastledd kan etterprøves |
 | `previous_month_kapasitetsledd`  | int    | Kapasitetsledd forrige måned (kr/mnd)              |
 | `previous_month_kapasitetstrinn` | string | Trinn-intervall forrige måned (f.eks. `"5-10 kW"`) |
 | `monthly_export_kwh`             | float  | Eksport denne måneden                              |
 | `monthly_export_revenue`         | float  | Eksportinntekt denne måneden                       |
+| `eksportbok`                     | dict   | Eksportens prisruter, energi og månedsbalanser      |
+| `ferdige_sum`                    | dict   | Forbruk og prisdekning utenfor det korte intervallvinduet |
 | `monthly_cost`                   | float  | Total forbrukskostnad denne måneden (kr)           |
 
 #### Eksempler

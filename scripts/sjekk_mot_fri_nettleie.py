@@ -125,12 +125,44 @@ class Unntak:
     grunn: str
 
 
+# fri-nettleie har bare husholdningstabellen for Area i 2026, mens Areas egen
+# tariffliste for 2026 har en egen hyttekolonne. Den følger vi.
+_AREA_FRITID_GRUNN = (
+    "fri-nettleie mangler Areas fritidstabell for 2026. Hyttekolonnen i dso.py er hentet "
+    "fra Areas egen tariffliste (20251218_Tariffer 2026.pdf). Fornyes når 2027-tariffene "
+    "er publisert."
+)
+
 # Kjente, aksepterte funn. Her hører to slag hjemme: avvik der vi bevisst følger
 # nettselskapets egen prisside framfor fri-nettleie, og hull i dekningen der
 # fri-nettleie ikke har data å sammenligne med. Begge er ting en kjøring ellers
 # ville ropt om hver uke, og begge er ting et menneske har tatt stilling til på
 # en dato. Derfor har begge en utløpsdato: stillheten er lånt, ikke gitt.
 KJENTE_AVVIK: dict[str, tuple[Unntak, ...]] = {
+    "area_nett_omrade1": (
+        Unntak(
+            felt=FELT_FASTLEDD,
+            signatur="fritidsbolig: ingen aktiv kW-trinntariff for fritid",
+            gyldig_til=date(2027, 1, 1),
+            grunn=_AREA_FRITID_GRUNN,
+        ),
+    ),
+    "area_nett_omrade2": (
+        Unntak(
+            felt=FELT_FASTLEDD,
+            signatur="fritidsbolig: ingen aktiv kW-trinntariff for fritid",
+            gyldig_til=date(2027, 1, 1),
+            grunn=_AREA_FRITID_GRUNN,
+        ),
+    ),
+    "area_nett_omrade3": (
+        Unntak(
+            felt=FELT_FASTLEDD,
+            signatur="fritidsbolig: ingen aktiv kW-trinntariff for fritid",
+            gyldig_til=date(2027, 1, 1),
+            grunn=_AREA_FRITID_GRUNN,
+        ),
+    ),
     "tinfos": (
         Unntak(
             felt=FELT_FASTLEDD_METODE_UKJENT,
@@ -584,11 +616,21 @@ def kontroller_dso(var_id: str, entry: dict[str, Any], remote_slugs: set[str], p
         kundegruppe = {"fritidsbolig": "fritid"}.get(boligtype, boligtype)
         kundetariff = aktiv_tariff(data, paa, kundegruppe)
         kundetrinn = deres_trinn(kundetariff, mva_faktor) if kundetariff else None
-        avvik = (
-            sammenlign_fastledd(vaare_trinn({"kapasitetstrinn": trinn}), kundetrinn)
-            if kundetrinn is not None
-            else f"ingen aktiv kW-trinntariff for {kundegruppe} på {paa}"
-        )
+        if kundetrinn is None:
+            # Datoen står bare i teksten. Signaturen må være lik fra dag til dag,
+            # ellers kan et unntak i KJENTE_AVVIK aldri treffe hullet.
+            mangler = f"ingen aktiv kW-trinntariff for {kundegruppe}"
+            funn.append(
+                Funn(
+                    var_id,
+                    FELT_FASTLEDD,
+                    f"{boligtype}: {mangler}",
+                    f"[K] {prefiks}  fastledd {boligtype}: {mangler} på {paa}",
+                    Utfall.UFULLSTENDIG,
+                )
+            )
+            continue
+        avvik = sammenlign_fastledd(vaare_trinn({"kapasitetstrinn": trinn}), kundetrinn)
         if avvik:
             funn.append(
                 Funn(
@@ -596,7 +638,7 @@ def kontroller_dso(var_id: str, entry: dict[str, Any], remote_slugs: set[str], p
                     FELT_FASTLEDD,
                     f"{boligtype}: {avvik}",
                     f"[K] {prefiks}  fastledd {boligtype}: {avvik}",
-                    Utfall.AVVIK if kundetrinn is not None else Utfall.UFULLSTENDIG,
+                    Utfall.AVVIK,
                 )
             )
 

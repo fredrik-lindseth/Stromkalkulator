@@ -30,13 +30,15 @@ Custom integrasjoner i Home Assistant kjører med full tilgang til systemet ditt
 
 ### Verifiser SHA256-checksum
 
-Hver release inkluderer en SHA256-checksum i release notes, sammen med commiten ZIP-en er bygget fra. Sjekk at filen du lastet ned matcher:
+Sjekk SHA256 for filen du lastet ned:
 
 ```bash
 sha256sum stromkalkulator.zip
 ```
 
-Sammenlign outputen med checksum i release notes.
+Sammenlign med et deterministisk bygg fra releasetaggen som beskrevet under.
+Eldre releaser har også en checksum i release-noten. Tagg og attestasjon
+viser hvilken commit ZIP-en kommer fra.
 
 ### Bygg ZIP-en selv og sammenlign
 
@@ -48,7 +50,7 @@ cd Stromkalkulator
 python3 scripts/release_publish.py build --sha vX.Y.Z --output /tmp/stromkalkulator.zip
 ```
 
-Utskriften er sha256-en. Den skal være identisk med den i release notes og med den du lastet ned.
+Utskriften er sha256-en. Den skal være identisk med SHA256 for ZIP-en du lastet ned.
 
 Vil du sjekke hele kjeden i ett kall, altså at tagg, ZIP og attestasjon peker på samme artefakt:
 

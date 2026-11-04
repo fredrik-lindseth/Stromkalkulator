@@ -247,11 +247,10 @@ def _make_config_flow(existing_entries: list[MagicMock] | None = None):
 def _make_reconfigure_flow(config_entry: MagicMock, existing_entries: list[MagicMock] | None = None):
     """Set up a config flow instance for async_step_reconfigure.
 
-    conftest stubber HA, så _get_reconfigure_entry og async_update_reload_and_abort
+    conftest stubber HA, så _get_reconfigure_entry og async_abort
     finnes ikke på baseklassen. Vi stubber dem på instansen (samme mønster som
     _make_options_flow stubber async_create_entry) slik at den delte skjema-,
-    validerings- og DSO-avlednings-logikken kan drives. Full HA-integrasjon
-    (menyoppføring, faktisk reload) gjenstår å verifisere mot ekte HA.
+    validerings- og DSO-avlednings-logikken kan drives. Faktisk reload verifiseres separat i tests_ha/.
     """
     cf_mod = _reload_config_flow()
 
@@ -275,9 +274,7 @@ def _make_reconfigure_flow(config_entry: MagicMock, existing_entries: list[Magic
 
     flow.hass.states.get = MagicMock(side_effect=get_state)
     flow._get_reconfigure_entry = MagicMock(return_value=config_entry)
-    flow.async_update_reload_and_abort = MagicMock(
-        return_value={"type": "abort", "reason": "reconfigure_successful"}
-    )
+    flow.async_abort = MagicMock(return_value={"type": "abort", "reason": "reconfigure_successful"})
     flow.async_show_form = MagicMock(return_value={"type": "form", "step_id": "reconfigure"})
     return flow
 
@@ -474,7 +471,7 @@ class TestConfigFlowSensorsDuplicateGuard:
 
 class TestReconfigureFlow:
     """Reconfigure-steget deler skjema/validering/DSO-avledning med options-flowen,
-    men persisterer via async_update_reload_and_abort. unique_id er entry_id og
+    men lar entry-listeneren håndtere reload etter async_update_entry. unique_id er entry_id og
     røres ikke ved reconfigure.
     """
 
@@ -484,11 +481,11 @@ class TestReconfigureFlow:
 
         asyncio.run(flow.async_step_reconfigure(None))
 
-        flow.async_update_reload_and_abort.assert_not_called()
+        flow.hass.config_entries.async_update_entry.assert_not_called()
         flow.async_show_form.assert_called_once()
         assert flow.async_show_form.call_args[1]["step_id"] == "reconfigure"
 
-    def test_valid_reconfigure_persists_via_reload_and_abort(self):
+    def test_valid_reconfigure_updates_entry_and_aborts(self):
         entry = _make_entry()
         flow = _make_reconfigure_flow(entry)
 
@@ -508,8 +505,10 @@ class TestReconfigureFlow:
         asyncio.run(flow.async_step_reconfigure(user_input))
 
         flow.async_show_form.assert_not_called()
-        flow.async_update_reload_and_abort.assert_called_once()
-        call = flow.async_update_reload_and_abort.call_args
+        flow.hass.config_entries.async_update_entry.assert_called_once()
+        flow.async_abort.assert_called_once_with(reason="reconfigure_successful")
+        call = flow.hass.config_entries.async_update_entry.call_args
+        assert call.args == (entry,)
         updated = call.kwargs["data"]
         assert updated[CONF_DSO] == "custom"
         assert updated[CONF_AVGIFTSSONE] == "nord_norge"
@@ -539,7 +538,7 @@ class TestReconfigureFlow:
 
         asyncio.run(flow.async_step_reconfigure(user_input))
 
-        flow.async_update_reload_and_abort.assert_not_called()
+        flow.hass.config_entries.async_update_entry.assert_not_called()
         flow.async_show_form.assert_called_once()
         assert flow.async_show_form.call_args[1]["errors"][CONF_POWER_SENSOR] == "already_configured"
 
@@ -569,7 +568,7 @@ class TestTommeValgfrieFelt:
 
         asyncio.run(flow.async_step_reconfigure(_skjema_uten_valgfrie()))
 
-        data = flow.async_update_reload_and_abort.call_args.kwargs["data"]
+        data = flow.hass.config_entries.async_update_entry.call_args.kwargs["data"]
         assert CONF_ENERGY_SENSOR not in data
         assert CONF_ELECTRICITY_PROVIDER_PRICE_SENSOR not in data
         assert CONF_EXPORT_POWER_SENSOR not in data
@@ -606,7 +605,7 @@ class TestTommeValgfrieFelt:
 
         asyncio.run(flow.async_step_reconfigure(_skjema_uten_valgfrie()))
 
-        data = flow.async_update_reload_and_abort.call_args.kwargs["data"]
+        data = flow.hass.config_entries.async_update_entry.call_args.kwargs["data"]
         assert data[CONF_TARIFFMODUS] == "catalog"
         assert CONF_ENERGILEDD_DAG not in data
         assert CONF_ENERGILEDD_NATT not in data

@@ -1208,6 +1208,8 @@ SKJEMA_FINGERAVTRYKK: dict[int, str] = {
     6: "72f4afa9f1bff34b",
     # 7: kvaliteten på forrige måneds kostnadsarkiv.
     7: "b5ded1b9e8eafdb3",
+    # 8: eksportens prisdekning og bekreftet fastleddgrunnlag i lukket måned.
+    8: "267934c21bc2a878",
 }
 
 

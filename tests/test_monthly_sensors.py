@@ -375,6 +375,21 @@ class TestMaanedligTotalSensor:
 class TestForrigeMaanedNettleieSensor:
     """Leser bokført nettleie for forrige måned fra coordinatorens arkiv."""
 
+    def test_manglende_aarsgrunnlag_gir_ukjent_hele_nettleien(self):
+        data = {
+            "previous_month_name": "juni 2026",
+            "previous_month_bokforte_kroner": True,
+            "previous_month_fastledd_grunnlag_bekreftet": False,
+            "previous_month_energiledd_dag_kr": 130.0,
+            "previous_month_kapasitetsledd": 415,
+        }
+        sensor = ForrigeMaanedNettleieSensor(_make_coordinator(data), _make_entry())
+        assert sensor.native_value is None
+        assert sensor.extra_state_attributes == {
+            "maaned": "juni 2026",
+            "fastledd_grunnlag_bekreftet": False,
+        }
+
     def test_with_normal_top_3(self):
         """Bokførte komponenter og fullt kapasitetsledd blir netto nettleie."""
         data = {

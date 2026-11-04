@@ -610,3 +610,33 @@ def test_midtnett_fritid_sjekkes_selv_naar_boligtabellen_stemmer(stub_nett, avvi
         )
     stub_nett({"midtnett": {"tariffer": tariffer}})
     assert sjekk.main(["--dso", "midtnett", "--dato", "2026-10-09"]) == utfall
+
+
+def test_manglende_fritidstabell_har_datofri_signatur(stub_nett):
+    """Et hull i dekningen må kunne dempes av et unntak fra dag til dag."""
+    data = {
+        "tariffer": [
+            {
+                "kundegrupper": ["husholdning"],
+                "gyldig_fra": "2026-10-01",
+                "energiledd": {"grunnpris": 26, "unntak": [{"navn": "Høylast", "timer": "6-21", "pris": 31}]},
+                "fastledd": {"metode": "TRE_DØGNMAX_MND", "terskler": [{"terskel": 0, "pris": 2640}]},
+            }
+        ]
+    }
+    stub_nett({"midtnett": data})
+    signaturer = []
+    for dag in (date(2026, 11, 4), date(2026, 11, 5)):
+        resultat = sjekk.kontroller_dso("midtnett", sjekk.DSO_LIST["midtnett"], {"midtnett"}, dag)
+        mangler = [f for f in resultat.funn if f.utfall is sjekk.Utfall.UFULLSTENDIG]
+        assert len(mangler) == 1
+        assert str(dag) in mangler[0].tekst
+        signaturer.append(mangler[0].signatur)
+    assert signaturer[0] == signaturer[1] == "fritidsbolig: ingen aktiv kW-trinntariff for fritid"
+
+
+def test_area_fritid_er_dempet_med_samme_signatur_som_funnet():
+    for omrade in ("area_nett_omrade1", "area_nett_omrade2", "area_nett_omrade3"):
+        (unntak,) = sjekk.KJENTE_AVVIK[omrade]
+        assert unntak.felt == sjekk.FELT_FASTLEDD
+        assert unntak.signatur == "fritidsbolig: ingen aktiv kW-trinntariff for fritid"

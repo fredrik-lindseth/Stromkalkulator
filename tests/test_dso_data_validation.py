@@ -160,7 +160,7 @@ class TestDSOKapasitetstrinn:
             )
 
     def test_trinn_prices_are_positive(self, dso_entry):
-        """All capacity tier prices must be positive numbers."""
+        """Capacity tier prices retain published ore and must be positive numbers."""
         dso_id, data = dso_entry
         for i, t in enumerate(data["kapasitetstrinn"]):
             if isinstance(t, dict):

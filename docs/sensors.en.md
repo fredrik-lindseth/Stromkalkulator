@@ -136,9 +136,15 @@ Stored at the change of month. Used for invoice verification.
 
 All have a `maaned` attribute (e.g. "januar 2026").
 
-The "Forrige måned nettleie" sensor also has `energiledd_dag_kr`, `energiledd_natt_kr`, `kapasitetsledd_kr`, `snitt_topp_3_kw`, `norgespris_differanse_kr` and `kilde`.
+The "Forrige måned nettleie" sensor also has `energiledd_dag_kr`, `energiledd_natt_kr`, `avgifter_kr`, `stromstotte_kr`, `kapasitetsledd_kr`, `snitt_topp_3_kw`, `norgespris_differanse_kr` and `bokforte_kroner`.
 
-`kilde` reads `satser ganget med kWh, ikke bokførte kroner`. The previous month is the one place the integration still computes grid tariff itself: the archive keeps the kilowatt-hours, the rates that applied on the last day of the month and the capacity tier, but no booked kroner. The number is right when the rates held still through the month, and off when they did not.
+The sensor sums booked amounts from the monthly archive and adds the full monthly capacity charge. Rate changes during the month are preserved. An older archive without booked components is shown as unknown with `bokforte_kroner: false`; the next month rollover creates a complete archive.
+
+Delayed readings can also correct the previous month's peak hours and fixed charge. The calculation basis and tariff are frozen at month rollover. Older storage may lack this basis for annual weighted charges; a late correction then makes the grid tariff unknown with `fastledd_grunnlag_bekreftet: false`, because later annual peaks cannot establish the historical charge.
+
+Capacity tiers preserve prices to the øre. Midtnett and Area's three regions have separate fixed-charge tables for configured holiday homes, including permanent residence. Area region 3 still has unresolved holiday-home energy charges and conflicting seasonal sources; see the [limitations](begrensninger.md) (Norwegian). Etna's household fixed charge is verified only up to and including 25 kW. A higher billing basis makes the fixed charge and total unknown, including after a late correction of the previous month.
+
+Nettselskapet's published table ends at 50–75 kW without clarifying exactly 75. At or above 75 kW, the fixed charge and dependent totals are therefore unknown. Custom capacity tables use the prices entered by the user.
 
 These snapshots set `last_reset` to the start of the current month. The value is replaced wholesale at the change of month, and without `last_reset` the HA statistics would record the difference between two months as a delta.
 
@@ -155,6 +161,10 @@ For prosumers. Requires a configured export power sensor. All disabled by defaul
 | _(optional)_ Månedlig nettokostnad         | NOK  | Consumption cost minus export revenue |
 | _(optional)_ Forrige måned eksport kWh     | kWh  | Exported energy last month            |
 | _(optional)_ Forrige måned eksport inntekt | NOK  | Export revenue last month             |
+
+Export revenue uses the spot price for the quarter-hour when the energy was supplied. Zero and negative prices are valid. With missing price coverage, revenue and net cost are unknown; revenue attributes show the known subtotal and `kwh_uten_pris`. Net cost also requires a known fixed charge.
+
+This is the spot value of exported energy. Feed-in compensation from the grid company and separate terms in the supplier's prosumer contract are not included.
 
 ## Measurement data watchdog
 
@@ -175,8 +185,10 @@ Three things turn it on:
   increased for more hours than the threshold. Set it under Configure, default
   three hours. Raise it for a cabin or site that sits idle for stretches.
 - Expired spot price: the spot price has been gone longer than the two hour
-  cache. Consumption is still counted in kWh, but cost, subsidy and the
-  Norgespris comparison stand still until the price returns.
+  cache. Consumption, grid charges, taxes and known Norgespris below the
+  consumption cap are still booked. Spot-dependent energy cost, subsidy and
+  the Norgespris comparison lack a price basis; missing coverage remains visible
+  in data quality.
 
 Attributes:
 
@@ -245,19 +257,108 @@ entities:
   - entity: sensor.kapasitetstrinn
 ```
 
-Alert when approaching the next tier:
+### Capacity alert and recovery
+
+Use the existing **Capacity warning** binary sensor: it follows the threshold
+in Configure (default 2.0 kW), so the automation does not need its own threshold.
+The example below replaces the same Home Assistant notification when the alert
+clears. It works with Home Assistant **2025.1 and later**. Paste it into an
+automation’s YAML editor. Replace the entity ID with your own; IDs depend on
+the setup language, grid company and any names you have changed.
 
 ```yaml
-automation:
-  - trigger:
-      - platform: numeric_state
-        entity_id: sensor.nettleie_bkk_margin_til_neste_trinn
-        below: 1.0
-    action:
-      - service: notify.mobile_app
-        data:
-          message: "{{ states('sensor.nettleie_bkk_margin_til_neste_trinn') }} kW to next capacity tier."
+alias: Capacity warning
+triggers:
+  - trigger: state
+    entity_id: binary_sensor.nettleie_bkk_capacity_warning
+    to: "on"
+    id: warning
+  - trigger: state
+    entity_id: binary_sensor.nettleie_bkk_capacity_warning
+    from: "on"
+    to: "off"
+    id: cleared
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: warning
+        sequence:
+          - action: persistent_notification.create
+            data:
+              notification_id: stromkalkulator_bkk_kapasitet
+              title: "Capacity warning"
+              message: "{{ state_attr('binary_sensor.nettleie_bkk_capacity_warning', 'margin_kw') }} kW to the next capacity tier."
+      - conditions:
+          - condition: trigger
+            id: cleared
+        sequence:
+          - action: persistent_notification.create
+            data:
+              notification_id: stromkalkulator_bkk_kapasitet
+              title: "Capacity alert cleared"
+              message: "The capacity warning is no longer active."
+mode: queued
 ```
+
+Recovery requires `on` → `off`: missing data (`unknown`/`unavailable`) is
+not reported as recovery. Use a separate notification ID for each installation.
+This is an alert about the calculated monthly tier margin, not a forecast of
+how much load you can add for the rest of the hour. Load control belongs in
+Effektvakt.
+
+In Home Assistant **2026.7**, purpose-specific triggers and conditions became
+the default in the automation editor. From **2026.10**, the editor lets you
+pick the trigger directly in **Triggered by**, without typing an ID. The YAML
+above uses explicit IDs, which also work on earlier versions. See the official
+[July release notes](https://www.home-assistant.io/blog/2026/07/01/release-20267/)
+and [October release notes](https://www.home-assistant.io/blog/2026/10/07/release-202610/).
+
+### Margin gauge
+
+```yaml
+type: gauge
+entity: sensor.nettleie_bkk_margin_to_next_tier
+name: Margin to next tier
+min: 0
+max: 10
+needle: true
+severity:
+  red: 0
+  yellow: 1
+  green: 2
+```
+
+Small margins are red; larger margins are green. Adjust the scale and color
+thresholds to your setup; `severity` is display only and does not change the
+alert threshold. The card works in **2025.1**; the refreshed appearance from
+[2026.4](https://www.home-assistant.io/blog/2026/04/01/release-20264/#gauge-card-redesign)
+is automatic. In the highest tier or with a fixed charge without measured
+power tiers, the margin may be 0 without a more expensive tier existing;
+check Capacity warning as well.
+
+### Measurement problems on the dashboard
+
+Show this card while **Measurement data problem** is on. Tap the entity to
+inspect the `problemer` attribute; repairs are also listed in Settings.
+
+```yaml
+type: conditional
+conditions:
+  - entity: binary_sensor.nettleie_bkk_measurement_data_problem
+    state: "on"
+card:
+  type: entities
+  title: Check the input sensors
+  entities:
+    - entity: binary_sensor.nettleie_bkk_measurement_data_problem
+    - entity: binary_sensor.nettleie_bkk_capacity_warning
+```
+
+This card works in **2025.1**. In **2026.10**, the card editor’s Visibility
+tab supports the conditions from the automation editor and shows whether each
+condition passes. For this example, a simple state condition is enough. See
+[the visibility improvements](https://www.home-assistant.io/blog/2026/10/07/release-202610/#show-a-card-only-when-it-matters).
 
 ## Invoice verification
 
@@ -302,10 +403,14 @@ Find the `entry_id` in the URL under Settings > Devices & Services > Strømkalku
 | `monthly_accumulated_cost`       | float  | Accumulated monthly cost (kr)                 |
 | `previous_month_consumption`     | dict   | Consumption last month                        |
 | `previous_month_top_3`           | dict   | Top-3 last month                              |
+| `previous_month_fastledd_snapshot` | dict/null | Historical tariff and peak basis for late corrections |
+| `previous_month_fastledd_grunnlag_bekreftet` | bool | Whether the historical fixed charge can be verified |
 | `previous_month_kapasitetsledd`  | int    | Capacity charge last month (kr/month)         |
 | `previous_month_kapasitetstrinn` | string | Tier range last month (e.g. `"5-10 kW"`)      |
 | `monthly_export_kwh`             | float  | Export this month                             |
 | `monthly_export_revenue`         | float  | Export revenue this month                     |
+| `eksportbok`                     | dict   | Export price slots, energy and monthly balances |
+| `ferdige_sum`                    | dict   | Consumption and price coverage outside the short interval window |
 | `monthly_cost`                   | float  | Total consumption cost this month (kr)        |
 
 #### Examples

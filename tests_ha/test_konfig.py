@@ -16,6 +16,7 @@ import pytest
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryError, ConfigEntryNotReady
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import issue_registry as ir
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -322,6 +323,55 @@ async def test_konfigurasjonsendring_har_en_reload_eier(
     assert {
         (e.entity_id, e.unique_id) for e in er.async_entries_for_config_entry(registry, entry.entry_id)
     } == ider_foer
+
+
+@pytest.mark.parametrize("inngang", ["reconfigure", "options"])
+@pytest.mark.parametrize(
+    ("feil", "tilstand"),
+    [
+        (ConfigEntryNotReady("venter på sensor"), ConfigEntryState.SETUP_RETRY),
+        (ConfigEntryError("oppsettet feilet"), ConfigEntryState.SETUP_ERROR),
+    ],
+)
+@pytest.mark.parametrize("endret", [False, True])
+async def test_lagring_laster_et_anlegg_som_ikke_kjorer(
+    hass: HomeAssistant,
+    inngang: str,
+    feil: Exception,
+    tilstand: ConfigEntryState,
+    endret: bool,
+) -> None:
+    """Et anlegg som venter eller feilet har ingen listener som laster det om.
+
+    Brukeren som retter valget, eller lagrer det samme etter å ha fikset
+    sensoren, skal få anlegget i gang med en gang, ikke etter neste
+    tilbakeoppringing eller aldri.
+    """
+    _sett_states(hass)
+    entry = MockConfigEntry(domain=DOMAIN, version=5, data=_basisdata(**{CONF_TARIFFMODUS: "catalog"}))
+    entry.add_to_hass(hass)
+    with patch(
+        "custom_components.stromkalkulator.NettleieCoordinator.async_config_entry_first_refresh",
+        side_effect=feil,
+    ):
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+    assert entry.state is tilstand
+
+    if inngang == "reconfigure":
+        manager = hass.config_entries.flow
+        resultat = await entry.start_reconfigure_flow(hass)
+    else:
+        manager = hass.config_entries.options
+        resultat = await hass.config_entries.options.async_init(entry.entry_id)
+    utfylt = _frontend_forhaandsutfylling(resultat["data_schema"])
+    if endret:
+        utfylt[CONF_HAR_NORGESPRIS] = True
+    await manager.async_configure(resultat["flow_id"], user_input=utfylt)
+    await hass.async_block_till_done()
+
+    assert entry.state is ConfigEntryState.LOADED
+    assert entry.runtime_data.har_norgespris is endret
 
 
 async def test_energiledd_er_valgfritt_i_options(hass: HomeAssistant) -> None:

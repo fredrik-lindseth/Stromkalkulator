@@ -12,15 +12,13 @@ Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) og [S
 - Midtnett og Areas tre områder bruker egen fastleddtabell når anlegget er konfigurert som fritidsbolig, også ved fast bosted. <!--kort-->
 - Asker, Midtnett og tidligere Norgesnett følger klokkestyrt dag-/nattariff også i helger og på helligdager. <!--kort-->
 - Fastledd og tilhørende totaler vises som ukjent utenfor kildebekreftede trinn: over 25 kW hos Etna og fra 75 kW hos Nettselskapet. <!--kort-->
-- Rekonfigurering bruker én omlasting ved endring og ingen ved uendret lagring. Tilpasset Home Assistants kommende krav uten å heve minimumsversjonen. <!--kort-->
+- Rekonfigurering bruker én omlasting ved endring og ingen ved uendret lagring. Tilpasset Home Assistants kommende krav uten å heve minimumsversjonen. Et anlegg som venter på nytt forsøk eller feilet ved oppstart, startes med en gang når du lagrer innstillingene, også uten endringer. <!--kort-->
 - Norgespris under forbrukstaket bokføres også når spotprisen mangler. Manglende prisgrunnlag for sammenligninger beholdes synlig. <!--kort-->
 - Eksportinntekt bruker prisen fra kvarteret energien ble levert i. Energi i et kvarter uten pris, for eksempel under en omstart, gir ingen kroner, og inntekt og nettokostnad viser kjent delbeløp med prisdekningen i attributtene. <!--kort-->
-- Forrige måneds eksport viser ikke lenger tall fra kalendermåneden før når forrige måned ble nullstilt etter flere måneders opphold.
 - Nettokostnad vises som ukjent når fastleddet er ukjent. <!--kort-->
-- Omstart bevarer månedens historiske forbruk og summer for manglende og delvis prisdekning. Strømstøtte og Norgespris rundt månedstaket får ikke lenger en falsk korreksjon etter omstart. <!--kort-->
+- Omstart bevarer månedens historiske forbruk og summer for manglende og delvis prisdekning. <!--kort-->
 - Forsinkede avlesninger retter også forrige måneds topptimer, kapasitetstrinn og fastledd med den månedens tariffgrunnlag. En måned som ble lukket før oppdateringen, beholder fastleddet sitt i stedet for å regnes om med dagens tariff. <!--kort-->
 - Forrige måneds fastledd og nettleie vises som ukjent når sikringsvalget mangler, slik inneværende måned allerede gjorde.
-- Fakturarapporten skriver «ukjent» med forklaring i stedet for «None» når forrige måneds kapasitetsledd ikke er bekreftet.
 
 ### Vedlikehold
 

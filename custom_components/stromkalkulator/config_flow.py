@@ -75,6 +75,7 @@ from .inputadapter import (
 )
 
 if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
     from homeassistant.data_entry_flow import FlowResult
 
     from .dso import DSOEntry
@@ -464,6 +465,30 @@ def _ny_entry_data(current: dict[str, Any], user_input: dict[str, Any]) -> dict[
     return ny
 
 
+@callback
+def _lagre_entry_data(hass: HomeAssistant, entry: config_entries.ConfigEntry, data: dict[str, Any]) -> None:
+    """Lagre ny entry-data og sørg for at et anlegg som ikke kjører lastes.
+
+    Et lastet anlegg har update-listeneren i __init__.py, som eier reloaden:
+    den kjører bare når lagringen faktisk endret noe, og å reloade herfra i
+    tillegg er det HA 2026.12 slutter å tillate i flowene.
+
+    Et anlegg som venter i SETUP_RETRY eller står i SETUP_ERROR, har ingen
+    listener. Den som retter valget, eller lagrer det samme etter å ha
+    fikset en sensor, venter at anlegget kommer i gang nå og ikke etter neste
+    tilbakeoppringing eller aldri, så flowen planlegger reloaden selv, endret
+    eller ikke. Bare de gjenopprettbare tilstandene, for å laste ut et anlegg
+    i noen annen tilstand (mislykket migrering, oppsett eller utlasting som
+    pågår) kaster OperationNotAllowed i reload-tasken.
+
+    async_update_entry og async_schedule_reload finnes i HA 2025.1, som er
+    minimum i hacs.json; async_update_and_abort kom senere.
+    """
+    hass.config_entries.async_update_entry(entry, data=data)
+    if entry.state is not config_entries.ConfigEntryState.LOADED and entry.state.recoverable:
+        hass.config_entries.async_schedule_reload(entry.entry_id)
+
+
 def _sett_tariffmodus(ny: dict[str, Any], user_input: dict[str, Any], *, gammel_dso: str | None) -> None:
     """Avgjør hvor satsene skal komme fra etter denne lagringen (kontrakt §6).
 
@@ -809,9 +834,7 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
         """Reconfigure an existing entry via the standard HA entry menu.
 
         Reuses the same schema, validation and DSO-derivation as the options
-        flow. The entry update listener owns reloading, as it does for options
-        and repairs. async_update_entry and async_abort also work on HA 2025.1,
-        which predates async_update_and_abort. An unchanged entry needs no reload.
+        flow, and the same save: see `_lagre_entry_data` for who reloads.
         unique_id is entry_id and stays put regardless of the chosen power sensor.
         """
         entry: config_entries.ConfigEntry = self._get_reconfigure_entry()
@@ -821,8 +844,7 @@ class NettleieConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ign
             errors = _validate_options_input(self.hass, user_input, entry.entry_id, entry.data)
             if not errors:
                 _apply_dso_derivation(user_input, dict(entry.data))
-                new_data: dict[str, Any] = _ny_entry_data(dict(entry.data), user_input)
-                self.hass.config_entries.async_update_entry(entry, data=new_data)
+                _lagre_entry_data(self.hass, entry, _ny_entry_data(dict(entry.data), user_input))
                 return self.async_abort(reason="reconfigure_successful")
 
         return self.async_show_form(
@@ -854,11 +876,10 @@ class NettleieOptionsFlow(config_entries.OptionsFlow):
             if not errors:
                 _apply_dso_derivation(user_input, dict(current))
 
-                new_data: dict[str, Any] = _ny_entry_data(dict(current), user_input)
                 # unique_id er entry_id (stabil) og skal ikke røres når power-
                 # sensoren endres. Duplikatvern håndteres av
                 # _validate_options_input over.
-                self.hass.config_entries.async_update_entry(self.config_entry, data=new_data)
+                _lagre_entry_data(self.hass, self.config_entry, _ny_entry_data(dict(current), user_input))
                 return self.async_create_entry(title="", data={})
 
         return self.async_show_form(

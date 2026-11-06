@@ -37,7 +37,7 @@ Sensors showing what electricity actually costs:
 
 | Grid company | Price area | Verified months | Latest verification |
 | ------------ | ---------- | --------------- | ------------------- |
-| BKK          | NO5        | 11              | September 2026      |
+| BKK          | NO5        | 12              | October 2026        |
 
 Each report matches the integration's calculations line by line against a real invoice. See [docs/fakturaer/referanse.md](docs/fakturaer/referanse.md) (Norwegian).
 

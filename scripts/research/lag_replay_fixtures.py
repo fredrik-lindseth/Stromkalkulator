@@ -27,8 +27,10 @@ scriptet ville skrevet nå. Det er den kjøringen CI kan bruke.
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Final
 
@@ -53,6 +55,7 @@ MANEDER: Final[list[str]] = [
     "juli_2026",
     "august_2026",
     "september_2026",
+    "oktober_2026",
 ]
 
 
@@ -81,14 +84,32 @@ def bygg_elhub(navn: str) -> dict[str, Any] | None:
         return None
     prefiks = _maned_prefiks(navn)
     timer = [
-        {"start_local": iso, "kwh": kwh} for iso, kwh in sorted(rader.items()) if iso.startswith(prefiks)
+        {"start_local": iso, "kwh": kwh}
+        for iso, kwh in sorted(rader.items(), key=lambda rad: datetime.fromisoformat(rad[0]).timestamp())
+        if iso.startswith(prefiks)
     ]
     if not timer:
         return None
+    # Elhub er fakturagrunnlaget, men kan inneholde estimerte timer.
+    # Ikke merk slike verdier som målt, eller mist kvaliteten ved eksport.
+    sti = vne.elhub_csv(navn)
+    kvaliteter = {}
+    if sti is not None:
+        with sti.open(encoding="utf-8-sig") as fil:
+            kvaliteter = {
+                rad["Fra"]: rad.get("Kvalitet") or "Ukjent" for rad in csv.DictReader(fil, delimiter=";")
+            }
+    avvik = {
+        t["start_local"]: kvaliteter.get(t["start_local"], "Ukjent")
+        for t in timer
+        if kvaliteter.get(t["start_local"]) != "Målt"
+    }
     return {
         "metadata": {
             "navn": navn,
-            "kilde": "Elhub, måleserie «KWH 60 Forbruk», kvalitet «Målt»",
+            "kilde": "Elhub, måleserie «KWH 60 Forbruk», "
+            + ("se kvalitetsavvik" if avvik else "kvalitet «Målt»"),
+            **({"kvalitetsavvik": avvik} if avvik else {}),
             "tidssone": "Europe/Oslo",
             "opplosning_minutter": 60,
             "timer": len(timer),

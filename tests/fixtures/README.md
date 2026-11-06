@@ -18,6 +18,7 @@ Time-for-time forbruk + spotpris + maks effekt, eksportert fra HA recorder.
 | `bkk_april_2026_hourly.json`    | 01.04.26 - 01.05.26 | 720   | 1381,827  | 1381,827 | Norgespris, verifisert                 |
 | `bkk_mai_2026_hourly.json`      | 01.05.26 - 01.06.26 | 744   | 1179,306  | 1179,303 | Norgespris, verifisert                 |
 | `bkk_juni_2026_hourly.json`     | 01.06.26 - 01.07.26 | 720   | 1033,626  | 1033,628 | Norgespris, verifisert                 |
+| `bkk_oktober_2026_hourly.json`  | 01.10.26 - 01.11.26 | 745   | 1160,214  | 1160,218 | Én HAN-time erstattet med Elhubs estimat |
 
 Februar har 28 dager (672 timer), mars 31 dager med DST-overgang 29.03 (kun
 23 timer den dagen, total 743 timer i måneden).
@@ -42,19 +43,19 @@ HAN-leseren var nede har likevel full Elhub-dekning. Fasiten i
 | `elhub_mai_2026.json`     |   744 | 1179,303 |      1179,303 |
 | `elhub_juni_2026.json`    |   720 | 1033,628 |      1033,628 |
 | `elhub_juli_2026.json`    |   744 |  938,763 |       938,763 |
+| `elhub_august_2026.json`  |   744 |  964,967 |       964,967 |
+| `elhub_september_2026.json` | 720 |  984,791 |       984,791 |
+| `elhub_oktober_2026.json` |   745 | 1160,218 |      1160,218 |
 | `elvia_august_2026.json`  |   744 |  668,585 |        668,585 |
 
-Bare `Fra` og `Volum` er med. Kundenavn, målepunkt-ID og
-registreringstidspunkt blir liggende i den private CSV-en, på samme måte som
-`bkk_*_hourly.json` ikke har navn eller fakturanummer.
+`Fra` og `Volum` blir til tidspunkt og kWh. Kvalitet som avviker fra «Målt» bevares i `metadata.kvalitetsavvik`; oktober har én estimert time. Kundenavn, målepunkt-ID og registreringstidspunkt blir liggende i den private CSV-en. HAN-fixturene bruker anonymiserte fakturareferanser.
 
 `elvia_august_2026.json` er en separat, anonymisert NO1/Elvia-fixture. Den
 avstemmes i `tests/test_faktura_elvia.py` mot Elvia-fakturaen: forbruk,
 dag/natt-fordeling, energiledd og kapasitet. Den har ikke spotpris per time,
 så strømstøtte kan ennå ikke reproduseres time-for-time.
 
-August 2026 mangler fortsatt i BKK/NO5-replayet. HAN-fixturen mangler 176 av
-744 timer og duger ikke som erstatning.
+Oktober dekker begge vintertidstimene 25.10 kl. 02. Sorteringen bruker tidspunkt med UTC-offset. Se [oktoberrapporten](../../docs/fakturaer/bkk-oktober-2026.md) for forskjellen mellom rå HAN-måling og estimert fakturagrunnlag.
 
 ### `final_pris_<måned>_<år>.json`
 
@@ -65,7 +66,7 @@ Rader med `kilde: "fallback"` kommer fra EUR-fixturen ganget med
 exchangeRate-arkivet og har `kvarter: null`; det gjelder 1. til 4. mai 2026,
 som har falt ut av gratis-vinduet i NOK-arkivet.
 
-Finnes for mai, juni, juli og august 2026. Lenger tilbake rekker ikke
+Finnes for mai til oktober 2026. Lenger tilbake rekker ikke
 prisarkivet, og `just snapshot-kurs` må kjøres månedlig for at det ikke skal
 krympe videre.
 

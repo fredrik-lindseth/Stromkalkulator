@@ -1,6 +1,6 @@
 # Kjente begrensninger
 
-Integrasjonen treffer fakturaen på øret. Sensorer i HA vises i kr og kWh som matcher det nettselskapet fakturerer. Begrensningene under er ikke-validerte scenarier eller spesielle tilfeller du bør vite om.
+Med samme forbruksgrunnlag og endelige priser kan beregningene treffe fakturaen til øret. Løpende HA-sensorer kan avvike når nettselskapet bruker estimert forbruk eller prisene korrigeres etter levering. Begrensningene under beskriver disse forskjellene og scenarier som ikke er fakturaverifisert.
 
 ## 1. Spisset mot ett oppsett
 
@@ -8,7 +8,7 @@ All faktura-verifisering er gjort mot eget oppsett:
 
 | Komponent               | Verdi                                   |
 | ----------------------- | --------------------------------------- |
-| Nettselskap             | BKK (NO5), verifisert mot 11 fakturaer  |
+| Nettselskap             | BKK (NO5), verifisert mot 12 fakturaer  |
 | Måler                   | Kaifa MA304H3E                          |
 | HAN-leser               | Pow-U (AMSleser.no, AmsToMqtt-firmware) |
 | Strømleverandør         | Tibber Norge AS                         |
@@ -20,7 +20,6 @@ Resultatene gjelder strengt for denne kombinasjonen. Andre kombinasjoner kan ha 
 
 Følgende har ikke blitt verifisert mot ekte faktura:
 
-- DST-overgang høst (oktober, +1 time, doblet klokke-time, kjent bug: [research/ikke-validerte-scenarier.md](research/ikke-validerte-scenarier.md#1-dst-overgang)). Har ikke inntruffet ennå i verifiseringsperioden. Vår-DST (mars, -1 time) er derimot dekket: mars 2026-fakturaen omfatter hele 23-timersdøgnet 29.03, og dag/natt-totalene matcher innenfor vanlig avrundingsfeil (se `tests/fixtures/README.md`).
 - Negative spotpriser (kan oppstå ved overskudd av sol/vind)
 - Norgespris kWh-tak (5000 kWh/mnd for bolig)
 - Avgiftssone Nord-Norge / Tiltakssone (mva-fritak)
@@ -29,11 +28,15 @@ Følgende har ikke blitt verifisert mot ekte faktura:
 
 Vil du validere noen av disse, send faktura + Elhub-data, så kan vi utvide verifiserings-suiten.
 
+Overgangen til vintertid er verifisert mot [BKK oktober 2026](fakturaer/bkk-oktober-2026.md), med alle 745 timer gjennom den tidsbevisste coordinator-replayen. Én annen time samme døgn er estimert hos Elhub; estimatet ligger 0,813 kWh over HAN-målingen. Det er en forskjell i avregningsgrunnlaget, ikke dokumentasjon på feil i nettleieberegningen. Vår-DST er dekket av mars-fixturen, men den strengere etterkontrollen flagger fortsatt dag/natt- og prisavvik som må undersøkes.
+
 ## 3. Norgespris-kompensasjon (prisårgang i den løpende sensoren)
 
 Løst for verifisering 2026-07-06. Med Nord Pools publiserte Final-priser reproduseres Norgespris-linjen eksakt (juni 2026: 0,00 kr avvik). Formelen, symmetrien og kursgrunnlaget er riktig. Se [research/norgespris-eksakt-match.md](research/norgespris-eksakt-match.md).
 
 Det som gjenstår er den løpende sensoren i HA. Den akkumulerer med prisen slik den ser ut i leveringstimen, og på dager der valutamarkedet var stengt på auksjonsdagen (søndager, enkelte helligdager) er det en foreløpig kurs som Nord Pool senere korrigerer til Final. En akkumulert sum kan ikke rettes bakover. Målt effekt: 0,15 kr (juni) og 0,55 kr (mai), altså 0,04-0,05 % av kompensasjonen. Fakturaverifiseringen i etterkant er ikke berørt, den bruker publiserte Final-priser fra prisarkivet (`just snapshot-kurs`).
+
+Oktober 2026 hadde omtrent 1,58 kr forskjell mellom recorder-priser og Final ved samme forbruksgrunnlag. På vintertidsdøgnet varierer prisforholdet også innenfor døgnet, så hele forskjellen er ikke dokumentert som valutakurs. Elhub × Final treffer fakturaen innenfor 0,0025 kr.
 
 Avregningen på intervaller (L3a og L3b) flyttet ikke på dette. Den fjernet polltiden fra regnestykket, altså hvilket øyeblikk vi spurte sensoren, men prisen som ligger i intervallet er fortsatt den som var publisert da timen ble levert. Er den foreløpig, blir den stående. Sensorene leser de samme kronene fra L3c og arver derfor det samme.
 

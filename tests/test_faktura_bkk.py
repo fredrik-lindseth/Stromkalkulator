@@ -255,6 +255,32 @@ FAKTURA_SEPTEMBER_2026 = {
     "dobbelttelling_avvik_kr": 100,
 }
 
+FAKTURA_OKTOBER_2026 = {
+    "navn": "oktober_2026",
+    "fakturanr": "012345689",
+    "periode_dager": 31,
+    "forbruk_dag_kwh": 641.262,
+    "forbruk_natt_kwh": 518.956,
+    "forbruk_total_kwh": 1160.218,
+    "maks_effekt": [5.253, 4.515, 4.421],
+    "maks_effekt_snitt": 4.730,
+    "kapasitetstrinn_indeks": 1,  # Trinn 2: 2-5 kW
+    "kapasitetstrinn_grense": (5, 250),
+    "kapasitetstrinn_min_kw": 2.0,
+    "kapasitetstrinn_maks_kw": 5.0,
+    "norgespris_snitt_kr_per_kwh": -1.2257,
+    "forventet_energiledd_dag_kr": 230.61,
+    "forventet_energiledd_natt_kr": 68.11,
+    "forventet_norgespris_kr": -1422.10,
+    "forventet_kapasitet_kr": 250.00,
+    "forventet_forbruksavgift_kr": 103.40,
+    "forventet_enovaavgift_kr": 14.51,
+    "forventet_nettleie_kr": 666.63,
+    "forventet_total_kr": -755.47,
+    "forventet_mva_kr": 133.33,
+    "dobbelttelling_avvik_kr": 118,
+}
+
 
 @pytest.fixture(
     params=[
@@ -266,6 +292,7 @@ FAKTURA_SEPTEMBER_2026 = {
         FAKTURA_JULI_2026,
         FAKTURA_AUGUST_2026,
         FAKTURA_SEPTEMBER_2026,
+        FAKTURA_OKTOBER_2026,
     ],
     ids=[
         "februar_2026",
@@ -276,6 +303,7 @@ FAKTURA_SEPTEMBER_2026 = {
         "juli_2026",
         "august_2026",
         "september_2026",
+        "oktober_2026",
     ],
 )
 def faktura(request):

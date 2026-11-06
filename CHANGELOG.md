@@ -22,6 +22,8 @@ Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) og [S
 
 ### Vedlikehold
 
+- Verifisert BKK oktober 2026 mot faktura, Elhub og endelige spotpriser, med vintertid og én estimert forbrukstime. Fakturaverktøyene bruker nå absolutte avviksgrenser, bevarer Elhub-kvalitet og sorterer vintertidstimene etter faktisk tidspunkt. [Rapport](docs/fakturaer/bkk-oktober-2026.md).
+
 - Med eksportsensor skrives lagringsfilen ikke lenger på avlesninger der verken en eksportpris endret seg eller energi ble bokført.
 - Lagt til kategorien `energy.energy_prices` i integrasjonsmanifestet i tråd med [Home Assistants kategorier](https://contributors.home-assistant.io/core/integrations/categories/).
 - Hassfest kjører med Home Assistants standardaction igjen, siden det publiserte validator-image-et godtar manifestkategorier fra 2026.11.

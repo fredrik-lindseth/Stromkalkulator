@@ -162,6 +162,19 @@ FAKTURAER: dict[str, dict[str, Any]] = {
         "forventet_nettleie_kr": 606.71,
         "forventet_total_kr": -533.80,
     },
+    "oktober_2026": {
+        "forbruk_dag_kwh": 641.262,
+        "forbruk_natt_kwh": 518.956,
+        "forbruk_total_kwh": 1160.218,
+        "forventet_energiledd_dag_kr": 230.61,
+        "forventet_energiledd_natt_kr": 68.11,
+        "forventet_forbruksavgift_kr": 103.40,
+        "forventet_enovaavgift_kr": 14.51,
+        "forventet_kapasitet_kr": 250.00,
+        "forventet_norgespris_kr": -1422.10,
+        "forventet_nettleie_kr": 666.63,
+        "forventet_total_kr": -755.47,
+    },
 }
 
 
@@ -281,12 +294,17 @@ def beregn(hours: list[dict[str, Any]], shift_seconds: int = 13) -> dict[str, fl
 
 
 def innenfor_toleranse(navn: str, beregnet: float, faktura: float) -> bool:
-    diff = beregnet - faktura
-    if navn == "Total inkl. Norgespris":
-        return abs(diff) <= 5.0
-    if abs(faktura) < 0.001:
-        return abs(diff) <= 0.01
-    return abs(diff) / abs(faktura) <= 0.01
+    """Absolutte grenser fra fakturaprosedyren; store fakturaer får ikke 1 % slakk."""
+    toleranser = {
+        "Total kWh": 0.05,
+        "Forbruk dag kWh": 0.10,
+        "Forbruk natt kWh": 0.10,
+        "Kapasitet": 0.01,
+        "Nettleie sum": 0.10,  # Summen av avrundingene på fem linjer.
+        "Norgespris-komp": 0.60,
+        "Total inkl. Norgespris": 0.70,
+    }
+    return abs(beregnet - faktura) <= toleranser.get(navn, 0.02) + 1e-9
 
 
 def print_rad(navn: str, beregnet: float, faktura: float, enhet: str = "kr", delvis: bool = False) -> bool:
@@ -436,6 +454,9 @@ def main() -> int:
     ok &= print_rad("Norgespris-komp", beregnet["norgespris_kr"], f["forventet_norgespris_kr"], "kr", hull)
     ok &= print_rad("Total inkl. Norgespris", beregnet["total_kr"], f["forventet_total_kr"], "kr", hull)
 
+    eksakt_ok = print_norgespris_eksakt(args.faktura, args.shift_seconds)
+    if eksakt_ok is False:
+        ok = False
     print()
     if not ok:
         print("Avvik utenfor toleranse")
@@ -445,12 +466,11 @@ def main() -> int:
         print("Alt innenfor toleranse")
     if hull:
         print_datahull(hours, f, beregnet, args.shift_seconds)
-    print_norgespris_eksakt(args.faktura, args.shift_seconds)
     return 0 if ok else 1
 
 
-def print_norgespris_eksakt(faktura_navn: str, shift_seconds: int) -> None:
-    """Informativ tilleggssjekk: Norgespris mot Nord Pools publiserte Final-priser.
+def print_norgespris_eksakt(faktura_navn: str, shift_seconds: int) -> bool | None:
+    """Elhub x Final er blokkerende når komplett; HAN-sjekken er informativ.
 
     HA-recorderen kan ha en annen prisårgang enn BKK fakturerer fra (foreløpig
     vs Final valutakurs på dager der FX-markedet var stengt). Med publiserte
@@ -464,29 +484,38 @@ def print_norgespris_eksakt(faktura_navn: str, shift_seconds: int) -> None:
         res = vne.analyser_maaned(faktura_navn, shift_seconds)
     except Exception as e:  # aldri la tilleggssjekken velte hovedverifiseringen
         print(f"\n(Norgespris eksakt-sjekk hoppet over: {type(e).__name__}: {e})")
-        return
+        return None
     if res is None:
         print(
             "\n(Norgespris eksakt-sjekk hoppet over: mangler prisarkiv for måneden, "
             "kjør `just snapshot-kurs`)"
         )
-        return
+        return None
+    if res["elhub_full"] and res["komp_elhub"] is not None:
+        avvik = res["komp_elhub"] - res["faktura"]
+        status = "OK" if abs(avvik) <= 0.01 else "AVVIK"
+        print(
+            f"\nNorgespris, Elhub-kWh x publiserte Final-priser: {res['komp_elhub']:+.2f} kr, "
+            f"faktura {res['faktura']:+.2f}, avvik {avvik:+.4f} kr ({status}, grense 0.01 kr)"
+        )
+        return abs(avvik) <= 0.01
     if res["manglende_timer"]:
         print(
             f"\nNorgespris mot publiserte Final-priser: {res['komp_np']:+.2f} kr over de "
             f"{res['n_timer']} målte timene. Ikke sammenlignbar med fakturalinjen "
             f"({res['faktura']:+.2f} kr) så lenge {res['manglende_timer']} timer mangler måling."
         )
-        return
+        return None
     avvik = res["komp_np"] - res["faktura"]
     print(
         f"\nNorgespris mot publiserte Final-priser: {res['komp_np']:+.2f} kr, "
         f"faktura {res['faktura']:+.2f}, avvik {avvik:+.2f} kr"
     )
     print(
-        "  (forventet |avvik| <= 0.05 kr; større avvik tyder på prisårgang- eller "
-        "kWh-avvik, se docs/research/norgespris-eksakt-match.md)"
+        "  (HAN x Final kan avvike opptil 0.4 kr ved recorder-aggregatglipper; "
+        "eksakt kontroll krever Elhub-kWh, se docs/research/norgespris-eksakt-match.md)"
     )
+    return None
 
 
 if __name__ == "__main__":

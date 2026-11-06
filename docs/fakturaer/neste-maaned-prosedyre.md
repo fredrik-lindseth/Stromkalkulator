@@ -33,6 +33,8 @@ direkte, så ingen EUR→NOK-omregning trengs for månedssjekken.
 
 ### 3. Last ned Elhub-data
 
+Etter BankID-innlogging kan du bruke [den direkte CSV-lenken](../research/elhub-api.md) og slippe kalender- og eksportdialogen. `scripts/research/elhub_download_url.py` lager lenken for målepunktet og måneden. Stegene under er alternativet via nettsiden.
+
 1. Logg inn på [minside.elhub.no/metering-points](https://minside.elhub.no/metering-points)
 2. Velg ditt målepunkt. Direktelenke til måleverdiene (bytt inn din målepunkt-ID):
    `https://minside.elhub.no/metering-points/<målepunkt-id>/metering-values?start=<ISO-tidspunkt>&granularity=MONTHLY`
@@ -151,7 +153,7 @@ Forventede avvik (basert på april 2026):
 | Total kWh                            | ±50 Wh          |
 | Dag/natt-split                       | ±100 Wh hver    |
 | Topp 3 maks effekt                   | 3-20 W per topp (11.07.2026 målte 20 W) |
-| Norgespris (HAN x HA-recorder)       | 0,1-0,6 kr      |
+| Norgespris (HAN x HA-recorder)       | opptil 0,6 kr før nærmere undersøkelse |
 | Norgespris (HAN x publisert Final)   | ±0,4 kr         |
 | Norgespris (Elhub x publisert Final) | ±0,01 kr        |
 | Avgiftslinjer (forbruk/enova)        | ±2 øre          |
@@ -163,6 +165,8 @@ HAN-varianten kan bomme opp mot 0,4 kr hvis recorder-aggregatet har byttet
 delta mellom nabotimer (skjedde 2. pinsedag 2026). Se
 [../research/norgespris-eksakt-match.md](../research/norgespris-eksakt-match.md).
 Avgiftslinjene har et gulv på 1-2 øre som er BKKs interne avrunding.
+
+Verifiseringsskriptet bruker disse absolutte grensene, ikke prosent av fakturabeløpet. Nettleiesummen får 0,10 kr for summen av linjeavrundingene, og totalen inkludert Norgespris får 0,70 kr. Et større recorder-avvik må forklares selv om Elhub x Final stemmer; oktober 2026 hadde 1,58 kr i recorder-avvik etter retting av én forbrukstime. En komplett Elhub x Final-sjekk er blokkerende ved mer enn 0,01 kr avvik. Den erstatter ikke kontrollen av HAN/recorder-dataene.
 
 Hvis avvik er innenfor: alt stemmer med dokumentasjonen.
 

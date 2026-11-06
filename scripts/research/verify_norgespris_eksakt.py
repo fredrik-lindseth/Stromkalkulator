@@ -113,12 +113,8 @@ def publiserte_priser(hours: list[dict[str, Any]]) -> tuple[dict[str, float], di
     return priser, kilder
 
 
-def last_elhub(navn: str) -> dict[str, float] | None:
-    """{time-start ISO: kWh} fra Elhub-CSV, eller None hvis fila mangler.
-
-    Ser etter elhub_<måned>_<år>.csv og elhub_<måned>.csv under både
-    _private/Måleverdier/ og Måleverdier/ (tracked demo-kopier).
-    """
+def elhub_csv(navn: str) -> Path | None:
+    """Finn original CSV, med årsspesifikk privat fil først."""
     maaned, aar = navn.split("_")
     kandidater = [
         ROOT / "_private" / "Måleverdier" / f"elhub_{maaned}_{aar}.csv",
@@ -126,15 +122,16 @@ def last_elhub(navn: str) -> dict[str, float] | None:
         ROOT / "Måleverdier" / f"elhub_{maaned}_{aar}.csv",
         ROOT / "Måleverdier" / f"elhub_{maaned}.csv",
     ]
-    for p in kandidater:
-        if not p.exists():
-            continue
-        out: dict[str, float] = {}
-        with p.open(encoding="utf-8-sig") as f:
-            for row in csv.DictReader(f, delimiter=";"):
-                out[row["Fra"]] = float(row["Volum"].replace(",", "."))
-        return out
-    return None
+    return next((p for p in kandidater if p.exists()), None)
+
+
+def last_elhub(navn: str) -> dict[str, float] | None:
+    """{time-start ISO: kWh} fra Elhub-CSV, eller None hvis fila mangler."""
+    p = elhub_csv(navn)
+    if p is None:
+        return None
+    with p.open(encoding="utf-8-sig") as f:
+        return {row["Fra"]: float(row["Volum"].replace(",", ".")) for row in csv.DictReader(f, delimiter=";")}
 
 
 def komp_sum(kwhs: list[float], priser: list[float]) -> float:

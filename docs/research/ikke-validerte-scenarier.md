@@ -2,6 +2,8 @@
 
 Referanser per 1.13.0 (commit 935f600). Linjenumre kan flytte seg.
 
+Oppdatert 6. november 2026: Vintertid er nå verifisert mot [BKK oktober 2026](../fakturaer/bkk-oktober-2026.md), med 745 timer gjennom dagens coordinator og en uavhengig avregning. Gjennomgangen nedenfor beskriver eldre kode og antagelser, ikke status for dagens beregningsmotor.
+
 Tre scenarier dokumentert i `docs/begrensninger.md §2`:
 
 1. DST-overgang (mars/oktober)

@@ -749,6 +749,24 @@ def sjekk_publisert(
             )
             return sjekker
 
+    import release_evidence as evidence
+
+    bevis = [a for a in release.get("assets", []) if a.get("name") == evidence.ASSET]
+    if len(bevis) > 1:
+        sjekker.append(Sjekk("fakturabevis", False, "flere bevis-assets", blokkerende=True))
+    elif bevis:
+        try:
+            last_ned_asset(gh, kandidat, bevis[0], arbeidsmappe / "publisert-evidence.zip")
+            evidence.from_zip(arbeidsmappe / "publisert-evidence.zip", sha)
+        except evidence.EvidenceError as err:
+            sjekker.append(Sjekk("fakturabevis", False, str(err), blokkerende=True))
+        else:
+            sjekker.append(Sjekk("fakturabevis", True, "validert mot taggens commit"))
+    elif git.finnes("cat-file", "-e", f"{sha}:scripts/release_evidence.py"):
+        sjekker.append(Sjekk("fakturabevis", False, "releasen mangler fakturabevis", blokkerende=True))
+    else:
+        print("- Historisk release uten fakturabevis")
+
     taggens = Kandidat(repo=kandidat.repo, sha=sha, versjon=kandidat.versjon)
     try:
         verifiser_attestasjon(gh, taggens, lest, faktisk_digest)
@@ -757,6 +775,44 @@ def sjekk_publisert(
     else:
         sjekker.append(Sjekk("attestasjon", True, f"dekker ZIP-en og kildecommit {sha[:12]}"))
     return sjekker
+
+
+def sikre_evidence(
+    gh: Gh,
+    kandidat: Kandidat,
+    release: dict[str, Any],
+    sti: Path,
+    rapport: dict[str, Any],
+    arbeidsmappe: Path,
+) -> str:
+    """Upload once, then validate the downloaded bytes before publishing."""
+    import release_evidence as evidence
+
+    assets = [a for a in release.get("assets", []) if a.get("name") == evidence.ASSET]
+    if len(assets) > 1:
+        raise Stopp("Flere bevis-assets finnes; de overskrives ikke")
+    ny_opplasting = not assets
+    if not assets:
+        url = f"https://uploads.github.com/repos/{kandidat.repo}/releases/{release['id']}/assets?name={evidence.ASSET}"
+        try:
+            gh.api(url, metode="POST", fil=sti)
+        except Feil as err:
+            print(f"! Opplasting feilet ({err}); leser tilbake.", file=sys.stderr)
+        oppdatert = gh.api(f"repos/{kandidat.repo}/releases/{release['id']}")
+        assets = [a for a in oppdatert.get("assets", []) if a.get("name") == evidence.ASSET]
+        if len(assets) != 1:
+            raise Stopp("Beviset ble ikke lastet opp entydig")
+    lest = arbeidsmappe / "evidence-readback.zip"
+    last_ned_asset(gh, kandidat, assets[0], lest)
+    if ny_opplasting and sha256_av(lest) != sha256_av(sti):
+        raise Stopp("Beviset ble endret under opplasting; publisering stoppet")
+    try:
+        eksisterende = evidence.from_zip(lest, kandidat.sha)
+        if not evidence.same_source(rapport, eksisterende):
+            raise evidence.EvidenceError("beviset gjelder andre kilder eller krav")
+    except evidence.EvidenceError as err:
+        raise Stopp(f"Beviset på releasen er ugyldig: {err}") from err
+    return "validert og lest tilbake"
 
 
 def kjor(
@@ -771,6 +827,7 @@ def kjor(
     krev_attestasjon: bool,
     streng: bool = False,
     proveslipp: bool = False,
+    evidence_dir: Path | None = None,
 ) -> int:
     """Selve tilstandsmaskinen. Publisering er siste kall, alltid."""
     print(f"Kandidat: {kandidat}")
@@ -828,6 +885,22 @@ def kjor(
     else:
         print("- Hopper over attestasjonssjekken: `plan` kjøres før ZIP-en er attestert.")
 
+    import release_evidence as evidence
+
+    rapport = None
+    evidence_zip = arbeidsmappe / evidence.ASSET
+    if evidence_dir is None:
+        if not bare_plan:
+            raise Stopp("Fakturabevis mangler: angi --evidence-dir fra kandidatens CI-kjøring")
+        print("! Fakturabevis mangler: publisering krever --evidence-dir fra kandidatens CI-kjøring")
+    else:
+        try:
+            filer, rapport = evidence.from_directory(evidence_dir, kandidat.sha)
+            evidence.write_zip(filer, evidence_zip)
+        except evidence.EvidenceError as err:
+            raise Stopp(str(err)) from err
+        print("✓ Fakturabevis validert")
+
     body = bygg_body(kandidat, repo_root)
     latest = skal_vaere_latest(gh, kandidat)
 
@@ -845,6 +918,9 @@ def kjor(
     print(f"Draft: {hva}")
     assert release is not None
     print(f"Asset: {sikre_asset(gh, kandidat, release, zipfil, digest, arbeidsmappe)}")
+
+    assert rapport is not None
+    print(f"Fakturabevis: {sikre_evidence(gh, kandidat, release, evidence_zip, rapport, arbeidsmappe)}")
 
     gh.api(
         f"repos/{kandidat.repo}/releases/{release['id']}",
@@ -900,6 +976,7 @@ def lag_parser() -> argparse.ArgumentParser:
         sub.add_argument("--repo", default=standard_repo())
         sub.add_argument("--zip", type=Path, default=None, help="ferdigbygget ZIP (kontrolleres mot SHA)")
         sub.add_argument("--arbeidsmappe", type=Path, default=None)
+        sub.add_argument("--evidence-dir", type=Path, default=None)
         if navn in {"plan", "publish"}:
             sub.add_argument(
                 "--proveslipp",
@@ -939,6 +1016,7 @@ def main(argv: list[str] | None = None) -> int:
             krev_attestasjon=krev_attestasjon,
             streng=args.kommando == "verify",
             proveslipp=getattr(args, "proveslipp", False),
+            evidence_dir=args.evidence_dir,
         )
     except Stopp as err:
         print(f"STOPP: {err}", file=sys.stderr)

@@ -8,7 +8,7 @@
 
 ## Fakturadata
 
-| Priselement           | Forbruk      | Pris            | Faktura (kr) | Vår beregning (kr) | Avvik    |
+| Priselement           | Forbruk      | Pris            | Faktura (kr) | Beregning (kr) | Avvik    |
 | --------------------- | ------------ | --------------- | ------------ | ------------------ | -------- |
 | Energiledd dag        | 590.646 kWh  | 35.963 øre/kWh  | 212.41       | 212.41             | 0.00     |
 | Energiledd natt/helg  | 442.982 kWh  | 13.125 øre/kWh  | 58.14        | 58.14              | 0.00     |
@@ -55,7 +55,7 @@ klassifiseringen er ren ukedag/helg.
 
 ## Kapasitetstrinn-verifisering
 
-| Faktura                 | Vår beregning               | Match? |
+| Faktura                 | Beregning               | Match? |
 | ----------------------- | --------------------------- | ------ |
 | Trinn: 2-5 kW (trinn 2) | `kapasitetstrinn_nummer: 2` | Match  |
 | Pris: 250 kr/mnd        | `kapasitetsledd: 250`       | Match  |
@@ -72,7 +72,7 @@ fakturaen, innenfor dokumentert avvik (3-8 W per topp).
 
 ## Norgespris-verifisering
 
-| Parameter           | Faktura                | Vår kode                                 | Match? |
+| Parameter           | Faktura                | Integrasjonens kode                                 | Match? |
 | ------------------- | ---------------------- | ---------------------------------------- | ------ |
 | Norgespris fastpris | (implisitt 50 øre/kWh) | `NORGESPRIS_INKL_MVA_STANDARD = 0.50`    | Ja     |
 | Strømstøtte         | 0 (Norgespris-kunde)   | `stromstotte = 0.0` når `har_norgespris` | Ja     |
@@ -84,7 +84,7 @@ inkl. mva), typisk sommerprisfall med høy magasinfylling.
 
 ## Avgiftsverifisering
 
-| Avgift         | Faktura (øre/kWh) | Vår const (eks. mva) | Vår const \* 1.25 | Match? |
+| Avgift         | Faktura (øre/kWh) | Integrasjonens const (eks. mva) | Integrasjonens const \* 1.25 | Match? |
 | -------------- | ----------------- | -------------------- | ----------------- | ------ |
 | Forbruksavgift | 8.913             | 7.13                 | 8.9125            | Ja     |
 | Enovaavgift    | 1.25              | 1.00                 | 1.25              | Ja     |

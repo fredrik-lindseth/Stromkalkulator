@@ -6,35 +6,31 @@ Tre lag, i den rekkefølgen de er verdt noe:
    implementasjon av `docs/kontrakter/avregning.md`, og prøvetabellene C7 og C8
    kjøres mot den. En fasit som ikke er etterprøvd er bare en mening til.
 2. **Fasiten mot ekte fakturaer.** Elhubs intervallenergi ganger Nord Pools
-   publiserte Final-priser skal gi BKKs fakturalinjer for mai, juni og juli
-   2026. Det er der fasiten blir fasit.
+   publiserte Final-priser skal gi BKKs fakturalinjer. Det er der fasiten blir fasit.
 3. **Coordinatoren gjennom harnesset.** Den ekte coordinatoren kjøres med poll
    hvert minutt, jitter, omstart og sommertid, og sammenlignes med fasiten for
    nøyaktig den historikken den fikk se.
 
-Alle tre lagene er grønne. De seks påstandene som sto som `xfail(strict=True)`
-til L3a er flippet: coordinatoren bokfører nå gjennom `avregning.py`, så energi,
-tariff, pris og Norgespris-linjen treffer fasiten for den historikken
-coordinatoren selv fikk se.
-
-Måneder uten fasitgrunnlag er merket ufullstendig, ikke grønne: august 2026 har
-publiserte priser, men ingen Elhub-CSV, og HAN-fixturen mangler 176 av 744
-timer. Den kan ikke avstemmes mot faktura, og testen sier det i stedet for å
-hoppe stille over.
+Måneder med både Elhub-forbruk og Final-priser avstemmes mot fakturaen.
+Måneder uten komplett grunnlag må oppgis i UFULLSTENDIGE med en årsak.
+Alle kontrollene av en måned deler uforanderlige sluttverdier fra én replay.
 """
 
 from __future__ import annotations
 
 import json
 import time
+from collections.abc import Mapping
 from datetime import datetime, timedelta
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any
 
 import pytest
 
 from tests.replay.fasit import (
     OSLO,
+    Avregning,
     Fasit,
     Kvalitet,
     Satser,
@@ -395,6 +391,17 @@ class TestFasitMotKontrakten:
 # ---------------------------------------------------------------------------
 
 
+def _check(record, month, metric, actual, expected, tolerance, unit):
+    record(month=month, metric=metric, actual=actual, expected=expected, tolerance=tolerance, unit=unit)
+    assert actual == pytest.approx(expected, abs=tolerance)
+
+
+@pytest.fixture(scope="module")
+def month_settlements():
+    """Fasitens ferdige Avregning er frozen og kan deles mellom kontrollene."""
+    return {}
+
+
 @pytest.mark.parametrize("navn", AVSTEMBARE)
 class TestFasitMotFaktura:
     """Elhub-kWh ganger Final-pris skal gi BKKs fakturalinjer.
@@ -405,39 +412,107 @@ class TestFasitMotFaktura:
     """
 
     @pytest.fixture
-    def avregning(self, navn):
-        return fasit_for(navn).avregning()
+    def avregning(self, navn, month_settlements):
+        if navn not in month_settlements:
+            month_settlements[navn] = fasit_for(navn).avregning()
+        return month_settlements[navn]
 
-    def test_energi_dag_natt_og_total(self, navn, avregning):
+    def test_energi_dag_natt_og_total(self, navn, avregning, record_domain_evidence):
         f = FAKTURAER[navn]
-        assert avregning.kwh_total == pytest.approx(f["forbruk_total_kwh"], abs=0.001)
-        assert avregning.kwh_dag == pytest.approx(f["forbruk_dag_kwh"], abs=0.001)
-        assert avregning.kwh_natt == pytest.approx(f["forbruk_natt_kwh"], abs=0.001)
+        _check(
+            record_domain_evidence,
+            navn,
+            "kwh_total",
+            avregning.kwh_total,
+            f["forbruk_total_kwh"],
+            0.001,
+            "kWh",
+        )
+        _check(record_domain_evidence, navn, "kwh_dag", avregning.kwh_dag, f["forbruk_dag_kwh"], 0.001, "kWh")
+        _check(
+            record_domain_evidence, navn, "kwh_natt", avregning.kwh_natt, f["forbruk_natt_kwh"], 0.001, "kWh"
+        )
 
-    def test_energiledd_dag_og_natt(self, navn, avregning):
+    def test_energiledd_dag_og_natt(self, navn, avregning, record_domain_evidence):
         f = FAKTURAER[navn]
-        assert avregning.energiledd_dag_kr == pytest.approx(f["energiledd_dag_kr"], abs=0.01)
-        assert avregning.energiledd_natt_kr == pytest.approx(f["energiledd_natt_kr"], abs=0.01)
+        _check(
+            record_domain_evidence,
+            navn,
+            "energiledd_dag_kr",
+            avregning.energiledd_dag_kr,
+            f["energiledd_dag_kr"],
+            0.01,
+            "NOK",
+        )
+        _check(
+            record_domain_evidence,
+            navn,
+            "energiledd_natt_kr",
+            avregning.energiledd_natt_kr,
+            f["energiledd_natt_kr"],
+            0.01,
+            "NOK",
+        )
 
-    def test_avgifter(self, navn, avregning):
+    def test_avgifter(self, navn, avregning, record_domain_evidence):
         f = FAKTURAER[navn]
-        assert avregning.forbruksavgift_kr == pytest.approx(f["forbruksavgift_kr"], abs=0.03)
-        assert avregning.enovaavgift_kr == pytest.approx(f["enovaavgift_kr"], abs=0.02)
+        _check(
+            record_domain_evidence,
+            navn,
+            "forbruksavgift_kr",
+            avregning.forbruksavgift_kr,
+            f["forbruksavgift_kr"],
+            0.03,
+            "NOK",
+        )
+        _check(
+            record_domain_evidence,
+            navn,
+            "enovaavgift_kr",
+            avregning.enovaavgift_kr,
+            f["enovaavgift_kr"],
+            0.02,
+            "NOK",
+        )
 
-    def test_norgespris(self, navn, avregning):
+    def test_norgespris(self, navn, avregning, record_domain_evidence):
         """Kravet i akseptansen: innenfor 0,01 kr av fakturalinjen."""
-        assert avregning.stotte_kr == pytest.approx(FAKTURAER[navn]["norgespris_kr"], abs=0.01)
+        _check(
+            record_domain_evidence,
+            navn,
+            "stotte_kr",
+            avregning.stotte_kr,
+            FAKTURAER[navn]["norgespris_kr"],
+            0.01,
+            "NOK",
+        )
 
-    def test_fastledd(self, navn, avregning):
-        assert avregning.kapasitetsledd_kr == pytest.approx(FAKTURAER[navn]["kapasitet_kr"], abs=0.001)
+    def test_fastledd(self, navn, avregning, record_domain_evidence):
+        _check(
+            record_domain_evidence,
+            navn,
+            "kapasitetsledd_kr",
+            avregning.kapasitetsledd_kr,
+            FAKTURAER[navn]["kapasitet_kr"],
+            0.001,
+            "NOK",
+        )
 
-    def test_nettleie_totalt(self, navn, avregning):
-        assert avregning.nettleie_kr == pytest.approx(FAKTURAER[navn]["nettleie_kr"], abs=0.05)
+    def test_nettleie_totalt(self, navn, avregning, record_domain_evidence):
+        _check(
+            record_domain_evidence,
+            navn,
+            "nettleie_kr",
+            avregning.nettleie_kr,
+            FAKTURAER[navn]["nettleie_kr"],
+            0.05,
+            "NOK",
+        )
 
-    def test_alle_intervaller_har_full_prisdekning(self, navn):
-        a = fasit_for(navn).avregning()
-        assert a.kwh_uten_pris == 0.0
-        assert a.kwh_delvis_pris == 0.0
+    def test_alle_intervaller_har_full_prisdekning(self, navn, avregning, record_domain_evidence):
+        a = avregning
+        _check(record_domain_evidence, navn, "kwh_uten_pris", a.kwh_uten_pris, 0.0, 0, "kWh")
+        _check(record_domain_evidence, navn, "kwh_delvis_pris", a.kwh_delvis_pris, 0.0, 0, "kWh")
 
 
 def test_maneder_med_prisfasit_er_sortert():
@@ -742,10 +817,16 @@ class TestHendelsesreplay:
 # ---------------------------------------------------------------------------
 
 
-_KJORT: dict[str, tuple[Any, dict[str, Any], Any]] = {}
+MonthReplay = tuple[Mapping[str, float], Mapping[str, float], Avregning]
 
 
-def _kjor_maned(coord_module, navn: str) -> tuple[Any, dict[str, Any], Any]:
+@pytest.fixture(scope="module")
+def month_replays():
+    """Del bare uforanderlige resultater, aldri en aktiv coordinator eller loop."""
+    return {}
+
+
+def _kjor_maned(coord_module, navn: str) -> MonthReplay:
     """Hele måneden gjennom coordinatoren, med poll hvert minutt og jitter."""
     timer = maned_timer(navn)
     priser = maned_priser(navn)
@@ -754,39 +835,63 @@ def _kjor_maned(coord_module, navn: str) -> tuple[Any, dict[str, Any], Any]:
     start = timer[0][0]
     slutt = timer[-1][0] + timedelta(hours=1)
     r.start(start)
-    r.kjor(pollplan(start, slutt, jitter_sekunder=8, frø=3))
-    # Kronene nullstilles ved månedsskiftet, så de leses av før rulleringen.
-    for_rollover = dict(r.data)
-    r.poll(slutt + timedelta(seconds=30))
-    return r, for_rollover, r.fasit().avregning(start.strftime("%Y-%m"))
+    try:
+        r.kjor(pollplan(start, slutt, jitter_sekunder=8, frø=3))
+        # Kronene nullstilles ved månedsskiftet, så de leses av før rulleringen.
+        for_rollover = MappingProxyType(
+            {"monthly_accumulated_cost_energiledd_kr": r.data["monthly_accumulated_cost_energiledd_kr"]}
+        )
+        r.poll(slutt + timedelta(seconds=30))
+        data = MappingProxyType(
+            {
+                key: r.data[key]
+                for key in (
+                    "previous_month_consumption_total_kwh",
+                    "previous_month_consumption_dag_kwh",
+                    "previous_month_consumption_natt_kwh",
+                    "previous_month_norgespris_compensation_kr",
+                    "previous_month_kapasitetsledd",
+                )
+            }
+        )
+        return data, for_rollover, r.fasit().avregning(start.strftime("%Y-%m"))
+    finally:
+        r.lukk()
 
 
 @pytest.mark.parametrize("navn", AVSTEMBARE)
+@pytest.mark.full_replay
 class TestFakturaavstemmingGjennomCoordinator:
-    """De tre avstembare månedene, time for time, i produksjonsrytme.
+    """Alle avstembare måneder, time for time, i produksjonsrytme.
 
     Hver måned kjøres én gang med poll hvert minutt og jitter, og alle
-    påstandene leser samme kjøring. Det er den dyreste posten i filen, og
-    kjøretidsvakten nederst passer på at den holder seg innenfor budsjettet.
+    påstandene leser samme kjøring. Eventloop og coordinator frigjøres før
+    resultatene deles mellom testene.
     """
 
     @pytest.fixture
-    def replay(self, coord_module, navn):
+    def replay(self, coord_module, navn, month_replays):
         # Én kjøring per måned, delt av alle testene i klassen. En class-scoped
         # fixture kan ikke be om coord_module, som er function-scoped, så
         # cachen er manuell.
-        if navn not in _KJORT:
-            _KJORT[navn] = _kjor_maned(coord_module, navn)
-        return _KJORT[navn]
+        if navn not in month_replays:
+            month_replays[navn] = _kjor_maned(coord_module, navn)
+        return month_replays[navn]
 
-    def test_energi_total(self, navn, replay):
-        r, _, _fasit = replay
+    def test_energi_total(self, navn, replay, record_domain_evidence):
+        data, _, _fasit = replay
         f = FAKTURAER[navn]
-        assert r.data["previous_month_consumption_total_kwh"] == pytest.approx(
-            f["forbruk_total_kwh"], abs=0.05
+        _check(
+            record_domain_evidence,
+            navn,
+            "previous_month_consumption_total_kwh",
+            data["previous_month_consumption_total_kwh"],
+            f["forbruk_total_kwh"],
+            0.05,
+            "kWh",
         )
 
-    def test_energi_dag_natt(self, navn, replay):
+    def test_energi_dag_natt(self, navn, replay, record_domain_evidence):
         """Dag/natt mot fakturaen, med den slakken dagens bokføring krever.
 
         Toleransen er 0,4 kWh, ikke 0,05, fordi fasiten her er fakturaen og
@@ -795,12 +900,28 @@ class TestFakturaavstemmingGjennomCoordinator:
         eksakte påstanden, coordinatoren mot fasiten, står i
         `test_coordinatoren_treffer_fasiten`.
         """
-        r, _, _fasit = replay
+        data, _, _fasit = replay
         f = FAKTURAER[navn]
-        assert r.data["previous_month_consumption_dag_kwh"] == pytest.approx(f["forbruk_dag_kwh"], abs=0.4)
-        assert r.data["previous_month_consumption_natt_kwh"] == pytest.approx(f["forbruk_natt_kwh"], abs=0.4)
+        _check(
+            record_domain_evidence,
+            navn,
+            "previous_month_consumption_dag_kwh",
+            data["previous_month_consumption_dag_kwh"],
+            f["forbruk_dag_kwh"],
+            0.4,
+            "kWh",
+        )
+        _check(
+            record_domain_evidence,
+            navn,
+            "previous_month_consumption_natt_kwh",
+            data["previous_month_consumption_natt_kwh"],
+            f["forbruk_natt_kwh"],
+            0.4,
+            "kWh",
+        )
 
-    def test_energiledd_og_avgifter(self, navn, replay):
+    def test_energiledd_og_avgifter(self, navn, replay, record_domain_evidence):
         """`monthly_accumulated_cost_energiledd_kr` er energiledd + avgifter.
 
         Feltet heter energiledd, men satsen coordinatoren ganger med er
@@ -812,9 +933,17 @@ class TestFakturaavstemmingGjennomCoordinator:
         f = FAKTURAER[navn]
         ventet = f["energiledd_dag_kr"] + f["energiledd_natt_kr"] + f["forbruksavgift_kr"]
         ventet += f["enovaavgift_kr"]
-        assert for_rollover["monthly_accumulated_cost_energiledd_kr"] == pytest.approx(ventet, abs=0.15)
+        _check(
+            record_domain_evidence,
+            navn,
+            "monthly_accumulated_cost_energiledd_kr",
+            for_rollover["monthly_accumulated_cost_energiledd_kr"],
+            ventet,
+            0.15,
+            "NOK",
+        )
 
-    def test_norgespris(self, navn, replay):
+    def test_norgespris(self, navn, replay, record_domain_evidence):
         """Norgespris-linjen mot fakturaen, med 0,20 kr slakk.
 
         Fasiten treffer innenfor 0,01 kr (`TestFasitMotFaktura`), og
@@ -822,36 +951,61 @@ class TestFakturaavstemmingGjennomCoordinator:
         (`test_coordinatoren_treffer_fasiten`). Slakken her er mot fakturaen,
         ikke mot fasiten.
         """
-        r, _, _fasit = replay
-        assert r.data["previous_month_norgespris_compensation_kr"] == pytest.approx(
-            FAKTURAER[navn]["norgespris_kr"], abs=0.20
+        data, _, _fasit = replay
+        _check(
+            record_domain_evidence,
+            navn,
+            "previous_month_norgespris_compensation_kr",
+            data["previous_month_norgespris_compensation_kr"],
+            FAKTURAER[navn]["norgespris_kr"],
+            0.20,
+            "NOK",
         )
 
-    def test_fastledd(self, navn, replay):
-        r, _, _fasit = replay
-        assert r.data["previous_month_kapasitetsledd"] == FAKTURAER[navn]["kapasitet_kr"]
+    def test_fastledd(self, navn, replay, record_domain_evidence):
+        data, _, _fasit = replay
+        _check(
+            record_domain_evidence,
+            navn,
+            "previous_month_kapasitetsledd",
+            data["previous_month_kapasitetsledd"],
+            FAKTURAER[navn]["kapasitet_kr"],
+            0,
+            "NOK",
+        )
 
 
-def test_coordinatoren_treffer_fasiten(coord_module):
+@pytest.mark.full_replay
+def test_coordinatoren_treffer_fasiten(coord_module, month_replays, record_domain_evidence):
     """Den skarpe påstanden: samme observerte historikk, samme avregning.
 
-    Alle tre månedene i én test, for et avvik som tilfeldigvis er lite i én
-    måned er ikke et bevis. Fasiten er bygget av nøyaktig de avlesningene og
-    prisprøvene coordinatoren selv fikk se, så forskjellen er coordinatorens.
-
-    Dette er porten L3a skulle gjennom, og den er åpen: største avvik over dag,
-    natt og Norgespris i mai, juni og juli er under et hundredels kilowattime
-    og under et øre.
+    Alle avstembare måneder kontrolleres. Fasiten er bygget av nøyaktig de
+    avlesningene og prisprøvene coordinatoren selv fikk se. Dag og natt skal
+    avvike med mindre enn 0,01 kWh, Norgespris med mindre enn 0,01 kr.
     """
     avvik: dict[str, dict[str, float]] = {}
     for navn in AVSTEMBARE:
-        if navn not in _KJORT:
-            _KJORT[navn] = _kjor_maned(coord_module, navn)
-        r, _for_rollover, fasit = _KJORT[navn]
+        if navn not in month_replays:
+            month_replays[navn] = _kjor_maned(coord_module, navn)
+        data, _for_rollover, fasit = month_replays[navn]
+        for metric, actual, expected, unit in (
+            ("dag_kwh", data["previous_month_consumption_dag_kwh"], fasit.kwh_dag, "kWh"),
+            ("natt_kwh", data["previous_month_consumption_natt_kwh"], fasit.kwh_natt, "kWh"),
+            ("norgespris_kr", data["previous_month_norgespris_compensation_kr"], fasit.stotte_kr, "NOK"),
+        ):
+            record_domain_evidence(
+                month=navn,
+                metric=metric,
+                actual=actual,
+                expected=expected,
+                tolerance=0.01,
+                unit=unit,
+                comparison="abs_lt",
+            )
         avvik[navn] = {
-            "dag_kwh": r.data["previous_month_consumption_dag_kwh"] - fasit.kwh_dag,
-            "natt_kwh": r.data["previous_month_consumption_natt_kwh"] - fasit.kwh_natt,
-            "norgespris_kr": r.data["previous_month_norgespris_compensation_kr"] - fasit.stotte_kr,
+            "dag_kwh": data["previous_month_consumption_dag_kwh"] - fasit.kwh_dag,
+            "natt_kwh": data["previous_month_consumption_natt_kwh"] - fasit.kwh_natt,
+            "norgespris_kr": data["previous_month_norgespris_compensation_kr"] - fasit.stotte_kr,
         }
     verste = max(abs(v) for rad in avvik.values() for v in rad.values())
     assert verste < 0.01, (
@@ -865,13 +1019,10 @@ def test_coordinatoren_treffer_fasiten(coord_module):
 
 
 def test_maanedsreplay_er_raskere_enn_budsjettet(coord_module):
-    """Et døgn i produksjonsrytme skal koste under et sekund.
+    """Et døgn med minuttpolling skal koste under tre sekunder.
 
-    Budsjettet for hele filen er 45 sekunder i default-suiten, og
-    månedsreplayen over er den eneste posten som er stor nok til å sprenge
-    det. Det sto på 30 før L3a; å bokføre hvert intervall for seg og lagre
-    boken ved hver poll koster den halve minutten. Måler vi ett døgn, fanger vi en regresjon i pollkostnaden lenge før
-    den gjør hele filen treg.
+    Måler pollkostnaden med et kort scenario. Samlet månedsreplay-tid måles
+    separat; den vokser med antall fakturamåneder.
     """
     start = datetime(2026, 6, 15, 0, tzinfo=OSLO)
     timer, priser = _flat(start, 24, 1.5, 1.00)
@@ -880,6 +1031,6 @@ def test_maanedsreplay_er_raskere_enn_budsjettet(coord_module):
     brukt = time.perf_counter() - t0
     try:
         assert r.polls == 24 * 60
-        assert brukt < 3.0, f"{r.polls} polls tok {brukt:.1f} s; et døgn skal koste under et sekund"
+        assert brukt < 3.0, f"{r.polls} polls tok {brukt:.1f} s; et døgn skal koste under tre sekunder"
     finally:
         r.lukk()

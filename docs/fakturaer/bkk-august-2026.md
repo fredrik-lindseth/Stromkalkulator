@@ -8,7 +8,7 @@
 
 ## Fakturadata
 
-| Priselement           | Forbruk     | Pris            | Faktura (kr) | Vår beregning (kr) | Avvik    |
+| Priselement           | Forbruk     | Pris            | Faktura (kr) | Beregning (kr) | Avvik    |
 | --------------------- | ----------- | --------------- | ------------ | ------------------ | -------- |
 | Energiledd dag        | 475.519 kWh | 35.963 øre/kWh  | 171.01       | 171.01             | 0.00     |
 | Energiledd natt/helg  | 489.448 kWh | 13.125 øre/kWh  | 64.24        | 64.24              | 0.00     |
@@ -23,7 +23,7 @@
 **Resultat:** Alle linjer matcher fakturaen når fakturaens eget forbrukstall
 brukes. De to ettøringene er avrunding: forbruksavgiften lander på 86.0075 der
 BKK har rundet til 86.00, og Norgespris-satsen er oppgitt med fire desimaler
-(-1.0222 kr/kWh), så vår replay av linjen gir -986.3893. De går hver sin vei og
+(-1.0222 kr/kWh), så replayen av linjen gir -986.3893. De går hver sin vei og
 totalen treffer eksakt. Satsene er uendret fra juli.
 
 August er tredje måned på rad med lavt forbruk, men spotprisen fortsatte opp:
@@ -177,7 +177,7 @@ metadata under `spothull.fylt_fra_nordpool.randtimer`, den håndavgjorte under
 prisfidelitets-sammenligningen, ellers ville den målt arkivet mot seg selv.
 
 Hvorfor den offisielle Nord Pool-integrasjonen faller ut presis ved døgnskiftet
-vet vi ikke. HA-loggen dekker bare siste boot, så nettene det gjelder er borte.
+er ukjent. HA-loggen dekker bare siste boot, så nettene det gjelder er borte.
 
 ## Time-for-time-verifisering
 
@@ -212,7 +212,7 @@ til `AVSTEMBARE` i samme slengen.
 
 ## Kapasitetstrinn-verifisering
 
-| Faktura                 | Vår beregning               | Match? |
+| Faktura                 | Beregning               | Match? |
 | ----------------------- | --------------------------- | ------ |
 | Trinn: 2-5 kW (trinn 2) | `kapasitetstrinn_nummer: 2` | Match  |
 | Pris: 250 kr/mnd        | `kapasitetsledd: 250`       | Match  |
@@ -230,7 +230,7 @@ null der. De lar seg likevel etterprøve, for BKK regner kapasitetsleddet av
 timesnitt-kW, og en times energi i kWh *er* timesnittet i kW. Elhub gir dermed
 alle tre:
 
-| Dag og time    | Faktura  |      Vår | Avvik   |
+| Dag og time    | Faktura  | Beregning | Avvik   |
 | -------------- | -------: | -------: | ------- |
 | 23.08 kl. 12   | 4,790 kW | 4,799 kW | +8,7 W  |
 | 02.08 kl. 16   | 4,299 kW | 4,286 kW | -12,8 W |
@@ -244,7 +244,7 @@ dag motsier fakturaens topp 3.
 
 ## Norgespris-verifisering
 
-| Parameter           | Faktura                | Vår kode                                 | Match? |
+| Parameter           | Faktura                | Integrasjonens kode                                 | Match? |
 | ------------------- | ---------------------- | ---------------------------------------- | ------ |
 | Norgespris fastpris | (implisitt 50 øre/kWh) | `NORGESPRIS_INKL_MVA_STANDARD = 0.50`    | Ja     |
 | Strømstøtte         | 0 (Norgespris-kunde)   | `stromstotte = 0.0` når `har_norgespris` | Ja     |
@@ -264,7 +264,7 @@ for 0,12 av dem.
 
 ## Avgiftsverifisering
 
-| Avgift         | Faktura (øre/kWh) | Vår const (eks. mva) | Vår const \* 1.25 | Match? |
+| Avgift         | Faktura (øre/kWh) | Integrasjonens const (eks. mva) | Integrasjonens const \* 1.25 | Match? |
 | -------------- | ----------------- | -------------------- | ----------------- | ------ |
 | Forbruksavgift | 8.913             | 7.13                 | 8.9125            | Ja     |
 | Enovaavgift    | 1.25              | 1.00                 | 1.25              | Ja     |

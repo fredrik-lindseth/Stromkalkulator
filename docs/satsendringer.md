@@ -74,7 +74,7 @@ Omfanget er diffen i `30e7144` i `dso.py`; committittelens «17» var feil.
 ### Seks satser var rundet feil vei
 
 Tre kapasitetstrinn og tre energisatser hos Romsdalsnett, Vestmar Nett og
-Enida er rettet mot selskapenes publiserte tall. Vi hadde blant annet regnet
+Enida er rettet mot selskapenes publiserte tall. Tidligere var det blant annet regnet
 bakover fra inkl.-mva-priser framfor å bruke prislistenes egne kolonner.
 De tre kapasitetstrinnene i koden gikk ned nøyaktig 1 kr/mnd hver;
 energileddene ble justert med 0,002 øre/kWh eks. mva. Virkningen i kroner av

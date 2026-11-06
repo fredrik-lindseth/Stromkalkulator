@@ -15,7 +15,7 @@ prisene oppdatert (se under).
 
 Vil du bekrefte at integrasjonen regner riktig, se [verifiser-din-faktura.md](fakturaer/verifiser-din-faktura.md).
 
-Foreløpig er kun BKK (NO5) verifisert. Vi trenger fakturadata fra andre nettselskap. Bruk [issue-malen](../.github/ISSUE_TEMPLATE/faktura-verifisering.md).
+Foreløpig er kun BKK (NO5) verifisert. Fakturadata fra andre nettselskap er nødvendig for videre verifisering. Bruk [issue-malen](../.github/ISSUE_TEMPLATE/faktura-verifisering.md).
 
 ## Oppdatere priser (PR)
 
@@ -110,7 +110,7 @@ Hvert nettselskap får ett av tre utfall, og exit-koden er det verste av dem:
 
 | Utfall       | Exit | Betyr                                                                                                                                                           |
 | ------------ | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| verifisert   | 0    | alle feltene vi kan sammenligne stemmer                                                                                                                         |
+| verifisert   | 0    | alle sammenlignbare felt stemmer                                                                                                                         |
 | avvik        | 1    | energiledd, fastledd eller fastledd-metode spriker mer enn toleransen                                                                                           |
 | ufullstendig | 2    | kontrollen ble ikke gjort: ingen match i fri-nettleie, 404, nettverksfeil, ingen aktiv tariff, manglende energiledd, ukartlagt fastledd-metode, ugyldig `--dso` |
 
@@ -120,8 +120,8 @@ sjekket, har ikke lov å si «alt i orden». Begge listene står i rapporten og 
 
 ### Kjente avvik har utløpsdato
 
-`KJENTE_AVVIK` i scriptet demper funn vi har tatt stilling til: enten et avvik
-der vi bevisst følger nettselskapets egen prisside, eller et hull i dekningen
+`KJENTE_AVVIK` i scriptet demper vurderte funn: enten et avvik
+der integrasjonen bevisst følger nettselskapets egen prisside, eller et hull i dekningen
 der fri-nettleie ikke har noe å sammenligne med. En oppføring er et `Unntak` med
 felt, signatur, begrunnelse og `gyldig_til`:
 

@@ -9,15 +9,15 @@ ekte `homeassistant` i samme miljø ville kollidert med stubbene.
 
 | Oppskrift                  | Tre        | Gruppe       | Python | Home Assistant |
 | -------------------------- | ---------- | ------------ | ------ | -------------- |
-| `just test-unit`           | `tests/`   | `unit`       | 3.13   | stubbet        |
+| `just test-unit`           | hele `tests/` | `unit`       | 3.13   | stubbet        |
+| `just test-unit-fast`      | `tests/` uten `full_replay` | `unit` | 3.13 | stubbet |
 | `just check`               | hele repo  | `kvalitet`   | 3.13   | ingen          |
 | `just test-ha target=minimum` | `tests_ha/` | `ha-minimum` | 3.13   | 2025.1.0       |
 | `just test-ha target=current` | `tests_ha/` | `ha-current` | 3.14   | 2026.10.4       |
 
-`just test` er `test-unit` og `check` i ett, og er det AGENTS.md ber om før
-commit. `just test-e2e target=current` kjører en separat Docker-basert HA-server
-med livssyklusscenarioer og komprimert juni-avspilling fra timefixturen.
-Det laget tester en committet release-ZIP; se [Docker-testlab](#docker-testlab).
+`just test-fast` kjører hurtigtesten og `check` før vanlig commit og i pre-push. `just test` kjører hele unit-suiten og `check`; bruk den når du endrer beregninger, tariffer, fakturafixturer eller grunnlaget for replay-testene. Da trenger du ikke hurtigtesten i tillegg. Endringer i setup, config-flow, entiteter, migrering eller repairs krever også begge HA-målene.
+
+`just test-e2e target=current` kjører en separat Docker-basert HA-server med livssyklusscenarioer og komprimert juni-avspilling fra timefixturen. Det laget tester en committet release-ZIP; se [Docker-testlab](#docker-testlab).
 
 Gruppene står i `[dependency-groups]` i `pyproject.toml` og er låst i
 `uv.lock`. HA-versjonen står ikke der direkte: den følger av
@@ -48,19 +48,27 @@ minimum heves med en begrunnet beslutning, ikke stille.
 f.eks. `just test-unit -k energiledd` eller
 `just test-ha target=current -x`.
 
-### Én kommandolinje, tre steder
+### Lokal kontroll og releasekontroll
 
-Pre-push-hooken kjører `just test-unit`, og CI-jobbene kjører `just test-unit`,
-`just check` og `just test-ha` for begge mål. CI kaller også den gjenbrukbare
-`e2e.yml` med `just test-e2e target=current`; Docker er ikke med i hookene
-eller vanlig lokal `just test`. Ingen av dem har sin egen
-kommandolinje, så ingen av dem kan gå grønn på noe annet enn det du kjørte.
-`tests/test_testkommandoer.py` feiler hvis justfile, AGENTS.md, denne filen,
-`docs/development.md`, `.pre-commit-config.yaml` og `.github/workflows/ci.yml`
-spriker. Den sjekker ikke bare at oppskriftene heter det samme: `just check` må
-faktisk kjøre `ruff check .`, `ruff format --check .`, mypy og vulture, og
-`just test-unit` må kjøre hele `tests/`. Ellers kunne mypy falle ut av
-oppskriften mens vakten sto grønn.
+Pre-push kjører `just test-fast`. CI kjører alltid hele unit-suiten gjennom `just test-evidence`, `just check`, begge `just test-ha`-målene og den gjenbrukbare `e2e.yml` med `just test-e2e target=current`. Alle kontroller gjelder kandidatens SHA. Docker inngår ikke i hookene eller vanlig lokal test.
+
+Hurtigtesten bruker `-m "not full_replay"` i samme låste unit-miljø som fulltesten. Markøren er avgrenset til hele månedsavspillinger gjennom coordinatoren. Korte hendelsesprøver, fakturaformler, regenerering av rapporter og øvrige regresjonstester kjøres også lokalt. Nye tester kjøres som standard; markøren skal bare brukes på fulle månedsløp.
+
+`tests/test_testkommandoer.py` kontrollerer oppskriftene, dokumentasjonen, hooken og CI. `just check` skal kjøre ruff check, ruff format --check, mypy og vulture. `just test-unit` skal beholde hele testtreet uten utvalgsfilter; hurtigvarianten skal bare utelate `full_replay`.
+
+Cache av Python og avhengigheter sparer installasjonstid. Testresultater fra en tidligere commit er ikke godkjenning av kandidaten. Filbasert utvalg og `--last-failed` kan brukes under feilretting, men erstatter verken den lokale kontrollen eller releasekontrollen.
+
+### Testbevis fra fakturaavstemmingen
+
+```bash
+just test-evidence
+```
+
+Denne oppskriften kjører hele `just test-unit` og skriver `domain-evidence.json`, `domain-evidence.log` og `domain-evidence-junit.xml` til `dist/domain-evidence/`. JSON-rapporten knytter tallene til kildekode, SHA, eventuelle lokale endringer, fixtures, låsfil og verktøyversjoner. JUnit viser testresultatene, og loggen gir en lesbar oppsummering.
+
+`just test` og `just test-evidence` krever et eksplisitt inventar av fakturatester. Hver obligatoriske test må være samlet inn, kjørt, bestått og ha registrert numerisk evidens. Manglende tester, skip, bortfiltrering eller manglende evidens stopper kontrollen. Hurtigtesten krever ikke disse utelatte månedsløpene.
+
+CI laster opp rapportene som `domain-evidence-<SHA>`, også ved feil. Artefakten dokumenterer kjøringen; den er ikke i seg selv et grønt resultat. Ved publisering pakkes og valideres den som `domain-evidence.zip`, lastes opp og leses tilbake før releasen publiseres. Valideringen dekker SHA, rent kildegrunnlag, fullt inventar, numeriske resultater og hasher for logg og XML. Et gyldig vedlegg for samme kildegrunnlag og inventar gjenbrukes ved ny kjøring uavhengig av testvarighet; ulikt kildegrunnlag eller et korrupt vedlegg stopper publiseringen uten overskriving. Eldre publiserte releaser uten vedlegget kan fortsatt verifiseres. Releaseporten krever at fulltesten og inventarkontrollen består på kandidatens SHA. Private Elhub-filer og prisarkiver inngår ikke i CI; eksakt avstemming av disse kjøres etter [utviklerkontrollen](fakturaer/utviklerkontroll.md).
 
 ## Unit-tester
 
@@ -263,7 +271,7 @@ månedsforbruk, døgnmaks og forrige måned overlever, at den kildeløse baselin
 forkastes uten å gi falskt forbruk, og de tre brukersynlige endringene:
 fastleddet som periodebeløp, satsvarselet i begge retninger, og Egendefinert
 uten trinntabell. `lab.skriv_lagring` nekter å legge inn en nøkkel som ikke
-alt sto i filen, så et seedet felt kan ikke bli til et lagringsformat vi har
+alt sto i filen, så et seedet felt kan ikke bli til et lagringsformat som er
 funnet på.
 
 `vakthold` lar utfallet vare like lenge som et ekte et: 32 minutter for

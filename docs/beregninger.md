@@ -32,9 +32,9 @@ mens en allerede lukket måned beholder tabellen den ble avregnet med.
 Nettselskapets [privatprisliste fra 1. juli 2026](https://nettselskapet.as/strompris)
 ender ved trinnet 50–75 kW, uten å avklare om øvre grense er inkludert.
 Fakturagrunnlag fra og med 75 kW gir derfor ukjent fastledd og kostnad;
-vi bruker ikke siste trinn som en prisforutsetning utenfor bekreftet omfang.
+siste trinn brukes ikke som en prisforutsetning utenfor bekreftet omfang.
 
-Bestemmes av snittet av maks timesforbruk på de tre dagene med høyest forbruk i måneden. Vi sporer høyeste fullførte time per dag (samme metode som Elhub), velger topp-3, snittet bestemmer trinn.
+Bestemmes av snittet av maks timesforbruk på de tre dagene med høyest forbruk i måneden. Integrasjonen registrerer høyeste fullførte time per dag (samme metode som Elhub); snittet av de tre høyeste bestemmer trinnet.
 
 Trinn-tabell og priser ligger per nettselskap i [`dso.py`](../custom_components/stromkalkulator/dso.py).
 
@@ -52,7 +52,7 @@ Modellen over kalles NVE-modellen i bransjen, og 69 av de 74 valgbare oppføring
 
 `MND_MAX` slår opp i samme trinn-tabell, men med månedsmaksen i stedet for snittet. Sør Aurdal skriver trinnene som "fra [kW] - til og med [kW]", så eksakt grensetreff hører til det lavere trinnet (`terskel_inkludert: False`).
 
-`OV_TREFASE` kan ikke utledes fra effektsensoren. Brukeren velger raden fra nettselskapets egen prisliste i oppsettet (`sikringstrinn` i config). Vi ber ikke om et amperetall, fordi satsen hos Netera også avhenger av systemspenning (3x230 V IT mot 3x400 V TN), og å utlede raden fra ampere alene ville vært en tolkning vi ikke har grunnlag for. Mangler valget, står kapasitetsledd-sensoren som Ukjent og et repair-varsel ber om at det settes. Vi gjetter ikke på et trinn.
+`OV_TREFASE` kan ikke utledes fra effektsensoren. Brukeren velger raden fra nettselskapets egen prisliste i oppsettet (`sikringstrinn` i config). Oppsettet ber ikke om et amperetall, fordi satsen hos Netera også avhenger av systemspenning (3x230 V IT mot 3x400 V TN), og å utlede raden fra ampere alene ville vært en tolkning uten grunnlag. Mangler valget, står kapasitetsledd-sensoren som Ukjent og et repair-varsel ber om at det settes. Trinnet blir ikke gjettet.
 
 `FEM_VEKTET_ÅR` har ingen trinn. Fjellnett regner `grunnbeløp + sats per kW`, der kW er snittet av de fem høyeste ukestoppene over løpende tolv måneder, vektet mot en sesongfaktor per måned (januar 100 %, juni 25 %). Beløpet rundes til hele kroner per måned, som resten av `dso.py`, altså opptil 50 øre/mnd unna nettselskapets øre-eksakte beløp.
 
@@ -61,13 +61,13 @@ Kilden for modellen er [Nettleieforklaring og fellesbestemmelser 2026](https://w
 - Kun én effekt per uke teller, den høyeste timen i uken.
 - Hele uken vektes med mandagens måned, også når uken krysser et månedsskifte. Fjellnett: «Når ei uke går over et månedsskift, vil det være mandag i starten på uka som bestemmer hvilken sesongfaktor som effekten blir vekta med.» Da har alle timene i en uke samme vekt, så ukens høyeste rå kW er også den høyeste vektede.
 - Vektingen skjer før de fem høyeste plukkes ut, ikke etter.
-- En ny kunde regnes «fra oppstart av kontrakt», ikke fra tolv måneders historikk. Vi gjør det samme: uten målinger vises bare grunnbeløpet, og snittet tas over de ukene som finnes.
+- En ny kunde regnes «fra oppstart av kontrakt», ikke fra tolv måneders historikk. Integrasjonen gjør det samme: uten målinger vises bare grunnbeløpet, og snittet tas over de ukene som finnes.
 
-Vi holder høyeste time per uke i `weekly_max_power`, nøklet på mandagens dato, og kutter en ukestopp når toppens egen dato er tolv kalendermåneder gammel. Vinduet er halvåpent: en topp datert nøyaktig tolv måneder tilbake er ute, dagen etter er inne. Datoene er lokale (Europe/Oslo), som resten av kalenderregningen, så sommertid rører ikke vinduet.
+Integrasjonen holder høyeste time per uke i `weekly_max_power`, nøklet på mandagens dato, og kutter en ukestopp når toppens egen dato er tolv kalendermåneder gammel. Vinduet er halvåpent: en topp datert nøyaktig tolv måneder tilbake er ute, dagen etter er inne. Datoene er lokale (Europe/Oslo), som resten av kalenderregningen, så sommertid rører ikke vinduet.
 
-Ett punkt sier kilden ingenting om: Fjellnett skriver «løpende siste 12 mnd, forut for fakturatermin», men ikke om et helt uketall eller en kalenderdato er grensen i deres eget system. Vi måler mot toppens egen dato, fordi det er effekten som skal ha vært innenfor de tolv månedene. Måler Fjellnett i stedet mot ukenummeret, holder vi en ukestopp i inntil seks dager for lenge. Det slår bare ut når nettopp den toppen er blant de fem høyeste.
+Ett punkt sier kilden ingenting om: Fjellnett skriver «løpende siste 12 mnd, forut for fakturatermin», men ikke om et helt uketall eller en kalenderdato er grensen i deres eget system. Integrasjonen måler mot toppens egen dato, fordi det er effekten som skal ha vært innenfor de tolv månedene. Måler Fjellnett i stedet mot ukenummeret, beholdes en ukestopp i inntil seks dager for lenge. Det slår bare ut når nettopp den toppen er blant de fem høyeste.
 
-`UKJENT` betyr at nettselskapet ikke publiserer metoden. Tinfos gjør ikke det, og fri-nettleie har en åpen forespørsel til dem. Vi bruker snittet av tre døgnmaks som en uverifisert antakelse og setter `metode_uverifisert` på sensoren. Fastleddet inngår i totalsummene; ukjent metode gjør ikke i seg selv disse sensorene utilgjengelige.
+`UKJENT` betyr at nettselskapet ikke publiserer metoden. Tinfos gjør ikke det, og fri-nettleie har en åpen forespørsel til dem. Integrasjonen bruker snittet av tre døgnmaks som en uverifisert antakelse og setter `metode_uverifisert` på sensoren. Fastleddet inngår i totalsummene; ukjent metode gjør ikke i seg selv disse sensorene utilgjengelige.
 
 Metoden er en sats på lik linje med prisene: `scripts/sjekk_mot_fri_nettleie.py` sammenligner den mot fri-nettleie og feller exit-koden hvis et nettselskap har byttet modell.
 

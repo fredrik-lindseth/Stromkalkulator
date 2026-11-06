@@ -83,6 +83,12 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
+      - name: Hent fakturabevis fra denne CI-kjøringen
+        uses: actions/download-artifact@v4
+        with:
+          name: domain-evidence-${{ github.sha }}
+          path: dist/domain-evidence
+
       # Leser tilstanden på GitHub og sier om versjonen er ute fra før. Skriver
       # ingenting. Er den publisert, bevises den mot sin egen tagg og resten av
       # jobben hoppes over; er taggen på en annen commit, stopper vi her.
@@ -92,7 +98,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PROVESLIPP: ${{ inputs.proveslipp }}
         run: |
-          kommando=(python3 scripts/release_publish.py plan --sha "$GITHUB_SHA" --repo "$GITHUB_REPOSITORY")
+          kommando=(python3 scripts/release_publish.py plan --sha "$GITHUB_SHA" --repo "$GITHUB_REPOSITORY" --evidence-dir dist/domain-evidence)
           if [ "$PROVESLIPP" = "true" ]; then
             kommando+=(--proveslipp)
           fi
@@ -128,6 +134,7 @@ jobs:
             --sha "$GITHUB_SHA"
             --repo "$GITHUB_REPOSITORY"
             --zip dist/stromkalkulator.zip
+            --evidence-dir dist/domain-evidence
           )
           if [ "$TORRKJORING" = "true" ]; then
             kommando+=(--dry-run)

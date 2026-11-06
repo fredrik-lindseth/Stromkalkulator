@@ -637,7 +637,7 @@ def test_avvist_sprang_er_synlig_i_data_dicten() -> None:
     """Et avvist delta skal telles, ikke forsvinne."""
     punkt = next(p for p in _randtilfeller() if "MAX_ENERGY_DELTA_KWH" in p)
     assert "avregning_avvist_kwh" in punkt
-    assert "`avregning_avvist_kwh`" in _kontrakttekst().split("Nye felt:")[1]
+    assert "`avregning_avvist_kwh`" in _seksjon("## Felttabell for data-dicten")
 
 
 # ---------------------------------------------------------------------------

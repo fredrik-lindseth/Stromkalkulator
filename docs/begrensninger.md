@@ -26,7 +26,7 @@ Følgende har ikke blitt verifisert mot ekte faktura:
 - Næringskunde (ikke husholdning)
 - Andre nettselskaper enn BKK
 
-Vil du validere noen av disse, send faktura + Elhub-data, så kan vi utvide verifiserings-suiten.
+Vil du validere noen av disse, send faktura + Elhub-data, slik at verifiserings-suiten kan utvides.
 
 Overgangen til vintertid er verifisert mot [BKK oktober 2026](fakturaer/bkk-oktober-2026.md), med alle 745 timer gjennom den tidsbevisste coordinator-replayen. Én annen time samme døgn er estimert hos Elhub; estimatet ligger 0,813 kWh over HAN-målingen. Det er en forskjell i avregningsgrunnlaget, ikke dokumentasjon på feil i nettleieberegningen. Vår-DST er dekket av mars-fixturen, men den strengere etterkontrollen flagger fortsatt dag/natt- og prisavvik som må undersøkes.
 
@@ -40,9 +40,9 @@ Oktober 2026 hadde omtrent 1,58 kr forskjell mellom recorder-priser og Final ved
 
 ## 4. Strømstøtte-formel (~30 kr/mnd vs BKKs visning)
 
-Vår "spot etter strømstøtte" avviker ~30 kr/mnd fra BKKs egen "Uten Norgespris"-visning (april 2026: vi beregner 1408,52 kr, BKK viser 1377 kr). Vi bruker 2026-terskel fra forskrift 2025-09-08-1791 §5: 90 % refusjon når spotpris overstiger 77 øre/kWh eks. mva (0,9625 kr/kWh inkl. mva), time-for-time.
+Integrasjonens "spot etter strømstøtte" avviker ~30 kr/mnd fra BKKs egen "Uten Norgespris"-visning (april 2026: integrasjonen beregner 1408,52 kr, BKK viser 1377 kr). Integrasjonen bruker 2026-terskel fra forskrift 2025-09-08-1791 §5: 90 % refusjon når spotpris overstiger 77 øre/kWh eks. mva (0,9625 kr/kWh inkl. mva), time-for-time.
 
-Avviket ser ut til å skyldes at BKKs visning fortsatt bruker 2025-terskelen (75 øre eks. mva / 0,9375 inkl. mva). Med lavere terskel blir refusjonen større, så BKK trekker fra mer enn vi gjør. Vi gir altså mer strømstøtte i vår beregning enn det BKK viser. Dette er anekdotisk basert på én faktura (april 2026); det kan også være avrundingsregler eller andre detaljer i forskriften som spiller inn.
+Avviket ser ut til å skyldes at BKKs visning fortsatt bruker 2025-terskelen (75 øre eks. mva / 0,9375 inkl. mva). Med lavere terskel blir refusjonen større, så BKK trekker fra mer enn integrasjonen gjør. Beregningen gir altså mindre strømstøtte enn det BKK viser. Dette er anekdotisk basert på én faktura (april 2026); det kan også være avrundingsregler eller andre detaljer i forskriften som spiller inn.
 
 Kun relevant for Norgespris-kunder som vil sammenligne mot BKKs "Uten Norgespris"-tall i kundeportalen. Tallet er en hypotetisk visning, ikke en faktisk fakturalinje. Norgespris-kunder mottar ikke strømstøtte uansett.
 
@@ -85,7 +85,7 @@ Kapasitetsleddet beregnes som snittet av de tre høyeste døgnmaksene i måneden
 
 Alut og Netera fakturerer etter størrelsen på hovedsikringen, som ingen sensor kan lese. Du velger raden fra prislisten i oppsettet, eller under Configure hvis du hadde integrasjonen fra før. Til den er valgt, står kapasitetstrinn-sensoren som Ukjent, og fastleddet mangler i månedskostnad og fakturaestimat. Det er et bevisst valg: et gjettet trinn ville sett riktig ut og vært feil, og hos Netera skiller trinnene seg med en faktor to.
 
-Fjellnett har ingen trinn. Fastleddet er grunnbeløp pluss en sats per kW, der kW er snittet av de fem høyeste ukestoppene over løpende tolv måneder, sesongvektet. Vi bygger opp den historikken fra dagen du installerer integrasjonen, så det første året viser sensoren for lite (i starten bare grunnbeløpet) og konvergerer mot riktig beløp over tolv måneder. Vi kan ikke hente historikk bakover, den ligger hos Fjellnett og i Elhub. Fjellnetts beregning runder fortsatt beløpet til hele kroner per måned, altså opptil 50 øre/mnd unna et øre-eksakt beløp. Dette gjelder denne beregningsmetoden; katalogens trinnpriser beholder nå publiserte ørebeløp.
+Fjellnett har ingen trinn. Fastleddet er grunnbeløp pluss en sats per kW, der kW er snittet av de fem høyeste ukestoppene over løpende tolv måneder, sesongvektet. Integrasjonen bygger opp historikken fra dagen du installerer integrasjonen, så det første året viser sensoren for lite (i starten bare grunnbeløpet) og konvergerer mot riktig beløp over tolv måneder. Historikk kan ikke hentes bakover, den ligger hos Fjellnett og i Elhub. Fjellnetts beregning runder fortsatt beløpet til hele kroner per måned, altså opptil 50 øre/mnd unna et øre-eksakt beløp. Dette gjelder denne beregningsmetoden; katalogens trinnpriser beholder nå publiserte ørebeløp.
 
 Tinfos publiserer ikke tariffen sin, og fri-nettleie har sendt dem en forespørsel uten å få svar. Datasettet har eldre trinnpriser, men ingen av kildene bekrefter hvilken kW-verdi de slås opp med. Integrasjonen beregner likevel fastleddet med snittet av tre døgnmaks og de lagrede trinnprisene. Sensoren merker antakelsen med `metode_uverifisert`. Fastleddet inngår i totalsummene, så disse må også vurderes som uverifiserte for Tinfos; de blir ikke automatisk Ukjent fordi metoden er ukjent. Har du en Tinfos-faktura, se [bidra med faktura](fakturaer/bidra-med-faktura.md).
 
@@ -93,7 +93,7 @@ Metodenavnene er fri-nettleies. Detaljer i [beregninger.md](beregninger.md#netts
 
 Fjellnetts energiledd og fastledd følger prislisten fra 01.07.2026. Fri-nettleie har nå samme tariffperiode, og kontrollen 9. oktober 2026 fant ikke prisavvik. Det tidligere unntaket i drift-vakten er fjernet.
 
-## 10. To nettselskap vi ikke får verifisert godt nok
+## 10. To nettselskap som ikke er godt nok verifisert
 
 Drift-vakten sammenligner mot fri-nettleie hver uke, men den fanger bare det begge kildene ser. Disse to har et hull ingen av dem dekker.
 
@@ -103,17 +103,17 @@ Tinfos er dekket i punkt 9. Ingen kilde finnes for metoden.
 
 Felles for begge: se [bidra med faktura](fakturaer/bidra-med-faktura.md).
 
-Arva sto her fram til 13. september 2026. Prissiden rendres med JavaScript, men artikkelen bak den ligger åpent som JSON på `arva.no/Api/v2/template/rendered-article?pageId=484888468&Article=305`, og der står hele prislisten. Satsene stemmer tall for tall, og Arva skriver selv at nettleien er holdt uendret fra 1. januar 2026, så fri-nettleies fil fra 2024 er ikke ustelt, bare uendret. Sesongprisingen hos Arva gjelder kun kunder over 100 000 kWh i året, en gruppe vi ikke dekker.
+Arva sto her fram til 13. september 2026. Prissiden rendres med JavaScript, men artikkelen bak den ligger åpent som JSON på `arva.no/Api/v2/template/rendered-article?pageId=484888468&Article=305`, og der står hele prislisten. Satsene stemmer tall for tall, og Arva skriver selv at nettleien er holdt uendret fra 1. januar 2026, så fri-nettleies fil fra 2024 er ikke ustelt, bare uendret. Sesongprisingen hos Arva gjelder kun kunder over 100 000 kWh i året, en gruppe integrasjonen ikke dekker.
 
 ## 11. Egendefinert nettselskap har ikke noe fastledd før du oppgir det
 
-Velger du Egendefinert, finnes det ingen prisliste vi kan lese. Til og med 1.16.0 lå det likevel ti kapasitetstrinn i koden for den oppføringen. De var en mal, ikke priser, og siden kapasitetsleddet er et fast månedsbeløp gikk feilen rett inn i månedskostnaden. De er fjernet, av samme grunn som i [incident 006](incidents/006-kapasitetstrinn-uten-kilde.md).
+Velger du Egendefinert, finnes det ingen tilgjengelig prisliste. Til og med 1.16.0 lå det likevel ti kapasitetstrinn i koden for den oppføringen. De var en mal, ikke priser, og siden kapasitetsleddet er et fast månedsbeløp gikk feilen rett inn i månedskostnaden. De er fjernet, av samme grunn som i [incident 006](incidents/006-kapasitetstrinn-uten-kilde.md).
 
-I stedet kan du skrive inn dine egne trinn i oppsettet, ett trinn per rad i prislisten, som kW-grense og kr/mnd inkl. mva skilt av kolon og trinnene skilt av komma: `kW-grense:kr/mnd,kW-grense:kr/mnd`, med stigende kW-grenser. Det øverste trinnet gjelder alt over grensen under, så du trenger ikke skrive noe for «og oppover». Beløpene henter du fra nettleiefakturaen eller prislisten din. Vi setter ikke et eksempel med tall her, for vi har ingen prisliste for Egendefinert, og tallene måtte i så fall vært hentet fra et annet nettselskap.
+I stedet kan du skrive inn dine egne trinn i oppsettet, ett trinn per rad i prislisten, som kW-grense og kr/mnd inkl. mva skilt av kolon og trinnene skilt av komma: `kW-grense:kr/mnd,kW-grense:kr/mnd`, med stigende kW-grenser. Det øverste trinnet gjelder alt over grensen under, så du trenger ikke skrive noe for «og oppover». Beløpene henter du fra nettleiefakturaen eller prislisten din. Det finnes ingen prisliste for Egendefinert; bruk satsene fra eget nettselskap.
 
 Lar du feltet stå tomt, er fastleddet ukjent. Da står kapasitetstrinn, trinn-nummer, margin til neste trinn, månedlig nettleie, månedlig total, estimert månedskostnad og akkumulert kostnad som Ukjent, og prisene per kWh regnes uten fastledd med attributtet `fastledd_ukjent`. Energiledd, forbruk, spotpris, strømstøtte, Norgespris og avgifter er uberørt. Et repair-varsel ber om tabellen ved hver oppstart til den er fylt inn, og en lagret tabell som ikke lar seg lese (håndredigert `.storage`) gir sitt eget varsel om at den må skrives om.
 
-Ukjent er med vilje. Et beløp vi ikke har kilde på ser ut som en pris uten å være det, og en nettleie som er 200 kr/mnd feil melder seg ikke selv før fakturaen kommer.
+Ukjent er med vilje. Et beløp uten kilde ser ut som en pris uten å være det, og en nettleie som er 200 kr/mnd feil melder seg ikke selv før fakturaen kommer.
 
 ## Sammendrag
 

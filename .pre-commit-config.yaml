@@ -63,12 +63,10 @@ repos:
   - repo: local
     hooks:
       - id: pytest
-        name: pytest (just test-unit)
-        # Kaller nøyaktig samme oppskrift som AGENTS.md og CI. Hooken har ikke
-        # sitt eget miljø og sin egen kommandolinje lenger: da kunne den gå
-        # grønn på noe annet enn det de to andre kjører, og det er akkurat
-        # spriket tests/test_testkommandoer.py vokter.
-        entry: just test-unit
+        name: raske tester og kvalitet (just test-fast)
+        # Lokal kontroll uten hele månedsløp. CI kjører komplett test-evidence
+        # for releasekandidaten; test_testkommandoer.py vokter begge oppskrifter.
+        entry: just test-fast
         language: system
         pass_filenames: false
         always_run: true

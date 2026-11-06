@@ -21,4 +21,4 @@
 - [ ] `pytest tests/` passerer
 - [ ] `ruff check` passerer
 - [ ] Dokumentasjon er oppdatert
-- [ ] Jeg har gjennomgått min egen kode
+- [ ] Koden er gjennomgått

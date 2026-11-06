@@ -51,7 +51,7 @@ med pene, stigende tall passerer alle de sjekkene.
 Kapasitetsleddet er et fast månedsbeløp, så feilen slo direkte inn i
 månedskostnad og faktura-estimat med hele avviket. Ytterpunktene:
 
-| Nettselskap | Vårt trinn 1 | Riktig | Avvik |
+| Nettselskap | Lagret trinn 1 | Riktig | Avvik |
 | ----------- | ------------ | ------ | ----- |
 | Klive       | 200 kr/mnd   | 481    | -281  |
 | Vestall     | 150 kr/mnd   | 306    | -156  |
@@ -69,7 +69,7 @@ husstander over det høyeste publiserte trinnet.
 ## Løsning
 
 1. `scripts/sjekk_mot_fri_nettleie.py` sammenligner nå fastledd i tillegg til
-   energiledd. Fri-nettleie oppgir kr/år eks. mva, vi lagrer kr/mnd inkl. mva,
+   energiledd. Fri-nettleie oppgir kr/år eks. mva, integrasjonen lagrer kr/mnd inkl. mva,
    så sammenligningen deler på 12 og ganger med mva-faktoren for nettselskapets
    avgiftssone. Avvik teller i exit-koden på lik linje med energiledd.
 2. Kapasitetstrinn for 40 av de 44 hentet fra fri-nettleie, med kilde-kommentar
@@ -86,7 +86,7 @@ fri-nettleie.
 
 ### Oppfølging: de fem avvikende metodene
 
-Fem nettselskap brukte en annen fastledd-metode enn vår modell med snitt av tre
+Fem nettselskap brukte en annen fastledd-metode enn integrasjonens modell med snitt av tre
 døgnmakser. For dem holdt det ikke å rette satsene, hele beregningsmodellen var
 feil: Alut og Netera (`OV_TREFASE`, sikringsbasert), Fjellnett (`FEM_VEKTET_ÅR`),
 Sør-Aurdal (`MND_MAX`) og Tinfos (`UKJENT`). Alle fire modellene er nå
@@ -97,7 +97,7 @@ sin akse, så ingen av de fem står lenger uten vakt. Se
 [begrensninger.md](../begrensninger.md).
 
 Tinfos publiserer ikke tariffen sin, og fri-nettleie har en åpen forespørsel til
-dem. Vi regner med NVE-modellen og merker beløpet som uverifisert i stedet for å
+dem. Integrasjonen bruker NVE-modellen og merker beløpet som uverifisert i stedet for å
 gjette på en annen modell.
 
 Area Nett finnes ikke i fri-nettleie som ett selskap, det er delt i fire

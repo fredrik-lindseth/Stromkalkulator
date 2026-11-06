@@ -1,10 +1,8 @@
 # Avregningskontrakt
 
-Denne kontrakten binder avregningskjernen (`avregning.py`, L1), replay-fasiten
-(L2), coordinatoren (L3a), kostnadskjernen (L3b) og sensorene (L3c). Endres noe
-her, endres alle fem. Den er skrevet fordi coordinatoren i dag priser hvert
-poll-delta med øyeblikkspris i en åpen klokketime-bøtte, mens regelverket og
-fakturaen er timebasert.
+Denne kontrakten gjelder avregningskjernen (`avregning.py`), replay-fasiten,
+coordinatoren, kostnadskjernen og sensorene. Endringer i kontrakten må
+gjenspeiles i disse delene. Coordinatoren bokfører energi og priser i avregningsintervaller som beskrevet nedenfor.
 
 Invarianten alt hviler på:
 
@@ -50,7 +48,7 @@ NO5 (`_private/Måleverdier/nordpool_nok_kvarter_no5.json`, 3120 hele timer,
 tosifret desimaltall i bare 810 av 3120 timer, og avstanden mellom rått snitt
 og tosifret avrunding er maks 0,005 og typisk 0,0025 NOK/MWh. For en måned på
 2000 kWh er det maks 1 øre, typisk et halvt. Valget er altså ikke materielt,
-og da velger vi den varianten som ikke kaster informasjon.
+og derfor brukes varianten som bevarer informasjonen.
 
 ### A2.1 Prisruten, og hva det vil si at en prisprøve er observert
 
@@ -83,7 +81,7 @@ til gridet:
    `avlest_kl` fra adapteren ([input-og-konfig.md
    §1](input-og-konfig.md#1-typede-inputresultater)). Prissensoren
    er en trinnfunksjon som per definisjon viser prisen for ruten som gjelder nå,
-   og det er den egenskapen vi leser, ikke når staten sist ble skrevet.
+   og det er den egenskapen integrasjonen leser, ikke når staten sist ble skrevet.
 2. **Settlevindu.** En prøve godtas bare når polltiden ligger minst
    `PRIS_SETTLE_SEKUNDER` (60) etter rutestart. Prissensoren oppdateres noen
    sekunder etter rutegrensen, og uten dette vinduet ville den første pollen i
@@ -92,7 +90,7 @@ til gridet:
    er målt på en Nord Pool-sensor i drift (ti sekunder).
 3. **Siste godkjente prøve i ruten gjelder.** Flere polls treffer samme rute.
    Kommer de med ulik verdi, har kilden publisert på nytt inne i ruten, og
-   verdien vi står igjen med er den kilden står ved.
+   verdien som beholdes er den kilden står ved.
 4. **Ingen bæring.** En prøve gjelder bare sin egen rute. Verken forrige eller
    neste rutes verdi fyller et hull (C2.5).
 
@@ -188,7 +186,7 @@ en kumulativ teller, ikke et forbruk.
 | ----------------- | --------------------- | ----------------------------------------------------------------------------------------- |
 | `source_identity` | str                   | Registry `unique_id` for entiteten. Identiteten til den fysiske kilden, ikke `entity_id`. |
 | `entity_id`       | str                   | Kun for visning og diagnostikk. Kan endres av brukeren uten at kilden er en annen.        |
-| `value_kwh`       | float                 | Kumulativ teller, normalisert til kWh av inputadapteren (K1).                             |
+| `value_kwh`       | float                 | Kumulativ teller, normalisert til kWh av inputadapteren.                             |
 | `observed_at`     | datetime (UTC, aware) | Entitetens `last_updated`. Dette er tiden energien gjelder for, ikke polltiden.           |
 | `kvalitet`        | enum                  | `malt`, `estimert`, `avvist`.                                                             |
 | `schema_version`  | int                   | Skjemaversjon for avlesningen.                                                            |
@@ -232,13 +230,9 @@ stå her, for uten dem lander to utførere ulikt:
   effektbruker døgnet. Det er prisen for ikke å ha en teller, og den skal stå
   her framfor å oppdages i en faktura.
 
-  Dette er ikke det coordinatoren gjorde før L3a, og setningen som sto her sa
-  at det var. Den gamle koden kappet `elapsed_hours` til `MAX_ELAPSED_HOURS`
-  (seks minutter) og bokførte seks minutters forbruk uansett hvor langt gapet
-  var. Regelen over er strengere, og den er den som gjelder. Merk hva den
-  koster: med seks minutters grense mot et pollintervall på ett minutt taper en
-  effektbruker hvert vindu der pollen har glidd mer enn fem minutter. En
-  teller merker ikke gapet i det hele tatt, for deltaet dekker det.
+  Med seks minutters grense og ett minutts pollintervall forkastes vinduer der
+  pollen har glidd mer enn fem minutter. En teller dekker derimot gapet med
+  deltaet.
 - **Er energisensoren konfigurert, gjelder telleren.** Den syntetiske stien er
   ikke en reserve som slår inn når telleren er `Utilgjengelig` en stund: når
   telleren kommer tilbake, dekker deltaet hele fraværet, og en syntetisk
@@ -445,7 +439,7 @@ Tre ulike ting, som ikke skal blandes:
   (`pris_prover < pris_prover_ventet`). Prisen er det uvektede snittet av de
   rutene som kom (A2.1), kvaliteten er `delvis_pris`, og energien summeres i
   `kwh_delvis_pris`. Dette er ikke en feil, bare en merket usikkerhet: prisen
-  er rett for de rutene vi så, og vi later ikke som vi så de andre.
+  bygger på rutene med prøver og ikke på de manglende rutene.
 - **Uten data**: intervallet har ingen energi bokført. Det finnes da ikke i
   boken. Et hull i boken er ikke null forbruk, og skal ikke vises som det. Er
   hullet forårsaket av at integrasjonen var nede, er det synlig gjennom at
@@ -467,7 +461,7 @@ Ved omstart gjenopptas avregningen fra den persisterte boken, ikke fra null:
 
 - Siste behandlede observasjon (`source_identity`, `observed_at`, `value_kwh`)
   leses fra Store og er baseline for neste delta. Er kilden en annen enn den
-  lagrede, er deltaet 0 og baseline flyttes (K1).
+  lagrede, er deltaet 0 og baseline flyttes.
 - Åpne intervaller leses tilbake med sin bokførte kWh og lukkes når tiden
   passerer `slutt_utc`, ikke ved første poll. Det er de åpne og de nærmeste
   timene bak dem som lagres, ikke hele måneden: lagringen skjer ved hver poll,
@@ -526,7 +520,7 @@ bokføring.
 ### C7 Prøvetabell for fordelingen (normativ)
 
 Radene er fasit for fordelingsregelen. `tests/test_avregningskontrakt.py`
-kjører dem, og L1 og L2 skal kjøre dem mot sin egen implementasjon.
+kontrollerer fordelingen i avregningskjernen.
 
 | Sak | Fra (UTC)            | Til (UTC)            | Delta kWh | Fordeling (UTC-start=kWh)                                                                                      |
 | --- | -------------------- | -------------------- | --------- | -------------------------------------------------------------------------------------------------------------- |
@@ -572,7 +566,7 @@ Store-versjonene:
 | Versjon | Hvem          | Innhold                                                                                                                   |
 | ------- | ------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | 1       | dagens utgave | Månedssummer, døgnmakser, akkumulerte kroner. Ingen kildeidentitet, ingen observasjonstid.                                |
-| 2       | K1            | Som v1, pluss `source_identity` og normalisert kWh på baseline.                                                           |
+| 2       | Baseline      | Som v1, pluss `source_identity` og normalisert kWh på baseline.                                                           |
 | 3       | denne serien  | Som v2, pluss `skjema_versjon`, siste behandlede observasjon og åpne intervaller med bokførte kWh og godkjente prisruter. |
 
 Migrering v2 til v3 er enveis og gjør dette:
@@ -598,7 +592,7 @@ Tallene i tabellen over skal ligge i nøkkelen `skjema_versjon` på toppnivå i
 Store-filen, mens `Store(hass, 1, ...)` blir stående. Se
 [input-og-konfig.md §5](input-og-konfig.md#5-energibaseline) for hvorfor; regelen
 eies der, og gjelder hele filen, ikke bare baselinen. Det er én teller for hele
-filen: K1 setter den til 2, og boken her løfter den til 3.
+filen: baseline bruker versjon 2, og avregningsboken bruker versjon 3.
 
 Migreringen leser hele Store-filen, ikke bare bokens egne nøkler. Felt boken
 ikke kjenner igjen, altså alt v1 og v2 la der, følger med uendret under
@@ -607,7 +601,7 @@ løftet over om at v2-feltene overlever i v3-filen blir innfridd.
 
 ## Felttabell for data-dicten
 
-Grensesnittet L1, L2, L3a, L3b og L3c bygger mot. Nye felt:
+Data-dicten inneholder blant annet disse feltene:
 
 | Felt                         | Type        | Betydning                                                                                          |
 | ---------------------------- | ----------- | -------------------------------------------------------------------------------------------------- |
@@ -625,7 +619,7 @@ Grensesnittet L1, L2, L3a, L3b og L3c bygger mot. Nye felt:
 | `monthly_energiledd_natt_kr` | float       | Tilsvarende for natt- og helgetimene.                                                              |
 | `monthly_avgifter_kr`        | float       | Forbruksavgift og Enova for månedens kilowattimer, inkl. mva.                                      |
 
-De fire nye kronefeltene er ikke et nytt regnskap ved siden av det gamle.
+Kronefeltene deler opp den samlede kostnaden for energiledd og avgifter.
 `monthly_energiledd_dag_kr + monthly_energiledd_natt_kr + monthly_avgifter_kr`
 er nøyaktig `monthly_accumulated_cost_energiledd_kr`, og identiteten er testet
 (`tests/test_kostnad.py`). For en måned som krysset migreringen kommer en
@@ -637,9 +631,9 @@ i Store og faller bort ved første månedsskifte, på samme måte som
 `monthly_kwh_uten_pris` er ikke laget. `kwh_uten_pris` over er det samme
 tallet, og to felt som skal si det samme drifter fra hverandre.
 
-Felt som beholdes med samme navn, men får rettet betydning:
+Felt som beholdes med samme navn:
 
-| Felt                                         | Betydning etter denne kontrakten                                                                                                                            |
+| Felt                                         | Betydning                                                                                                                            |
 | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `monthly_consumption_dag_kwh`                | Sum kWh over avregnede intervaller med `tariff = dag` i måneden, ikke sum av poll-bøtter.                                                                   |
 | `monthly_consumption_natt_kwh`               | Tilsvarende for `natt`.                                                                                                                                     |
@@ -652,25 +646,14 @@ Felt som beholdes med samme navn, men får rettet betydning:
 | `monthly_cost_kr`                            | Samme tall som `monthly_accumulated_cost_kr`. Én akkumulator, ikke to.                                                                                      |
 | `is_day_rate`                                | Uendret: tariffen akkurat nå, for visning. Avregningen bruker intervallets egen `tariff`. Begge leser samme `Tariffregel`; kopien i coordinatoren er borte. |
 
-Felt som forsvinner: ingen i denne omgang. L3c avgjør hva som kan pensjoneres
-når sensorene skrives om.
-
 ### Navnet `monthly_accumulated_cost_energiledd_kr`
 
-Feltet har aldri vært energiledd alene. Satsen som ganges er hele
-`total_nettleie_price`, altså energiledd med forbruksavgift og Enova, og
-fakturaavstemmingen går bare opp slik. Dommen over L2 fant det og ba L3b
-avgjøre navnet.
+Feltet omfatter mer enn energileddet alene: `total_nettleie_price` inkluderer
+forbruksavgift og Enova. Navnet beholdes av hensyn til brukernes
+langtidsstatistikk. Feltene `monthly_energiledd_dag_kr`,
+`monthly_energiledd_natt_kr` og `monthly_avgifter_kr` viser oppdelingen.
 
-Avgjørelsen er at navnet står, og at innholdet blir etterprøvbart i stedet.
-Brukerne har langtidsstatistikk på sensoren; å rette navnet ved å endre
-betydningen ville gitt et brudd i tallrekken hos alle, og å rette navnet ved å
-bytte nøkkel ville krevd at sensorlaget ble skrevet om i samme endring.
-Splitten (`monthly_energiledd_dag_kr`, `monthly_energiledd_natt_kr`,
-`monthly_avgifter_kr`) gjør hva feltet inneholder synlig og testbart, og et nytt
-navn hører til L3c, der sensorene og attributtene deres skrives om uansett.
-
-## Fastledd (L3b)
+## Fastledd
 
 Fastledd er kroner per måned. Det ganges aldri med kilowattimer, og ingen krone
 i bokføringen kommer fra `kapasitetsledd_per_kwh`; den satsen finnes bare fordi
@@ -694,9 +677,9 @@ som skulle bort.
 
 `daily_cost_kr` følger samme regel med døgnets andel av månedens fastledd.
 
-## Status
+## Sammenheng mellom bok og sensorer
 
-L3a og L3b er inne. A, B, C og D gjelder for energi, tariff, pris, kvalitet,
+A, B, C og D gjelder for energi, tariff, pris, kvalitet,
 Norgespris-linjen og kronene. Alle kroner utenom fastleddet bokføres per
 avregnet intervall med intervallets egen pris; fastleddet er et periodebeløp.
 Rulleringen skjer før nåtidssnapshotet bygges, så månedsfeltene i en data-dict
@@ -706,13 +689,7 @@ kilowattimer på måneden coordinatoren viser, enten den er den aktive i boken,
 nettopp arkivert, eller ikke finnes i boken ennå. Forrige måneds total er aldri
 den nye månedens åpningsbalanse.
 
-`current_hour_energy` speiles nå fra det åpne intervallet, slik tabellen over
+`current_hour_energy` speiles fra det åpne intervallet, slik tabellen over
 sier, og døgnmaksen leses av bokens lukkede intervaller.
-
-## Hva denne kontrakten pensjonerer
-
-Punkt 7 og 8 i [begrensninger.md](../begrensninger.md) (gap-bøtte og
-øyeblikksprising av gap-forbruk) er beskrivelser av dagens adferd, og begge
-brytes av C1 og C2. De skal fjernes derfra når L3a er inne, ikke før.
 
 [statnett]: https://www.statnett.no/en/for-stakeholders-in-the-power-industry/system-operation/the-power-market/quarterly-resolution-and-the-energy-markets/

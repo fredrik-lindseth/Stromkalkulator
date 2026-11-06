@@ -8,7 +8,7 @@
 
 ## Fakturadata
 
-| Priselement           | Forbruk     | Pris             | Faktura (kr) | Vår beregning (kr) | Avvik    |
+| Priselement           | Forbruk     | Pris             | Faktura (kr) | Beregning (kr) | Avvik    |
 | --------------------- | ----------- | ---------------- | ------------ | ------------------ | -------- |
 | Energiledd dag        | 620.83 kWh  | 35.963 øre/kWh   | 223.26       | 223.27             | 0.01     |
 | Energiledd natt/helg  | 761.00 kWh  | 13.125 øre/kWh   | 99.88        | 99.88              | 0.00     |
@@ -26,7 +26,7 @@
 
 ## Kapasitetstrinn-verifisering
 
-| Faktura                 | Vår beregning               | Match? |
+| Faktura                 | Beregning               | Match? |
 | ----------------------- | --------------------------- | ------ |
 | Trinn: 2-5 kW (trinn 2) | `kapasitetstrinn_nummer: 2` | Match  |
 | Pris: 250 kr/mnd        | `kapasitetsledd: 250`       | Match  |
@@ -35,7 +35,7 @@ Kapasitetstrinn uendret fra mars (2-5 kW, 250 kr/mnd).
 
 ## Satsverifisering mot dso.py
 
-| Komponent                 | Faktura (øre inkl. mva) | Vårt tall | Beregning             |
+| Komponent                 | Faktura (øre inkl. mva) | Beregnet tall | Beregning             |
 | ------------------------- | ----------------------- | --------- | --------------------- |
 | Energiledd dag            | 35.963                  |           |                       |
 | + Forbruksavgift          | 8.913                   |           | 7.13 \* 1.25 = 8.9125 |
@@ -49,7 +49,7 @@ Kapasitetstrinn uendret fra mars (2-5 kW, 250 kr/mnd).
 
 ## Norgespris-verifisering
 
-| Parameter           | Faktura                | Vår kode                                 | Match? |
+| Parameter           | Faktura                | Integrasjonens kode                                 | Match? |
 | ------------------- | ---------------------- | ---------------------------------------- | ------ |
 | Norgespris fastpris | (implisitt 50 øre/kWh) | `NORGESPRIS_INKL_MVA_STANDARD = 0.50`    | Ja     |
 | Strømstøtte         | 0 (Norgespris-kunde)   | `stromstotte = 0.0` når `har_norgespris` | Ja     |
@@ -59,7 +59,7 @@ Gjennomsnittlig spotpris i april utledet fra kompensasjonen: 50 + 103.34 = 153.3
 
 ## Avgiftsverifisering
 
-| Avgift         | Faktura (øre/kWh) | Vår const (eks. mva) | Vår const \* 1.25 | Match? |
+| Avgift         | Faktura (øre/kWh) | Integrasjonens const (eks. mva) | Integrasjonens const \* 1.25 | Match? |
 | -------------- | ----------------- | -------------------- | ----------------- | ------ |
 | Forbruksavgift | 8.913             | 7.13                 | 8.9125            | Ja     |
 | Enovaavgift    | 1.25              | 1.00                 | 1.25              | Ja     |

@@ -8,7 +8,7 @@
 
 ## Fakturadata
 
-| Priselement           | Forbruk     | Pris            | Faktura (kr) | Vår beregning (kr) | Avvik    |
+| Priselement           | Forbruk     | Pris            | Faktura (kr) | Beregning (kr) | Avvik    |
 | --------------------- | ----------- | --------------- | ------------ | ------------------ | -------- |
 | Energiledd dag        | 557.794 kWh | 35.963 øre/kWh  | 200.60       | 200.60             | 0.00     |
 | Energiledd natt/helg  | 426.997 kWh | 13.125 øre/kWh  | 56.04        | 56.04              | 0.00     |
@@ -79,7 +79,7 @@ over det siste kvarteret. Verdien er en ekte pris, men for et kvarter og ikke fo
 timen, og den bommer 1,51 øre på timesnittet. Med 58 fylte timer i alt er det
 bare 662 timer igjen der recorder-prisen kan måles mot publisert pris.
 
-Hvorfor sensoren faller ut vet vi fortsatt ikke. States-historikken for 04.09 er
+Hvorfor sensoren faller ut er fortsatt ukjent. States-historikken for 04.09 er
 purget fra HA, så nettene kan ikke etterforskes i ettertid.
 
 ## Time-for-time-verifisering
@@ -111,7 +111,7 @@ Final-priser med poll-jitter og månedsskifte. Begge er grønne.
 
 ## Kapasitetstrinn-verifisering
 
-| Faktura                 | Vår beregning               | Match? |
+| Faktura                 | Beregning               | Match? |
 | ----------------------- | --------------------------- | ------ |
 | Trinn: 2-5 kW (trinn 2) | `kapasitetstrinn_nummer: 2` | Match  |
 | Pris: 250 kr/mnd        | `kapasitetsledd: 250`       | Match  |
@@ -143,7 +143,7 @@ Tabellen står i [norgespris-eksakt-match.md](../research/priser/norgespris-eksa
 
 ## Avgiftsverifisering
 
-| Avgift         | Faktura (øre/kWh) | Vår const (eks. mva) | Vår const \* 1.25 | Match? |
+| Avgift         | Faktura (øre/kWh) | Integrasjonens const (eks. mva) | Integrasjonens const \* 1.25 | Match? |
 | -------------- | ----------------- | -------------------- | ----------------- | ------ |
 | Forbruksavgift | 8.913             | 7.13                 | 8.9125            | Ja     |
 | Enovaavgift    | 1.25              | 1.00                 | 1.25              | Ja     |

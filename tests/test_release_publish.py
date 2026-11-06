@@ -28,6 +28,8 @@ sys.path.insert(0, str(REPO / "scripts"))
 
 import release_publish  # noqa: E402
 
+from tests.replay.evidence import write_reports  # noqa: E402
+
 REPONAVN = "eier/Stromkalkulator"
 VERSJON = "9.9.9"
 TAG = f"v{VERSJON}"
@@ -129,7 +131,7 @@ class FalskGitHub:
     def asset_innhold(self, tag: str = TAG) -> bytes:
         release = self.release(tag)
         assert release is not None
-        (asset,) = release["assets"]
+        asset = next(a for a in release["assets"] if a["name"] == "stromkalkulator.zip")
         return bytes.fromhex(self.les()["assets"][asset["id"]])
 
     def tagg(self, tag: str = TAG) -> dict | None:
@@ -194,7 +196,42 @@ def kjor(repo: Path, *argv: str) -> int:
 
 
 def publiser(repo: Path, sha: str, *ekstra: str) -> int:
-    return kjor(repo, "publish", "--sha", sha, "--repo", REPONAVN, *ekstra)
+    directory = repo.parent / "evidence"
+    report = {
+        "schema_version": 1,
+        "commit_sha": sha,
+        "source_clean": True,
+        "source_changed_during_run": False,
+        "source_key": "a" * 64,
+        "lock_sha256": "b" * 64,
+        "fixtures": {"fixture": "c" * 64},
+        "versions": {"python": "3"},
+        "commands": [["pytest"]],
+        "status": "passed",
+        "inventory": {
+            "required": True,
+            "expected": ["test"],
+            "executed": ["test"],
+            **{k: [] for k in ("missing", "skipped", "uncollected", "missing_evidence", "failed")},
+        },
+        "tests": [{"nodeid": "test", "status": "passed", "duration_seconds": 1}],
+        "results": [
+            {
+                "nodeid": "test",
+                "month": "2026-01",
+                "metric": "cost",
+                "expected": 1,
+                "actual": 1,
+                "deviation": 0,
+                "tolerance": 0,
+                "unit": "NOK",
+                "comparison": "abs_le",
+                "status": "passed",
+            }
+        ],
+    }
+    write_reports(directory, report)
+    return kjor(repo, "publish", "--sha", sha, "--repo", REPONAVN, "--evidence-dir", str(directory), *ekstra)
 
 
 def bygg(repo: Path, sha: str, mal: Path) -> str:
@@ -324,7 +361,7 @@ def test_gjenopptak_etter_avbrutt_opplasting_bytter_ikke_riktig_asset(
 
     halvveis = github.release()
     assert halvveis is not None and halvveis["draft"] is True, "ingen offentlig release etter avbrudd"
-    (asset,) = halvveis["assets"]
+    asset = next(a for a in halvveis["assets"] if a["name"] == "stromkalkulator.zip")
 
     monkeypatch.delenv("GH_FEIL")
     opplastinger_for = len(github.kall("uploads.github.com"))
@@ -333,7 +370,8 @@ def test_gjenopptak_etter_avbrutt_opplasting_bytter_ikke_riktig_asset(
     ferdig = github.release()
     assert ferdig is not None
     assert ferdig["draft"] is False
-    assert [a["id"] for a in ferdig["assets"]] == [asset["id"]], "det korrekte asset-et ble byttet"
+    assert next(a for a in ferdig["assets"] if a["name"] == "stromkalkulator.zip")["id"] == asset["id"]
+    assert len(ferdig["assets"]) == 2
     assert len(github.kall("uploads.github.com")) == opplastinger_for, "lastet opp på nytt unødig"
     assert hashlib.sha256(github.asset_innhold()).hexdigest() == attestert
 
@@ -454,12 +492,32 @@ def test_publisert_release_uten_zip_stopper(
     assert publiser(repo, sha) == release_publish.EXIT_STOPP
 
 
+@pytest.mark.parametrize("har_beviskrav", [False, True])
+def test_publisert_release_uten_bevis_vurderes_mot_taggens_tre(
+    repo: Path, github: FalskGitHub, tmp_path: Path, har_beviskrav: bool
+) -> None:
+    if har_beviskrav:
+        (repo / "scripts").mkdir()
+        (repo / "scripts" / "release_evidence.py").write_text("# evidence contract\n")
+        _git(repo, "add", "scripts")
+        _git(repo, "commit", "-qm", "beviskrav")
+    sha = _git(repo, "rev-parse", "HEAD")
+    github.attester(bygg(repo, sha, tmp_path / "attest.zip"), sha)
+    assert publiser(repo, sha) == release_publish.EXIT_OK
+    state = github.les()
+    state["releaser"][0]["assets"] = [
+        asset for asset in state["releaser"][0]["assets"] if asset["name"] != "domain-evidence.zip"
+    ]
+    github.skriv(state)
+    assert publiser(repo, sha) == (release_publish.EXIT_STOPP if har_beviskrav else release_publish.EXIT_OK)
+
+
 def test_publisert_zip_med_feil_innhold_stopper(
     repo: Path, sha: str, github: FalskGitHub, attestert: str
 ) -> None:
     publiser(repo, sha)
     tilstand = github.les()
-    (asset,) = tilstand["releaser"][0]["assets"]
+    asset = next(a for a in tilstand["releaser"][0]["assets"] if a["name"] == "stromkalkulator.zip")
     tilstand["assets"][asset["id"]] = _tom_zip().hex()
     github.skriv(tilstand)
     assert publiser(repo, sha) == release_publish.EXIT_STOPP
@@ -779,3 +837,33 @@ def test_justfile_og_workflow_kaller_samme_kjerne() -> None:
     assert {"build", "plan", "verify"} <= i_just
     assert i_workflow <= i_just | {"publish"}
     assert "release-plan" in justfile and "release-zip" in justfile
+
+
+def test_fakturabevis_leses_tilbake_for_publisering(
+    repo: Path, sha: str, github: FalskGitHub, attestert: str
+) -> None:
+    assert publiser(repo, sha) == release_publish.EXIT_OK
+    calls = github.les()["kall"]
+    upload = next(
+        i for i, call in enumerate(calls) if "uploads.github.com" in call and "domain-evidence.zip" in call
+    )
+    patch = next(i for i, call in enumerate(calls) if call.startswith("PATCH ") and "/releases/" in call)
+    asset = next(a for a in github.release()["assets"] if a["name"] == "domain-evidence.zip")
+    readback = next(i for i, call in enumerate(calls) if f"/releases/assets/{asset['id']}" in call)
+    assert upload < readback < patch
+
+
+def test_annet_eksisterende_fakturabevis_overskrives_ikke(
+    repo: Path, sha: str, github: FalskGitHub, attestert: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("GH_FEIL", "publish")
+    assert publiser(repo, sha) == release_publish.EXIT_FEIL
+    state = github.les()
+    asset = next(a for a in state["releaser"][0]["assets"] if a["name"] == "domain-evidence.zip")
+    state["assets"][asset["id"]] = b"corrupt".hex()
+    github.skriv(state)
+    monkeypatch.delenv("GH_FEIL")
+    uploads = len(github.kall("uploads.github.com"))
+    assert publiser(repo, sha) == release_publish.EXIT_STOPP
+    assert github.release()["draft"] is True
+    assert len(github.kall("uploads.github.com")) == uploads

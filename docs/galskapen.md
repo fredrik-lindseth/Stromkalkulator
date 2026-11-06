@@ -124,7 +124,7 @@ så det ville i praksis først vise seg på en desemberfaktura.
 ## Forsøket på å standardisere
 
 [fri-nettleie](https://github.com/kraftsystemet/fri-nettleie) på Github gjør den
-jobben jeg trodde NVE gjorde. Prosjektet samler alle norske nettleietariffer i
+arbeidet med å samle tariffer. Prosjektet samler alle norske nettleietariffer i
 maskinlesbart format, delt opp i ledd, nivå og trinn. Datasettet viser samtidig
 hvor lite av problemet som lar seg normalisere bort.
 
@@ -224,7 +224,7 @@ prisliste gjør. Se [bidra med faktura](fakturaer/bidra-med-faktura.md).
     «Fastleddet skal differensieres, eller settes, på grunnlag av kundens
     etterspørsel etter effekt [...] Nettselskapene har en viss frihet til å
     bestemme hvordan de vil differensiere.» Det finnes altså ingen NVE-anbefalt
-    modell å avvike fra. Vi kaller likevel snitt-av-tre-døgnmakser for
+    modell å avvike fra. Snittet av tre døgnmakser kalles likevel
     NVE-modellen i kode og dokumentasjon, fordi det er navnet bransjen bruker,
     men navnet er upresist.
 
@@ -256,7 +256,7 @@ prisliste gjør. Se [bidra med faktura](fakturaer/bidra-med-faktura.md).
     Energiverk 24,4 %, Barents Nett 16,6 %, Vestall 14,5 %, Noranett 14,4 %. 73,9
     delt på 14,4 er 5,1.
 
-[^metoder]: Fri-nettleies navn, som jeg har tatt inn i `fastledd_metode`:
+[^metoder]: Fri-nettleies navn brukes i `fastledd_metode`:
     `TRE_DØGNMAX_MND` (69 av de 74, og `Egendefinert` bruker den også),
     `OV_TREFASE` (Alut, Netera), `FEM_VEKTET_ÅR` (Fjellnett), `MND_MAX`
     (Sør Aurdal Energi) og `UKJENT` (Tinfos, som ikke publiserer metoden sin,
@@ -280,7 +280,7 @@ prisliste gjør. Se [bidra med faktura](fakturaer/bidra-med-faktura.md).
 [^netera]: Prisliste gyldig fra 1. januar 2026
     ([netera.no](https://www.netera.no/nettleie/avtaler/privat/), «Alle priser er
     inkl. mva»): 0-10 A 230 V 2 000 kr/år, 11-63 A 230 V 4 000, 63-125 A 230 V
-    8 000, 0-40 A 400 V 4 000, 40-80 A 400 V 8 000. Vi lagrer 167, 333, 667, 333
+    8 000, 0-40 A 400 V 4 000, 40-80 A 400 V 8 000. Integrasjonen lagrer 167, 333, 667, 333
     og 667 kr/mnd. Fri-nettleie oppgir de tre første som 1 600, 3 200 og 6 400
     kr/år eks. mva, altså de samme tallene med mva-en tatt ut, og bare
     230 V-radene.
@@ -374,8 +374,7 @@ prisliste gjør. Se [bidra med faktura](fakturaer/bidra-med-faktura.md).
     Glitre, Linja, Nettselskapet, Tensio TN, Tensio TS). Arvas fil er sist
     oppdatert 22. oktober 2024, og det er riktig: Arva skriver selv på prissiden
     at nettleien står uendret fra 1. januar 2026, og satsene stemmer tall for
-    tall (verifisert 13. september 2026). Sesongprisingen jeg lenge trodde gjaldt
-    husholdning, står i Arvas andre tabell, den for kunder over 100 000 kWh i
+    tall (verifisert 13. september 2026). Sesongprisingen står i Arvas andre tabell, den for kunder over 100 000 kWh i
     året.
 
 [^identitet]: `DSO_MIGRATIONS` i `dso.py` mapper `skiakernett` til `vevig`
@@ -386,7 +385,7 @@ prisliste gjør. Se [bidra med faktura](fakturaer/bidra-med-faktura.md).
     Noranett Hadsel har 310, 310 og 270 kr/mnd i laveste trinn. Area Nett har tre
     husholdningsområder med 525, 390 og 358 kr/mnd i laveste trinn (uten mva,
     siden det er tiltakssonen), pluss en fjerde fri-nettleie-fil for fritidsbolig.
-    Vi lagret 250 fram til 28. juli 2026, et tall som ikke fantes i noe område. Glitre Nett og Føie har tre
+    Integrasjonen lagret 250 fram til 28. juli 2026, et tall som ikke fantes i noe område. Glitre Nett og Føie har tre
     GLN-numre hver, Arva har to. Midtnett har to gjeldende tariffer, der
     fritidsbolig betaler omtrent 20 % mer i fastledd enn husholdning på samme
     energiledd. Katalogen støtter nå denne forskjellen gjennom egne trinn per

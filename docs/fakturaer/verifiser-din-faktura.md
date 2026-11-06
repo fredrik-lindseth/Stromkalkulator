@@ -120,7 +120,7 @@ For Nord-Norge: spotpris og avgifter er mva-fri. For tiltakssonen: ingen forbruk
 
 Lag et issue på Forgejo eller GitHub og bruk malen i [`.forgejo/issue_template/faktura-verifisering.md`](../../.forgejo/issue_template/faktura-verifisering.md). Eller send en PR med en ny verifiseringsrapport, kopier strukturen fra [bkk-april-2026.md](bkk-april-2026.md).
 
-Vi trenger:
+Følgende trengs:
 
 - Nettselskap og prisområde
 - Periode

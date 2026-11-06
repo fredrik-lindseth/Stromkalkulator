@@ -26,4 +26,4 @@ Start med [oppsett i README](../README.md) for å installere Strømkalkulator. H
 - [Endringslogg og release](release-notes.md).
 - [Hendelser](incidents/): feilårsaker og regler som hindrer gjentakelse.
 
-Brukerveiledninger ligger direkte i `docs/`. Fakturarapporter, beregningskontrakter, hendelser og datakilder har egne mapper. Beskriv gjeldende oppførsel i veiledningene; oppgaver hører hjemme i oppgavesporingen, og gamle implementasjonsforløp finnes i git.
+Brukerveiledninger ligger direkte i `docs/`. Fakturarapporter, beregningskontrakter, hendelser og datakilder har egne mapper. Veiledningene beskriver gjeldende oppførsel; tidligere endringer finnes i git.

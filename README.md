@@ -32,7 +32,7 @@ Hver rapport matcher integrasjonens beregninger linje for linje mot en ekte fakt
 
 Integrasjonen treffer fakturaen på øret, innenfor 50 Wh på månedsforbruk og 1-2 øre på nettleielinjene (BKKs interne avrunding), uten konfigurasjon. Verifisert på Kaifa MA304H3E med Pow-U HAN-leser og offisiell `nordpool`-integrasjon. Presisjon per målermerke og HAN-leser, og hvorfor Norgespris-linjen treffer eksakt: [begrensninger.md](docs/begrensninger.md).
 
-Bruker du et annet nettselskap, [send inn din faktura](docs/fakturaer/verifiser-din-faktura.md) så bekrefter vi det.
+Bruker du et annet nettselskap, [send inn din faktura](docs/fakturaer/verifiser-din-faktura.md) for å bidra til verifisering.
 
 ## Installasjon
 

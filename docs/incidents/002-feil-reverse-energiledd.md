@@ -8,7 +8,7 @@
 
 Attributtet `eks_avgifter_mva` på EnergileddDagSensor og EnergileddNattSensor avvek fra BKK-fakturaen.
 
-| Sensor          | Vårt attributt | Faktura (eks. mva) | Avvik     |
+| Sensor          | Integrasjonens attributt | Faktura (eks. mva) | Avvik     |
 | --------------- | -------------- | ------------------ | --------- |
 | Energiledd dag  | 30.40 øre      | 28.77 øre          | +1.63 øre |
 | Energiledd natt | 12.13 øre      | 10.50 øre          | +1.63 øre |

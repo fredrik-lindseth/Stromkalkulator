@@ -83,7 +83,16 @@ jobs:
         uses: extractions/setup-just@v4
 
       - name: Run unit tests with coverage
-        run: just test-unit --cov=custom_components/stromkalkulator --cov-report=xml --cov-report=term-missing
+        run: just test-evidence --cov=custom_components/stromkalkulator --cov-report=xml --cov-report=term-missing
+
+      - name: Archive domain evidence for this commit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: domain-evidence-${{ github.sha }}
+          path: dist/domain-evidence/
+          if-no-files-found: error
+          overwrite: true
 
       # Coverage-tallet er nyttig, men det er ikke en test. Nå som release.yml
       # venter på denne jobben, ville et ustabilt opplastingssteg blokkert en

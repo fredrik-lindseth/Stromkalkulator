@@ -67,6 +67,14 @@ verify-norgespris:
 test-unit *args:
     UV_PROJECT_ENVIRONMENT=.venv-unit uv run --frozen --python 3.13 --group unit pytest tests/ {{args}}
 
+# Raske tester beholder kontrakter, fakturaformler og korte hendelsesreplay.
+test-unit-fast *args:
+    UV_PROJECT_ENVIRONMENT=.venv-unit uv run --frozen --python 3.13 --group unit pytest tests/ -m "not full_replay" {{args}}
+
+# Komplett fakturakontroll med inventarvakt og etterprøvbare resultatfiler.
+test-evidence *args:
+    just test-unit --require-domain-inventory --domain-evidence-dir dist/domain-evidence {{args}}
+
 # Lint, formatsjekk, typer og død kode. Samme verktøyversjoner som hookene.
 check:
     UV_PROJECT_ENVIRONMENT=.venv-kvalitet uv run --frozen --python 3.13 --group kvalitet ruff check .
@@ -74,8 +82,11 @@ check:
     UV_PROJECT_ENVIRONMENT=.venv-kvalitet uv run --frozen --python 3.13 --group kvalitet mypy custom_components/stromkalkulator/ --ignore-missing-imports
     UV_PROJECT_ENVIRONMENT=.venv-kvalitet uv run --frozen --python 3.13 --group kvalitet vulture custom_components/stromkalkulator vulture_whitelist.py --min-confidence 80 --exclude "*test*"
 
-# Det AGENTS.md ber om før commit: unit + kvalitet. Krever ikke Home Assistant.
-test: test-unit check
+# Full kontroll av kode og referansemåneder. Krever ikke Home Assistant.
+test: (test-unit "--require-domain-inventory") check
+
+# Vanlig lokal kontroll før commit og push.
+test-fast: test-unit-fast check
 
 # Ekte Home Assistant. target=minimum er versjonen hacs.json lover,
 # target=current er nyeste vi har sett på. Begge skal være grønne.

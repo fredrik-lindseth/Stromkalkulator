@@ -1,6 +1,6 @@
 # Kontroller beregningene mot faktura
 
-Bruk denne kontrollen når du endrer avregning, kostnadsberegning eller tariffer. For en ny fakturamåned følger du [månedsprosedyren](neste-maaned-prosedyre.md). Rapportene og dekningen per måned står i [fakturaoversikten](referanse.md).
+Bruk denne kontrollen når du endrer avregning, kostnadsberegning, tariffer, fakturafixturer eller grunnlaget for replay-testene. For en ny fakturamåned følger du [månedsprosedyren](neste-maaned-prosedyre.md). Rapportene og dekningen per måned står i [fakturaoversikten](referanse.md).
 
 ## Tre kontroller av samme grunnlag
 
@@ -24,7 +24,9 @@ python3 scripts/research/verify_invoice_hourly.py \
 just verify-norgespris
 ```
 
-Gjenta skriptkontrollen for de fakturamånedene endringen berører. `just test` kjører hele faktura- og replay-suiten. Endrer du setup, config-flow, entiteter, migrering eller repairs, kjører du også begge [HA-testmiljøene](../testing.md#ekte-home-assistant).
+Gjenta skriptkontrollen for de fakturamånedene endringen berører. `just test` kjører hele faktura- og replay-suiten, inkludert månedsløpene som er utelatt fra `just test-fast`. Du trenger ikke kjøre hurtigtesten i tillegg. CI kjører full suite for kandidatens SHA før publisering. Endrer du setup, config-flow, entiteter, migrering eller repairs, kjører du også begge [HA-testmiljøene](../testing.md#ekte-home-assistant).
+
+Bruk `just test-evidence` når du trenger en lagret rapport fra fulltesten. Tall, testresultater og kildegrunnlag havner i `dist/domain-evidence/`; CI publiserer de samme rapportene som `domain-evidence-<SHA>`. Fulltesten avviser manglende eller hoppede obligatoriske fakturatester. Se [testbevisene](../testing.md#testbevis-fra-fakturaavstemmingen) for innhold og avgrensning.
 
 Eksakt Norgespris-kontroll trenger de private Elhub-filene og prisarkivene. Manglende data gir ikke en godkjent avstemming. Et recorder-avvik kan samtidig stå rødt selv om Elhub med endelige priser treffer fakturaen; rapporten må vise hvilken kontroll som avviker.
 

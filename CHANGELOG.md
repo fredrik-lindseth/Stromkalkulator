@@ -2,6 +2,20 @@
 
 Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) og [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Ikke sluppet]
+
+### Dokumentert
+
+- Oppdatert veiledningene for oppsett, datakvalitet og fakturakontroll, med presise beskrivelser av gjeldende regler. [Dokumentasjonsoversikt](docs/README.md). <!--kort-->
+
+### Endret
+
+- Lokal commit- og push-kontroll bruker hurtigtester og kvalitetskontroll. Hele fakturareplayet er fortsatt obligatorisk før release, og kan kjøres lokalt med `just test`.
+- Hver referansemåned avspilles én gang per testkjøring. Kontrollene deler uforanderlige resultater med uendrede avviksgrenser.
+- Full fakturakontroll skriver numeriske resultater, datakontrollsummer og kjøremiljø til JSON, JUnit og logg. Et eget inventar stopper kontrollen hvis obligatoriske tester mangler eller hoppes over.
+- Nye releaser lagrer fakturabevis som `domain-evidence.zip` før publisering. Vedlegget kontrolleres mot kandidatens commit og leses tilbake fra GitHub.
+- Dokumentasjonsvakten kontrollerer private referanser, personlige arbeidsformuleringer og lokale lenker i hurtigtesten og CI.
+
 ## [1.18.2]
 
 ### Fikset

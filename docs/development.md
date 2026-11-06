@@ -97,14 +97,11 @@ pakkene selv.
 ```bash
 git clone https://github.com/fredrik-lindseth/Stromkalkulator.git
 cd Stromkalkulator
-just test
+just test-fast
 pre-commit install && pre-commit install --hook-type pre-push
 ```
 
-`just test` er unit-testene og kvalitetssjekkene, uten Home Assistant. Rører du
-noe HA faktisk kaller, kjør også `just test-ha target=minimum` og
-`just test-ha target=current`. Versjonsmatrisen og hvorfor miljøene er fysisk
-atskilt står i [testing.md](testing.md#testmiljøer).
+`just test-fast` kjører hurtige unit-tester og kvalitetssjekkene uten Home Assistant, og brukes også av pre-push. Endrer du beregninger, tariffer, fakturafixturer eller grunnlaget for replay-testene, kjør hele `just test` i stedet. Rører du noe HA faktisk kaller, kjør også `just test-ha target=minimum` og `just test-ha target=current`. CI kjører full suite for kandidatens SHA før publisering. Testutvalg og versjonsmatrise står i [testing.md](testing.md#testmiljøer).
 
 ## Deploy til HA (utvikling)
 

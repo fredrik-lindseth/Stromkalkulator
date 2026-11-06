@@ -104,8 +104,8 @@ repair-varsel for config entries med egendefinert nettselskap:
 `_check_egendefinerte_satser` i `__init__.py` reiser
 `egendefinert_energiledd_<entry_id>` ved oppstart, med brukerens egne satser og
 avgiftsbeløpet for sonen som plassholdere i teksten. Varselet påstår ikke at
-brukeren har tastet feil, for det kan vi ikke vite, bare at teksten var
-villedende og at satsen bør sjekkes mot prislisten.
+brukeren har tastet feil. Det sier bare at teksten var villedende og at satsen
+bør sjekkes mot prislisten.
 
 Varselet er fiksbart. `ConfirmRepairFlow` alene holdt ikke: varselet reises på
 nytt ved hver oppstart så lenge entryet bruker egendefinerte satser, så en ren

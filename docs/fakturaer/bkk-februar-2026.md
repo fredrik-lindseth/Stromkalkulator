@@ -8,7 +8,7 @@
 
 ## Fakturadata
 
-| Priselement           | Forbruk      | Pris           | Faktura (kr) | Vår beregning (kr) | Avvik    |
+| Priselement           | Forbruk      | Pris           | Faktura (kr) | Beregning (kr) | Avvik    |
 | --------------------- | ------------ | -------------- | ------------ | ------------------ | -------- |
 | Energiledd dag        | 893.615 kWh  | 35.963 øre/kWh | 321.36       | 321.36             | 0.00     |
 | Energiledd natt/helg  | 780.171 kWh  | 13.125 øre/kWh | 102.40       | 102.40             | 0.00     |
@@ -24,9 +24,9 @@
 
 ## Kapasitetstrinn-verifisering
 
-| Faktura                                   | Vår beregning                 | Match?                                   |
+| Faktura                                   | Beregning                 | Match?                                   |
 | ----------------------------------------- | ----------------------------- | ---------------------------------------- |
-| Maks effekt 1: 5.909 kW (06.02 kl. 08:00) | Spores via `_daily_max_power` | N/A (vi sporer effekt, ikke klokkeslett) |
+| Maks effekt 1: 5.909 kW (06.02 kl. 08:00) | Spores via `_daily_max_power` | N/A (integrasjonen sporer effekt, ikke klokkeslett) |
 | Maks effekt 2: 5.733 kW (10.02 kl. 16:00) | Spores via `_daily_max_power` | N/A                                      |
 | Maks effekt 3: 5.477 kW (03.02 kl. 09:00) | Spores via `_daily_max_power` | N/A                                      |
 | Snitt: 5.706 kW                           | `avg_top_3_kw`                | Beregnes identisk                        |
@@ -35,9 +35,9 @@
 
 ## Satsverifisering mot dso.py
 
-Fakturaen viser individuelle priskomponenter. Vi verifiserer at dso.py inneholder riktig sum:
+Fakturaen viser individuelle priskomponenter. Kontrollen viser at dso.py inneholder riktig sum:
 
-| Komponent                 | Faktura (øre inkl. mva) | Vårt tall | Beregning             |
+| Komponent                 | Faktura (øre inkl. mva) | Beregnet tall | Beregning             |
 | ------------------------- | ----------------------- | --------- | --------------------- |
 | Energiledd dag            | 35.963                  |           |                       |
 | + Forbruksavgift          | 8.913                   |           | 7.13 \* 1.25 = 8.9125 |
@@ -51,13 +51,13 @@ Fakturaen viser individuelle priskomponenter. Vi verifiserer at dso.py inneholde
 
 ## Norgespris-verifisering
 
-| Parameter           | Faktura                | Vår kode                                 | Match? |
+| Parameter           | Faktura                | Integrasjonens kode                                 | Match? |
 | ------------------- | ---------------------- | ---------------------------------------- | ------ |
 | Norgespris fastpris | (implisitt 50 øre/kWh) | `NORGESPRIS_INKL_MVA_STANDARD = 0.50`    | Ja     |
 | Strømstøtte         | 0 (Norgespris-kunde)   | `stromstotte = 0.0` når `har_norgespris` | Ja     |
 | Kompensasjon        | -1.0883 kr/kWh snitt   | Beregnes time-for-time av BKK            | N/A    |
 
-Norgespris-kompensasjonslinjen (-1821.64 kr) beregnes av BKK basert på time-for-time spotpriser gjennom hele måneden. Vårt system kan ikke reprodusere dette eksakte tallet uten historiske spotpriser, men vi verifiserer at:
+Norgespris-kompensasjonslinjen (-1821.64 kr) beregnes av BKK basert på time-for-time spotpriser gjennom hele måneden. Integrasjonen kan ikke reprodusere dette eksakte tallet uten historiske spotpriser, men kontrollen verifiserer at:
 
 - Fastprisen er korrekt (50 øre/kWh)
 - Strømstøtte er 0 for Norgespris-kunder
@@ -65,7 +65,7 @@ Norgespris-kompensasjonslinjen (-1821.64 kr) beregnes av BKK basert på time-for
 
 ## Avgiftsverifisering
 
-| Avgift         | Faktura (øre/kWh) | Vår const (eks. mva) | Vår const \* 1.25 | Match? |
+| Avgift         | Faktura (øre/kWh) | Integrasjonens const (eks. mva) | Integrasjonens const \* 1.25 | Match? |
 | -------------- | ----------------- | -------------------- | ----------------- | ------ |
 | Forbruksavgift | 8.913             | 7.13                 | 8.9125            | Ja     |
 | Enovaavgift    | 1.25              | 1.00                 | 1.25              | Ja     |

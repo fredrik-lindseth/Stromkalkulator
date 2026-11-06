@@ -8,7 +8,7 @@
 
 ## Fakturadata
 
-| Priselement           | Forbruk      | Pris            | Faktura (kr) | Vår beregning (kr) | Avvik    |
+| Priselement           | Forbruk      | Pris            | Faktura (kr) | Beregning (kr) | Avvik    |
 | --------------------- | ------------ | --------------- | ------------ | ------------------ | -------- |
 | Energiledd dag        | 831.768 kWh  | 35.963 øre/kWh  | 299.13       | 299.13             | 0.00     |
 | Energiledd natt/helg  | 721.449 kWh  | 13.125 øre/kWh  | 94.69        | 94.69              | 0.00     |
@@ -24,9 +24,9 @@
 
 ## Kapasitetstrinn-verifisering
 
-| Faktura                                   | Vår beregning                 | Match?                                   |
+| Faktura                                   | Beregning                 | Match?                                   |
 | ----------------------------------------- | ----------------------------- | ---------------------------------------- |
-| Maks effekt 1: 4.798 kW (25.03 kl. 16:00) | Spores via `_daily_max_power` | N/A (vi sporer effekt, ikke klokkeslett) |
+| Maks effekt 1: 4.798 kW (25.03 kl. 16:00) | Spores via `_daily_max_power` | N/A (integrasjonen sporer effekt, ikke klokkeslett) |
 | Maks effekt 2: 4.557 kW (06.03 kl. 17:00) | Spores via `_daily_max_power` | N/A                                      |
 | Maks effekt 3: 4.534 kW (26.03 kl. 19:00) | Spores via `_daily_max_power` | N/A                                      |
 | Snitt: 4.630 kW                           | `avg_top_3_kw`                | Beregnes identisk                        |
@@ -37,7 +37,7 @@ Kapasitetstrinn gikk ned fra 5-10 kW (415 kr/mnd) i februar til 2-5 kW (250 kr/m
 
 ## Satsverifisering mot dso.py
 
-| Komponent                 | Faktura (øre inkl. mva) | Vårt tall | Beregning             |
+| Komponent                 | Faktura (øre inkl. mva) | Beregnet tall | Beregning             |
 | ------------------------- | ----------------------- | --------- | --------------------- |
 | Energiledd dag            | 35.963                  |           |                       |
 | + Forbruksavgift          | 8.913                   |           | 7.13 \* 1.25 = 8.9125 |
@@ -51,7 +51,7 @@ Kapasitetstrinn gikk ned fra 5-10 kW (415 kr/mnd) i februar til 2-5 kW (250 kr/m
 
 ## Norgespris-verifisering
 
-| Parameter           | Faktura                | Vår kode                                 | Match? |
+| Parameter           | Faktura                | Integrasjonens kode                                 | Match? |
 | ------------------- | ---------------------- | ---------------------------------------- | ------ |
 | Norgespris fastpris | (implisitt 50 øre/kWh) | `NORGESPRIS_INKL_MVA_STANDARD = 0.50`    | Ja     |
 | Strømstøtte         | 0 (Norgespris-kunde)   | `stromstotte = 0.0` når `har_norgespris` | Ja     |
@@ -61,7 +61,7 @@ Norgespris-kompensasjonslinjen (-1550.68 kr) beregnes av BKK basert på time-for
 
 ## Avgiftsverifisering
 
-| Avgift         | Faktura (øre/kWh) | Vår const (eks. mva) | Vår const \* 1.25 | Match? |
+| Avgift         | Faktura (øre/kWh) | Integrasjonens const (eks. mva) | Integrasjonens const \* 1.25 | Match? |
 | -------------- | ----------------- | -------------------- | ----------------- | ------ |
 | Forbruksavgift | 8.913             | 7.13                 | 8.9125            | Ja     |
 | Enovaavgift    | 1.25              | 1.00                 | 1.25              | Ja     |

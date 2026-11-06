@@ -85,12 +85,12 @@ Time-for-time Nord Pool day-ahead spotpris for NO5 (Bergen), råpris i EUR/MWh.
 
 Hentet fra hvakosterstrommen.no sin offentlige API (speil av Nord Pool).
 Direkte Nord Pool dataportal-API krever innlogging for data eldre enn ~30 dager,
-så vi snapshot'er for å kunne reverifisere uten tilgang til den.
+så et øyeblikksbilde gjør det mulig å verifisere uten tilgang til den.
 
 NOK-konvertering må gjøres med daglig NB-kurs fra `nb_eur_nok_2026.json`
 (forward-fill for helger/helligdager). HKS sin egen NOK-konvertering bruker
 en delayed/forward-filled versjon av NB-kurs som ikke matcher BKKs same-day-kurs,
-derfor lagrer vi kun EUR-prisen herfra.
+derfor lagres kun EUR-prisen herfra.
 
 ### `nb_eur_nok_2026.json`
 

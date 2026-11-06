@@ -10,12 +10,11 @@ reimplementerer dag/natt-split, topp-3 og Norgespris-komp parallelt med
 coordinator og asserter mot den. Coordinator-koden kjøres aldri. Denne
 filen fyller gapet ved å kjøre ekte `_async_update_data()`.
 
-Planen for L3a sa at denne filen skulle pensjoneres til fordel for den
-tidsbevisste replayen i `test_replay_hendelser.py`. Den står likevel, for den
-dekker fire måneder L2 ikke har prisfasit for (desember 2025, februar, mars og
-april 2026) og BKKs jul- og nyttårsaften-regel mot en ekte faktura. Det L2 har
-og denne ikke, er poll-jitter, omstart, sommertid og sammenligning mot en
-uavhengig fasit; de to måler ulike ting.
+Denne replayen dekker desember 2025 og februar-september 2026, inkludert BKKs
+jul- og nyttårsaften-regel. Den tidsbevisste replayen i
+`test_replay_hendelser.py` dekker i tillegg poll-jitter, omstart, sommertid
+og sammenligning mot en uavhengig fasit. Månedens ferdige resultater deles
+mellom kontrollene, slik at hver måned kjøres én gang.
 """
 
 from __future__ import annotations
@@ -23,6 +22,8 @@ from __future__ import annotations
 import json
 from datetime import datetime, timedelta
 from pathlib import Path
+from types import MappingProxyType
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 import pytest
@@ -39,6 +40,9 @@ from tests.test_faktura_bkk import (
     FAKTURA_MARS_2026,
     FAKTURA_SEPTEMBER_2026,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
@@ -148,7 +152,7 @@ def _replay_month(
     fixture_name: str,
     faktura: dict,
     har_norgespris: bool = True,
-) -> dict:
+) -> Mapping:
     """Mat en hourly-fixture inn i coordinator og trigg månedsskifte.
 
     For hver time settes `now` til time-start lokaltid, tpi-sensoren
@@ -243,13 +247,42 @@ def _replay_month(
 
     last_result = asyncio.run(coord._async_update_data())
 
-    return {
-        "result": last_result,
-        "coord": coord,
-        "faktura": faktura,
-    }
+    # Bare ferdige skalarverdier deles; ingen coordinator, mocks eller mutable
+    # underobjekter overlever til neste tests function-scoped coord_module.
+    return MappingProxyType(
+        {
+            "result": MappingProxyType(
+                {
+                    key: last_result[key]
+                    for key in (
+                        "previous_month_consumption_total_kwh",
+                        "previous_month_consumption_dag_kwh",
+                        "previous_month_consumption_natt_kwh",
+                        "previous_month_avg_top_3_kw",
+                        "previous_month_kapasitetsledd",
+                    )
+                }
+            ),
+            "compensation": coord._previous_month_norgespris_compensation,
+            "faktura": MappingProxyType(
+                {key: value for key, value in faktura.items() if isinstance(value, (str, int, float))}
+            ),
+        }
+    )
 
 
+@pytest.fixture(scope="module")
+def month_replays():
+    """Én kjøring per måned i denne testøkten, uavhengig av testrekkefølge."""
+    return {}
+
+
+def _check(record, month, metric, actual, expected, tolerance, unit):
+    record(month=month, metric=metric, actual=actual, expected=expected, tolerance=tolerance, unit=unit)
+    assert actual == pytest.approx(expected, abs=tolerance)
+
+
+@pytest.mark.full_replay
 class TestReplayDesember2025:
     """Desember 2025 replay (pre-Norgespris, strømstøtte-kunde).
 
@@ -261,34 +294,54 @@ class TestReplayDesember2025:
     """
 
     @pytest.fixture
-    def replay(self, coord_module):
-        return _replay_month(
-            coord_module,
-            "bkk_desember_2025_hourly.json",
-            FAKTURA_DESEMBER_2025,
-            har_norgespris=False,
-        )
+    def replay(self, coord_module, month_replays):
+        if "desember_2025" not in month_replays:
+            month_replays["desember_2025"] = _replay_month(
+                coord_module,
+                "bkk_desember_2025_hourly.json",
+                FAKTURA_DESEMBER_2025,
+                har_norgespris=False,
+            )
+        return month_replays["desember_2025"]
 
-    def test_total_kwh_matcher_faktura(self, replay):
+    def test_total_kwh_matcher_faktura(self, replay, record_domain_evidence):
         result = replay["result"]
         faktura = replay["faktura"]
-        assert result["previous_month_consumption_total_kwh"] == pytest.approx(
-            faktura["forbruk_total_kwh"], abs=0.05
+        _check(
+            record_domain_evidence,
+            faktura["navn"],
+            "previous_month_consumption_total_kwh",
+            result["previous_month_consumption_total_kwh"],
+            faktura["forbruk_total_kwh"],
+            0.05,
+            "kWh",
         )
 
-    def test_dag_natt_split_matcher_faktura(self, replay):
+    def test_dag_natt_split_matcher_faktura(self, replay, record_domain_evidence):
         result = replay["result"]
         faktura = replay["faktura"]
         # 2 kWh-toleranse; se docstring på
         # TestReplayParametrized.test_dag_natt_split_matcher_faktura.
-        assert result["previous_month_consumption_dag_kwh"] == pytest.approx(
-            faktura["forbruk_dag_kwh"], abs=2.0
+        _check(
+            record_domain_evidence,
+            faktura["navn"],
+            "previous_month_consumption_dag_kwh",
+            result["previous_month_consumption_dag_kwh"],
+            faktura["forbruk_dag_kwh"],
+            2.0,
+            "kWh",
         )
-        assert result["previous_month_consumption_natt_kwh"] == pytest.approx(
-            faktura["forbruk_natt_kwh"], abs=2.0
+        _check(
+            record_domain_evidence,
+            faktura["navn"],
+            "previous_month_consumption_natt_kwh",
+            result["previous_month_consumption_natt_kwh"],
+            faktura["forbruk_natt_kwh"],
+            2.0,
+            "kWh",
         )
 
-    def test_dag_natt_split_med_jul_nyttar_aften_helligdager(self, replay):
+    def test_dag_natt_split_med_jul_nyttar_aften_helligdager(self, replay, record_domain_evidence):
         """Manuell reklassifisering av 24.12 og 31.12 som helligdag matcher fakturaen.
 
         Dokumenterer at avviket i `test_dag_natt_split_matcher_faktura` skyldes
@@ -314,18 +367,50 @@ class TestReplayDesember2025:
                 natt_kwh += hour["kwh"]
 
         faktura = replay["faktura"]
-        assert dag_kwh == pytest.approx(faktura["forbruk_dag_kwh"], abs=0.5)
-        assert natt_kwh == pytest.approx(faktura["forbruk_natt_kwh"], abs=0.5)
+        _check(
+            record_domain_evidence,
+            faktura["navn"],
+            "dag_kwh",
+            dag_kwh,
+            faktura["forbruk_dag_kwh"],
+            0.5,
+            "kWh",
+        )
+        _check(
+            record_domain_evidence,
+            faktura["navn"],
+            "natt_kwh",
+            natt_kwh,
+            faktura["forbruk_natt_kwh"],
+            0.5,
+            "kWh",
+        )
 
-    def test_topp_3_kapasitet_matcher_faktura(self, replay):
+    def test_topp_3_kapasitet_matcher_faktura(self, replay, record_domain_evidence):
         result = replay["result"]
         faktura = replay["faktura"]
-        assert result["previous_month_avg_top_3_kw"] == pytest.approx(faktura["maks_effekt_snitt"], abs=0.10)
+        _check(
+            record_domain_evidence,
+            faktura["navn"],
+            "previous_month_avg_top_3_kw",
+            result["previous_month_avg_top_3_kw"],
+            faktura["maks_effekt_snitt"],
+            0.10,
+            "kW",
+        )
 
-    def test_kapasitetsledd_matcher_faktura(self, replay):
+    def test_kapasitetsledd_matcher_faktura(self, replay, record_domain_evidence):
         result = replay["result"]
         faktura = replay["faktura"]
-        assert result["previous_month_kapasitetsledd"] == faktura["forventet_kapasitet_kr"]
+        _check(
+            record_domain_evidence,
+            faktura["navn"],
+            "previous_month_kapasitetsledd",
+            result["previous_month_kapasitetsledd"],
+            faktura["forventet_kapasitet_kr"],
+            0,
+            "NOK",
+        )
 
 
 @pytest.mark.parametrize(
@@ -343,8 +428,9 @@ class TestReplayDesember2025:
     indirect=True,
     ids=["februar", "mars", "april", "mai", "juni", "juli", "august", "september"],
 )
+@pytest.mark.full_replay
 class TestReplayParametrized:
-    """Samme replay for feb-juni, parametrisert via indirect fixture.
+    """Samme replay for februar-september, parametrisert via indirect fixture.
 
     April-caset er samme fixture/faktura som ville fanget Norgespris-36%-bugen
     (tidligere en egen TestReplayAprilThroughCoordinator, slått sammen hit for
@@ -352,18 +438,26 @@ class TestReplayParametrized:
     """
 
     @pytest.fixture
-    def replay(self, coord_module, request):
-        fixture_name, faktura, _ = FAKTURA_MAP[request.param]
-        return _replay_month(coord_module, fixture_name, faktura)
+    def replay(self, coord_module, request, month_replays):
+        if request.param not in month_replays:
+            fixture_name, faktura, _ = FAKTURA_MAP[request.param]
+            month_replays[request.param] = _replay_month(coord_module, fixture_name, faktura)
+        return month_replays[request.param]
 
-    def test_total_kwh_matcher_faktura(self, replay):
+    def test_total_kwh_matcher_faktura(self, replay, record_domain_evidence):
         result = replay["result"]
         faktura = replay["faktura"]
-        assert result["previous_month_consumption_total_kwh"] == pytest.approx(
-            faktura["forbruk_total_kwh"], abs=0.05
+        _check(
+            record_domain_evidence,
+            faktura["navn"],
+            "previous_month_consumption_total_kwh",
+            result["previous_month_consumption_total_kwh"],
+            faktura["forbruk_total_kwh"],
+            0.05,
+            "kWh",
         )
 
-    def test_dag_natt_split_matcher_faktura(self, replay):
+    def test_dag_natt_split_matcher_faktura(self, replay, record_domain_evidence):
         """Dag/natt-fordeling matcher faktura.
 
         Toleranse: 2 kWh hver vei. Fixture-data (kWh per klokke-time) og
@@ -373,14 +467,26 @@ class TestReplayParametrized:
         """
         result = replay["result"]
         faktura = replay["faktura"]
-        assert result["previous_month_consumption_dag_kwh"] == pytest.approx(
-            faktura["forbruk_dag_kwh"], abs=2.0
+        _check(
+            record_domain_evidence,
+            faktura["navn"],
+            "previous_month_consumption_dag_kwh",
+            result["previous_month_consumption_dag_kwh"],
+            faktura["forbruk_dag_kwh"],
+            2.0,
+            "kWh",
         )
-        assert result["previous_month_consumption_natt_kwh"] == pytest.approx(
-            faktura["forbruk_natt_kwh"], abs=2.0
+        _check(
+            record_domain_evidence,
+            faktura["navn"],
+            "previous_month_consumption_natt_kwh",
+            result["previous_month_consumption_natt_kwh"],
+            faktura["forbruk_natt_kwh"],
+            2.0,
+            "kWh",
         )
 
-    def test_norgespris_compensation_matcher_faktura(self, replay):
+    def test_norgespris_compensation_matcher_faktura(self, replay, record_domain_evidence):
         """Norgespris-kompensasjon matcher faktura innen 5 kr.
 
         Dette er testen som ville fanget Norgespris-bug-en (april 2026:
@@ -388,17 +494,40 @@ class TestReplayParametrized:
         `(norgespris - spot_price) * energy_kwh` per poll; ved replay må
         sluttsummen matche fakturaens `forventet_norgespris_kr`.
         """
-        coord = replay["coord"]
         faktura = replay["faktura"]
-        komp = coord._previous_month_norgespris_compensation
-        assert komp == pytest.approx(faktura["forventet_norgespris_kr"], abs=5.0)
+        komp = replay["compensation"]
+        _check(
+            record_domain_evidence,
+            faktura["navn"],
+            "norgespris_compensation_kr",
+            komp,
+            faktura["forventet_norgespris_kr"],
+            5.0,
+            "NOK",
+        )
 
-    def test_topp_3_kapasitet_matcher_faktura(self, replay):
+    def test_topp_3_kapasitet_matcher_faktura(self, replay, record_domain_evidence):
         result = replay["result"]
         faktura = replay["faktura"]
-        assert result["previous_month_avg_top_3_kw"] == pytest.approx(faktura["maks_effekt_snitt"], abs=0.10)
+        _check(
+            record_domain_evidence,
+            faktura["navn"],
+            "previous_month_avg_top_3_kw",
+            result["previous_month_avg_top_3_kw"],
+            faktura["maks_effekt_snitt"],
+            0.10,
+            "kW",
+        )
 
-    def test_kapasitetsledd_matcher_faktura(self, replay):
+    def test_kapasitetsledd_matcher_faktura(self, replay, record_domain_evidence):
         result = replay["result"]
         faktura = replay["faktura"]
-        assert result["previous_month_kapasitetsledd"] == faktura["forventet_kapasitet_kr"]
+        _check(
+            record_domain_evidence,
+            faktura["navn"],
+            "previous_month_kapasitetsledd",
+            result["previous_month_kapasitetsledd"],
+            faktura["forventet_kapasitet_kr"],
+            0,
+            "NOK",
+        )

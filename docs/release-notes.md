@@ -7,7 +7,7 @@ Dette er den samlede instruksen for CHANGELOG, release-noter og publisering. Les
 1. Før du skriver: kjør `gh release list` og sjekk om øverste CHANGELOG-seksjon er publisert. Slupne seksjoner er historikk; opprett `## [Ikke sluppet]` ved behov. Manifestversjonen alene sier ikke hvor nye endringer hører hjemme. Se [historikkregelen](#en-sluppet-seksjon-er-historikk).
 2. Skriv for HACS etter reglene under. Merk bare brukerrelevante punkter med `<!--kort-->`, og bruk `### Dette må du gjøre selv` bare for nødvendige oppgraderingshandlinger. Bruk relative lenker til filer som finnes.
 3. Generer og les den faktiske korte noten med `python3 scripts/release_notes.py "Ikke sluppet" --kort`, eller bruk versjonsnummeret når seksjonen er navngitt. Kontroller ordvalg, lengde og nødvendige handlinger; grønn CI vurderer ikke om teksten er god.
-4. Før commit: kjør `just test`, og begge HA-målene når endringen krever det, som beskrevet i [testguiden](testing.md#testmiljøer). Endrer du releaseflyten, kjør også `just release-plan` og les resultatet. Den skriver ingenting til GitHub.
+4. Før commit: kjør `just test-fast`, eller hele `just test` ved endringer i beregninger, tariffer, fakturafixturer eller grunnlaget for replay-testene. Kjør også begge HA-målene når endringen krever det, som beskrevet i [testguiden](testing.md#testmiljøer). Endrer du releaseflyten, kjør også `just release-plan` og les resultatet. Den skriver ingenting til GitHub.
 5. Før publisering: følg [publiseringsstegene](#publisering). Push til main starter releaseporten; alle kontrollene må være grønne for samme kandidat-SHA. Gjenoppta en feilet kjøring på samme commit.
 
 ## Skriv for HACS i Home Assistant
@@ -150,7 +150,9 @@ Kandidaten er repo + full SHA + manifestversjon; tagg, ZIP og attestasjon skal v
 
 `release.yml` er den eneste workflowen som kjører på push til main. Den kaller `ci.yml` (`workflow_call`) for sin egen commit og har `needs: ci`, så unit, kvalitet, begge HA-målene, current-E2E, HACS-validering og Hassfest må være grønne for *samme SHA* før releasejobben starter. HACS og Hassfest kjøres også nattlig fra `validate.yml` og `hassfest.yml`, siden begge kan bli røde av endringer utenfor repoet.
 
-`ci.yml` kaller `e2e.yml` for `just test-e2e target=current`. Docker-jobben sjekker ut kandidat-SHA-en og bygger release-ZIP fra den. Den kjører de åtte livssyklusscenarioene og juni-avspillingen, rydder Compose-prosjektet også ved feil og laster bare opp redigert evidens, merket med SHA. Den avsluttende `Releaseport`-jobben krever `success` fra alle seks testjobbene; manglende, feilet, kansellert eller hoppet over resultat stopper publisering. En grønn manuell eller tidligere E2E-kjøring kan ikke erstatte kandidatens kjøring. Docker inngår ikke i pre-push eller vanlig lokal `just test`.
+Unit-jobben kjører hele `just test-evidence` og lagrer `domain-evidence-<SHA>` med JSON, JUnit og lesbar logg. Inventarkontrollen krever at alle obligatoriske fakturatester er kjørt, bestått og har registrert tallgrunnlag. Manglende tester, skip eller bortfiltrering stopper release. Releasejobben pakker og validerer artefakten som `domain-evidence.zip`, laster den opp og leser den tilbake før releasen publiseres. Valideringen omfatter kandidat-SHA, rent kildegrunnlag, fullt inventar, numeriske resultater og hasher for logg og XML. Et gyldig eksisterende vedlegg for samme kildegrunnlag og inventar gjenbrukes selv om testvarigheten er endret; ulikt kildegrunnlag eller et korrupt vedlegg stopper publiseringen uten overskriving. Eldre publiserte releaser uten vedlegget kan fortsatt verifiseres. [Testguiden](testing.md#testbevis-fra-fakturaavstemmingen) beskriver rapportene og hvilke datakilder de dekker.
+
+`ci.yml` kaller `e2e.yml` for `just test-e2e target=current`. Docker-jobben sjekker ut kandidat-SHA-en og bygger release-ZIP fra den. Den kjører de åtte livssyklusscenarioene og juni-avspillingen, rydder Compose-prosjektet også ved feil og laster bare opp redigert evidens, merket med SHA. Den avsluttende `Releaseport`-jobben krever `success` fra alle seks testjobbene; manglende, feilet, kansellert eller hoppet over resultat stopper publisering. En grønn manuell eller tidligere E2E-kjøring kan ikke erstatte kandidatens kjøring. Pre-push kjører `just test-fast`, mens releaseporten alltid kjører full suite for kandidatens SHA. Docker inngår ikke i pre-push eller vanlig lokal test.
 
 `upgrade` og `vakthold` er egne Docker-løp utenfor denne automatiske porten; se [testlabens avgrensninger](../tests_e2e/README.md#hva-som-sjekkes).
 
@@ -192,8 +194,7 @@ Det finnes ingen offentlig release før siste kall, så det er ingenting å rydd
   draften, eller slipp endringen som en ny versjon. En draft du har laget i
   nettleseren peker på en gren og ikke en commit, og den gjenbrukes som før.
 - ZIP-en ligger der alt: den lastes ned og sammenlignes. Stemmer sha256-en, er
-  den ferdig. Stemmer den ikke, stopper flyten framfor å bytte en fil vi ikke
-  vet hva er. HACS installerer nøyaktig den filen, så det er ikke et sted for
+  den ferdig. Stemmer den ikke, stopper flyten framfor å bytte ut en fil med ukjent innhold. HACS installerer nøyaktig den filen, så det er ikke et sted for
   automatikk. Slett asset-et bevisst, eller slipp en ny versjon.
 
 En håndskrevet draft med samme tag er ikke lenger et problem som gjør at releasen aldri kommer ut. Flyten gjenopptar den og publiserer den.

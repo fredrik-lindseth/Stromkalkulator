@@ -246,7 +246,7 @@ def render_markdown(rows: list[dict], meta: dict) -> str:
     lines.append("")
     lines.append(
         f'Referansetall: BKK "uten Norgespris" = {meta["target_bkk"]:.2f} kr, '
-        f"brukers observerte fra vår kode = {meta['user_observed_ours']:.2f} kr."
+        f"registrert sammenligningsbeløp = {meta['user_observed_ours']:.2f} kr."
     )
     lines.append("")
     by_kat: dict[str, list[dict]] = {}
@@ -255,14 +255,14 @@ def render_markdown(rows: list[dict], meta: dict) -> str:
     for kat in sorted(by_kat):
         lines.append(f"### {kat}")
         lines.append("")
-        lines.append("| Variant | Netto (kr) | Δ BKK 1377 | Δ vår 1347 |")
+        lines.append("| Variant | Netto (kr) | Δ BKK 1377 | Δ sammenligning 1347 |")
         lines.append("| --- | ---: | ---: | ---: |")
         for r in by_kat[kat]:
             marker = ""
             if abs(r["delta_bkk"]) < 1.0:
                 marker = " match BKK"
             elif abs(r["delta_us"]) < 1.0:
-                marker = " match vår"
+                marker = " match sammenligning"
             lines.append(
                 f"| {r['label']}{marker} | {r['netto']:.2f} | {r['delta_bkk']:+.2f} | {r['delta_us']:+.2f} |"
             )

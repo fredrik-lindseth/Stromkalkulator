@@ -51,6 +51,6 @@ Bug 2 var selvløsende. Ved månedsskifte nullstilles `_daily_max_power`, og dat
 
 Lagringsnøkler må være globalt unike per instans. Aldri bruk domenedata som nettselskap-ID eller API-nøkkel som lagringsnøkkel, bruk `entry.entry_id`.
 
-Når du fikser en delt-tilstand-bug, er eksisterende data allerede kontaminert. Her godtok vi at dataene nullstilles naturlig ved månedsskifte.
+Når du fikser en delt-tilstand-bug, er eksisterende data allerede kontaminert. Her ble det akseptert at dataene nullstilles naturlig ved månedsskifte.
 
 Multi-instans må testes fra starten. Delt tilstand er vanskelig å oppdage i etterkant.

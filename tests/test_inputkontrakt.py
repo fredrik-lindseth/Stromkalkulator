@@ -5,16 +5,15 @@ og et dokument uten vakt drifter fra koden: `nb.json` drev fra `strings.json` i
 fjorten nøkler fordi ingen test leste dem sammen.
 
 Her kjøres de normative tabellene i kontrakten: enhetstabellen (§2) som
-maskinlesbar fasit K1 kan hente normaliseringen sin fra, grunn-strengene (§1),
+maskinlesbar enhetsoversikt, grunn-strengene (§1),
 terskelen (§8), sensortabellen for ukjent fastledd (§9) mot nøklene i
-`sensor.py`, og oversettelsesnøklene (§11) mot de tre filene. I tillegg voktes
+`sensor.py`, og grensesnittet for oversettelser (§11). I tillegg voktes
 grensesnittet mot avregningskontrakten, så de to ikke rekker å si hver sin ting
 om samme regel en gang til.
 """
 
 from __future__ import annotations
 
-import json
 import re
 from pathlib import Path
 
@@ -80,8 +79,8 @@ KONTRAKTTEKST = _tekst(KONTRAKT)
         "## 6. Tariffmodus",
         "## 7. Config v5, den ene migreringen",
         "## 9. Egendefinert fastledd",
-        "## 11. Nye nøkler som må inn alle tre steder",
-        "## 12. Hva kontrakten ikke avgjør",
+        "## 11. Oversettelser",
+        "## 12. Tilgrensende regler",
     ],
 )
 def test_kontrakten_har_seksjonene(overskrift: str) -> None:
@@ -93,7 +92,7 @@ def test_kontrakten_har_seksjonene(overskrift: str) -> None:
 
 
 def enhetstabell() -> list[tuple[str, str, float]]:
-    """(rå enhet, normalisert enhet, faktor) fra §2. K1 leser samme tabell."""
+    """(rå enhet, normalisert enhet, faktor) fra §2."""
     rader = []
     rolle = ""
     for celler in _tabellrader(_seksjon(KONTRAKTTEKST, "## 2. Enhetstabell")):
@@ -227,7 +226,7 @@ def _urimelig_grense() -> float:
 
 
 def test_urimelig_grense_avviser_ikke_ekte_spotpriser() -> None:
-    """Funn 3: 2000 i sensorens egen enhet avviste en NOK/MWh-sensor i de dyre timene.
+    """2000 i sensorens egen enhet avviste en NOK/MWh-sensor i de dyre timene.
 
     2000 NOK/MWh er 2 NOK/kWh, og NO1, NO2 og NO5 har passert det. Grensen
     gjelder etter normalisering, og den skal ligge godt over ekte toppriser.
@@ -261,7 +260,7 @@ def _terskel() -> float:
 
 
 def test_terskelen_ligger_mellom_stoyen_og_minste_ekte_steg() -> None:
-    """Funn 7: 0,0001 NOK/kWh slipper et ekte ett-øres-steg gjennom i flyttall."""
+    """0,0001 NOK/kWh slipper et ekte ett-øres-steg gjennom i flyttall."""
     terskel = _terskel()
     assert terskel > 0.00005 + 0.000006, "terskelen fanger v1-migreringens avrundingsstøy"
     assert terskel <= 0.4614 - 0.4613, "et ekte steg på 0,01 øre må passere i flyttall"
@@ -269,7 +268,7 @@ def test_terskelen_ligger_mellom_stoyen_og_minste_ekte_steg() -> None:
 
 
 def test_varselet_reises_kun_ved_avvik() -> None:
-    """Fredriks avgjørelse: ingen varsler til brukere som allerede ligger riktig."""
+    """ingen varsler til brukere som allerede ligger riktig."""
     seksjon = _seksjon(KONTRAKTTEKST, "## 8. Når repair-varselet")
     assert "**kun**" in seksjon
 
@@ -314,34 +313,16 @@ def test_fastledd_ukjent_folger_monsteret_som_finnes() -> None:
 # Oversettelsesnøkler (§11)
 
 
-def _nokler_i_seksjon_11() -> list[str]:
-    return _navn(_seksjon(KONTRAKTTEKST, "## 11. Nye nøkler"))
-
-
-def _flate_nokler(data: object, prefiks: str = "") -> set[str]:
-    if isinstance(data, dict):
-        ut: set[str] = set()
-        for nokkel, verdi in data.items():
-            sti = f"{prefiks}.{nokkel}" if prefiks else nokkel
-            ut.add(sti)
-            ut |= _flate_nokler(verdi, sti)
-        return ut
-    return set()
-
-
-def test_nokler_som_alt_finnes_star_i_alle_tre_filene() -> None:
-    """§11 lover tre filer i synk. Nøklene K1 legger til fanges etter hvert som de lander."""
-    filer = {
-        "strings.json": _flate_nokler(json.loads(_tekst(KOMPONENT / "strings.json"))),
-        "nb.json": _flate_nokler(json.loads(_tekst(KOMPONENT / "translations" / "nb.json"))),
-        "en.json": _flate_nokler(json.loads(_tekst(KOMPONENT / "translations" / "en.json"))),
-    }
-    bladnavn = {navn: {sti.split(".")[-1] for sti in flat} for navn, flat in filer.items()}
-    finnes = [n for n in _nokler_i_seksjon_11() if any(n in blad for blad in bladnavn.values())]
-    assert finnes, "ingen av nøklene i §11 finnes ennå; K1 har ikke landet"
-    for nokkel in finnes:
-        mangler = [navn for navn, blad in bladnavn.items() if nokkel not in blad]
-        assert not mangler, f"{nokkel} mangler i {mangler}"
+def test_oversettelsesvakten_og_filene_er_dokumentert() -> None:
+    seksjon = _seksjon(KONTRAKTTEKST, "## 11. Oversettelser")
+    for sti in (
+        "tests/test_oversettelser.py",
+        "strings.json",
+        "translations/nb.json",
+        "translations/en.json",
+    ):
+        assert sti in seksjon
+    assert (ROT / "tests/test_oversettelser.py").is_file()
 
 
 # ---------------------------------------------------------------------------
@@ -352,7 +333,7 @@ AVREGNINGSTEKST = _tekst(AVREGNING)
 
 
 def test_baselinens_levetid_star_bare_ett_sted() -> None:
-    """Funn 1: K0 og A0 sa hver sin ting om `TPI_STALE_HOURS`.
+    """Aldersgrensen skal ikke defineres ulikt i de to kontraktene.
 
     Regelen eies av §5 her. Avregningskontrakten får nevne konstanten, men bare
     i et avsnitt som peker hit, aldri med sin egen regel.
@@ -373,13 +354,7 @@ def test_vernet_kontrakten_peker_pa_finnes() -> None:
 
 
 def test_tpi_stale_hours_er_enten_i_bruk_eller_borte() -> None:
-    """§5 pensjonerer aldersgrensen: K1 fjerner siste bruk og konstanten sammen.
-
-    Vakten kan ikke kreve at navnet finnes, for da blir den rød i det K1 gjør
-    det kontrakten ber om. Den kan heller ikke kreve at det er borte, for K1 har
-    ikke landet ennå. Den krever det §5 faktisk sier: konstanten ligger aldri i
-    `const.py` uten en bruker, og ingen bruker overlever konstanten.
-    """
+    """Konstanten og eventuelle brukere må fjernes samlet."""
     navn = "TPI_STALE_HOURS"
     i_const = navn in _tekst(KOMPONENT / "const.py")
     brukere = sorted(
@@ -395,11 +370,17 @@ def test_de_to_kontraktene_er_enige_om_store_versjonene() -> None:
     """§5 her definerer Store v2, og avregning.md D bygger v3 oppå den."""
     assert "Store-skjema v2" in KONTRAKTTEKST
     # Cellene, ikke paddingen: tabellen justeres når dokumentet formateres.
-    assert re.search(r"\|\s*2\s*\|\s*K1\s*\|", AVREGNINGSTEKST)
+    rader = _tabellrader(_seksjon(AVREGNINGSTEKST, "## D. Persistens og migrering"))
+    assert any(rad[0] == "2" and "baseline" in " ".join(rad).lower() for rad in rader)
+    assert any(rad[0] == "3" and "intervaller" in " ".join(rad).lower() for rad in rader)
+    from custom_components.stromkalkulator.avregning import SKJEMA_VERSJON
+    from custom_components.stromkalkulator.inputadapter import BASELINE_SKJEMA
+
+    assert (BASELINE_SKJEMA, SKJEMA_VERSJON) == (2, 3)
 
 
 def test_prisens_observasjonstid_eies_av_avregningskontrakten() -> None:
-    """Funn 2: observasjonstid for pris står ett sted, og K0 peker dit."""
+    """Observasjonstid for pris står ett sted, og inputkontrakten peker dit."""
     assert "### A2.1" in AVREGNINGSTEKST
     assert "PRIS_SETTLE_SEKUNDER" in AVREGNINGSTEKST
     assert "avregning.md#a21-" in KONTRAKTTEKST
@@ -408,16 +389,13 @@ def test_prisens_observasjonstid_eies_av_avregningskontrakten() -> None:
 # ---------------------------------------------------------------------------
 # Sensor uten enhet (§4 og §4.1)
 #
-# §4 avgjorde bare prissensoren. K1 måtte velge selv hva en effekt- eller
-# energisensor uten enhet skulle bli, og valget lå i en kodekommentar. Nå står
-# det i kontrakten, og her voktes det.
 
 
 SEKSJON_4 = _seksjon(KONTRAKTTEKST, "## 4. Sensor uten enhet")
 
 
 def test_alle_roller_uten_enhet_har_et_svar() -> None:
-    """Funn 4: §4 sa bare hva en prissensor uten enhet skulle bli."""
+    """§4 angir også standardenhetene for effekt og energi."""
     assert "### 4.1 Effekt- og energisensor uten enhet" in SEKSJON_4
     under = SEKSJON_4.split("### 4.1", 1)[1]
     assert "skal" in under, "regelen skal være et skal, ikke et bør"
@@ -438,12 +416,27 @@ def test_varselet_om_prisenhet_gjelder_bare_prisrollene() -> None:
     """§4 og §4.1 skal ikke kunne leses som om effekt også får repair."""
     over = SEKSJON_4.split("### 4.1", 1)[0]
     assert "prisenhet_ubekreftet" in over
-    assert "forbeholdt prisrollene" in SEKSJON_4
+    assert "prisrollene får et repair-varsel, effekt og energi får ingen" in " ".join(SEKSJON_4.split())
 
 
-def test_et_varsel_for_effekt_og_energi_er_uavgjort_og_ikke_glemt() -> None:
-    """Grensen går i §12, så den neste ikke tar avgjørelsen underveis."""
-    assert "repair-varsel" in _seksjon(KONTRAKTTEKST, "## 12. Hva kontrakten ikke avgjør")
+def test_effekt_og_energi_uten_enhet_godtas_uten_varsel() -> None:
+    under = " ".join(SEKSJON_4.split("### 4.1", 1)[1].split())
+    assert "Ingen av dem gir repair-varsel" in under
+    assert "ingen av dem avvises" in under
+
+
+def test_prisvarsel_ignorerer_effekt_og_energi_uten_enhet(coord_module) -> None:
+    from datetime import datetime
+
+    from tests.test_vakthold import Sensorbenk, _issue_ids, _lag_coordinator, _poll
+
+    benk = Sensorbenk()
+    benk.ENHETER = {**benk.ENHETER, "sensor.power": None, "sensor.tpi": None}
+    coord = _lag_coordinator(coord_module, benk)
+    _poll(coord_module, coord, datetime(2026, 6, 15, 12))
+    assert not _issue_ids(coord_module.ir)
+    assert coord._input_resultater["effekt"].raa_enhet is None
+    assert coord._input_resultater["energi"].raa_enhet is None
 
 
 # ---------------------------------------------------------------------------
@@ -454,20 +447,20 @@ SEKSJON_5 = _seksjon(KONTRAKTTEKST, "## 5. Energibaseline")
 
 
 def test_skjemaversjonen_er_et_felt_i_dataene() -> None:
-    """Funn 3: «Store-skjema v2» sa ikke hvilken versjon det var snakk om."""
+    """«Store-skjema v2» sa ikke hvilken versjon det var snakk om."""
     assert "`skjema_versjon`" in SEKSJON_5, "toppnivånøkkelen i filen skal navngis"
     assert "`schema_version`" in SEKSJON_5, "baselinens egen nøkkel skal navngis"
     assert "Store(hass, 1" in SEKSJON_5, "konstruktørens versjon skal stå eksplisitt"
 
 
-def test_begrunnelsen_for_a_ikke_bumpe_star_der() -> None:
-    """Uten grunnen ser valget vilkårlig ut, og den neste gjør det om.
+def test_skjemamigrering_skjer_i_dataene() -> None:
+    """Intern migrering bevarer Store-versjonen og oppgraderer gamle data."""
+    from custom_components.stromkalkulator.avregning import migrer_lagring
 
-    Begrunnelsen er en begrensning i testmiljøet, ikke et designvalg, og det
-    er nettopp derfor den ikke lar seg utlede av noe annet i kontrakten.
-    """
-    assert "_async_migrate_func" in SEKSJON_5
-    assert "MagicMock" in SEKSJON_5
+    migrert = migrer_lagring({"skjema_versjon": 2, "monthly_consumption": 42})
+    assert migrert["skjema_versjon"] == 3
+    assert migrert["ovrige"]["monthly_consumption"] == 42
+    assert migrert["ufullstendig"] is True
 
 
 def test_begrunnelsen_star_bare_ett_sted() -> None:

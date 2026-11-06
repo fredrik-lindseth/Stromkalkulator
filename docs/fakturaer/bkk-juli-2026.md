@@ -8,7 +8,7 @@
 
 ## Fakturadata
 
-| Priselement           | Forbruk     | Pris            | Faktura (kr) | Vår beregning (kr) | Avvik    |
+| Priselement           | Forbruk     | Pris            | Faktura (kr) | Beregning (kr) | Avvik    |
 | --------------------- | ----------- | --------------- | ------------ | ------------------ | -------- |
 | Energiledd dag        | 514.414 kWh | 35.963 øre/kWh  | 185.00       | 185.00             | 0.00     |
 | Energiledd natt/helg  | 424.349 kWh | 13.125 øre/kWh  | 55.70        | 55.70              | 0.00     |
@@ -21,9 +21,9 @@
 | Herav MVA             |             |                 | 117.22       | 117.22             | 0.00     |
 
 **Resultat:** Alle linjer matcher fakturaen når fakturaens eget forbrukstall
-brukes. Ingen enkeltlinje bommer på øret, og det er det skarpeste vi har hatt
+brukes. Ingen enkeltlinje bommer på øret, og det er den mest presise kontrollen
 så langt. Ettøringen på totalen kommer av at fakturaen bare oppgir
-Norgespris-satsen med fem desimaler (-0.86017 kr/kWh), så vår replay av
+Norgespris-satsen med fem desimaler (-0.86017 kr/kWh), så replayen av
 linjen lander på -807.4958 der BKK har regnet time for time. Satsene er
 uendret fra juni.
 
@@ -62,8 +62,8 @@ Analysen under ble gjort før hullet ble fylt, og beholdes som metodikk for
 fremtidige utfall der Elhub-data ikke finnes. Elhub-fyllingen bekreftet den i
 etterkant: restforbruket fakturaen tilskrev hullet stemte med Elhub-målingene.
 
-Selv uten måling kan vi teste om fakturaen henger sammen med modellen vår i
-hullet. Fakturaen minus det vi faktisk har målt gir et restforbruk og en
+Selv uten måling kan man teste om fakturaen henger sammen med integrasjonens modell i
+hullet. Fakturaen minus det faktisk målte forbruket gir et restforbruk og en
 implisitt Norgespris-sats. Ligger den satsen innenfor spennet av faktiske
 timepriser i hullet, er fakturaen konsistent.
 
@@ -80,8 +80,8 @@ timepriser i hullet, er fakturaen konsistent.
 Den implisitte satsen ligger godt innenfor spennet, og litt over det uvektede
 snittet. Det er akkurat det man venter når forbruket vekter dagtimer med litt
 lavere kompensasjon tyngre. Døgnprofilen (1.5 kWh/h dag mot 0.9 natt) er også
-den normale for husstanden. Fakturaen henger altså sammen med modellen vår også
-der vi mangler måling. Det holder som plausibilitetssjekk, men det er ingen
+den normale for husstanden. Fakturaen henger altså sammen med integrasjonens modell også
+der måling mangler. Det holder som plausibilitetssjekk, men det er ingen
 attest.
 
 ## Time-for-time-verifisering
@@ -117,7 +117,7 @@ Måneden har ingen helligdager, så dag/natt-klassifiseringen er ren ukedag/helg
 
 ## Kapasitetstrinn-verifisering
 
-| Faktura                 | Vår beregning               | Match? |
+| Faktura                 | Beregning               | Match? |
 | ----------------------- | --------------------------- | ------ |
 | Trinn: 2-5 kW (trinn 2) | `kapasitetstrinn_nummer: 2` | Match  |
 | Pris: 250 kr/mnd        | `kapasitetsledd: 250`       | Match  |
@@ -136,13 +136,12 @@ under fakturaen og snitt 4,703 kW. Avviket på 11.07 er større enn spennet på
 [neste-maaned-prosedyre.md](neste-maaned-prosedyre.md) er utvidet til 3-20 W.
 
 Utfallet 29.-31. juli påvirker ikke denne linjen. BKK lister selv 13.07,
-11.07 og 27.07 som de tre høyeste dagene, altså lå ingen topp i de dagene vi
-mangler måling for. Vår fjerde- og femtehøyeste målte dag var 4,102 kW
+11.07 og 27.07 som de tre høyeste dagene, altså lå ingen topp i dagene uten måling. Den fjerde- og femtehøyeste målte dag var 4,102 kW
 (14.07) og 4,091 kW (23.07), godt under topp 3.
 
 ## Norgespris-verifisering
 
-| Parameter           | Faktura                | Vår kode                                 | Match? |
+| Parameter           | Faktura                | Integrasjonens kode                                 | Match? |
 | ------------------- | ---------------------- | ---------------------------------------- | ------ |
 | Norgespris fastpris | (implisitt 50 øre/kWh) | `NORGESPRIS_INKL_MVA_STANDARD = 0.50`    | Ja     |
 | Strømstøtte         | 0 (Norgespris-kunde)   | `stromstotte = 0.0` når `har_norgespris` | Ja     |
@@ -154,7 +153,7 @@ inkl. mva).
 
 ## Avgiftsverifisering
 
-| Avgift         | Faktura (øre/kWh) | Vår const (eks. mva) | Vår const \* 1.25 | Match? |
+| Avgift         | Faktura (øre/kWh) | Integrasjonens const (eks. mva) | Integrasjonens const \* 1.25 | Match? |
 | -------------- | ----------------- | -------------------- | ----------------- | ------ |
 | Forbruksavgift | 8.913             | 7.13                 | 8.9125            | Ja     |
 | Enovaavgift    | 1.25              | 1.00                 | 1.25              | Ja     |

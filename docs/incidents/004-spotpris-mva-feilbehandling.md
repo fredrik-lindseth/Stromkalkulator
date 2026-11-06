@@ -12,9 +12,9 @@ Sammenligning på BKK-instansens egne data 1.-9. mai 2026:
 
 | Måling                            | Verdi      |
 | --------------------------------- | ---------- |
-| Forbruk (vår sensor)              | 352,75 kWh |
+| Forbruk (integrasjonens sensor)              | 352,75 kWh |
 | Forbruk (Tibber/Elhub)            | 316,55 kWh |
-| `monthly_norgespris_diff` (vår)   | +168,22 kr |
+| `monthly_norgespris_diff` (integrasjonen)   | +168,22 kr |
 | `monthly_norgespris_compensation` | -244,82 kr |
 | BKK "spart med Norgespris hittil" | +319,29 kr |
 
@@ -39,7 +39,7 @@ Kommentaren er feil. Den ble skrevet da custom_components/nordpool var domineren
 
 Alle Sør-Norge-brukere med spotprisavtale får feil i fire sensorer:
 
-1. Strømstøtten trigges 25 % for sent. Vi sammenligner spotpris eks. mva mot terskel 96,25 øre inkl. mva (= 77 øre eks. mva). Støtten settes inn ved 96,25 øre eks. mva = 120 øre inkl. mva i stedet for korrekt 96,25 øre inkl. mva.
+1. Strømstøtten trigges 25 % for sent. Koden sammenlignet spotpris eks. mva mot terskel 96,25 øre inkl. mva (= 77 øre eks. mva). Støtten settes inn ved 96,25 øre eks. mva = 120 øre inkl. mva i stedet for korrekt 96,25 øre inkl. mva.
 2. Totalpris-sensoren undervurderer kraftprisen med 25 % for kraftdelen.
 3. Akkumulert kostnad i Energy Dashboard undervurderer faktiske kraftkostnader.
 4. Norgespris-sammenligningen viser for lav besparelse, 47 % lavere enn faktisk i caset over.
@@ -101,15 +101,15 @@ Vurdert alternativ: sette `True` (beholder gammel oppførsel) og be brukere slå
 
 ## Lærdom
 
-Eksterne sensor-konvensjoner står ikke stille. Da koden ble skrevet var custom_components/nordpool med `VAT: true` vanlig. Den offisielle integrasjonen i HA-core endret default uten at vi merket det. Antagelser om eksterne sensorer må verifiseres med jevne mellomrom.
+Eksterne sensor-konvensjoner står ikke stille. Da koden ble skrevet var custom_components/nordpool med `VAT: true` vanlig. Den offisielle integrasjonen i HA-core endret default uten at endringen ble oppdaget. Antagelser om eksterne sensorer må verifiseres med jevne mellomrom.
 
-Faktura-verifisering dekker bare nettleie. Tilliten vår til at "alt regner riktig" var basert på BKK-faktura-match, og fakturaene viser ikke kraftpris (den går via strømleverandøren). Kraftpris-feilen var derfor usynlig i den testen.
+Faktura-verifisering dekker bare nettleie. Antakelsen om at alle beregninger var riktige bygget på samsvar med BKK-fakturaer, og fakturaene viser ikke kraftpris (den går via strømleverandøren). Kraftpris-feilen var derfor usynlig i den testen.
 
 Et avvik på nøyaktig 25 % er et signal, ikke avrundingsstøy. Når et tall bommer med eksakt mva-raten, sitter feilen som regel i mva-håndteringen et sted i kjeden.
 
 ## Etterspill
 
-Etter at hovedfixen ble implementert, kjørte vi en accountant-review for å fange relaterte mva-feil. Tre nye saker ble fikset i samme runde:
+Etter at hovedfixen ble implementert, ble det kjørt en accountant-review for å fange relaterte mva-feil. Tre nye saker ble fikset i samme runde:
 
 1. Eksportinntekten brukte spotpris inkl. mva. Når `spot_price` ble normalisert til inkl. mva, gjorde det at `_monthly_export_revenue += spot_price * export_kwh` ble overrapportert med 25 % i Sør-Norge. Plusskunder får betalt eks. mva av strømleverandøren (privat har ikke utgående mva). Fix: ny variabel `spot_price_eks_mva` brukes for eksportinntekt. Tre nye tester dekker eks-mva-sensor, inkl-mva-sensor og Nord-Norge.
 

@@ -61,11 +61,11 @@ står i [satsendringer.md](satsendringer.md).
 
 Aldri fyll ut kapasitetstrinn med en mal, en gjetning eller trinnene fra et annet nettselskap. Har du ikke en kilde, la `supported` stå på `False`. Fjorten nettselskap fikk en kopiert mal i april 2026 og leverte oppdiktede beløp til brukerne i fire måneder før noen fanget det, se [incident 006](incidents/006-kapasitetstrinn-uten-kilde.md).
 
-Rekkefølge på kilder: nettselskapets egen prisliste, så fri-nettleie. Fri-nettleie oppgir kr/år eks. mva, vi lagrer kr/mnd inkl. mva, så konverteringen er `pris / 12 * mva-faktor` med halve kroner rundet opp. Skriv kilden i en kommentar over `"kapasitetstrinn"` med tariffdato.
+Rekkefølge på kilder: nettselskapets egen prisliste, så fri-nettleie. Fri-nettleie oppgir kr/år eks. mva, integrasjonen lagrer kr/mnd inkl. mva, så konverteringen er `pris / 12 * mva-faktor` med halve kroner rundet opp. Skriv kilden i en kommentar over `"kapasitetstrinn"` med tariffdato.
 
 `scripts/sjekk_mot_fri_nettleie.py` sammenligner både energiledd og fastledd, og avvik i begge feller exit-koden. Kjør den før du committer satsendringer.
 
-Har prislisten en egen kolonne uten mva, les den framfor å regne bakover fra prisen inkl. mva. Fire nettselskap hadde avvik på under én krone fordi tallet var regnet ut i stedet for lest, og det er akkurat den klassen drift-vakten slipper gjennom på toleranse. Samme regel gjelder når selskapet trykker både måned og år: vi lagrer kr/mnd, så les månedskolonnen. Arva har 1019 kr/år og 85 kr/mnd i laveste trinn, og 1019/12 er 84,92.
+Har prislisten en egen kolonne uten mva, les den framfor å regne bakover fra prisen inkl. mva. Fire nettselskap hadde avvik på under én krone fordi tallet var regnet ut i stedet for lest, og det er akkurat den klassen drift-vakten slipper gjennom på toleranse. Samme regel gjelder når selskapet trykker både måned og år: integrasjonen lagrer kr/mnd, så les månedskolonnen. Arva har 1019 kr/år og 85 kr/mnd i laveste trinn, og 1019/12 er 84,92.
 
 En prisside som ser tom ut uten nettleser, er ikke det samme som en side uten priser. Arva sto i to måneder som «lar seg ikke verifisere» fordi tabellen rendres med JavaScript. HTML-en har URL-en til API-et som henter innholdet, og der ligger hele prislisten som ren HTML. Se etter `Api`, `articleApiUrl` eller lignende i kildekoden til siden før du gir opp.
 
@@ -75,7 +75,7 @@ En prisside som ser tom ut uten nettleser, er ikke det samme som en side uten pr
 
 Verdiene er fri-nettleies egne navn (`fastledd.metode` i tariff-YAML-en), fordi drift-vakten sammenligner strengene direkte. Default er `TRE_DØGNMAX_MND`, så et nettselskap som følger NVE-modellen skal ikke ha feltet i det hele tatt. Metodene og hva de betyr: [beregninger.md](beregninger.md#nettselskap-med-en-annen-metode).
 
-To regler er lette å bryte. Den første er at sikringsstørrelse er brukerdata. `OV_TREFASE` kan ikke utledes fra effektsensoren. Gjengi radene ordrett fra prislisten i `fastledd_sikringstrinn` og la brukeren velge. Ikke oversett dem til et amperetall vi tolker selv, for satsen kan avhenge av systemspenning. Mangler valget, skal beløpet være Ukjent, ikke laveste trinn. `id` er lagret i brukerens config og kan ikke endres etter en release.
+To regler er lette å bryte. Den første er at sikringsstørrelse er brukerdata. `OV_TREFASE` kan ikke utledes fra effektsensoren. Gjengi radene ordrett fra prislisten i `fastledd_sikringstrinn` og la brukeren velge. Ikke oversett dem til et selvstendig tolket amperetall, for satsen kan avhenge av systemspenning. Mangler valget, skal beløpet være Ukjent, ikke laveste trinn. `id` er lagret i brukerens config og kan ikke endres etter en release.
 
 Den andre er at nettselskap uten trinn har tom `kapasitetstrinn`. `FEM_VEKTET_ÅR` er en lineær sats, ikke trinn. Å samle fri-nettleies punktvise tabell i en trinn-liste ville løyet om hva tersklene betyr. La listen stå tom og legg satsen i `fastledd_lineaer`.
 

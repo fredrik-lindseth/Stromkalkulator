@@ -62,7 +62,7 @@ lese euro som kroner ville vært verre enn å si nei. Trenger du en EUR-sensor,
 lag en malsensor som regner om til kroner først.
 
 Energimåleren må i tillegg ha `state_class` `total_increasing` eller `total`.
-Vi måler differansen mellom avlesninger, og en sensor som viser forbruket akkurat
+Integrasjonen måler differansen mellom avlesninger, og en sensor som viser forbruket akkurat
 nå (`measurement`) har ingen differanse å måle.
 
 Mangler prissensoren enhet helt, godtas den som NOK/kWh, men du får ett
@@ -140,7 +140,7 @@ Tenk på energimåleren (kWh) som triptelleren. Den viser totalt antall kWh side
 
 Integrasjonen kan regne ut totalt forbruk på to måter:
 
-Riemann-summering brukes når energi-sensoren mangler: les speedometeret hvert minutt, regn ut «hvor langt har jeg kjørt i dette minuttet» som hastighet × tid. Summer over en hel måned.
+Riemann-summering brukes når energi-sensoren mangler: les speedometeret hvert minutt, regn ut «hvor langt er det kjørt i dette minuttet» som hastighet × tid. Summer over en hel måned.
 
 Problem: hvis du leser speedometeret midt under en akselerasjon, får du for høyt estimat for forrige minutt. Hvis du leser mens du står stille, men brukte mye effekt for 2 sekunder siden, mister du forbruk.
 
@@ -150,7 +150,7 @@ Delta-akkumulering brukes når energi-sensoren er konfigurert: les triptelleren 
 
 For integrasjonen: konfigurer `energy_sensor`, så bruker den triptelleren (eksakt). Uten `energy_sensor`: integrasjonen leser bare speedometeret (estimat).
 
-## Hvilke sensorer trenger jeg?
+## Hvilke sensorer trengs?
 
 ### Minimumsoppsett (ikke optimalt, men fungerer)
 
@@ -229,7 +229,7 @@ Vaktholdet ser etter fire ting:
 | Entiteten er `unavailable`, `unknown` eller slettet over 30 min | Måledata-problem slår på, og du får et reparasjonsvarsel |
 | Energitelleren rapporterer, men øker ikke på tre timer          | Samme, med typen «frossen»                               |
 | Spotprisen har vært borte lenger enn cachen på to timer         | Samme, med typen «spot_utlopt»                           |
-| Sensoren bytter til en enhet vi ikke kan regne om               | Samme, med typen «enhet», og uten 30-minuttersfristen    |
+| Sensoren bytter til en enhet som ikke kan regnes om               | Samme, med typen «enhet», og uten 30-minuttersfristen    |
 
 En slettet entitet felte tidligere hele oppdateringen, så alt sto stille selv
 om de andre sensorene leverte som normalt. Nå meldes den som et utfall, og alt

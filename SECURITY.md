@@ -42,7 +42,7 @@ viser hvilken commit ZIP-en kommer fra.
 
 ### Bygg ZIP-en selv og sammenlign
 
-Fra og med den første releasen etter v1.16.0 er bygget deterministisk: ZIP-en pakkes fra git-objektene på commiten taggen peker på, med faste tidsstempler og rettigheter fra git. Da kan du bygge den samme filen selv og få samme sha256, uten å stole på hverken oss eller GitHub:
+Fra og med den første releasen etter v1.16.0 er bygget deterministisk: ZIP-en pakkes fra git-objektene på commiten taggen peker på, med faste tidsstempler og rettigheter fra git. Da kan du bygge den samme filen selv og få samme sha256, uten å stole på hverken prosjektet eller GitHub:
 
 ```bash
 git clone https://github.com/fredrik-lindseth/Stromkalkulator

@@ -40,7 +40,16 @@ HA_VERSJON = re.compile(r"\b20\d\d\.\d+\.\d+\b")
 
 # Oppskriftene som utgjør testinngangen. Andre just-oppskrifter (deploy,
 # snapshot, verify) er ikke denne filas ansvar.
-TEST_RECIPES = {"test", "test-unit", "check", "test-ha", "test-e2e"}
+TEST_RECIPES = {
+    "test",
+    "test-unit",
+    "test-fast",
+    "test-unit-fast",
+    "test-evidence",
+    "check",
+    "test-ha",
+    "test-e2e",
+}
 
 HA_TARGETS = {"minimum", "current"}
 
@@ -132,6 +141,30 @@ def test_just_test_er_unit_pluss_kvalitet(recipes: dict[str, list[str]]) -> None
         f"ene kommando noe annet enn den sier. Fant: {kropp!r}"
     )
     assert "test-e2e" not in kropp, "Docker skal ikke inngå i vanlig lokal just test"
+    assert "--require-domain-inventory" in kropp, "Full kontroll må kreve alle referansemåneder"
+
+
+def test_hurtigkontrollen_har_samme_miljo_og_beholder_kvalitet(recipes):
+    full = " ".join(recipes["test-unit"])
+    fast = " ".join(recipes["test-unit-fast"])
+    assert fast == full.replace("pytest tests/", 'pytest tests/ -m "not full_replay"')
+    assert "test-unit-fast" in " ".join(recipes["test-fast"])
+    assert "check" in " ".join(recipes["test-fast"])
+    config = tomllib.loads(_les(REPO / "pyproject.toml"))["tool"]["pytest"]["ini_options"]
+    assert "--strict-markers" in config["addopts"]
+    assert any(marker.startswith("full_replay:") for marker in config["markers"])
+    assert "-m" not in config["addopts"].split()
+    assert "-k" not in config["addopts"].split()
+
+
+def test_evidens_krever_hele_suiten_og_maanedsinventaret(recipes):
+    kropp = " ".join(recipes["test-evidence"])
+    assert kropp.startswith("just test-unit ")
+    assert "--require-domain-inventory" in kropp
+    assert "--domain-evidence-dir dist/domain-evidence" in kropp
+    assert not any(flag in kropp.split() for flag in ("-m", "-k", "--lf", "--last-failed"))
+    full = " ".join(recipes["test-unit"])
+    assert not any(flag in full.split() for flag in ("-m", "-k", "--lf", "--last-failed"))
 
 
 def test_just_check_kjorer_alle_fire_sjekkene(recipes: dict[str, list[str]]) -> None:
@@ -267,6 +300,7 @@ def test_hooken_kjorer_samme_oppskrift_som_justfile(recipes: dict[str, list[str]
     )
     navn = entry.split()[1]
     assert navn in recipes, f"pre-commit-hooken kaller `just {navn}`, som ikke finnes"
+    assert entry == "just test-fast", "Push skal bruke den dokumenterte hurtigkontrollen"
     assert pytest_hook["stages"] == ["pre-push"]
     for repo in config["repos"]:
         for hook in repo["hooks"]:
@@ -291,9 +325,21 @@ def test_ci_kjorer_bare_just_oppskrifter(recipes: dict[str, list[str]]) -> None:
                 )
     for navn in kalt:
         assert navn in recipes, f"ci.yml kaller `just {navn}`, som ikke finnes i justfile"
-    assert {"test-unit", "check", "test-ha"} <= kalt, (
-        f"ci.yml kaller bare {sorted(kalt)}; forventet test-unit, check og test-ha"
+    assert {"test-evidence", "check", "test-ha"} <= kalt, (
+        f"ci.yml kaller bare {sorted(kalt)}; forventet test-evidence, check og test-ha"
     )
+    unit_steps = ci["jobs"]["test-unit"]["steps"]
+    test_steps = [step["run"] for step in unit_steps if "just test" in step.get("run", "")]
+    assert len(test_steps) == 1
+    assert test_steps[0].startswith("just test-evidence ") or test_steps[0].strip() == "just test-evidence"
+    assert not any(flag in test_steps[0].split() for flag in ("-m", "-k", "--lf", "--last-failed"))
+    assert not any(step.get("continue-on-error") for step in unit_steps if step.get("run") in test_steps)
+    (artifact,) = [step for step in unit_steps if "upload-artifact@" in step.get("uses", "")]
+    assert artifact["if"] == "always()"
+    assert artifact["with"]["name"] == "domain-evidence-${{ github.sha }}"
+    assert artifact["with"]["path"] == "dist/domain-evidence/"
+    assert artifact["with"]["if-no-files-found"] == "error"
+    assert artifact["with"]["overwrite"] is True, "Samme testjobb må kunne kjøres på nytt"
 
 
 def test_hacs_json_er_kilden_til_minimumsversjonen(recipes: dict[str, list[str]]) -> None:

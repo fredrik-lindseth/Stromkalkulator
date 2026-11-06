@@ -12,7 +12,7 @@ Strømleverandørens avtalevilkår, påslag, abonnement og avtalehistorikk ligge
 
 Eventuelle beregninger av kommende priser følger samme ansvarsområde: kostnadsgrunnlag og synliggjøring av forutsetninger. Ikke bygg en laststyrings- eller planleggingsmotor her.
 
-Private arbeidsnotater og intern oppgavesporing skal ikke inn i offentlige filer, tester eller commit-meldinger.
+Offentlig dokumentasjon skal beskrive gjeldende oppførsel uten personlige arbeidsnotater eller intern oppgavesporing. Bevar kilder, kreditering, ekte URL-er og bokstavelig UI-tekst, og oppdater lenker ved flytting. Publisert CHANGELOG-historikk bevares. Dokumentasjonsvakten kjøres i hurtigtesten og CI. Private arbeidsnotater og intern oppgavesporing skal ikke inn i offentlige filer, tester eller commit-meldinger.
 
 ## Hovedfiler
 
@@ -26,43 +26,27 @@ Private arbeidsnotater og intern oppgavesporing skal ikke inn i offentlige filer
 ## Før commit
 
 ```bash
-just test
+just test-fast
 ```
 
-`just test` er `just test-unit` (hele `tests/`) og `just check` (ruff check,
-ruff format --check, mypy og vulture) i ett. Begge kjører gjennom `uv` mot
-låste dependency-grupper i `uv.lock`, så du trenger `uv` og `just`, men ikke å
-installere noe for hånd. Home Assistant er ikke med: `tests/` stubber HA bort,
-og en ekte `homeassistant` i samme miljø ville kollidert med stubbene.
+`just test-fast` er `just test-unit-fast` og `just check` (ruff check, ruff format --check, mypy og vulture) i ett. Hurtigtesten utelater bare månedsløp merket `full_replay`; fakturaformler, korte avregningsprøver og øvrige regresjonstester kjøres. Oppskriftene bruker `uv` og låste dependency-grupper i `uv.lock`. Unit-miljøet stubber Home Assistant og skal ikke ha ekte HA installert.
 
-Rører du noe Home Assistant faktisk kaller, altså setup, config-flow,
-entiteter, migrering eller repairs, kjør også ekte HA:
+Endrer du beregninger, tariffer, fakturafixturer eller grunnlaget for replay-testene, kjør `just test` før commit. Den kjører hele `tests/` og kvalitetssjekkene, så du trenger ikke kjøre `just test-fast` i tillegg. Full fakturakontroll er beskrevet i [utviklerkontrollen](docs/fakturaer/utviklerkontroll.md).
+
+Rører du noe Home Assistant faktisk kaller, altså setup, config-flow, entiteter, migrering eller repairs, kjør også ekte HA:
 
 ```bash
 just test-ha target=minimum
 just test-ha target=current
 ```
 
-`minimum` er versjonen `hacs.json` lover brukerne, og `current` er
-nyeste versjon vi har prøvd. Begge må være grønne. Feiler `minimum`, er det
-kompatibiliteten som skal rettes, eller minimum som skal heves med en begrunnet
-beslutning i CHANGELOG og `hacs.json`. Ikke hev det stille.
+`minimum` er versjonen `hacs.json` lover brukerne, og `current` er nyeste versjon som er prøvd. Begge må være grønne. Feiler `minimum`, skal kompatibiliteten rettes eller minimum heves med en begrunnet beslutning i CHANGELOG og `hacs.json`. Ikke hev det stille.
 
-De samme oppskriftene kjøres av pre-push-hooken og av CI, så det finnes ikke en
-annen kommandolinje som kan gå grønn på noe annet. `tests/test_testkommandoer.py`
-feiler hvis justfile, denne seksjonen, `docs/testing.md`, `docs/development.md`,
-`.pre-commit-config.yaml` og `.github/workflows/ci.yml` spriker.
+Pre-push kjører `just test-fast`. CI kjører alltid hele unit-suiten med `just test-evidence`, kvalitetssjekkene, begge HA-målene og Docker-E2E for kandidatens SHA før publisering. Hurtigtesten erstatter ikke denne releaseporten. `tests/test_testkommandoer.py` kontrollerer at oppskrifter, hooker, CI og dokumentasjon stemmer overens.
 
-Hookene kjøres bare når de er installert: sjekk `git config core.hooksPath`
-(skal være tom) og kjør `pre-commit install` og
-`pre-commit install --hook-type pre-push` i en fersk klone.
+Hookene kjøres bare når de er installert: sjekk `git config core.hooksPath` (skal være tom) og kjør `pre-commit install` og `pre-commit install --hook-type pre-push` i en fersk klone.
 
-`mypy` er blokkerende i CI, men sto lenge ikke i denne seksjonen. Da gikk en
-`bool(dso)` som ikke smalner typen rett gjennom lokal grønn testsuite og feilet
-i CI etter push, så releasen ble hoppet over.
-
-Full oversikt over de fire miljøene, versjonsmatrisen og hvorfor de er atskilt:
-[docs/testing.md](docs/testing.md#testmiljøer).
+Full oversikt over miljøene, testutvalget og bevis fra CI: [docs/testing.md](docs/testing.md#testmiljøer).
 
 ## Viktige regler
 

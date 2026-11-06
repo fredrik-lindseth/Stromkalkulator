@@ -12,6 +12,8 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
+pytest_plugins = ["tests.replay.evidence_plugin"]
+
 # Add custom_components to path so we can import without Home Assistant
 sys.path.insert(0, str(Path(__file__).parent.parent / "custom_components"))
 

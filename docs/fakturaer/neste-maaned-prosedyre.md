@@ -26,23 +26,18 @@ ssh ha-vert "python3 /tmp/export_invoice_hourly.py \
 scp ha-vert:/tmp/bkk_mai_2026_hourly.json tests/fixtures/
 ```
 
-Spotprisen i fixturen er HA-ens lagrede NOK-pris fra den offisielle Nord
-Pool-integrasjonen, altså med Nord Pools egen `exchangeRate` allerede bakt inn
-(samme kursgrunnlag som BKK fakturerer fra). Verifiseringen under bruker den
-direkte, så ingen EUR→NOK-omregning trengs for månedssjekken.
+Spotprisen i fixturen er NOK-prisen som Home Assistant lagret fra Nord Pool-integrasjonen. Den kan inneholde foreløpig valutakurs. Fakturaavstemmingen bruker publiserte Final-priser fra prisarkivet; recorder-prisen beholdes som eget sammenligningsgrunnlag. Begge er allerede i NOK og skal ikke omregnes fra EUR.
 
 ### 3. Last ned Elhub-data
 
-Etter BankID-innlogging kan du bruke [den direkte CSV-lenken](../research/elhub-api.md) og slippe kalender- og eksportdialogen. `scripts/research/elhub_download_url.py` lager lenken for målepunktet og måneden. Stegene under er alternativet via nettsiden.
+Etter BankID-innlogging kan du bruke [den direkte CSV-lenken](../research/maaling/elhub-api.md) og slippe kalender- og eksportdialogen. `scripts/research/elhub_download_url.py` lager lenken for målepunktet og måneden. Stegene under er alternativet via nettsiden.
 
 1. Logg inn på [minside.elhub.no/metering-points](https://minside.elhub.no/metering-points)
 2. Velg ditt målepunkt. Direktelenke til måleverdiene (bytt inn din målepunkt-ID):
    `https://minside.elhub.no/metering-points/<målepunkt-id>/metering-values?start=<ISO-tidspunkt>&granularity=MONTHLY`
    (den utfylte lenken ligger i `_private/Måleverdier/README.md`)
-3. Eksporter timesverdier som CSV for hele måneden. Vent til måneden er
-   omme: en eksport tatt midt i måneden dekker bare dagene så langt (juli
-   2026-eksporten tatt 6. juli dekket bare 1.-5. juli)
-4. Lagre originalen i `_private/Måleverdier/elhub_<måned>.csv` (gitignored, beholder rådata). `verify_norgespris_eksakt.py` plukker den opp automatisk på det navnet, og Elhub-kWh er fasiten for eksakt-sjekken (HAN-serien kan ha aggregatglipper, jf. 2. pinsedag 2026).
+3. Eksporter timesverdier som CSV for hele måneden etter at måneden er omme.
+4. Lagre originalen i `_private/Måleverdier/elhub_<måned>_<år>.csv` (gitignorert). `verify_norgespris_eksakt.py` leser filen automatisk. Elhub-kWh brukes som forbruksgrunnlag for eksakt-sjekken; behold kvalitetsmerkingen for estimerte verdier.
 5. Rå CSV committes ikke. Timeserien havner i `tests/fixtures/elhub_<måned>_<år>.json` via `scripts/research/lag_replay_fixtures.py`.
 
 ### 3b. Fyll hull i fixturen
@@ -54,7 +49,7 @@ hull, hver sin kilde:
 # Forbrukshull (HAN-leseren nede): Elhub-kWh er fakturagrunnlaget BKK leser
 python3 scripts/research/fyll_datahull_fra_elhub.py \
     --fixture tests/fixtures/bkk_<måned>_2026_hourly.json \
-    --elhub "_private/Måleverdier/elhub_<måned>.csv"
+    --elhub "_private/Måleverdier/elhub_<måned>_<år>.csv"
 
 # Spotprishull (Nord Pool-sensoren nede): publiserte Final-kvarterpriser
 python3 scripts/research/fyll_spothull_fra_nordpool.py \
@@ -86,10 +81,7 @@ målt årgang. Da kan ikke kravene prøves, og timen blir stående som målt. Hv
 time 00 foran et hull skrives ut med begge avstandene og hvilken årgang de er
 målt med, uansett utfall.
 
-Er verdien nær begge, eller lot årgangen seg ikke måle, skriver scriptet ut
-timen og lar den stå. Da må du avgjøre selv, med `--overstyr TIME=BEGRUNNELSE`
-hvis den likevel hører til hullet. 31.08.2026 kl. 00 er et slikt tilfelle og
-venter på svar, se [bkk-august-2026.md](bkk-august-2026.md).
+Er verdien nær begge, eller lar årgangen seg ikke måle, skriver skriptet ut timen og lar den stå. Vurder timen mot kildene, og bruk `--overstyr TIME=BEGRUNNELSE` hvis den hører til hullet.
 
 Proveniensen tåler gjentatte kjøringer. Fylte randtimer føres under
 `spothull.fylt_fra_nordpool.randtimer` i metadata, manuelle overstyringer under
@@ -122,7 +114,7 @@ Kopier `FAKTURA_APRIL_2026`-blokken, endre navn til `FAKTURA_MAI_2026` og fyll i
 just snapshot-kurs
 
 # Parametrisert faktura-test (validerer alle måneder, inkl. den nye, mot fakturasum)
-pipx run --with hypothesis pytest tests/test_faktura_bkk.py -v
+just test-unit -k faktura_bkk -v
 
 # Direkte sammenligning (viser også Norgespris mot publiserte Final-priser)
 python3 scripts/research/verify_invoice_hourly.py \
@@ -142,7 +134,7 @@ just verify-norgespris
 - `FAKTURAER` og `AVSTEMBARE` i `tests/test_replay_hendelser.py`.
 - `python3 scripts/research/verify_norgespris_eksakt.py --emit-markdown` og
   `python3 scripts/research/inject_generated.py`, som oppdaterer tabellen i
-  `docs/research/norgespris-eksakt-match.md`.
+  `docs/research/priser/norgespris-eksakt-match.md`.
 
 ### 6. Sjekk avvik mot april
 
@@ -163,7 +155,7 @@ på søndager, ikke logikkfeil. Eksakt-sjekken er Elhub-kWh x Final-priser og
 skal treffe tilnærmet null (mai og juni 2026: innenfor 0,005 kr).
 HAN-varianten kan bomme opp mot 0,4 kr hvis recorder-aggregatet har byttet
 delta mellom nabotimer (skjedde 2. pinsedag 2026). Se
-[../research/norgespris-eksakt-match.md](../research/norgespris-eksakt-match.md).
+[prisgrunnlaget](../research/priser/norgespris-eksakt-match.md).
 Avgiftslinjene har et gulv på 1-2 øre som er BKKs interne avrunding.
 
 Verifiseringsskriptet bruker disse absolutte grensene, ikke prosent av fakturabeløpet. Nettleiesummen får 0,10 kr for summen av linjeavrundingene, og totalen inkludert Norgespris får 0,70 kr. Et større recorder-avvik må forklares selv om Elhub x Final stemmer; oktober 2026 hadde 1,58 kr i recorder-avvik etter retting av én forbrukstime. En komplett Elhub x Final-sjekk er blokkerende ved mer enn 0,01 kr avvik. Den erstatter ikke kontrollen av HAN/recorder-dataene.
@@ -235,7 +227,7 @@ git commit -m "verifisering: BKK mai 2026"
 
 - Nye nettselskap-satser: oppdater `custom_components/stromkalkulator/dso.py`
 - Nye avgiftsendringer: oppdater `custom_components/stromkalkulator/const.py`
-- Måler-hardware-endring: oppdater `docs/måler-hardware.md`
+- Måler-hardware-endring: oppdater `docs/research/maaling/han-maling.md`
 
 ## Hvis det er en ekte feil i integrasjonen
 

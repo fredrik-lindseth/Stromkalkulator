@@ -7,7 +7,7 @@ priser reproduseres fakturalinjen eksakt. Avviket i den recorder-baserte
 beregningen skyldes prisårgang: HA lagrer prisene slik de så ut ved
 publisering, og på dager der FX-markedet var stengt på auksjonsdagen
 (søndager, enkelte helligdager) er valutakursen foreløpig og korrigeres
-senere til Final. Full bakgrunn: docs/research/norgespris-eksakt-match.md.
+senere til Final. Full bakgrunn: docs/research/priser/norgespris-eksakt-match.md.
 
 Priskilder, i prioritert rekkefølge per time:
 

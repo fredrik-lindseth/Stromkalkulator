@@ -1,6 +1,6 @@
 # AMS-måler-spesifikasjoner og standarder
 
-Lokal kopi av offisielle dokumenter brukt i fakturaverifiserings-prosjektet. Lagret 2026-05-22 så vi slipper å lete igjen og er beskyttet mot at original-URL-ene flyttes eller forsvinner.
+Spesifikasjoner for HAN-grensesnittene som brukes ved kontroll av måledata. Tabellen oppgir versjon, språk og originalkilde for hver lokal kopi.
 
 ## Aidon (BKK-området, vanligst i Norge)
 
@@ -30,27 +30,13 @@ HAN-NVE-modulen sender hourly liste XX:00:05 (5 sek etter time-grensen, ifølge 
 | -------------------------------------- | ---------------------- | ------------------------------------------------------------------------- |
 | [kaifa-kfm-001.pdf](kaifa-kfm-001.pdf) | Kaifa KFM_001 HAN-spek | [nek.no](https://www.nek.no/wp-content/uploads/2018/11/Kaifa-KFM_001.pdf) |
 
-Hourly broadcast går ved ca. XX:00:10 til XX:00:13.
+Timesverdier sendes fra HAN-grensesnittet ti sekunder etter hel time. Mottak hos Home Assistant kan komme senere; se [HAN-målinger](../han-maling.md).
 
 ## Internasjonal standard
 
 IEC 62056-21 ed 1.0 (1996), ASCII serial protocol. Ikke arkivert lokalt: betalt IEC-standard uten redistribusjonsrett. Offisiell kilde (kjøp/lisens): [webstore.iec.ch/publication/6122](https://webstore.iec.ch/publication/6122).
 
-Standarden regulerer framing, baudrate og data-encoding, men sier ingenting om når kumulative timesverdier skal sendes. Hver målerprodusent velger egen timing. Den nyeste utgaven er bak IEC-paywall (~CHF 200). Vi har ikke kjøpt den, og trenger den ikke: spørsmålet vårt er når timesverdiene sendes, og det svarer standarden uansett ikke på. Målerspekkene over gjør det.
-
-## Konklusjon på tvers av merker
-
-| Merke            | Hourly broadcast etter HH:00 | Kilde           |
-| ---------------- | ---------------------------- | --------------- |
-| Aidon            | 10 sek                       | Aidon-spec v1.6 |
-| Kamstrup HAN-NVE | 5 sek                        | Kamstrup-spec   |
-| Kaifa            | 10-13 sek                    | Kaifa KFM_001   |
-
-10-sek-forsinkelsen er ikke en Aidon-bug. Det er bransje-norm at hourly liste sendes etter time-grensen for å unngå kollisjon med 10-sek-listen som sendes presis HH:00:00. BKKs Elhub-snapshot tas presis HH:00:00 internt i måleren, så det BKK fakturerer er presis time-grense, ikke broadcast-tidspunkt.
-
-## Eierskap (Aidon, per 2023-11-09)
-
-Aidon er kjøpt av Gridspertise (eid av CVC Capital Partners og Enel Group). Ingen tegn til OEM eller whitelabel-rebranding. Aidon designer og produserer selv. Telit-modemmodul er den eneste eksterne komponenten dokumentert.
+Standarden beskriver seriell kommunikasjon. Bruk målerprodusentens HAN-spesifikasjon for tidspunktet for utsending av timesverdier.
 
 ## Andre kilder (lenker, ikke arkivert lokalt)
 
@@ -60,8 +46,6 @@ Aidon er kjøpt av Gridspertise (eid av CVC Capital Partners og Enel Group). Ing
 - [amsreader-firmware issue #630 (Kamstrup-bruker med samme problem)](https://github.com/UtilitechAS/amsreader-firmware/issues/630)
 - [amshan issue #51](https://github.com/toreamun/amshan-homeassistant/issues/51)
 - [HA frontend issue #13151 (hourly i feil time)](https://github.com/home-assistant/frontend/issues/13151)
-- [Wikipedia: Aidon](https://en.wikipedia.org/wiki/Aidon)
-- [Gridspertise oppkjøpsannonsering](https://www.gridspertise.com/search-news/news/2023/11/gridspertise-completes-acquisition-aidon)
 
 ## Lisens og bruk
 

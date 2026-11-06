@@ -2,38 +2,42 @@
 
 Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) og [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Ikke sluppet]
+## [1.18.2]
 
 ### Fikset
 
-- Oppdatert nettleietariffer fra 1. oktober 2026 for Asker, Barents, Etna, Glitre, Kystnett, Midtnett og tidligere Norgesnett mot nettselskapenes egne prislister. <!--kort-->
-- Oppdatert nettleietariffer fra 1. november 2026 for Føie og Romsdalsnett mot nettselskapenes egne prislister. <!--kort-->
-- Kapasitetstrinn beholder publiserte ørepriser gjennom beregning, lagring og omstart. <!--kort-->
-- Midtnett og Areas tre områder bruker egen fastleddtabell når anlegget er konfigurert som fritidsbolig, også ved fast bosted. <!--kort-->
+- Oppdaterte oktober- og novembertariffer for Asker, Barents, Etna, Føie, Glitre, Kystnett, Midtnett, tidligere Norgesnett og Romsdalsnett. Takk til @Swoop86 for Glitre-rapporten ([#25](https://github.com/fredrik-lindseth/Stromkalkulator/issues/25)). <!--kort-->
+- Kapasitetstrinn beholder ørepriser gjennom beregning, lagring og omstart. <!--kort-->
+- Midtnett og Areas tre områder bruker fritidsboligens fastleddtabell når denne boligtypen er valgt, også ved fast bosted. <!--kort-->
 - Asker, Midtnett og tidligere Norgesnett følger klokkestyrt dag-/nattariff også i helger og på helligdager. <!--kort-->
-- Fastledd og tilhørende totaler vises som ukjent utenfor kildebekreftede trinn: over 25 kW hos Etna og fra 75 kW hos Nettselskapet. <!--kort-->
-- Rekonfigurering bruker én omlasting ved endring og ingen ved uendret lagring. Tilpasset Home Assistants kommende krav uten å heve minimumsversjonen. Et anlegg som venter på nytt forsøk eller feilet ved oppstart, startes med en gang når du lagrer innstillingene, også uten endringer. <!--kort-->
-- Norgespris under forbrukstaket bokføres også når spotprisen mangler. Manglende prisgrunnlag for sammenligninger beholdes synlig. <!--kort-->
-- Eksportinntekt bruker prisen fra kvarteret energien ble levert i. Energi i et kvarter uten pris, for eksempel under en omstart, gir ingen kroner, og inntekt og nettokostnad viser kjent delbeløp med prisdekningen i attributtene. <!--kort-->
-- Nettokostnad vises som ukjent når fastleddet er ukjent. <!--kort-->
+- Fastledd og tilhørende totaler vises som ukjent over 25 kW hos Etna og fra 75 kW hos Nettselskapet, der vi mangler kildebekreftede trinn. <!--kort-->
+- Lagring i innstillingene starter også anlegg som har feilet ved oppstart. Endringer gir én omlasting; uendret lagring lar anlegg som kjører, fortsette. <!--kort-->
+- Norgespris under forbrukstaket bokføres også uten spotpris. Sammenligninger viser fortsatt at prisgrunnlaget mangler. <!--kort-->
+- Eksportinntekt bruker prisen fra kvarteret energien ble levert i. Ved prishull viser inntekt og nettokostnad kjent delbeløp, med prisdekning i attributtene. <!--kort-->
 - Omstart bevarer månedens historiske forbruk og summer for manglende og delvis prisdekning. <!--kort-->
-- Forsinkede avlesninger retter også forrige måneds topptimer, kapasitetstrinn og fastledd med den månedens tariffgrunnlag. En måned som ble lukket før oppdateringen, beholder fastleddet sitt i stedet for å regnes om med dagens tariff. <!--kort-->
-- Forrige måneds fastledd og nettleie vises som ukjent når sikringsvalget mangler, slik inneværende måned allerede gjorde. <!--kort-->
+- Forsinkede avlesninger retter også forrige måneds topptimer, kapasitetstrinn og fastledd med den månedens tariffer. Eldre månedsarkiv uten tariffgrunnlag beholder sitt lagrede fastledd. <!--kort-->
+- Nettokostnad vises som ukjent når fastleddet er ukjent. Forrige måneds fastledd og nettleie vises også som ukjent når sikringsvalget mangler. <!--kort-->
 
-### Vedlikehold
+### Verifisert
 
-- Verifisert BKK oktober 2026 mot faktura, Elhub og endelige spotpriser, med vintertid og én estimert forbrukstime. Fakturaverktøyene bruker nå absolutte avviksgrenser, bevarer Elhub-kvalitet og sorterer vintertidstimene etter faktisk tidspunkt. [Rapport](docs/fakturaer/bkk-oktober-2026.md).
+- BKK oktober 2026 er kontrollert mot faktura, Elhub og endelige spotpriser. Norgespris-beløpet avviker med 0,0025 kr. Kontrollen dekker vintertid og én estimert forbrukstime. [Rapport](docs/fakturaer/bkk-oktober-2026.md).
 
-- Med eksportsensor skrives lagringsfilen ikke lenger på avlesninger der verken en eksportpris endret seg eller energi ble bokført.
-- Lagt til kategorien `energy.energy_prices` i integrasjonsmanifestet i tråd med [Home Assistants kategorier](https://contributors.home-assistant.io/core/integrations/categories/).
-- Hassfest kjører med Home Assistants standardaction igjen, siden det publiserte validator-image-et godtar manifestkategorier fra 2026.11.
-- Testmiljøet for nyeste Home Assistant kjører nå mot 2026.10.4, både `just test-ha target=current` og Docker-testlabben. Testpluginen som pinner Home Assistant 2026.11 var ikke publisert da dette ble skrevet. Kjøringen ga ingen deprecation-advarsler fra integrasjonen.
-- Satsvakten mot fri-nettleie kan dempe en manglende fritidstabell med et dateret unntak, og gjør det for Areas tre områder fram til 2027-tariffene.
-- Låst alle GitHub Actions-jobber til Ubuntu 24.04 for å unngå automatisk miljøbytte når `ubuntu-latest` flyttes til Ubuntu 26.04.
-- Merkevarebildene ligger bare i `custom_components/stromkalkulator/brand/`, som Home Assistant leser fra 2026.3. Den gamle `brands/`-mappen i roten og de fire rotikonene i komponenten er fjernet, og `scripts/generate_brand_images.py` skriver nå til `brand/` fra `images/icon.png` og `images/logo-light.png`. Ingen leste rotikonene: Home Assistant før 2026.3 og HACS hentet bildene fra brands.home-assistant.io, og HACS-valideringen ser bare etter `brand/icon.png` lokalt.
+### Endret
 
-### Dokumentasjon
+- Fakturaverktøyene bruker absolutte avviksgrenser, bevarer Elhub-kvalitet og sorterer vintertidstimene etter faktisk tidspunkt.
+- Med eksportsensor skrives lagringsfilen bare når en eksportpris endres eller energi bokføres.
+- Rekonfigurering er tilpasset Home Assistants kommende krav uten å heve minimumsversjonen.
+- Integrasjonsmanifestet har kategorien `energy.energy_prices`, og Hassfest bruker Home Assistants standardaction.
+- Testmiljøet for nyeste Home Assistant bruker 2026.10.4 i både HA-testene og Docker-testlabben.
+- Satsvakten mot fri-nettleie støtter tidsavgrensede unntak for manglende fritidstabeller. Areas tre områder har unntak fram til 2027-tariffene.
+- GitHub Actions-jobbene bruker Ubuntu 24.04.
+- Merkevarebildene og bildegeneratoren bruker `custom_components/stromkalkulator/brand/`.
 
+### Dokumentert
+
+- Samlet veiledningene i en [dokumentasjonsoversikt](docs/README.md), med egne emner for måledata, prisgrunnlag og fakturakontroll.
+- Presisert ansvarsområdet: nettleie og offentlige støtteordninger. Strømleverandørens avtalevilkår og påslag ligger utenfor.
+- Beskrevet uthenting fra Elhub og tilgang via Maskinporten i [Elhub-veiledningen](docs/research/maaling/elhub-api.md).
 - Oppdatert dashboard- og varseleksempler for kapasitetsmargin og måleproblemer, med støtte for både eldre og nyere Home Assistant.
 - Samstemt norske og engelske sensorbeskrivelser og Home Assistant-varsler med regnskapsberegningene og datakvaliteten.
 - Beskrevet Neteras valgfrie sesongavtale og avgrenset tariff- og eksportberegningene til det kildegrunnlaget støtter.
@@ -63,15 +67,15 @@ Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) og [S
 
 ### Fikset
 
-- **Månedskostnaden bruker nå samme kroneakkumulator som fakturareplayet.** Fakturareplayet og nettleiesubtotalen har truffet, men denne ene sensoren hadde fortsatt en egen vei som ganget fastleddet med forbruket. Den legger nå til månedsandelen av fastleddet, slik den bokførte kostnaden gjør. I replay av BKK-månedene mai–juli 2026 falt sensoren 64 til 145 kroner; utslaget hos deg avhenger av forbruk og kapasitetstrinn. Dagskostnaden er rettet på samme måte. Historiske statistikkverdier beregnes ikke på nytt. Se [revalideringen](docs/research/revalidering-l3b-september-2026.md). <!--kort-->
+- **Månedskostnaden bruker nå samme kroneakkumulator som fakturareplayet.** Fakturareplayet og nettleiesubtotalen har truffet, men denne ene sensoren hadde fortsatt en egen vei som ganget fastleddet med forbruket. Den legger nå til månedsandelen av fastleddet, slik den bokførte kostnaden gjør. I replay av BKK-månedene mai–juli 2026 falt sensoren 64 til 145 kroner; utslaget hos deg avhenger av forbruk og kapasitetstrinn. Dagskostnaden er rettet på samme måte. Historiske statistikkverdier beregnes ikke på nytt. Se [revalideringen](https://github.com/fredrik-lindseth/Stromkalkulator/blob/v1.17.0/docs/research/revalidering-l3b-september-2026.md). <!--kort-->
 - **Har Home Assistant vært nede en stund, hopper akkumulert kostnad opp igjen ved første oppdatering.** Fastleddet regnes nå som den andelen av måneden kalenderen har gått, ikke som en sum av pollene, så timene installasjonen var borte kommer med. Du trenger ikke gjøre noe, men statistikken får et sprang der nedetiden lå. <!--kort-->
-- **Månedlig nettleie og Månedlig nettleie total viser nå kostnaden hittil i måneden.** Fastleddet følger den delen av måneden som har forløpt, i stedet for å ta med hele månedsbeløpet fra den 1. Sensorene leser bokførte beløp, og strømstøtten summeres time for time. Beregningen i Forrige måned nettleie er uendret. Se [sensorendringene](docs/research/sensorendringer-l3c-september-2026.md). <!--kort-->
+- **Månedlig nettleie og Månedlig nettleie total viser nå kostnaden hittil i måneden.** Fastleddet følger den delen av måneden som har forløpt, i stedet for å ta med hele månedsbeløpet fra den 1. Sensorene leser bokførte beløp, og strømstøtten summeres time for time. Beregningen i Forrige måned nettleie er uendret. Se [sensorendringene](https://github.com/fredrik-lindseth/Stromkalkulator/blob/v1.17.0/docs/research/sensorendringer-l3c-september-2026.md). <!--kort-->
 - **Oppdaterte nettleiesatser når nå fram til anlegg som allerede er satt opp.** Oppsettet lagret katalogens energiledd på hvert anlegg, og den lagrede verdien vant for alltid, så satsoppdateringene vi har sluppet siden har bare truffet nye installasjoner. Energiledd-feltet i innstillingene er nå et overstyringsfelt, og står det tomt, følger anlegget katalogen. <!--kort-->
 - **Enheten på input-sensorene leses nå, i stedet for bare tallet.** En effektsensor i kW ble lest som watt, en energisensor i Wh som kWh og en spotprissensor i NOK/MWh som kroner per kWh. Alle tre gir tall som ser plausible ut og er tusen ganger feil, og ingenting sa fra. Vanlige effekt-, energi- og prisenheter regnes nå om automatisk. Se [input-sensorer.md](docs/input-sensorer.md). <!--kort-->
 - **Eksportmåleren i kW ga tusen ganger for lav eksportinntekt.** Feltet krevde watt uten å si det, og uten å sjekke det. Den går nå gjennom samme enhetsomregning som resten, så en plusskunde med kW-sensor får ekte tall i stedet for en inntekt nær null.
 - **Energien bokføres på prisen som gjaldt da den ble målt, ikke på prisen som sto på sensoren da vi hentet data.** Før kunne kilowattimer fra én time bli priset med neste times spotpris, avhengig av når pollen falt. En time uten prisprøve blir nå stående uten pris framfor å arve nabotimens.
 - **Strømstøtte og Norgespris regnes mot timeprisen, og kilowattimene deles i én del under og én over taket** før prisen legges på. Før ble en time som krysset kWh-taket priset helt på den ene siden av taket.
-- **Kapasitetstrinnet regnes av et døgnmaks som holder seg i takt.** Snittet av de tre høyeste døgnene lå under fakturaens verdi, fordi en time som ble ferdig mens måleren var borte aldri ble bokført, og i april var det flaks og ikke margin som ga riktig trinn. I tillegg kunne forrige måneds toppdag arve seg inn i den nye måneden og gi den et trinn den ikke skulle hatt. Se [revalideringen](docs/research/revalidering-l3b-september-2026.md).
+- **Kapasitetstrinnet regnes av et døgnmaks som holder seg i takt.** Snittet av de tre høyeste døgnene lå under fakturaens verdi, fordi en time som ble ferdig mens måleren var borte aldri ble bokført, og i april var det flaks og ikke margin som ga riktig trinn. I tillegg kunne forrige måneds toppdag arve seg inn i den nye måneden og gi den et trinn den ikke skulle hatt. Se [revalideringen](https://github.com/fredrik-lindseth/Stromkalkulator/blob/v1.17.0/docs/research/revalidering-l3b-september-2026.md).
 - **Energibaselinen er bundet til måleren den kom fra.** Byttet du energisensor, ble forskjellen mellom den gamle og den nye telleren tolket som forbruk du aldri hadde hatt, både i månedsforbruket og i timesmaksen. Nå starter en ny kilde en ny baseline med 0 kWh, og månedstallene står urørt.
 - **En slettet input-entitet stopper ikke lenger hele oppdateringen.** Forsvant effekt- eller spotprissensoren fra Home Assistant, sto alt stille, også energi og energiledd som ikke trengte den sensoren. Nå meldes den som et utfall, og alt som fortsatt har datagrunnlag regnes videre.
 - **En input som ikke leverer blir ikke lenger til 0.** En 0 er en måling som sier at du ikke bruker noe, og det er en annen påstand enn at målingen uteble. Effektsensorens attributt står nå tomt i stedet for å vise 0 kW mens sensoren er borte.
@@ -105,7 +109,7 @@ Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) og [S
 - **Telemark Nett manglet sammenligning i drift-vakten.** fri-nettleie hadde døpt om filen sin til tnett.yml, og unntaket for manglende treff skjulte at sammenligningen ikke ble gjort. Mappingen er rettet. Vakten sier nå fra om det den ikke fikk sjekket, og kjente avvik avgrenses med felt, forventet verdi og utløpsdato.
 - **Seksten nettselskapsoppføringer som fikk kapasitetstrinn fra fri-nettleie i juli, er kontrollert mot primærkilden**, med URL og verifiseringsdato per oppføring. Elleve stemte tall for tall, to hadde nye tariffer, og tre hadde avrundingsfeil. Forbehold om tariffdato og metode står i kildekommentarene der prislisten ikke avklarer dem.
 - **Arva lar seg verifisere likevel.** Prissiden rendres med JavaScript, men den samme prislisten ligger som ren HTML bak et API-kall siden skriver ut selv. Alle satsene stemte, og selskapet holder nettleien uendret gjennom 2026.
-- **BKK-fakturaen for august 2026 er kontrollert mot måledata og publiserte priser.** Coordinatorens kroneregnskap er i tillegg revalidert mot mai, juni og juli, med avvik og toleranser dokumentert i [revalideringen](docs/research/revalidering-l3b-september-2026.md).
+- **BKK-fakturaen for august 2026 er kontrollert mot måledata og publiserte priser.** Coordinatorens kroneregnskap er i tillegg revalidert mot mai, juni og juli, med avvik og toleranser dokumentert i [revalideringen](https://github.com/fredrik-lindseth/Stromkalkulator/blob/v1.17.0/docs/research/revalidering-l3b-september-2026.md).
 - **Oppsettsreisen kjøres nå mot ekte Home Assistant**, med kontrollert tid gjennom månedsskifte, sommertidsovergang, målerbytte og strømbrudd, i en egen isolert testlab.
 
 ### Dokumentert

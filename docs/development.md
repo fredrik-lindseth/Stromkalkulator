@@ -2,7 +2,7 @@
 
 ## Arkitektur
 
-Home Assistant viser bare spotpris. Norske strømfakturaer har flere komponenter (energiledd, kapasitetsledd, avgifter, strømstøtte). Strømkalkulator beregner faktisk totalpris.
+Strømkalkulator beregner nettleie fra målt forbruk og nettselskapets tariffer, med energiledd, kapasitetstrinn, offentlige avgifter, strømstøtte og Norgespris. Pris og måledata kommer fra andre integrasjoner. Strømleverandørens avtalevilkår, påslag og abonnement ligger utenfor ansvarsområdet, og totalprisvisningene gir ikke full avregning av strømavtalen.
 
 ### Filstruktur
 
@@ -35,7 +35,7 @@ lagring per `entry.entry_id`, inkludert energibaseline, akkumulatorer og
 effekthistorikk. Sensorer er gruppert i seks devices, arver fra
 `CoordinatorEntity` + `SensorEntity` og leser fra `coordinator.data["key"]`.
 
-DSO-data (`dso.py`) er en dict med alle nettselskaper, energiledd dag/natt og kapasitetstrinn. Tidligere kalt `tso.py`. `CONF_DSO` beholder strengverdien `"tso"` for bakoverkompatibilitet.
+DSO-data (`dso.py`) er en dict med nettselskaper, energiledd dag/natt og kapasitetstrinn. Konfigurasjonsnøkkelen `CONF_DSO` har strengverdien `"tso"` for bakoverkompatibilitet.
 
 ### Beregningsflyt
 

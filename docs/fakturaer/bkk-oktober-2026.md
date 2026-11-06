@@ -47,7 +47,7 @@ Med denne erstatningen og skriptets 13-sekunderskorreksjon blir totalen 1 160,21
 
 Med det justerte forbruksgrunnlaget gir HA-recorderens priser Norgespris −1 423,68 kr, mens endelige priser gir −1 422,10 kr. Prisforskjellen utgjør omtrent 1,58 kr. Rå HAN-data uten erstatning av den estimerte timen gir −1 423,96 kr med recorder-prisene.
 
-Flere døgn har en nesten konstant faktor mellom recorder-pris og endelig pris, i tråd med tidligere funn om foreløpig valutakurs. Vintertidsdøgnet har også variasjon innenfor døgnet, så hele avviket tilskrives ikke valutakurs alene. [Prisanalysen](../research/norgespris-eksakt-match.md) viser døgnene. Den eksakte fakturakontrollen bruker Elhub og Final; recorder-avviket forblir synlig og skal ikke godkjennes ved å øke toleransen.
+Flere døgn har en nesten konstant faktor mellom recorder-pris og endelig pris, i tråd med tidligere funn om foreløpig valutakurs. Vintertidsdøgnet har også variasjon innenfor døgnet, så hele avviket tilskrives ikke valutakurs alene. [Prisanalysen](../research/priser/norgespris-eksakt-match.md) viser døgnene. Den eksakte fakturakontrollen bruker Elhub og Final; recorder-avviket forblir synlig og skal ikke godkjennes ved å øke toleransen.
 
 ## Regresjonsdekning og rettinger
 

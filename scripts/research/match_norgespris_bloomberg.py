@@ -1,10 +1,4 @@
-"""Tester 12:00 CET-hypotesen mot Bloomberg-data.
-
-Hypotesen (docs/research/nok-omregning.md): BKK bruker Nord Pools preliminære
-interbankkurs kl. 12:00 CET, ikke Norges Banks 14:15 CET-kurs, til å regne om
-EUR-spotpris til NOK for Norgespris-kompensasjonen. Prediksjonen var at avviket
-mot fakturaen skulle krympe mot null når vi byttet NB-kursen mot den ekte
-12:00-kursen.
+"""Sammenlign Norgespris med Bloomberg- og Norges Bank-kurser.
 
 Dette scriptet kjører fakturasammenligningen med begge kurskildene side om side,
 ved å gjenbruke beregningslogikken i match_norgespris_alle_maaneder.py.

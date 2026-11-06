@@ -47,7 +47,7 @@ Alt innenfor toleranse. Norgespris-linjen reproduseres eksakt når
 beregningen bruker Nord Pools publiserte Final-priser i stedet for
 HA-recorderens lagrede verdier; recorder-avviket på 0.15 kr skyldes at
 recorderen har en foreløpig valutakurs for to søndager, se
-[research/norgespris-eksakt-match.md](../research/norgespris-eksakt-match.md).
+[prisgrunnlaget](../research/priser/norgespris-eksakt-match.md).
 Juni hadde 83 timer med spot under 50 øre inkl. mva der kunden betaler
 mellomlegg; at fakturaen matcher bekrefter at BKK fakturerer symmetrisk.
 Dag/natt-splitten treffer på 20 Wh, juni har ingen helligdager, så

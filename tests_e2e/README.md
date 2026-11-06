@@ -126,12 +126,7 @@ seedes inn i lagringsfilen den gamle utgaven selv skrev, med nøkler som alt
 står der. `skriv_lagring` nekter å legge til en nøkkel som ikke fantes: en
 seedet nøkkel utgaven aldri skrev, beviser ingenting om hva den skrev.
 
-Størrelsen på fallet i `monthly_cost_kr` hører ikke hjemme her. HA bruker
-dagens klokke, så fastleddet blir dagens andel av inneværende måned, ikke
-mai sin. De 64 til 145 kronene er målt mot ekte fakturaer i
-[docs/research/revalidering-l3b-september-2026.md](../docs/research/revalidering-l3b-september-2026.md).
-Laben prøver mekanismen: at de to veiene til månedskostnaden nå er én, og at
-fastleddet ikke lenger henger på kilowattimene.
+Laben kontrollerer at månedskostnad og akkumulert kostnad bruker samme grunnlag, og at fastleddet er uavhengig av kWh-forbruket. Full månedsavstemming med historiske priser kjøres gjennom [fakturareplayet](../docs/fakturaer/utviklerkontroll.md), siden HA-laben bruker dagens klokke.
 
 ## Vaktholdet i ekte tid
 

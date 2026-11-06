@@ -6,8 +6,9 @@ Søker etter blokker på formen
     ... innhold som overskrives ...
     <!-- END GENERATED -->
 
-i alle docs/research/*.md, og bytter ut innholdet med fila
+i Markdown-filer under docs/research/, og bytter ut innholdet med fila
 docs/research/_generated/<navn>.md. Blokkmarkørene beholdes.
+Filer og mapper med navn som begynner med punktum eller understrek hoppes over.
 
 Idempotent: kjøres på nytt uten endring hvis _generated-fila ikke har endret seg.
 Brukes av `just verify-all`.
@@ -64,8 +65,8 @@ def main() -> int:
         return 1
 
     total_changed = 0
-    for md in sorted(RESEARCH_DIR.glob("*.md")):
-        if md.name.startswith("_"):
+    for md in sorted(RESEARCH_DIR.rglob("*.md")):
+        if any(part.startswith(("_", ".")) for part in md.relative_to(RESEARCH_DIR).parts):
             continue
         changed = inject_one(md)
         if changed:

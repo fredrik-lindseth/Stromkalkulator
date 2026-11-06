@@ -100,8 +100,7 @@ def _bokfort_nettleie(data: dict[str, Any]) -> float:
     Begge leddene kommer fra kostnadskjernen. Energileddet er summen av dag,
     natt og de offentlige avgiftene slik de ble priset i hvert intervall, og
     fastleddet er månedsbeløpet ganget med forløpt andel av måneden. Det er
-    linjen BKK kaller nettleie subtotal, og den avstemmer mot fakturaen på øret
-    (docs/research/revalidering-l3b-september-2026.md).
+    linjen BKK kaller nettleie subtotal. Se docs/beregninger.md.
     """
     return _tall(data, "monthly_accumulated_cost_energiledd_kr") + _tall(
         data, "monthly_accumulated_cost_kapasitetsledd_kr"

@@ -100,7 +100,7 @@ publiserte Final-priser gir -1032.56 kr, avvik -0.001 kr. Elhub matcher
 også fakturaens dag/natt/total på 0 Wh. HAN-kWh-varianten avvek 0.35 kr,
 som viste seg å sitte i én recorder-aggregatglipp på 2. pinsedag (delta
 byttet mellom nabotimer). Se
-[research/norgespris-eksakt-match.md](../research/norgespris-eksakt-match.md).
+[prisgrunnlaget](../research/priser/norgespris-eksakt-match.md).
 Coordinator-replay dekkes av `tests/test_coordinator_replay.py`.
 
 ## Konklusjon

@@ -32,13 +32,11 @@ Overgangen til vintertid er verifisert mot [BKK oktober 2026](fakturaer/bkk-okto
 
 ## 3. Norgespris-kompensasjon (prisårgang i den løpende sensoren)
 
-Løst for verifisering 2026-07-06. Med Nord Pools publiserte Final-priser reproduseres Norgespris-linjen eksakt (juni 2026: 0,00 kr avvik). Formelen, symmetrien og kursgrunnlaget er riktig. Se [research/norgespris-eksakt-match.md](research/norgespris-eksakt-match.md).
+Fakturaverifiseringen bruker Elhub-forbruk og Nord Pools publiserte Final-priser. Se [prisgrunnlaget](research/priser/norgespris-eksakt-match.md) for beregning og avvik per måned.
 
 Det som gjenstår er den løpende sensoren i HA. Den akkumulerer med prisen slik den ser ut i leveringstimen, og på dager der valutamarkedet var stengt på auksjonsdagen (søndager, enkelte helligdager) er det en foreløpig kurs som Nord Pool senere korrigerer til Final. En akkumulert sum kan ikke rettes bakover. Målt effekt: 0,15 kr (juni) og 0,55 kr (mai), altså 0,04-0,05 % av kompensasjonen. Fakturaverifiseringen i etterkant er ikke berørt, den bruker publiserte Final-priser fra prisarkivet (`just snapshot-kurs`).
 
 Oktober 2026 hadde omtrent 1,58 kr forskjell mellom recorder-priser og Final ved samme forbruksgrunnlag. På vintertidsdøgnet varierer prisforholdet også innenfor døgnet, så hele forskjellen er ikke dokumentert som valutakurs. Elhub × Final treffer fakturaen innenfor 0,0025 kr.
-
-Avregningen på intervaller (L3a og L3b) flyttet ikke på dette. Den fjernet polltiden fra regnestykket, altså hvilket øyeblikk vi spurte sensoren, men prisen som ligger i intervallet er fortsatt den som var publisert da timen ble levert. Er den foreløpig, blir den stående. Sensorene leser de samme kronene fra L3c og arver derfor det samme.
 
 ## 4. Strømstøtte-formel (~30 kr/mnd vs BKKs visning)
 
@@ -56,66 +54,23 @@ Relevant kun hvis du vil oppdage korte effekt-topper i hjemmet ditt.
 
 ## 6. For utviklere: verifisering mot ekte faktura
 
-Vi har en dev-pipeline (`scripts/research/verify_invoice_hourly.py`) som leser tpi-broadcast direkte fra AMS-måleren for å sammenligne mot Elhub og fakturaen. Den har et 13-sek sample-skift (10 sek inne i måleren + 3 sek transmisjon på Kaifa + Pow-U-oppsett) som påvirker bare denne pipelinen.
+Fakturaverktøyene sammenligner recorderens HAN-data med Elhub og fakturaen. Referanseoppsettet med Kaifa og Pow-U har en mottaksforsinkelse på rundt tretten sekunder. Det påvirker timefordelingen i eksporten; andre målere og lesere må kontrolleres med sine egne tidsstempler. Se [HAN-målinger](research/maaling/han-maling.md).
 
-Selve HA-integrasjonen leser `p`-strømmen kontinuerlig og er ikke påvirket. Det betyr at sensorene du ser i Energy Dashboard og månedstotaler ikke har de 9 Wh-avvikene som dev-pipelinen viser.
+Skriptkontrollen og replay gjennom coordinatoren dekker ulike deler av beregningen. Kjør [utviklerkontrollen](fakturaer/utviklerkontroll.md) når avregning, kostnadskjerne eller tariffer endres.
 
-Se [research/klokke-og-tidsstempling.md](research/klokke-og-tidsstempling.md) og [research/elhub-vs-han-vs-faktura.md](research/elhub-vs-han-vs-faktura.md) for full kontekst.
+## 7. Forbruk ved lang nedetid
 
-Attesten er sist revalidert mot `7ea60cb`, med før/etter per komponent i
-[research/revalidering-l3b-september-2026.md](research/revalidering-l3b-september-2026.md).
-Den runden er gyldig bare for den commiten: neste serie som rører
-`coordinator.py`, `kostnad.py` eller BKK-satsene må kjøre alle ti månedene på
-nytt.
+Med en kumulativ energisensor fordeles et delta over intervallene mellom avlesningene. Et stort sprang kan likevel avvises: `MAX_ENERGY_DELTA_KWH` er 100 kWh per avlesning. Uten energisensor beregnes energi fra effekt, og vinduer lengre enn `MAX_ELAPSED_HOURS` bokføres ikke. Se [avregningskontrakten](kontrakter/avregning.md#b1-energiavlesning).
 
-## 7. Gap-bucket ved lang nedetid (energy_sensor): pensjonert
+En kumulativ teller kan bevare totalforbruket gjennom et utfall, men fordelingen innenfor gapet er et anslag. Manglende målinger skal derfor ikke fremstilles som kjent timeforbruk.
 
-Sto her til september 2026, og beskrev at hele backlog-deltaet etter en lang
-nedetid ble kreditert klokketimen og dag/natt-tariffen som gjaldt da HA kom
-tilbake, ikke timene forbruket faktisk skjedde i.
+## 8. Prisdekning og historiske kostnader
 
-Avregningen på intervaller (L3a) fjernet den. Energi bokføres nå etter
-avlesningens observasjonstid, ikke pollens, og et delta som spenner flere
-intervaller fordeles over dem (`fordel_delta` og `Bok._fordel` i
-`avregning.py`). Et gjenopptatt delta lander derfor i timene det hører hjemme i,
-med riktig dag/natt-splitt, og døgnmaks blir ikke blåst opp av en enkelt poll.
+Kostnader bokføres per intervall med intervallets pris. Ved manglende spotpris viser `kwh_uten_pris` og prisdekningsfeltene hvor mye av sammenligningsgrunnlaget som mangler. Norgespris under forbrukstaket kan bokføres til fast pris selv om spotprisen mangler; spotbaserte sammenligninger er fortsatt ufullstendige.
 
-Grensen som står igjen er `MAX_ENERGY_DELTA_KWH` (100 kWh per avlesning), og
-uten `energy_sensor` gjelder fortsatt Riemann-stien: et vindu lengre enn
-`MAX_ELAPSED_HOURS` bokføres ikke i det hele tatt
-([avregning.md B1](kontrakter/avregning.md#b1-energiavlesning)). Det er prisen
-for ikke å ha en teller, og den er uendret.
+Fastleddet legges til som periodebeløp. `monthly_cost_kr` og `monthly_accumulated_cost_kr` bruker samme bokførte grunnlag. Sensorene leser de bokførte kronene, også for forrige måned. Ved månedsskifte arkiveres energiledd, avgifter og støtte sammen med månedens fastledd. Sene intervaller kan korrigere den arkiverte måneden med det lagrede tariffgrunnlaget. Et gammelt arkiv uten bokførte kroner gir Ukjent.
 
-## 8. Øyeblikks-prising av gap-forbruk (energy_sensor): pensjonert
-
-Sto her til september 2026, og beskrev at hele gap-deltaet ble priset til én
-øyeblikksverdi av spotpris og energiledd fra oppstartstidspunktet.
-
-Kostnadskjernen (L3b) fjernet den. Kroner regnes per avregnet intervall med
-intervallets egen pris, aldri med den som sto på sensoren da vi spurte.
-Kilowattimer som ikke har noen pris får heller ingen: de bokføres synlig som
-`kwh_uten_pris` i stedet for å bli priset med en sats fra et annet intervall.
-Det er strengere enn det som sto her, og det betyr at et gap gir et lavere,
-ikke et skjevt, kronetall, med et felt som sier hvor mye som mangler.
-
-Kostnadskjernen tok samtidig `monthly_cost_kr`, `monthly_net_cost_kr` og
-`daily_cost_kr` ut av polltidens pris: de er nå én akkumulator sammen med
-`monthly_accumulated_cost_kr`, og fastleddet legges inn som periodebeløp i
-stedet for som en kroner-per-time-sats ganget med kilowattimer. Målt mot
-fakturaen falt `monthly_cost_kr` 64 til 145 kroner ned på riktig verdi for mai,
-juni og juli 2026, se
-[research/revalidering-l3b-september-2026.md](research/revalidering-l3b-september-2026.md).
-
-Sensorene leser de bokførte kronene, også for forrige måned. Ved
-månedsskifte arkiveres energiledd, avgifter og støtte som kronebeløp sammen
-med månedens fastledd. Sene intervaller korrigerer den arkiverte måneden;
-fastleddet beregnes da med tariffgrunnlaget som ble lagret for den måneden.
-Et gammelt lagringsarkiv uten bokførte kroner gir Ukjent framfor et anslag
-basert på dagens satser.
-Det som ellers står igjen er en visningskuriositet: attributtet
-`kapasitetsledd_per_kwh` er kroner per time presentert som kroner per
-kilowattime, og de to er bare like ved nøyaktig 1 kWh/h. Tallet ganges ikke inn
-i noe beløp lenger, så det rammer bare den viste prisen per kWh.
+Attributtet `kapasitetsledd_per_kwh` er kroner per time presentert som kroner per kilowattime. Verdiene er bare like ved et forbruk på 1 kWh per time. Attributtet er en visningspris og inngår ikke i bokførte beløp.
 
 ## 9. Fem nettselskap har en annen kapasitetsledd-modell
 

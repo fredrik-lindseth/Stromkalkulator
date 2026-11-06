@@ -10,33 +10,9 @@ Hver rapport her er en attest på at integrasjonen regner riktig for et gitt net
 
 Vil du få inn ditt eget nettselskap? Se [verifiser-din-faktura.md](verifiser-din-faktura.md).
 
-## Siste revalidering
+## Kontroller beregningene
 
-Attesten er sist kjørt om igjen mot `7ea60cb`, etter at kostnadskjernen L3b
-bygget om hvordan kroner akkumuleres. Kommandoene er
-
-```
-python3 scripts/research/verify_invoice_hourly.py \
-    --hourly tests/fixtures/bkk_<måned>_2026_hourly.json --faktura <måned>_2026
-python3 scripts/research/verify_norgespris_eksakt.py
-just test
-```
-
-Alle linjene i tabellene under står uendret gjennom serien, for
-verifiseringsskriptene og fixturene er ikke rørt av den, og BKK-oppføringen i
-`dso.py` er identisk. Det coordinatoren regner, flyttet seg derimot, og alt som
-flyttet seg gikk mot fakturaen: `monthly_cost_kr` falt 64 til 145 kroner ned på
-den summen delene faktisk gir, fastleddsakkumulatoren lander nå på hele
-månedsbeløpet, og snitt topp 3 treffer fakturaens verdi i alle seks månedene som
-lar seg spille gjennom coordinatoren. Forbruk i kWh og dag/natt-splitten sto
-stille til siste desimal. Før/etter-tabellen og metoden står i
-[revalidering-l3b-september-2026.md](../research/revalidering-l3b-september-2026.md),
-og runden før den i
-[revalidering-l3a-september-2026.md](../research/revalidering-l3a-september-2026.md).
-
-Runden gjelder bare den commiten. Neste serie som rører `coordinator.py`,
-`kostnad.py` eller BKK-satsene må kjøre alle ti månedene på nytt; listen står i
-samme notat.
+Fakturatestene kontrollerer satser og formler, mens replay-testene kjører avlesninger og priser gjennom coordinatoren. [Utviklerkontrollen](utviklerkontroll.md) beskriver hvordan du sammenligner forbruk, kapasitetstrinn og kostnadskomponenter ved kodeendringer. Hver månedsrapport viser datadekning og avvik for den fakturaen.
 
 ## Fakturaer
 

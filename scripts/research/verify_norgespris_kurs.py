@@ -11,13 +11,9 @@ Dette gjør at gamle måneder kan reverifiseres uten internett-tilgang og uten
 NP-innlogging. Snapshotene genereres med snapshot_nordpool_eur.py og
 snapshot_nb_eur_nok.py.
 
-Bakgrunn:
-    docs/research/nok-omregning.md beskriver et restavvik på 0,14 % mellom
-    HA's nordpool-integrasjon (sensor.nord_pool_no5_current_price) og BKKs
-    fakturerte snitt-spot for april 2026. Dette scriptet bekrefter at avviket
-    kommer fra HA-cachens egen NOK-konvertering, ikke fra fakturaen: rå
-    EUR/MWh + NB-kurs (forward-fill, same-day) matcher fakturaen innenfor
-    0,04 %.
+Til eksakt fakturakontroll brukes publiserte NOK-priser, se
+    docs/research/priser/norgespris-eksakt-match.md.
+Denne sammenligningen beregner alternative priser fra EUR og Norges Bank-kurs.
 
 Konfigurer øverst (YEAR, MONTH, ELHUB_FIXTURE, FAKTURA_*) for en annen måned.
 Kjør uten avhengigheter utover Python 3.11+ standardbibliotek.

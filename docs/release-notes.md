@@ -22,14 +22,7 @@ Les den genererte korte noten før publisering, med handlingene først og lenke 
 
 ## CHANGELOG.md
 
-Det finnes én tekst, og den ligger i repoet. `## [X.Y.Z]`-seksjonen i
-`CHANGELOG.md` er kilden til alt brukerne får se; workflowen henter den med
-`scripts/release_notes.py`. Skriv den derfor som brukertekst, ikke som
-utviklerlogg.
-
-Tidligere ble noten skrevet for hånd i en GitHub-draft. Da lå den utenfor
-repoet, workflowen publiserte rå commit-liste i stedet, og teksten måtte limes
-inn igjen manuelt etterpå.
+Det finnes én tekst, og den ligger i repoet. `## [X.Y.Z]`-seksjonen i `CHANGELOG.md` er kilden til alt brukerne får se; workflowen henter den med `scripts/release_notes.py`. Skriv den derfor som brukertekst, ikke som utviklerlogg.
 
 Se selv hva en gitt versjon gir:
 
@@ -38,39 +31,19 @@ python3 scripts/release_notes.py 1.16.0         # hele seksjonen
 python3 scripts/release_notes.py 1.16.0 --kort  # det som blir release-body
 ```
 
-Exit 1 hvis seksjonen mangler, er tom, har en relativ lenke til en fil som ikke
-finnes, eller har en tom `### Dette må du gjøre selv`. Både `ci.yml` og
-`release.yml` henger på den exit-koden, så en versjon uten note blir aldri
-publisert.
+Exit 1 hvis seksjonen mangler, er tom, har en relativ lenke til en fil som ikke finnes, eller har en tom `### Dette må du gjøre selv`. Både `ci.yml` og `release.yml` henger på den exit-koden, så en versjon uten note blir aldri publisert.
 
 ## To utskrifter av den samme teksten
 
-Seksjonen kommer ut på to måter, og begge er utledet av den ene filen. Ingen av
-dem skrives for hånd ved siden av.
+Seksjonen kommer ut på to måter, og begge er utledet av den ene filen. Ingen av dem skrives for hånd ved siden av.
 
-Den lange er hele seksjonen, med «Dette må du gjøre selv» løftet øverst og
-relative lenker gjort absolutte. Det er den du leser i repoet og på GitHub, og
-det `release_notes.py <versjon>` skriver ut.
+Den lange er hele seksjonen, med «Dette må du gjøre selv» løftet øverst og relative lenker gjort absolutte. Det er den du leser i repoet og på GitHub, og det `release_notes.py <versjon>` skriver ut.
 
-Den korte er release-body-en, altså det HACS viser i oppdateringspanelet inne i
-Home Assistant. Den består av hele «Dette må du gjøre selv», punktene som er
-merket med `<!--kort-->`, og en lenke til hele endringsloggen. `--kort` gir den,
-og `release_publish.py` bruker nettopp den når releasen publiseres.
-
-Den finnes fordi panelet i HACS er en smal rute folk scroller gjennom i noen
-sekunder før de trykker oppdater. Seksjonen for 1.17.0 er 43 punkter og 13 000
-tegn, og førti punkter blir ikke lest der. Den korte er 11 punkter og 4 700
-tegn.
-
-At den er utledet og ikke skrevet ved siden av, skyldes v1.15.0: den noten var
-en egen tekst utenfor repoet, og den forsvant. To håndskrevne tekster kan si
-forskjellige ting, og den ene av dem råtner alltid først.
+Den korte er release-body-en, altså det HACS viser i oppdateringspanelet inne i Home Assistant. Den består av hele «Dette må du gjøre selv», punktene som er merket med `<!--kort-->`, og en lenke til hele endringsloggen. `--kort` gir den, og `release_publish.py` bruker nettopp den når releasen publiseres.
 
 ### Merkingen
 
-Sett `<!--kort-->` til slutt i punktene en bruker faktisk merker. Når
-kommentaren står først, renderer GitHubs CHANGELOG-visning noen ganger resten
-av punktet som rå tekst:
+Sett `<!--kort-->` til slutt i punktene en bruker faktisk merker. Når kommentaren står først, renderer GitHubs CHANGELOG-visning noen ganger resten av punktet som rå tekst:
 
 ```markdown
 ### Fikset
@@ -79,26 +52,17 @@ av punktet som rå tekst:
 - Fjellnett vekter nå en uke som krysser månedsskiftet med mandagens måned. <!--kort-->
 ```
 
-Merket er en HTML-kommentar. Den er usynlig når `CHANGELOG.md` leses som
-markdown på GitHub, og fjernes fra begge utskriftene.
+Merket er en HTML-kommentar. Den er usynlig når `CHANGELOG.md` leses som markdown på GitHub, og fjernes fra begge utskriftene.
 
-Punktene under «Dette må du gjøre selv» blir med i sin helhet og skal ikke
-merkes. Et merke der telles ikke som merket punkt.
+Punktene under «Dette må du gjøre selv» blir med i sin helhet og skal ikke merkes. Et merke der telles ikke som merket punkt.
 
 Hva som fortjener et merke, er skjønn: det brukeren ser i grensesnittet eller i tallene sine. En avrundingsrettelse eller tydeligere oppsett kan være brukerrelevant; en ny testfixtur hører hjemme i full logg. Velg etter betydning, ikke for å fylle et bestemt antall punkter.
 
 ### Vakten
 
-En seksjon under arbeid uten et eneste merket punkt feller med exit 1, både
-lokalt i `pytest tests/test_release_notes.py` og i `ci.yml`. En kort note som
-bare er en overskrift og en lenke sier mindre enn ingenting, så den skal ikke
-kunne publiseres. Feilmeldingen sier hvilken versjon det gjelder og viser
-merket.
+En seksjon under arbeid uten et eneste merket punkt feller med exit 1, både lokalt i `pytest tests/test_release_notes.py` og i `ci.yml`. En kort note som bare er en overskrift og en lenke sier mindre enn ingenting, så den skal ikke kunne publiseres. Feilmeldingen sier hvilken versjon det gjelder og viser merket.
 
-Seksjonen «under arbeid» er den øverste i filen. Alt under den er sluppet og er
-historikk, og historikk merkes ikke i ettertid. Ber du om `--kort` for en gammel
-versjon, får du hele seksjonen hennes og en merknad på stderr i stedet for en
-feil.
+Seksjonen «under arbeid» er den øverste i filen. Alt under den er sluppet og er historikk, og historikk merkes ikke i ettertid. Ber du om `--kort` for en gammel versjon, får du hele seksjonen hennes og en merknad på stderr i stedet for en feil.
 
 ## Stil
 
@@ -108,10 +72,7 @@ feil.
 - Bruk komma eller punktum fremfor em-dash.
 - Krediter brukere som rapporterer feil med `@brukernavn` og issue-referanse.
 
-Underoverskriftene er Keep a Changelog-kategoriene (`### Fikset`, `### Lagt
-til`, `### Endret`, `### Verifisert`, `### Dokumentert`), pluss `### Dette må
-du gjøre selv`. Ikke skriv noen `# v1.3.0`-heading, tittelen settes på selve
-releasen.
+Underoverskriftene er Keep a Changelog-kategoriene (`### Fikset`, `### Lagt til`, `### Endret`, `### Verifisert`, `### Dokumentert`), pluss `### Dette må du gjøre selv`. Ikke skriv noen `# v1.3.0`-heading, tittelen settes på selve releasen.
 
 ## Dette må du gjøre selv
 
@@ -129,29 +90,13 @@ Krever oppgraderingen noe aktivt av brukeren, som bytte av entitets-id, bekrefte
 - Ny `binary_sensor.maaledata_problem` som varsler når en input-sensor svikter
 ```
 
-Du trenger ikke skrive den først i CHANGELOG; `release_notes.py` løfter den
-øverst i release-body-en uansett hvor i seksjonen den står, så den ikke drukner
-under «Lagt til» og «Fikset». Rekkefølgen skal ikke avhenge av at noen husker
-den. Overskriften matches uten hensyn til store bokstaver.
+Du trenger ikke skrive den først i CHANGELOG; `release_notes.py` løfter den øverst i release-body-en uansett hvor i seksjonen den står, så den ikke drukner under «Lagt til» og «Fikset». Rekkefølgen skal ikke avhenge av at noen husker den. Overskriften matches uten hensyn til store bokstaver.
 
-Står overskriften der uten punkter under seg, feiler scriptet med exit 1 og sier
-hvilken versjon og hvilken kategori det gjelder. Den løftes øverst uansett, så
-tom ville den blitt en naken overskrift på toppen av en publisert release. Blanke
-linjer teller ikke som innhold. Skriv punktene, eller slett overskriften.
-
-Hvorfor den finnes: v1.15.0 byttet sensortyper og enheter, og noten på GitHub
-hadde en håndskrevet ramme om hva brukeren måtte gjøre. I CHANGELOG lå de samme
-fire punktene spredt under «Endret» og «Lagt til», så den som skummet fikk aldri
-beskjeden. Nå som CHANGELOG er eneste kilde, må formatet bære den selv.
+Står overskriften der uten punkter under seg, feiler scriptet med exit 1 og sier hvilken versjon og hvilken kategori det gjelder. Den løftes øverst uansett, så tom ville den blitt en naken overskrift på toppen av en publisert release. Blanke linjer teller ikke som innhold. Skriv punktene, eller slett overskriften.
 
 ## Lenker
 
-Skriv relative lenker som ellers i repoet, altså
-`[incident 006](docs/incidents/006-kapasitetstrinn-uten-kilde.md)`.
-`release_notes.py` skriver dem om til absolutte URL-er mot taggen som slippes
-(`.../blob/v1.17.0/docs/...`) før de havner i release-body-en. Relative lenker
-er døde på en releaseside, og taggen brukes framfor `main` så lenken viser
-innholdet slik det var ved releasen, også om et år.
+Skriv relative lenker som ellers i repoet, altså `[incident 006](docs/incidents/006-kapasitetstrinn-uten-kilde.md)`. `release_notes.py` skriver dem om til absolutte URL-er mot taggen som slippes (`.../blob/v1.17.0/docs/...`) før de havner i release-body-en. Relative lenker er døde på en releaseside, og taggen brukes framfor `main` så lenken viser innholdet slik det var ved releasen, også om et år.
 
 - Absolutte URL-er står urørt
 - Anker uten fil (`#lagt-til`) peker på `CHANGELOG.md` i repoet, på riktig tag
@@ -164,16 +109,11 @@ innholdet slik det var ved releasen, også om et år.
 - Autolenker (`<https://...>`) står urørt. De må ha et skjema for å være lenker,
   så de er alltid absolutte.
 
-Flytter du en fil det lenkes til fra en usluppen seksjon, fanges det av
-`pytest tests/test_release_notes.py` lokalt og av CI, ikke først i
-release-jobben.
+Flytter du en fil det lenkes til fra en usluppen seksjon, fanges det av `pytest tests/test_release_notes.py` lokalt og av CI, ikke først i release-jobben.
 
 ## Hva workflowen legger til
 
-`release.yml` bruker bare den korte CHANGELOG-noten som release-body.
-«Dette må du gjøre selv» løftes øverst, relative lenker blir absolutte, og en
-lenke til hele endringsloggen legges sist. Byggeinformasjon og commit-logg
-legges ikke til. Tagg, ZIP og attestasjon verifiseres separat.
+`release.yml` bruker bare den korte CHANGELOG-noten som release-body. «Dette må du gjøre selv» løftes øverst, relative lenker blir absolutte, og en lenke til hele endringsloggen legges sist. Byggeinformasjon og commit-logg legges ikke til. Tagg, ZIP og attestasjon verifiseres separat.
 
 ## En sluppet seksjon er historikk
 
@@ -184,12 +124,7 @@ gh release list
 git log "$(gh release view --json tagName --jq .tagName)..HEAD"
 ```
 
-Er øverste seksjon allerede sluppet, lag en ny `## [Ikke sluppet]` over. Ellers
-beskriver du arbeid som brukerne ikke har fått, i notatene for en versjon de
-har. Det skjedde i juli 2026: 13 punkter havnet i `[1.14.0]` etter at den var
-publisert, av flere økter på rad. Fellen er at versjonen i `manifest.json`
-allerede er bumpet ved release, så filen ser ut som om den gjelder det du
-holder på med.
+Er øverste seksjon allerede sluppet, lag en ny `## [Ikke sluppet]` over. Ellers beskriver du arbeid som brukerne ikke har fått, i notatene for en versjon de har. Versjonen i `manifest.json` er allerede bumpet ved release og viser derfor ikke alene hvilken seksjon nytt arbeid hører til.
 
 Sjekkliste før du skriver i CHANGELOG:
 
@@ -207,33 +142,17 @@ Sjekkliste før du skriver i CHANGELOG:
    med oppdatert prosjektversjon i `uv.lock`
 3. Commit og push til main
 
-Resten gjør `release.yml`. Den starter CI for nettopp den commiten, venter på
-hele grafen, og publiserer først når artefakten er bygget, lastet opp og
-verifisert.
+Resten gjør `release.yml`. Den starter CI for nettopp den commiten, venter på hele grafen, og publiserer først når artefakten er bygget, lastet opp og verifisert.
 
 ### Releaseporten
 
 Kandidaten er repo + full SHA + manifestversjon; tagg, ZIP og attestasjon skal være bundet til den samme kandidaten.
 
-`release.yml` er den eneste workflowen som kjører på push til main. Den kaller
-`ci.yml` (`workflow_call`) for sin egen commit og har `needs: ci`, så unit,
-kvalitet, begge HA-målene, current-E2E, HACS-validering og Hassfest må være grønne for
-*samme SHA* før releasejobben starter. HACS og Hassfest lå før i egne
-workflows; da kunne en release gå ut før de var ferdige. De kjøres fortsatt
-nattlig fra `validate.yml` og `hassfest.yml`, siden begge kan bli røde av
-endringer utenfor repoet.
+`release.yml` er den eneste workflowen som kjører på push til main. Den kaller `ci.yml` (`workflow_call`) for sin egen commit og har `needs: ci`, så unit, kvalitet, begge HA-målene, current-E2E, HACS-validering og Hassfest må være grønne for *samme SHA* før releasejobben starter. HACS og Hassfest kjøres også nattlig fra `validate.yml` og `hassfest.yml`, siden begge kan bli røde av endringer utenfor repoet.
 
-`ci.yml` kaller `e2e.yml` for `just test-e2e target=current`. Docker-jobben
-sjekker ut kandidat-SHA-en og bygger release-ZIP fra den. Den kjører de åtte
-livssyklusscenarioene og juni-avspillingen, rydder Compose-prosjektet også ved
-feil og laster bare opp redigert evidens, merket med SHA. Den avsluttende
-`Releaseport`-jobben krever `success` fra alle seks testjobbene; manglende,
-feilet, kansellert eller hoppet over resultat stopper publisering. En grønn
-manuell eller tidligere E2E-kjøring kan ikke erstatte kandidatens kjøring.
-Docker inngår ikke i pre-push eller vanlig lokal `just test`.
+`ci.yml` kaller `e2e.yml` for `just test-e2e target=current`. Docker-jobben sjekker ut kandidat-SHA-en og bygger release-ZIP fra den. Den kjører de åtte livssyklusscenarioene og juni-avspillingen, rydder Compose-prosjektet også ved feil og laster bare opp redigert evidens, merket med SHA. Den avsluttende `Releaseport`-jobben krever `success` fra alle seks testjobbene; manglende, feilet, kansellert eller hoppet over resultat stopper publisering. En grønn manuell eller tidligere E2E-kjøring kan ikke erstatte kandidatens kjøring. Docker inngår ikke i pre-push eller vanlig lokal `just test`.
 
-`upgrade` og `vakthold` er egne Docker-løp utenfor denne automatiske porten;
-se [testlabens avgrensninger](../tests_e2e/README.md#hva-som-sjekkes).
+`upgrade` og `vakthold` er egne Docker-løp utenfor denne automatiske porten; se [testlabens avgrensninger](../tests_e2e/README.md#hva-som-sjekkes).
 
 Det som slippes, kommer fra hovedgrenen. To vakter sier det:
 
@@ -244,14 +163,9 @@ Det som slippes, kommer fra hovedgrenen. To vakter sier det:
   ikke det, stopper flyten før noe skrives. Vakten står i scriptet og ikke bare
   i workflowen, så den gjelder også når flyten kjøres for hånd.
 
-Prøvekjøringen mot en engangstagg trenger en ekte workflow-kjøring for å få en
-attestasjon, og den må kunne gå fra en gren. Derfor finnes `proveslipp`, et
-eget felt i dispatch-skjemaet som gir `--proveslipp`. Den veien slipper bare
-manifestversjon `0.0.0` gjennom, og den releasen merkes som prerelease og blir
-aldri `latest`. Hukes feltet av på en gren med en ekte versjon, stopper flyten.
+Prøvekjøringen mot en engangstagg trenger en ekte workflow-kjøring for å få en attestasjon, og den må kunne gå fra en gren. Derfor finnes `proveslipp`, et eget felt i dispatch-skjemaet som gir `--proveslipp`. Den veien slipper bare manifestversjon `0.0.0` gjennom, og den releasen merkes som prerelease og blir aldri `latest`. Hukes feltet av på en gren med en ekte versjon, stopper flyten.
 
-Selve flyten ligger i `scripts/release_publish.py`, som er dekket av
-`tests/test_release_publish.py`. Rekkefølgen er:
+Selve flyten ligger i `scripts/release_publish.py`, som er dekket av `tests/test_release_publish.py`. Rekkefølgen er:
 
 1. **Les tilstanden** (`plan`). Er versjonen sluppet fra før, bevises den mot
    sin egen tagg og jobben stopper der. Peker taggen på en annen commit, blir
@@ -267,9 +181,7 @@ Selve flyten ligger i `scripts/release_publish.py`, som er dekket av
 
 ### Når noe feiler halvveis
 
-Det finnes ingen offentlig release før siste kall, så det er ingenting å rydde.
-Kjør jobben om igjen på samme commit («Re-run failed jobs» beholder SHA-en,
-eller kjør workflowen manuelt på taggen). Hvert steg er idempotent:
+Det finnes ingen offentlig release før siste kall, så det er ingenting å rydde. Kjør jobben om igjen på samme commit («Re-run failed jobs» beholder SHA-en, eller kjør workflowen manuelt på taggen). Hvert steg er idempotent:
 
 - Taggen finnes og peker riktig: den står, og flyttes aldri.
 - Draften finnes: den gjenbrukes, og body-en skrives ikke over. Har du redigert
@@ -284,8 +196,7 @@ eller kjør workflowen manuelt på taggen). Hvert steg er idempotent:
   vet hva er. HACS installerer nøyaktig den filen, så det er ikke et sted for
   automatikk. Slett asset-et bevisst, eller slipp en ny versjon.
 
-En håndskrevet draft med samme tag er ikke lenger et problem som gjør at
-releasen aldri kommer ut. Flyten gjenopptar den og publiserer den.
+En håndskrevet draft med samme tag er ikke lenger et problem som gjør at releasen aldri kommer ut. Flyten gjenopptar den og publiserer den.
 
 ### Se hva som ville skjedd
 
@@ -295,155 +206,17 @@ just release-plan           # les tilstanden på GitHub, skriv ingenting
 just release-verify v1.16.0 # etterprøv en release som alt er ute
 ```
 
-Ingen av dem skriver til GitHub. ZIP-bygg og verifisering bruker lokale
-arbeidsfiler. For en ny kandidat hopper `release-plan` over
-attestasjonssjekken, siden byggesteget ennå ikke har attestert noe. Er
-versjonen allerede publisert, kontrollerer `plan` også den eksisterende
-attestasjonen; eldre avvik kan rapporteres som advarsler, mens `verify`
-behandler dem strengt. I workflowen finnes også `workflow_dispatch` med
-`dry_run`, som ikke publiserer tagg eller release.
-For en ny kandidat kjører workflowen fortsatt bygg- og attesteringssteget;
-`dry_run` er derfor ikke en garanti mot at en attestasjon opprettes.
-
-### Det som ikke er bevist ennå
-
-CI-delen er kjørt på GitHub: [kjøring 34759355606](https://github.com/fredrik-lindseth/Stromkalkulator/actions/runs/34759355606)
-fra 13. september 2026 på `59e30e66d204836699d19de69656231542483132` bestod
-unit, kvalitet, begge HA-målene, HACS og Hassfest. Det bekrefter også
-Python-/uv-oppsettet og minimum-grenens prerelease på runneren. Det er et
-resultat for denne SHA-en, ikke for senere endringer.
-
-Jobben «Publiser» bestod også, men kjørte bare «Les tilstanden»: versjonen var
-allerede ute, og bygging, attestering og publisering ble hoppet over. Dette
-beviser lesesiden mot ekte GitHub, ikke den skrivende publiseringsveien.
-Tilstandsmaskinen har tester mot en GitHub-etterligning. Følgende trenger
-fortsatt en ekte prøvepublisering:
-
-- At `gh api` sine skrivekall (opprette tagg, opprette draft, laste opp asset,
-  `make_latest`) oppfører seg som etterligningen antar.
-- At `compare`-statusen hovedgren-vakten leser, er `identical` for en fersk
-  push til main på veien til en ny release. Den publiserte versjonen avslutter
-  før denne vakten, så den grønne kjøringen over prøvde ikke den grenen.
-- At jobbens `if` hopper over publiseringen slik den skal ved dispatch fra en
-  annen gren. Skulle den likevel starte, stopper vakten i scriptet.
-
-Prøvekjøringen mot en engangstagg, som står i akseptansekriteriene for
-den gjenopptakbare releasen, er fortsatt ikke gjort. Veien er nå ryddet:
-`proveslipp` fra en gren med manifestversjon `0.0.0`, og taggen slettes
-etterpå. Den krever et push, og er derfor ikke kjørt her.
-
-Feiler noe av det, feiler det på rett side: jobben stopper, ingenting blir
-publisert, og neste kjøring på samme commit gjenopptar. Det er billigere å
-oppdage det slik enn å bygge inn en omvei rundt noe vi ikke vet om er et
-problem.
-
-### Actionversjonene
-
-Gjennomgått 13. september 2026. Premisset om at det
-finnes en nyere major for alle fire, holdt bare for to av dem.
-
-`actions/checkout` gikk fra `@v6` til `@v7`. Den eneste bruddendringen i v7 er
-at den nekter å sjekke ut hodet i en fork-PR under `pull_request_target` og
-`workflow_run`. Vi bruker ingen av de to eventene. Resten er en ESM-omskriving
-og avhengighetsbumper, og v7.0.1 har ryddet tre feil i den. Begge majorene
-kjører node24. En feil i checkout kan ikke gi en gal release, bare en stoppet
-en: ZIP-en bygges fra git-objektene og bindes av attestasjonen etterpå.
-
-`extractions/setup-just` gikk fra `@v3` til `@v4`. Hele diffen er at den
-underliggende `setup-crate` løftes fra v1.4.0 til v2.0.0, altså node20 til
-node24. Inputene er uendret.
-
-`codecov/codecov-action` står på `@v6`. `v6`- og `v7`-taggene peker på nøyaktig
-samme commit: Codecov skriver selv at v6.0.2 er «a copy of the v7.0.0 release»,
-laget for at oppdateringen skal være valgfri. Bumpen ville vært et navnebytte.
-
-`astral-sh/setup-uv` gikk fra `@v7` til `@v10.1.0`, altså en eksakt versjon og
-ikke en majortagg. Det er ikke en flytende tagg, men det bryter med mønsteret i
-resten av filen, så grunnen står her og i `ci.yml`: Astral sluttet å publisere
-major- og minortagger fra og med v8.0.0, som et svar på tj-actions-angrepet.
-`@v8`, `@v9` og `@v10` finnes ikke. `@v7` finnes, men sluttet å bevege seg i
-mars 2026 og får ingen fikser. Valget sto mellom en frossen tagg og en pinnet
-versjon som må bumpes for hånd, og da er det siste ærligere. Bruddene i v8 til
-v10 treffer ingenting vi bruker: det gamle `manifest-file`-formatet er borte
-(vi setter det ikke), `prune-cache` er nå av som default (koster cachestørrelse,
-ikke riktighet), og `enable-cache: auto` slår seg av under `pull_request_target`,
-`workflow_run` og `release` (vi setter `true`, og kjører på `pull_request` og
-`workflow_call`).
-
-`actions/attest-build-provenance@v4` er allerede nyeste major, og `v4`-taggen
-peker på v4.2.2. Den er det sikkerhetskritiske steget, og den ble ikke rørt.
-
-Checkout, setup-just, setup-uv og Codecov-steget bestod på runneren i
-[kjøring 34759355606](https://github.com/fredrik-lindseth/Stromkalkulator/actions/runs/34759355606).
-Attesteringssteget ble hoppet over; hele publiseringsveien gjenstår som
-beskrevet over.
-
-De tre nattlige workflowene, `validate.yml`, `fri-nettleie-sjekk.yml` og
-`hassfest.yml`, lå utenfor mandatet i denne runden og ble løftet til
-`actions/checkout@v7` senere med samme vurdering. Alle workflowene står nå på v7.
+Ingen av dem skriver til GitHub. ZIP-bygg og verifisering bruker lokale arbeidsfiler. For en ny kandidat hopper `release-plan` over attestasjonssjekken, siden byggesteget ennå ikke har attestert noe. Er versjonen allerede publisert, kontrollerer `plan` også den eksisterende attestasjonen; eldre avvik kan rapporteres som advarsler, mens `verify` behandler dem strengt. I workflowen finnes også `workflow_dispatch` med `dry_run`, som ikke publiserer tagg eller release. For en ny kandidat kjører workflowen fortsatt bygg- og attesteringssteget; `dry_run` er derfor ikke en garanti mot at en attestasjon opprettes.
 
 ### Det v1.16.0 viser
 
-`just release-verify v1.16.0` feller i dag, og det er riktig:
+`just release-verify v1.16.0` feiler fordi taggen og attestasjonen peker på ulike commits, og ZIP-en ikke er byte-reproduserbar fra taggen. Filinnholdet er kontrollert mot taggen. Se [sikkerhetsdokumentasjonen](../SECURITY.md) for hva verifiseringen dekker.
 
-```text
-✓ tagg: v1.16.0 peker på 9dad0dd9ec54
-✓ innhold: filene er de samme som i 9dad0dd9ec54, men ZIP-en er ikke byte-lik
-! attestasjon: expected SourceRepositoryDigest to be 9dad0dd9..., got c7e7c70d...
-```
-
-Taggen peker på én commit, attestasjonen sier ZIP-en ble bygget fra en annen.
-Innholdet var likt, så ingen brukere fikk feil kode, men bindingen manglet.
-`SECURITY.md` sier det samme, siden det er der brukerne blir bedt om å kjøre
-kommandoen. Det er nettopp den gamle flyten som gjorde det mulig, og det er
-derfor `plan` bare advarer om eldre releaser mens `verify` feller: en release
-som alt er ute, blir ikke bedre av at hver push til main etterpå går rød.
-
-#### Kan det rettes i ettertid?
-
-Mekanisk ja, og det er verdt å skrive ned hvorfor vi lar være.
-Filen sier ellers at det ikke går, og det er feil.
-
-`actions/attest-build-provenance` tar `subject-digest` og `subject-name` i
-stedet for `subject-path`. En `workflow_dispatch` på taggen `v1.16.0` gir
-`github.sha` = 9dad0dd, så en kjøring der som laster ned den publiserte ZIP-en
-og attesterer digesten hennes, ville lagt igjen en attestasjon med
-`sourceRepositoryDigest` 9dad0dd og riktig subject. `gh attestation verify`
-godtar treffet når én av attestasjonene på digesten passer, så `release-verify`
-ville blitt grønn.
-
-Vi gjør det ikke. Attestasjonen ville sagt at denne workflowen bygget denne
-filen fra 9dad0dd, og det skjedde aldri: filen kom fra en kjøring på c7e7c70
-med den gamle `zip -r`-flyten. Hele poenget med provenans er at den forteller
-hva som faktisk hendte. Signerer vi en penere historie for å få vår egen
-kommando grønn, er alle senere attestasjoner fra oss verdt mindre, og brukeren
-kan ikke se forskjell. Det er heller ikke gratis i den forstand at ingenting
-publiseres: en attestasjon er en permanent oppføring i en offentlig
-gjennomsiktighetslogg.
-
-Den gale attestasjonen kan ikke fjernes heller. REST-API-et har `POST` og
-`GET` på `/repos/{owner}/{repo}/attestations`, ingen `DELETE`, og `gh
-attestation` har bare `download`, `trusted-root` og `verify`. Og selv om den
-kunne slettes, ville v1.16.0 stått uten provenans i det hele tatt, som er
-verre enn en som ikke stemmer.
-
-Å flytte taggen til c7e7c70 ville bundet attestasjonen, men taggen flyttes
-ikke: git oppdaterer ikke en tagg som har endret seg hos en klient som alt har
-hentet den, så de som har v1.16.0 ville stille blitt liggende igjen. ZIP-en er
-uansett ikke byte-reproduserbar fra noen av de to commitene, siden den er
-pakket før flyten ble deterministisk.
-
-Det som står igjen, er derfor å si det der brukerne ser det. `SECURITY.md` gjør
-det alt. Det siste punktet er en kort note i release-body-en for v1.16.0, og
-den krever skrivetilgang på GitHub.
+Ikke flytt publiserte tagger eller lag en ny attestasjon som påstår at et bygg ble produsert av en annen commit. En attestasjon skal beskrive byggingen som faktisk fant sted. Dokumenter avviket der brukerne finner verifiseringsinformasjonen.
 
 ## Retting etter publisering
 
-Rett i CHANGELOG.md først, så teksten i repoet er fasiten, og speil den til
-releasen. `gh release edit --notes` overskriver hele body-en, så hent den
-eksisterende først. Eldre releaser har en Verifisering-del og commit-fold;
-behold disse når en historisk note rettes. Nye noter følger den korte
-brukerteksten:
+Rett i CHANGELOG.md først, så teksten i repoet er fasiten, og speil den til releasen. `gh release edit --notes` overskriver hele body-en, så hent den eksisterende først. Eldre releaser har en Verifisering-del og commit-fold; behold disse når en historisk note rettes. Nye noter følger den korte brukerteksten:
 
 ```bash
 gh release view vX.Y.Z --json body -q .body

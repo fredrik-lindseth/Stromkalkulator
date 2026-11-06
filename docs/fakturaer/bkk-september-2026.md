@@ -139,7 +139,7 @@ konstant faktor mot Final, mellom 0,99769 og 1,00242. Til nå har det nesten bar
 skjedd på søndager. I september gjelder det også hverdager, med en sammenhengende
 rekke fra 13. til 17. og fra 23. til 28. Det rammer bare recorder-sammenligningen.
 Fakturaen og eksakt-sjekken bruker Final-prisene, og der er treffet uendret.
-Tabellen står i [norgespris-eksakt-match.md](../research/norgespris-eksakt-match.md).
+Tabellen står i [norgespris-eksakt-match.md](../research/priser/norgespris-eksakt-match.md).
 
 ## Avgiftsverifisering
 

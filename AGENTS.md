@@ -117,9 +117,11 @@ før fakturamånedene faller ut. Kvarterprisene er fasiten BKK fakturerer fra; m
 dem reproduseres Norgespris-linjen eksakt (verifisert juni 2026). HA-recorderen
 lagrer prisene slik de så ut ved publisering og kan ha foreløpig valutakurs på
 søndager, så den duger ikke som fasit. Bakgrunn:
-[docs/research/norgespris-eksakt-match.md](docs/research/norgespris-eksakt-match.md).
+[docs/research/priser/norgespris-eksakt-match.md](docs/research/priser/norgespris-eksakt-match.md).
 
 ## Dokumentasjon
+
+[docs/README.md](docs/README.md) er inngangen til dokumentasjonen. Skriv gjeldende oppførsel i veiledningene; oppgavestatus hører til privat oppgavesporing.
 
 - [docs/domain-rules.md](docs/domain-rules.md): domene-regler, avgifter, sjekklister, kilder
 - [docs/beregninger.md](docs/beregninger.md): formler og sensorer

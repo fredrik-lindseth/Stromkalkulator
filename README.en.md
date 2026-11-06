@@ -41,7 +41,7 @@ Sensors showing what electricity actually costs:
 
 Each report matches the integration's calculations line by line against a real invoice. See [docs/fakturaer/referanse.md](docs/fakturaer/referanse.md) (Norwegian).
 
-The integration hits the invoice to the øre: within 50 Wh on monthly consumption, 1-2 øre on the grid tariff lines (BKK's internal rounding), and the Norgespris line is reproduced exactly against published Final prices (June 2026, see [docs/research/norgespris-eksakt-match.md](docs/research/norgespris-eksakt-match.md), Norwegian). The live sensor can deviate 0.04-0.05 % because Nord Pool may correct the exchange rate after publication. No configuration needed. Details per meter brand and HAN reader: [docs/begrensninger.md](docs/begrensninger.md) (Norwegian).
+The integration hits the invoice to the øre: within 50 Wh on monthly consumption, 1-2 øre on the grid tariff lines (BKK's internal rounding), and the Norgespris line is reproduced exactly against published Final prices (June 2026, see [docs/research/priser/norgespris-eksakt-match.md](docs/research/priser/norgespris-eksakt-match.md), Norwegian). The live sensor can deviate 0.04-0.05 % because Nord Pool may correct the exchange rate after publication. No configuration needed. Details per meter brand and HAN reader: [docs/begrensninger.md](docs/begrensninger.md) (Norwegian).
 
 Verification was done on a Kaifa MA304H3E (3-phase, imported by Nuri Telecom) with a Pow-U HAN reader (AMSleser.no) and the official `nordpool` integration in HA. Aidon meters have the same broadcast timing (HH:00:10) and are expected to give the same precision. Other HAN readers and spot integrations may have different precision characteristics.
 
@@ -259,6 +259,8 @@ Use **Akkumulert strømkostnad** instead. That sensor distributes the capacity c
 The "Månedlig nettleie total" sensor is also useful for invoice verification, but can't be used directly in the Energy Dashboard.
 
 ## Documentation
+
+[Documentation overview](docs/README.md) (Norwegian): user guides, invoice verification and development.
 
 | Document                                | Content                                   |
 | --------------------------------------- | ----------------------------------------- |

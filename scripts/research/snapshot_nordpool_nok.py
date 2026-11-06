@@ -12,7 +12,7 @@ mens BKK fakturerer Final-årgangen. Eksakt fakturaverifisering krever derfor
 de publiserte Final-prisene, og det gratis anonyme API-et serverer bare om lag
 de siste 2 månedene (eldre gir 401). Kjør jevnlig (minst månedlig) så
 fakturamånedene fanges før de faller ut. Bakgrunn:
-docs/research/norgespris-eksakt-match.md.
+docs/research/priser/norgespris-eksakt-match.md.
 
 Arkivet ligger under _private/ (gitignored) fordi rå Nord Pool-data er
 lisensbelagt og ikke skal redistribueres i repoet.

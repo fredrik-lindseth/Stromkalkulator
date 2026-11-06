@@ -166,7 +166,7 @@ Ikke ta med:
 Om Norgespris-raden: se
 [incident 004](../incidents/004-spotpris-mva-feilbehandling.md). Avvik på
 0,04-0,05 % er normalt: HA-recorderen kan ha foreløpige priser, se
-[research/norgespris-eksakt-match.md](../research/norgespris-eksakt-match.md).
+[prisgrunnlaget](../research/priser/norgespris-eksakt-match.md).
 
 ## Eksisterende verifikasjoner
 

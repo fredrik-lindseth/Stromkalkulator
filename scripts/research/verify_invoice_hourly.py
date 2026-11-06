@@ -475,7 +475,7 @@ def print_norgespris_eksakt(faktura_navn: str, shift_seconds: int) -> bool | Non
     HA-recorderen kan ha en annen prisårgang enn BKK fakturerer fra (foreløpig
     vs Final valutakurs på dager der FX-markedet var stengt). Med publiserte
     priser skal linjen treffe fakturaen tilnærmet eksakt; juni 2026 traff på
-    øret. Se docs/research/norgespris-eksakt-match.md. Krever de private
+    øret. Se docs/research/priser/norgespris-eksakt-match.md. Krever de private
     prisarkivene (`just snapshot-kurs`); hopper stille over hvis de mangler.
     """
     try:
@@ -513,7 +513,7 @@ def print_norgespris_eksakt(faktura_navn: str, shift_seconds: int) -> bool | Non
     )
     print(
         "  (HAN x Final kan avvike opptil 0.4 kr ved recorder-aggregatglipper; "
-        "eksakt kontroll krever Elhub-kWh, se docs/research/norgespris-eksakt-match.md)"
+        "eksakt kontroll krever Elhub-kWh, se docs/research/priser/norgespris-eksakt-match.md)"
     )
     return None
 

@@ -110,7 +110,7 @@ den kjente prisårgang-effekten: fire søndager (05.07, 12.07, 19.07, 26.07)
 har konstant kursavvik mellom recorder og publisert. Med Nord Pools
 publiserte Final-priser er avviket -0,05 kr, og den skarpeste sjekken,
 Elhub-kWh x Final for hele måneden, treffer fakturaen på +0,003 kr, jf.
-[research/norgespris-eksakt-match.md](../research/norgespris-eksakt-match.md).
+[prisgrunnlaget](../research/priser/norgespris-eksakt-match.md).
 Juli hadde 18 timer med spot under 50 øre inkl. mva der kunden betaler
 mellomlegg (målt over de 683 HAN-timene; alle utfallstimene lå over 50 øre).
 Måneden har ingen helligdager, så dag/natt-klassifiseringen er ren ukedag/helg.

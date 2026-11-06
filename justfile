@@ -18,7 +18,7 @@ verify-all:
     python3 scripts/research/match_norgespris_alle_maaneder.py --emit-markdown
     @echo "→ match_strommstotte_variants (april 2026)"
     python3 scripts/research/match_strommstotte_variants.py --emit-markdown
-    @echo "→ oppdater GENERATED-blokker i docs/research/*.md"
+    @echo "→ oppdater GENERATED-blokker i docs/research/**/*.md"
     python3 scripts/research/inject_generated.py
 
 # Bare april (raskt fornuftssjekk).
@@ -40,7 +40,7 @@ regen-fixtures start="2026-01-01" end="2026-05-22" area="NO5":
 # Kjør hver gang du er i repoet (minst månedlig): gratis-API-et rekker bare ~2 mnd
 # bakover, så ferske data må fanges før de faller ut. Merger inn i arkivene under
 # _private/. Kvarterprisene trengs for eksakt Norgespris-verifisering, se
-# docs/research/norgespris-eksakt-match.md.
+# docs/research/priser/norgespris-eksakt-match.md.
 snapshot-kurs area="NO5":
     python3 scripts/research/snapshot_nordpool_exchangerate.py --area {{area}}
     python3 scripts/research/snapshot_nordpool_nok.py --area {{area}}

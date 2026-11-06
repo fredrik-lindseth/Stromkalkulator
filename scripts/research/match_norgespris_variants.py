@@ -1,10 +1,10 @@
-"""Prøv mange NOK-omregnings-varianter mot BKK-fakturaen til vi finner perfekt match.
+"""Sammenlign alternative NOK-omregninger med BKK-fakturaen.
 
 Henter rå EUR/MWh + EXR (Nord Pools egen valutakurs) fra hvakosterstrommen.no
 (speil av Nord Pool day-ahead), EUR/NOK fra Norges Bank, forbruk fra Elhub-fixturen.
 Beregner forbruksvektet snittspot per variant og sammenligner med fakturaen.
 
-Bakgrunn: docs/research/nok-omregning.md.
+Bakgrunn: docs/research/priser/norgespris-eksakt-match.md.
 
 Varianter:
     A: Nord Pools daglige EXR (samme kurs som Nord Pool selv publiserer NOK-pris med)

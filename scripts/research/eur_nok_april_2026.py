@@ -6,7 +6,7 @@ og sammenligner.
 
 Kjøres uten avhengigheter utover Python 3 standardbibliotek.
 
-Bakgrunn: se docs/research/nok-omregning.md
+Bakgrunn: se docs/research/priser/norgespris-eksakt-match.md
 """
 
 from __future__ import annotations

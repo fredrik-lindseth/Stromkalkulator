@@ -267,21 +267,13 @@ alt sto i filen, så et seedet felt kan ikke bli til et lagringsformat vi har
 funnet på.
 
 `vakthold` lar utfallet vare like lenge som et ekte et: 32 minutter for
-grace-vinduet på 30. Den prøver også de tilfellene som **ikke** skal varsle,
-siden vaktholdet ble avvist tre ganger på falske positiver: omstart med tom
+grace-vinduet på 30. Den prøver også tilfeller som ikke skal varsle: omstart med tom
 spotcache, et utfall innenfor grace, målerbytte, og delvis friskmelding der
 teksten skal skrives om framfor at varselet lukkes. Frossen teller og
 strømbrudd seedes gjennom lagringsfilen framfor å ventes ut, for begge handler
 om hva `last_energy_increase` og `last_update` sto på da HA startet.
 
-En kjent oppstartsfeil i driveren kan gi falskt rødt etter omstart:
-`ready()` venter bare på `/api/`, som kan svare før HA er `RUNNING` og før
-entitetene finnes. Da kan `update_entity` bli kalt for tidlig, blant annet i
-`test_frossen_teller_varsles`. Dette er ikke rettet i
-driveren ennå. En permanent retting må vente på både ferdig HA-oppstart og
-nødvendige entiteter, og så bestå hele vaktholdsekvensen inkludert
-strømbrudd-motprøven. En grønn enkeltprøve etter ekstra venting er nyttig
-feilsøking, men ikke en grønn full suite.
+`Driver.ready()` venter etter autentisering på at HA er `RUNNING` og at hovedentiteten for hvert lagrede anlegg er tilgjengelig. Endringer i oppstartsventingen verifiseres med hele vaktholdsekvensen, inkludert `test_strombrudd_er_ikke_frossen_teller`. Se [oppstart etter restart](../tests_e2e/README.md#oppstart-etter-restart).
 
 Hold vertsmaskinen våken under de lange testene; dvale avbryter den tilsiktede
 sammenhengende kjøringen. Se [labens kjørevilkår](../tests_e2e/README.md#kjør).
@@ -292,12 +284,7 @@ utfallsraden er alt voktet deterministisk, og en port som tar to timer er en
 port ingen kjører. Sommertid hører til `tests/test_dst_overgang.py`; laben kan
 ikke flytte klokken, og skal ikke kunne det.
 
-Størrelsen på fallet i `monthly_cost_kr` kan ikke måles her. HA bruker dagens
-klokke, så fastleddet blir dagens andel av inneværende måned. De 64 til 145
-kronene er målt mot ekte fakturaer i
-[docs/research/revalidering-l3b-september-2026.md](research/revalidering-l3b-september-2026.md).
-Laben prøver mekanismen: at `monthly_cost_kr` og akkumulert kostnad nå er
-samme tall, og at fastleddet ikke rører seg av at forbruket gjør det.
+Laben kontrollerer at `monthly_cost_kr` og akkumulert kostnad leser samme regnskap, og at fastleddet følger tid fremfor forbruk. Den bruker dagens klokke og dermed inneværende måneds fastledd. Historiske fakturabeløp kontrolleres med [fakturareplay og uavhengig avregning](fakturaer/utviklerkontroll.md).
 
 ## Live-tester i Home Assistant
 

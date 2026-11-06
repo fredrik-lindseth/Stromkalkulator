@@ -41,7 +41,7 @@ Belegget er fakturaen: Norgespris-linjen reproduseres innenfor 0,005 kr for mai,
 juni og juli 2026 med Elhub-kWh ganger snittet av Nord Pools publiserte
 Final-kvarterpriser. Tallene per måned står i
 [verify_norgespris_eksakt.md](../research/_generated/verify_norgespris_eksakt.md),
-bakgrunnen i [norgespris-eksakt-match.md](../research/norgespris-eksakt-match.md).
+bakgrunnen i [norgespris-eksakt-match.md](../research/priser/norgespris-eksakt-match.md).
 
 Alternativet var å bruke Nord Pools publiserte timespris slik den står, altså
 avrundet til to desimaler NOK/MWh. Forskjellen er målt på kvarterarkivet for

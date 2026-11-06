@@ -180,6 +180,8 @@ Det skjer bare med prissensor-metoden (**Totalpris inkl. avgifter**): kapasitets
 
 ## Dokumentasjon
 
+[Dokumentasjonsoversikt](docs/README.md) med brukerveiledninger, fakturakontroll og utviklerdokumentasjon.
+
 | Dokument                                    | Innhold                             |
 | ------------------------------------------- | ----------------------------------- |
 | [sensorer.md](docs/sensorer.md)             | Alle sensorer og attributter        |

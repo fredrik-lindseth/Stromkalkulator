@@ -5,8 +5,8 @@ prisene i feltet `exchangeRate` på NOK-svaret fra DayAheadPrices-API-et. Det er
 denne kursen (state=Final, etter to-banks-hedge) som strømleverandører/netteiere
 fakturerer Norgespris og spotpris mot, jf. forskrift om kraftomsetning § 7-6.
 
-Se docs/research/bloomberg-verifisering.md (Veien videre) for hvorfor dette er
-den riktige kursen, og hvordan den sporer Norges Bank dagen før (D-1).
+Se docs/research/priser/norgespris-eksakt-match.md for bruk av prisarkivet
+i fakturakontrollen.
 
 VIKTIG: Det gratis anonyme API-et serverer bare om lag de siste 2 månedene;
 eldre datoer gir 401. Kjør derfor jevnlig (minst månedlig) for å fange opp

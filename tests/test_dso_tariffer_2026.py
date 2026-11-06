@@ -1,5 +1,5 @@
-"""Verifisering av 2026-tariffer for nettselskaper som ble fikset etter
-trippelsjekk mot offisielle kilder (se docs/research/dso-trippelverifisering.md).
+"""Verifisering av 2026-tariffer mot kildebekreftede beløp.
+Krav til tariffkilder står i docs/domain-rules.md.
 
 Test-stil: gitt energi X og effekt Y, returner kostnad Z kr. Speiler
 faktura-kalkylen brukerne ser. Bruker samme inkl-mva-formel som

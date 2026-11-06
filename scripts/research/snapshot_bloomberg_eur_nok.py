@@ -2,7 +2,7 @@
 
 Leser Bloomberg-uttrekket (EUR/NOK daglig snapshot 12:00 Europe/Berlin,
 jan-apr 2026) og skriver en JSON-fixture på samme form som nb_eur_nok_2026.json.
-Resultatet er dokumentert i docs/research/bloomberg-verifisering.md:
+JSON-format:
 
     {"metadata": {...}, "daily": [{"date": "2026-01-02", "rate": 11.80381}, ...]}
 

@@ -1,44 +1,15 @@
-# Research
+# Måledata og prisgrunnlag
 
-Bakgrunn, analyser og åpne spørsmål bak strømkalkulator-integrasjonen.
+Her beskrives datakildene som brukes til å kontrollere Strømkalkulator mot faktura. Selve beregningsreglene står i [avregningskontrakten](../kontrakter/avregning.md), og fakturakontrollen er beskrevet i [utviklerveiledningen](../fakturaer/utviklerkontroll.md).
 
-Filene her dokumenterer hvordan integrasjonen forholder seg til faktiske BKK-fakturaer, hvordan ulike DSO-tariffer er verifisert mot kilder, og åpne spørsmål rundt EUR/NOK-omregning og AMS-måler-timing. Generert tabell-output ligger i `_generated/` og oppdateres av `just verify-all`. PDF-spec for målere ligger i `specifications/`.
+| Tema | Dokumentasjon |
+| --- | --- |
+| Hente forbruk fra Elhub | [JSON, CSV og Maskinporten](maaling/elhub-api.md) |
+| Måling og tidsstempler | [HAN-data og sammenligning med Elhub](maaling/han-maling.md) |
+| Målernes HAN-grensesnitt | [Spesifikasjoner for Kaifa, Aidon og Kamstrup](maaling/specifications/README.md) |
+| Priser til fakturakontroll | [Nord Pool-priser og Norgespris](priser/norgespris-eksakt-match.md) |
+| Beregnede sammenligninger | [Genererte tabeller](_generated/) |
 
-## Fakturaverifisering og kodegjennomgang
+Originale måledata og prisarkiver ligger i gitignorert `_private/Måleverdier/`. Testene bruker anonymiserte [fixturer](../../tests/fixtures/README.md). Genererte tabeller oppdateres av skriptene; veiledningene forklarer hvordan resultatene skal brukes.
 
-- [norgespris-eksakt-match.md](norgespris-eksakt-match.md), fasiten: Norgespris-linjen reproduseres eksakt med Nord Pools publiserte Final-priser (juni 2026). Recorder-avviket var prisårgang.
-- [nok-omregning.md](nok-omregning.md), variant-matrise for EUR/NOK-omregning av Norgespris-kompensasjon, med konklusjon om 12:00 CET-hypotesen.
-- [elhub-vs-han-vs-faktura.md](elhub-vs-han-vs-faktura.md), sammenligning av Elhub-data, HAN-broadcast og BKK-faktura for å lokalisere 13-sek-forsinkelsen.
-- [ikke-validerte-scenarier.md](ikke-validerte-scenarier.md), kodegjennomgang av tre kjente scenarier (DST, negative spotpriser, Norgespris-tak) med identifiserte småfeil.
-
-## Avregningsomleggingen (september 2026)
-
-- [revalidering-l3a-september-2026.md](revalidering-l3a-september-2026.md), hva coordinatoren på intervaller flyttet i volum, dag/natt-splitt og døgnmaks.
-- [revalidering-l3b-september-2026.md](revalidering-l3b-september-2026.md), hva kostnadskjernen flyttet i kroner, komponent for komponent, mot ti fakturamåneder.
-- [sensorendringer-l3c-september-2026.md](sensorendringer-l3c-september-2026.md), hva månedssensorene viser etter at de leser bokføringen i stedet for å regne selv.
-
-## EUR/NOK-kurser og valutamarked
-
-- [valutafixinger-12cet.md](valutafixinger-12cet.md), hvilke 12:00 CET-fixinger som faktisk finnes, og hva norske banker og strømleverandører bruker.
-- [forward-hedge-og-nok-likviditet.md](forward-hedge-og-nok-likviditet.md), Nord Pools to-banks-hedge og NOK-likviditet i lunsj-vinduet.
-- [nok-intraday-volatilitet.md](nok-intraday-volatilitet.md), er observerte 12:00 → 14:15 bevegelser normale, og finnes det systematisk skjevhet.
-- [sporsmal-valutaekspert.md](sporsmal-valutaekspert.md), spørsmål utarbeidet til en valuta-PhD om EUR/NOK-omregning, aldri sendt. Kurs-sporet ble løst empirisk før spørsmålene ble nødvendige, filen står som audit-trail.
-- [bloomberg-verifisering.md](bloomberg-verifisering.md), resultat av Bloomberg 12:00 CET-uttrekket: hypotesen holdt ikke. Kurs-sporet er avsluttet, se norgespris-eksakt-match.md.
-
-## AMS-måler og timing
-
-- [klokke-og-tidsstempling.md](klokke-og-tidsstempling.md), klokke-kilde og 10-sek-broadcast-design i Kaifa/Aidon-målere.
-
-## Nettleietariffer (DSO)
-
-- [dso-trippelverifisering.md](dso-trippelverifisering.md), sjekk av flaggede feil i `dso.py` mot tre uavhengige kilder per nettselskap.
-- [andre-nettselskaper.md](andre-nettselskaper.md), verifisering av de største DSO-ene utenom BKK mot publiserte tariffer for 2026.
-
-## Kommunikasjon
-
-`epost-utkast-bkk.md` er slettet: e-posten til BKK om Norgespris-snittpris og kursvalg ble aldri sendt. Kurs-sporet ble lukket empirisk (se norgespris-eksakt-match.md) før utkastet var nødvendig.
-
-## Underkataloger
-
-- [`_generated/`](_generated/), tabellene som regenereres av `just verify-all`. Ikke rediger manuelt.
-- [`specifications/`](specifications/), HAN-port-spec for Kaifa, Aidon og Kamstrup AMS-målere.
+Nettselskapenes satser og kildekrav er samlet i [domenereglene](../domain-rules.md). Fakturarapportene ligger under [fakturaer](../fakturaer/referanse.md).

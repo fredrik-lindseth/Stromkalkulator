@@ -1,23 +1,24 @@
-# Release notes
+# Endringslogg og release
 
-Leseren har allerede installert integrasjonen. Beskriv endringene fra forrige versjon og bare handlingene som er nødvendige for oppgraderingen. Installasjon, dashbordoppsett og valgfrie blueprints står i README. Skriv hele avsnitt og listepunkter på én linje uten manuell linjebryting. Bruk vanlige ord og konkrete endringer. Sjekk tidligere manifestversjoner i git før du kaller en release den første.
+Dette er den samlede instruksen for CHANGELOG, release-noter og publisering. Les og følg den før du skriver eller endrer notene, endrer versjon eller releaseflyt, eller pusher til main. [AGENTS.md](../AGENTS.md#endringslogg-og-release) viser hit for at detaljene bare skal lastes når de trengs.
+
+## Arbeidsrekkefølge
+
+1. Før du skriver: kjør `gh release list` og sjekk om øverste CHANGELOG-seksjon er publisert. Slupne seksjoner er historikk; opprett `## [Ikke sluppet]` ved behov. Manifestversjonen alene sier ikke hvor nye endringer hører hjemme. Se [historikkregelen](#en-sluppet-seksjon-er-historikk).
+2. Skriv for HACS etter reglene under. Merk bare brukerrelevante punkter med `<!--kort-->`, og bruk `### Dette må du gjøre selv` bare for nødvendige oppgraderingshandlinger. Bruk relative lenker til filer som finnes.
+3. Generer og les den faktiske korte noten med `python3 scripts/release_notes.py "Ikke sluppet" --kort`, eller bruk versjonsnummeret når seksjonen er navngitt. Kontroller ordvalg, lengde og nødvendige handlinger; grønn CI vurderer ikke om teksten er god.
+4. Før commit: kjør `just test`, og begge HA-målene når endringen krever det, som beskrevet i [testguiden](testing.md#testmiljøer). Endrer du releaseflyten, kjør også `just release-plan` og les resultatet. Den skriver ingenting til GitHub.
+5. Før publisering: følg [publiseringsstegene](#publisering). Push til main starter releaseporten; alle kontrollene må være grønne for samme kandidat-SHA. Gjenoppta en feilet kjøring på samme commit.
 
 ## Skriv for HACS i Home Assistant
 
-GitHub-release-bodyen vises inne i Home Assistant. Den korte noten skal derfor
-beskrive funksjoner, synlige feilrettinger og nødvendige handlinger, normalt
-5–10 korte punkter. Ved første release beskriver den hva brukeren får.
-Unngå implementasjonshistorikk og tekniske bevis i denne teksten.
+GitHub-release-bodyen vises i HACS inne i Home Assistant. Beskriv funksjoner, synlige feilrettinger og nødvendige handlinger i korte punkter. Lengden følger endringene, uten et fast antall punkter. Første release beskriver hva brukeren får; senere releaser beskriver forskjellen fra forrige versjon. Sjekk tidligere manifestversjoner i git før du omtaler en release som den første; manglende GitHub-releaser betyr ikke at tidligere versjoner mangler.
 
-Bruk `<!--kort-->` bare på de brukerrettede punktene. Testresultater, CI,
-refaktorering og datakildepinner kan stå i full CHANGELOG eller
-utviklerdokumentasjonen. Commit-logg og byggedetaljer legges ikke til
-release-bodyen automatisk. Tagg, ZIP og attestasjon kontrolleres fortsatt av
-release-porten; [SECURITY.md](../SECURITY.md) viser hvordan de etterprøves.
+Leseren har allerede installert integrasjonen. Installasjon, dashbordoppsett og valgfrie blueprints hører hjemme i README. Kategorien `### Dette må du gjøre selv` er bare for handlinger som kreves ved oppgradering.
 
-Les den genererte korte noten før publisering, med handlingene først og lenke
-til full endringslogg sist. Kontroller at hvert punkt forklarer hva brukeren
-får eller merker, og at det faktisk er kort nok til en oppdateringsdialog.
+Bruk `<!--kort-->` bare på de brukerrettede punktene. Testtall, CI, refaktorering, datakildepinner og annen utviklerinformasjon kan stå i full CHANGELOG eller utviklerdokumentasjonen, uten kortmerke. Release-bodyen skal ikke fylles med commit-logg, SHA-er eller byggedetaljer. Tagg, ZIP og attestasjon kontrolleres av releaseporten; [SECURITY.md](../SECURITY.md) viser hvordan de etterprøves.
+
+Les den genererte korte noten før publisering, med handlingene først og lenke til full endringslogg sist. Hvert punkt skal forklare hva brukeren får eller merker. En kort overskrift gjør ikke et langt avsnitt kort nok til en oppdateringsdialog.
 
 ## CHANGELOG.md
 
@@ -74,8 +75,8 @@ av punktet som rå tekst:
 ```markdown
 ### Fikset
 
-- **Månedskostnaden lå 64 til 145 kroner for høyt.** Fastleddet ... <!--kort-->
-- **Fjellnett vekter en uke som krysser månedsskiftet med mandagens måned**, ...
+- Månedskostnaden regner nå fastleddet uavhengig av forbruket. Tidligere kunne beløpet bli for høyt. <!--kort-->
+- Fjellnett vekter nå en uke som krysser månedsskiftet med mandagens måned. <!--kort-->
 ```
 
 Merket er en HTML-kommentar. Den er usynlig når `CHANGELOG.md` leses som
@@ -84,11 +85,7 @@ markdown på GitHub, og fjernes fra begge utskriftene.
 Punktene under «Dette må du gjøre selv» blir med i sin helhet og skal ikke
 merkes. Et merke der telles ikke som merket punkt.
 
-Hva som fortjener et merke, er skjønn: det brukeren ser i grensesnittet eller i
-tallene sine. En rettet avrunding hos tre nettselskap, en omskrevet
-oppsettstekst eller en ny fixtur hører hjemme i hele loggen og ingen andre
-steder. Rundt ti punkter er et fornuftig mål, men det er ikke en terskel noe
-sted i koden.
+Hva som fortjener et merke, er skjønn: det brukeren ser i grensesnittet eller i tallene sine. En avrundingsrettelse eller tydeligere oppsett kan være brukerrelevant; en ny testfixtur hører hjemme i full logg. Velg etter betydning, ikke for å fylle et bestemt antall punkter.
 
 ### Vakten
 
@@ -105,12 +102,11 @@ feil.
 
 ## Stil
 
-- Ikke forklar hva prosjektet er, brukerne har allerede installert det
-- Punktlister, ikke avsnitt med bold-tittel og lang beskrivelse
-- Kort og skannbart
-- Ingen AI-slop ("we're excited to announce", overdreven adjektivbruk)
-- Ingen em-dashes, bruk komma eller punktum
-- Krediter brukere som rapporterer bugs: `@brukernavn` + issue-referanse
+- Skriv hele avsnitt og listepunkter på én linje, uten manuell linjebryting.
+- Bruk vanlige ord og konkrete endringer, uten fet ledetekst, reklamespråk eller mekanisk like punkter.
+- Hold punktene korte og skannbare. Ikke gjenta hva prosjektet er.
+- Bruk komma eller punktum fremfor em-dash.
+- Krediter brukere som rapporterer feil med `@brukernavn` og issue-referanse.
 
 Underoverskriftene er Keep a Changelog-kategoriene (`### Fikset`, `### Lagt
 til`, `### Endret`, `### Verifisert`, `### Dokumentert`), pluss `### Dette må
@@ -119,18 +115,14 @@ releasen.
 
 ## Dette må du gjøre selv
 
-Krever oppgraderingen noe aktivt av brukeren, bytte av entitets-id, bekreftelse
-av et enhetsbytte, et nytt felt som må velges, skal det stå i en egen
-`### Dette må du gjøre selv`-kategori. Kategorien er frivillig; de fleste
-releaser har ingenting der.
+Krever oppgraderingen noe aktivt av brukeren, som bytte av entitets-id, bekreftelse av et enhetsbytte eller et nytt felt som må velges, skal det stå i en egen `### Dette må du gjøre selv`-kategori. Kategorien utelates når ingen handling er nødvendig. Installasjon og valgfrie innstillinger skal ikke legges her.
 
 ```markdown
 ## [1.17.0]
 
 ### Dette må du gjøre selv
 
-- Sett terskelen for frossen energisensor under Innstillinger > Enheter og
-  tjenester > Strømkalkulator > Konfigurer. Default er 3 timer.
+- Bekreft enhetsbyttet under Innstillinger > System > Reparasjoner etter oppgraderingen.
 
 ### Lagt til
 
@@ -220,6 +212,8 @@ hele grafen, og publiserer først når artefakten er bygget, lastet opp og
 verifisert.
 
 ### Releaseporten
+
+Kandidaten er repo + full SHA + manifestversjon; tagg, ZIP og attestasjon skal være bundet til den samme kandidaten.
 
 `release.yml` er den eneste workflowen som kjører på push til main. Den kaller
 `ci.yml` (`workflow_call`) for sin egen commit og har `needs: ci`, så unit,

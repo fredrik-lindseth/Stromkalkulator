@@ -4,17 +4,15 @@ Home Assistant-integrasjon for nettleie, strømstøtte og Norgespris-sammenligni
 
 ## Ansvarsområde
 
-Strømkalkulator beregner og forklarer strøm- og nettleiekostnader. Integrasjonen
-eier norske tariffer, avgifter, strømstøtte, Norgespris og etterprøvbar
-avregning. Nord Pool og andre priskilder leverer spotprisgrunnlaget.
+Strømkalkulator er en Home Assistant-integrasjon som beregner nettleien fra målt forbruk og nettselskapets tariffer. Den håndterer energiledd, kapasitetstrinn, offentlige avgifter, strømstøtte og Norgespris, slik at du kan følge kostnadene og kontrollere dem mot nettleiefakturaen.
 
-Eventuelle beregninger av kommende priser følger samme ansvarsområde:
-kostnadsgrunnlag og synliggjøring av forutsetninger. Valg av kjøretidspunkt,
-prisoptimalisering og styring av laster hører til Effektvakt eller brukerens
-automasjoner. Ikke bygg en laststyrings- eller planleggingsmotor her.
+Strømpris og måledata hentes fra andre integrasjoner, for eksempel Nord Pool og en AMS/HAN-leser. Strømkalkulator bruker disse som grunnlag for nettleieberegningen og de offentlige støtteordningene.
 
-Private arbeidsnotater og intern oppgavesporing skal ikke inn i offentlige
-filer, tester eller commit-meldinger.
+Strømleverandørens avtalevilkår, påslag, abonnement og avtalehistorikk ligger utenfor integrasjonens ansvarsområde. Eksisterende totalpris- og kostnadsvisninger gir ikke full avregning av strømavtalen. Valg av kjøretidspunkt, prisoptimalisering og laststyring hører til [Effektvakt](https://github.com/fredrik-lindseth/hacs-effektvakt) eller brukerens automasjoner.
+
+Eventuelle beregninger av kommende priser følger samme ansvarsområde: kostnadsgrunnlag og synliggjøring av forutsetninger. Ikke bygg en laststyrings- eller planleggingsmotor her.
+
+Private arbeidsnotater og intern oppgavesporing skal ikke inn i offentlige filer, tester eller commit-meldinger.
 
 ## Hovedfiler
 
@@ -88,35 +86,9 @@ kapasitetstrinn) krever offisiell kilde og bestått testsuite. Kjør
 å fange pris-drift mot fri-nettleie før du endrer eller committer satser. Den
 sjekker både energiledd og fastledd; avvik i begge feller exit-koden.
 
-### CHANGELOG
+### Endringslogg og release
 
-En sluppet seksjon er historikk. Sjekk `gh release list` før du skriver, og lag
-en ny seksjon hvis den øverste allerede er publisert. Versjonen i
-`manifest.json` er bumpet ved release, så filen ser ut som om den gjelder det du
-jobber med. Seksjonen er release-noten: `scripts/release_notes.py` henter den og
-gjør relative lenker absolutte mot taggen, så skriv lenkene relativt som ellers,
-men pek bare på filer som finnes (en død lenke feller release-jobben). Krever
-releasen noe av brukeren, skriv det i en `### Dette må du gjøre selv`-kategori;
-den løftes øverst i release-body-en, og står den tom, stopper jobben.
-Release-body-en er den korte noten: handlingskategorien pluss punktene du merker
-med `<!--kort-->`. Merk de ti eller så en bruker faktisk ser forskjell på, for
-uten et eneste merke feller `just test` og CI. Se
-[release-notes.md](docs/release-notes.md#to-utskrifter-av-den-samme-teksten).
-
-### Release
-
-Push til main starter `release.yml`, som kaller `ci.yml` for sin egen commit og
-publiserer først når alt er grønt for nøyaktig den SHA-en. Kandidaten er repo +
-full SHA + manifestversjon, og tagg, ZIP og attestasjon bindes til den.
-Porten inkluderer `just test-e2e target=current` gjennom `e2e.yml`, med
-redigert evidens og opprydding. Docker kjøres ikke av `just test` eller hookene.
-Publisering er siste kall, så en kjøring som feiler halvveis etterlater ingen
-offentlig release, og den kjøres bare om igjen på samme commit.
-
-Flyten ligger i `scripts/release_publish.py` med tester i
-`tests/test_release_publish.py`. Endrer du den, kjør `just release-plan` og les
-hva den sier før du committer. Den skriver ingenting. Se
-[release-notes.md](docs/release-notes.md#releaseporten).
+Før du skriver eller endrer CHANGELOG/release-noter, endrer versjon eller releaseflyt, eller pusher til main: les og følg [docs/release-notes.md](docs/release-notes.md). Der står skrivereglene, kontrollkommandoene og publiseringsporten. Slupne seksjoner er historikk; push til main kan publisere en release.
 
 ### Kapasitetstrinn
 
@@ -146,26 +118,6 @@ dem reproduseres Norgespris-linjen eksakt (verifisert juni 2026). HA-recorderen
 lagrer prisene slik de så ut ved publisering og kan ha foreløpig valutakurs på
 søndager, så den duger ikke som fasit. Bakgrunn:
 [docs/research/norgespris-eksakt-match.md](docs/research/norgespris-eksakt-match.md).
-
-## Release-noter for Home Assistant
-
-GitHub-release-bodyen er teksten brukerne leser i HACS inne i Home Assistant.
-Skriv for den flaten: korte punkter om funksjoner, synlige rettelser og hva
-brukeren må gjøre. Første release beskriver hva brukeren får; senere releaser
-beskriver forskjellen fra forrige versjon.
-
-- Merk bare brukerrelevante punkter med `<!--kort-->`. Lengden følger endringene, uten et fast antall punkter.
-- Anta at leseren allerede har installert integrasjonen. Installasjon og valgfritt oppsett hører hjemme i README. `### Dette må du gjøre selv` er bare for nødvendige handlinger ved oppgradering.
-- Skriv hele avsnitt og listepunkter på én linje, uten manuell linjebryting. Bruk vanlige ord og konkrete endringer, uten fet ledetekst, reklamespråk eller mekanisk like punkter.
-- Sjekk tidligere manifestversjoner i git før du omtaler en utgivelse som den første. Manglende GitHub-releaser betyr ikke at tidligere versjoner mangler.
-- Legg testtall, CI, refaktorering, datakildepinner og annen utviklerinformasjon
-  i full CHANGELOG eller utviklerdokumentasjonen, uten kortmerke.
-- Release-bodyen skal ikke fylles med commit-logg, SHA-er eller byggedetaljer.
-  Proveniens bevises gjennom tagg, ZIP og attestasjon; se `SECURITY.md`.
-- Generer og les den faktiske korte release-noten før publisering. En kort
-  overskrift gjør ikke et langt avsnitt kort.
-
-Detaljer og kontrollkommandoer: [docs/release-notes.md](docs/release-notes.md).
 
 ## Dokumentasjon
 

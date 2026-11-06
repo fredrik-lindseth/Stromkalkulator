@@ -16,9 +16,11 @@
   <a href="SECURITY.md"><img src="https://slsa.dev/images/gh-badge-level1.svg" alt="SLSA 1"></a>
 </p>
 
-Home Assistant-integrasjon som beregner faktisk strømpris i Norge, inkludert nettleie, avgifter og strømstøtte. Du får sensorer for hva strømmen faktisk koster: energiledd dag/natt, kapasitetsledd, strømstøtte, totalpris til Energy Dashboard, månedlig forbruk og kostnad, faktura-sjekk mot forrige måned, og solcelle-eksport for plusskunder.
+Strømkalkulator er en Home Assistant-integrasjon som beregner nettleien fra målt forbruk og nettselskapets tariffer. Den håndterer energiledd, kapasitetstrinn, offentlige avgifter, strømstøtte og Norgespris, slik at du kan følge kostnadene og kontrollere dem mot nettleiefakturaen.
 
-Strømkalkulator eier kostnadsberegning og avregning. [Effektvakt](https://github.com/fredrik-lindseth/hacs-effektvakt) eier varsling og laststyring for å redusere forbruk og kostnader, og er stedet for eventuell prisplanlegging. Nord Pool leverer markedsprisene som beregningene og planleggingen kan bruke.
+Strømpris og måledata hentes fra andre integrasjoner, for eksempel Nord Pool og en AMS/HAN-leser. Strømkalkulator bruker disse som grunnlag for nettleieberegningen og de offentlige støtteordningene.
+
+Strømleverandørens avtalevilkår, påslag, abonnement og avtalehistorikk ligger utenfor integrasjonens ansvarsområde. Eksisterende totalpris- og kostnadsvisninger gir ikke full avregning av strømavtalen. Valg av kjøretidspunkt, prisoptimalisering og laststyring hører til [Effektvakt](https://github.com/fredrik-lindseth/hacs-effektvakt) eller brukerens automasjoner.
 
 ## Verifisert mot ekte fakturaer
 

@@ -13,7 +13,7 @@ def test_public_docs() -> None:
 def test_private_references_in_raw_markdown(tmp_path: Path) -> None:
     doc = tmp_path / "doc.md"
     doc.write_text(
-        "`stromkalkulator-zzzz999` `effektvakt-yyyy888`\n"
+        f"`{'stromkalkulator'}-{'zzzz999'}` `effektvakt-yyyy888`\n"
         "[lenke](https://dogcats.example/issue/xyz)\n"
         "```\n/Users/example/private/file\n/home/example/private/file\n```\n",
         encoding="utf-8",

@@ -6,7 +6,8 @@ Format basert på [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) og [S
 
 ### Dokumentert
 
-- Oppdatert veiledningene for oppsett, datakvalitet og fakturakontroll, med presise beskrivelser av gjeldende regler. [Dokumentasjonsoversikt](docs/README.md). <!--kort-->
+- Kortere README, med lenker til oppsett, datakvalitet og kontroll mot nettleiefakturaen. [Se veiledningene](docs/README.md). <!--kort-->
+- Presisert skriverreglene for release-noter: korte, konkrete brukerendringer i HACS og tekniske detaljer i full endringslogg.
 
 ### Endret
 

@@ -5,7 +5,7 @@ Dette er den samlede instruksen for CHANGELOG, release-noter og publisering. Les
 ## Arbeidsrekkefølge
 
 1. Før du skriver: kjør `gh release list` og sjekk om øverste CHANGELOG-seksjon er publisert. Slupne seksjoner er historikk; opprett `## [Ikke sluppet]` ved behov. Manifestversjonen alene sier ikke hvor nye endringer hører hjemme. Se [historikkregelen](#en-sluppet-seksjon-er-historikk).
-2. Skriv for HACS etter reglene under. Merk bare brukerrelevante punkter med `<!--kort-->`, og bruk `### Dette må du gjøre selv` bare for nødvendige oppgraderingshandlinger. Bruk relative lenker til filer som finnes.
+2. Les de siste publiserte release-notene med `gh release view <tagg> --json body -q .body`, og sammenlign tone og detaljnivå. Bruk den nyeste korte brukerteksten som mønster; eldre noter med lange avsnitt, fet ledetekst og byggelogger er historikk. Skriv for HACS etter reglene under. Merk bare brukerrelevante punkter med `<!--kort-->`, og bruk `### Dette må du gjøre selv` bare for nødvendige oppgraderingshandlinger. Bruk relative lenker til filer som finnes.
 3. Generer og les den faktiske korte noten med `python3 scripts/release_notes.py "Ikke sluppet" --kort`, eller bruk versjonsnummeret når seksjonen er navngitt. Kontroller ordvalg, lengde og nødvendige handlinger; grønn CI vurderer ikke om teksten er god.
 4. Før commit: kjør `just test-fast`, eller hele `just test` ved endringer i beregninger, tariffer, fakturafixturer eller grunnlaget for replay-testene. Kjør også begge HA-målene når endringen krever det, som beskrevet i [testguiden](testing.md#testmiljøer). Endrer du releaseflyten, kjør også `just release-plan` og les resultatet. Den skriver ingenting til GitHub.
 5. Før publisering: følg [publiseringsstegene](#publisering). Push til main starter releaseporten; alle kontrollene må være grønne for samme kandidat-SHA. Gjenoppta en feilet kjøring på samme commit.
@@ -22,13 +22,13 @@ Les den genererte korte noten før publisering, med handlingene først og lenke 
 
 ## CHANGELOG.md
 
-Det finnes én tekst, og den ligger i repoet. `## [X.Y.Z]`-seksjonen i `CHANGELOG.md` er kilden til alt brukerne får se; workflowen henter den med `scripts/release_notes.py`. Skriv den derfor som brukertekst, ikke som utviklerlogg.
+`CHANGELOG.md` er kilden til release-notene. Utkastet ligger under `## [Ikke sluppet]` fram til versjonen klargjøres. Full endringslogg kan inneholde utviklerdetaljer; de merkede punktene blir den korte brukerteksten i HACS. Workflowen henter teksten med `scripts/release_notes.py`.
 
 Se selv hva en gitt versjon gir:
 
 ```bash
-python3 scripts/release_notes.py 1.16.0         # hele seksjonen
-python3 scripts/release_notes.py 1.16.0 --kort  # det som blir release-body
+python3 scripts/release_notes.py 1.18.2         # hele seksjonen
+python3 scripts/release_notes.py 1.18.2 --kort  # det som blir release-body
 ```
 
 Exit 1 hvis seksjonen mangler, er tom, har en relativ lenke til en fil som ikke finnes, eller har en tom `### Dette må du gjøre selv`. Både `ci.yml` og `release.yml` henger på den exit-koden, så en versjon uten note blir aldri publisert.
@@ -68,7 +68,10 @@ Seksjonen «under arbeid» er den øverste i filen. Alt under den er sluppet og 
 
 - Skriv hele avsnitt og listepunkter på én linje, uten manuell linjebryting.
 - Bruk vanlige ord og konkrete endringer, uten fet ledetekst, reklamespråk eller mekanisk like punkter.
-- Hold punktene korte og skannbare. Ikke gjenta hva prosjektet er.
+- Hold punktene korte og skannbare, vanligvis én eller to setninger. Start med den konkrete endringen; ta med årsak eller konsekvens når det hjelper brukeren.
+- Beskriv bare det som er levert siden forrige utgivelse. Slå sammen relaterte rettelser til ett punkt; planer og utredninger hører ikke hjemme i release-notene.
+- Skriv hva dokumentasjonen hjelper brukeren med når veiledninger endres. Unngå generelle påstander som «forbedret kvalitet» og «verifisert korrekt»; lenk til datagrunnlaget når verifisering er poenget.
+- Ikke gjenta prosjektbeskrivelsen eller legg inn valgfrie oppsettstrinn for å fylle ut en kort release.
 - Bruk komma eller punktum fremfor em-dash.
 - Krediter brukere som rapporterer feil med `@brukernavn` og issue-referanse.
 

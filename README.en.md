@@ -18,34 +18,24 @@
 
 **[Norsk versjon / Norwegian version](README.md)**
 
-Home Assistant integration that calculates the actual electricity price in Norway, including grid tariffs, taxes, and government subsidies.
+Strømkalkulator is a Home Assistant integration that calculates Norwegian grid charges from measured consumption and grid company tariffs. It handles energy charges, capacity tiers, public taxes, electricity subsidy and Norgespris, so you can track costs and check them against your grid invoice.
 
-Strømkalkulator owns cost calculation and accounting. [Effektvakt](https://github.com/fredrik-lindseth/hacs-effektvakt) owns alerts and load control to reduce consumption and costs, and is the home for any future price planning. Nord Pool supplies the market prices used by calculations and planning.
+Electricity prices and meter readings come from other integrations, such as Nord Pool and an AMS/HAN reader. Strømkalkulator uses these as inputs for grid charges and public support schemes.
+
+Electricity supplier contract terms, markups, subscriptions and contract history are outside the integration’s scope. Existing total price and cost views do not provide full settlement of your electricity contract. Scheduling, price optimisation and load control belong in [Effektvakt](https://github.com/fredrik-lindseth/hacs-effektvakt) or your own automations.
 
 ## What you get
 
-Sensors showing what electricity actually costs:
+Sensors for grid charges, support schemes and costs:
 
 - Grid tariff: energy component (day/night) and capacity component from your grid company
 - Electricity subsidy: automatic (90 % above 96.25 øre/kWh)
-- Total price: everything included, usable in Energy Dashboard
+- Combined price and accumulated cost sensors for Energy Dashboard
 - Monthly consumption and cost
 - Invoice check against the previous month
 - Solar export (disabled by default)
 
-## Verified against real invoices
-
-| Grid company | Price area | Verified months | Latest verification |
-| ------------ | ---------- | --------------- | ------------------- |
-| BKK          | NO5        | 12              | October 2026        |
-
-Each report matches the integration's calculations line by line against a real invoice. See [docs/fakturaer/referanse.md](docs/fakturaer/referanse.md) (Norwegian).
-
-The integration hits the invoice to the øre: within 50 Wh on monthly consumption, 1-2 øre on the grid tariff lines (BKK's internal rounding), and the Norgespris line is reproduced exactly against published Final prices (June 2026, see [docs/research/priser/norgespris-eksakt-match.md](docs/research/priser/norgespris-eksakt-match.md), Norwegian). The live sensor can deviate 0.04-0.05 % because Nord Pool may correct the exchange rate after publication. No configuration needed. Details per meter brand and HAN reader: [docs/begrensninger.md](docs/begrensninger.md) (Norwegian).
-
-Verification was done on a Kaifa MA304H3E (3-phase, imported by Nuri Telecom) with a Pow-U HAN reader (AMSleser.no) and the official `nordpool` integration in HA. Aidon meters have the same broadcast timing (HH:00:10) and are expected to give the same precision. Other HAN readers and spot integrations may have different precision characteristics.
-
-Using a different grid company? [Submit your invoice](docs/fakturaer/verifiser-din-faktura.md) and we'll confirm it.
+The calculations have been verified against invoices and meter data. See [results and source data](docs/fakturaer/referanse.md) (Norwegian).
 
 ## Installation
 
@@ -70,7 +60,9 @@ Copy `custom_components/stromkalkulator` to `/config/custom_components/`
 
 ### Step 1: Select grid company
 
-Select your grid company from the dropdown. Tax zone (VAT and consumption tax) is set automatically based on your grid company.
+Norwegian grid companies serving households are included with their tariffs. Select your grid company from the dropdown; the tax zone (VAT and consumption tax) is set automatically. You can also choose **Egendefinert** to enter custom rates.
+
+For registered mergers, the grid company is updated automatically and your history is preserved.
 
 ### Property type
 
@@ -88,7 +80,7 @@ Above the Norgespris kWh cap, you pay spot price for the rest of the month. Holi
 - Spot price sensor (NOK/kWh): usually "Current price" from the [Nord Pool integration](https://www.home-assistant.io/integrations/nordpool/). It delivers prices excluding VAT, which is what the integration expects. If your sensor already includes VAT, tick "Spotpris-sensor leverer priser inkl. mva".
 - Electricity provider sensor (optional): total price from your provider (e.g. Tibber), to see what you actually pay.
 
-If your grid company is missing from the list, "Egendefinert" covers it: you enter the energy rate and tax zone yourself.
+An energy meter (kWh) provides measured consumption instead of an estimate from the power sensor. See [input sensors](docs/input-sensorer.md) (Norwegian) for requirements.
 
 ### Tax zones
 
@@ -134,6 +126,8 @@ Previous month's data for invoice verification.
 
 ![Previous month](images/forrige_måned.png)
 
+Want to check your own figures against your grid invoice? See the [invoice verification guide](docs/fakturaer/verifiser-din-faktura.md) (Norwegian).
+
 ### Export (Eksport)
 
 Solar export for prosumers (disabled by default).
@@ -156,7 +150,7 @@ Use **Totalpris inkl. avgifter**. Simplest to set up, but the capacity charge is
 
 ### Option 2: accumulated cost (recommended)
 
-Use **Akkumulert strømkostnad**. The capacity charge is distributed linearly over time, so the monthly total matches the invoice regardless of consumption. The sensor is disabled by default.
+Use **Akkumulert strømkostnad**. The capacity charge is distributed over time rather than multiplied by consumption. The sensor is disabled by default.
 
 1. Enable the sensor: **Settings > Devices > Monthly consumption > Entities > Akkumulert strømkostnad**
 2. **Settings > Dashboards > Energy > Add consumption**
@@ -168,7 +162,7 @@ Use **Akkumulert strømkostnad**. The capacity charge is distributed linearly ov
 
 Want to see the price components (spot price, grid tariff, taxes) separately? Use a custom dashboard card such as ApexCharts.
 
-## Electricity plans
+## Electricity subsidy and Norgespris
 
 ### Spot price
 
@@ -185,26 +179,6 @@ Norgespris is ordered at Elhub ([minside.elhub.no](https://minside.elhub.no)), n
 ### Comparing plans
 
 The "Prisforskjell Norgespris" sensor shows whether Norgespris or spot price is cheapest right now. A positive value means you save with Norgespris.
-
-## Checking against your invoice
-
-When the grid tariff invoice arrives:
-
-1. Go to Settings > Devices & Services > Strømkalkulator
-2. Click on the "Forrige måned" device
-3. Compare the values with your invoice
-
-Click on a sensor for details like the top-3 power days and costs split by day/night.
-
-![Grid tariff diagnostics](images/nettleie_diagnostic.png)
-
-## Supported grid companies
-
-The grid company list has 74 entries with rates, covering 72 grid companies (Area Nett has one entry per price area). Prices are updated annually at the start of the year. Found an error? [Create a PR](docs/contributing.md) or open an issue.
-
-## Grid company mergers
-
-The integration handles mergers automatically. The configuration updates at the next restart; consumption data and history are preserved. You'll get a notification under Settings > Repairs.
 
 ## Sensors
 
@@ -241,7 +215,7 @@ No. Electricity subsidy is only paid out when the spot price is above 96.25 øre
 
 ### The numbers don't quite match my invoice?
 
-You're probably missing an energy sensor (kWh meter) in your configuration. With an energy sensor, the integration reads consumption directly from the meter register and matches the invoice down to the last watt-hour. Without one, consumption is estimated via a Riemann sum of the power sensor, and you'll typically see a 1-5 % deviation over a month. See [input-sensorer.md](docs/input-sensorer.md) (Norwegian) for how to add one, and [beregninger.md](docs/beregninger.md#nøyaktighet) (Norwegian) for details.
+Check that the correct grid company, tax zone and sensors are selected. An energy sensor (kWh) provides measured consumption; without one, consumption is estimated from the power sensor. Price data and gaps in meter readings can also cause differences. See the [invoice verification guide](docs/fakturaer/verifiser-din-faktura.md) and [known limitations](docs/begrensninger.md) (Norwegian).
 
 <a id="capacity-charge-in-energy-dashboard"></a>
 ### Why does the Energy Dashboard show the wrong capacity charge?
@@ -254,7 +228,7 @@ Example: March, capacity charge 250 kr/month, spread over 744 kWh (31 days x 24)
 - The invoice says 250 kr
 - Deviation: +272 kr on the capacity charge alone
 
-Use **Akkumulert strømkostnad** instead. That sensor distributes the capacity charge linearly over time rather than per kWh, and gives correct monthly totals regardless of consumption. See [setup](#option-2-accumulated-cost-recommended).
+Use **Akkumulert strømkostnad** instead. That sensor distributes the capacity charge over time rather than per kWh. See [setup](#option-2-accumulated-cost-recommended).
 
 The "Månedlig nettleie total" sensor is also useful for invoice verification, but can't be used directly in the Energy Dashboard.
 
@@ -269,13 +243,7 @@ The "Månedlig nettleie total" sensor is also useful for invoice verification, b
 | [contributing.md](docs/contributing.md) | Update prices / report errors (Norwegian) |
 | [testing.md](docs/testing.md)           | Validating calculations (Norwegian)       |
 
-## Verifying releases
-
-Every release has a cryptographic attestation proving the ZIP file was built from the source code in this repo. See [SECURITY.md](SECURITY.md) for details.
-
-```bash
-gh attestation verify stromkalkulator.zip --repo fredrik-lindseth/Stromkalkulator
-```
+See [release verification](SECURITY.md) for how to check the origin of the downloaded file.
 
 ## Data sources
 

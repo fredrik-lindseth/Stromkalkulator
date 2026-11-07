@@ -79,11 +79,6 @@ def _tall(sti: str, monster: str) -> tuple[int, ...]:
 # (sti, regex, ventede tall) - regexen skal treffe nøyaktig én gang i filen.
 PASTANDER: list[tuple[str, str, tuple[int, ...]]] = [
     (
-        "README.md",
-        r"Nettselskapslisten har (\d+) oppføringer med satser, som dekker (\d+) nettselskap",
-        (ANTALL_VALGBARE, ANTALL_SELSKAP),
-    ),
-    (
         "docs/contributing.md",
         r"Nettselskapslisten har (\d+) oppføringer med satser, som dekker (\d+) norske",
         (ANTALL_VALGBARE, ANTALL_SELSKAP),
@@ -153,11 +148,6 @@ PASTANDER: list[tuple[str, str, tuple[int, ...]]] = [
         "AGENTS.md",
         r"hvorfor (\d+) nettselskap tolker samme NVE-regel på (\d+) måter",
         (ANTALL_SELSKAP, ANTALL_SELSKAP),
-    ),
-    (
-        "README.en.md",
-        r"The grid company list has (\d+) entries with rates, covering (\d+) grid companies",
-        (ANTALL_VALGBARE, ANTALL_SELSKAP),
     ),
     (
         "tests/test_fastledd_metoder.py",
